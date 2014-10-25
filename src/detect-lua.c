@@ -155,6 +155,8 @@ void DetectLuaRegister(void)
 #define DATATYPE_HTTP_RESPONSE_HEADERS      (1<<13)
 #define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
 
+#define DATATYPE_DNS_RRNAME                 (1<<15)
+
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
 {
@@ -938,7 +940,22 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                 SCLogError(SC_ERR_LUA_ERROR, "alloc error");
                 goto error;
             }
+        } else if (strncmp(k, "dns", 3) == 0 && strcmp(v, "true") == 0) {
 
+            ld->alproto = ALPROTO_DNS;
+
+            if (strcmp(k, "dns.rrname") == 0)
+                ld->flags |= DATATYPE_DNS_RRNAME;
+
+            else {
+                SCLogError(SC_ERR_LUA_ERROR, "unsupported dns data type %s", k);
+                goto error;
+            }
+            ld->buffername = SCStrdup(k);
+            if (ld->buffername == NULL) {
+                SCLogError(SC_ERR_LUA_ERROR, "alloc error");
+                goto error;
+            }
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1026,6 +1043,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    } else if (luajit->alproto == ALPROTO_DNS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERY_MATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));

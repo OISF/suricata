@@ -57,9 +57,114 @@ static uint32_t SRepGetVersion(void)
     return srep_version;
 }
 
+void SRepResetVersion(void)
+{
+    srep_version = 0;
+}
+
 static uint32_t SRepGetEffectiveVersion(void)
 {
     return SC_ATOMIC_GET(srep_eversion);
+}
+
+static void SRepCIDRFreeUserData(void *data)
+{
+    if (data != NULL)
+        SCFree(data);
+
+    return;
+}
+
+static void SRepCIDRAddNetblock(SRepCIDRTree *cidr_ctx, char *ip, int cat, int value)
+{
+    SReputation *user_data = NULL;
+    if ((user_data = SCMalloc(sizeof(SReputation))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        exit(EXIT_FAILURE);
+    }
+    memset(user_data, 0x00, sizeof(SReputation));
+
+    user_data->version = SRepGetVersion();
+    user_data->rep[cat] = value;
+
+    if (strchr(ip, ':') != NULL) {
+        if (cidr_ctx->srepIPV6_tree[cat] == NULL) {
+            cidr_ctx->srepIPV6_tree[cat] = SCRadixCreateRadixTree(SRepCIDRFreeUserData, NULL);
+            if (cidr_ctx->srepIPV6_tree[cat] == NULL) {
+                SCLogDebug("Error initializing Reputation IPV6 with CIDR module for cat %d", cat);
+                exit(EXIT_FAILURE);
+            }
+            SCLogDebug("Reputation IPV6 with CIDR module for cat %d initialized", cat);
+        }
+
+        SCLogDebug("adding ipv6 host %s", ip);
+        if (SCRadixAddKeyIPV6String(ip, cidr_ctx->srepIPV6_tree[cat], (void *)user_data) == NULL) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                        "failed to add ipv6 host %s", ip);
+        }
+
+    } else {
+        if (cidr_ctx->srepIPV4_tree[cat] == NULL) {
+            cidr_ctx->srepIPV4_tree[cat] = SCRadixCreateRadixTree(SRepCIDRFreeUserData, NULL);
+            if (cidr_ctx->srepIPV4_tree[cat] == NULL) {
+                SCLogDebug("Error initializing Reputation IPV4 with CIDR module for cat %d", cat);
+                exit(EXIT_FAILURE);
+            }
+            SCLogDebug("Reputation IPV4 with CIDR module for cat %d initialized", cat);
+        }
+
+        SCLogDebug("adding ipv4 host %s", ip);
+        if (SCRadixAddKeyIPV4String(ip, cidr_ctx->srepIPV4_tree[cat], (void *)user_data) == NULL) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                        "failed to add ipv4 host %s", ip);
+        }
+    }
+}
+
+static uint8_t SRepCIDRGetIPv4IPRep(SRepCIDRTree *cidr_ctx, uint8_t *ipv4_addr, uint8_t cat)
+{
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV4BestMatch(ipv4_addr, cidr_ctx->srepIPV4_tree[cat], &user_data);
+    if (user_data == NULL)
+        return 0;
+
+    SReputation *r = (SReputation *)user_data;
+    return r->rep[cat];
+}
+
+static uint8_t SRepCIDRGetIPv6IPRep(SRepCIDRTree *cidr_ctx, uint8_t *ipv6_addr, uint8_t cat)
+{
+    void *user_data = NULL;
+    (void)SCRadixFindKeyIPV6BestMatch(ipv6_addr, cidr_ctx->srepIPV6_tree[cat], &user_data);
+    if (user_data == NULL)
+        return 0;
+
+    SReputation *r = (SReputation *)user_data;
+    return r->rep[cat];
+}
+
+uint8_t SRepCIDRGetIPRepSrc(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version)
+{
+    uint8_t rep = 0;
+
+    if (PKT_IS_IPV4(p))
+        rep = SRepCIDRGetIPv4IPRep(cidr_ctx, (uint8_t *)GET_IPV4_SRC_ADDR_PTR(p), cat);
+    else if (PKT_IS_IPV6(p))
+        rep = SRepCIDRGetIPv6IPRep(cidr_ctx, (uint8_t *)GET_IPV6_SRC_ADDR(p), cat);
+
+    return rep;
+}
+
+uint8_t SRepCIDRGetIPRepDst(SRepCIDRTree *cidr_ctx, Packet *p, uint8_t cat, uint32_t version)
+{
+    uint8_t rep = 0;
+
+    if (PKT_IS_IPV4(p))
+        rep = SRepCIDRGetIPv4IPRep(cidr_ctx, (uint8_t *)GET_IPV4_DST_ADDR_PTR(p), cat);
+    else if (PKT_IS_IPV6(p))
+        rep = SRepCIDRGetIPv6IPRep(cidr_ctx, (uint8_t *)GET_IPV6_DST_ADDR(p), cat);
+
+    return rep;
 }
 
 /** \brief Increment effective reputation version after
@@ -162,7 +267,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
  *  \retval 1 header
  *  \retval -1 boo
  */
-static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
+static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
 {
     size_t line_len = strlen(line);
     char *ptrs[3] = {NULL,NULL,NULL};
@@ -200,11 +305,6 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
     if (strcmp(ptrs[0], "ip") == 0)
         return 1;
 
-    uint32_t addr;
-    if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
-        return -1;
-    }
-
     int c = atoi(ptrs[1]);
     if (c < 0 || c >= SREP_MAX_CATS) {
         return -1;
@@ -215,9 +315,20 @@ static int SRepSplitLine(char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
         return -1;
     }
 
-    *ip = addr;
-    *cat = c;
-    *value = v;
+    if (strchr(ptrs[0], '/') != NULL) {
+        SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
+        return 1;
+    } else {
+        uint32_t addr;
+        if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
+            return -1;
+        }
+
+        *ip = addr;
+        *cat = c;
+        *value = v;
+    }
+
     return 0;
 }
 
@@ -246,7 +357,24 @@ uint8_t SRepCatGetByShortname(char *shortname)
     return 0;
 }
 
-int SRepLoadCatFile(char *filename)
+static int SRepLoadCatFile(char *filename)
+{
+    int r = 0;
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
+        return -1;
+    }
+
+    r = SRepLoadCatFileFromFD(fp);
+
+    fclose(fp);
+    fp = NULL;
+    return r;
+}
+
+int SRepLoadCatFileFromFD(FILE *fp)
 {
     char line[8192] = "";
     Address a;
@@ -255,12 +383,6 @@ int SRepLoadCatFile(char *filename)
     memset(&srep_cat_table, 0x00, sizeof(srep_cat_table));
 
     BUG_ON(SRepGetVersion() > 0);
-
-    FILE *fp = fopen(filename, "r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
-        return -1;
-    }
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
@@ -290,8 +412,6 @@ int SRepLoadCatFile(char *filename)
             SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
         }
     }
-    fclose(fp);
-    fp = NULL;
 
     SCLogDebug("IP Rep categories:");
     int i;
@@ -303,18 +423,30 @@ int SRepLoadCatFile(char *filename)
     return 0;
 }
 
-static int SRepLoadFile(char *filename)
+static int SRepLoadFile(SRepCIDRTree *cidr_ctx, char *filename)
+{
+    int r = 0;
+    FILE *fp = fopen(filename, "r");
+
+    if (fp == NULL) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file %s: %s", filename, strerror(errno));
+        return -1;
+    }
+
+    r = SRepLoadFileFromFD(cidr_ctx, fp);
+
+    fclose(fp);
+    fp = NULL;
+    return r;
+
+}
+
+int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
 {
     char line[8192] = "";
     Address a;
     memset(&a, 0x00, sizeof(a));
     a.family = AF_INET;
-
-    FILE *fp = fopen(filename, "r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening ip rep file \"%s\": %s", filename, strerror(errno));
-        return -1;
-    }
 
     while(fgets(line, (int)sizeof(line), fp) != NULL) {
         size_t len = strlen(line);
@@ -338,7 +470,7 @@ static int SRepLoadFile(char *filename)
 
         uint32_t ip = 0;
         uint8_t cat = 0, value = 0;
-        int r = SRepSplitLine(line, &ip, &cat, &value);
+        int r = SRepSplitLine(cidr_ctx, line, &ip, &cat, &value);
         if (r < 0) {
             SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
         } else if (r == 0) {
@@ -394,8 +526,6 @@ static int SRepLoadFile(char *filename)
             }
         }
     }
-    fclose(fp);
-    fp = NULL;
 
     return 0;
 }
@@ -459,6 +589,18 @@ int SRepInit(DetectEngineCtx *de_ctx)
     char *sfile = NULL;
     char *filename = NULL;
     int init = 0;
+    int i = 0;
+
+    de_ctx->srepCIDR_ctx = (SRepCIDRTree *)SCMalloc(sizeof(SRepCIDRTree));
+    if (de_ctx->srepCIDR_ctx == NULL)
+        exit(EXIT_FAILURE);
+    memset(de_ctx->srepCIDR_ctx, 0, sizeof(SRepCIDRTree));
+    SRepCIDRTree *cidr_ctx = de_ctx->srepCIDR_ctx;
+
+    for (i = 0; i < SREP_MAX_CATS; i++) {
+        cidr_ctx->srepIPV4_tree[i] = NULL;
+        cidr_ctx->srepIPV6_tree[i] = NULL;
+    }
 
     if (SRepGetVersion() == 0) {
         SC_ATOMIC_INIT(srep_eversion);
@@ -502,7 +644,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
             sfile = SRepCompleteFilePath(file->val);
             SCLogInfo("Loading reputation file: %s", sfile);
 
-            r = SRepLoadFile(sfile);
+            r = SRepLoadFile(cidr_ctx, sfile);
             if (r < 0){
                 if (de_ctx->failure_fatal == 1) {
                     exit(EXIT_FAILURE);
@@ -523,41 +665,70 @@ int SRepInit(DetectEngineCtx *de_ctx)
 }
 
 #ifdef UNITTESTS
+
+#include "conf-yaml-loader.h"
+#include "detect-engine.h"
+#include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
+#include "stream-tcp.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
 static int SRepTest01(void)
 {
     char str[] = "1.2.3.4,1,2";
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return 0;
+    }
 
+    SRepInit(de_ctx);
     uint32_t ip = 0;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(str, &ip, &cat, &value) != 0) {
-        return 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 0) {
+        goto end;
     }
 
     char ipstr[16];
     PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
 
     if (strcmp(ipstr, "1.2.3.4") != 0)
-        return 0;
+        goto end;
 
     if (cat != 1)
-        return 0;
+        goto end;
 
     if (value != 2)
-        return 0;
+        goto end;
 
-    return 1;
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
 }
 
 static int SRepTest02(void)
 {
     char str[] = "1.1.1.1,";
-
-    uint32_t ip = 0;
-    uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(str, &ip, &cat, &value) == 0) {
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
         return 0;
     }
-    return 1;
+
+    SRepInit(de_ctx);
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) == 0) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
 }
 
 static int SRepTest03(void)
@@ -585,7 +756,115 @@ static int SRepTest03(void)
     return 1;
 }
 
+static int SRepTest04(void)
+{
+    int result = 0;
 
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    SRepInit(de_ctx);
+
+    char str[] = "10.0.0.0/16,1,2";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SRepTest05(void)
+{
+    Packet *p = NULL;
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    if (p == NULL) {
+        return result;
+    }
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("10.0.0.1");
+
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+    SRepInit(de_ctx);
+
+    char str[] = "10.0.0.0/16,1,20";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+    cat = 1;
+    value = SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0);
+    if (value != 20) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    UTHFreePacket(p);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SRepTest06(void)
+{
+    Packet *p = NULL;
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+    if (p == NULL) {
+        return result;
+    }
+
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+
+    DetectEngineCtx *de_ctx;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return result;
+    }
+    SRepInit(de_ctx);
+
+    char str[] =
+        "0.0.0.0/0,1,10\n"
+        "192.168.0.0/16,2,127";
+
+    uint32_t ip = 0;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+        goto end;
+    }
+    cat = 1;
+    value = SRepCIDRGetIPRepSrc(de_ctx->srepCIDR_ctx, p, cat, 0);
+    if (value != 10) {
+        goto end;
+    }
+    result = 1;
+
+end:
+    UTHFreePacket(p);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif
 
 /** Global trees that hold host reputation for IPV4 and IPV6 hosts */
@@ -2020,6 +2299,9 @@ void SCReputationRegisterTests(void)
     UtRegisterTest("SRepTest01", SRepTest01, 1);
     UtRegisterTest("SRepTest02", SRepTest02, 1);
     UtRegisterTest("SRepTest03", SRepTest03, 1);
+    UtRegisterTest("SRepTest04", SRepTest04, 1);
+    UtRegisterTest("SRepTest05", SRepTest05, 1);
+    UtRegisterTest("SRepTest06", SRepTest06, 1);
 #endif /* UNITTESTS */
 }
 
