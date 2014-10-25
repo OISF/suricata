@@ -114,8 +114,8 @@ static const char *UrlExeExts[] = { ".exe",
  *
  * \return none
  */
-static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t len) {
-
+static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t len)
+{
     if (log_level <= sc_log_global_log_level) {
 
         static uint32_t max_len = 100;
@@ -145,8 +145,8 @@ static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t 
  * \param config Config policy to set
  * \return none
  */
-void MimeDecSetConfig(MimeDecConfig *config) {
-
+void MimeDecSetConfig(MimeDecConfig *config)
+{
     if (config != NULL) {
         mime_dec_config = *config;
 
@@ -164,7 +164,8 @@ void MimeDecSetConfig(MimeDecConfig *config) {
  *
  * \return config data structure
  */
-MimeDecConfig * MimeDecGetConfig(void) {
+MimeDecConfig * MimeDecGetConfig(void)
+{
     return &mime_dec_config;
 }
 
@@ -232,8 +233,8 @@ void MimeDecFreeEntity (MimeDecEntity *entity)
  * \return none
  *
  */
-void MimeDecFreeField(MimeDecField *field) {
-
+void MimeDecFreeField(MimeDecField *field)
+{
     MimeDecField *temp, *curr;
 
     if (field != NULL) {
@@ -261,8 +262,8 @@ void MimeDecFreeField(MimeDecField *field) {
  * \return none
  *
  */
-void MimeDecFreeUrl(MimeDecUrl *url) {
-
+void MimeDecFreeUrl(MimeDecUrl *url)
+{
     MimeDecUrl *temp, *curr;
 
     if (url != NULL) {
@@ -290,8 +291,8 @@ void MimeDecFreeUrl(MimeDecUrl *url) {
  * \return The field object, or NULL if the operation fails
  *
  */
-MimeDecField * MimeDecAddField(MimeDecEntity *entity) {
-
+MimeDecField * MimeDecAddField(MimeDecEntity *entity)
+{
     MimeDecField *node = SCMalloc(sizeof(MimeDecField));
     if (unlikely(node == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
@@ -347,8 +348,8 @@ MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name) {
  * \return URL entry or NULL if the operation fails
  *
  */
-MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity) {
-
+MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity)
+{
     MimeDecUrl *node = SCMalloc(sizeof(MimeDecUrl));
     if (unlikely(node == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
@@ -380,8 +381,8 @@ MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity) {
  * \return The child entity, or NULL if the operation fails
  *
  */
-MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent) {
-
+MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
+{
     MimeDecEntity *curr, *node = SCMalloc(sizeof(MimeDecEntity));
     if (unlikely(node == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
@@ -418,8 +419,8 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent) {
  * \return The field or NULL if the operation fails
  */
 static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
-        uint32_t nlen, const uint8_t *value, uint32_t vlen) {
-
+        uint32_t nlen, const uint8_t *value, uint32_t vlen)
+{
     MimeDecField *field = MimeDecAddField(entity);
     if (unlikely(field == NULL)) {
         return NULL;
@@ -450,8 +451,8 @@ static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
  *
  * \return pointer to a new node, otherwise NULL if it fails
  */
-static MimeDecStackNode * PushStack(MimeDecStack *stack) {
-
+static MimeDecStackNode * PushStack(MimeDecStack *stack)
+{
     /* Attempt to pull from free nodes list */
     MimeDecStackNode *node = stack->free_nodes;
     if (node == NULL) {
@@ -482,8 +483,8 @@ static MimeDecStackNode * PushStack(MimeDecStack *stack) {
  *
  * \return pointer to the next node, otherwise NULL if no nodes remain
  */
-static MimeDecStackNode * PopStack(MimeDecStack *stack) {
-
+static MimeDecStackNode * PopStack(MimeDecStack *stack)
+{
     /* Move stack pointer to next item */
     MimeDecStackNode *curr = stack->top;
     if (curr != NULL) {
@@ -514,12 +515,11 @@ static MimeDecStackNode * PopStack(MimeDecStack *stack) {
  *
  * \return none
  */
-static void FreeMimeDecStack(MimeDecStack *stack) {
-
+static void FreeMimeDecStack(MimeDecStack *stack)
+{
     MimeDecStackNode *temp, *curr;
 
     if (stack != NULL) {
-
         /* Top of stack */
         curr = stack->top;
         while (curr != NULL) {
@@ -552,8 +552,8 @@ static void FreeMimeDecStack(MimeDecStack *stack) {
  *
  * \return pointer to a new node, otherwise NULL if it fails
  */
-static DataValue * AddDataValue(DataValue *dv) {
-
+static DataValue * AddDataValue(DataValue *dv)
+{
     DataValue *curr, *node = SCMalloc(sizeof(DataValue));
     if (unlikely(node == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "memory allocation failed");
@@ -580,7 +580,8 @@ static DataValue * AddDataValue(DataValue *dv) {
  *
  * \return none
  */
-static void FreeDataValue(DataValue *dv) {
+static void FreeDataValue(DataValue *dv)
+{
     DataValue *temp, *curr;
 
     if (dv != NULL) {
@@ -605,8 +606,8 @@ static void FreeDataValue(DataValue *dv) {
  *
  * \return pointer to a single value, otherwise NULL if it fails or is zero-length
  */
-static uint8_t * GetFullValue(DataValue *dv, uint32_t *len) {
-
+static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
+{
     DataValue *curr;
     uint32_t offset = 0;
     uint8_t *val = NULL;
@@ -678,8 +679,8 @@ static inline uint8_t * FindBuffer(const uint8_t *src, uint32_t len, const uint8
  * \return Pointer to line
  */
 static uint8_t * GetLine(uint8_t *buf, uint32_t blen, uint8_t **remainPtr,
-        uint32_t *tokLen) {
-
+        uint32_t *tokLen)
+{
     uint32_t i;
     uint8_t *tok;
 
@@ -733,8 +734,8 @@ static uint8_t * GetLine(uint8_t *buf, uint32_t blen, uint8_t **remainPtr,
  * \return Pointer to token, or NULL if not found
  */
 static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
-        uint8_t **remainPtr, uint32_t *tokenLen) {
-
+        uint8_t **remainPtr, uint32_t *tokenLen)
+{
     uint32_t i, j, delimFound = 0;
     uint8_t *tok = NULL;
 
@@ -797,8 +798,8 @@ static uint8_t * GetToken(uint8_t *buf, uint32_t blen, const char *delims,
  *
  * \return MIME_DEC_OK if stored, otherwise a negative number indicating error
  */
-static int StoreMimeHeader(MimeDecParseState *state) {
-
+static int StoreMimeHeader(MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK, stored = 0;
     uint8_t *val;
     uint32_t vlen;
@@ -855,8 +856,8 @@ static int StoreMimeHeader(MimeDecParseState *state) {
  * \retval 1 The url points to an EXE
  * \retval 0 The url does NOT point to an EXE
  */
-static int IsExeUrl(const uint8_t *url, uint32_t len) {
-
+static int IsExeUrl(const uint8_t *url, uint32_t len)
+{
     int isExeUrl = 0;
     uint32_t i, extLen;
     uint8_t *ext;
@@ -883,10 +884,9 @@ static int IsExeUrl(const uint8_t *url, uint32_t len) {
  * \retval 1 The host is a numeric IP
  * \retval 0 The host is NOT a numeric IP
  */
-static int IsIpv4Host(const uint8_t *urlhost, uint32_t len) {
-
+static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
+{
     struct sockaddr_in sa;
-
     char tempIp[MAX_IP4_CHARS + 1];
 
     /* Cut off at '/'  */
@@ -919,10 +919,9 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len) {
  * \retval 1 The host is a numeric IP
  * \retval 0 The host is NOT a numeric IP
  */
-static int IsIpv6Host(const uint8_t *urlhost, uint32_t len) {
-
+static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
+{
     struct sockaddr_in sa;
-
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
@@ -994,8 +993,8 @@ static MimeDecUrl *FindExistingUrl(MimeDecEntity *entity, uint8_t *url, uint32_t
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int FindUrlStrings(const uint8_t *line, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
@@ -1104,8 +1103,8 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint8_t *remainPtr, *tok;
     uint32_t tokLen;
@@ -1156,8 +1155,8 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
         }
 
         /* Now invoke callback */
-        if (state->dataChunkProcessor != NULL) {
-            ret = state->dataChunkProcessor(chunk, len, state);
+        if (state->DataChunkProcessorFunc != NULL) {
+            ret = state->DataChunkProcessorFunc(chunk, len, state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("Error: state->dataChunkProcessor() callback function"
                             " failed");
@@ -1189,8 +1188,8 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
  * \return Number of bytes pulled from the current buffer
  */
 static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state, int force) {
-
+        MimeDecParseState *state, int force)
+{
     uint32_t ret;
     uint8_t remainder = 0, remdec = 0;
 
@@ -1262,8 +1261,8 @@ static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint8_t rem1 = 0, rem2 = 0;
     uint32_t numDecoded, remaining, offset, avail, tobuf;
@@ -1370,7 +1369,8 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
  *
  * \return byte value on success, -1 if failed
  **/
-static int16_t DecodeQPChar(char h) {
+static int16_t DecodeQPChar(char h)
+{
     uint16_t res = 0;
 
     /* 0-9 */
@@ -1399,8 +1399,8 @@ static int16_t DecodeQPChar(char h) {
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint32_t remaining, offset;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
@@ -1513,8 +1513,8 @@ static int ProcessQuotedPrintableBodyLine(const uint8_t *buf, uint32_t len,
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint32_t remaining, offset, avail, tobuf;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
@@ -1597,8 +1597,8 @@ static int ProcessBodyLine(const uint8_t *buf, uint32_t len,
  *
  * \return Pointer to header name, or NULL if not found
  */
-static uint8_t * FindMimeHeaderStart(const uint8_t *buf, uint32_t blen, uint32_t *hlen) {
-
+static uint8_t * FindMimeHeaderStart(const uint8_t *buf, uint32_t blen, uint32_t *hlen)
+{
     uint32_t i, valid = 0;
     uint8_t *hname = NULL;
 
@@ -1639,8 +1639,8 @@ static uint8_t * FindMimeHeaderStart(const uint8_t *buf, uint32_t blen, uint32_t
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint8_t *hname, *hval = NULL;
     DataValue *dv;
@@ -1746,7 +1746,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 
     /* If we need to finish a header, then do so below and then cleanup */
     if (finish_header) {
-
         /* Store the header value */
         ret = StoreMimeHeader(state);
         if (ret != MIME_DEC_OK) {
@@ -1757,7 +1756,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
 
     /* When next header is found, we always create a new one */
     if (new_header) {
-
         /* Copy name and value to state */
         state->hname = SCMalloc(hlen);
         if (unlikely(state->hname == NULL)) {
@@ -1774,7 +1772,6 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
         }
 
         if (hval != NULL) {
-
             /* If max header value exceeded, flag it */
             vlen = blen - (hval - buf);
             if ((mdcfg != NULL) && (state->hvlen + vlen > mdcfg->header_value_depth)) {
@@ -1784,8 +1781,8 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
                 state->stack->top->data->anomaly_flags |= ANOM_LONG_HEADER_VALUE;
                 state->msg->anomaly_flags |= ANOM_LONG_HEADER_VALUE;
             }
-            if (vlen > 0) {
 
+            if (vlen > 0) {
                 state->hvalue = AddDataValue(NULL);
                 if (state->hvalue == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "AddDataValue() function failed");
@@ -1817,8 +1814,8 @@ static int FindMimeHeader(const uint8_t *buf, uint32_t blen,
  * \return A pointer to the token if found, otherwise NULL if not found
  */
 static uint8_t * FindMimeHeaderToken(MimeDecField *field, char *search_start,
-        char *search_end, uint32_t *tlen) {
-
+        char *search_end, uint32_t *tlen)
+{
     uint8_t *fptr, *tptr = NULL, *tok = NULL;
 
     SCLogDebug("Looking for token: %s", search_start);
@@ -1848,8 +1845,8 @@ static uint8_t * FindMimeHeaderToken(MimeDecField *field, char *search_start,
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     MimeDecField *field;
     uint8_t *bptr = NULL, *rptr = NULL;
@@ -1865,7 +1862,6 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
     /* Post-processing after all headers done */
     if (state->state_flag == HEADER_DONE) {
-
         /* First determine encoding by looking at Content-Transfer-Encoding */
         field = MimeDecFindField(entity, CTNT_TRAN_STR);
         if (field != NULL) {
@@ -1902,12 +1898,10 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         /* Check for boundary, encapsulated message, and file name in Content-Type */
         field = MimeDecFindField(entity, CTNT_TYPE_STR);
         if (field != NULL) {
-
             /* Check if child entity boundary definition found */
             bptr = FindMimeHeaderToken(field, BND_START_STR, TOK_END_STR, &blen);
             if (bptr != NULL) {
                 state->found_child = 1;
-
                 entity->ctnt_flags |= CTNT_IS_MULTIPART;
 
                 /* Store boundary in parent node */
@@ -1942,7 +1936,6 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
             entity->ctnt_type = GetToken(field->value, field->value_len, " \r\n;",
                     &rptr, &entity->ctnt_type_len);
             if (entity->ctnt_type != NULL) {
-
                 /* Check for encapsulated message */
                 if (FindBuffer(entity->ctnt_type, entity->ctnt_type_len,
                             (const uint8_t *)MSG_STR, strlen(MSG_STR)))
@@ -2007,8 +2000,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-static int ProcessBodyComplete(MimeDecParseState *state) {
-
+static int ProcessBodyComplete(MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
 
     SCLogDebug("Process body complete called");
@@ -2051,8 +2044,8 @@ static int ProcessBodyComplete(MimeDecParseState *state) {
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint8_t *rptr;
     MimeDecEntity *child;
@@ -2104,7 +2097,6 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
 
     /* Now check for end of nested boundary */
     if (len - (rptr - buf) > 1 && rptr[0] == DASH && rptr[1] == DASH) {
-
         SCLogDebug("FOUND END BOUNDARY, POPPING: %p=%p",
                 state->stack->top, state->stack->top->data);
 
@@ -2118,7 +2110,6 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
         /* If current is an encapsulated message with a boundary definition,
          * then pop him as well */
         if (state->stack->top->is_encap && state->stack->top->bdef_len != 0) {
-
             SCLogDebug("FOUND END BOUNDARY AND ENCAP, POPPING: %p=%p",
                     state->stack->top, state->stack->top->data);
 
@@ -2172,7 +2163,6 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
     }
 
     SCLogDebug("PROCESSING BOUNDARY - END: %d", state->state_flag);
-
     return ret;
 }
 
@@ -2186,8 +2176,8 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
     uint8_t temp[BOUNDARY_BUF];
     uint8_t *bstart;
@@ -2228,8 +2218,6 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
             tlen = node->bdef_len + 2;
             memcpy(temp, "--", 2);
             memcpy(temp + 2, node->bdef, node->bdef_len);
-
-//            SCLogDebug("Boundary to search: [%s]", temp);
 
             /* Find either next boundary or end boundary */
             bstart = FindBuffer((const uint8_t *)buf, len, temp, tlen);
@@ -2274,8 +2262,8 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
 
     SCLogDebug("START FLAG: %s", StateFlags[state->state_flag]);
@@ -2328,9 +2316,9 @@ static int ProcessMimeEntity(const uint8_t *buf, uint32_t len,
  * \return A pointer to the state object, or NULL if the operation fails
  */
 MimeDecParseState * MimeDecInitParser(void *data,
-        int (*dcpfunc)(const uint8_t *chunk, uint32_t len,
-                MimeDecParseState *state)) {
-
+        int (*DataChunkProcessorFunc)(const uint8_t *chunk, uint32_t len,
+                MimeDecParseState *state))
+{
     MimeDecParseState *state;
     MimeDecEntity *mimeMsg;
 
@@ -2371,7 +2359,7 @@ MimeDecParseState * MimeDecInitParser(void *data,
     state->stack->top->data = mimeMsg;
     state->state_flag = HEADER_READY;
     state->data = data;
-    state->dataChunkProcessor = dcpfunc;
+    state->DataChunkProcessorFunc = DataChunkProcessorFunc;
 
     return state;
 }
@@ -2383,12 +2371,11 @@ MimeDecParseState * MimeDecInitParser(void *data,
  *
  * \return none
  */
-void MimeDecDeInitParser(MimeDecParseState *state) {
-
+void MimeDecDeInitParser(MimeDecParseState *state)
+{
     uint32_t cnt = 0;
 
     while (state->stack->top != NULL) {
-
         SCLogDebug("Remaining on stack: [%p]=>[%p]",
                 state->stack->top, state->stack->top->data);
 
@@ -2418,8 +2405,8 @@ void MimeDecDeInitParser(MimeDecParseState *state) {
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
-int MimeDecParseComplete(MimeDecParseState *state) {
-
+int MimeDecParseComplete(MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
 
     SCLogDebug("Parsing flagged as completed");
@@ -2475,8 +2462,8 @@ int MimeDecParseComplete(MimeDecParseState *state) {
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 int MimeDecParseLine(const uint8_t *line, const uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     int ret = MIME_DEC_OK;
 
     /* For debugging purposes */
@@ -2509,8 +2496,8 @@ int MimeDecParseLine(const uint8_t *line, const uint32_t len,
  */
 MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
         int (*dcpfunc)(const uint8_t *chunk, uint32_t len,
-                MimeDecParseState *state)) {
-
+                MimeDecParseState *state))
+{
     int ret = MIME_DEC_OK;
     uint8_t *remainPtr, *tok;
     uint32_t tokLen;
@@ -2569,8 +2556,8 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
 
 /* Helper body chunk callback function */
 static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
-        MimeDecParseState *state) {
-
+        MimeDecParseState *state)
+{
     uint32_t *line_count = (uint32_t *) state->data;
 
     if (state->body_begin) {
@@ -2609,7 +2596,8 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
 }
 
 /* Test simple case of line counts */
-static int MimeDecParseLineTest01(void) {
+static int MimeDecParseLineTest01(void)
+{
     int ret = MIME_DEC_OK;
 
     uint32_t expected_count = 3;
@@ -2672,7 +2660,8 @@ static int MimeDecParseLineTest01(void) {
 }
 
 /* Test simple case of EXE URL extraction */
-static int MimeDecParseLineTest02(void) {
+static int MimeDecParseLineTest02(void)
+{
     int ret = MIME_DEC_OK;
 
     uint32_t expected_count = 2;
@@ -2738,7 +2727,8 @@ static int MimeDecParseLineTest02(void) {
 }
 
 /* Test full message with linebreaks */
-static int MimeDecParseFullMsgTest01(void) {
+static int MimeDecParseFullMsgTest01(void)
+{
     int ret = MIME_DEC_OK;
 
     uint32_t expected_count = 3;
@@ -2770,8 +2760,8 @@ static int MimeDecParseFullMsgTest01(void) {
     return ret;
 }
 
-static int MimeBase64DecodeTest01(void){
-
+static int MimeBase64DecodeTest01(void)
+{
     int ret = -1;
 
     char *msg = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@"
@@ -2792,7 +2782,8 @@ static int MimeBase64DecodeTest01(void){
     return ret;
 }
 
-static int MimeIsExeURLTest01(void){
+static int MimeIsExeURLTest01(void)
+{
     int ret = -1;
     char *url1 = "http://www.google.com/";
     char *url2 = "http://www.google.com/test.exe";
@@ -2812,8 +2803,8 @@ static int MimeIsExeURLTest01(void){
     return ret;
 }
 
-static int MimeIsIpv4HostTest01(void) {
-
+static int MimeIsIpv4HostTest01(void)
+{
     if(IsIpv4Host((const uint8_t *)"192.168.1.1", 11) != 1) {
         return 1;
     }
@@ -2841,8 +2832,8 @@ static int MimeIsIpv4HostTest01(void) {
     return 0;
 }
 
-static int MimeIsIpv6HostTest01(void) {
-
+static int MimeIsIpv6HostTest01(void)
+{
     if(IsIpv6Host((const uint8_t *)"0:0:0:0:0:0:0:0", 19) != 1) {
         return 1;
     }
@@ -2880,7 +2871,8 @@ static int MimeIsIpv6HostTest01(void) {
 
 #endif /* UNITTESTS */
 
-void MimeDecRegisterTests(void) {
+void MimeDecRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01, 0);
     UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02, 0);
