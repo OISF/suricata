@@ -108,7 +108,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
             //printf("email LOG\n");
 
             /* From: */
-            field = MimeDecFindField(entity, "From");
+            field = MimeDecFindField(entity, "from");
             if (field != NULL) {
                 char *s = BytesToString((uint8_t *)field->value,
                                         (size_t)field->value_len);
@@ -121,7 +121,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
 
             /* To: */
             char *to_line = NULL;
-            field = MimeDecFindField(entity, "To");
+            field = MimeDecFindField(entity, "to");
             if (field != NULL) {
                 json_t *js_to = json_array();
                 if (likely(js_to != NULL)) {
@@ -143,7 +143,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
 
             /* Cc: */
             char *cc_line = NULL;
-            field = MimeDecFindField(entity, "Cc");
+            field = MimeDecFindField(entity, "cc");
             if (field != NULL) {
                 json_t *js_cc = json_array();
                 if (likely(js_cc != NULL)) {
@@ -164,7 +164,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
             }
 
             /* Subject: */
-            field = MimeDecFindField(entity, "Subject");
+            field = MimeDecFindField(entity, "subject");
             if (field != NULL) {
                 char *s = BytesToString((uint8_t *)field->value, (size_t) field->value_len);
                 if (likely(s != NULL)) {

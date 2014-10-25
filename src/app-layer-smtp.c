@@ -735,7 +735,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
         if (smtp_config.decode_mime) {
-            int ret = MimeDecParseLine((const char *) state->current_line,
+            int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->mime_state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);

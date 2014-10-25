@@ -104,9 +104,9 @@ typedef struct MimeDecConfig {
  * \brief This represents a header field name and associated value
  */
 typedef struct MimeDecField {
-    char *name;  /**< Name of the header field */
+    uint8_t *name;  /**< Name of the header field */
     uint32_t name_len;  /**< Length of the name */
-    char *value;  /**< Value of the header field */
+    uint8_t *value;  /**< Value of the header field */
     uint32_t value_len;  /**< Length of the value */
     struct MimeDecField *next;  /**< Pointer to next field */
 } MimeDecField;
@@ -119,7 +119,7 @@ typedef struct MimeDecField {
  * pointing to an executable file (see url_flags to determine which).
  */
 typedef struct MimeDecUrl {
-    char *url;  /**< String representation of full or partial URL */
+    uint8_t *url;  /**< String representation of full or partial URL (lowercase) */
     uint32_t url_len;  /**< Length of the URL string */
     uint32_t url_flags;  /**< Flags indicating type of URL */
     uint32_t url_cnt;  /**< Count of URLs with same value */
@@ -138,11 +138,11 @@ typedef struct MimeDecEntity {
     uint32_t header_flags; /**< Flags indicating header characteristics */
     uint32_t ctnt_flags;  /**< Flags indicating type of content */
     uint32_t anomaly_flags;  /**< Flags indicating an anomaly in the message */
-    char *filename;  /**< Name of file attachment */
+    uint8_t *filename;  /**< Name of file attachment */
     uint32_t filename_len;  /**< Length of file attachment name */
-    char *ctnt_type;  /**< Quick access pointer to short-hand content type field */
+    uint8_t *ctnt_type;  /**< Quick access pointer to short-hand content type field */
     uint32_t ctnt_type_len;  /**< Length of content type field value */
-    char *msg_id;  /**< Quick access pointer to message Id */
+    uint8_t *msg_id;  /**< Quick access pointer to message Id */
     uint32_t msg_id_len;  /**< Quick access pointer to message Id */
     struct MimeDecEntity *next;  /**< Pointer to list of sibling entities */
     struct MimeDecEntity *child;  /**< Pointer to list of child entities */
@@ -155,7 +155,7 @@ typedef struct MimeDecEntity {
  */
 typedef struct MimeDecStackNode {
     MimeDecEntity *data;  /**< Pointer to the entity data structure */
-    char *bdef;  /**< Copy of boundary definition for child entity */
+    uint8_t *bdef;  /**< Copy of boundary definition for child entity */
     uint32_t bdef_len;  /**< Boundary length for child entity */
     int is_encap;  /**< Flag indicating entity is encapsulated in message */
     struct MimeDecStackNode *next;  /**< Pointer to next item on the stack */
@@ -176,7 +176,7 @@ typedef struct MimeDecStack {
  *
  */
 typedef struct DataValue {
-    char *value;  /**< Copy of data value */
+    uint8_t *value;  /**< Copy of data value */
     uint32_t value_len;  /**< Length of data value */
     struct DataValue *next;  /**< Pointer to next value in the list */
 } DataValue;
@@ -188,13 +188,13 @@ typedef struct DataValue {
 typedef struct MimeDecParseState {
     MimeDecEntity *msg;  /**< Pointer to the top-level message entity */
     MimeDecStack *stack;  /**< Pointer to the top of the entity stack */
-    char *hname;  /**< Copy of the last known header name */
+    uint8_t *hname;  /**< Copy of the last known header name */
     uint32_t hlen;  /**< Length of the last known header name */
     DataValue *hvalue;  /**< Pointer to the incomplete header value list */
     uint32_t hvlen; /**< Total length of value list */
-    char linerem[LINEREM_SIZE];  /**< Remainder from previous line (for URL extraction) */
+    uint8_t linerem[LINEREM_SIZE];  /**< Remainder from previous line (for URL extraction) */
     uint16_t linerem_len;  /**< Length of remainder from previous line */
-    char bvremain[B64_BLOCK];  /**< Remainder from base64-decoded line */
+    uint8_t bvremain[B64_BLOCK];  /**< Remainder from base64-decoded line */
     uint8_t bvr_len;  /**< Length of remainder from base64-decoded line */
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
     uint32_t data_chunk_len;  /**< Length of data chunk */
@@ -223,16 +223,16 @@ MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity);
 MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent);
 
 /* Helper functions */
-MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
-        uint32_t nlen, const char *value, uint32_t vlen, int copy_name_value);
+//MimeDecField * MimeDecFillField(MimeDecEntity *entity, const char *name,
+//        uint32_t nlen, const char *value, uint32_t vlen, int copy_name_value);
 
 /* Parser functions */
 MimeDecParseState * MimeDecInitParser(void *data, int (*dcpfunc)(const uint8_t *chunk,
         uint32_t len, MimeDecParseState *state));
 void MimeDecDeInitParser(MimeDecParseState *state);
 int MimeDecParseComplete(MimeDecParseState *state);
-int MimeDecParseLine(const char *line, const uint32_t len, MimeDecParseState *state);
-MimeDecEntity * MimeDecParseFullMsg(const char *buf, uint32_t blen, void *data,
+int MimeDecParseLine(const uint8_t *line, const uint32_t len, MimeDecParseState *state);
+MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
         int (*dcpfunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
 
 /* Test functions */
