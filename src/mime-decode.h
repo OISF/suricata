@@ -106,8 +106,8 @@ typedef struct MimeDecConfig {
 typedef struct MimeDecField {
     uint8_t *name;  /**< Name of the header field */
     uint32_t name_len;  /**< Length of the name */
-    uint8_t *value;  /**< Value of the header field */
     uint32_t value_len;  /**< Length of the value */
+    uint8_t *value;  /**< Value of the header field */
     struct MimeDecField *next;  /**< Pointer to next field */
 } MimeDecField;
 
@@ -137,12 +137,12 @@ typedef struct MimeDecEntity {
     uint32_t header_flags; /**< Flags indicating header characteristics */
     uint32_t ctnt_flags;  /**< Flags indicating type of content */
     uint32_t anomaly_flags;  /**< Flags indicating an anomaly in the message */
-    uint8_t *filename;  /**< Name of file attachment */
     uint32_t filename_len;  /**< Length of file attachment name */
+    uint8_t *filename;  /**< Name of file attachment */
     uint8_t *ctnt_type;  /**< Quick access pointer to short-hand content type field */
     uint32_t ctnt_type_len;  /**< Length of content type field value */
-    uint8_t *msg_id;  /**< Quick access pointer to message Id */
     uint32_t msg_id_len;  /**< Quick access pointer to message Id */
+    uint8_t *msg_id;  /**< Quick access pointer to message Id */
     struct MimeDecEntity *next;  /**< Pointer to list of sibling entities */
     struct MimeDecEntity *child;  /**< Pointer to list of child entities */
 } MimeDecEntity;
@@ -189,18 +189,18 @@ typedef struct MimeDecParseState {
     MimeDecStack *stack;  /**< Pointer to the top of the entity stack */
     uint8_t *hname;  /**< Copy of the last known header name */
     uint32_t hlen;  /**< Length of the last known header name */
-    DataValue *hvalue;  /**< Pointer to the incomplete header value list */
     uint32_t hvlen; /**< Total length of value list */
+    DataValue *hvalue;  /**< Pointer to the incomplete header value list */
     uint8_t linerem[LINEREM_SIZE];  /**< Remainder from previous line (for URL extraction) */
     uint16_t linerem_len;  /**< Length of remainder from previous line */
     uint8_t bvremain[B64_BLOCK];  /**< Remainder from base64-decoded line */
     uint8_t bvr_len;  /**< Length of remainder from base64-decoded line */
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
+    uint8_t state_flag;  /**<  Flag representing current state of parser */
     uint32_t data_chunk_len;  /**< Length of data chunk */
     int found_child;  /**< Flag indicating a child entity was found */
     int body_begin;  /**< Currently at beginning of body */
     int body_end;  /**< Currently at end of body */
-    uint8_t state_flag;  /**<  Flag representing current state of parser */
     void *data;  /**< Pointer to data specific to the caller */
     int (*dataChunkProcessor) (const uint8_t *chunk, uint32_t len,
             struct MimeDecParseState *state);  /**< Data chunk processing function callback */
