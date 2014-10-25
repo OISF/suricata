@@ -57,8 +57,8 @@
 static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     SCEnter();
-
-    SCReturnInt(JsonEmailLogger(tv, thread_data, p));
+    int r = JsonEmailLogger(tv, thread_data, p);
+    SCReturnInt(r);
 }
 
 static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
