@@ -122,7 +122,6 @@ typedef struct MimeDecUrl {
     uint8_t *url;  /**< String representation of full or partial URL (lowercase) */
     uint32_t url_len;  /**< Length of the URL string */
     uint32_t url_flags;  /**< Flags indicating type of URL */
-    uint32_t url_cnt;  /**< Count of URLs with same value */
     struct MimeDecUrl *next;  /**< Pointer to next URL */
 } MimeDecUrl;
 

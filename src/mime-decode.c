@@ -1081,8 +1081,6 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
                     } else {
                         SCFree(tempUrl);
                     }
-                    /* Increment counter */
-                    url->url_cnt++;
                 } else {
                     SCFree(tempUrl);
                 }
