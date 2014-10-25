@@ -22,8 +22,8 @@
  *
  */
 
-#include <string.h>
-#include <arpa/inet.h>
+#include "suricata-common.h"
+
 #include "mime-decode.h"
 
 #include "util-spm-bs.h"
