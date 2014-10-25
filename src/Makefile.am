@@ -214,7 +214,6 @@ log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
-mime-decode.c mime-decode.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \
@@ -308,6 +307,7 @@ util-debug-filters.c util-debug-filters.h \
 util-decode-asn1.c util-decode-asn1.h \
 util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
+util-decode-mime.c util-decode-mime.h \
 util-device.c util-device.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
