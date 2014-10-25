@@ -997,7 +997,7 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
     int ret = MIME_DEC_OK;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     uint8_t *fptr, *remptr, *tok = NULL, *tempUrl;
-    uint32_t tokLen, i, tempUrlLen;
+    uint32_t tokLen = 0, i, tempUrlLen;
     uint8_t urlStrLen = 0, flags = 0;
 
     remptr = (uint8_t *)line;
