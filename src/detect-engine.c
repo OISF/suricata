@@ -916,6 +916,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     }
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
+    SRepDestroy(de_ctx);
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();

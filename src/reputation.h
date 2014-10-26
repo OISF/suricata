@@ -42,6 +42,7 @@ typedef struct SReputation_ {
 
 uint8_t SRepCatGetByShortname(char *shortname);
 int SRepInit(struct DetectEngineCtx_ *de_ctx);
+void SRepDestroy(struct DetectEngineCtx_ *de_ctx);
 void SRepReloadComplete(void);
 int SRepHostTimedOut(Host *);
 

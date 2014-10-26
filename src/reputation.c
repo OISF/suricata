@@ -664,6 +664,26 @@ int SRepInit(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+void SRepDestroy(DetectEngineCtx *de_ctx) {
+    if (de_ctx->srepCIDR_ctx != NULL) {
+        int i;
+        for (i = 0; i < SREP_MAX_CATS; i++) {
+            if (de_ctx->srepCIDR_ctx->srepIPV4_tree[i] != NULL) {
+                SCRadixReleaseRadixTree(de_ctx->srepCIDR_ctx->srepIPV4_tree[i]);
+                de_ctx->srepCIDR_ctx->srepIPV4_tree[i] = NULL;
+            }
+
+            if (de_ctx->srepCIDR_ctx->srepIPV6_tree[i] != NULL) {
+                SCRadixReleaseRadixTree(de_ctx->srepCIDR_ctx->srepIPV6_tree[i]);
+                de_ctx->srepCIDR_ctx->srepIPV6_tree[i] = NULL;
+            }
+        }
+
+        SCFree(de_ctx->srepCIDR_ctx);
+        de_ctx->srepCIDR_ctx = NULL;
+    }
+}
+
 #ifdef UNITTESTS
 
 #include "conf-yaml-loader.h"
