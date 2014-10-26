@@ -1501,8 +1501,11 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 ,ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
                 + p->payload_len, ssn->client.next_seq);
 
-        ssn->client.wscale = TCP_WSCALE_MAX;
-        ssn->server.wscale = TCP_WSCALE_MAX;
+        /* if SYN had wscale, assume it to be supported. Otherwise
+         * we know it not to be supported. */
+        if (ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) {
+            ssn->client.wscale = TCP_WSCALE_MAX;
+        }
 
         /* Set the timestamp values used to validate the timestamp of
          * received packets.*/
@@ -1520,6 +1523,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
             ssn->flags |= STREAMTCP_FLAG_SACKOK;
         }
+
+        StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                &ssn->client, p, pq);
 
     } else {
         SCLogDebug("ssn %p: default case", ssn);
