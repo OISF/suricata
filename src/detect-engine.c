@@ -247,6 +247,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSQUERY_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
+        { IPPROTO_TCP,
+          ALPROTO_SMTP,
+          DETECT_SM_LIST_FILEMATCH,
+          DE_STATE_FLAG_FILE_TS_INSPECT,
+          DE_STATE_FLAG_FILE_TS_INSPECT,
+          0,
+          DetectFileInspectSmtp },
     };
 
     struct tmp_t data_toclient[] = {
