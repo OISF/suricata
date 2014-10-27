@@ -464,6 +464,11 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     RunModeInitialize();
 
     TimeModeSetLive();
@@ -486,6 +491,12 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
+        exit(EXIT_FAILURE);
+    }
+
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
 #endif /* HAVE_PFRING */
 
@@ -501,6 +512,11 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
     int ret;
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
+
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
 
     RunModeInitialize();
 
@@ -524,6 +540,12 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
+        exit(EXIT_FAILURE);
+    }
+
     SCLogInfo("RunModeIdsPfringSingle initialised");
 #endif /* HAVE_PFRING */
 
@@ -539,6 +561,11 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
     int ret;
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
+
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
 
     RunModeInitialize();
 
@@ -559,6 +586,12 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
         exit(EXIT_FAILURE);
     }
 

@@ -57,10 +57,23 @@ typedef struct PfringIfaceConfig_
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
 
-
+typedef struct PfringPeer_ {
+    char iface[PFRING_IFACE_NAME_LENGTH];
+#ifdef HAVE_PFRING
+    pfring *pd;
+#endif
+    int flags;
+    int turn;
+    struct PfringPeer_ *peer;
+    TAILQ_ENTRY(PfringPeer_) next;
+} PfringPeer;
 
 void TmModuleReceivePfringRegister (void);
 void TmModuleDecodePfringRegister (void);
+
+TmEcode PfringPeersListInit();
+TmEcode PfringPeersListCheck();
+void PfringPeersListClean();
 
 int PfringConfGetThreads(void);
 void PfringLoadConfig(void);

@@ -2482,6 +2482,10 @@ int main(int argc, char **argv)
     AFPPeersListClean();
 #endif
 
+#ifdef HAVE_PFRING
+    PfringPeersListClean();
+#endif
+
 #ifdef PROFILING
     if (profiling_rules_enabled)
         SCProfilingDump();
