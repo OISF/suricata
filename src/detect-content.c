@@ -235,13 +235,6 @@ DetectContentData *DetectContentParse (char *contentstr)
     if (ret == -1) {
         return NULL;
     }
-    if (len > 255) {
-        SCLogError(SC_ERR_NOT_SUPPORTED, "Currently we don't support content "
-                   "length greater than 255.  Please split the pattern, if "
-                   "length > 255.  The length of the content after "
-                   "normalization is \"%"PRIu16"\".", len);
-        return NULL;
-    }
 
     cd = SCMalloc(sizeof(DetectContentData) + len);
     if (unlikely(cd == NULL)) {
@@ -2119,6 +2112,9 @@ int DetectContentParseTest41(void)
     return result;
 }
 
+/**
+ * Tests that content lengths > 255 are supported.
+ */
 int DetectContentParseTest42(void)
 {
     int result = 1;
@@ -2136,8 +2132,8 @@ int DetectContentParseTest42(void)
     teststring[idx++] = '\0';
 
     cd = DetectContentParse(teststring);
-    if (cd != NULL) {
-        SCLogDebug("expected NULL got %p: ", cd);
+    if (cd == NULL) {
+        SCLogDebug("expected not NULL");
         result = 0;
     }
 
@@ -2177,6 +2173,9 @@ int DetectContentParseTest43(void)
     return result;
 }
 
+/**
+ * Tests that content lengths > 255 are supported.
+ */
 int DetectContentParseTest44(void)
 {
     int result = 1;
@@ -2198,8 +2197,8 @@ int DetectContentParseTest44(void)
     teststring[idx++] = '\0';
 
     cd = DetectContentParse(teststring);
-    if (cd != NULL) {
-        SCLogDebug("expected NULL got %p: ", cd);
+    if (cd == NULL) {
+        SCLogDebug("expected not NULL");
         result = 0;
     }
 
