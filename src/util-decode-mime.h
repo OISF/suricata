@@ -218,7 +218,6 @@ void MimeDecFreeUrl(MimeDecUrl *url);
 /* List functions */
 MimeDecField * MimeDecAddField(MimeDecEntity *entity);
 MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name);
-MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity);
 MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent);
 
 /* Helper functions */

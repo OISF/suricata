@@ -348,7 +348,7 @@ MimeDecField * MimeDecFindField(const MimeDecEntity *entity, const char *name) {
  * \return URL entry or NULL if the operation fails
  *
  */
-MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity)
+static MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity, uint8_t *url, uint32_t url_len, uint8_t flags)
 {
     MimeDecUrl *node = SCMalloc(sizeof(MimeDecUrl));
     if (unlikely(node == NULL)) {
@@ -357,17 +357,18 @@ MimeDecUrl * MimeDecAddUrl(MimeDecEntity *entity)
     }
     memset(node, 0x00, sizeof(MimeDecUrl));
 
-    if (entity != NULL) {
+    node->url = url;
+    node->url_len = url_len;
+    node->url_flags = flags;
 
-        /* If list is empty, then set as head of list */
-        if (entity->url_list == NULL) {
-            entity->url_list = node;
-        } else {
-            /* Otherwise add to beginning of list since these are out-of-order in
-             * the message */
-            node->next = entity->url_list;
-            entity->url_list = node;
-        }
+    /* If list is empty, then set as head of list */
+    if (entity->url_list == NULL) {
+        entity->url_list = node;
+    } else {
+        /* Otherwise add to beginning of list since these are out-of-order in
+         * the message */
+        node->next = entity->url_list;
+        entity->url_list = node;
     }
 
     return node;
@@ -1056,29 +1057,20 @@ static int FindUrlStrings(const uint8_t *line, uint32_t len,
 
                 /* Make sure remaining URL exists */
                 if (tempUrlLen > 0) {
+                    if (!(FindExistingUrl(entity, tempUrl, tempUrlLen))) {
+                        /* Now look for numeric IP */
+                        if (IsIpv4Host(tempUrl, tempUrlLen)) {
+                            flags |= URL_IS_IP4;
 
-                    /* Now look for numeric IP */
-                    if (IsIpv4Host(tempUrl, tempUrlLen)) {
-                        flags |= URL_IS_IP4;
+                            PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
+                        } else if (IsIpv6Host(tempUrl, tempUrlLen)) {
+                            flags |= URL_IS_IP6;
 
-                        PrintChars(SC_LOG_DEBUG, "IP URL4", tempUrl, tempUrlLen);
-                    } else if (IsIpv6Host(tempUrl, tempUrlLen)) {
-                        flags |= URL_IS_IP6;
-
-                        PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
-                    }
-
-                    /* Update URL list */
-                    MimeDecUrl *url = FindExistingUrl(entity, tempUrl, tempUrlLen);
-                    if (url == NULL) {
+                            PrintChars(SC_LOG_DEBUG, "IP URL6", tempUrl, tempUrlLen);
+                        }
 
                         /* Add URL list item */
-                        url = MimeDecAddUrl(entity);
-                        if (url != NULL) {
-                            url->url = tempUrl;
-                            url->url_len = tempUrlLen;
-                            url->url_flags |= flags;
-                        }
+                        MimeDecAddUrl(entity, tempUrl, tempUrlLen, flags);
                     } else {
                         SCFree(tempUrl);
                     }
