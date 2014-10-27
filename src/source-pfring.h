@@ -26,6 +26,10 @@
 
 #define PFRING_IFACE_NAME_LENGTH 48
 
+#define PFRING_COPY_MODE_NONE   0
+#define PFRING_COPY_MODE_TAP    1
+#define PFRING_COPY_MODE_IPS    2
+
 #include <config.h>
 #ifdef HAVE_PFRING
 #include <pfring.h>
@@ -43,6 +47,10 @@ typedef struct PfringIfaceConfig_
     int threads;
 
     char *bpf_filter;
+
+    int copy_mode;
+    char *out_interface;
+    int flush_packet;
 
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
