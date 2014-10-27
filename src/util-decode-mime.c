@@ -29,6 +29,7 @@
 #include "util-spm-bs.h"
 #include "util-unittest.h"
 #include "util-memcmp.h"
+#include "util-print.h"
 
 /* Character constants */
 #ifndef CR
@@ -116,27 +117,12 @@ static const char *UrlExeExts[] = { ".exe",
  */
 static void PrintChars(int log_level, char *label, const uint8_t *src, uint32_t len)
 {
+#ifdef DEBUG
     if (log_level <= sc_log_global_log_level) {
-
-        static uint32_t max_len = 100;
-        char tempbuf[max_len];
-
-        if (len == 0) {
-            SCLog(log_level, "PrintChars() - length is 0\n");
-        } else {
-            uint32_t llen = strlen(label);
-
-            /* Add label and source */
-            int num = snprintf(tempbuf, llen +4 < max_len ? llen + 4 : max_len, "[%s] ", label);
-            size_t copy = len;
-            if ((len + num + 1) > max_len)
-                copy = max_len - (num + 1);
-            memcpy(tempbuf + num, src, copy);
-            tempbuf[copy] = '\0';
-
-            SCLog(log_level, "%s", tempbuf);
-        }
+        printf("[%s]\n", label);
+        PrintRawDataFp(stdout, (uint8_t *)src, len);
     }
+#endif
 }
 
 /**
@@ -2460,9 +2446,9 @@ int MimeDecParseLine(const uint8_t *line, const uint32_t len,
 
     /* For debugging purposes */
     if (len > 0) {
-        PrintChars(SC_LOG_DEBUG, "\nSMTP LINE", line, len);
+        PrintChars(SC_LOG_DEBUG, "SMTP LINE", line, len);
     } else {
-        SCLogDebug("\nSMTP LINE - EMPTY");
+        SCLogDebug("SMTP LINE - EMPTY");
     }
 
     /* Process the entity */
