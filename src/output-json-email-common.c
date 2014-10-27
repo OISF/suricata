@@ -56,19 +56,12 @@
 #include <jansson.h>
 
 /* JSON format logging */
-static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
-                                json_t *js,
-                                const Packet *p)
+static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
     MimeDecEntity *entity;
     char *protos = NULL;
-
-    /* no flow, no smtp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
 
     json_t *sjs = json_object();
     if (sjs == NULL) {
@@ -76,30 +69,26 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
     }
 
     /* check if we have SMTP state or not */
-    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
     AppProto proto = FlowGetAppProtocol(p->flow);
     switch (proto) {
         case ALPROTO_SMTP:
-            smtp_state = (SMTPState *)FlowGetAppState(p->flow);
+            smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
                 SCLogDebug("no smtp state, so no request logging");
-                FLOWLOCK_UNLOCK(p->flow);
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            mime_state = smtp_state->mime_state;
-            entity = smtp_state->msg_tail;
+            SMTPTransaction *tx = vtx;
+            mime_state = tx->mime_state;
+            entity = tx->msg_tail;
             protos = "smtp";
+            SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity, mime_state ? mime_state->state_flag : 0);
             break;
         default:
             /* don't know how we got here */
-            FLOWLOCK_UNLOCK(p->flow);
             SCReturnInt(TM_ECODE_FAILED);
     }
-    if ((mime_state != NULL) &&
-        (mime_state->state_flag == PARSE_DONE)) {
-
+    if ((mime_state != NULL)) {
         if (entity == NULL) {
-            FLOWLOCK_UNLOCK(p->flow);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -176,6 +165,9 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
 
             entity->header_flags |= HDR_IS_LOGGED;
 
+            if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL)
+                SCReturnInt(TM_ECODE_OK);
+
             entity = (MimeDecEntity *)mime_state->stack->top->data;
             int attch_cnt = 0;
             int url_cnt = 0;
@@ -233,16 +225,16 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft,
             }
             json_object_set_new(js, protos, sjs);
 
-            FLOWLOCK_UNLOCK(p->flow);
+//            FLOWLOCK_UNLOCK(p->flow);
             SCReturnInt(TM_ECODE_OK);
         }
     }
 
-    FLOWLOCK_UNLOCK(p->flow);
+//    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(TM_ECODE_DONE);
 }
 
-int JsonEmailLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
+int JsonEmailLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id) {
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)jhl->buffer;
@@ -254,7 +246,7 @@ int JsonEmailLogger(ThreadVars *tv, void *thread_data, const Packet *p) {
     /* reset */
     MemBufferReset(buffer);
 
-    if (JsonEmailLogJson(jhl, js, p) == TM_ECODE_OK) {
+    if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
         OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
     }
     json_object_del(js, "smtp");
