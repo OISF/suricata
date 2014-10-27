@@ -141,20 +141,23 @@ static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *
     fprintf(fp, "<unknown>");
 }
 
-static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff) {
-
+static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
+{
     SMTPState *state = (SMTPState *) p->flow->alstate;
-    if (state != NULL && state->msg_tail != NULL) {
+    if (state != NULL) {
+        SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
+        if (tx == NULL || tx->msg_tail == NULL)
+            return;
 
         /* Message Id */
-        if (state->msg_tail->msg_id != NULL) {
+        if (tx->msg_tail->msg_id != NULL) {
             fprintf(fp, "MESSAGE-ID:        ");
-            PrintRawUriFp(fp, (uint8_t *) state->msg_tail->msg_id, state->msg_tail->msg_id_len);
+            PrintRawUriFp(fp, (uint8_t *) tx->msg_tail->msg_id, tx->msg_tail->msg_id_len);
             fprintf(fp, "\n");
         }
 
         /* Sender */
-        MimeDecField *field = MimeDecFindField(state->msg_tail, "From");
+        MimeDecField *field = MimeDecFindField(tx->msg_tail, "from");
         if (field != NULL) {
             fprintf(fp, "SENDER:            ");
             PrintRawUriFp(fp, (uint8_t *) field->value, field->value_len);
