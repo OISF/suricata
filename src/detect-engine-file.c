@@ -265,8 +265,7 @@ int DetectFileInspectSmtp(ThreadVars *tv,
                           void *tx, uint64_t tx_id)
 {
     SCEnter();
-
-    int r = 0;
+    int r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     SMTPState *smtp_state = NULL;
     FileContainer *ffc;
 
@@ -281,7 +280,21 @@ int DetectFileInspectSmtp(ThreadVars *tv,
     else
         goto end;
 
-    r = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+    int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
+    if (match == 1) {
+        r = DETECT_ENGINE_INSPECT_SIG_MATCH;
+    } else if (match == 2) {
+        if (r != 1) {
+            SCLogDebug("sid %u can't match on this transaction", s->id);
+            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+        }
+    } else if (match == 3) {
+        if (r != 1) {
+            SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
+            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
+        }
+    }
+
 
 end:
     SCReturnInt(r);
