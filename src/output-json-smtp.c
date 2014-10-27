@@ -54,10 +54,10 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
-static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
-    int r = JsonEmailLogger(tv, thread_data, p);
+    int r = JsonEmailLogger(tv, thread_data, p, f, state, tx, tx_id);
     SCReturnInt(r);
 }
 
@@ -187,37 +187,6 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-/** \internal
- *  \brief Condition function for SMTP logger
- *  \retval bool true or false -- log now?
- */
-static int JsonSmtpCondition(ThreadVars *tv, const Packet *p) {
-    if (p->flow == NULL) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        return FALSE;
-    }
-
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SMTP)
-        goto dontlog;
-
-    SMTPState *smtp_state = (SMTPState *)FlowGetAppState(p->flow);
-    if (smtp_state == NULL) {
-        SCLogDebug("no smtp state, so no request logging");
-        goto dontlog;
-    }
-
-    FLOWLOCK_UNLOCK(p->flow);
-    return TRUE;
-dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
-    return FALSE;
-}
-
 void TmModuleJsonSmtpLogRegister (void) {
     tmm_modules[TMM_JSONSMTPLOG].name = "JsonSmtpLog";
     tmm_modules[TMM_JSONSMTPLOG].ThreadInit = JsonSmtpLogThreadInit;
@@ -227,17 +196,15 @@ void TmModuleJsonSmtpLogRegister (void) {
     tmm_modules[TMM_JSONSMTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterPacketModule("JsonSmtpLog", "smtp-json-log",
-                               OutputSmtpLogInit,
-                               JsonSmtpLogger,
-                               JsonSmtpCondition);
+    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log",
+                               OutputSmtpLogInit, ALPROTO_SMTP,
+                               JsonSmtpLogger);
 
     /* also register as child of eve-log */
-    OutputRegisterPacketSubModule("eve-log", "JsonSmtpLog",
+    OutputRegisterTxSubModule("eve-log", "JsonSmtpLog",
                                   "eve-log.smtp",
-                                  OutputSmtpLogInitSub,
-                                  JsonSmtpLogger,
-                                  JsonSmtpCondition);
+                                  OutputSmtpLogInitSub, ALPROTO_SMTP,
+                                  JsonSmtpLogger);
 }
 
 #else
