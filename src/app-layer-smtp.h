@@ -26,6 +26,7 @@
 
 #include "decode-events.h"
 #include "util-decode-mime.h"
+#include "queue.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,
@@ -49,7 +50,24 @@ enum {
     SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE,
 };
 
+typedef struct SMTPTransaction_ {
+    /** id of this tx, starting at 0 */
+    uint64_t tx_id;
+    /** the first message contained in the session */
+    MimeDecEntity *msg_head;
+    /** the last message contained in the session */
+    MimeDecEntity *msg_tail;
+    /** the mime decoding parser state */
+    MimeDecParseState *mime_state;
+
+    TAILQ_ENTRY(SMTPTransaction_) next;
+} SMTPTransaction;
+
 typedef struct SMTPState_ {
+    SMTPTransaction *curr_tx;
+    TAILQ_HEAD(, SMTPTransaction_) tx_list;  /**< transaction list */
+    uint64_t tx_cnt;
+
     /* current input that is being parsed */
     uint8_t *input;
     int32_t input_len;
@@ -103,12 +121,6 @@ typedef struct SMTPState_ {
     /* SMTP Mime decoding and file extraction */
     /** the list of files sent to the server */
     FileContainer *files_ts;
-    /** the first message contained in the session */
-    MimeDecEntity *msg_head;
-    /** the last message contained in the session */
-    MimeDecEntity *msg_tail;
-    /** the mime decoding parser state */
-    MimeDecParseState *mime_state;
 
 } SMTPState;
 

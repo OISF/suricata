@@ -54,6 +54,8 @@
 #include "decode-events.h"
 #include "conf.h"
 
+#include "util-mem.h"
+
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
@@ -264,6 +266,17 @@ static void SMTPConfigure(void) {
     SCReturn;
 }
 
+static SMTPTransaction *SMTPTransactionCreate(void)
+{
+    SMTPTransaction *tx = SCCalloc(1, sizeof(*tx));
+    if (tx == NULL) {
+        return NULL;
+    }
+
+    tx->mime_state = NULL;
+    return tx;
+}
+
 static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
@@ -350,7 +363,7 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
             /* Close file */
             SCLogDebug("Closing file...%u bytes", len);
 
-            if (files->tail->state == FILE_STATE_OPENED) {
+            if (files && files->tail && files->tail->state == FILE_STATE_OPENED) {
                 ret = FileCloseFile(files, (uint8_t *) chunk, len, flags);
                 if (ret != 0) {
                     SCLogDebug("FileCloseFile() failed: %d", ret);
@@ -697,7 +710,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 
         if (smtp_config.decode_mime) {
             /* Complete parsing task */
-            int ret = MimeDecParseComplete(state->mime_state);
+            int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
 
                 AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
@@ -705,7 +718,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             }
 
             /* Generate decoder events */
-            MimeDecEntity *msg = state->mime_state->msg;
+            MimeDecEntity *msg = state->curr_tx->mime_state->msg;
             if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
                 AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
             }
@@ -736,7 +749,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 
         if (smtp_config.decode_mime) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
-                    state->current_line_len, state->mime_state);
+                    state->current_line_len, state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
             }
@@ -911,26 +924,29 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
 
+            SMTPTransaction *tx = SMTPTransactionCreate();
+            if (tx == NULL)
+                return -1;
+            state->curr_tx = tx;
+            TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+            tx->tx_id = state->tx_cnt++;
+
             if (smtp_config.decode_mime) {
-                /* Re-init the MIME parser */
-                if (state->mime_state != NULL) {
-                    MimeDecDeInitParser(state->mime_state);
-                }
-                state->mime_state = MimeDecInitParser(f, ProcessDataChunk);
-                if (state->mime_state == NULL) {
+                tx->mime_state = MimeDecInitParser(f, ProcessDataChunk);
+                if (tx->mime_state == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "MimeDecInitParser() failed to "
                             "allocate data");
                     return MIME_DEC_ERR_MEM;
                 }
 
                 /* Add new MIME message to end of list */
-                if (state->msg_head == NULL) {
-                    state->msg_head = state->mime_state->msg;
-                    state->msg_tail = state->mime_state->msg;
+                if (tx->msg_head == NULL) {
+                    tx->msg_head = tx->mime_state->msg;
+                    tx->msg_tail = tx->mime_state->msg;
                 }
                 else {
-                    state->msg_tail->next = state->mime_state->msg;
-                    state->msg_tail = state->mime_state->msg;
+                    tx->msg_tail->next = tx->mime_state->msg;
+                    tx->msg_tail = tx->mime_state->msg;
                 }
             }
 
@@ -1046,6 +1062,8 @@ static void *SMTPStateAlloc(void)
     }
     smtp_state->cmds_buffer_len = SMTP_COMMAND_BUFFER_STEPS;
 
+    TAILQ_INIT(&smtp_state->tx_list);
+
     return smtp_state;
 }
 
@@ -1072,6 +1090,14 @@ static void SMTPLocalStorageFree(void *pmq)
     return;
 }
 
+static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
+{
+    if (tx->mime_state != NULL) {
+        MimeDecDeInitParser(tx->mime_state);
+    }
+    SCFree(tx);
+}
+
 /**
  * \internal
  * \brief Function to free SMTP state memory.
@@ -1091,7 +1117,7 @@ static void SMTPStateFree(void *p)
     }
 
     FileContainerFree(smtp_state->files_ts);
-
+#if 0
     /* Free MIME parser */
     if (smtp_state->mime_state != NULL) {
         MimeDecDeInitParser(smtp_state->mime_state);
@@ -1099,6 +1125,15 @@ static void SMTPStateFree(void *p)
 
     /* Free list of MIME message recursively */
     MimeDecFreeEntity(smtp_state->msg_head);
+#endif
+
+    SMTPTransaction *tx = NULL;
+    while ((tx = TAILQ_FIRST(&smtp_state->tx_list))) {
+        //SCLogInfo("TODO remove tx->tx_id %"PRIu64, tx->tx_id);
+
+        TAILQ_REMOVE(&smtp_state->tx_list, tx, next);
+        SMTPTransactionFree(tx, smtp_state);
+    }
 
     SCFree(smtp_state);
 
@@ -1170,6 +1205,115 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
+static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
+{
+    SCLogInfo("freeing tx %"PRIu64" from state %p", tx_id, state);
+#if 0
+    if (smtp_state->mime_state != NULL) {
+        MimeDecDeInitParser(smtp_state->mime_state);
+    }
+#endif
+    SMTPState *smtp_state = state;
+    SMTPTransaction *tx = NULL;
+    TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
+        if (tx_id < tx->tx_id)
+            break;
+        else if (tx_id > tx->tx_id)
+            continue;
+
+        if (tx == smtp_state->curr_tx)
+            smtp_state->curr_tx = NULL;
+#if 0
+        if (tx->decoder_events != NULL) {
+            if (tx->decoder_events->cnt <= smtp_state->events)
+                smtp_state->events -= tx->decoder_events->cnt;
+            else
+                smtp_state->events = 0;
+        }
+#endif
+        TAILQ_REMOVE(&smtp_state->tx_list, tx, next);
+        SMTPTransactionFree(tx, state);
+        break;
+    }
+
+
+}
+
+/** \todo slow */
+static uint64_t SMTPStateGetTxCnt(void *state)
+{
+    uint64_t cnt = 0;
+    SMTPState *smtp_state = state;
+    if (smtp_state) {
+        SMTPTransaction *tx = NULL;
+
+        if (smtp_state->curr_tx == NULL)
+            return 0ULL;
+
+        TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
+            cnt++;
+        }
+    }
+    SCLogDebug("returning %"PRIu64, cnt);
+    return cnt;
+}
+
+static void *SMTPStateGetTx(void *state, uint64_t id)
+{
+    SMTPState *smtp_state = state;
+    if (smtp_state) {
+        SMTPTransaction *tx = NULL;
+
+        if (smtp_state->curr_tx == NULL)
+            return NULL;
+        if (smtp_state->curr_tx->tx_id == id)
+            return smtp_state->curr_tx;
+
+        TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
+            if (tx->tx_id == id)
+                return tx;
+        }
+    }
+    SCLogInfo("returning NULL");
+    return NULL;
+
+}
+
+static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
+//    int status = (direction & STREAM_TOSERVER) ? PARSE_DONE : 0;
+//    SCLogInfo("returning %s", status ? "PARSE_DONE" : "0");
+    return PARSE_DONE;
+}
+
+static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
+{
+    SMTPTransaction *tx = vtx;
+
+    if (direction & STREAM_TOSERVER) {
+        if (tx && tx->mime_state && tx->mime_state->state_flag == PARSE_DONE) {
+//            SCLogInfo("returning PARSE_DONE");
+            return PARSE_DONE;
+        } else
+            return 0;
+    } else
+        return 1;
+}
+
+static FileContainer *SMTPStateGetFiles(void *state, uint8_t direction)
+{
+    if (state == NULL)
+        return NULL;
+
+    SMTPState *smtp_state = (SMTPState *)state;
+
+    if (direction & STREAM_TOCLIENT) {
+        SCReturnPtr(NULL, "FileContainer");
+    } else {
+        SCLogDebug("smtp_state->files_ts %p", smtp_state->files_ts);
+        SCReturnPtr(smtp_state->files_ts, "FileContainer");
+    }
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1199,6 +1343,14 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
+
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTransactionFree);
+        AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetFiles);
+        AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
+        AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
+        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_SMTP,
+                                                               SMTPStateGetAlstateProgressCompletionStatus);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
@@ -4271,7 +4423,7 @@ int SMTPParserTest14(void)
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
             smtp_state->cmds_idx != 0 ||
-            smtp_state->mime_state == NULL || smtp_state->msg_head == NULL || /* MIME data structures */
+            smtp_state->curr_tx->mime_state == NULL || smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
                     SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
@@ -4293,7 +4445,7 @@ int SMTPParserTest14(void)
             smtp_state->cmds_cnt != 1 ||
             smtp_state->cmds_idx != 0 ||
             smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
-            smtp_state->mime_state == NULL || smtp_state->msg_head == NULL || /* MIME data structures */
+            smtp_state->curr_tx->mime_state == NULL || smtp_state->curr_tx->msg_head == NULL || /* MIME data structures */
             smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         printf("smtp parser in inconsistent state l.%d\n", __LINE__);
         goto end;
