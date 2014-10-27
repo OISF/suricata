@@ -2492,6 +2492,10 @@ int main(int argc, char **argv)
     AFPPeersListClean();
 #endif
 
+#ifdef HAVE_PFRING
+    PfringPeersListClean();
+#endif
+
 #ifdef PROFILING
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         if (profiling_rules_enabled)
