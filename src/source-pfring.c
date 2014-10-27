@@ -148,6 +148,11 @@ typedef struct PfringThreadVars_
     /* threads count */
     int threads;
 
+    /* IPS stuff */
+    char out_iface[PFRING_IFACE_NAME_LENGTH];
+    int copy_mode;
+    int flush_packet;
+
     cluster_type ctype;
 
     uint8_t cluster_id;
@@ -493,6 +498,17 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
                 SCLogInfo("Set PF_RING bpf filter \"%s\" failed.",
                           ptv->bpf_filter);
             }
+        }
+    }
+
+    ptv->copy_mode = pfconf->copy_mode;
+    if (ptv->copy_mode != PFRING_COPY_MODE_NONE) {
+        strlcpy(ptv->out_iface, pfconf->out_interface, PFRING_IFACE_NAME_LENGTH);
+        ptv->out_iface[PFRING_IFACE_NAME_LENGTH - 1] = '\0';
+        ptv->flush_packet = pfconf->flush_packet;
+        if (ptv->bpf_filter) {
+            SCLogWarning(SC_WARN_UNCOMMON, "Enabling a BPF filter in IPS mode result"
+                      " in dropping all non matching packets.");
         }
     }
 
