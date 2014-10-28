@@ -1314,6 +1314,16 @@ static FileContainer *SMTPStateGetFiles(void *state, uint8_t direction)
     }
 }
 
+static void SMTPStateTruncate(void *state, uint8_t direction)
+{
+    FileContainer *fc = SMTPStateGetFiles(state, direction);
+    if (fc != NULL) {
+        SCLogDebug("truncating stream, closing files in %s direction (container %p)",
+                direction & STREAM_TOCLIENT ? "STREAM_TOCLIENT" : "STREAM_TOSERVER", fc);
+        FileTruncateAllOpenFiles(fc);
+    }
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1351,6 +1361,7 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
