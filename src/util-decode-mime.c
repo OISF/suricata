@@ -408,6 +408,9 @@ MimeDecEntity * MimeDecAddEntity(MimeDecEntity *parent)
 static MimeDecField * MimeDecFillField(MimeDecEntity *entity, uint8_t *name,
         uint32_t nlen, const uint8_t *value, uint32_t vlen)
 {
+    if (nlen == 0 && vlen == 0)
+        return NULL;
+
     MimeDecField *field = MimeDecAddField(entity);
     if (unlikely(field == NULL)) {
         return NULL;
@@ -1924,6 +1927,8 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
                     /* Create and push child to stack */
                     MimeDecEntity *child = MimeDecAddEntity(entity);
+                    if (child == NULL)
+                        return MIME_DEC_ERR_MEM;
                     child->ctnt_flags |= (CTNT_IS_ENCAP | CTNT_IS_MSG);
                     PushStack(state->stack);
                     state->stack->top->data = child;
@@ -2105,6 +2110,8 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
 
         /* Create and push child to stack */
         child = MimeDecAddEntity(state->stack->top->data);
+        if (child == NULL)
+            return MIME_DEC_ERR_MEM;
         child->ctnt_flags |= CTNT_IS_BODYPART;
         PushStack(state->stack);
         state->stack->top->data = child;
@@ -2130,6 +2137,8 @@ static int ProcessMimeBoundary(const uint8_t *buf, uint32_t len, uint32_t bdef_l
 
         /* Create and push child to stack */
         child = MimeDecAddEntity(state->stack->top->data);
+        if (child == NULL)
+            return MIME_DEC_ERR_MEM;
         child->ctnt_flags |= CTNT_IS_BODYPART;
         PushStack(state->stack);
         state->stack->top->data = child;
