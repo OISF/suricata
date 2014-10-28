@@ -2570,7 +2570,7 @@ static int TestDataChunkCallback(const uint8_t *chunk, uint32_t len,
             }
 
         } while (tok != NULL && tok != remainPtr &&
-                remainPtr - (uint8_t *) chunk < len);
+                (uint32_t)(remainPtr - (uint8_t *) chunk) < len);
 
         SCLogDebug("line count (len=%u): %u", len, *line_count);
     }
