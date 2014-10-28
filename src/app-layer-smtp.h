@@ -53,12 +53,15 @@ enum {
 typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
+    int done;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
     MimeDecEntity *msg_tail;
     /** the mime decoding parser state */
     MimeDecParseState *mime_state;
+
+    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;

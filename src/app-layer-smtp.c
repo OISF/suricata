@@ -266,6 +266,18 @@ static void SMTPConfigure(void) {
     SCReturn;
 }
 
+void SMTPSetEvent(SMTPState *s, uint8_t e)
+{
+    SCLogDebug("setting event %u", e);
+
+    if (s->curr_tx != NULL) {
+        AppLayerDecoderEventsSetEventRaw(&s->curr_tx->decoder_events, e);
+//        s->events++;
+        return;
+    }
+    SCLogDebug("couldn't set event %u", e);
+}
+
 static SMTPTransaction *SMTPTransactionCreate(void)
 {
     SMTPTransaction *tx = SCCalloc(1, sizeof(*tx));
@@ -652,8 +664,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
         ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
          (state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_DATA))) {
         /* decoder event */
-        AppLayerDecoderEventsSetEvent(f,
-                                      SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE);
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE);
         /* we have to have EHLO, DATA, VRFY, EXPN, TURN, QUIT, NOOP,
          * STARTTLS as the last command in pipelined mode */
     }
@@ -680,8 +691,7 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     if (state->bdat_chunk_idx > state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         /* decoder event */
-        AppLayerDecoderEventsSetEvent(f,
-                                      SMTP_DECODER_EVENT_BDAT_CHUNK_LEN_EXCEEDED);
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_BDAT_CHUNK_LEN_EXCEEDED);
         SCReturnInt(-1);
     } else if (state->bdat_chunk_idx == state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -713,41 +723,43 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
 
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
                 SCLogDebug("MimeDecParseComplete() function failed");
             }
 
             /* Generate decoder events */
             MimeDecEntity *msg = state->curr_tx->mime_state->msg;
             if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
             }
             if (msg->anomaly_flags & ANOM_INVALID_QP) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_INVALID_QP);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
             }
             if (msg->anomaly_flags & ANOM_LONG_LINE) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_LONG_LINE);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
             }
             if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
             }
             if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
             }
             if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
             }
             if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
             }
         }
+        state->curr_tx->done = 1;
+        SCLogDebug("marked tx as done");
     }
 
     /* If DATA, then parse out a MIME message */
     if (state->current_command == SMTP_COMMAND_DATA &&
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
-        if (smtp_config.decode_mime) {
+        if (smtp_config.decode_mime && state->curr_tx->mime_state) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
@@ -777,8 +789,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
      * reply code */
     if (state->current_line_len < 3) {
         /* decoder event */
-        AppLayerDecoderEventsSetEvent(f,
-                                      SMTP_DECODER_EVENT_INVALID_REPLY);
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_REPLY);
         return -1;
     }
 
@@ -806,8 +817,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                                              3);
     if (mpm_cnt == 0) {
         /* set decoder event - reply code invalid */
-        AppLayerDecoderEventsSetEvent(f,
-                                      SMTP_DECODER_EVENT_INVALID_REPLY);
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_REPLY);
         SCLogDebug("invalid reply code %02x %02x %02x",
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
@@ -820,7 +830,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             if (reply_code == SMTP_REPLY_220)
                 SCReturnInt(0);
             else
-                AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_INVALID_REPLY);
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_REPLY);
         } else {
             /* decoder event - unable to match reply with request */
             SCLogDebug("unable to match reply with request");
@@ -839,8 +849,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                                              APP_LAYER_PARSER_NO_REASSEMBLY);
         } else {
             /* decoder event */
-            AppLayerDecoderEventsSetEvent(f,
-                                          SMTP_DECODER_EVENT_TLS_REJECTED);
+            SMTPSetEvent(state, SMTP_DECODER_EVENT_TLS_REJECTED);
         }
     } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_DATA) {
         if (reply_code == SMTP_REPLY_354) {
@@ -848,8 +857,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             /* decoder event */
-            AppLayerDecoderEventsSetEvent(f,
-                                          SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
+            SMTPSetEvent(state, SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else {
         /* we don't care for any other command for now */
@@ -907,9 +915,19 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
     SCEnter();
+    SMTPTransaction *tx = state->curr_tx;
+
+    if (state->curr_tx == NULL || state->curr_tx->done) {
+        tx = SMTPTransactionCreate();
+        if (tx == NULL)
+            return -1;
+        state->curr_tx = tx;
+        TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+        tx->tx_id = state->tx_cnt++;
+    }
 
     if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-        AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE);
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE);
     }
 
     /* there are 2 commands that can push it into this COMMAND_DATA mode -
@@ -923,14 +941,6 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
-
-            SMTPTransaction *tx = SMTPTransactionCreate();
-            if (tx == NULL)
-                return -1;
-            state->curr_tx = tx;
-            TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
-            tx->tx_id = state->tx_cnt++;
-
             if (smtp_config.decode_mime) {
                 tx->mime_state = MimeDecInitParser(f, ProcessDataChunk);
                 if (tx->mime_state == NULL) {
@@ -1095,6 +1105,18 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     if (tx->mime_state != NULL) {
         MimeDecDeInitParser(tx->mime_state);
     }
+    /* Free list of MIME message recursively */
+    MimeDecFreeEntity(tx->msg_head);
+
+    if (tx->decoder_events != NULL) {
+        AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+#if 0
+        if (tx->decoder_events->cnt <= smtp_state->events)
+            smtp_state->events -= tx->decoder_events->cnt;
+        else
+            smtp_state->events = 0;
+#endif
+    }
     SCFree(tx);
 }
 
@@ -1117,20 +1139,9 @@ static void SMTPStateFree(void *p)
     }
 
     FileContainerFree(smtp_state->files_ts);
-#if 0
-    /* Free MIME parser */
-    if (smtp_state->mime_state != NULL) {
-        MimeDecDeInitParser(smtp_state->mime_state);
-    }
-
-    /* Free list of MIME message recursively */
-    MimeDecFreeEntity(smtp_state->msg_head);
-#endif
 
     SMTPTransaction *tx = NULL;
     while ((tx = TAILQ_FIRST(&smtp_state->tx_list))) {
-        //SCLogInfo("TODO remove tx->tx_id %"PRIu64, tx->tx_id);
-
         TAILQ_REMOVE(&smtp_state->tx_list, tx, next);
         SMTPTransactionFree(tx, smtp_state);
     }
@@ -1179,7 +1190,7 @@ int SMTPStateGetEventInfo(const char *event_name,
         return -1;
     }
 
-    *event_type = APP_LAYER_EVENT_TYPE_GENERAL;
+    *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
 
     return 0;
 }
@@ -1207,12 +1218,6 @@ static int SMTPRegisterPatternsForProtocolDetection(void)
 
 static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
 {
-    SCLogInfo("freeing tx %"PRIu64" from state %p", tx_id, state);
-#if 0
-    if (smtp_state->mime_state != NULL) {
-        MimeDecDeInitParser(smtp_state->mime_state);
-    }
-#endif
     SMTPState *smtp_state = state;
     SMTPTransaction *tx = NULL;
     TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
@@ -1223,14 +1228,6 @@ static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
 
         if (tx == smtp_state->curr_tx)
             smtp_state->curr_tx = NULL;
-#if 0
-        if (tx->decoder_events != NULL) {
-            if (tx->decoder_events->cnt <= smtp_state->events)
-                smtp_state->events -= tx->decoder_events->cnt;
-            else
-                smtp_state->events = 0;
-        }
-#endif
         TAILQ_REMOVE(&smtp_state->tx_list, tx, next);
         SMTPTransactionFree(tx, state);
         break;
@@ -1274,29 +1271,18 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
                 return tx;
         }
     }
-    SCLogInfo("returning NULL");
     return NULL;
 
 }
 
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
-//    int status = (direction & STREAM_TOSERVER) ? PARSE_DONE : 0;
-//    SCLogInfo("returning %s", status ? "PARSE_DONE" : "0");
-    return PARSE_DONE;
+    return 1;
 }
 
 static int SMTPStateGetAlstateProgress(void *vtx, uint8_t direction)
 {
     SMTPTransaction *tx = vtx;
-
-    if (direction & STREAM_TOSERVER) {
-        if (tx && tx->mime_state && tx->mime_state->state_flag == PARSE_DONE) {
-//            SCLogInfo("returning PARSE_DONE");
-            return PARSE_DONE;
-        } else
-            return 0;
-    } else
-        return 1;
+    return tx->done;
 }
 
 static FileContainer *SMTPStateGetFiles(void *state, uint8_t direction)
@@ -1322,6 +1308,17 @@ static void SMTPStateTruncate(void *state, uint8_t direction)
                 direction & STREAM_TOCLIENT ? "STREAM_TOCLIENT" : "STREAM_TOSERVER", fc);
         FileTruncateAllOpenFiles(fc);
     }
+}
+
+static AppLayerDecoderEvents *SMTPGetEvents(void *state, uint64_t tx_id)
+{
+    SCLogDebug("get SMTP events for TX %"PRIu64, tx_id);
+
+    SMTPTransaction *tx = SMTPStateGetTx(state, tx_id);
+    if (tx != NULL) {
+        return tx->decoder_events;
+    }
+    return NULL;
 }
 
 /**
@@ -1350,6 +1347,7 @@ void RegisterSMTPParsers(void)
                                      SMTPParseServerRecord);
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
+        AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
