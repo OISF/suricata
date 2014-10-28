@@ -4473,7 +4473,7 @@ int SMTPParserTest14(void)
             goto end;
         }
         if(file->size != filesize){
-            printf("smtp-mime file size %lu is incorrect", file->size);
+            printf("smtp-mime file size %"PRIu64" is incorrect", file->size);
             goto end;
         }
         static uint8_t org_binary[] = {
