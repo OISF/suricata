@@ -366,6 +366,7 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
                     ret = FileCloseFile(files, (uint8_t *) NULL, 0, flags);
                     if (ret != 0) {
                         SCLogDebug("FileCloseFile() failed: %d", ret);
+                        ret = MIME_DEC_ERR_DATA;
                     }
                 } else {
                     SCLogDebug("File already closed");
@@ -379,6 +380,7 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 ret = FileCloseFile(files, (uint8_t *) chunk, len, flags);
                 if (ret != 0) {
                     SCLogDebug("FileCloseFile() failed: %d", ret);
+                    ret = MIME_DEC_ERR_DATA;
                 }
             } else {
                 SCLogDebug("File already closed");
@@ -394,10 +396,11 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 SCLogDebug("FileAppendData() - file no longer being extracted");
             } else if (ret < 0) {
                 SCLogDebug("FileAppendData() failed: %d", ret);
+                ret = MIME_DEC_ERR_DATA;
             }
         }
 
-        if (ret == MIME_DEC_OK) {
+        if (ret == 0) {
             SCLogDebug("Successfully processed file data!");
         }
     } else {
