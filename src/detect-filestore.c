@@ -414,14 +414,14 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
     s->filestore_sm = sm;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         goto error;
     }
 
-    AppLayerHtpNeedFileInspection();
-
-    s->alproto = ALPROTO_HTTP;
+    if (s->alproto == ALPROTO_HTTP) {
+        AppLayerHtpNeedFileInspection();
+    }
 
     s->flags |= SIG_FLAG_FILESTORE;
     return 0;
