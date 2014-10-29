@@ -202,7 +202,7 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 #define DEFAULT_MAX_PENDING_PACKETS 1024
 
 /** suricata engine control flags */
-uint8_t suricata_ctl_flags = 0;
+volatile uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
 int run_mode = RUNMODE_UNKNOWN;
