@@ -71,7 +71,6 @@ TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue 
 TmEcode DecodePfringThreadDeinit(ThreadVars *tv, void *data);
 
 extern int max_pending_packets;
-extern uint8_t suricata_ctl_flags;
 
 #ifndef HAVE_PFRING
 

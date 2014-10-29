@@ -79,7 +79,6 @@ TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
 #include <nt.h>
 
 extern int max_pending_packets;
-extern uint8_t suricata_ctl_flags;
 
 typedef struct NapatechThreadVars_ {
     ThreadVars *tv;
