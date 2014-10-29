@@ -133,6 +133,7 @@ typedef struct PfringThreadVars_
 {
     /* thread specific handle */
     pfring *pd;
+//    pfring *out_pd;
 
     /* counters */
     uint64_t bytes;
@@ -338,6 +339,35 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
     }
 }
 
+TmEcode PfringWritePacket(Packet *p)
+{
+    int r;
+    u_char *pkt_buffer = GET_PKT_DIRECT_DATA(p);
+    u_int buffer_size = GET_PKT_DIRECT_MAX_SIZE(p);
+
+    if (p->pfring_v.copy_mode == PFRING_COPY_MODE_IPS) {
+        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+            return TM_ECODE_OK;
+        }
+    }
+
+    r = pfring_send(p->pfring_v.peer->pd, (char *)pkt_buffer, buffer_size, p->pfring_v.copy_mode);
+    if (r < 0) {
+        SCLogWarning(SC_ERR_SOCKET, "Sending packet failed");
+        return TM_ECODE_FAILED;
+    }
+
+    return TM_ECODE_OK;
+}
+
+void PfringReleasePacket(Packet *p)
+{
+    if (p->pfring_v.copy_mode != PFRING_COPY_MODE_NONE && !PKT_IS_PSEUDOPKT(p)) {
+        PfringWritePacket(p);
+    }
+    PacketFreeOrRelease(p);
+}
+
 /**
  * \brief Pfring Packet Process function.
  *
@@ -403,6 +433,16 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     }
 
     SET_PKT_LEN(p, h->caplen);
+
+    p->ReleasePacket = PfringReleasePacket;
+    p->pfring_v.copy_mode = ptv->copy_mode;
+    p->pfring_v.mpeer = ptv->mpeer;
+
+    if (p->pfring_v.copy_mode != PFRING_COPY_MODE_NONE) {
+        p->pfring_v.peer = ptv->mpeer->peer;
+    } else {
+        p->pfring_v.peer = NULL;
+    }
 }
 
 /**
@@ -638,6 +678,18 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         }
     }
 
+/*    ptv->out_pd = pfring_open(ptv->out_iface, (uint32_t)default_packet_size, opflag);
+    if (ptv->out_pd == NULL) {
+        SCLogError(SC_ERR_PF_RING_OPEN, "Failed to open %s: pfring_open error."
+                " Check if %s exists and pf_ring module is loaded.",
+                ptv->out_iface, ptv->out_iface);
+        pfconf->DerefFunc(pfconf);
+        return TM_ECODE_FAILED;
+    } else {
+        pfring_set_application_name(ptv->out_pd, PROG_NAME);
+        pfring_version(ptv->out_pd, &version);
+    }
+*/
     if (PfringPeersListAdd(ptv) == TM_ECODE_FAILED) {
         SCFree(ptv);
         pfconf->DerefFunc(pfconf);
