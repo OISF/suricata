@@ -187,7 +187,7 @@ typedef struct AlertUnified2Packet_ {
 
 typedef struct Unified2AlertFileCtx_ {
     LogFileCtx *file_ctx;
-    XFFCfg *xff_cfg;
+    HttpXFFCfg *xff_cfg;
 } Unified2AlertFileCtx;
 
 /**
@@ -332,7 +332,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     aun->xff_flags = XFF_DISABLED;
 
-    XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
+    HttpXFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
     /* overwrite mode can only work per u2 block, not per individual
      * alert. So we'll look for an XFF record once */
@@ -342,7 +342,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
 
         FLOWLOCK_RDLOCK(p->flow);
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
-            have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
+            have_xff_ip = HttpXFFGetIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
         }
         FLOWLOCK_UNLOCK(p->flow);
 
@@ -894,7 +894,7 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         if (unlikely(pa->s == NULL))
             continue;
 
-        XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
+        HttpXFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
         if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
             char buffer[XFF_MAXLEN];
@@ -903,9 +903,9 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
             }
             FLOWLOCK_UNLOCK(p->flow);
@@ -1071,7 +1071,7 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         if (unlikely(pa->s == NULL))
             continue;
 
-        XFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
+        HttpXFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
         if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
             char buffer[XFF_MAXLEN];
@@ -1080,9 +1080,9 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
             FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
-                    have_xff_ip = GetXFFIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
                 } else {
-                    have_xff_ip = GetXFFIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
+                    have_xff_ip = HttpXFFGetIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
                 }
             }
             FLOWLOCK_UNLOCK(p->flow);
@@ -1245,7 +1245,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     int ret = 0;
     LogFileCtx* file_ctx = NULL;
     OutputCtx* output_ctx = NULL;
-    XFFCfg *xff_cfg = NULL;
+    HttpXFFCfg *xff_cfg = NULL;
 
     file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
@@ -1309,14 +1309,14 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     if (unlikely(output_ctx == NULL))
         goto error;
 
-    xff_cfg = SCMalloc(sizeof(XFFCfg));
+    xff_cfg = SCMalloc(sizeof(HttpXFFCfg));
     if (unlikely(xff_cfg == NULL)) {
         goto error;
     }
-    memset(xff_cfg, 0x00, sizeof(XFFCfg));
+    memset(xff_cfg, 0x00, sizeof(HttpXFFCfg));
 
     if (conf != NULL) {
-        GetXFFCfg(conf, xff_cfg);
+        HttpXFFGetCfg(conf, xff_cfg);
     }
 
     Unified2AlertFileCtx *unified2alert_ctx = SCMalloc(sizeof(Unified2AlertFileCtx));
@@ -1357,7 +1357,7 @@ static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
             if (logfile_ctx != NULL) {
                 LogFileFreeCtx(logfile_ctx);
             }
-            XFFCfg *xff_cfg = unified2alert_ctx->xff_cfg;
+            HttpXFFCfg *xff_cfg = unified2alert_ctx->xff_cfg;
             if (xff_cfg != NULL) {
                 SCFree(xff_cfg);
             }

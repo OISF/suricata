@@ -38,7 +38,13 @@
 /** Default XFF header name */
 #define XFF_DEFAULT "X-Forwarded-For"
 
-int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf,
+/**
+ *  \brief Function to return XFF IP if any in the selected transaction. The
+ *  caller needs to lock the flow.
+ *  \retval 1 if the IP has been found and returned in dstbuf
+ *  \retval 0 if the IP has not being found or error
+ */
+int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf,
         int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
@@ -92,11 +98,11 @@ int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstb
 }
 
 /**
- *  \brief Function to return XFF IP if any...
+ *  \brief Function to return XFF IP if any. The caller needs to lock the flow.
  *  \retval 1 if the IP has been found and returned in dstbuf
  *  \retval 0 if the IP has not being found or error
  */
-int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
+int HttpXFFGetIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
 {
     HtpState *htp_state = NULL;
     uint64_t tx_id = 0;
@@ -110,7 +116,7 @@ int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen)
 
     total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, htp_state);
     for (; tx_id < total_txs; tx_id++) {
-        if (GetXFFIPFromTx(p, tx_id, xff_header, dstbuf, dstbuflen) == 1)
+        if (HttpXFFGetIPFromTx(p, tx_id, xff_header, dstbuf, dstbuflen) == 1)
             return 1;
     }
 
@@ -118,7 +124,10 @@ end:
     return 0; // Not found
 }
 
-void GetXFFCfg(ConfNode *conf, XFFCfg *result)
+/**
+ *  \brief Function to return XFF configuration from a configuration node.
+ */
+void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
 {
     BUG_ON(conf == NULL || result == NULL);
 

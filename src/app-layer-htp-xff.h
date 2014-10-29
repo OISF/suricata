@@ -34,15 +34,15 @@
 /** Single XFF IP maximum length (default value based on IPv6 address length) */
 #define XFF_MAXLEN 46
 
-typedef struct XFFCfg_ {
+typedef struct HttpXFFCfg_ {
     uint8_t mode; /**< XFF operation mode */
     char *header; /**< XFF header name */
-} XFFCfg;
+} HttpXFFCfg;
 
-void GetXFFCfg(ConfNode *conf, XFFCfg *result);
+void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result);
 
-int GetXFFIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen);
+int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen);
 
-int GetXFFIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen);
+int HttpXFFGetIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen);
 
 #endif /* __APP_LAYER_HTP_XFF_H__ */
