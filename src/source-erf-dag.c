@@ -91,7 +91,6 @@ NoErfDagSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define BYTES_PER_LOOP (4 * 1024 * 1024) /* 4 MB */
 
 extern int max_pending_packets;
-extern uint8_t suricata_ctl_flags;
 
 typedef struct ErfDagThreadVars_ {
     ThreadVars *tv;

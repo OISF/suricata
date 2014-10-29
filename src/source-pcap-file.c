@@ -57,7 +57,6 @@
 
 #endif /* __SC_CUDA_SUPPORT__ */
 
-extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
 //static int pcap_max_read_packets = 0;

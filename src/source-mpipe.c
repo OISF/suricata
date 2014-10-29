@@ -76,8 +76,6 @@
 
 #define min(a,b) (((a) < (b)) ? (a) : (b))
 
-extern uint8_t suricata_ctl_flags;
-
 /** storage for mpipe device names */
 typedef struct MpipeDevice_ {
     char *dev;  /**< the device (e.g. "xgbe1") */

@@ -54,8 +54,6 @@
 
 #endif /* __SC_CUDA_SUPPORT__ */
 
-extern uint8_t suricata_ctl_flags;
-
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1
 

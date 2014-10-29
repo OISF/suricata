@@ -96,7 +96,6 @@
 
 #endif /* HAVE_AF_PACKET */
 
-extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
 #ifndef HAVE_AF_PACKET
