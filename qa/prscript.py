@@ -28,7 +28,7 @@ BUILDERS_URI=BASE_URI+"builders/"
 JSON_BUILDERS_URI=BASE_URI+"json/builders/"
 
 GITHUB_BASE_URI = "https://api.github.com/repos/"
-GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
+GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master-2.0.x"
 
 parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
 parser.add_argument('-u', '--username', dest='username', help='github and buildbot user')
@@ -136,9 +136,9 @@ def WaitForBuildResult(builder, buildid, extension=""):
     # check that github branch and inliniac master branch are sync
 if TestRepoSync(args.branch) == -1:
     if args.norebase:
-        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
+        print "Branch " + args.branch + " is not in sync with inliniac's master-2.0.x branch. Continuing due to --norebase option."
     else:
-        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+        print "Branch " + args.branch + " is not in sync with inliniac's master-2.0.x branch. Rebase needed."
         sys.exit(-1)
 
 # submit buildbot form to build current branch on the devel builder
