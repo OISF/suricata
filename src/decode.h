@@ -61,6 +61,7 @@ enum PktSrcEnum {
 #include "source-pcap.h"
 #include "source-af-packet.h"
 #include "source-mpipe.h"
+#include "source-pfring.h"
 
 #include "action-globals.h"
 
@@ -414,7 +415,9 @@ typedef struct Packet_
         /* tilegx mpipe stuff */
         MpipePacketVars mpipe_v;
 #endif
-
+#ifdef HAVE_PFRING
+        PfringPacketVars pfring_v;
+#endif
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
     };
