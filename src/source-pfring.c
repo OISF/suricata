@@ -338,6 +338,35 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
     }
 }
 
+TmEcode PfringWritePacket(Packet *p)
+{
+    int r;
+    u_char *pkt_buffer = GET_PKT_DIRECT_DATA(p);
+    u_int buffer_size = GET_PKT_DIRECT_MAX_SIZE(p);
+
+    if (p->pfring_v.copy_mode == PFRING_COPY_MODE_IPS) {
+        if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+            return TM_ECODE_OK;
+        }
+    }
+
+    r = pfring_send(p->pfring_v.peer->pd, (char *)pkt_buffer, buffer_size, p->pfring_v.copy_mode);
+    if (r < 0) {
+        SCLogWarning(SC_ERR_SOCKET, "Sending packet failed");
+        return TM_ECODE_FAILED;
+    }
+
+    return TM_ECODE_OK;
+}
+
+void PfringReleasePacket(Packet *p)
+{
+    if (p->pfring_v.copy_mode != PFRING_COPY_MODE_NONE && !PKT_IS_PSEUDOPKT(p)) {
+        PfringWritePacket(p);
+    }
+    PacketFreeOrRelease(p);
+}
+
 /**
  * \brief Pfring Packet Process function.
  *
@@ -403,6 +432,16 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     }
 
     SET_PKT_LEN(p, h->caplen);
+
+    p->ReleasePacket = PfringReleasePacket;
+    p->pfring_v.copy_mode = ptv->copy_mode;
+    p->pfring_v.mpeer = ptv->mpeer;
+
+    if (p->pfring_v.copy_mode != PFRING_COPY_MODE_NONE) {
+        p->pfring_v.peer = ptv->mpeer->peer;
+    } else {
+        p->pfring_v.peer = NULL;
+    }
 }
 
 /**
