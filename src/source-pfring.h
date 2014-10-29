@@ -68,6 +68,14 @@ typedef struct PfringPeer_ {
     TAILQ_ENTRY(PfringPeer_) next;
 } PfringPeer;
 
+typedef struct PfringPacketVars_
+{
+    int copy_mode;
+    int flush_packet;
+    PfringPeer *peer;
+    PfringPeer *mpeer;
+} PfringPacketVars;
+
 void TmModuleReceivePfringRegister (void);
 void TmModuleDecodePfringRegister (void);
 
