@@ -110,6 +110,7 @@ outputs:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
         #- drop
+        #    alerts: no       # log alerts that caused drops
         - ssh
         # bi-directional flows
         #- flow

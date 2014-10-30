@@ -121,6 +121,38 @@ static void AlertJsonHttp(const Flow *f, json_t *js)
     return;
 }
 
+void AlertJsonHeader(const PacketAlert *pa, json_t *js)
+{
+    char *action = "allowed";
+    if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+        action = "blocked";
+    } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+        action = "blocked";
+    }
+
+    json_t *ajs = json_object();
+    if (ajs == NULL) {
+        json_decref(js);
+        return;
+    }
+
+    json_object_set_new(ajs, "action", json_string(action));
+    json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
+    json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
+    json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
+    json_object_set_new(ajs, "signature",
+            json_string((pa->s->msg) ? pa->s->msg : ""));
+    json_object_set_new(ajs, "category",
+            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+    json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
+
+    if (pa->flags & PACKET_ALERT_FLAG_TX)
+        json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
+
+    /* alert */
+    json_object_set_new(js, "alert", ajs);
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -143,34 +175,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             continue;
         }
 
-        char *action = "allowed";
-        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
-            action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
-            action = "blocked";
-        }
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
-
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "signature",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "category",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
-
-        if (pa->flags & PACKET_ALERT_FLAG_TX)
-            json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
-
         /* alert */
-        json_object_set_new(js, "alert", ajs);
+        AlertJsonHeader(pa, js);
 
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {

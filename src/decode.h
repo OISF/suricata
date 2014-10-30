@@ -255,7 +255,6 @@ typedef uint16_t Port;
  * found in this packet */
 typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
-    SigIntId order_id; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
     struct Signature_ *s;
@@ -278,6 +277,9 @@ typedef struct PacketAlert_ {
 typedef struct PacketAlerts_ {
     uint16_t cnt;
     PacketAlert alerts[PACKET_ALERT_MAX];
+    /* single pa used when we're dropping,
+     * so we can log it out in the drop log. */
+    PacketAlert drop;
 } PacketAlerts;
 
 /** number of decoder events we support per packet. Power of 2 minus 1
@@ -721,6 +723,7 @@ typedef struct DecodeThreadVars_
         (p)->payload_len = 0;                   \
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
+        (p)->alerts.drop.num = 0;               \
         (p)->pcap_cnt = 0;                      \
         (p)->tunnel_rtv_cnt = 0;                \
         (p)->tunnel_tpr_cnt = 0;                \
