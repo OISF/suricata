@@ -1774,11 +1774,13 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
                 ssn->server.next_win = ssn->server.last_ack +
                     ssn->server.window;
-                /* window scaling for midstream pickups, we can't do much
-                 * other than assume that it's set to the max value: 14 */
-                ssn->server.wscale = TCP_WSCALE_MAX;
-                ssn->client.wscale = TCP_WSCALE_MAX;
-                ssn->flags |= STREAMTCP_FLAG_SACKOK;
+                if (!(ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)) {
+                    /* window scaling for midstream pickups, we can't do much
+                     * other than assume that it's set to the max value: 14 */
+                    ssn->server.wscale = TCP_WSCALE_MAX;
+                    ssn->client.wscale = TCP_WSCALE_MAX;
+                    ssn->flags |= STREAMTCP_FLAG_SACKOK;
+                }
             }
 
             StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
