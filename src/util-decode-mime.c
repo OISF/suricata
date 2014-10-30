@@ -608,10 +608,12 @@ static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
     while (curr != NULL) {
         *len += curr->value_len;
 
+#if 0
         /* Add CRLF except on last one */
         if (curr->next != NULL) {
             *len += 2;
         }
+#endif
         curr = curr->next;
     }
 
@@ -629,11 +631,13 @@ static uint8_t * GetFullValue(DataValue *dv, uint32_t *len)
             memcpy(val + offset, curr->value, curr->value_len);
             offset += curr->value_len;
 
+#if 0       /* VJ unclear why this is needed ? */
             /* Add CRLF except on last one */
             if (curr->next != NULL) {
                 memcpy(val + offset, CRLF, 2);
                 offset += 2;
             }
+#endif
             curr = curr->next;
         }
     }
