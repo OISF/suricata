@@ -250,6 +250,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_DECODEAFP);
         CASE_CODE (TMM_PACKETLOGGER);
         CASE_CODE (TMM_TXLOGGER);
+        CASE_CODE (TMM_STATSLOGGER);
         CASE_CODE (TMM_FILELOGGER);
         CASE_CODE (TMM_FILEDATALOGGER);
         CASE_CODE (TMM_STREAMINGLOGGER);
@@ -267,6 +268,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_FLOWMANAGER);
         CASE_CODE (TMM_FLOWRECYCLER);
         CASE_CODE (TMM_LUALOG);
+        CASE_CODE (TMM_LOGSTATSLOG);
 
         CASE_CODE (TMM_SIZE);
     }

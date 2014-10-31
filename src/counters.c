@@ -19,6 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Performance counters
  */
@@ -43,14 +44,33 @@
 /* Used to parse the interval for Timebased counters */
 #define SC_PERF_PCRE_TIMEBASED_INTERVAL "^(?:(\\d+)([shm]))(?:(\\d+)([shm]))?(?:(\\d+)([shm]))?$"
 
+/* Time interval for syncing the local counters with the global ones */
+#define SC_PERF_WUT_TTS 3
+
+/* Time interval at which the mgmt thread o/p the stats */
+#define SC_PERF_MGMTT_TTS 8
+
+static void *stats_thread_data = NULL;
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
 /** refresh interval in seconds */
 static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
 /** is the stats counter enabled? */
 static char sc_counter_enabled = TRUE;
-/** append or overwrite? 1: append, 0: overwrite */
-static char sc_counter_append = TRUE;
+
+static int SCPerfOutputCounterFileIface(ThreadVars *tv);
+
+/** stats table is filled each interval and passed to the
+ *  loggers. Initialized at first use. */
+static StatsTable stats_table = { NULL, 0, 0, {0 , 0}};
+
+/**
+ * \brief The output interface dispatcher for the counter api
+ */
+void SCPerfOutputCounters(ThreadVars *tv)
+{
+    SCPerfOutputCounterFileIface(tv);
+}
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -127,65 +147,6 @@ void SCPerfCounterSetUI64(uint16_t id, SCPerfCounterArray *pca,
 }
 
 /**
- * \brief Get the filename with path to the stats log file.
- *
- *        This function returns a string containing the log filename.  It uses
- *        allocated memory simply to drop into the existing code a little better
- *        where a SCStrdup was used.  So as before, it is up to the caller to free
- *        the memory.
- *
- * \retval An allocated string containing the log filename on success or NULL on
- *         failure.
- */
-static char *SCPerfGetLogFilename(ConfNode *stats)
-{
-    char *log_dir = NULL;
-    char *log_filename = NULL;
-    const char* filename = NULL;
-
-    log_dir = ConfigGetLogDirectory();
-
-    if ( (log_filename = SCMalloc(PATH_MAX)) == NULL) {
-        return NULL;
-    }
-
-    if (stats != NULL) {
-        filename = ConfNodeLookupChildValue(stats, "filename");
-        if (filename == NULL) {
-            filename = SC_PERF_DEFAULT_LOG_FILENAME;
-        }
-    } else {
-        filename = SC_PERF_DEFAULT_LOG_FILENAME;
-    }
-
-    if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
-                 filename) < 0) {
-        SCLogError(SC_ERR_SPRINTF, "Sprintf Error");
-        SCFree(log_filename);
-        return NULL;
-    }
-
-    return log_filename;
-}
-
-/**
- * \brief Reopen the log file.
- *
- * \retval 1 if successful, otherwise 0.
- */
-static int SCPerfFileReopen(SCPerfOPIfaceContext *sc_perf_op_ctx)
-{
-    fclose(sc_perf_op_ctx->fp);
-    if ((sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, "w+")) == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to reopen file \"%s\"."
-            "Stats logging will now be disabled.",
-            sc_perf_op_ctx->file);
-        return 0;
-    }
-    return 1;
-}
-
-/**
  * \brief Initializes the output interface context
  *
  * \todo Support multiple interfaces
@@ -193,73 +154,14 @@ static int SCPerfFileReopen(SCPerfOPIfaceContext *sc_perf_op_ctx)
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
-
-    ConfNode *root = ConfGetNode("outputs");
-    ConfNode *node = NULL;
-    ConfNode *stats = NULL;
-    if (root != NULL) {
-        TAILQ_FOREACH(node, &root->head, next) {
-            if (strncmp(node->val, "stats", 5) == 0) {
-                stats = node->head.tqh_first;
-            }
-        }
-    }
-    /* Check if the stats module is enabled or not */
-    if (stats != NULL) {
-        const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
-        if (enabled != NULL && ConfValIsFalse(enabled)) {
-            sc_counter_enabled = FALSE;
-            SCLogDebug("Stats module has been disabled");
-            SCReturn;
-        }
-        const char *interval = ConfNodeLookupChildValue(stats, "interval");
-        if (interval != NULL)
-            sc_counter_tts = (uint32_t) atoi(interval);
-
-        const char *append = ConfNodeLookupChildValue(stats, "append");
-        if (append != NULL)
-            sc_counter_append = ConfValIsTrue(append);
-    }
-
-    /* Store the engine start time */
-    time(&sc_start_time);
-
     if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
 
-    sc_perf_op_ctx->iface = SC_PERF_IFACE_FILE;
-
-    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
-        SCLogInfo("Error retrieving Perf Counter API output file path");
-    }
-
-    char *mode;
-    if (sc_counter_append)
-        mode = "a+";
-    else
-        mode = "w+";
-
-    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
-        SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
-                   "to using the standard output for output",
-                   sc_perf_op_ctx->file);
-
-        SCFree(sc_perf_op_ctx->file);
-
-        /* Let us use the standard output for output */
-        sc_perf_op_ctx->fp = stdout;
-        if ( (sc_perf_op_ctx->file = SCStrdup("stdout")) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-    }
-    else {
-        /* File opened, register for rotation notification. */
-        OutputRegisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
-    }
+    /* Store the engine start time */
+    time(&sc_start_time);
 
     /* init the lock used by SCPerfClubTMInst */
     if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
@@ -285,14 +187,6 @@ static void SCPerfReleaseOPCtx()
     SCPerfClubTMInst *temp = NULL;
     pctmi = sc_perf_op_ctx->pctmi;
 
-    OutputUnregisterFileRotationFlag(&sc_perf_op_ctx->rotation_flag);
-
-    if (sc_perf_op_ctx->fp != NULL)
-        fclose(sc_perf_op_ctx->fp);
-
-    if (sc_perf_op_ctx->file != NULL)
-        SCFree(sc_perf_op_ctx->file);
-
     while (pctmi != NULL) {
         if (pctmi->tm_name != NULL)
             SCFree(pctmi->tm_name);
@@ -307,6 +201,12 @@ static void SCPerfReleaseOPCtx()
 
     SCFree(sc_perf_op_ctx);
     sc_perf_op_ctx = NULL;
+
+    /* free stats table */
+    if (stats_table.stats != NULL) {
+        SCFree(stats_table.stats);
+        memset(&stats_table, 0, sizeof(stats_table));
+    }
 
     return;
 }
@@ -349,6 +249,17 @@ static void *SCPerfMgmtThread(void *arg)
         return NULL;
     }
 
+    TmModule *tm = &tmm_modules[TMM_STATSLOGGER];
+    BUG_ON(tm->ThreadInit == NULL);
+    int r = tm->ThreadInit(tv_local, NULL, &stats_thread_data);
+    if (r != 0 || stats_thread_data == NULL) {
+        SCLogError(SC_ERR_THREAD_INIT, "Perf Counter API "
+                   "ThreadInit failed");
+        TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
+        return NULL;
+    }
+    SCLogDebug("stats_thread_data %p", &stats_thread_data);
+
     TmThreadsSetFlag(tv_local, THV_INIT_DONE);
     while (run) {
         if (TmThreadsCheckFlag(tv_local, THV_PAUSE)) {
@@ -364,7 +275,7 @@ static void *SCPerfMgmtThread(void *arg)
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
-        SCPerfOutputCounters();
+        SCPerfOutputCounters(tv_local);
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             run = 0;
@@ -633,68 +544,91 @@ static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
     return pc->value;
 }
 
+
 /**
  * \brief The file output interface for the Perf Counter api
  */
-static int SCPerfOutputCounterFileIface()
+static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 {
-    SCPerfClubTMInst *pctmi = NULL;
-    SCPerfCounter *pc = NULL;
+    const SCPerfClubTMInst *pctmi = NULL;
+    const SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
 
     uint64_t ui64_temp = 0;
     uint64_t ui64_result = 0;
 
-    struct timeval tval;
-    struct tm *tms;
-
     uint32_t u = 0;
     int flag = 0;
+    void *td = stats_thread_data;
 
-    if (sc_perf_op_ctx->fp == NULL) {
-        SCLogDebug("perf_op_ctx->fp is NULL");
-        return 0;
-    }
+    if (stats_table.nstats == 0) {
+        uint32_t nstats = 0;
 
-    if (sc_perf_op_ctx->rotation_flag) {
-        SCLogDebug("Rotating log file");
-        sc_perf_op_ctx->rotation_flag = 0;
-        if (!SCPerfFileReopen(sc_perf_op_ctx)) {
-            /* Rotation failed, error already logged. */
-            return 0;
+        pctmi = sc_perf_op_ctx->pctmi;
+        while (pctmi != NULL) {
+            if (pctmi->size == 0) {
+                pctmi = pctmi->next;
+                continue;
+            }
+
+            if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
+                return 0;
+            memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
+
+            for (u = 0; u < pctmi->size; u++) {
+                pc_heads[u] = pctmi->head[u]->head;
+                SCMutexLock(&pctmi->head[u]->m);
+            }
+
+            flag = 1;
+            while (flag) {
+                if (pc_heads[0] == NULL)
+                    break;
+
+                for (u = 0; u < pctmi->size; u++) {
+                    if (pc_heads[u] != NULL)
+                        pc_heads[u] = pc_heads[u]->next;
+                    if (pc_heads[u] == NULL)
+                        flag = 0;
+                }
+
+                /* count */
+                nstats++;
+            }
+
+            for (u = 0; u < pctmi->size; u++)
+                SCMutexUnlock(&pctmi->head[u]->m);
+
+            pctmi = pctmi->next;
+            SCFree(pc_heads);
+
         }
+        if (nstats == 0) {
+            SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "no counters registered");
+            return -1;
+        }
+
+        stats_table.nstats = nstats;
+        stats_table.stats = SCCalloc(stats_table.nstats, sizeof(StatsRecord));
+        if (stats_table.stats == NULL) {
+            stats_table.nstats = 0;
+            SCLogError(SC_ERR_MEM_ALLOC, "could not alloc memory for stats");
+            return -1;
+        }
+
+        stats_table.start_time = sc_start_time;
     }
+    StatsRecord *table = stats_table.stats;
 
-    memset(&tval, 0, sizeof(struct timeval));
-
-    gettimeofday(&tval, NULL);
-    struct tm local_tm;
-    tms = SCLocalTime(tval.tv_sec, &local_tm);
-
-    /* Calculate the Engine uptime */
-    int up_time = (int)difftime(tval.tv_sec, sc_start_time);
-    int sec = up_time % 60;     // Seconds in a minute
-    int in_min = up_time / 60;
-    int min = in_min % 60;      // Minutes in a hour
-    int in_hours = in_min / 60;
-    int hours = in_hours % 24;  // Hours in a day
-    int days = in_hours / 24;
-
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds)\n",
-            tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec, days, hours, min, sec);
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
-            "Value");
-    fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
-            "---------------------\n");
+    int table_i = 0;
 
     pctmi = sc_perf_op_ctx->pctmi;
     while (pctmi != NULL) {
+        if (pctmi->size == 0) {
+            pctmi = pctmi->next;
+            continue;
+        }
+
         if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
             return 0;
         memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
@@ -722,20 +656,24 @@ static int SCPerfOutputCounterFileIface()
                     flag = 0;
             }
 
-            fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-" PRIu64 "\n",
-                    pc->cname, pctmi->tm_name, ui64_result);
+            /* store in the table */
+            table[table_i].name = pc->cname;
+            table[table_i].tm_name = pctmi->tm_name;
+            table[table_i].pvalue = table[table_i].value;
+            table[table_i].value = ui64_result;
+            table_i++;
         }
 
         for (u = 0; u < pctmi->size; u++)
             SCMutexUnlock(&pctmi->head[u]->m);
 
         pctmi = pctmi->next;
-
         SCFree(pc_heads);
 
-        fflush(sc_perf_op_ctx->fp);
     }
 
+    /* invoke logger(s) */
+    OutputStatsLog(tv, td, &stats_table);
     return 1;
 }
 
@@ -1292,29 +1230,6 @@ double SCPerfGetLocalCounterValue(uint16_t id, SCPerfCounterArray *pca)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
     return pca->head[id].ui64_cnt;
-}
-
-/**
- * \brief The output interface dispatcher for the counter api
- */
-void SCPerfOutputCounters()
-{
-    switch (sc_perf_op_ctx->iface) {
-        case SC_PERF_IFACE_FILE:
-            SCPerfOutputCounterFileIface();
-
-            break;
-        case SC_PERF_IFACE_CONSOLE:
-            /* yet to be implemented */
-
-            break;
-        case SC_PERF_IFACE_SYSLOG:
-            /* yet to be implemented */
-
-            break;
-    }
-
-    return;
 }
 
 /**
