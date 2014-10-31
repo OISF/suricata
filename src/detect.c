@@ -776,45 +776,64 @@ end:
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
 {
-    uint32_t m = 0;
-    uint32_t n = 0;
-
     uint32_t mpm = -1;
     uint32_t nonmpm = -1;
 
     det_ctx->match_array_cnt = 0;
-    while (1) {
-        if (m < det_ctx->pmq.rule_id_array_cnt)
-            mpm = det_ctx->pmq.rule_id_array[m];
-        else
-            mpm = -1;
-        if (n < sgh->non_mpm_id_cnt)
-            nonmpm = sgh->non_mpm_id_array[n];
-        else
-            nonmpm = -1;
+    uint32_t *mpm_ptr = det_ctx->pmq.rule_id_array;
+    uint32_t *nonmpm_ptr = sgh->non_mpm_id_array;
+    uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
+    uint32_t n_cnt = sgh->non_mpm_id_cnt;
+    SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
+    SCLogDebug("SGH non-MPM id count %d", sgh->non_mpm_id_cnt);
 
+    /* Load first values. */
+    if (likely(m_cnt)) {
+        mpm = *(mpm_ptr++);
+        m_cnt--;
+    } else
+        mpm = -1;
+    if (likely(n_cnt)) {
+        nonmpm = *(nonmpm_ptr++);
+        n_cnt--;
+    } else
+        nonmpm = -1;
+
+     uint32_t previous_id = (uint32_t)-1;
+     Signature **sig_array = de_ctx->sig_array;
+     Signature **match_array = det_ctx->match_array;
+     Signature *s;
+     while (1) {
         uint32_t id = MIN(mpm, nonmpm);
 
-        if (id == (uint32_t)-1)
-            return;
-        else if (id == mpm) {
-            m++;
-            BUG_ON(m > det_ctx->pmq.rule_id_array_cnt);
-        } else if (id == nonmpm) {
-            n++;
-            BUG_ON(n > sgh->non_mpm_id_cnt);
+        if (unlikely(id == (uint32_t)-1))
+            break;
+        else {
+            s = sig_array[id];
+
+            if (id == mpm) {
+                if (likely(m_cnt)) {
+                    mpm = *(mpm_ptr++);
+                    m_cnt--;
+                } else
+                    mpm = -1;  // TODO - at this point, just copy of remaining array onto the end of the list.
+            } else { // (id == nonmpm)
+                if (likely(n_cnt)) {
+                    nonmpm = *(nonmpm_ptr++);
+                    n_cnt--;
+                } else
+                    nonmpm = -1;
+            }
         }
 
-        Signature *s = de_ctx->sig_array[id];
-
-        /* as the mpm list can contain duplicates, check for this here */
-        if (det_ctx->match_array_cnt == 0 || det_ctx->match_array[det_ctx->match_array_cnt - 1] != s)
-            det_ctx->match_array[det_ctx->match_array_cnt++] = s;
-
-        if (m >= det_ctx->pmq.rule_id_array_cnt && n >= sgh->non_mpm_id_cnt)
-            break;
-
+        /* As the mpm list can contain duplicates, check for that here. */
+        if (likely(id != previous_id)) {
+            *match_array++ = s;
+            previous_id = id;
+        }
     }
+    det_ctx->match_array_cnt = match_array - det_ctx->match_array;
+
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
 }
 
@@ -1383,6 +1402,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
+
+    SCLogDebug("match array count %d", det_ctx->match_array_cnt);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
