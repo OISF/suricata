@@ -1723,7 +1723,6 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))
             non_mpm++;
     }
-    SCLogInfo("non-MPM sigs %u", non_mpm);
     if (non_mpm == 0) {
         sgh->non_mpm_id_array = NULL;
         return 0;
