@@ -96,6 +96,7 @@
 #include "output-json-smtp.h"
 #include "log-filestore.h"
 #include "log-tcp-data.h"
+#include "log-stats.h"
 
 #include "output-json.h"
 
@@ -892,6 +893,8 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
     /* tcp streaming data */
     TmModuleLogTcpDataLogRegister();
+    /* log stats */
+    TmModuleLogStatsLogRegister();
 
     TmModuleJsonAlertLogRegister();
     /* flow/netflow */
@@ -904,6 +907,7 @@ void RegisterAllModules()
     TmModuleFileLoggerRegister();
     TmModuleFiledataLoggerRegister();
     TmModuleStreamingLoggerRegister();
+    TmModuleStatsLoggerRegister();
     TmModuleDebugList();
     /* nflog */
     TmModuleReceiveNFLOGRegister();
