@@ -914,13 +914,28 @@ static int SMTPParseCommandBDAT(SMTPState *state)
     return 0;
 }
 
+/* consider 'rset' and 'quit' to be part of the existing state */
+static int NoNewTx(SMTPState *state)
+{
+    if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+        if (state->current_line_len >= 4 &&
+            SCMemcmpLowercase("rset", state->current_line, 4) == 0) {
+            return 1;
+        } else if (state->current_line_len >= 4 &&
+            SCMemcmpLowercase("quit", state->current_line, 4) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
 
-    if (state->curr_tx == NULL || state->curr_tx->done) {
+    if (state->curr_tx == NULL || (state->curr_tx->done && !NoNewTx(state))) {
         tx = SMTPTransactionCreate();
         if (tx == NULL)
             return -1;
