@@ -114,7 +114,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             if (field != NULL) {
                 json_t *js_to = json_array();
                 if (likely(js_to != NULL)) {
-                    char *savep;
+                    char *savep = NULL;
                     char *p;
                     to_line = BytesToString((uint8_t *)field->value,
                                             (size_t)field->value_len);
@@ -136,7 +136,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             if (field != NULL) {
                 json_t *js_cc = json_array();
                 if (likely(js_cc != NULL)) {
-                    char *savep;
+                    char *savep = NULL;
                     char *p;
                     cc_line = BytesToString((uint8_t *)field->value,
                                             (size_t)field->value_len);
