@@ -42,7 +42,7 @@ typedef struct SCACTilePattern_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 
     struct SCACTilePattern_ *next;
 } SCACTilePattern;
@@ -56,7 +56,7 @@ typedef struct SCACTilePatternList_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 } SCACTilePatternList;
 
 typedef struct SCACTileOutputTable_ {

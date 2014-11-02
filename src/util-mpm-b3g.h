@@ -63,7 +63,7 @@ typedef struct B3gPattern_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 
     struct B3gPattern_ *next;
 

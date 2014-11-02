@@ -65,9 +65,9 @@ void SCACBSInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void SCACBSDestroyCtx(MpmCtx *);
 void SCACBSDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
 int SCACBSAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, uint32_t, uint8_t);
+                       uint32_t, SigIntId, uint8_t);
 int SCACBSAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                     uint32_t, uint32_t, uint8_t);
+                       uint32_t, SigIntId, uint8_t);
 int SCACBSPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen);
@@ -164,8 +164,8 @@ static inline uint32_t SCACBSInitHashRaw(uint8_t *pat, uint16_t patlen)
  * \retval hash A 32 bit unsigned hash.
  */
 static inline SCACBSPattern *SCACBSInitHashLookup(SCACBSCtx *ctx, uint8_t *pat,
-                                              uint16_t patlen, char flags,
-                                              uint32_t pid)
+                                                  uint16_t patlen, char flags,
+                                                  uint32_t pid)
 {
     uint32_t hash = SCACBSInitHashRaw(pat, patlen);
 
@@ -290,8 +290,8 @@ static inline int SCACBSInitHashAdd(SCACBSCtx *ctx, SCACBSPattern *p)
  * \retval -1 On failure.
  */
 static int SCACBSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                          uint16_t offset, uint16_t depth, uint32_t pid,
-                          uint32_t sid, uint8_t flags)
+                            uint16_t offset, uint16_t depth, uint32_t pid,
+                            SigIntId sid, uint8_t flags)
 {
     SCACBSCtx *ctx = (SCACBSCtx *)mpm_ctx->ctx;
 
@@ -372,7 +372,7 @@ static int SCACBSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             ctx->max_pat_id = pid;
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
     } else {
@@ -387,7 +387,7 @@ static int SCACBSAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
@@ -503,7 +503,7 @@ static void SCACBSSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
  * \param mpm_ctx     Pointer to the mpm context.
  */
 static inline void SCACBSEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pid,
-                             MpmCtx *mpm_ctx)
+                               MpmCtx *mpm_ctx)
 {
     SCACBSCtx *ctx = (SCACBSCtx *)mpm_ctx->ctx;
     int32_t state = 0;
@@ -1635,7 +1635,7 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  */
 int SCACBSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                      uint16_t offset, uint16_t depth, uint32_t pid,
-                     uint32_t sid, uint8_t flags)
+                     SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCACBSAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
@@ -1660,7 +1660,7 @@ int SCACBSAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
  */
 int SCACBSAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                      uint16_t offset, uint16_t depth, uint32_t pid,
-                     uint32_t sid, uint8_t flags)
+                     SigIntId sid, uint8_t flags)
 {
     return SCACBSAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
