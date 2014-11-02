@@ -842,11 +842,29 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
 }
 
-static int DoSortSigIntId(const void *a, const void *b)
+/* Return true is the list is sorted smallest to largest */
+static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 {
-    SigIntId x = *(SigIntId *)a;
-    SigIntId y = *(SigIntId *)b;
-    return x - y;
+    if (n < 2)
+        return;
+    SigIntId p = sids[n / 2];
+    SigIntId *l = sids;
+    SigIntId *r = sids + n - 1;
+    while (l <= r) {
+        if (*l < p)
+            l++;
+        else if (*r > p)
+            r--;
+        else {
+            SigIntId t = *l;
+            *l = *r;
+            *r = t;
+            l++;
+            r--;
+        }
+    }
+    QuickSortSigIntId(sids, r - sids + 1);
+    QuickSortSigIntId(l, sids + n - l);
 }
 
 #define SMS_USE_FLOW_SGH        0x01
@@ -1098,9 +1116,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
     /* Sort the rule list to lets look at pmq.
      * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
-    if (det_ctx->pmq.rule_id_array_cnt) {
-        qsort(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
-                sizeof(SigIntId), DoSortSigIntId);
+    if (det_ctx->pmq.rule_id_array_cnt > 1) {
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
     }
 }
 
