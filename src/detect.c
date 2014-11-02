@@ -781,12 +781,12 @@ end:
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
 {
-    uint32_t mpm = -1;
-    uint32_t nonmpm = -1;
+    SigIntId mpm = (SigIntId)-1;
+    SigIntId nonmpm = (SigIntId)-1;
 
     det_ctx->match_array_cnt = 0;
-    uint32_t *mpm_ptr = det_ctx->pmq.rule_id_array;
-    uint32_t *nonmpm_ptr = sgh->non_mpm_id_array;
+    SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
+    SigIntId *nonmpm_ptr = sgh->non_mpm_id_array;
     uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
     uint32_t n_cnt = sgh->non_mpm_id_cnt;
     SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
@@ -797,21 +797,21 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         mpm = *(mpm_ptr++);
         m_cnt--;
     } else
-        mpm = -1;
+        mpm = (SigIntId)-1;
     if (likely(n_cnt)) {
         nonmpm = *(nonmpm_ptr++);
         n_cnt--;
     } else
-        nonmpm = -1;
+        nonmpm = (SigIntId)-1;
 
-     uint32_t previous_id = (uint32_t)-1;
+     SigIntId previous_id = (SigIntId)-1;
      Signature **sig_array = de_ctx->sig_array;
      Signature **match_array = det_ctx->match_array;
      Signature *s;
      while (1) {
-        uint32_t id = MIN(mpm, nonmpm);
+        SigIntId id = MIN(mpm, nonmpm);
 
-        if (unlikely(id == (uint32_t)-1))
+        if (unlikely(id == (SigIntId)-1))
             break;
         else {
             s = sig_array[id];
@@ -842,10 +842,10 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
 }
 
-static int DoSort(const void *a, const void *b)
+static int DoSortSigIntId(const void *a, const void *b)
 {
-    uint32_t x = *(uint32_t *)a;
-    uint32_t y = *(uint32_t *)b;
+    SigIntId x = *(SigIntId *)a;
+    SigIntId y = *(SigIntId *)b;
     return x - y;
 }
 
@@ -1100,7 +1100,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
      * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
     if (det_ctx->pmq.rule_id_array_cnt) {
         qsort(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
-                sizeof(uint32_t), DoSort);
+                sizeof(SigIntId), DoSortSigIntId);
     }
 }
 

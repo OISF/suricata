@@ -59,9 +59,9 @@ void SCACGfbsInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void SCACGfbsDestroyCtx(MpmCtx *);
 void SCACGfbsDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
 int SCACGfbsAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACGfbsAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen);
@@ -284,7 +284,7 @@ static inline int SCACGfbsInitHashAdd(SCACGfbsCtx *ctx, SCACGfbsPattern *p)
  */
 static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                               uint16_t offset, uint16_t depth, uint32_t pid,
-                              uint32_t sid, uint8_t flags)
+                              SigIntId sid, uint8_t flags)
 {
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
 
@@ -365,7 +365,7 @@ static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             ctx->max_pat_id = pid;
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
     } else {
@@ -380,7 +380,7 @@ static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
@@ -496,7 +496,7 @@ static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
  * \param mpm_ctx     Pointer to the mpm context.
  */
 static inline void SCACGfbsEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pid,
-                             MpmCtx *mpm_ctx)
+                                 MpmCtx *mpm_ctx)
 {
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     int32_t state = 0;
@@ -1593,7 +1593,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  */
 int SCACGfbsAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
@@ -1618,7 +1618,7 @@ int SCACGfbsAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
  */
 int SCACGfbsAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }

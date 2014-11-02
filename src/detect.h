@@ -993,7 +993,7 @@ typedef struct SigGroupHead_ {
      *  signatures to be inspected in a cache efficient way. */
     SignatureHeader *head_array;
 
-    uint32_t *non_mpm_id_array;
+    SigIntId *non_mpm_id_array;
     uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
 
     /* pattern matcher instances */

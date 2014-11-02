@@ -63,8 +63,8 @@ void WmInitCtx (MpmCtx *mpm_ctx);
 void WmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t);
 void WmDestroyCtx(MpmCtx *mpm_ctx);
 void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx);
-int WmAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-int WmAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int WmAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+int WmAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int WmPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t WmSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
 uint32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
@@ -377,11 +377,11 @@ static int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
         mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += sizeof(uint32_t);
+        mpm_ctx->memory_size += sizeof(SigIntId);
 
     } else {
         /* TODO figure out how we can be called multiple times for the same CTX with the same sid */
@@ -395,7 +395,7 @@ static int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
@@ -412,14 +412,14 @@ error:
 }
 
 int WmAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
 int WmAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return WmAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
