@@ -41,7 +41,7 @@ typedef struct SCACGfbsPattern_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 
     struct SCACGfbsPattern_ *next;
 } SCACGfbsPattern;
@@ -52,7 +52,7 @@ typedef struct SCACGfbsPatternList_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 } SCACGfbsPatternList;
 
 typedef struct SCACGfbsOutputTable_ {

@@ -453,8 +453,8 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
         pmq->rule_id_array_size = 128; /* Initial size, TODO: Make configure option. */
         pmq->rule_id_array_cnt = 0;
 
-        uint32_t bytes = pmq->rule_id_array_size * sizeof(uint32_t);
-        pmq->rule_id_array = SCMalloc(bytes);
+        size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
+        pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
         if (pmq->rule_id_array == NULL) {
             pmq->rule_id_array_size = 0;
             SCReturnInt(-1);
@@ -481,8 +481,8 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
      * larger than the old size.
      */
     new_size = new_size * 2;
-    uint32_t *new_array = (uint32_t*)SCRealloc(pmq->rule_id_array,
-                                               new_size * sizeof(uint32_t));
+    SigIntId *new_array = (SigIntId*)SCRealloc(pmq->rule_id_array,
+                                               new_size * sizeof(SigIntId));
     if (unlikely(new_array == NULL)) {
       SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
                  " rule ID array. Some signature ID matches lost");
@@ -533,7 +533,7 @@ MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
  */
 int
 MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
-               uint8_t *bitarray, uint32_t *sids, uint32_t sids_size)
+               uint8_t *bitarray, SigIntId *sids, uint32_t sids_size)
 {
     SCEnter();
 
@@ -721,7 +721,7 @@ uint32_t MpmGetBloomSize(const char *conf_val)
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
-                    uint32_t pid, uint32_t sid, uint8_t flags)
+                    uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return mpm_table[mpm_ctx->mpm_type].AddPattern(mpm_ctx, pat, patlen,
                                                    offset, depth,
@@ -730,7 +730,7 @@ int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
 
 int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
-                    uint32_t pid, uint32_t sid, uint8_t flags)
+                    uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return mpm_table[mpm_ctx->mpm_type].AddPatternNocase(mpm_ctx, pat, patlen,
                                                          offset, depth,

@@ -41,7 +41,7 @@ typedef struct WmPattern_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 
 } WmPattern;
 

@@ -112,7 +112,7 @@ typedef struct PatternMatcherQueue_ {
 
     /* used for storing rule id's */
     /* Array of rule IDs found. */
-    uint32_t *rule_id_array;
+    SigIntId *rule_id_array;
     /* Number of rule IDs in the array. */
     uint32_t rule_id_array_cnt;
     /* The number of slots allocated for storing rule IDs */
@@ -189,8 +189,8 @@ typedef struct MpmTableElmt_ {
      *  \param sid signature _internal_ id
      *  \param flags pattern flags
      */
-    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+    int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+    int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*Prepare)(struct MpmCtx_ *);
     uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     void (*Cleanup)(struct MpmThreadCtx_ *);
@@ -255,8 +255,8 @@ void PmqFree(PatternMatcherQueue *);
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
-int MpmVerifyMatch(MpmThreadCtx *, PatternMatcherQueue *, uint32_t,
-                   uint8_t *bitarray, uint32_t *sids, uint32_t sid_size);
+int MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
+                   uint8_t *bitarray, SigIntId *sids, uint32_t sids_size);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
 uint32_t MpmGetHashSize(const char *);
@@ -264,10 +264,10 @@ uint32_t MpmGetBloomSize(const char *);
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
-                    uint32_t pid, uint32_t sid, uint8_t flags);
+                    uint32_t pid, SigIntId sid, uint8_t flags);
 int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
-                    uint32_t pid, uint32_t sid, uint8_t flags);
+                    uint32_t pid, SigIntId sid, uint8_t flags);
 
 /* Resize Signature ID array. Only called from MpmAddSids(). */
 void MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
@@ -283,7 +283,7 @@ void MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
  *
  */
 static inline void
-MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
+MpmAddSids(PatternMatcherQueue *pmq, SigIntId *sids, uint32_t sids_size)
 {
     if (sids_size == 0)
         return;
@@ -294,8 +294,8 @@ MpmAddSids(PatternMatcherQueue *pmq, uint32_t *sids, uint32_t sids_size)
     }
     SCLogDebug("Adding %u sids", sids_size);
     // Add SIDs for this pattern to the end of the array
-    uint32_t *ptr = pmq->rule_id_array + pmq->rule_id_array_cnt;
-    uint32_t *end = ptr + sids_size;
+    SigIntId *ptr = pmq->rule_id_array + pmq->rule_id_array_cnt;
+    SigIntId *end = ptr + sids_size;
     do {
         *ptr++ = *sids++;
     } while (ptr != end);
