@@ -65,8 +65,10 @@ void B2gInitCtx (MpmCtx *);
 void B2gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void B2gDestroyCtx(MpmCtx *);
 void B2gThreadDestroyCtx(MpmCtx *, MpmThreadCtx *);
-int B2gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-int B2gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int B2gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
+int B2gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags);
 int B2gPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t B2gSearchWrap(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
 uint32_t B2gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcherQueue *, uint8_t *buf, uint16_t buflen);
@@ -285,7 +287,7 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p)
     if (p && p->sids) {
         SCFree(p->sids);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->sids_size * sizeof(uint32_t);
+        mpm_ctx->memory_size -= p->sids_size * sizeof(SigIntId);
     }
 
     if (p) {
@@ -306,7 +308,7 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p)
  *
  *  \initonly
  */
-static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
 
@@ -364,11 +366,11 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         }
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
         mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += sizeof(uint32_t);
+        mpm_ctx->memory_size += sizeof(SigIntId);
 
         //printf("B2gAddPattern: ci \""); prt(p->ci,p->len);
         //printf("\" cs \""); prt(p->cs,p->len);
@@ -400,12 +402,12 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
             p->sids_size++;
-            mpm_ctx->memory_size += sizeof(uint32_t);
+            mpm_ctx->memory_size += sizeof(SigIntId);
         }
     }
 
@@ -417,14 +419,14 @@ error:
 }
 
 int B2gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+                    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
 int B2gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+                    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return B2gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }

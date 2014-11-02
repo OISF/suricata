@@ -1730,9 +1730,9 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         return 0;
     }
 
-    sgh->non_mpm_id_array = SCMalloc(non_mpm * sizeof(uint32_t));
+    sgh->non_mpm_id_array = SCMalloc(non_mpm * sizeof(SigIntId));
     BUG_ON(sgh->non_mpm_id_array == NULL);
-    memset(sgh->non_mpm_id_array, 0, non_mpm * sizeof(uint32_t));
+    memset(sgh->non_mpm_id_array, 0, non_mpm * sizeof(SigIntId));
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
