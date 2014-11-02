@@ -54,7 +54,7 @@ typedef struct SCACPattern_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 
     struct SCACPattern_ *next;
 } SCACPattern;
@@ -65,7 +65,7 @@ typedef struct SCACPatternList_ {
 
     /* sid(s) for this pattern */
     uint32_t sids_size;
-    uint32_t *sids;
+    SigIntId *sids;
 } SCACPatternList;
 
 typedef struct SCACOutputTable_ {

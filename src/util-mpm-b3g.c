@@ -60,8 +60,8 @@ void B3gInitCtx (MpmCtx *);
 void B3gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void B3gDestroyCtx(MpmCtx *);
 void B3gThreadDestroyCtx(MpmCtx *, MpmThreadCtx *);
-int B3gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
-int B3gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, uint32_t, uint8_t);
+int B3gAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
+int B3gAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
 int B3gPreparePatterns(MpmCtx *);
 uint32_t B3gSearchWrap(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
 uint32_t B3gSearch1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *, uint8_t *, uint16_t);
@@ -248,7 +248,7 @@ void B3gFreePattern(MpmCtx *mpm_ctx, B3gPattern *p)
     if (p && p->sids) {
         SCFree(p->sids);
         mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->sids_size * sizeof(uint32_t);
+        mpm_ctx->memory_size -= p->sids_size * sizeof(SigIntId);
     }
 
     if (p) {
@@ -317,11 +317,11 @@ static int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         //printf("\" prefix_ci %" PRIu32 ", prefix_cs %" PRIu32 "\n", p->prefix_ci, p->prefix_cs);
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
         mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += sizeof(uint32_t);
+        mpm_ctx->memory_size += sizeof(SigIntId);
 
         /* put in the pattern hash */
         B3gInitHashAdd(ctx, p);
@@ -349,12 +349,12 @@ static int B3gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
             p->sids_size++;
-            mpm_ctx->memory_size += sizeof(uint32_t);
+            mpm_ctx->memory_size += sizeof(SigIntId);
         }
     }
 
@@ -366,14 +366,14 @@ error:
 }
 
 int B3gAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
 
 int B3gAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-    uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags)
+    uint16_t offset, uint16_t depth, uint32_t pid, SigIntId sid, uint8_t flags)
 {
     return B3gAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }
