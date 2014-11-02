@@ -94,9 +94,9 @@ void SCACTileInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void SCACTileDestroyCtx(MpmCtx *);
 void SCACTileDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
 int SCACTileAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACTileAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACTilePreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACTileSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PatternMatcherQueue *pmq, uint8_t *buf,
@@ -512,7 +512,7 @@ static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         }
 
         p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(uint32_t));
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
         BUG_ON(p->sids == NULL);
         p->sids[0] = sid;
         //SCLogInfo("MPM added %u:%u", pid, sid);
@@ -528,7 +528,7 @@ static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             }
         }
         if (!found) {
-            uint32_t *sids = SCRealloc(p->sids, (sizeof(uint32_t) * (p->sids_size + 1)));
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
             BUG_ON(sids == NULL);
             p->sids = sids;
             p->sids[p->sids_size] = sid;
@@ -1473,7 +1473,7 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
     SCACTilePatternList *pattern_list = ctx->pattern_list;
     uint8_t *buf_offset = buf + i + 1; // Lift out of loop
     uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
-    uint32_t *patterns = ctx->output_table[state].patterns;
+    MpmPatternIndex *patterns = ctx->output_table[state].patterns;
     uint8_t *pmq_bitarray = pmq->pattern_id_bitarray;
     uint32_t k;
 
@@ -1701,7 +1701,7 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
  */
 int SCACTileAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCACTileAddPattern(mpm_ctx, pat, patlen, offset, depth,
@@ -1727,7 +1727,7 @@ int SCACTileAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
  */
 int SCACTileAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     return SCACTileAddPattern(mpm_ctx, pat, patlen, offset, depth,
                               pid, sid, flags);
