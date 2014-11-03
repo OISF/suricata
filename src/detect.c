@@ -779,7 +779,8 @@ end:
 }
 
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
+                                            DetectEngineThreadCtx *det_ctx,
+                                            SigGroupHead *sgh)
 {
     SigIntId mpm, nonmpm;
     det_ctx->match_array_cnt = 0;
@@ -815,19 +816,19 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         goto final;
     }
     while (1) {
-         if (mpm <= nonmpm) {
-             /* Take from mpm list */
-             id = mpm;
+        if (mpm <= nonmpm) {
+            /* Take from mpm list */
+            id = mpm;
 
-             s = sig_array[id];
-             /* As the mpm list can contain duplicates, check for that here. */
-             if (likely(id != previous_id)) {
-                 *match_array++ = s;
-                 previous_id = id;
-             }
-             if (unlikely(--m_cnt == 0)) {
-                 /* mpm list is now empty */
-                 final_ptr = nonmpm_ptr;
+            s = sig_array[id];
+            /* As the mpm list can contain duplicates, check for that here. */
+            if (likely(id != previous_id)) {
+                *match_array++ = s;
+                previous_id = id;
+            }
+            if (unlikely(--m_cnt == 0)) {
+                /* mpm list is now empty */
+                final_ptr = nonmpm_ptr;
                  final_cnt = n_cnt;
                  goto final;
              }
@@ -849,7 +850,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
              }
              nonmpm_ptr++;
              nonmpm = *nonmpm_ptr;
-         }
+        }
     }
 
  final: /* Only one list remaining. Just walk that list. */
@@ -1462,8 +1463,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     uint32_t sflags, next_sflags = 0;
     if (match_cnt) {
-      next_s = *match_array++;
-      next_sflags = next_s->flags;
+        next_s = *match_array++;
+        next_sflags = next_s->flags;
     }
 
     while (match_cnt--) {
@@ -1476,8 +1477,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         s = next_s;
         sflags = next_sflags;
         if (match_cnt) {
-          next_s = *match_array++;
-          next_sflags = next_s->flags;
+            next_s = *match_array++;
+            next_sflags = next_s->flags;
         }
         uint8_t s_proto_flags = s->proto.flags;
 
@@ -1501,14 +1502,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (unlikely(sflags & SIG_FLAG_DSIZE)) {
             if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
                 SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                        p->payload_len, s->dsize_low, s->dsize_high);
+                           p->payload_len, s->dsize_low, s->dsize_high);
                 goto next;
             }
         }
 
         /* check for a pattern match of the one pattern in this sig. */
-        if (likely(sflags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
-        {
+        if (likely(sflags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER))) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
@@ -1545,7 +1545,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* no flowvars? skip this sig */
             if (m == 0) {
                 SCLogDebug("skipping sig as the flow has no flowvars and sig "
-                        "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
+                           "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
                 goto next;
             }
         }
@@ -1637,7 +1637,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             /* Tell the engine that this reassembled stream can drop the
                              * rest of the pkts with no further inspection */
                             if (s->action & ACTION_DROP)
-                                alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+                              alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
                             alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
                             break;
@@ -1680,7 +1680,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                         goto next;
                     }
-
                 } else {
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1)
                         goto next;
@@ -1710,13 +1709,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
-                s->sm_lists[DETECT_SM_LIST_AMATCH],
-                s->sm_lists[DETECT_SM_LIST_UMATCH],
-                s->sm_lists[DETECT_SM_LIST_DMATCH],
-                s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
+                   "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
+                   "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
+                   "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
+                   s->sm_lists[DETECT_SM_LIST_AMATCH],
+                   s->sm_lists[DETECT_SM_LIST_UMATCH],
+                   s->sm_lists[DETECT_SM_LIST_DMATCH],
+                   s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
 
         /* consider stateful sig matches */
         if (sflags & SIG_FLAG_STATE_MATCH) {
@@ -1733,7 +1732,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                 p, pflow, flags, alproto, alversion);
+                                                      p, pflow, flags, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
