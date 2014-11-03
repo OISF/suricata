@@ -447,6 +447,7 @@ void RunModeShutDown(void)
     OutputTxShutdown();
     OutputFileShutdown();
     OutputFiledataShutdown();
+    OutputStreamingShutdown();
     OutputStatsShutdown();
 
     /* Close any log files. */
@@ -462,6 +463,7 @@ void RunModeShutDown(void)
     tx_logger_module = NULL;
     file_logger_module = NULL;
     filedata_logger_module = NULL;
+    streaming_logger_module = NULL;
 }
 
 /** \internal
