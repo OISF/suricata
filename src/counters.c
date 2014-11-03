@@ -190,6 +190,12 @@ static void SCPerfInitOPCtx(void)
             sc_counter_tts = (uint32_t) atoi(interval);
     }
 
+    if (!OutputStatsLoggersRegistered()) {
+        SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
+        sc_counter_enabled = FALSE;
+        SCReturn;
+    }
+
     /* Store the engine start time */
     time(&sc_start_time);
 

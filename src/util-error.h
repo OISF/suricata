@@ -289,6 +289,7 @@ typedef enum {
     SC_WARN_NFLOG_SETSOCKOPT,
     SC_WARN_LUA_SCRIPT,
     SC_ERR_LUA_SCRIPT,
+    SC_WARN_NO_STATS_LOGGERS,
 } SCError;
 
 const char *SCErrorToString(SCError);

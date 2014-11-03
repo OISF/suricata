@@ -48,6 +48,8 @@ int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *
 
 void TmModuleStatsLoggerRegister (void);
 
+int OutputStatsLoggersRegistered(void);
+
 void OutputStatsShutdown(void);
 
 #endif /* __OUTPUT_STATS_H__ */
