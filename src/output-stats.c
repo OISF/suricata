@@ -222,6 +222,13 @@ void TmModuleStatsLoggerRegister (void)
     tmm_modules[TMM_STATSLOGGER].cap_flags = 0;
 }
 
+int OutputStatsLoggersRegistered(void)
+{
+    if (list != NULL)
+        return 1;
+    return 0;
+}
+
 void OutputStatsShutdown(void)
 {
     OutputStatsLogger *logger = list;
