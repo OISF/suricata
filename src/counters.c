@@ -146,6 +146,23 @@ void SCPerfCounterSetUI64(uint16_t id, SCPerfCounterArray *pca,
     return;
 }
 
+static ConfNode *GetConfig(void) {
+    ConfNode *stats = ConfGetNode("stats");
+    if (stats != NULL)
+        return stats;
+
+    ConfNode *root = ConfGetNode("outputs");
+    ConfNode *node = NULL;
+    if (root != NULL) {
+        TAILQ_FOREACH(node, &root->head, next) {
+            if (strcmp(node->val, "stats") == 0) {
+                return node->head.tqh_first;
+            }
+        }
+    }
+    return NULL;
+}
+
 /**
  * \brief Initializes the output interface context
  *
@@ -159,6 +176,19 @@ static void SCPerfInitOPCtx(void)
         exit(EXIT_FAILURE);
     }
     memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
+
+    ConfNode *stats = GetConfig();
+    if (stats != NULL) {
+        const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
+        if (enabled != NULL && ConfValIsFalse(enabled)) {
+            sc_counter_enabled = FALSE;
+            SCLogDebug("Stats module has been disabled");
+            SCReturn;
+        }
+        const char *interval = ConfNodeLookupChildValue(stats, "interval");
+        if (interval != NULL)
+            sc_counter_tts = (uint32_t) atoi(interval);
+    }
 
     /* Store the engine start time */
     time(&sc_start_time);
