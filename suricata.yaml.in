@@ -119,6 +119,7 @@ outputs:
         #- drop
         - smtp
         - ssh
+        - stats
         # bi-directional flows
         #- flow
         # uni-directional flows
