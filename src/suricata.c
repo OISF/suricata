@@ -2073,10 +2073,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     StorageInit();
     CIDRInit();
     SigParsePrepare();
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
-        SCPerfInitCounterApi();
-    }
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingKeywordsGlobalInit();
@@ -2287,6 +2283,7 @@ int main(int argc, char **argv)
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
+        SCPerfInitCounterApi();
     }
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
