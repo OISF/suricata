@@ -61,23 +61,28 @@ typedef struct JsonStatsLogThread_ {
     MemBuffer *buffer;
 } JsonStatsLogThread;
 
-static
-json_t *SCPerfLookupJson(json_t *js, char *key)
+static json_t *OutputStats2Json(json_t *js, const char *key)
 {
     void *iter;
-    char *s = strndup(key, index(key, '.') - key);
+
+    const char *dot = index(key, '.');
+    if (dot == NULL)
+        return NULL;
+
+    size_t predot_len = (dot - key) + 1;
+    char s[predot_len];
+    strlcpy(s, key, predot_len);
 
     iter = json_object_iter_at(js, s);
-    char *s1 = index(key, '.');
-    char *s2 = index(s1+1, '.');
+    const char *s2 = index(dot+1, '.');
 
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
         value = json_object();
-        json_object_set(js, s, value);
+        json_object_set_new(js, s, value);
     }
     if (s2 != NULL) {
-        return SCPerfLookupJson(value, &key[index(key,'.')-key+1]);
+        return OutputStats2Json(value, &key[dot-key+1]);
     }
     return value;
 }
@@ -127,7 +132,7 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
             break;
         char str[256];
         snprintf(str, sizeof(str), "%s.%s", st->stats[u].tm_name, st->stats[u].name);
-        json_t *js_type = SCPerfLookupJson(js_stats, str);
+        json_t *js_type = OutputStats2Json(js_stats, str);
 
         if (js_type != NULL) {
             json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(st->stats[u].value));
@@ -138,6 +143,8 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, buffer);
     MemBufferReset(buffer);
 
+    json_object_clear(js_stats);
+    json_object_del(js, "stats");
     json_object_clear(js);
     json_decref(js);
 
