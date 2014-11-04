@@ -334,11 +334,11 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             return TM_ECODE_FAILED;
         }
         PcapFilesFree(cfile);
-        SCPerfInitCounterApi();
         DefragInit();
         FlowInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
+        SCPerfInitCounterApi();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
