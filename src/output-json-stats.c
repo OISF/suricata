@@ -56,13 +56,10 @@ typedef struct OutputStatsCtx_ {
     uint32_t flags; /** Store mode */
 } OutputStatsCtx;
 
-
 typedef struct JsonStatsLogThread_ {
     OutputStatsCtx *statslog_ctx;
+    MemBuffer *buffer;
 } JsonStatsLogThread;
-
-static void *eve_file_ctx = NULL;
-static void *eve_buffer = NULL;
 
 static
 json_t *SCPerfLookupJson(json_t *js, char *key)
@@ -85,17 +82,14 @@ json_t *SCPerfLookupJson(json_t *js, char *key)
     return value;
 }
 
-static int JsonStatsLogger(ThreadVars *tv, void *thread_data, StatsTable *st)
+static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 {
     SCEnter();
-    /*JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data; */
+    JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data;
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
 
     struct timeval tval;
-    struct tm *tms;
-
     gettimeofday(&tval, NULL);
-    struct tm local_tm;
-    tms = SCLocalTime(tval.tv_sec, &local_tm);
 
     /* Calculate the Engine uptime */
     int up_time = (int)difftime(tval.tv_sec, st->start_time);
@@ -110,19 +104,16 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, StatsTable *st)
     if (unlikely(js == NULL))
         return 0;
 
+    char timebuf[64];
+    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    json_object_set_new(js, "timestamp", json_string(timebuf));
+
     json_object_set_new(js, "event_type", json_string("stats"));
     json_t *js_stats = json_object();
     if (unlikely(js_stats == NULL)) {
         json_decref(js);
         return 0;
     }
-    char date[128];
-    snprintf(date, sizeof(date),
-             "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d",
-             tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900, tms->tm_hour,
-             tms->tm_min, tms->tm_sec);
-
-    json_object_set_new(js_stats, "date", json_string(date));
 
     char uptime[128];
     snprintf(uptime, sizeof(uptime),
@@ -144,9 +135,9 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, StatsTable *st)
     }
     json_object_set_new(js, "stats", js_stats);
 
-    if (eve_file_ctx != NULL && eve_buffer != NULL) {
-        OutputJSONBuffer(js, eve_file_ctx, eve_buffer);
-    }
+    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, buffer);
+    MemBufferReset(buffer);
+
     json_object_clear(js);
     json_decref(js);
 
@@ -171,6 +162,12 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, void *initdata, void **data
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->statslog_ctx = ((OutputCtx *)initdata)->data;
 
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -181,6 +178,8 @@ static TmEcode JsonStatsLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+
+    MemBufferFree(aft->buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonStatsLogThread));
@@ -236,7 +235,6 @@ OutputCtx *OutputStatsLogInit(ConfNode *conf)
 
 static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
 {
-
     OutputStatsCtx *stats_ctx = output_ctx->data;
     SCFree(stats_ctx);
     SCFree(output_ctx);
@@ -245,7 +243,6 @@ static void OutputStatsLogDeinitSub(OutputCtx *output_ctx)
 OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
-    MemBuffer *buffer;
 
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
@@ -262,16 +259,6 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = stats_ctx;
     output_ctx->DeInit = OutputStatsLogDeinitSub;
 
-    buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
-    if (buffer == NULL) {
-        SCFree(stats_ctx);
-        SCFree(output_ctx);
-        return NULL;
-    }
-
-    eve_file_ctx = stats_ctx->file_ctx;
-    eve_buffer = buffer;
-
     return output_ctx;
 }
 
@@ -284,7 +271,7 @@ void TmModuleJsonStatsLogRegister (void) {
     tmm_modules[TMM_JSONSTATSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterStatsModule(MODULE_NAME, "stats", OutputStatsLogInit,
+    OutputRegisterStatsModule(MODULE_NAME, "stats-json", OutputStatsLogInit,
                               JsonStatsLogger);
 
     /* also register as child of eve-log */
