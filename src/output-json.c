@@ -523,7 +523,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         json_out = json_ctx->json_out;
     }
 
-    SCLogInfo("returning output_ctx %p", output_ctx);
+    SCLogDebug("returning output_ctx %p", output_ctx);
     return output_ctx;
 }
 
