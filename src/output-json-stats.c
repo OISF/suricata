@@ -46,10 +46,10 @@
 
 #include "output-json.h"
 
+#define MODULE_NAME "JsonStatsLog"
+
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
-
-#define MODULE_NAME "LogStatsLog"
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
@@ -59,7 +59,6 @@ typedef struct OutputStatsCtx_ {
 
 typedef struct JsonStatsLogThread_ {
     OutputStatsCtx *statslog_ctx;
-    //MemBuffer *buffer;
 } JsonStatsLogThread;
 
 static void *eve_file_ctx = NULL;
@@ -152,12 +151,6 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, StatsTable *st)
     json_decref(js);
 
     SCReturnInt(0);
-}
-
-void SCPerfRegisterEveFile(void *file_ctx, void *buffer)
-{
-    eve_file_ctx = file_ctx;
-    eve_buffer = buffer;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
@@ -276,34 +269,14 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-#if 0
-    if (conf) {
-        const char *interval_s = ConfNodeLookupChildValue(conf, "interval");
-        if (interval_s != NULL)
-            interval = (uint32_t) atoi(interval_s);
-    }
-#endif
-
-#ifdef NOTYET
-    SCPerfRegisterEveFile(stats_ctx->file_ctx, buffer, interval);
-#endif
-    SCPerfRegisterEveFile(stats_ctx->file_ctx, buffer);
+    eve_file_ctx = stats_ctx->file_ctx;
+    eve_buffer = buffer;
 
     return output_ctx;
 }
 
-#if 0
-/** \internal
- *  \brief Condition function for Stats logger
- *  \retval bool true or false -- log now?
- */
-static int JsonStatsCondition(ThreadVars *tv, const Packet *p) {
-    return FALSE;
-}
-#endif
-
 void TmModuleJsonStatsLogRegister (void) {
-    tmm_modules[TMM_JSONSTATSLOG].name = "JsonStatsLog";
+    tmm_modules[TMM_JSONSTATSLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONSTATSLOG].ThreadInit = JsonStatsLogThreadInit;
     tmm_modules[TMM_JSONSTATSLOG].ThreadDeinit = JsonStatsLogThreadDeinit;
     tmm_modules[TMM_JSONSTATSLOG].RegisterTests = NULL;
@@ -311,11 +284,11 @@ void TmModuleJsonStatsLogRegister (void) {
     tmm_modules[TMM_JSONSTATSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterStatsModule("JsonStatsLog", "stats", OutputStatsLogInit,
+    OutputRegisterStatsModule(MODULE_NAME, "stats", OutputStatsLogInit,
                               JsonStatsLogger);
 
     /* also register as child of eve-log */
-    OutputRegisterStatsSubModule("eve-log", "JsonStatsLog", "eve-log.stats",
+    OutputRegisterStatsSubModule("eve-log", MODULE_NAME, "eve-log.stats",
                                   OutputStatsLogInitSub, JsonStatsLogger);
 }
 
@@ -329,7 +302,7 @@ static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 
 void TmModuleJsonStatsLogRegister (void)
 {
-    tmm_modules[TMM_JSONSTATSLOG].name = "JsonStatsLog";
+    tmm_modules[TMM_JSONSTATSLOG].name = MODULE_NAME;
     tmm_modules[TMM_JSONSTATSLOG].ThreadInit = OutputJsonThreadInit;
 }
 
