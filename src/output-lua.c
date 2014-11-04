@@ -358,6 +358,60 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     return 0;
 }
 
+
+
+static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
+{
+    SCEnter();
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    lua_State *luastate = td->lua_ctx->luastate;
+    /* get the lua function to call */
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    /* create lua array, which is really just a table. The key is an int (1-x),
+     * the value another table with named fields: name, tm_name, value, pvalue.
+     * { 1, { name=<name>, tmname=<tm_name>, value=<value>, pvalue=<pvalue>}}
+     * { 2, { name=<name>, tmname=<tm_name>, value=<value>, pvalue=<pvalue>}}
+     * etc
+     */
+    lua_newtable(luastate);
+    uint32_t u = 0;
+    for (; u < st->nstats; u++) {
+        lua_pushinteger(luastate, u + 1);
+
+        lua_newtable(luastate);
+
+        lua_pushstring(luastate, "name");
+        lua_pushstring(luastate, st->stats[u].name);
+        lua_settable(luastate, -3);
+
+        lua_pushstring(luastate, "tmname");
+        lua_pushstring(luastate, st->stats[u].tm_name);
+        lua_settable(luastate, -3);
+
+        lua_pushstring(luastate, "value");
+        lua_pushinteger(luastate, st->stats[u].value);
+        lua_settable(luastate, -3);
+
+        lua_pushstring(luastate, "pvalue");
+        lua_pushinteger(luastate, st->stats[u].pvalue);
+        lua_settable(luastate, -3);
+
+        lua_settable(luastate, -3);
+    }
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+    SCMutexUnlock(&td->lua_ctx->m);
+    return 0;
+
+}
+
 typedef struct LogLuaScriptOptions_ {
     AppProto alproto;
     int packet;
@@ -367,6 +421,7 @@ typedef struct LogLuaScriptOptions_ {
     int tcp_data;
     int http_body;
     int flow;
+    int stats;
 } LogLuaScriptOptions;
 
 /** \brief load and evaluate the script
@@ -471,6 +526,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->flow = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "tcp") == 0)
             options->tcp_data = 1;
+        else if (strcmp(k, "type") == 0 && strcmp(v, "stats") == 0)
+            options->stats = 1;
         else
             SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
     }
@@ -712,6 +769,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->StreamingLogFunc = LuaStreamingLogger;
         } else if (opts.flow) {
             om->FlowLogFunc = LuaFlowLogger;
+        } else if (opts.stats) {
+            om->StatsLogFunc = LuaStatsLogger;
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "failed to setup thread module");
             SCFree(om);
