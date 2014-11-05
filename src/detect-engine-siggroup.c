@@ -125,8 +125,9 @@ void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (de_ctx->sgh_array_cnt < de_ctx->sgh_array_size) {
         de_ctx->sgh_array[de_ctx->sgh_array_cnt] = sgh;
     } else {
+        int increase = 16;
         ptmp = SCRealloc(de_ctx->sgh_array,
-                         sizeof(SigGroupHead *) * (16 + de_ctx->sgh_array_size));
+                         sizeof(SigGroupHead *) * (increase + de_ctx->sgh_array_size));
         if (ptmp == NULL) {
             SCFree(de_ctx->sgh_array);
             de_ctx->sgh_array = NULL;
@@ -134,7 +135,7 @@ void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
         de_ctx->sgh_array = ptmp;
 
-        de_ctx->sgh_array_size += 10;
+        de_ctx->sgh_array_size += increase;
         de_ctx->sgh_array[de_ctx->sgh_array_cnt] = sgh;
     }
     de_ctx->sgh_array_cnt++;
