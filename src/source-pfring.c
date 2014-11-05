@@ -406,12 +406,14 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->interface = SCStrdup(pfconf->iface);
     if (unlikely(ptv->interface == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate device string");
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     ptv->livedev = LiveGetDevice(pfconf->iface);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -443,6 +445,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
                 ptv->interface,
                 ptv->interface);
         pfconf->DerefFunc(pfconf);
+        SCFree(ptv);
         return TM_ECODE_FAILED;
     } else {
         pfring_set_application_name(ptv->pd, PROG_NAME);
