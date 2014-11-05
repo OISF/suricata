@@ -205,7 +205,6 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
-static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, int, StreamMsg *, int);
 
 /* tm module api functions */
 TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -1443,10 +1442,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
 
-    /* create our prefilter mask */
-    SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
-
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
@@ -2272,67 +2267,6 @@ deonly:
     }
 
     SCReturnInt(1);
-}
-
-#define MASK_TCP_INITDEINIT_FLAGS   (TH_SYN|TH_RST|TH_FIN)
-#define MASK_TCP_UNUSUAL_FLAGS      (TH_URG|TH_ECN|TH_CWR)
-
-/* Create mask for this packet + it's flow if it has one
- *
- * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
- * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
- */
-static void
-PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state, StreamMsg *smsg,
-        int app_decoder_events)
-{
-    /* no payload inspect flag doesn't apply to smsg */
-    if (smsg != NULL || (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && p->payload_len > 0)) {
-        SCLogDebug("packet has payload");
-        (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
-    } else {
-        SCLogDebug("packet has no payload");
-        (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
-    }
-
-    if (p->events.cnt > 0 || app_decoder_events != 0 || p->app_layer_events != NULL) {
-        SCLogDebug("packet/flow has events set");
-        (*mask) |= SIG_MASK_REQUIRE_ENGINE_EVENT;
-    }
-
-    if (PKT_IS_TCP(p)) {
-        if ((p->tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
-            (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
-        }
-        if ((p->tcph->th_flags & MASK_TCP_UNUSUAL_FLAGS) != 0) {
-            (*mask) |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
-        }
-    }
-
-    if (p->flags & PKT_HAS_FLOW) {
-        SCLogDebug("packet has flow");
-        (*mask) |= SIG_MASK_REQUIRE_FLOW;
-
-        if (has_state) {
-            switch(alproto) {
-                case ALPROTO_HTTP:
-                    SCLogDebug("packet/flow has http state");
-                    (*mask) |= SIG_MASK_REQUIRE_HTTP_STATE;
-                    break;
-                case ALPROTO_SMB:
-                case ALPROTO_SMB2:
-                case ALPROTO_DCERPC:
-                    SCLogDebug("packet/flow has dce state");
-                    (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
-                    break;
-                default:
-                    SCLogDebug("packet/flow has other state");
-                    break;
-            }
-        } else {
-            SCLogDebug("no alstate");
-        }
-    }
 }
 
 static int SignatureCreateMask(Signature *s)
