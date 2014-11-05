@@ -130,7 +130,8 @@ void *ParseMpipeConfig(const char *iface)
                       aconf->out_iface);
             aconf->copy_mode = MPIPE_COPY_MODE_TAP;
         } else {
-            SCLogInfo("Invalid mode (no in tap, ips)");
+            SCLogError(SC_ERR_RUNMODE, "Invalid mode (expected tap or ips)");
+            exit(EXIT_FAILURE);
         }
     }
     return aconf;
