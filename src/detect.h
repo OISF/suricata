@@ -791,6 +791,9 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /** id for alert counter */
     uint16_t counter_alerts;
+    uint16_t counter_mpm_list;
+    uint16_t counter_nonmpm_list;
+    uint16_t counter_match_list;
 
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
