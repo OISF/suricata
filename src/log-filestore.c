@@ -19,7 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
- *
+ * \author Andreas Moe <moe.andreas@gmail.com>
  */
 
 #include "suricata-common.h"
@@ -49,139 +49,48 @@
 
 #include "output.h"
 
+#include "log-file-common.h"
+
 #include "log-file.h"
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
-#include "util-decode-mime.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
 #define MODULE_NAME "LogFilestoreLog"
 
+#include "output-json.h"
+#include "log-file-common.h"
+
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+#endif
+
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
-typedef struct LogFilestoreLogThread_ {
+typedef struct LogFilestoreFileCtx_ {
     LogFileCtx *file_ctx;
+    uint32_t flags; /* output format mode */
+} LogFilestoreFileCtx;
+
+typedef struct LogFilestoreLogThread_ {
+    LogFilestoreFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
 } LogFilestoreLogThread;
 
-static void LogFilestoreMetaGetUri(FILE *fp, const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-            if (tx_ud->request_uri_normalized != NULL) {
-                PrintRawUriFp(fp, bstr_ptr(tx_ud->request_uri_normalized),
-                              bstr_len(tx_ud->request_uri_normalized));
-            }
-            return;
-        }
-    }
-
-    fprintf(fp, "<unknown>");
-}
-
-static void LogFilestoreMetaGetHost(FILE *fp, const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL && tx->request_hostname != NULL) {
-            PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname),
-                          bstr_len(tx->request_hostname));
-            return;
-        }
-    }
-
-    fprintf(fp, "<unknown>");
-}
-
-static void LogFilestoreMetaGetReferer(FILE *fp, const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "Referer");
-            if (h != NULL) {
-                PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
-                              bstr_len(h->value));
-                return;
-            }
-        }
-    }
-
-    fprintf(fp, "<unknown>");
-}
-
-static void LogFilestoreMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "User-Agent");
-            if (h != NULL) {
-                PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
-                              bstr_len(h->value));
-                return;
-            }
-        }
-    }
-
-    fprintf(fp, "<unknown>");
-}
-
-static void LogFilestoreMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
-{
-    SMTPState *state = (SMTPState *) p->flow->alstate;
-    if (state != NULL) {
-        SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
-        if (tx == NULL || tx->msg_tail == NULL)
-            return;
-
-        /* Message Id */
-        if (tx->msg_tail->msg_id != NULL) {
-            fprintf(fp, "MESSAGE-ID:        ");
-            PrintRawUriFp(fp, (uint8_t *) tx->msg_tail->msg_id, tx->msg_tail->msg_id_len);
-            fprintf(fp, "\n");
-        }
-
-        /* Sender */
-        MimeDecField *field = MimeDecFindField(tx->msg_tail, "from");
-        if (field != NULL) {
-            fprintf(fp, "SENDER:            ");
-            PrintRawUriFp(fp, (uint8_t *) field->value, field->value_len);
-            fprintf(fp, "\n");
-        }
-    }
-}
-
-static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char *filename, int ipver) {
+static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
     if (fp != NULL) {
-        char timebuf[64];
+        char timebuf[64], srcip[46], dstip[46];
+        Port sp, dp;
 
         CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-        fprintf(fp, "TIME:              %s\n", timebuf);
-        if (p->pcap_cnt > 0) {
-            fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
-        }
-
-        char srcip[46], dstip[46];
-        Port sp, dp;
+       
         switch (ipver) {
             case AF_INET:
                 PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
@@ -198,7 +107,10 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
         }
         sp = p->sp;
         dp = p->dp;
-
+        fprintf(fp, "TIME:              %s\n", timebuf);
+        if (p->pcap_cnt > 0) {
+            fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+        }
         fprintf(fp, "SRC IP:            %s\n", srcip);
         fprintf(fp, "DST IP:            %s\n", dstip);
         fprintf(fp, "PROTO:             %" PRIu32 "\n", p->proto);
@@ -207,45 +119,53 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
 
+        MemBuffer *buffer;
+        buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+
         /* Only applicable to HTTP traffic */
         if (p->flow->alproto == ALPROTO_HTTP) {
-            fprintf(fp, "HTTP URI:          ");
-            LogFilestoreMetaGetUri(fp, p, ff);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP HOST:         ");
-            LogFilestoreMetaGetHost(fp, p, ff);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP REFERER:      ");
-            LogFilestoreMetaGetReferer(fp, p, ff);
-            fprintf(fp, "\n");
-            fprintf(fp, "HTTP USER AGENT:   ");
-            LogFilestoreMetaGetUserAgent(fp, p, ff);
-            fprintf(fp, "\n");
+            LogFileMetaGetUri(p, ff, buffer, fflag);
+            fprintf(fp, "HTTP URI:          %s\n", buffer->buffer); 
+            MemBufferReset(buffer);
+
+            LogFileMetaGetHost(p, ff, buffer, fflag);
+            fprintf(fp, "HTTP HOST:         %s\n", buffer->buffer);
+            MemBufferReset(buffer);
+
+            LogFileMetaGetReferer(p, ff, buffer, fflag);
+            fprintf(fp, "HTTP REFERER:      %s\n", buffer->buffer);
+            MemBufferReset(buffer);
+
+            LogFileMetaGetUserAgent(p, ff, buffer, fflag);
+            fprintf(fp, "HTTP USER AGENT:   %s\n", buffer->buffer);
+            MemBufferReset(buffer);
         } else if (p->flow->alproto == ALPROTO_SMTP) {
             /* Only applicable to SMTP */
-            LogFilestoreMetaGetSmtp(fp, p, ff);
+            LogFileMetaGetSmtpMessageID(p, ff, buffer, fflag);
+            fprintf(fp, "MESSAGE-ID:        %s\n", buffer->buffer);
+            MemBufferReset(buffer);
+
+            LogFileMetaGetSmtpSender(p, ff, buffer, fflag);
+            fprintf(fp, "SENDER:            %s\n", buffer->buffer);
         }
-
-        fprintf(fp, "FILENAME:          ");
-        PrintRawUriFp(fp, ff->name, ff->name_len);
-        fprintf(fp, "\n");
-
+     
+        PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
+                        ff->name, ff->name_len);
+        fprintf(fp, "FILENAME:          %s\n", buffer->buffer);
+        
         fclose(fp);
+        MemBufferFree(buffer);
     }
 }
 
-static void LogFilestoreLogCloseMetaFile(const File *ff)
-{
+static void LogFilestoreLogCloseMetaFileRegular(const File *ff) {
     char filename[PATH_MAX] = "";
-    snprintf(filename, sizeof(filename), "%s/file.%u",
-            g_logfile_base_dir, ff->file_id);
+    snprintf(filename, sizeof(filename), "%s/file.%u", g_logfile_base_dir, ff->file_id);
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "a");
     if (fp != NULL) {
-        fprintf(fp, "MAGIC:             %s\n",
-                ff->magic ? ff->magic : "<unknown>");
-
+        fprintf(fp, "MAGIC:             %s\n", ff->magic ? ff->magic : "<unknown>");
         switch (ff->state) {
             case FILE_STATE_CLOSED:
                 fprintf(fp, "STATE:             CLOSED\n");
@@ -271,10 +191,9 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
                 break;
         }
         fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
-
         fclose(fp);
     } else {
-        SCLogInfo("opening %s failed: %s", metafilename, strerror(errno));
+        SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
     }
 }
 
@@ -282,6 +201,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
+    LogFilestoreFileCtx *flog = aft->file_ctx;
     char filename[PATH_MAX] = "";
     int file_fd = -1;
     int ipver = -1;
@@ -304,11 +224,24 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
 
+#ifdef HAVE_LIBJANSSON
+   json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+    json_t *filemeta_json = json_object();
+#endif
+
+
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
-        /* create a .meta file that contains time, src/dst/sp/dp/proto */
-        LogFilestoreLogCreateMetaFile(p, ff, filename, ipver);
+#ifdef HAVE_LIBJANSSON
+	    if (flog->flags & META_FORMAT_REGULAR) {
+            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
+        }
+#else
+        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
+#endif
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
@@ -332,10 +265,32 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         close(file_fd);
     }
 
+#ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        LogFilestoreLogCloseMetaFile(ff);
+        if (flog->flags & META_FORMAT_JSON) {
+            filemeta_json = LogFileLogFileJson(p, ff);
+        } else {
+            LogFilestoreLogCloseMetaFileRegular(ff);
+        }
     }
+    if (flog->flags & META_FORMAT_JSON) {
+        json_object_set_new(js, "file-store", filemeta_json);
 
+        char metafilename[PATH_MAX] = "";
+        snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+        FILE *fp = fopen(metafilename, "w");
+        if (fp != NULL) {
+            LogFileLogPrintJsonObj(fp, js);
+        } else {
+            SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
+        }
+        fclose(fp);
+    }
+#else
+    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+        LogFilestoreLogCloseMetaFileRegular(ff);
+    }
+#endif
     return 0;
 }
 
@@ -393,8 +348,7 @@ static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data)
-{
+static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data) {
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)data;
     if (aft == NULL) {
         return;
@@ -412,8 +366,8 @@ static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data)
  */
 static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
+    LogFilestoreFileCtx *filestorelog_ctx = (LogFilestoreFileCtx *) output_ctx->data;
+    LogFileFreeCtx(filestorelog_ctx->file_ctx);
     free(output_ctx);
 
 }
@@ -424,18 +378,12 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  * */
 static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 {
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
+    LogFileCtx *file_ctx = LogFileNewCtx();
+
+    if (file_ctx == NULL) {
         SCLogDebug("Could not create new LogFilestoreCtx");
         return NULL;
     }
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
-        return NULL;
-
-    output_ctx->data = NULL;
-    output_ctx->DeInit = LogFilestoreLogDeInitCtx;
 
     char *s_default_log_dir = NULL;
     s_default_log_dir = ConfigGetLogDirectory();
@@ -455,6 +403,35 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         }
     }
 
+    LogFilestoreFileCtx *filestorelog_ctx = SCCalloc(1, sizeof(LogFilestoreFileCtx));
+    if (unlikely(filestorelog_ctx == NULL))
+        goto filectx_error;
+    filestorelog_ctx->file_ctx = file_ctx;
+
+    filestorelog_ctx->flags = 0;
+    const char *metaformat = ConfNodeLookupChildValue(conf, "format");
+    if (metaformat != NULL) {
+        if (strcmp(metaformat, "regular") == 0) {
+            filestorelog_ctx->flags = META_FORMAT_REGULAR;
+            SCLogInfo("Setting filestore metadata format to regular");
+        } else if (strcmp(metaformat, "json") == 0) {
+#ifdef HAVE_LIBJANSSON
+            filestorelog_ctx->flags = META_FORMAT_JSON;
+            SCLogInfo("Setting filestore metadata format to JSON");
+#else
+            SCLogError(SC_ERR_NO_JSON_SUPPORT);
+            exit(EXIT_FAILURE);
+#endif
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                       "Invalid filestore meta format %s", metaformat);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        filestorelog_ctx->flags = META_FORMAT_REGULAR;
+        SCLogInfo("Could not find filestore metadata format - setting regular");
+    }
+
     const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
     if (force_magic != NULL && ConfValIsTrue(force_magic)) {
         FileForceMagicEnable();
@@ -472,11 +449,23 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     }
     SCLogInfo("storing files in %s", g_logfile_base_dir);
 
-    SCReturnPtr(output_ctx, "OutputCtx");
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL))
+        goto filestorelog_error;
+    output_ctx->data = filestorelog_ctx;
+    output_ctx->DeInit = LogFilestoreLogDeInitCtx;
+
+    return output_ctx;
+
+filestorelog_error:
+    SCFree(filestorelog_ctx);
+filectx_error:
+    LogFileFreeCtx(file_ctx);
+    return NULL;
 }
 
-void TmModuleLogFilestoreRegister (void)
-{
+void TmModuleLogFilestoreRegister (void) {
     tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
     tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
     tmm_modules[TMM_FILESTORE].Func = NULL;
