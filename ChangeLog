@@ -1,3 +1,27 @@
+2.1beta2 -- 2014-11-06
+
+Feature #549: Extract file attachments from emails
+Feature #1312: Lua output support
+Feature #899: MPLS over Ethernet support
+Feature #707: ip reputation files - network range inclusion availability (cidr)
+Feature #383: Stream logging
+Feature #1263: Lua: Access to Stream Payloads
+Feature #1264: Lua: access to TCP quad / Flow Tuple
+Bug #1048: PF_RING/DNA config - suricata.yaml
+Bug #1230: byte_extract, within combination not working
+Bug #1257: Flow switch is missing from the eve-log section in suricata.yaml
+Bug #1259: AF_PACKET IPS is broken in 2.1beta1
+Bug #1260: flow logging at shutdown broken
+Bug #1279: BUG: NULL pointer dereference when suricata was debug mode.
+Bug #1280: BUG: IPv6 address vars issue
+Bug #1285: Lua - http.request_line not working (2.1)
+Bug #1287: Lua Output has dependency on eve-log:http
+Bug #1288: Filestore keyword in wrong place will cause entire rule not to trigger
+Bug #1294: Configure doesn't use --with-libpcap-libraries when testing PF_RING library
+Bug #1301: suricata yaml - PF_RING load balance per hash option
+Bug #1308: http_header keyword not matching when SYN|ACK and ACK missing (master)
+Bug #1311: EVE output Unix domain socket not working (2.1)
+
 2.1beta1 -- 2014-08-12
 
 Feature #1155: Log packet payloads in eve alerts
