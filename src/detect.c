@@ -1250,7 +1250,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int reset_de_state = 0;
     int state_alert = 0;
     int alerts = 0;
-    int app_decoder_events = 0;
+    //int app_decoder_events = 0;
     int has_state = 0;          /* do we have an alstate to work with? */
 
     SCEnter();
@@ -1340,12 +1340,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
-
+/*
             app_decoder_events = AppLayerParserHasDecoderEvents(pflow->proto,
                                                                 pflow->alproto,
                                                                 pflow->alstate,
                                                                 pflow->alparser,
                                                                 flags);
+*/
         }
         FLOWLOCK_UNLOCK(pflow);
 
