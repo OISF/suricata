@@ -452,3 +452,14 @@ void TmModuleStreamingLoggerRegister (void) {
     tmm_modules[TMM_STREAMINGLOGGER].ThreadDeinit = OutputStreamingLogThreadDeinit;
     tmm_modules[TMM_STREAMINGLOGGER].cap_flags = 0;
 }
+
+void OutputStreamingShutdown(void)
+{
+    OutputStreamingLogger *logger = list;
+    while (logger) {
+        OutputStreamingLogger *next_logger = logger->next;
+        SCFree(logger);
+        logger = next_logger;
+    }
+    list = NULL;
+}
