@@ -1334,6 +1334,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
+    SCPerfCounterAddUI64(det_ctx->counter_mpm_list, th_v->sc_perf_pca, (uint64_t)det_ctx->pmq.rule_id_array_cnt);
+    SCPerfCounterAddUI64(det_ctx->counter_nonmpm_list, th_v->sc_perf_pca, (uint64_t)det_ctx->sgh->non_mpm_id_cnt);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
@@ -1343,6 +1345,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* inspect the sigs against the packet */
     /* Prefetch the next signature. */
     SigIntId match_cnt = det_ctx->match_array_cnt;
+    SCPerfCounterAddUI64(det_ctx->counter_match_list, th_v->sc_perf_pca, (uint64_t)match_cnt);
     Signature **match_array = det_ctx->match_array;
 
     uint32_t sflags, next_sflags = 0;
