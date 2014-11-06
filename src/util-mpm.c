@@ -473,7 +473,7 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
  *  \param new_size number of Signature IDs needing to be stored.
  *
  */
-void
+int
 MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
 {
     /* Need to make the array bigger. Double the size needed to
@@ -484,12 +484,21 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
     uint32_t *new_array = (uint32_t*)SCRealloc(pmq->rule_id_array,
                                                new_size * sizeof(uint32_t));
     if (unlikely(new_array == NULL)) {
-      SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
-                 " rule ID array. Some signature ID matches lost");
-      return;
+        /* Try again just big enough. */
+        new_size = new_size / 2;
+        new_array = (SigIntId*)SCRealloc(pmq->rule_id_array,
+                                         new_size * sizeof(SigIntId));
+        if (unlikely(new_array == NULL)) {
+
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
+                       " rule ID array. Some signature ID matches lost");
+            return 0;
+        }
     }
     pmq->rule_id_array = new_array;
     pmq->rule_id_array_size = new_size;
+
+    return new_size;
 }
 
 /** \brief Increase the size of the Pattern rule ID array.
@@ -497,8 +506,9 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
  *  \param pmq storage for match results
  *  \param new_size number of Signature IDs needing to be stored.
  *
+ *  \return 0 on failure.
  */
-void
+int
 MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
 {
     /* Need to make the array bigger. Double the size needed to
@@ -509,12 +519,20 @@ MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
     uint32_t *new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
                                                new_size * sizeof(uint32_t));
     if (unlikely(new_array == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
-                 " pattern ID array. Some new Pattern ID matches were lost.");
-      return;
+        // Failed to allocate 2x, so try 1x.
+        new_size = new_size / 2;
+        new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
+                                         new_size * sizeof(uint32_t));
+        if (unlikely(new_array == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
+                       " pattern ID array. Some new Pattern ID matches were lost.");
+            return 0;
+        }
     }
     pmq->pattern_id_array = new_array;
     pmq->pattern_id_array_size = new_size;
+
+    return new_size;
 }
 
 /** \brief Verify and store a match
@@ -573,11 +591,7 @@ void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
 
     /** \todo now set merged flag? */
 
-    if (src->rule_id_array && dst->rule_id_array) {
-        for (u = 0; u < src->rule_id_array_cnt; u++) {
-            dst->rule_id_array[dst->rule_id_array_cnt++] = src->rule_id_array[u];
-        }
-    }
+    MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
 }
 
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
