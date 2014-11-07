@@ -235,7 +235,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 #ifdef HAVE_LIBJANSSON
 	    if (flog->flags & META_FORMAT_JSON) {
             LogFileLogTransactionMeta(p, ff, filemeta_json);
-        } else if (flog->flags & META_FORMAT_REGULAR) {
+        } else {
             LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
         }
 #else
