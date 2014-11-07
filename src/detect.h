@@ -525,8 +525,9 @@ typedef struct DetectEngineIPOnlyCtx_ {
 } DetectEngineIPOnlyCtx;
 
 typedef struct DetectEngineLookupFlow_ {
-    DetectAddressHead *src_gh[256]; /* a head for each protocol */
-    DetectAddressHead *tmp_gh[256];
+    DetectPort *tcp;
+    DetectPort *udp;
+    struct SigGroupHead_ *sgh[256];
 } DetectEngineLookupFlow;
 
 /* Flow status
