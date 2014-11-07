@@ -82,14 +82,6 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-static void LogFileLogDeInitCtx(OutputCtx *output_ctx);
-
-static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
-{
-    SCLogDebug("Can't init Filelog JSON output - JSON support was disabled during build.");
-    return NULL;
-}
-
 int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const char *mode)
 {
     return 0;
