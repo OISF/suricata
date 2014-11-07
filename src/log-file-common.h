@@ -39,7 +39,9 @@ void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint
 void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
 void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
 
+#ifdef HAVE_LIBJANSSON
 void LogFileLogPrintJsonObj(FILE *fp, json_t *js);
 json_t *LogFileLogFileJson(const Packet *p, const File *ff);
+#endif
 
 #endif /* __LOG_FILELOG_H__ */
