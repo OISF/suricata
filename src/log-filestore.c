@@ -225,18 +225,17 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
             g_logfile_base_dir, ff->file_id);
 
 #ifdef HAVE_LIBJANSSON
-   json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
     json_t *filemeta_json = json_object();
 #endif
-
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
 #ifdef HAVE_LIBJANSSON
-	    if (flog->flags & META_FORMAT_REGULAR) {
+	    if (flog->flags & META_FORMAT_JSON) {
+            LogFileLogTransactionMeta(p, ff, filemeta_json);
+        } else if (flog->flags & META_FORMAT_REGULAR) {
             LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
         }
 #else
@@ -268,14 +267,15 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 #ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
         if (flog->flags & META_FORMAT_JSON) {
-            filemeta_json = LogFileLogFileJson(p, ff);
+            LogFileLogFileMeta(p, ff, filemeta_json);
         } else {
             LogFilestoreLogCloseMetaFileRegular(ff);
         }
     }
+
     if (flog->flags & META_FORMAT_JSON) {
         json_object_set_new(js, "file-store", filemeta_json);
-
+        
         char metafilename[PATH_MAX] = "";
         snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
         FILE *fp = fopen(metafilename, "w");
@@ -288,7 +288,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     }
 #else
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        LogFilestoreLogCloseMetaFileRegular(ff);
+        LogFilestoreLogCloseMetaFileRegular(ff);        
     }
 #endif
     return 0;
