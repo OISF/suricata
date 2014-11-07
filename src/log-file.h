@@ -24,6 +24,14 @@
 #ifndef __LOG_FILELOG_H__
 #define __LOG_FILELOG_H__
 
+#include "util-logopenfile.h"
+
+typedef struct LogFileLogThread_ {
+    LogFileCtx *file_ctx;
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    uint32_t file_cnt;
+} LogFileLogThread;
+
 void TmModuleLogFileLogRegister (void);
 
 #endif /* __LOG_FILELOG_H__ */

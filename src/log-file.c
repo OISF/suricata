@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Andreas Moe <moe.andreas@gmail.com>
  *
  * Log files we track.
  *
@@ -54,7 +55,6 @@
 #include "log-file-common.h"
 
 #include "log-file.h"
-#include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
@@ -69,11 +69,45 @@
 #include "output-json.h"
 #endif
 
-typedef struct LogFileLogThread_ {
-    LogFileCtx *file_ctx;
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t file_cnt;
-} LogFileLogThread;
+/* If we dont have libjansson in this suricata build */
+#ifndef HAVE_LIBJANSSON
+static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    SCLogDebug("Can't init file log json output thread - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
+}
+
+TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
+{
+    return TM_ECODE_FAILED;
+}
+
+static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
+{
+    return TM_ECODE_FAILED;
+}
+
+static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
+{
+    SCLogDebug("Can't init Filelog JSON output - JSON support was disabled during build.");
+    return NULL;
+}
+
+int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const char *mode)
+{
+    return 0;
+}
+
+void TmModuleLogFileLogRegister (void) {
+    tmm_modules[TMM_FILELOG].name = MODULE_NAME_FILELOG;
+    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
+    tmm_modules[TMM_FILELOG].Func = NULL;
+    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
+    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
+}
+
+/* If we have libjansson */
+#else
 
 /**
  *  \internal
@@ -256,3 +290,4 @@ void TmModuleLogFileLogRegister (void) {
 
     SCLogDebug("registered");
 }
+#endif
