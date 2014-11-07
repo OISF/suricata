@@ -289,7 +289,7 @@ typedef enum {
     SC_WARN_NFLOG_SETSOCKOPT,
     SC_WARN_LUA_SCRIPT,
     SC_ERR_LUA_SCRIPT,
-    SC_ERR_NO_JSON,
+    SC_ERR_NO_JSON_SUPPORT,
 } SCError;
 
 const char *SCErrorToString(SCError);
