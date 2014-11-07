@@ -398,7 +398,8 @@ error:
 /**
  * \brief Registration function for Modbus keyword
  */
-void DetectModbusRegister(void) {
+void DetectModbusRegister(void)
+{
     SCEnter();
     sigmatch_table[DETECT_AL_MODBUS].name          = "modbus";
     sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
@@ -880,7 +881,8 @@ static int DetectModbusTest09(void)
 /**
  * \brief this function registers unit tests for DetectModbus
  */
-void DetectModbusRegisterTests(void) {
+void DetectModbusRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectModbusTest01 - Testing function", DetectModbusTest01, 1);
     UtRegisterTest("DetectModbusTest02 - Testing function and subfunction", DetectModbusTest02, 1);

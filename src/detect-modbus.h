@@ -59,6 +59,6 @@ typedef struct DetectModbus_ {
 } DetectModbus;
 
 /* prototypes */
-void DetectModbusRegister (void);
+void DetectModbusRegister(void);
 
 #endif /* __DETECT_MODBUS_H__ */
