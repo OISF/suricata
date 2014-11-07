@@ -419,7 +419,7 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
             filestorelog_ctx->flags = META_FORMAT_JSON;
             SCLogInfo("Setting filestore metadata format to JSON");
 #else
-            SCLogError(SC_ERR_NO_JSON_SUPPORT);
+            SCLogError(SC_ERR_NO_JSON_SUPPORT, "libjansson was not enabled at build-time");
             exit(EXIT_FAILURE);
 #endif
         } else {
