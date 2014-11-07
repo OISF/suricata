@@ -49,7 +49,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                    Signature *, SigMatch *);
+                    Signature *, SigMatchCtx *);
 static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
@@ -103,9 +103,9 @@ error:
  * \retval 1 match
  */
 int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                        Signature *s, SigMatch *m)
+                        Signature *s, SigMatchCtx *ctx)
 {
-    DetectIdData *id_d = (DetectIdData *)m->ctx;
+    DetectIdData *id_d = (DetectIdData *)ctx;
 
     /**
      * To match a ipv4 packet with a "id" rule
@@ -233,7 +233,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *idstr)
         goto error;
 
     sm->type = DETECT_ID;
-    sm->ctx = (void *)id_d;
+    sm->ctx = (SigMatchCtx *)id_d;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

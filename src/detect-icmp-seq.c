@@ -42,7 +42,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpSeqRegisterTests(void);
 void DetectIcmpSeqFree(void *);
@@ -92,10 +92,10 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     uint16_t seqn;
-    DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)m->ctx;
+    DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -242,7 +242,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmp
     if (sm == NULL) goto error;
 
     sm->type = DETECT_ICMP_SEQ;
-    sm->ctx = (void *)iseq;
+    sm->ctx = (SigMatchCtx *)iseq;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 

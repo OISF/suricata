@@ -94,7 +94,7 @@ static int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
     int ret = 0;
 
-    DetectFilenameData *filename = m->ctx;
+    DetectFilenameData *filename = (DetectFilenameData *)m->ctx;
 
     if (file->name == NULL)
         SCReturnInt(0);

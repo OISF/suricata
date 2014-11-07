@@ -65,7 +65,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFragBitsFree(void *);
 
@@ -119,11 +119,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     int ret = 0;
     uint16_t fragbits = 0;
-    DetectFragBitsData *de = (DetectFragBitsData *)m->ctx;
+    DetectFragBitsData *de = (DetectFragBitsData *)ctx;
 
     if (!de || !PKT_IS_IPV4(p) || !p || PKT_IS_PSEUDOPKT(p))
         return ret;
@@ -302,7 +302,7 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
         goto error;
 
     sm->type = DETECT_FRAGBITS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
@@ -446,9 +446,9 @@ static int FragBitsTestParse03 (void)
         goto error;
 
     sm->type = DETECT_FRAGBITS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);
@@ -544,9 +544,9 @@ static int FragBitsTestParse04 (void)
         goto error;
 
     sm->type = DETECT_FRAGBITS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectFragBitsMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectFragBitsMatch(&tv, NULL, p, NULL, sm->ctx);
 
     if(ret) {
         if (de) SCFree(de);

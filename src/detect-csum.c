@@ -41,43 +41,43 @@
 
 /* prototypes for the "ipv4-csum" rule keyword */
 int DetectIPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                        Signature *, SigMatch *);
+                        Signature *, SigMatchCtx *);
 static int DetectIPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIPV4CsumFree(void *);
 
 /* prototypes for the "tcpv4-csum" rule keyword */
 int DetectTCPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectTCPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV4CsumFree(void *);
 
 /* prototypes for the "tcpv6-csum" rule keyword */
 int DetectTCPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectTCPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTCPV6CsumFree(void *);
 
 /* prototypes for the "udpv4-csum" rule keyword */
 int DetectUDPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectUDPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV4CsumFree(void *);
 
 /* prototypes for the "udpv6-csum" rule keyword */
 int DetectUDPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectUDPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectUDPV6CsumFree(void *);
 
 /* prototypes for the "icmpv4-csum" rule keyword */
 int DetectICMPV4CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectICMPV4CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV4CsumFree(void *);
 
 /* prototypes for the "icmpv6-csum" rule keyword */
 int DetectICMPV6CsumMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                         Signature *, SigMatch *);
+                         Signature *, SigMatchCtx *);
 static int DetectICMPV6CsumSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICMPV6CsumFree(void *);
 
@@ -99,7 +99,7 @@ void DetectCsumRegisterTests(void);
  *        DetectEngineCtx * (de_ctx) - A pointer to the detection engine context
  *        Signature *(s) - Pointer to signature for the current Signature being
  *                         parsed from the rules
- *        SigMatch * (m) - Pointer to the head of the SigMatchs added to the
+ *        SigMatchCtx * (m) - Pointer to the head of the SigMatchs added to the
  *                         current Signature being parsed
  *        char * (csum_str) - Pointer to a string holding the keyword value
  *
@@ -114,7 +114,7 @@ void DetectCsumRegisterTests(void);
  *        Packet * (p) - Pointer to the Packet currently being handled
  *        Signature * (s) - Pointer to the Signature, the packet is being
  *                          currently matched with
- *        SigMatch * (m) - Pointer to the keyword structure from the above
+ *        SigMatchCtx * (m) - Pointer to the keyword structure from the above
  *                         Signature, the Packet is being currently matched
  *                         with
  *
@@ -230,9 +230,9 @@ error:
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatch *m)
+                        Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip4h == NULL || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -285,7 +285,7 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -324,9 +324,9 @@ void DetectIPV4CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, SigMatch *m)
+                         Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip4h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -380,7 +380,7 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -419,9 +419,9 @@ void DetectTCPV4CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, SigMatch *m)
+                         Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip6h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -475,7 +475,7 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -514,9 +514,9 @@ void DetectTCPV6CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, SigMatch *m)
+                         Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip4h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p) || p->udph->uh_sum == 0)
         return 0;
@@ -571,7 +571,7 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -610,9 +610,9 @@ void DetectUDPV4CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                         Packet *p, Signature *s, SigMatch *m)
+                         Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip6h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -706,9 +706,9 @@ void DetectUDPV6CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m)
+                          Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip4h == NULL || p->icmpv4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -762,7 +762,7 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
@@ -801,9 +801,9 @@ void DetectICMPV4CsumFree(void *ptr)
  * \retval 1 if the Packet contents match the keyword option; 0 otherwise
  */
 int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatch *m)
+                          Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectCsumData *cd = (DetectCsumData *)m->ctx;
+    DetectCsumData *cd = (DetectCsumData *)ctx;
 
     if (p->ip6h == NULL || p->icmpv6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p) ||
         (GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p))) <= 0) {
@@ -857,7 +857,7 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
     if (DetectCsumParseArg(csum_str, cd) == 0)
         goto error;
 
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 

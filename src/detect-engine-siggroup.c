@@ -184,14 +184,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 
     PatternMatchDestroyGroup(sgh);
 
-#if defined(__SSE3__) || defined(__tile__)
-    if (sgh->mask_array != NULL) {
-        /* mask is aligned */
-        SCFreeAligned(sgh->mask_array);
-        sgh->mask_array = NULL;
-    }
-#endif
-
     if (sgh->head_array != NULL) {
         SCFree(sgh->head_array);
         sgh->head_array = NULL;
@@ -202,6 +194,12 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(Signature *));
         SCFree(sgh->match_array);
         sgh->match_array = NULL;
+    }
+
+    if (sgh->non_mpm_id_array != NULL) {
+        SCFree(sgh->non_mpm_id_array);
+        sgh->non_mpm_id_array = NULL;
+        sgh->non_mpm_id_cnt = 0;
     }
 
     sgh->sig_cnt = 0;
@@ -1695,6 +1693,53 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     return;
 }
 
+/* build an array of rule id's for sigs with no mpm */
+int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+{
+    Signature *s = NULL;
+    uint32_t sig = 0;
+    uint32_t non_mpm = 0;
+
+    if (sgh == NULL)
+        return 0;
+
+    BUG_ON(sgh->non_mpm_id_array != NULL);
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->mpm_sm == NULL)
+            non_mpm++;
+        else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))
+            non_mpm++;
+    }
+    if (non_mpm == 0) {
+        sgh->non_mpm_id_array = NULL;
+        return 0;
+    }
+
+    sgh->non_mpm_id_array = SCMalloc(non_mpm * sizeof(SigIntId));
+    BUG_ON(sgh->non_mpm_id_array == NULL);
+    memset(sgh->non_mpm_id_array, 0, non_mpm * sizeof(SigIntId));
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->mpm_sm == NULL) {
+            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
+            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+        } else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG)) {
+            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
+            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
+        }
+    }
+    return 0;
+}
+
 int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     Signature *s = NULL;
@@ -1705,28 +1750,6 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         return 0;
 
     BUG_ON(sgh->head_array != NULL);
-#if defined(__SSE3__) || defined(__tile__)
-    BUG_ON(sgh->mask_array != NULL);
-
-    /* mask array is 16 byte aligned for SIMD checking, also we always
-     * alloc a multiple of 32/64 bytes */
-    int cnt = sgh->sig_cnt;
-#if __WORDSIZE == 32
-    if (cnt % 32 != 0) {
-        cnt += (32 - (cnt % 32));
-    }
-#elif __WORDSIZE == 64
-    if (cnt % 64 != 0) {
-        cnt += (64 - (cnt % 64));
-    }
-#endif /* __WORDSIZE */
-
-    sgh->mask_array = (SignatureMask *)SCMallocAligned((cnt * sizeof(SignatureMask)), 16);
-    if (sgh->mask_array == NULL)
-        return -1;
-
-    memset(sgh->mask_array, 0, (cnt * sizeof(SignatureMask)));
-#endif
 
     sgh->head_array = SCMalloc(sgh->sig_cnt * sizeof(SignatureHeader));
     if (sgh->head_array == NULL)
@@ -1747,9 +1770,6 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         sgh->head_array[idx].hdr_copy3 = s->hdr_copy3;
         sgh->head_array[idx].full_sig = s;
 
-#if defined(__SSE3__) || defined(__tile__)
-        sgh->mask_array[idx] = s->mask;
-#endif
         idx++;
     }
 

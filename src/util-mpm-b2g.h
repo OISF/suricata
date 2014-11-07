@@ -59,6 +59,11 @@ typedef struct B2gPattern_ {
     uint8_t *original_pat;
     uint8_t *ci; /* case INsensitive */
     uint8_t *cs; /* case sensitive */
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
     struct B2gPattern_ *next;
 } B2gPattern;
 

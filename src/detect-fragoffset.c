@@ -43,7 +43,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
@@ -94,10 +94,10 @@ error:
  * \retval 1 match
  *
  */
-int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     uint16_t frag = 0;
-    DetectFragOffsetData *fragoff = (DetectFragOffsetData *)m->ctx;
+    DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -230,7 +230,7 @@ static int DetectFragOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *f
     if (sm == NULL) goto error;
 
     sm->type = DETECT_FRAGOFFSET;
-    sm->ctx = (void *)fragoff;
+    sm->ctx = (SigMatchCtx *)fragoff;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

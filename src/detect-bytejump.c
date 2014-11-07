@@ -107,12 +107,12 @@ error:
  *  \retval 0 no match
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-                          SigMatch *m, uint8_t *payload, uint32_t payload_len,
+                          SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset)
 {
     SCEnter();
 
-    DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
+    DetectBytejumpData *data = (DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;
     uint8_t *jumpptr = NULL;
     int32_t len = 0;
@@ -219,9 +219,9 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 }
 
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatch *m)
+                        Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
+    DetectBytejumpData *data = (DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;
     uint8_t *jumpptr = NULL;
     uint16_t len = 0;
@@ -713,7 +713,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     if (sm == NULL)
         goto error;
     sm->type = DETECT_BYTEJUMP;
-    sm->ctx = (void *)data;
+    sm->ctx = (SigMatchCtx *)data;
     SigMatchAppendSMToList(s, sm, sm_list);
 
     if (!(data->flags & DETECT_BYTEJUMP_RELATIVE))
