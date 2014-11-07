@@ -591,7 +591,9 @@ void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
 
     /** \todo now set merged flag? */
 
-    MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
+    if (src->rule_id_array && dst->rule_id_array) {
+        MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
+    }
 }
 
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
