@@ -1514,6 +1514,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
+        if ((s->mask & mask) != s->mask)
+            goto next;
+
         /* if the sig has alproto and the session as well they should match */
         if (likely(sflags & SIG_FLAG_APPLAYER)) {
             if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
