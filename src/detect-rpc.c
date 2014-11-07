@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectRpcMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 int DetectRpcSetup (DetectEngineCtx *, Signature *, char *);
 void DetectRpcRegisterTests(void);
 void DetectRpcFree(void *);
@@ -107,10 +107,10 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectRpcMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     /* PrintRawDataFp(stdout, p->payload, p->payload_len); */
-    DetectRpcData *rd = (DetectRpcData *)ctx;
+    const DetectRpcData *rd = (const DetectRpcData *)ctx;
     char *rpcmsg = (char *)p->payload;
 
     if (PKT_IS_TCP(p)) {

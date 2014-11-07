@@ -57,7 +57,7 @@ SC_ATOMIC_EXTERN(unsigned int, num_tags);
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectTagSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTagRegisterTests(void);
 void DetectTagDataFree(void *);
@@ -109,9 +109,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectTagData *td = (DetectTagData *)ctx;
+    const DetectTagData *td = (const DetectTagData *)ctx;
     DetectTagDataEntry tde;
     memset(&tde, 0, sizeof(DetectTagDataEntry));
 

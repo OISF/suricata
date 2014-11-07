@@ -42,7 +42,7 @@
 /* prototypes */
 static int DetectAckSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, SigMatchCtx *);
+                          Packet *, Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
 static void DetectAckFree(void *);
 
@@ -70,9 +70,9 @@ void DetectAckRegister(void)
  * \retval 1 match
  */
 static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatchCtx *ctx)
+                          Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectAckData *data = (DetectAckData *)ctx;
+    const DetectAckData *data = (const DetectAckData *)ctx;
 
     /* This is only needed on TCP packets */
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {

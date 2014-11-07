@@ -55,7 +55,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIsdataatRegisterTests(void);
 void DetectIsdataatFree(void *);
@@ -109,9 +109,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectIsdataatData *idad = (DetectIsdataatData *)ctx;
+    const DetectIsdataatData *idad = (const DetectIsdataatData *)ctx;
 
     SCLogDebug("payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
 

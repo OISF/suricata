@@ -42,7 +42,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectTtlSetup (DetectEngineCtx *, Signature *, char *);
 void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
@@ -95,12 +95,12 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 
     int ret = 0;
     uint8_t pttl;
-    DetectTtlData *ttld = (DetectTtlData *)ctx;
+    const DetectTtlData *ttld = (const DetectTtlData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;

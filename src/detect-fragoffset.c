@@ -43,7 +43,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectFragOffsetMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
@@ -94,10 +94,10 @@ error:
  * \retval 1 match
  *
  */
-int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t frag = 0;
-    DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ctx;
+    const DetectFragOffsetData *fragoff = (const DetectFragOffsetData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;

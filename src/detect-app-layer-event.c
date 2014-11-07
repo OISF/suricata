@@ -47,7 +47,7 @@
 
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, Signature *s, SigMatchCtx *ctx);
+                                       Packet *p, Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                                 uint8_t, void *, Signature *, SigMatch *);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
@@ -74,9 +74,9 @@ void DetectAppLayerEventRegister(void)
 
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Packet *p, Signature *s, SigMatchCtx *ctx)
+                                Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectAppLayerEventData *aled = (DetectAppLayerEventData *)ctx;
+    const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)ctx;
 
     return AppLayerDecoderEventsIsEventSet(p->app_layer_events,
                                            aled->event_id);

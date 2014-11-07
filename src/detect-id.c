@@ -49,7 +49,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectIdMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                    Signature *, SigMatchCtx *);
+                    Signature *, const SigMatchCtx *);
 static int DetectIdSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIdRegisterTests(void);
 void DetectIdFree(void *);
@@ -103,9 +103,9 @@ error:
  * \retval 1 match
  */
 int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                        Signature *s, SigMatchCtx *ctx)
+                        Signature *s, const SigMatchCtx *ctx)
 {
-    DetectIdData *id_d = (DetectIdData *)ctx;
+    const DetectIdData *id_d = (const DetectIdData *)ctx;
 
     /**
      * To match a ipv4 packet with a "id" rule

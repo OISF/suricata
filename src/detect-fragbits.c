@@ -65,7 +65,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFragBitsFree(void *);
 
@@ -119,11 +119,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     uint16_t fragbits = 0;
-    DetectFragBitsData *de = (DetectFragBitsData *)ctx;
+    const DetectFragBitsData *de = (const DetectFragBitsData *)ctx;
 
     if (!de || !PKT_IS_IPV4(p) || !p || PKT_IS_PSEUDOPKT(p))
         return ret;

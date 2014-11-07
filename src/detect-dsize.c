@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectDsizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, char *str);
 void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
@@ -103,7 +103,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
@@ -112,7 +112,7 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
         SCReturnInt(0);
     }
 
-    DetectDsizeData *dd = (DetectDsizeData *)ctx;
+    const DetectDsizeData *dd = (const DetectDsizeData *)ctx;
 
     SCLogDebug("p->payload_len %"PRIu16"", p->payload_len);
 

@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, char *);
@@ -114,11 +114,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
-    DetectEngineEventData *de = (DetectEngineEventData *)ctx;
+    const DetectEngineEventData *de = (const DetectEngineEventData *)ctx;
 
     if (ENGINE_ISSET_EVENT(p, de->event)) {
         SCLogDebug("de->event matched %u", de->event);

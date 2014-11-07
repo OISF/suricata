@@ -47,7 +47,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
 void DetectWindowRegisterTests(void);
 void DetectWindowFree(void *);
@@ -104,9 +104,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectWindowData *wd = (DetectWindowData *)ctx;
+    const DetectWindowData *wd = (const DetectWindowData *)ctx;
 
     if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
         return 0;

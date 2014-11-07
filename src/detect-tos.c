@@ -50,7 +50,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectTosSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectTosMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                          Signature *, SigMatchCtx *);
+                          Signature *, const SigMatchCtx *);
 static void DetectTosRegisterTests(void);
 static void DetectTosFree(void *);
 
@@ -103,9 +103,9 @@ error:
  * \retval 1 match
  */
 int DetectTosMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
-                   Signature *s, SigMatchCtx *ctx)
+                   Signature *s, const SigMatchCtx *ctx)
 {
-    DetectTosData *tosd = (DetectTosData *)ctx;
+    const DetectTosData *tosd = (const DetectTosData *)ctx;
     int result = 0;
 
     if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {

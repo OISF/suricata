@@ -888,7 +888,7 @@ typedef struct DetectionEngineThreadCtx_ {
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 
     /** AppLayer match function  pointer */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);

@@ -42,7 +42,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectIcmpIdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectIcmpIdSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpIdRegisterTests(void);
 void DetectIcmpIdFree(void *);
@@ -92,10 +92,10 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     uint16_t pid;
-    DetectIcmpIdData *iid = (DetectIcmpIdData *)ctx;
+    const DetectIcmpIdData *iid = (const DetectIcmpIdData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;

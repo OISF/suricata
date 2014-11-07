@@ -107,12 +107,12 @@ error:
  *  \retval 0 no match
  */
 int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-                          SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
+                          const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset)
 {
     SCEnter();
 
-    DetectBytejumpData *data = (DetectBytejumpData *)ctx;
+    const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;
     uint8_t *jumpptr = NULL;
     int32_t len = 0;
@@ -219,9 +219,9 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 }
 
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatchCtx *ctx)
+                        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectBytejumpData *data = (DetectBytejumpData *)ctx;
+    const DetectBytejumpData *data = (const DetectBytejumpData *)ctx;
     uint8_t *ptr = NULL;
     uint8_t *jumpptr = NULL;
     uint16_t len = 0;

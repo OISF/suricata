@@ -50,7 +50,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
@@ -92,7 +92,7 @@ error:
 }
 
 
-static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd)
+static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -101,7 +101,7 @@ static int DetectFlowbitMatchToggle (Packet *p, DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd)
+static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -110,7 +110,7 @@ static int DetectFlowbitMatchUnset (Packet *p, DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd)
+static int DetectFlowbitMatchSet (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -119,7 +119,7 @@ static int DetectFlowbitMatchSet (Packet *p, DetectFlowbitsData *fd)
     return 1;
 }
 
-static int DetectFlowbitMatchIsset (Packet *p, DetectFlowbitsData *fd)
+static int DetectFlowbitMatchIsset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -127,7 +127,7 @@ static int DetectFlowbitMatchIsset (Packet *p, DetectFlowbitsData *fd)
     return FlowBitIsset(p->flow,fd->idx);
 }
 
-static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd)
+static int DetectFlowbitMatchIsnotset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
@@ -141,9 +141,9 @@ static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd)
  *        -1: error
  */
 
-int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectFlowbitsData *fd = (DetectFlowbitsData *)ctx;
+    const DetectFlowbitsData *fd = (const DetectFlowbitsData *)ctx;
     if (fd == NULL)
         return 0;
 

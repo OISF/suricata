@@ -44,9 +44,9 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectFlowvarMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFlowvarSetup (DetectEngineCtx *, Signature *, char *);
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx);
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx);
 static void DetectFlowvarDataFree(void *ptr);
 
 void DetectFlowvarRegister (void)
@@ -114,7 +114,7 @@ static void DetectFlowvarDataFree(void *ptr)
  *        -1: error
  */
 
-int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)ctx;
@@ -284,15 +284,15 @@ error:
  *  \param sm sigmatch containing the idx to store
  *  \retval 1 or -1 in case of error
  */
-static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     DetectFlowvarList *fs, *prev;
-    DetectFlowvarData *fd;
+    const DetectFlowvarData *fd;
 
     if (det_ctx->flowvarlist == NULL || p->flow == NULL)
         return 1;
 
-    fd = (DetectFlowvarData *)ctx;
+    fd = (const DetectFlowvarData *)ctx;
 
     prev = NULL;
     fs = det_ctx->flowvarlist;

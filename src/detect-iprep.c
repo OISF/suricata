@@ -52,7 +52,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIPRepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectIPRepMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectIPRepSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIPRepFree (void *);
 void IPRepRegisterTests(void);
@@ -187,9 +187,9 @@ static inline int RepMatch(uint8_t op, uint8_t val1, uint8_t val2)
  *         1: match
  *        -1: error
  */
-int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectIPRepMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectIPRepData *rd = (DetectIPRepData *)ctx;
+    const DetectIPRepData *rd = (const DetectIPRepData *)ctx;
     if (rd == NULL)
         return 0;
 

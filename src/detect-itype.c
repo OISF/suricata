@@ -45,7 +45,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectITypeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectITypeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectITypeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectITypeRegisterTests(void);
 void DetectITypeFree(void *);
@@ -98,11 +98,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     uint8_t pitype;
-    DetectITypeData *itd = (DetectITypeData *)ctx;
+    const DetectITypeData *itd = (const DetectITypeData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;

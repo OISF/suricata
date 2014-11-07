@@ -56,7 +56,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+static int DetectFlagsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFlagsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFlagsFree(void *);
 
@@ -108,12 +108,12 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
     uint8_t flags = 0;
-    DetectFlagsData *de = (DetectFlagsData *)ctx;
+    const DetectFlagsData *de = (const DetectFlagsData *)ctx;
 
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
         SCReturnInt(0);

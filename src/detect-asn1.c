@@ -43,7 +43,7 @@
 const char *ASN_DELIM = " \t,\n";
 
 int DetectAsn1Match(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                     Signature *, SigMatchCtx *);
+                     Signature *, const SigMatchCtx *);
 static int DetectAsn1Setup (DetectEngineCtx *, Signature *, char *);
 void DetectAsn1RegisterTests(void);
 void DetectAsn1Free(void *);
@@ -76,7 +76,7 @@ void DetectAsn1Register(void)
  *           checks that we want to perform, and the lenght of oversize check
  * \retval 1 if any of the options match, 0 if not
  */
-static uint8_t DetectAsn1Checks(Asn1Node *node, DetectAsn1Data *ad)
+static uint8_t DetectAsn1Checks(Asn1Node *node, const DetectAsn1Data *ad)
 {
 
     /* oversize_length will check if a node has a length greater than
@@ -138,7 +138,7 @@ static uint8_t DetectAsn1Checks(Asn1Node *node, DetectAsn1Data *ad)
  * \retval 1 match
  */
 int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                     Signature *s, SigMatchCtx *ctx)
+                     Signature *s, const SigMatchCtx *ctx)
 {
     uint8_t ret = 0;
 
@@ -147,7 +147,7 @@ int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
         return 0;
     }
 
-    DetectAsn1Data *ad = (DetectAsn1Data *)ctx;
+    const DetectAsn1Data *ad = (const DetectAsn1Data *)ctx;
 
     Asn1Ctx *ac = SCAsn1CtxNew();
     if (ac == NULL)

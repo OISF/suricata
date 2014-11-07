@@ -51,7 +51,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectDetectionFilterMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectDetectionFilterSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDetectionFilterRegisterTests(void);
 void DetectDetectionFilterFree(void *);
@@ -94,7 +94,7 @@ error:
     return;
 }
 
-int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     return 1;
 }

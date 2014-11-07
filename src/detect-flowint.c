@@ -52,7 +52,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 int DetectFlowintMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                        Signature *, SigMatchCtx *);
+                        Signature *, const SigMatchCtx *);
 static int DetectFlowintSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFlowintFree(void *);
 void DetectFlowintRegisterTests(void);
@@ -105,9 +105,9 @@ error:
  * condition
  */
 int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatchCtx *ctx)
+                        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectFlowintData *sfd = (DetectFlowintData *)ctx;
+    const DetectFlowintData *sfd = (const DetectFlowintData *)ctx;
     FlowVar *fv;
     FlowVar *fvt;
     uint32_t targetval;
@@ -121,9 +121,11 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * return zero(not match).
      */
     if (sfd->targettype == FLOWINT_TARGET_VAR) {
-        sfd->target.tvar.idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, DETECT_FLOWINT);
+        TargetVar tvar;
 
-        fvt = FlowVarGet(p->flow, sfd->target.tvar.idx);
+        tvar.idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, DETECT_FLOWINT);
+
+        fvt = FlowVarGet(p->flow, tvar.idx);
             /* We don't have that variable initialized yet */
         if (fvt == NULL)
             targetval = 0;
@@ -451,8 +453,8 @@ void DetectFlowintPrintData(DetectFlowintData *sfd)
                 sfd->name, sfd->modifier, sfd->idx);
     switch(sfd->targettype) {
         case FLOWINT_TARGET_VAR:
-            SCLogDebug("target_var: %s, target_idx: %"PRIu16,
-                        sfd->target.tvar.name, sfd->target.tvar.idx);
+            SCLogDebug("target_var: %s",
+                        sfd->target.tvar.name);
             break;
         case FLOWINT_TARGET_VAL:
             SCLogDebug("Value: %"PRIu32"; ", sfd->target.value);

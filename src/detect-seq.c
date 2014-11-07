@@ -41,7 +41,7 @@
 
 static int DetectSeqSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Packet *, Signature *, SigMatchCtx *);
+                          Packet *, Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
 
@@ -70,9 +70,9 @@ void DetectSeqRegister(void)
  * \retval 1 match
  */
 static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Packet *p, Signature *s, SigMatchCtx *ctx)
+                          Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectSeqData *data = (DetectSeqData *)ctx;
+    const DetectSeqData *data = (const DetectSeqData *)ctx;
 
     /* This is only needed on TCP packets */
     if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {

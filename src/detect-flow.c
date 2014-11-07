@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
+int DetectFlowMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectFlowSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
@@ -107,7 +107,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
+int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -126,7 +126,7 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
     }
 
     uint8_t cnt = 0;
-    DetectFlowData *fd = (DetectFlowData *)ctx;
+    const DetectFlowData *fd = (const DetectFlowData *)ctx;
 
     if ((fd->flags & FLOW_PKT_TOSERVER) && (p->flowflags & FLOW_PKT_TOSERVER)) {
         cnt++;

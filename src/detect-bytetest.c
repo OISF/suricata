@@ -111,12 +111,12 @@ error:
  *  \retval 1 match
  *  \retval 0 no match
  */
-int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
+int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, const SigMatchCtx *ctx, uint8_t *payload, uint32_t payload_len,
                           uint8_t flags, int32_t offset, uint64_t value)
 {
     SCEnter();
 
-    DetectBytetestData *data = (DetectBytetestData *)ctx;
+    const DetectBytetestData *data = (const DetectBytetestData *)ctx;
     uint8_t *ptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
@@ -253,7 +253,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
 }
 
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatchCtx *ctx)
+                        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     return DetectBytetestDoMatch(det_ctx, s, ctx, p->payload, p->payload_len,
                                  ((DetectBytetestData *)ctx)->flags, 0, 0);
