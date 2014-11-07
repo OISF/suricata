@@ -46,7 +46,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectIpOptsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectIpOptsSetup (DetectEngineCtx *, Signature *, char *);
 void IpOptsRegisterTests(void);
 void DetectIpOptsFree(void *);
@@ -101,11 +101,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
     int ret = 0;
     int ipopt = 0;
-    DetectIpOptsData *de = (DetectIpOptsData *)m->ctx;
+    DetectIpOptsData *de = (DetectIpOptsData *)ctx;
 
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return ret;
@@ -201,7 +201,7 @@ static int DetectIpOptsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
         goto error;
 
     sm->type = DETECT_IPOPTS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
@@ -303,9 +303,9 @@ int IpOptsTestParse03 (void)
         goto error;
 
     sm->type = DETECT_IPOPTS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectIpOptsMatch(&tv, NULL, p, NULL, sm->ctx);
 
     if(ret) {
         SCFree(p);
@@ -355,9 +355,9 @@ int IpOptsTestParse04 (void)
         goto error;
 
     sm->type = DETECT_IPOPTS;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectIpOptsMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectIpOptsMatch(&tv, NULL, p, NULL, sm->ctx);
 
     if(ret) {
         SCFree(p);

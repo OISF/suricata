@@ -50,7 +50,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectFlowbitMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 static int DetectFlowbitSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowbitFree (void *);
 void FlowBitsRegisterTests(void);
@@ -141,9 +141,9 @@ static int DetectFlowbitMatchIsnotset (Packet *p, DetectFlowbitsData *fd)
  *        -1: error
  */
 
-int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectFlowbitsData *fd = (DetectFlowbitsData *)m->ctx;
+    DetectFlowbitsData *fd = (DetectFlowbitsData *)ctx;
     if (fd == NULL)
         return 0;
 
@@ -247,7 +247,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         goto error;
 
     sm->type = DETECT_FLOWBITS;
-    sm->ctx = (void *)cd;
+    sm->ctx = (SigMatchCtx *)cd;
 
     switch (fb_cmd) {
         case DETECT_FLOWBITS_CMD_NOALERT:

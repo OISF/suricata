@@ -43,7 +43,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectMarkSetup (DetectEngineCtx *, Signature *, char *);
-int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m);
+int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx);
 void DetectMarkDataFree(void *ptr);
 
 /**
@@ -219,7 +219,7 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         }
 
         sm->type = DETECT_MARK;
-        sm->ctx = (void *)data;
+        sm->ctx = (SigMatchCtx *)data;
 
         /* Append it to the list of tags */
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
@@ -237,10 +237,10 @@ void DetectMarkDataFree(void *ptr)
 }
 
 
-int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
 #ifdef NFQ
-    DetectMarkData *nf_data = (DetectMarkData *) m->ctx;
+    DetectMarkData *nf_data = (DetectMarkData *)ctx;
     if (nf_data->mask) {
         p->nfq_v.mark = (nf_data->mark & nf_data->mask)
                         | (p->nfq_v.mark & ~(nf_data->mask));

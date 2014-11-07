@@ -47,7 +47,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectWindowMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatchCtx *);
 int DetectWindowSetup(DetectEngineCtx *, Signature *, char *);
 void DetectWindowRegisterTests(void);
 void DetectWindowFree(void *);
@@ -104,9 +104,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatchCtx *ctx)
 {
-    DetectWindowData *wd = (DetectWindowData *)m->ctx;
+    DetectWindowData *wd = (DetectWindowData *)ctx;
 
     if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
         return 0;
@@ -219,7 +219,7 @@ int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
         goto error;
 
     sm->type = DETECT_WINDOW;
-    sm->ctx = (void *)wd;
+    sm->ctx = (SigMatchCtx *)wd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

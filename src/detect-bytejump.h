@@ -113,8 +113,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
  *       error as a match.
  */
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                        Packet *p, Signature *s, SigMatch *m);
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
+                        Packet *p, Signature *s, SigMatchCtx *ctx);
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, SigMatchCtx *,
                           uint8_t *, uint32_t, uint8_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */

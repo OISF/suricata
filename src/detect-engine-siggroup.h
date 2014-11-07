@@ -91,4 +91,6 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
 
+int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
+
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */
