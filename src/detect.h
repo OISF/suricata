@@ -762,6 +762,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
+    SigIntId *non_mpm_id_array;
+    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
+
     /* detection engine variables */
 
     /** offset into the payload of the last match by:
@@ -791,9 +794,10 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /** id for alert counter */
     uint16_t counter_alerts;
-#ifdef COLLECT_SIGMATCH_LIST_STATS
+#ifdef PROFILING
     uint16_t counter_mpm_list;
     uint16_t counter_nonmpm_list;
+    uint16_t counter_fnonmpm_list;
     uint16_t counter_match_list;
 #endif
 
@@ -964,7 +968,10 @@ typedef struct SigGroupHead_ {
 #endif
 
     SigIntId *non_mpm_id_array;
-    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
+    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(SigIntId)
+
+    SignatureMask *non_mpm_mask_array;
+    uint32_t non_mpm_mask_cnt; // size is cnt * sizeof(SignatureMask)
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;
