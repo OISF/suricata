@@ -291,6 +291,7 @@ typedef enum {
     SC_ERR_LUA_SCRIPT,
     SC_WARN_NO_STATS_LOGGERS,
     SC_ERR_NO_JSON,
+    SC_ERR_NO_JSON_SUPPORT,
 } SCError;
 
 const char *SCErrorToString(SCError);
