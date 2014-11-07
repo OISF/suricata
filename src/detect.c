@@ -663,17 +663,19 @@ end:
 }
 
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
-                                            DetectEngineThreadCtx *det_ctx,
-                                            SigGroupHead *sgh)
+                                            DetectEngineThreadCtx *det_ctx)
+//                                            SigGroupHead *sgh)
 {
     SigIntId mpm, nonmpm;
     det_ctx->match_array_cnt = 0;
     SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
-    SigIntId *nonmpm_ptr = sgh->non_mpm_id_array;
+    SigIntId *nonmpm_ptr = det_ctx->non_mpm_id_array;
+    //SigIntId *nonmpm_ptr = sgh->non_mpm_id_array;
     uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
-    uint32_t n_cnt = sgh->non_mpm_id_cnt;
+    //uint32_t n_cnt = sgh->non_mpm_id_cnt;
+    uint32_t n_cnt = det_ctx->non_mpm_id_cnt;
     SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
-    SCLogDebug("SGH non-MPM id count %d", sgh->non_mpm_id_cnt);
+//    SCLogDebug("SGH non-MPM id count %d", sgh->non_mpm_id_cnt);
     SigIntId *final_ptr;
     uint32_t final_cnt;
     SigIntId id;
@@ -752,7 +754,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 
     det_ctx->match_array_cnt = match_array - det_ctx->match_array;
 
-    BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+    BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_mpm_id_cnt) < det_ctx->match_array_cnt);
 }
 
 /* Return true is the list is sorted smallest to largest */
@@ -1330,6 +1332,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SignatureMask mask = 0;
     PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
 
+    /* prefilter non_mpm list against the mask of the packet */
+    det_ctx->non_mpm_id_cnt = 0;
+    uint32_t x = 0;
+    for (x = 0; x < det_ctx->sgh->non_mpm_id_cnt; x++) {
+        /* only if the mask matches this rule can possibly match,
+         * so build the non_mpm array only for match candidates */
+        if ((det_ctx->sgh->non_mpm_mask_array[x] & mask) == det_ctx->sgh->non_mpm_mask_array[x]) {
+            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_id_array[x];
+        }
+    }
+
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
@@ -1340,11 +1353,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                              (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         SCPerfCounterAddUI64(det_ctx->counter_nonmpm_list, th_v->sc_perf_pca,
                              (uint64_t)det_ctx->sgh->non_mpm_id_cnt);
+        /* non mpm sigs after mask prefilter */
+        SCPerfCounterAddUI64(det_ctx->counter_fnonmpm_list,
+                th_v->sc_perf_pca, (uint64_t)det_ctx->non_mpm_id_cnt);
     }
 #endif
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
-    DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
+    DetectPrefilterMergeSort(de_ctx, det_ctx);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
