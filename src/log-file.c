@@ -82,10 +82,7 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
-{
-    return TM_ECODE_FAILED;
-}
+static void LogFileLogDeInitCtx(OutputCtx *output_ctx);
 
 static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 {
@@ -135,8 +132,9 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
     FILE *fp = aft->file_ctx->fp;
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "file-log");
-    json_t *file_json;
-    file_json = LogFileLogFileJson(p, ff);
+    json_t *file_json = json_object();
+    LogFileLogTransactionMeta(p, ff, file_json);
+    LogFileLogFileMeta(p, ff, file_json);
     json_object_set_new(js, "file-log", file_json);
 
     LogFileLogPrintJsonObj(fp, js);
