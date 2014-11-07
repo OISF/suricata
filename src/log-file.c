@@ -82,10 +82,7 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_FAILED;
 }
 
-static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
-{
-    return TM_ECODE_FAILED;
-}
+static void LogFileLogDeInitCtx(OutputCtx *output_ctx);
 
 static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 {
