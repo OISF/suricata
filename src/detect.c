@@ -774,6 +774,95 @@ end:
     SCReturnPtr(smsg, "StreamMsg");
 }
 
+#define MIN(x, y) ( ((x)<(y))?(x):(y) )
+static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, SigGroupHead *sgh)
+{
+//#define MERGE_PRINT 1
+
+        //det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
+//      for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
+
+    uint32_t m = 0;
+    uint32_t n = 0;
+
+    uint32_t mpm = -1;
+    uint32_t nonmpm = -1;
+//SCLogInfo("starting");
+//BUG_ON(det_ctx->match_array_cnt != 0);
+#if MERGE_PRINT
+    SCLogInfo("sgh %p", sgh);
+    uint32_t x;
+    printf("SIGS (mpm): ");
+    if (det_ctx->pmq.rule_id_array_cnt) {
+        for (x = 0; x < det_ctx->pmq.rule_id_array_cnt; x++) {
+            printf("%u ", det_ctx->pmq.rule_id_array[x]);
+        }
+    } else
+        printf("none");
+    printf("\n");
+
+    printf("SIGS (non-mpm): ");
+    if (sgh->non_mpm_id_cnt) {
+        for (x = 0; x < sgh->non_mpm_id_cnt; x++) {
+            printf("%u ", sgh->non_mpm_id_array[x]);
+        }
+    } else
+        printf("none");
+    printf("\n");
+#endif
+    det_ctx->match_array_cnt = 0;
+    while (1) {
+//        SCLogInfo("m %u (%u) n %u (%u)", m,  det_ctx->pmq.rule_id_array_cnt, n, sgh->non_mpm_id_cnt);
+
+        if (m < det_ctx->pmq.rule_id_array_cnt)
+            mpm = det_ctx->pmq.rule_id_array[m];
+        else
+            mpm = -1;
+        if (n < sgh->non_mpm_id_cnt)
+            nonmpm = sgh->non_mpm_id_array[n];
+        else
+            nonmpm = -1;
+
+        uint32_t id = MIN(mpm, nonmpm);
+
+//        SCLogInfo("id %u, mpm %u, nonmpm %u", id, mpm, nonmpm);
+
+        if (id == (uint32_t)-1)
+            return;
+        else if (id == mpm) {
+            m++;
+            BUG_ON(m > det_ctx->pmq.rule_id_array_cnt);
+        } else if (id == nonmpm) {
+            n++;
+            BUG_ON(n > sgh->non_mpm_id_cnt);
+        }
+
+        Signature *s = de_ctx->sig_array[id];
+
+        /* as the mpm list can contain duplicates, check for this here */
+        if (det_ctx->match_array_cnt == 0 || det_ctx->match_array[det_ctx->match_array_cnt - 1] != s)
+            det_ctx->match_array[det_ctx->match_array_cnt++] = s;
+//        SCLogInfo("m %u n %u", m, n);
+
+        if (m >= det_ctx->pmq.rule_id_array_cnt && n >= sgh->non_mpm_id_cnt)
+            break;
+
+    }
+        BUG_ON((det_ctx->pmq.rule_id_array_cnt + sgh->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+#if MERGE_PRINT
+    printf("SIGS (post): ");
+    for (x = 0; x < det_ctx->match_array_cnt; x++) {
+        printf("%u ", det_ctx->match_array[x]->num);
+    }
+    printf("(");
+    for (x = 0; x < det_ctx->match_array_cnt; x++) {
+        printf("%u ", det_ctx->match_array[x]->id);
+    }
+    printf(")\n\n");
+#endif
+}
+
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 #define SMS_USED_STREAM_PM      0x04
@@ -1019,6 +1108,18 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 FLOWLOCK_UNLOCK(p->flow);
             }
         }
+    }
+
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (det_ctx->pmq.rule_id_array_cnt) {
+        int DoSort(const void *a, const void *b) {
+            uint32_t x = *(uint32_t *)a;
+            uint32_t y = *(uint32_t *)b;
+            return x - y;
+        }
+        qsort(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt,
+                sizeof(uint32_t), DoSort);
     }
 }
 
@@ -1326,7 +1427,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+//    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+    DetectPrefilterMergeSort(de_ctx, det_ctx, det_ctx->sgh);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
@@ -1340,6 +1442,58 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        /* if the sig has alproto and the session as well they should match */
+        if (likely(s->flags & SIG_FLAG_APPLAYER)) {
+            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+                if (s->alproto == ALPROTO_DCERPC) {
+                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                        goto next;
+                    }
+                } else {
+                    SCLogDebug("alproto mismatch");
+                    goto next;
+                }
+            }
+        }
+
+        if (unlikely(s->flags & SIG_FLAG_DSIZE)) {
+            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
+                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
+                        p->payload_len, s->dsize_low, s->dsize_high);
+                goto next;
+            }
+        }
+
+    /* check for a pattern match of the one pattern in this sig. */
+    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
+    {
+        /* filter out sigs that want pattern matches, but
+         * have no matches */
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+            if (s->flags & SIG_FLAG_MPM_PACKET) {
+                if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
+                    goto next;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_STREAM) {
+                /* filter out sigs that want pattern matches, but
+                 * have no matches */
+                if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                    goto next;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_APPLAYER) {
+                if (!(s->flags & SIG_FLAG_MPM_APPLAYER_NEG)) {
+                    goto next;
+                }
+            }
+        }
+    }
+        if (s->flags & SIG_FLAG_STATE_MATCH) {
+            if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
+                goto next;
+        }
+
 
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
@@ -4002,6 +4156,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
+
+        SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
