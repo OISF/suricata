@@ -65,7 +65,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+static int DetectThresholdMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectThresholdSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectThresholdFree(void *);
 
@@ -108,7 +108,7 @@ error:
 
 }
 
-static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *sm)
+static int DetectThresholdMatch(ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     return 1;
 }
@@ -261,7 +261,7 @@ static int DetectThresholdSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
         goto error;
 
     sm->type = DETECT_THRESHOLD;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
 
@@ -1484,7 +1484,7 @@ cleanup:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void*)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);

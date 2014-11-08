@@ -1414,10 +1414,10 @@ int DetectHttpHRHTest22(void)
         goto end;
     }
 
-    DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectContentData *cd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (cd1->flags != 0 || memcmp(cd1->content, "one", cd1->content_len) != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
@@ -1469,10 +1469,10 @@ int DetectHttpHRHTest23(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
@@ -1523,10 +1523,10 @@ int DetectHttpHRHTest24(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != 0 ||
         cd2->flags != 0 || memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
@@ -1578,10 +1578,10 @@ int DetectHttpHRHTest25(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != DETECT_PCRE_RELATIVE_NEXT ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -1634,10 +1634,10 @@ int DetectHttpHRHTest26(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -1717,10 +1717,10 @@ int DetectHttpHRHTest28(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
-    DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
+    DetectContentData *cd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT) ||
         cd2->flags != DETECT_CONTENT_DISTANCE ||
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
@@ -1772,8 +1772,8 @@ int DetectHttpHRHTest29(void)
         goto end;
     }
 
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hrhhd1->content, "one", hrhhd1->content_len) != 0 ||
         hrhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
@@ -1816,8 +1816,8 @@ int DetectHttpHRHTest30(void)
         goto end;
     }
 
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hrhhd1->content, "one", hrhhd1->content_len) != 0 ||
         hrhhd2->flags != (DETECT_CONTENT_WITHIN) ||
@@ -1940,8 +1940,8 @@ int DetectHttpHRHTest34(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_CASELESS) ||
         hrhhd2->flags != (DETECT_CONTENT_WITHIN) ||
         memcmp(hrhhd2->content, "two", hrhhd2->content_len) != 0) {
@@ -1991,8 +1991,8 @@ int DetectHttpHRHTest35(void)
         goto end;
     }
 
-    DetectContentData *hrhhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectPcreData *pd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectContentData *hrhhd1 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectPcreData *pd2 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd2->flags != (DETECT_PCRE_RELATIVE | DETECT_PCRE_CASELESS) ||
         hrhhd1->flags != (DETECT_CONTENT_RELATIVE_NEXT) ||
         memcmp(hrhhd1->content, "two", hrhhd1->content_len) != 0) {
@@ -2042,8 +2042,8 @@ int DetectHttpHRHTest36(void)
         goto end;
     }
 
-    DetectPcreData *pd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
-    DetectContentData *hrhhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
+    DetectPcreData *pd1 = (DetectPcreData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->prev->ctx;
+    DetectContentData *hrhhd2 = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH]->ctx;
     if (pd1->flags != (DETECT_PCRE_RELATIVE_NEXT | DETECT_PCRE_CASELESS) ||
         hrhhd2->flags != (DETECT_CONTENT_DISTANCE) ||
         memcmp(hrhhd2->content, "two", hrhhd2->content_len) != 0) {
