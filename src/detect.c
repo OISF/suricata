@@ -2245,6 +2245,26 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                     SCLogDebug("packet/flow has dce state");
                     (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
                     break;
+                case ALPROTO_SSH:
+                    SCLogDebug("packet/flow has ssh state");
+                    (*mask) |= SIG_MASK_REQUIRE_SSH_STATE;
+                    break;
+                case ALPROTO_TLS:
+                    SCLogDebug("packet/flow has tls state");
+                    (*mask) |= SIG_MASK_REQUIRE_TLS_STATE;
+                    break;
+                case ALPROTO_DNS:
+                    SCLogDebug("packet/flow has dns state");
+                    (*mask) |= SIG_MASK_REQUIRE_DNS_STATE;
+                    break;
+                case ALPROTO_FTP:
+                    SCLogDebug("packet/flow has ftp state");
+                    (*mask) |= SIG_MASK_REQUIRE_FTP_STATE;
+                    break;
+                case ALPROTO_SMTP:
+                    SCLogDebug("packet/flow has smtp state");
+                    (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
+                    break;
                 default:
                     SCLogDebug("packet/flow has other state");
                     break;
@@ -2433,8 +2453,34 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
+    if (s->alproto == ALPROTO_SSH) {
+        s->mask |= SIG_MASK_REQUIRE_SSH_STATE;
+        SCLogDebug("sig requires ssh state");
+    }
+    if (s->alproto == ALPROTO_TLS) {
+        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
+        SCLogDebug("sig requires tls state");
+    }
+    if (s->alproto == ALPROTO_DNS) {
+        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
+        SCLogDebug("sig requires dns state");
+    }
+    if (s->alproto == ALPROTO_FTP) {
+        s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
+        SCLogDebug("sig requires ftp state");
+    }
+    if (s->alproto == ALPROTO_SMTP) {
+        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+        SCLogDebug("sig requires smtp state");
+    }
+
     if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE))
+        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
