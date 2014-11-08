@@ -1113,6 +1113,19 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
     return;
 }
 
+static inline void DetectPrefilterBuildNonMpmList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
+{
+    uint32_t x = 0;
+    for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
+        /* only if the mask matches this rule can possibly match,
+         * so build the non_mpm array only for match candidates */
+        SignatureMask rule_mask = det_ctx->sgh->non_mpm_store_array[x].mask;
+        if ((rule_mask & mask) == rule_mask) {
+            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
+        }
+    }
+}
+
 /**
  *  \brief Signature match function
  *
@@ -1332,17 +1345,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SignatureMask mask = 0;
     PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
 
-    /* prefilter non_mpm list against the mask of the packet */
+    /* build and prefilter non_mpm list against the mask of the packet */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
     det_ctx->non_mpm_id_cnt = 0;
-    uint32_t x = 0;
-    for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
-        /* only if the mask matches this rule can possibly match,
-         * so build the non_mpm array only for match candidates */
-        SignatureMask rule_mask = det_ctx->sgh->non_mpm_store_array[x].mask;
-        if ((rule_mask & mask) == rule_mask) {
-            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
-        }
+    if (likely(det_ctx->sgh->non_mpm_store_cnt > 0)) {
+        DetectPrefilterBuildNonMpmList(det_ctx, mask);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
