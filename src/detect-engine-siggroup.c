@@ -196,16 +196,10 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         sgh->match_array = NULL;
     }
 
-    if (sgh->non_mpm_id_array != NULL) {
-        SCFree(sgh->non_mpm_id_array);
-        sgh->non_mpm_id_array = NULL;
-        sgh->non_mpm_id_cnt = 0;
-    }
-
-    if (sgh->non_mpm_mask_array != NULL) {
-        SCFree(sgh->non_mpm_mask_array);
-        sgh->non_mpm_mask_array = NULL;
-        sgh->non_mpm_mask_cnt = 0;
+    if (sgh->non_mpm_store_array != NULL) {
+        SCFree(sgh->non_mpm_store_array);
+        sgh->non_mpm_store_array = NULL;
+        sgh->non_mpm_store_cnt = 0;
     }
 
     sgh->sig_cnt = 0;
@@ -1709,8 +1703,7 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     if (sgh == NULL)
         return 0;
 
-    BUG_ON(sgh->non_mpm_id_array != NULL);
-    BUG_ON(sgh->non_mpm_mask_array != NULL);
+    BUG_ON(sgh->non_mpm_store_array != NULL);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
@@ -1723,17 +1716,13 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             non_mpm++;
     }
     if (non_mpm == 0) {
-        sgh->non_mpm_id_array = NULL;
+        sgh->non_mpm_store_array = NULL;
         return 0;
     }
 
-    sgh->non_mpm_id_array = SCMalloc(non_mpm * sizeof(SigIntId));
-    BUG_ON(sgh->non_mpm_id_array == NULL);
-    memset(sgh->non_mpm_id_array, 0, non_mpm * sizeof(SigIntId));
-
-    sgh->non_mpm_mask_array = SCMalloc(non_mpm * sizeof(SignatureMask));
-    BUG_ON(sgh->non_mpm_mask_array == NULL);
-    memset(sgh->non_mpm_mask_array, 0, non_mpm * sizeof(SignatureMask));
+    sgh->non_mpm_store_array = SCMalloc(non_mpm * sizeof(SignatureNonMpmStore));
+    BUG_ON(sgh->non_mpm_store_array == NULL);
+    memset(sgh->non_mpm_store_array, 0, non_mpm * sizeof(SignatureNonMpmStore));
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
@@ -1741,13 +1730,15 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
 
         if (s->mpm_sm == NULL) {
-            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
-            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
-            sgh->non_mpm_mask_array[sgh->non_mpm_mask_cnt++] = s->mask;
+            BUG_ON(sgh->non_mpm_store_cnt >= non_mpm);
+            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].id = s->num;
+            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].mask = s->mask;
+            sgh->non_mpm_store_cnt++;
         } else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG)) {
-            BUG_ON(sgh->non_mpm_id_cnt >= non_mpm);
-            sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
-            sgh->non_mpm_mask_array[sgh->non_mpm_mask_cnt++] = s->mask;
+            BUG_ON(sgh->non_mpm_store_cnt >= non_mpm);
+            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].id = s->num;
+            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].mask = s->mask;
+            sgh->non_mpm_store_cnt++;
         }
     }
     return 0;

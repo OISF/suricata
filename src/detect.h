@@ -968,6 +968,11 @@ typedef struct SigGroupHeadInitData_ {
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
 
+typedef struct SignatureNonMpmStore_ {
+    SigIntId id;
+    SignatureMask mask;
+} SignatureNonMpmStore;
+
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
     uint32_t flags;
@@ -986,11 +991,8 @@ typedef struct SigGroupHead_ {
      *  signatures to be inspected in a cache efficient way. */
     SignatureHeader *head_array;
 
-    SigIntId *non_mpm_id_array;
-    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(SigIntId)
-
-    SignatureMask *non_mpm_mask_array;
-    uint32_t non_mpm_mask_cnt; // size is cnt * sizeof(SignatureMask)
+    SignatureNonMpmStore *non_mpm_store_array;
+    uint32_t non_mpm_store_cnt; // size is cnt * sizeof(SignatureNonMpmStore)
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;
