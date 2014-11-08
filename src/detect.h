@@ -989,8 +989,8 @@ typedef struct SigGroupHead_ {
     SigIntId *non_mpm_id_array;
     uint32_t non_mpm_id_cnt; // size is cnt * sizeof(SigIntId)
 
-    uint8_t *non_mpm_mask_array;
-    uint32_t non_mpm_mask_cnt; // size is cnt * sizeof(uint8_t)
+    SignatureMask *non_mpm_mask_array;
+    uint32_t non_mpm_mask_cnt; // size is cnt * sizeof(SignatureMask)
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;
