@@ -1333,6 +1333,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
 
     /* prefilter non_mpm list against the mask of the packet */
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
     det_ctx->non_mpm_id_cnt = 0;
     uint32_t x = 0;
     for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
@@ -1343,6 +1344,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
         }
     }
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
