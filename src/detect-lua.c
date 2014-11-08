@@ -108,7 +108,7 @@ static pthread_mutex_t luajit_states_lock = SCMUTEX_INITIALIZER;
 #include "util-lua.h"
 
 static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
-        Packet *, Signature *, SigMatchCtx *);
+        Packet *, Signature *, const SigMatchCtx *);
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectLuaSetup (DetectEngineCtx *, Signature *, char *);
@@ -382,7 +382,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
  * \retval 1 match
  */
 static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, SigMatchCtx *ctx)
+        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
