@@ -1035,6 +1035,7 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
         CASE_CODE (PROF_DETECT_ALERT);
         CASE_CODE (PROF_DETECT_CLEANUP);
         CASE_CODE (PROF_DETECT_GETSGH);
+        CASE_CODE (PROF_DETECT_NONMPMLIST);
         case PROF_DETECT_MPM_PKT_STREAM:
             return "PROF_DETECT_MPM_PKT_STR";
         default:
