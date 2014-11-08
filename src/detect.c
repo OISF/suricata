@@ -1335,11 +1335,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* prefilter non_mpm list against the mask of the packet */
     det_ctx->non_mpm_id_cnt = 0;
     uint32_t x = 0;
-    for (x = 0; x < det_ctx->sgh->non_mpm_id_cnt; x++) {
+    for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
-        if ((det_ctx->sgh->non_mpm_mask_array[x] & mask) == det_ctx->sgh->non_mpm_mask_array[x]) {
-            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_id_array[x];
+        SignatureMask rule_mask = det_ctx->sgh->non_mpm_store_array[x].mask;
+        if ((rule_mask & mask) == rule_mask) {
+            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
         }
     }
 
@@ -1352,7 +1353,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCPerfCounterAddUI64(det_ctx->counter_mpm_list, th_v->sc_perf_pca,
                              (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         SCPerfCounterAddUI64(det_ctx->counter_nonmpm_list, th_v->sc_perf_pca,
-                             (uint64_t)det_ctx->sgh->non_mpm_id_cnt);
+                             (uint64_t)det_ctx->sgh->non_mpm_store_cnt);
         /* non mpm sigs after mask prefilter */
         SCPerfCounterAddUI64(det_ctx->counter_fnonmpm_list,
                 th_v->sc_perf_pca, (uint64_t)det_ctx->non_mpm_id_cnt);
