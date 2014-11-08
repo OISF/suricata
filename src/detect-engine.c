@@ -1464,6 +1464,9 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
         PmqFree(&det_ctx->smsg_pmq[i]);
     }
 
+    if (det_ctx->non_mpm_id_array != NULL)
+        SCFree(det_ctx->non_mpm_id_array);
+
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);
     if (det_ctx->match_array != NULL)
