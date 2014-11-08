@@ -298,9 +298,14 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_HTTP_STATE         (1<<5)
 #define SIG_MASK_REQUIRE_DCE_STATE          (1<<6)
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       (1<<7)
+#define SIG_MASK_REQUIRE_SSH_STATE          (1<<8)
+#define SIG_MASK_REQUIRE_TLS_STATE          (1<<9)
+#define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
+#define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
+#define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
 
 /* for now a uint8_t is enough */
-#define SignatureMask uint8_t
+#define SignatureMask uint16_t
 
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
