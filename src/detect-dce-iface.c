@@ -416,7 +416,7 @@ static int DetectDceIfaceTestParse01(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -459,7 +459,7 @@ static int DetectDceIfaceTestParse02(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -502,7 +502,7 @@ static int DetectDceIfaceTestParse03(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     result &= 1;
     for (i = 0; i < 16; i++) {
         if (did->uuid[i] != test_uuid[i]) {
@@ -541,7 +541,7 @@ static int DetectDceIfaceTestParse04(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -581,7 +581,7 @@ static int DetectDceIfaceTestParse05(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -624,7 +624,7 @@ static int DetectDceIfaceTestParse06(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -667,7 +667,7 @@ static int DetectDceIfaceTestParse07(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -708,7 +708,7 @@ static int DetectDceIfaceTestParse08(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -747,7 +747,7 @@ static int DetectDceIfaceTestParse09(void)
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }
@@ -790,7 +790,7 @@ static int DetectDceIfaceTestParse10(void)
     }
 
     temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    did = temp->ctx;
+    did = (DetectDceIfaceData *)temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
     }

@@ -605,16 +605,21 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    Signature *s)
 {
     /* run the packet match functions */
-    if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+    if (s->sm_arrays[DETECT_SM_LIST_POSTMATCH] != NULL) {
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_POSTMATCH);
 
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
-        SCLogDebug("running match functions, sm %p", sm);
+        SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_POSTMATCH];
+        SCLogDebug("running match functions, sm %p", smd);
 
-        for ( ; sm != NULL; sm = sm->next) {
-            KEYWORD_PROFILING_START;
-            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
-            KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+        if (smd != NULL) {
+            while (1) {
+                KEYWORD_PROFILING_START;
+                (void)sigmatch_table[smd->type].Match(tv, det_ctx, p, s, smd->ctx);
+                KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                if (smd->is_last)
+                    break;
+                smd++;
+            }
         }
     }
 
@@ -772,6 +777,127 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
 
 end:
     SCReturnPtr(smsg, "StreamMsg");
+}
+
+#define MIN(x, y) ( ((x)<(y))?(x):(y) )
+static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
+                                            DetectEngineThreadCtx *det_ctx)
+//                                            SigGroupHead *sgh)
+{
+    SigIntId mpm, nonmpm;
+    det_ctx->match_array_cnt = 0;
+    SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
+    SigIntId *nonmpm_ptr = det_ctx->non_mpm_id_array;
+    //SigIntId *nonmpm_ptr = sgh->non_mpm_id_array;
+    uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
+    //uint32_t n_cnt = sgh->non_mpm_id_cnt;
+    uint32_t n_cnt = det_ctx->non_mpm_id_cnt;
+    SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
+//    SCLogDebug("SGH non-MPM id count %d", sgh->non_mpm_id_cnt);
+    SigIntId *final_ptr;
+    uint32_t final_cnt;
+    SigIntId id;
+    SigIntId previous_id = (SigIntId)-1;
+    Signature **sig_array = de_ctx->sig_array;
+    Signature **match_array = det_ctx->match_array;
+    Signature *s;
+
+    /* Load first values. */
+    if (likely(m_cnt)) {
+        mpm = *mpm_ptr;
+    } else {
+        /* mpm list is empty */
+        final_ptr = nonmpm_ptr;
+        final_cnt = n_cnt;
+        goto final;
+    }
+    if (likely(n_cnt)) {
+        nonmpm = *nonmpm_ptr;
+    } else {
+        /* non-mpm list is empty. */
+        final_ptr = mpm_ptr;
+        final_cnt = m_cnt;
+        goto final;
+    }
+    while (1) {
+        if (mpm <= nonmpm) {
+            /* Take from mpm list */
+            id = mpm;
+
+            s = sig_array[id];
+            /* As the mpm list can contain duplicates, check for that here. */
+            if (likely(id != previous_id)) {
+                *match_array++ = s;
+                previous_id = id;
+            }
+            if (unlikely(--m_cnt == 0)) {
+                /* mpm list is now empty */
+                final_ptr = nonmpm_ptr;
+                 final_cnt = n_cnt;
+                 goto final;
+             }
+             mpm_ptr++;
+             mpm = *mpm_ptr;
+         } else {
+             id = nonmpm;
+
+             s = sig_array[id];
+             /* As the mpm list can contain duplicates, check for that here. */
+             if (likely(id != previous_id)) {
+                 *match_array++ = s;
+                 previous_id = id;
+             }
+             if (unlikely(--n_cnt == 0)) {
+                 final_ptr = mpm_ptr;
+                 final_cnt = m_cnt;
+                 goto final;
+             }
+             nonmpm_ptr++;
+             nonmpm = *nonmpm_ptr;
+        }
+    }
+
+ final: /* Only one list remaining. Just walk that list. */
+
+    while (final_cnt-- > 0) {
+        id = *final_ptr++;
+        s = sig_array[id];
+
+        /* As the mpm list can contain duplicates, check for that here. */
+        if (likely(id != previous_id)) {
+            *match_array++ = s;
+            previous_id = id;
+        }
+    }
+
+    det_ctx->match_array_cnt = match_array - det_ctx->match_array;
+
+    BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+}
+
+/* Return true is the list is sorted smallest to largest */
+static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
+{
+    if (n < 2)
+        return;
+    SigIntId p = sids[n / 2];
+    SigIntId *l = sids;
+    SigIntId *r = sids + n - 1;
+    while (l <= r) {
+        if (*l < p)
+            l++;
+        else if (*r > p)
+            r--;
+        else {
+            SigIntId t = *l;
+            *l = *r;
+            *r = t;
+            l++;
+            r--;
+        }
+    }
+    QuickSortSigIntId(sids, r - sids + 1);
+    QuickSortSigIntId(l, sids + n - l);
 }
 
 #define SMS_USE_FLOW_SGH        0x01
@@ -1020,6 +1146,12 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             }
         }
     }
+
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (det_ctx->pmq.rule_id_array_cnt > 1) {
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+    }
 }
 
 #ifdef DEBUG
@@ -1099,6 +1231,19 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
     return;
 }
 
+static inline void DetectPrefilterBuildNonMpmList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
+{
+    uint32_t x = 0;
+    for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
+        /* only if the mask matches this rule can possibly match,
+         * so build the non_mpm array only for match candidates */
+        SignatureMask rule_mask = det_ctx->sgh->non_mpm_store_array[x].mask;
+        if ((rule_mask & mask) == rule_mask) {
+            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
+        }
+    }
+}
+
 /**
  *  \brief Signature match function
  *
@@ -1113,11 +1258,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
-    uint32_t idx;
     uint8_t flags = 0;          /* flow/state flags */
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
-    SigMatch *sm = NULL;
+    Signature *next_s = NULL;
     uint16_t alversion = 0;
     int reset_de_state = 0;
     int state_alert = 0;
@@ -1319,32 +1463,126 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SignatureMask mask = 0;
     PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
 
+    /* build and prefilter non_mpm list against the mask of the packet */
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
+    det_ctx->non_mpm_id_cnt = 0;
+    if (likely(det_ctx->sgh->non_mpm_store_cnt > 0)) {
+        DetectPrefilterBuildNonMpmList(det_ctx, mask);
+    }
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
+
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
+#ifdef PROFILING
+    if (th_v) {
+        SCPerfCounterAddUI64(det_ctx->counter_mpm_list, th_v->sc_perf_pca,
+                             (uint64_t)det_ctx->pmq.rule_id_array_cnt);
+        SCPerfCounterAddUI64(det_ctx->counter_nonmpm_list, th_v->sc_perf_pca,
+                             (uint64_t)det_ctx->sgh->non_mpm_store_cnt);
+        /* non mpm sigs after mask prefilter */
+        SCPerfCounterAddUI64(det_ctx->counter_fnonmpm_list,
+                th_v->sc_perf_pca, (uint64_t)det_ctx->non_mpm_id_cnt);
+    }
+#endif
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+//    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
+    DetectPrefilterMergeSort(de_ctx, det_ctx);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
-    for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
+    /* Prefetch the next signature. */
+    SigIntId match_cnt = det_ctx->match_array_cnt;
+#ifdef PROFILING
+    if (th_v) {
+        SCPerfCounterAddUI64(det_ctx->counter_match_list, th_v->sc_perf_pca,
+                             (uint64_t)match_cnt);
+    }
+#endif
+    Signature **match_array = det_ctx->match_array;
+
+    uint32_t sflags, next_sflags = 0;
+    if (match_cnt) {
+        next_s = *match_array++;
+        next_sflags = next_s->flags;
+    }
+
+    while (match_cnt--) {
         RULE_PROFILING_START(p);
         state_alert = 0;
 #ifdef PROFILING
         smatch = 0;
 #endif
 
-        s = det_ctx->match_array[idx];
+        s = next_s;
+        sflags = next_sflags;
+        if (match_cnt) {
+            next_s = *match_array++;
+            next_sflags = next_s->flags;
+        }
+        uint8_t s_proto_flags = s->proto.flags;
+
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        /* if the sig has alproto and the session as well they should match */
+        if (likely(sflags & SIG_FLAG_APPLAYER)) {
+            if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+                if (s->alproto == ALPROTO_DCERPC) {
+                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                        goto next;
+                    }
+                } else {
+                    SCLogDebug("alproto mismatch");
+                    goto next;
+                }
+            }
+        }
+
+        if (unlikely(sflags & SIG_FLAG_DSIZE)) {
+            if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
+                SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
+                           p->payload_len, s->dsize_low, s->dsize_high);
+                goto next;
+            }
+        }
+
+        /* check for a pattern match of the one pattern in this sig. */
+        if (likely(sflags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER))) {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+                if (sflags & SIG_FLAG_MPM_PACKET) {
+                    if (!(sflags & SIG_FLAG_MPM_PACKET_NEG)) {
+                        goto next;
+                    }
+                } else if (sflags & SIG_FLAG_MPM_STREAM) {
+                    /* filter out sigs that want pattern matches, but
+                     * have no matches */
+                    if (!(sflags & SIG_FLAG_MPM_STREAM_NEG)) {
+                        goto next;
+                    }
+                } else if (sflags & SIG_FLAG_MPM_APPLAYER) {
+                    if (!(sflags & SIG_FLAG_MPM_APPLAYER_NEG)) {
+                        goto next;
+                    }
+                }
+            }
+        }
+        if (sflags & SIG_FLAG_STATE_MATCH) {
+            if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
+                goto next;
+        }
+
 
         /* check if this signature has a requirement for flowvars of some type
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
-        if ((p->flags & PKT_HAS_FLOW) && (s->flags & SIG_FLAG_REQUIRE_FLOWVAR)) {
+        if ((p->flags & PKT_HAS_FLOW) && (sflags & SIG_FLAG_REQUIRE_FLOWVAR)) {
             FLOWLOCK_RDLOCK(pflow);
             int m  = pflow->flowvar ? 1 : 0;
             FLOWLOCK_UNLOCK(pflow);
@@ -1352,16 +1590,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* no flowvars? skip this sig */
             if (m == 0) {
                 SCLogDebug("skipping sig as the flow has no flowvars and sig "
-                        "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
+                           "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
                 goto next;
             }
         }
 
-        if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+        if ((s_proto_flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
             SCLogDebug("ip version didn't match");
             goto next;
         }
-        if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+        if ((s_proto_flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
             SCLogDebug("ip version didn't match");
             goto next;
         }
@@ -1373,7 +1611,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
-            if (!(s->flags & SIG_FLAG_DP_ANY)) {
+            if (!(sflags & SIG_FLAG_DP_ANY)) {
                 if (p->flags & PKT_IS_FRAGMENT)
                     goto next;
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
@@ -1382,7 +1620,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
-            if (!(s->flags & SIG_FLAG_SP_ANY)) {
+            if (!(sflags & SIG_FLAG_SP_ANY)) {
                 if (p->flags & PKT_IS_FRAGMENT)
                     goto next;
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
@@ -1391,13 +1629,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     goto next;
                 }
             }
-        } else if ((s->flags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
+        } else if ((sflags & (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) != (SIG_FLAG_DP_ANY|SIG_FLAG_SP_ANY)) {
             SCLogDebug("port-less protocol and sig needs ports");
             goto next;
         }
 
         /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
+        if (!(sflags & SIG_FLAG_DST_ANY)) {
             if (PKT_IS_IPV4(p)) {
                 if (DetectAddressMatchIPv4(s->addr_dst_match4, s->addr_dst_match4_cnt, &p->dst) == 0)
                     goto next;
@@ -1407,7 +1645,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
         /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+        if (!(sflags & SIG_FLAG_SRC_ANY)) {
             if (PKT_IS_IPV4(p)) {
                 if (DetectAddressMatchIPv4(s->addr_src_match4, s->addr_src_match4_cnt, &p->src) == 0)
                     goto next;
@@ -1419,11 +1657,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_PMATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_PMATCH);
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
+            if (sflags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
                 if (smsg != NULL) {
                     uint8_t pmq_idx = 0;
@@ -1431,7 +1669,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if ((s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG) &&
+                        if ((sflags & SIG_FLAG_MPM_STREAM) && !(sflags & SIG_FLAG_MPM_STREAM_NEG) &&
                             !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
                             SCLogDebug("no match in this smsg");
                             continue;
@@ -1444,7 +1682,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             /* Tell the engine that this reassembled stream can drop the
                              * rest of the pkts with no further inspection */
                             if (s->action & ACTION_DROP)
-                                alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+                              alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
                             alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
                             break;
@@ -1457,13 +1695,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
 
-                    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+                    if (!(sflags & SIG_FLAG_REQUIRE_PACKET)) {
                         if (p->flags & PKT_STREAM_ADD)
                             goto next;
                     }
 
                     if (sms_runflags & SMS_USED_PM) {
-                        if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                        if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
                             !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                               s->mpm_pattern_id_mod_8)) {
                             goto next;
@@ -1479,7 +1717,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             } else {
                 if (sms_runflags & SMS_USED_PM) {
-                    if ((s->flags & SIG_FLAG_MPM_PACKET) && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                    if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
                         !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
                           s->mpm_pattern_id_mod_8)) {
                         goto next;
@@ -1487,7 +1725,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                         goto next;
                     }
-
                 } else {
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1)
                         goto next;
@@ -1496,32 +1733,37 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         /* run the packet match functions */
-        if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s->sm_arrays[DETECT_SM_LIST_MATCH] != NULL) {
             KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_MATCH);
-            sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+            SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_MATCH];
 
-            SCLogDebug("running match functions, sm %p", sm);
-            for ( ; sm != NULL; sm = sm->next) {
-                KEYWORD_PROFILING_START;
-                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm) <= 0) {
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, 0);
-                    goto next;
+            SCLogDebug("running match functions, sm %p", smd);
+            if (smd != NULL) {
+                while (1) {
+                    KEYWORD_PROFILING_START;
+                    if (sigmatch_table[smd->type].Match(th_v, det_ctx, p, s, smd->ctx) <= 0) {
+                        KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+                        goto next;
+                    }
+                    KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
+                    if (smd->is_last)
+                        break;
+                    smd++;
                 }
-                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
             }
         }
 
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
-                "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
-                s->sm_lists[DETECT_SM_LIST_AMATCH],
-                s->sm_lists[DETECT_SM_LIST_UMATCH],
-                s->sm_lists[DETECT_SM_LIST_DMATCH],
-                s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
+                   "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
+                   "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
+                   "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
+                   s->sm_lists[DETECT_SM_LIST_AMATCH],
+                   s->sm_lists[DETECT_SM_LIST_UMATCH],
+                   s->sm_lists[DETECT_SM_LIST_DMATCH],
+                   s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
 
         /* consider stateful sig matches */
-        if (s->flags & SIG_FLAG_STATE_MATCH) {
+        if (sflags & SIG_FLAG_STATE_MATCH) {
             if (has_state == 0) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
@@ -1535,7 +1777,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                 p, pflow, flags, alproto, alversion);
+                                                      p, pflow, flags, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
@@ -1553,7 +1795,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
-        if (!(s->flags & SIG_FLAG_NOALERT)) {
+        if (!(sflags & SIG_FLAG_NOALERT)) {
             /* stateful sigs call PacketAlertAppend from DeStateDetectStartDetection */
             if (!state_alert)
                 PacketAlertAppend(det_ctx, s, p, 0, alert_flags);
@@ -2124,6 +2366,26 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                     SCLogDebug("packet/flow has dce state");
                     (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
                     break;
+                case ALPROTO_SSH:
+                    SCLogDebug("packet/flow has ssh state");
+                    (*mask) |= SIG_MASK_REQUIRE_SSH_STATE;
+                    break;
+                case ALPROTO_TLS:
+                    SCLogDebug("packet/flow has tls state");
+                    (*mask) |= SIG_MASK_REQUIRE_TLS_STATE;
+                    break;
+                case ALPROTO_DNS:
+                    SCLogDebug("packet/flow has dns state");
+                    (*mask) |= SIG_MASK_REQUIRE_DNS_STATE;
+                    break;
+                case ALPROTO_FTP:
+                    SCLogDebug("packet/flow has ftp state");
+                    (*mask) |= SIG_MASK_REQUIRE_FTP_STATE;
+                    break;
+                case ALPROTO_SMTP:
+                    SCLogDebug("packet/flow has smtp state");
+                    (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
+                    break;
                 default:
                     SCLogDebug("packet/flow has other state");
                     break;
@@ -2312,8 +2574,34 @@ static int SignatureCreateMask(Signature *s)
         }
     }
 
+    if (s->alproto == ALPROTO_SSH) {
+        s->mask |= SIG_MASK_REQUIRE_SSH_STATE;
+        SCLogDebug("sig requires ssh state");
+    }
+    if (s->alproto == ALPROTO_TLS) {
+        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
+        SCLogDebug("sig requires tls state");
+    }
+    if (s->alproto == ALPROTO_DNS) {
+        s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
+        SCLogDebug("sig requires dns state");
+    }
+    if (s->alproto == ALPROTO_FTP) {
+        s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
+        SCLogDebug("sig requires ftp state");
+    }
+    if (s->alproto == ALPROTO_SMTP) {
+        s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+        SCLogDebug("sig requires smtp state");
+    }
+
     if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE))
+        (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
@@ -4002,6 +4290,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
+
+        SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
@@ -4329,6 +4619,46 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+static int SigMatchListLen(SigMatch *sm)
+{
+    int len = 0;
+    for (; sm != NULL; sm = sm->next)
+        len++;
+
+    return len;
+}
+
+static int SigMatchPrepare(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+
+    Signature *s = de_ctx->sig_list;
+    for (; s != NULL; s = s->next) {
+        for (int type = 0; type < DETECT_SM_LIST_MAX; type++) {
+            SigMatch *sm = s->sm_lists[type];
+            int len = SigMatchListLen(sm);
+            if (len == 0)
+              s->sm_arrays[type] = NULL;
+            else {
+                SigMatchData *smd = (SigMatchData*)SCMalloc(len * sizeof(SigMatchData));
+                if (smd == NULL) {
+                    SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+                    exit(EXIT_FAILURE);
+                }
+                /* Copy sm type and Context into array */
+                s->sm_arrays[type] = smd;
+                for (; sm != NULL; sm = sm->next, smd++) {
+                    smd->type = sm->type;
+                    smd->ctx = sm->ctx;
+                    smd->is_last = (sm->next == NULL);
+                }
+            }
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 /**
  * \brief Convert the signature list into the runtime match structure.
  *
@@ -4597,6 +4927,12 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
+
+    if (SigMatchPrepare(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
+
 #ifdef PROFILING
     SCProfilingRuleInitCounters(de_ctx);
 #endif

@@ -294,7 +294,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                    DetectIPProtoData *data_temp = temp_sm->ctx;
+                  DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
@@ -337,7 +337,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                    data_temp = temp_sm->ctx;
+                    data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto
@@ -413,7 +413,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                    DetectIPProtoData *data_temp = temp_sm->ctx;
+                  DetectIPProtoData *data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto
@@ -457,7 +457,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     temp_sm = temp_sm->next;
                 }
                 if (temp_sm != NULL) {
-                    data_temp = temp_sm->ctx;
+                  data_temp = (DetectIPProtoData *)temp_sm->ctx;
                     if (data_temp->proto >= data->proto) {
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto

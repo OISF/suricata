@@ -58,9 +58,15 @@ typedef struct B3gPattern_ {
     uint8_t *cs; /* case sensitive */
     uint8_t *ci; /* case INsensitive */
     uint16_t len;
-    struct B3gPattern_ *next;
     uint8_t flags;
     uint32_t id;
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
+    struct B3gPattern_ *next;
+
 } B3gPattern;
 
 typedef struct B3gHashItem_ {
