@@ -55,7 +55,6 @@ enum {
 
 /** If the target is another var, get the name and the idx */
 typedef struct TargetVar_ {
-    uint16_t idx;
     char *name;
 } TargetVar;
 
