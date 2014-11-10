@@ -121,9 +121,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * return zero(not match).
      */
     if (sfd->targettype == FLOWINT_TARGET_VAR) {
-        sfd->target.tvar.idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, DETECT_FLOWINT);
+        uint16_t tvar_idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, DETECT_FLOWINT);
 
-        fvt = FlowVarGet(p->flow, sfd->target.tvar.idx);
+        fvt = FlowVarGet(p->flow, tvar_idx);
             /* We don't have that variable initialized yet */
         if (fvt == NULL)
             targetval = 0;
@@ -451,8 +451,8 @@ void DetectFlowintPrintData(DetectFlowintData *sfd)
                 sfd->name, sfd->modifier, sfd->idx);
     switch(sfd->targettype) {
         case FLOWINT_TARGET_VAR:
-            SCLogDebug("target_var: %s, target_idx: %"PRIu16,
-                        sfd->target.tvar.name, sfd->target.tvar.idx);
+            SCLogDebug("target_var: %s",
+                        sfd->target.tvar.name);
             break;
         case FLOWINT_TARGET_VAL:
             SCLogDebug("Value: %"PRIu32"; ", sfd->target.value);
