@@ -322,6 +322,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, char *rawstr)
                             " Values should be between 0 and %"PRIu32, UINT32_MAX);
                 goto error;
             }
+            sfd->target.value = (uint32_t) value_long;
         } else {
             sfd->targettype = FLOWINT_TARGET_VAR;
             sfd->target.tvar.name = SCStrdup(varval);
@@ -342,7 +343,6 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx, char *rawstr)
     }
     if (de_ctx != NULL)
         sfd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWINT);
-    sfd->target.value = (uint32_t) value_long;
     sfd->modifier = modifier;
 
     pcre_free_substring(varname);
