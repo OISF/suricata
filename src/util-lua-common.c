@@ -113,7 +113,9 @@ static int LuaCallbackStreamingBufferPushToStack(lua_State *luastate, const LuaS
 {
     //PrintRawDataFp(stdout, (uint8_t *)b->data, b->data_len);
     lua_pushlstring (luastate, (const char *)b->data, b->data_len);
-    return 1;
+    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_OPEN));
+    lua_pushboolean (luastate, (b->flags & OUTPUT_STREAMING_FLAG_CLOSE));
+    return 3;
 }
 
 /** \internal
