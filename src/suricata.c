@@ -2294,6 +2294,9 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET)
+        StreamTcpInitConfig(STREAM_VERBOSE);
+
     RunModeDispatch(suri.run_mode, suri.runmode_custom_mode, de_ctx);
 
     /* In Unix socket runmode, Flow manager is started on demand */
@@ -2313,7 +2316,6 @@ int main(int argc, char **argv)
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
-        StreamTcpInitConfig(STREAM_VERBOSE);
 
         SCPerfSpawnThreads();
     }
