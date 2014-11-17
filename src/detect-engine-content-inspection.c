@@ -439,7 +439,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                       DETECT_BYTETEST_LITTLE: 0);
         }
 
-        if (DetectBytetestDoMatch(det_ctx, s, sm, buffer, buffer_len, flags,
+        if (DetectBytetestDoMatch(det_ctx, s, sm->ctx, buffer, buffer_len, flags,
                                   offset, value) != 1) {
             goto no_match;
         }
@@ -465,7 +465,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                       DETECT_BYTEJUMP_LITTLE: 0);
         }
 
-        if (DetectBytejumpDoMatch(det_ctx, s, sm, buffer, buffer_len,
+        if (DetectBytejumpDoMatch(det_ctx, s, sm->ctx, buffer, buffer_len,
                                   flags, offset) != 1) {
             goto no_match;
         }

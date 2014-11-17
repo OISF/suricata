@@ -42,7 +42,7 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectTtlMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectTtlSetup (DetectEngineCtx *, Signature *, char *);
 void DetectTtlFree (void *);
 void DetectTtlRegisterTests (void);
@@ -95,12 +95,12 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 
     int ret = 0;
     uint8_t pttl;
-    DetectTtlData *ttld = (DetectTtlData *) m->ctx;
+    const DetectTtlData *ttld = (const DetectTtlData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -288,7 +288,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr)
         goto error;
 
     sm->type = DETECT_TTL;
-    sm->ctx = (void *)ttld;
+    sm->ctx = (SigMatchCtx *)ttld;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

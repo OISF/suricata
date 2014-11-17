@@ -300,7 +300,7 @@ int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
 
     sm->type = DETECT_AL_SSL_STATE;
-    sm->ctx = ssd;
+    sm->ctx = (SigMatchCtx*)ssd;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,

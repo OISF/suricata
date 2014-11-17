@@ -300,9 +300,14 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_HTTP_STATE         (1<<5)
 #define SIG_MASK_REQUIRE_DCE_STATE          (1<<6)
 #define SIG_MASK_REQUIRE_ENGINE_EVENT       (1<<7)
+#define SIG_MASK_REQUIRE_SSH_STATE          (1<<8)
+#define SIG_MASK_REQUIRE_TLS_STATE          (1<<9)
+#define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
+#define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
+#define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
 
 /* for now a uint8_t is enough */
-#define SignatureMask uint8_t
+#define SignatureMask uint16_t
 
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
@@ -337,70 +342,67 @@ typedef struct IPOnlyCIDRItem_ {
 
 /** \brief Subset of the Signature for cache efficient prefiltering
  */
+/* Using a macro because it must be the same in the Signature and
+ * Signature header structures. */
+#define SIGNATURE_HEADER \
+    union { \
+        struct { \
+            /* coccinelle: SignatureHeader:flags:SIG_FLAG */ \
+            uint32_t flags; \
+            AppProto alproto; \
+            uint16_t dsize_low; \
+        }; \
+        uint64_t hdr_copy1; \
+    }; \
+    union { \
+        struct { \
+            uint16_t dsize_high; \
+            uint16_t mpm_pattern_id_div_8; \
+        }; \
+        uint32_t hdr_copy2; \
+    }; \
+    union { \
+        struct { \
+            uint8_t mpm_pattern_id_mod_8; \
+            SignatureMask mask; \
+            SigIntId num; /**< signature number, internal id */ \
+        }; \
+        uint32_t hdr_copy3; \
+    }
+
 typedef struct SignatureHeader_ {
-    union {
-        struct {
-            /* coccinelle: SignatureHeader:flags:SIG_FLAG */
-            uint32_t flags;
-            AppProto alproto;
-            uint16_t dsize_low;
-        };
-        uint64_t hdr_copy1;
-    };
-    union {
-        struct {
-            uint16_t dsize_high;
-            uint16_t mpm_pattern_id_div_8;
-        };
-        uint32_t hdr_copy2;
-    };
-    union {
-        struct {
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
-            SigIntId num; /**< signature number, internal id */
-        };
-        uint32_t hdr_copy3;
-    };
+    SIGNATURE_HEADER;
     /** pointer to the full signature */
     struct Signature_ *full_sig;
 } SignatureHeader;
 
+/** \brief Used to start a pointer to SigMatch context
+ * Should never be dereferenced without casting to something else.
+ */
+typedef struct SigMatchCtx_ {
+  int foo;
+} SigMatchCtx;
+
 /** \brief a single match condition for a signature */
 typedef struct SigMatch_ {
-    uint16_t idx; /**< position in the signature */
     uint8_t type; /**< match type */
-    void *ctx; /**< plugin specific data */
+    uint16_t idx; /**< position in the signature */
+    SigMatchCtx *ctx; /**< plugin specific data */
     struct SigMatch_ *next;
     struct SigMatch_ *prev;
 } SigMatch;
 
+/** \brief Data needed for Match() */
+typedef struct SigMatchData_ {
+    uint8_t type; /**< match type */
+    uint8_t is_last; /**< Last element of the list */
+    SigMatchCtx *ctx; /**< plugin specific data */
+} SigMatchData;
+
+
 /** \brief Signature container */
 typedef struct Signature_ {
-    union {
-        struct {
-            /* coccinelle: Signature:flags:SIG_FLAG */
-            uint32_t flags;
-            AppProto alproto;
-            uint16_t dsize_low;
-        };
-        uint64_t hdr_copy1;
-    };
-    union {
-        struct {
-            uint16_t dsize_high;
-            uint16_t mpm_pattern_id_div_8;
-        };
-        uint32_t hdr_copy2;
-    };
-    union {
-        struct {
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
-            SigIntId num; /**< signature number, internal id */
-        };
-        uint32_t hdr_copy3;
-    };
+    SIGNATURE_HEADER;
 
     /** inline -- action */
     uint8_t action;
@@ -439,6 +441,9 @@ typedef struct Signature_ {
     uint32_t rev;
 
     int prio;
+
+    /* Hold copies of the sm lists for Match() */
+    SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
 
     /* holds all sm lists */
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
@@ -777,6 +782,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
+    SigIntId *non_mpm_id_array;
+    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
+
     /* detection engine variables */
 
     /** offset into the payload of the last match by:
@@ -806,6 +814,12 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /** id for alert counter */
     uint16_t counter_alerts;
+#ifdef PROFILING
+    uint16_t counter_mpm_list;
+    uint16_t counter_nonmpm_list;
+    uint16_t counter_fnonmpm_list;
+    uint16_t counter_match_list;
+#endif
 
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
@@ -883,7 +897,7 @@ typedef struct DetectionEngineThreadCtx_ {
  */
 typedef struct SigTableElmt_ {
     /** Packet match function pointer */
-    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+    int (*Match)(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 
     /** AppLayer match function  pointer */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
@@ -959,6 +973,11 @@ typedef struct SigGroupHeadInitData_ {
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
 
+typedef struct SignatureNonMpmStore_ {
+    SigIntId id;
+    SignatureMask mask;
+} SignatureNonMpmStore;
+
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
     uint32_t flags;
@@ -976,6 +995,9 @@ typedef struct SigGroupHead_ {
      *  signature ordered as an array. Used to pre-filter the
      *  signatures to be inspected in a cache efficient way. */
     SignatureHeader *head_array;
+
+    SignatureNonMpmStore *non_mpm_store_array;
+    uint32_t non_mpm_store_cnt; // size is cnt * sizeof(SignatureNonMpmStore)
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;

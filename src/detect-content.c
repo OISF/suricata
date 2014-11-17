@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -361,7 +361,7 @@ void DetectContentPrintAll(SigMatch *sm)
         for (; first_sm != NULL; first_sm = first_sm->next) {
             if (first_sm->type == DETECT_CONTENT) {
                 SCLogDebug("Printing SigMatch DETECT_CONTENT %d", ++i);
-                DetectContentPrint(first_sm->ctx);
+                DetectContentPrint((DetectContentData*)first_sm->ctx);
             }
         }
     }
