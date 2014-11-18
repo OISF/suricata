@@ -390,7 +390,8 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->response_status != NULL) {
         c = bstr_util_strdup_to_c(tx->response_status);
         if (c != NULL) {
-            json_object_set_new(js, "status", json_string(c));
+            unsigned int val = strtoul(c, NULL, 10);
+            json_object_set_new(js, "status", json_integer(val));
             SCFree(c);
         }
 
