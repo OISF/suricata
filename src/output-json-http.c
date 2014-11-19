@@ -174,6 +174,15 @@ static json_t *HTTPUsernameExtract(char *authofield)
     }
 }
 
+static json_t *HTTPUIntegerExtract(char *integ)
+{
+    unsigned int res;
+
+    res = strtoul(integ, NULL, 10);
+    
+    return json_integer(res);
+}
+
 struct {
     char *config_field;
     char *htp_field;
@@ -205,7 +214,7 @@ struct {
     { "connection", "connection", 0, NULL },
     { "content_encoding", "content-encoding", 0, NULL },
     { "content_language", "content-language", 0, NULL },
-    { "content_length", "content-length", 0, NULL },
+    { "content_length", "content-length", 0, HTTPUIntegerExtract },
     { "content_location", "content-location", 0, NULL },
     { "content_md5", "content-md5", 0, NULL },
     { "content_range", "content-range", 0, NULL },
