@@ -79,7 +79,8 @@ void FlowFree(Flow *f)
     FLOW_DESTROY(f);
     SCFree(f);
 
-    (void) SC_ATOMIC_SUB(flow_memuse, sizeof(Flow));
+    size_t size = sizeof(Flow) + FlowStorageSize();
+    (void) SC_ATOMIC_SUB(flow_memuse, size);
 }
 
 /**
