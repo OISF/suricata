@@ -70,6 +70,7 @@ struct DetectEngineEvents_ {
     { "icmpv6.pkt_too_small", ICMPV6_PKT_TOO_SMALL,},
     { "icmpv6.ipv6_unknown_version", ICMPV6_IPV6_UNKNOWN_VER,},
     { "icmpv6.ipv6_trunc_pkt", ICMPV6_IPV6_TRUNC_PKT,},
+    { "icmpv6.mld_message_with_invalid_hl", ICMPV6_MLD_MESSAGE_WITH_INVALID_HL,},
 
     /* IPV6 EVENTS */
     { "ipv6.pkt_too_small", IPV6_PKT_TOO_SMALL, },

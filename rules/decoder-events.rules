@@ -56,6 +56,7 @@ alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 unknown type"; decode-even
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 unknown code"; decode-event:icmpv6.unknown_code; sid:2200030; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 truncated packet"; decode-event:icmpv6.ipv6_trunc_pkt; sid:2200031; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 unknown version"; decode-event:icmpv6.ipv6_unknown_version; sid:2200032; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA ICMPv6 MLD hop limit not 1"; decode-event:icmpv6.mld_message_with_invalid_hl; sid:2200102; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA TCP packet too small"; decode-event:tcp.pkt_too_small; sid:2200033; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA TCP header length too small"; decode-event:tcp.hlen_too_small; sid:2200034; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA TCP invalid option length"; decode-event:tcp.invalid_optlen; sid:2200035; rev:1;)
@@ -122,5 +123,5 @@ alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; de
 alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; decode-event:mpls.bad_label_reserved; sid: 2200100; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS unknown payload type"; decode-event:mpls.unknown_payload_type; sid: 2200101; rev:1;)
 
-# next sid is 2200102
+# next sid is 2200103
 
