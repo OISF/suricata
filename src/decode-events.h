@@ -57,6 +57,7 @@ enum {
     ICMPV6_PKT_TOO_SMALL,           /**< icmpv6 smaller than minimum size */
     ICMPV6_IPV6_UNKNOWN_VER,        /**< unknown version in icmpv6 packet */
     ICMPV6_IPV6_TRUNC_PKT,          /**< truncated icmpv6 packet */
+    ICMPV6_MLD_MESSAGE_WITH_INVALID_HL, /**< invalid MLD that doesn't have HL 1 */
 
     /* IPV6 EVENTS */
     IPV6_PKT_TOO_SMALL,             /**< ipv6 packet smaller than minimum size */

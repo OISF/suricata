@@ -298,17 +298,26 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (p->icmpv6h->code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
+            if (IPV6_GET_HLIM(p) != 1) {
+                ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
+            }
             break;
         case MLD_LISTENER_REPORT:
             SCLogDebug("MLD_LISTENER_REPORT");
             if (p->icmpv6h->code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             }
+            if (IPV6_GET_HLIM(p) != 1) {
+                ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
+            }
             break;
         case MLD_LISTENER_REDUCTION:
             SCLogDebug("MLD_LISTENER_REDUCTION");
             if (p->icmpv6h->code != 0) {
                 ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+            }
+            if (IPV6_GET_HLIM(p) != 1) {
+                ENGINE_SET_EVENT(p, ICMPV6_MLD_MESSAGE_WITH_INVALID_HL);
             }
             break;
         default:
