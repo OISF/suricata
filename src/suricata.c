@@ -1917,11 +1917,7 @@ static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
 static int LoadSignatures(DetectEngineCtx *de_ctx, SCInstance *suri)
 {
     if (SigLoadSignatures(de_ctx, suri->sig_file, suri->sig_file_exclusive) < 0) {
-        if (suri->sig_file == NULL) {
-            SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
-        } else {
-            SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
-        }
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         if (de_ctx->failure_fatal)
             return TM_ECODE_FAILED;
     }
