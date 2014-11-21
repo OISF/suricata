@@ -356,14 +356,15 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot)
             if (rule_engine_analysis_set) {
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
-            if (de_ctx->failure_fatal == 1) {
-                exit(EXIT_FAILURE);
-            }
             bad++;
         }
         multiline = 0;
     }
     fclose(fp);
+
+    if (bad > 0 && de_ctx->failure_fatal == 1) {
+        return -1;
+    }
 
     return good;
 }
@@ -407,13 +408,6 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                     cnt += r;
                 } else if (r == 0){
                     SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
-                    if (de_ctx->failure_fatal == 1) {
-                        exit(EXIT_FAILURE);
-                    }
-                } else if (r < 0){
-                    if (de_ctx->failure_fatal == 1) {
-                        exit(EXIT_FAILURE);
-                    }
                 }
                 SCFree(sfile);
             }
@@ -429,24 +423,13 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             cnt += r;
         } else if (r == 0) {
             SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
-            if (de_ctx->failure_fatal == 1) {
-                exit(EXIT_FAILURE);
-            }
-        } else if (r < 0){
-           if (de_ctx->failure_fatal == 1) {
-                exit(EXIT_FAILURE);
-           }
         }
     }
 
     /* now we should have signatures to work with */
     if (cnt <= 0) {
         if (cntf > 0) {
-           SCLogError(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
-           if (de_ctx->failure_fatal == 1) {
-               exit(EXIT_FAILURE);
-           }
-           ret = -1;
+           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
         } else {
             SCLogInfo("No signatures supplied.");
             goto end;
