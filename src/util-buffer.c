@@ -46,7 +46,6 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
     memset(buffer, 0, total_size);
 
     buffer->size = size;
-    buffer->buffer = (uint8_t *)buffer + sizeof(MemBuffer);
 
     return buffer;
 }
