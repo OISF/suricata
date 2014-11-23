@@ -416,8 +416,8 @@ logging:
   - console:
       enabled: yes
   - file:
-      enabled: no
-      filename: /var/log/suricata.log
+      enabled: yes
+      filename: @e_logdir@/suricata.log
   - syslog:
       enabled: no
       facility: local5
