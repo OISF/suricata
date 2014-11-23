@@ -1535,12 +1535,6 @@ error:
     if (sig != NULL) {
         SigFree(sig);
     }
-
-    if (de_ctx->failure_fatal == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature parsing failed: "
-                   "\"%s\"", sigstr);
-        exit(EXIT_FAILURE);
-    }
     return NULL;
 }
 
@@ -1578,13 +1572,6 @@ error:
     if (sig != NULL) {
         SigFree(sig);
     }
-
-    if (de_ctx->failure_fatal == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature parsing failed: "
-                   "\"%s\"", sigstr);
-        exit(EXIT_FAILURE);
-    }
-
     /* if something failed, restore the old signum count
      * since we didn't install it */
     de_ctx->signum = oldsignum;
