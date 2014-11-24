@@ -195,4 +195,9 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
     return r;
 }
 
+
+void TmThreadsListThreads(void);
+int TmThreadsRegisterThread(ThreadVars *tv, const int type);
+void TmThreadsUnregisterThread(const int id);
+
 #endif /* __TM_THREADS_H__ */
