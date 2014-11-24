@@ -490,6 +490,10 @@ typedef struct FlowManagerThreadData_ {
     uint16_t flow_mgr_spare;
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
+
+    /** account memory usage for the reassembly portion of the stream engine */
+    uint16_t tcp_reass_memuse;
+
 } FlowManagerThreadData;
 
 static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -534,6 +538,10 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
             SC_PERF_TYPE_UINT64, "NULL");
     ftd->flow_emerg_mode_over = SCPerfTVRegisterCounter("flow.emerg_mode_over", t,
             SC_PERF_TYPE_UINT64, "NULL");
+
+    ftd->tcp_reass_memuse = SCPerfTVRegisterCounter("tcp.reassembly_memuse", t,
+                                                    SC_PERF_TYPE_UINT64,
+                                                    "NULL");
 
     PacketPoolInit();
     return TM_ECODE_OK;
@@ -688,6 +696,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
 
+        StreamTcpReassembleMemuseCounter(th_v, ftd->tcp_reass_memuse);
         SCPerfSyncCountersIfSignalled(th_v);
     }
 

@@ -4778,9 +4778,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->ra_ctx->counter_tcp_stream_depth = SCPerfTVRegisterCounter("tcp.stream_depth_reached", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
-    stt->ra_ctx->counter_tcp_reass_memuse = SCPerfTVRegisterCounter("tcp.reassembly_memuse", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
     stt->ra_ctx->counter_tcp_reass_gap = SCPerfTVRegisterCounter("tcp.reassembly_gap", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");

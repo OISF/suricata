@@ -135,12 +135,13 @@ void StreamTcpReassembleDecrMemuse(uint64_t size)
     return;
 }
 
-void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rtv)
+void StreamTcpReassembleMemuseCounter(ThreadVars *tv, uint16_t perf_cntr)
 {
+    if (tv == NULL)
+        return;
+
     uint64_t smemuse = SC_ATOMIC_GET(ra_memuse);
-    if (tv != NULL && rtv != NULL)
-        SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->sc_perf_pca, smemuse);
-    return;
+    SCPerfCounterSetUI64(perf_cntr, tv->sc_perf_pca, smemuse);
 }
 
 /**
@@ -3568,7 +3569,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     }
 
-    StreamTcpReassembleMemuseCounter(tv, ra_ctx);
     SCReturnInt(0);
 }
 
