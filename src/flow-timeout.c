@@ -481,15 +481,20 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         }
     }
 
-    SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
-    if (p2 != NULL)
-        PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p2);
-    if (p3 != NULL)
-        PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p3);
-    SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    if (stream_pseudo_pkt_decode_TV->inq != NULL) {
-        SCCondSignal(&trans_q[stream_pseudo_pkt_decode_TV->inq->id].cond_q);
+    /* inject the packet(s) into the appropriate thread */
+    int thread_id = (int)f->thread_id;
+    Packet *packets[4] = { p1, p2 ? p2 : p3, p2 ? p3 : NULL, NULL }; /**< null terminated array of packets */
+    if (unlikely(!(TmThreadsInjectPacketsById(packets, thread_id)))) {
+        FlowDeReference(&p1->flow);
+        TmqhOutputPacketpool(NULL, p1);
+        if (p2) {
+            FlowDeReference(&p2->flow);
+            TmqhOutputPacketpool(NULL, p2);
+        }
+        if (p3) {
+            FlowDeReference(&p3->flow);
+            TmqhOutputPacketpool(NULL, p3);
+        }
     }
 
     /* done, in case of error (no packet) we still tag flow as complete

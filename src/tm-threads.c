@@ -2074,3 +2074,33 @@ void TmThreadsUnregisterThread(const int id)
 end:
     SCMutexUnlock(&thread_store_lock);
 }
+
+/**
+ *  \retval r 1 if packet was accepted, 0 otherwise
+ *  \note if packet was not accepted, it's still the responsibility
+ *        of the caller.
+ */
+int TmThreadsInjectPacketsById(Packet **packets, int id)
+{
+    if (id < 0 || id >= (int)thread_store.threads_size)
+        return 0;
+
+    Thread *t = &thread_store.threads[id];
+    ThreadVars *tv = t->tv;
+
+    if (tv == NULL || tv->stream_pq == NULL)
+        return 0;
+
+    SCMutexLock(&tv->stream_pq->mutex_q);
+    while (*packets != NULL) {
+        PacketEnqueue(tv->stream_pq, *packets);
+        packets++;
+    }
+    SCMutexUnlock(&tv->stream_pq->mutex_q);
+
+    /* wake up listening thread(s) if necessary */
+    if (tv->inq != NULL) {
+        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+    }
+    return 1;
+}
