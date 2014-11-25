@@ -87,6 +87,9 @@ typedef struct ThreadVars_ {
     void *(*tm_func)(void *);
     struct TmSlot_ *tm_slots;
 
+    /** stream packet queue for flow time out injection */
+    struct PacketQueue_ *stream_pq;
+
     uint8_t thread_setup_flags;
 
     /** the type of thread as defined in tm-threads.h (TVT_PPT, TVT_MGMT) */
