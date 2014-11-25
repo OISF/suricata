@@ -4382,6 +4382,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    /* assign the thread id to the flow */
+    if (unlikely(p->flow->thread_id == 0)) {
+        p->flow->thread_id = (FlowThreadId)tv->id;
+#ifdef DEBUG
+    } else if (unlikely((FlowThreadId)tv->id != p->flow->thread_id)) {
+        SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id, tv->id);
+#endif
+    }
+
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     /* track TCP flags */
