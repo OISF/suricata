@@ -27,12 +27,6 @@
 /* forward declaration of the ThreadVars structure */
 struct ThreadVars_;
 
-/* Time interval for syncing the local counters with the global ones */
-#define SC_PERF_WUT_TTS 3
-
-/* Time interval at which the mgmt thread o/p the stats */
-#define SC_PERF_MGMTT_TTS 8
-
 /**
  * \brief Data type for different kind of Perf counters that can be registered
  */
@@ -147,21 +141,8 @@ typedef struct SCPerfClubTMInst_ {
  * \brief Holds the output interface context for the counter api
  */
 typedef struct SCPerfOPIfaceContext_ {
-    /* the iface to be used for output */
-    uint32_t iface;
-
-    /* the file to be used if the output interface used is SC_PERF_IFACE_FILE */
-    char *file;
-
-    /* more interfaces to be supported later.  For now just a file */
-    FILE *fp;
-
     SCPerfClubTMInst *pctmi;
     SCMutex pctmi_lock;
-
-    /* Flag set on file rotation notification. */
-    int rotation_flag;
-
 } SCPerfOPIfaceContext;
 
 /* the initialization functions */
@@ -185,8 +166,6 @@ SCPerfCounterArray * SCPerfGetAllCountersArray(SCPerfContext *);
 
 int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *);
 double SCPerfGetLocalCounterValue(uint16_t, SCPerfCounterArray *);
-
-void SCPerfOutputCounters(void);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);

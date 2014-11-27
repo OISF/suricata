@@ -447,6 +447,8 @@ void RunModeShutDown(void)
     OutputTxShutdown();
     OutputFileShutdown();
     OutputFiledataShutdown();
+    OutputStreamingShutdown();
+    OutputStatsShutdown();
 
     /* Close any log files. */
     RunModeOutput *output;
@@ -461,6 +463,7 @@ void RunModeShutDown(void)
     tx_logger_module = NULL;
     file_logger_module = NULL;
     filedata_logger_module = NULL;
+    streaming_logger_module = NULL;
 }
 
 /** \internal
@@ -488,6 +491,11 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
         OutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx);
+        return;
+    }
+    /* stats logger doesn't run in the packet path */
+    if (module->StatsLogFunc) {
+        OutputRegisterStatsLogger(module->name, module->StatsLogFunc, output_ctx);
         return;
     }
 
@@ -635,9 +643,6 @@ void RunModeInitializeOutputs(void)
     const char *enabled;
 
     TAILQ_FOREACH(output, &outputs->head, next) {
-
-        if (strcmp(output->val, "stats") == 0)
-            continue;
 
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
