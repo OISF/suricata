@@ -61,7 +61,7 @@
 #include "app-layer.h"
 
 #include "util-profiling.h"
-
+#if 0
 static TmSlot *stream_pseudo_pkt_stream_tm_slot = NULL;
 static ThreadVars *stream_pseudo_pkt_stream_TV = NULL;
 
@@ -71,13 +71,14 @@ static ThreadVars *stream_pseudo_pkt_detect_prev_TV = NULL;
 
 static TmSlot *stream_pseudo_pkt_decode_tm_slot = NULL;
 static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
-
+#endif
 /**
  * \internal
  * \brief Flush out if we have any unattended packets.
  */
 static inline void FlowForceReassemblyFlushPendingPseudoPackets(void)
 {
+#if 0
     /* we don't lock the queue, since flow manager is dead */
     if (stream_pseudo_pkt_decode_tm_slot->slot_post_pq.len == 0)
         return;
@@ -91,7 +92,7 @@ static inline void FlowForceReassemblyFlushPendingPseudoPackets(void)
         SCLogError(SC_ERR_TM_THREADS_ERROR, "Received error from FFR on "
                    "flushing packets through decode->.. TMs");
     }
-
+#endif
     return;
 }
 
@@ -734,6 +735,7 @@ void FlowForceReassembly(void)
  */
 void FlowForceReassemblySetup(int detect_disabled)
 {
+#if 0
     /* get StreamTCP TM's slot and TV containing this slot */
     stream_pseudo_pkt_stream_tm_slot = TmSlotGetSlotForTM(TMM_STREAMTCP);
     if (stream_pseudo_pkt_stream_tm_slot == NULL) {
@@ -812,4 +814,5 @@ void FlowForceReassemblySetup(int detect_disabled)
     }
 
     return;
+#endif
 }
