@@ -523,10 +523,10 @@ static inline void FlowForceReassemblyForHash(void)
 {
     Flow *f;
     TcpSession *ssn;
-    int client_ok;
-    int server_ok;
-
+    int client_ok = 0;
+    int server_ok = 0;
     uint32_t idx = 0;
+
 #if 0
     /* We use this packet just for reassembly purpose */
     Packet *reassemble_p = PacketGetFromAlloc();
@@ -676,7 +676,7 @@ static inline void FlowForceReassemblyForHash(void)
 void FlowForceReassembly(void)
 {
     /* Do remember.  We need to have packet acquire disabled by now */
-
+#if 0
     /** ----- Part 1 ------*/
     /* Flush out unattended packets */
     FlowForceReassemblyFlushPendingPseudoPackets();
@@ -721,7 +721,7 @@ void FlowForceReassembly(void)
     }
 
     SCMutexUnlock(&tv_root_lock);
-
+#endif
     /** ----- Part 3 ----- **/
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
