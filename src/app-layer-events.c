@@ -111,11 +111,12 @@ void AppLayerDecoderEventsSetEventRaw(AppLayerDecoderEvents **sevents, uint8_t e
  */
 void AppLayerDecoderEventsSetEvent(Flow *f, uint8_t event)
 {
-    AppLayerDecoderEvents *events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *events = AppLayerParserGetDecoderEvents(FlowGetAppParser(f));
     AppLayerDecoderEvents *new = events;
     AppLayerDecoderEventsSetEventRaw(&events, event);
     if (events != new)
-        AppLayerParserSetDecoderEvents(f->alparser, events);
+        AppLayerParserSetDecoderEvents(FlowGetAppParser(f),
+                                       events);
 }
 
 void AppLayerDecoderEventsResetEvents(AppLayerDecoderEvents *events)

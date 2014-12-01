@@ -613,9 +613,9 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
  *  \retval tx_id lowest tx_id that still needs work */
 uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
 {
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
-    uint64_t log_id = f->alparser->log_id;
-    uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][FlowGetAppProtocol(f)];
+    uint64_t log_id = FlowGetAppParser(f)->log_id;
+    uint64_t inspect_id = FlowGetAppParser(f)->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
     if (p->logger == TRUE) {
         return (log_id < inspect_id) ? log_id : inspect_id;
     } else {
@@ -633,27 +633,36 @@ uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
  **/
 uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
 {
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][FlowGetAppProtocol(f)];
 
     if (p->logger == TRUE) {
-        uint64_t log_id = f->alparser->log_id;
+        uint64_t log_id = FlowGetAppParser(f)->log_id;
         SCLogDebug("returning %"PRIu64, log_id);
         return log_id;
     }
 
     /* logger is disabled, return highest 'complete' tx id */
     uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
-    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
-    uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, direction);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto, f->alproto, direction);
+    uint64_t total_txs = AppLayerParserGetTxCnt(f->proto,
+                                                FlowGetAppProtocol(f),
+                                                FlowGetAppState(f));
+    uint64_t idx = AppLayerParserGetTransactionInspectId(FlowGetAppParser(f),
+                                                         direction);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto,
+                                                                             FlowGetAppProtocol(f),
+                                                                             direction);
     void *tx;
     int state_progress;
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
+        tx = AppLayerParserGetTx(f->proto,
+                                 FlowGetAppProtocol(f),
+                                 FlowGetAppState(f), idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, direction);
+        state_progress = AppLayerParserGetStateProgress(f->proto,
+                                                        FlowGetAppProtocol(f),
+                                                        tx, direction);
         if (state_progress >= state_done_progress)
             continue;
         else
@@ -693,7 +702,7 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
 {
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
+    AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][FlowGetAppProtocol(f)];
     if (p->StateTransactionFree == NULL)
         return;
 
@@ -703,7 +712,7 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
     uint64_t min = MIN(tx_id_ts, tx_id_tc);
     if (min > 0) {
         SCLogDebug("freeing %"PRIu64" %p", min - 1, p->StateTransactionFree);
-        p->StateTransactionFree(f->alstate, min - 1);
+        p->StateTransactionFree(FlowGetAppState(f), min - 1);
     }
 }
 
@@ -804,17 +813,20 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
         SCLogDebug("stream gap detected (missing packets), "
                    "this is not yet supported.");
 
-        if (f->alstate != NULL)
-            AppLayerParserStreamTruncated(f->proto, alproto, f->alstate, flags);
+        if (FlowGetAppState(f) != NULL)
+            AppLayerParserStreamTruncated(f->proto, alproto,
+                                          FlowGetAppState(f),
+                                          flags);
         goto error;
     }
 
     /* Get the parser state (if any) */
-    pstate = f->alparser;
+    pstate = FlowGetAppParser(f);
     if (pstate == NULL) {
-        f->alparser = pstate = AppLayerParserStateAlloc();
+        pstate = AppLayerParserStateAlloc();
         if (pstate == NULL)
             goto error;
+        FlowSetAppParser(f, pstate);
     }
     pstate->version++;
     SCLogDebug("app layer parser state version incremented to %"PRIu16,
@@ -823,16 +835,19 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     if (flags & STREAM_EOF)
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_EOF);
 
-    alstate = f->alstate;
+    alstate = FlowGetAppState(f);
     if (alstate == NULL) {
-        f->alstate = alstate = p->StateAlloc();
+        alstate = p->StateAlloc();
+        FlowSetAppState(f, alstate);
         if (alstate == NULL)
             goto error;
         SCLogDebug("alloced new app layer state %p (name %s)",
-                   alstate, AppLayerGetProtoName(f->alproto));
+                   alstate,
+                   AppLayerGetProtoName(FlowGetAppProtocol(f)));
     } else {
         SCLogDebug("using existing app layer state %p (name %s))",
-                   alstate, AppLayerGetProtoName(f->alproto));
+                   alstate,
+                   AppLayerGetProtoName(FlowGetAppProtocol(f)));
     }
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
@@ -1211,7 +1226,7 @@ static int AppLayerParserTest01(void)
     if (f == NULL)
         goto end;
     f->protoctx = &ssn;
-    f->alproto = ALPROTO_TEST;
+    FlowSetAppProtocol(f, ALPROTO_TEST);
     f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
@@ -1263,7 +1278,7 @@ static int AppLayerParserTest02(void)
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
     if (f == NULL)
         goto end;
-    f->alproto = ALPROTO_TEST;
+    FlowSetAppProtocol(f, ALPROTO_TEST);
     f->proto = IPPROTO_UDP;
     f->protomap = FlowGetProtoMapping(f->proto);
 

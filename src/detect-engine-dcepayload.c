@@ -6517,7 +6517,7 @@ int DcePayloadTest15(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -6633,7 +6633,7 @@ int DcePayloadTest16(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -6749,7 +6749,7 @@ int DcePayloadTest17(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -6865,7 +6865,7 @@ int DcePayloadTest18(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -6981,7 +6981,7 @@ int DcePayloadTest19(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -7097,7 +7097,7 @@ int DcePayloadTest20(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -7205,7 +7205,7 @@ int DcePayloadTest21(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -7306,7 +7306,7 @@ int DcePayloadTest22(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -7408,7 +7408,7 @@ int DcePayloadTest23(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -9624,7 +9624,7 @@ int DcePayloadTest42(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -9726,7 +9726,7 @@ int DcePayloadTest43(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 

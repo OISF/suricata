@@ -49,14 +49,17 @@
         FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
         (f)->flow_end_flags = 0; \
-        (f)->alproto = 0; \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
         (f)->data_al_so_far[0] = 0; \
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
-        (f)->alparser = NULL; \
-        (f)->alstate = NULL; \
+        (f)->applayer_index = 0; \
+        for (int i = 0; i < FLOW_ALPROTO_CHAINED_MAX; i++) { \
+            (f)->applayer[i].alproto = 0; \
+            (f)->applayer[i].alstate = NULL; \
+            (f)->applayer[i].alparser = NULL; \
+        } \
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
@@ -89,9 +92,12 @@
         (f)->lastts.tv_usec = 0; \
         (f)->protoctx = NULL; \
         (f)->flow_end_flags = 0; \
-        (f)->alparser = NULL; \
-        (f)->alstate = NULL; \
-        (f)->alproto = 0; \
+        (f)->applayer_index = 0; \
+        for (int i = 0; i < FLOW_ALPROTO_CHAINED_MAX; i++) { \
+            (f)->applayer[i].alproto = 0; \
+            (f)->applayer[i].alstate = NULL; \
+            (f)->applayer[i].alparser = NULL; \
+        } \
         (f)->alproto_ts = 0; \
         (f)->alproto_tc = 0; \
         (f)->data_al_so_far[0] = 0; \

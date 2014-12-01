@@ -217,17 +217,19 @@ void DetectEngineStateFree(DetectEngineState *state)
  *  \retval 1 inspectable state
  *  \retval 2 inspectable state, but no update
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(Flow *f, uint8_t alindex, uint16_t alversion, uint8_t flags)
 {
+    AppProto alproto;
     int r = 0;
 
+    alproto =  FlowGetAppProtocolAtIndex(f, alindex);
     SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1].cnt == 0) {
         if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
             FLOWLOCK_RDLOCK(f);
-            if (f->alparser != NULL && f->alstate != NULL) {
-                if (AppLayerParserGetTransactionInspectId(f->alparser, flags) >=
-                    AppLayerParserGetTxCnt(f->proto, alproto, f->alstate)) {
+            if (FlowGetAppParserAtIndex(f, alindex) != NULL && FlowGetAppStateAtIndex(f, alindex) != NULL) {
+                if (AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex), flags) >=
+                    AppLayerParserGetTxCnt(f->proto, alproto, FlowGetAppStateAtIndex(f, alindex))) {
                     r = 2;
                 }
             }
@@ -285,7 +287,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 goto end;
             }
         }
-        tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        tx_id = AppLayerParserGetTransactionInspectId(FlowGetAppParser(f),
+                                                      flags);
         SCLogDebug("tx_id %"PRIu64, tx_id);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         SCLogDebug("total_txs %"PRIu64, total_txs);
@@ -484,7 +487,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto, uint16_t alversion)
+                                    uint8_t alindex, uint16_t alversion)
 {
     SCMutexLock(&f->de_state_m);
 
@@ -502,6 +505,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int match = 0;
     uint8_t alert = 0;
 
+    AppProto alproto = FlowGetAppProtocolAtIndex(f, alindex);
+
     DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
     DeStateStore *store = dir_state->head;
     void *inspect_tx = NULL;
@@ -518,14 +523,15 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
-        alstate = FlowGetAppState(f);
+        alstate = FlowGetAppStateAtIndex(f, alindex);
         if (alstate == NULL) {
             FLOWLOCK_UNLOCK(f);
             SCMutexUnlock(&f->de_state_m);
             return;
         }
 
-        inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        inspect_tx_id = AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex),
+                                                              flags);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
         if (inspect_tx != NULL) {
@@ -608,7 +614,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
-                alstate = FlowGetAppState(f);
+                alstate = FlowGetAppStateAtIndex(f, alindex);
                 if (alstate == NULL) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, match, p);
@@ -674,7 +680,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 /* RDLOCK would be nicer, but at least tlsstore needs
                  * write lock currently. */
                 FLOWLOCK_WRLOCK(f);
-                alstate = FlowGetAppState(f);
+                alstate = FlowGetAppStateAtIndex(f, alindex);
                 if (alstate == NULL) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, 0 /* no match */, p);
@@ -747,7 +753,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     DeStateStoreStateVersion(f->de_state, alversion, flags);
     DeStateStoreFileNoMatchCnt(f->de_state, file_no_match, flags);
 
-    if (!(dir_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED)) {
+    /* Don't enter here if we have a protocol change */
+    if (!(dir_state->flags & DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED) &&
+            (alproto == FlowGetAppProtocol(f))) {
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction");
 
@@ -776,11 +784,15 @@ end:
 /** \brief update flow's inspection id's
  *
  *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction)
+void DeStateUpdateInspectTransactionId(Flow *f, uint8_t alindex,  uint8_t direction)
 {
     FLOWLOCK_WRLOCK(f);
-    if (f->alparser && f->alstate) {
-        AppLayerParserSetTransactionInspectId(f->alparser, f->proto, f->alproto, f->alstate, direction);
+    if (FlowGetAppParser(f) && FlowGetAppState(f)) {
+        AppLayerParserSetTransactionInspectId(FlowGetAppParserAtIndex(f, alindex),
+                                              f->proto,
+                                              FlowGetAppProtocolAtIndex(f, alindex),
+                                              FlowGetAppStateAtIndex(f, alindex),
+                                              direction);
     }
     FLOWLOCK_UNLOCK(f);
 
@@ -999,7 +1011,7 @@ static int DeStateSigTest01(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1146,7 +1158,7 @@ static int DeStateSigTest02(void)
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1351,7 +1363,7 @@ static int DeStateSigTest03(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     if (p == NULL)
@@ -1381,7 +1393,7 @@ static int DeStateSigTest03(void)
         goto end;
     }
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1394,8 +1406,10 @@ static int DeStateSigTest03(void)
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto,
+                                                  FlowGetAppProtocol(p->flow),
+                                                  FlowGetAppState(p->flow),
+                                                  STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1478,7 +1492,7 @@ static int DeStateSigTest04(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     if (p == NULL)
@@ -1508,7 +1522,7 @@ static int DeStateSigTest04(void)
         goto end;
     }
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1521,8 +1535,10 @@ static int DeStateSigTest04(void)
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto,
+                                                  FlowGetAppProtocol(p->flow),
+                                                  FlowGetAppState(p->flow),
+                                                  STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1605,7 +1621,7 @@ static int DeStateSigTest05(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     if (p == NULL)
@@ -1635,7 +1651,7 @@ static int DeStateSigTest05(void)
         goto end;
     }
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1648,8 +1664,10 @@ static int DeStateSigTest05(void)
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto,
+                                                  FlowGetAppProtocol(p->flow),
+                                                  FlowGetAppState(p->flow),
+                                                  STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1732,7 +1750,7 @@ static int DeStateSigTest06(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     if (p == NULL)
@@ -1762,7 +1780,7 @@ static int DeStateSigTest06(void)
         goto end;
     }
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1775,8 +1793,10 @@ static int DeStateSigTest06(void)
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto,
+                                                  FlowGetAppProtocol(p->flow),
+                                                  FlowGetAppState(p->flow),
+                                                  STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);
@@ -1861,7 +1881,7 @@ static int DeStateSigTest07(void)
         goto end;
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
-    f->alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(f, ALPROTO_HTTP);
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     if (p == NULL)
@@ -1909,7 +1929,7 @@ static int DeStateSigTest07(void)
         goto end;
     }
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1922,8 +1942,10 @@ static int DeStateSigTest07(void)
     }
 
     SCMutexLock(&f->m);
-    FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                  p->flow->alstate, STREAM_TOSERVER);
+    FileContainer *files = AppLayerParserGetFiles(p->flow->proto,
+                                                  FlowGetAppProtocol(p->flow),
+                                                  FlowGetAppState(p->flow),
+                                                  STREAM_TOSERVER);
     if (files == NULL) {
         printf("no stored files: ");
         SCMutexUnlock(&f->m);

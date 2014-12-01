@@ -600,7 +600,7 @@ static int DetectDceStubDataTestParse02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -631,7 +631,7 @@ static int DetectDceStubDataTestParse02(void)
     }
     SCMutexUnlock(&f.m);
 
-    dcerpc_state = f.alstate;
+    dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1155,7 +1155,7 @@ static int DetectDceStubDataTestParse03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1186,7 +1186,7 @@ static int DetectDceStubDataTestParse03(void)
     }
     SCMutexUnlock(&f.m);
 
-    dcerpc_state = f.alstate;
+    dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1356,7 +1356,7 @@ static int DetectDceStubDataTestParse04(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1395,7 +1395,7 @@ static int DetectDceStubDataTestParse04(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    dcerpc_state = f.alstate;
+    dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1657,7 +1657,7 @@ static int DetectDceStubDataTestParse05(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_DCERPC;
+    FlowSetAppProtocol(&f, ALPROTO_DCERPC);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1703,7 +1703,7 @@ static int DetectDceStubDataTestParse05(void)
     }
     SCMutexUnlock(&f.m);
 
-    dcerpc_state = f.alstate;
+    dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;

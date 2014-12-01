@@ -4429,7 +4429,8 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
 
         if (ssn != NULL)
-            SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
+            SCLogDebug("ssn->alproto %"PRIu16"",
+                       FlowGetAppProtocol(p->flow));
     } else {
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
@@ -4530,8 +4531,8 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
                     /* set state the NONE, also pulls flow out of closed queue */
                     StreamTcpPacketSetState(p, ssn, TCP_NONE);
-
-                    p->flow->alproto_ts = p->flow->alproto_tc = p->flow->alproto = ALPROTO_UNKNOWN;
+                    FlowSetAppProtocol(p->flow, ALPROTO_UNKNOWN);
+                    p->flow->alproto_ts = p->flow->alproto_tc = FlowGetAppProtocol(p->flow);
                     p->flow->data_al_so_far[0] = p->flow->data_al_so_far[1] = 0;
                     ssn->data_first_seen_dir = 0;
                     p->flow->flags &= (~FLOW_TS_PM_ALPROTO_DETECT_DONE &
@@ -5709,7 +5710,7 @@ static int StreamTcpTest01 (void)
     }
     f.protoctx = ssn;
 
-    if (f.alparser != NULL) {
+    if (FlowGetAppParser(&f) != NULL) {
         printf("AppLayer field not set to NULL: ");
         goto end;
     }

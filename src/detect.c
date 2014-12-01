@@ -794,8 +794,14 @@ end:
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, AppProto alproto, int has_state, uint8_t *sms_runflags)
+        uint8_t flags, uint8_t alindex, int has_state, uint8_t *sms_runflags)
 {
+    AppProto alproto = ALPROTO_UNKNOWN;
+
+    if (p->flow) {
+        alproto = FlowGetAppProtocolAtIndex(p->flow, alindex);
+    }
+
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
@@ -803,7 +809,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         /* all http based mpms */
         if (has_state && alproto == ALPROTO_HTTP) {
             FLOWLOCK_WRLOCK(p->flow);
-            void *alstate = FlowGetAppState(p->flow);
+            void *alstate = FlowGetAppStateAtIndex(p->flow, alindex);
             if (alstate == NULL) {
                 SCLogDebug("no alstate");
                 FLOWLOCK_UNLOCK(p->flow);
@@ -818,7 +824,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             }
 
             int tx_progress = 0;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
+            uint64_t idx = AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(p->flow, alindex),
+                                                                 flags);
             uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, alstate);
             for (; idx < total_txs; idx++) {
                 htp_tx_t *tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, idx);
@@ -936,14 +943,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
                     FLOWLOCK_RDLOCK(p->flow);
-                    void *alstate = FlowGetAppState(p->flow);
+                    void *alstate = FlowGetAppStateAtIndex(p->flow, alindex);
                     if (alstate == NULL) {
                         SCLogDebug("no alstate");
                         FLOWLOCK_UNLOCK(p->flow);
                         return;
                     }
 
-                    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
+                    uint64_t idx = AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(p->flow, alindex),
+                                                                         flags);
                     uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
                     for (; idx < total_txs; idx++) {
                         void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
@@ -998,14 +1006,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             SCLogDebug("mpm inspection");
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
                 FLOWLOCK_RDLOCK(p->flow);
-                void *alstate = FlowGetAppState(p->flow);
+                void *alstate = FlowGetAppStateAtIndex(p->flow, alindex);
                 if (alstate == NULL) {
                     SCLogDebug("no alstate");
                     FLOWLOCK_UNLOCK(p->flow);
                     return;
                 }
 
-                uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
+                uint64_t idx = AppLayerParserGetTransactionInspectId(FlowGetAppParserAtIndex(p->flow, alindex),
+                                                                     flags);
                 uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
                 for (; idx < total_txs; idx++) {
                     void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
@@ -1029,7 +1038,7 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
                p->pcap_cnt, p->flowflags & FLOW_PKT_TOSERVER ? "toserver" : "toclient",
                p->flags & PKT_STREAM_EST ? "established" : "stateless",
                smsg ? "yes" : "no");
-    AppLayerParserStatePrintDetails(f->alparser);
+    AppLayerParserStatePrintDetails(FlowGetAppParser(f));
 }
 #endif
 
@@ -1110,6 +1119,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint8_t sms_runflags = 0;   /* function flags */
     uint8_t alert_flags = 0;
     AppProto alproto = ALPROTO_UNKNOWN;
+    uint8_t alindex = 0;
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
@@ -1207,16 +1217,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             {
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
-                alversion = AppLayerParserGetStateVersion(pflow->alparser);
+                alindex = FlowGetAppLayerIndex(pflow);
+                alversion = AppLayerParserGetStateVersion(FlowGetAppParser(pflow));
                 SCLogDebug("alstate %s, alproto %u", has_state ? "true" : "false", alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
 
             app_decoder_events = AppLayerParserHasDecoderEvents(pflow->proto,
-                                                                pflow->alproto,
-                                                                pflow->alstate,
-                                                                pflow->alparser,
+                                                                FlowGetAppProtocol(pflow),
+                                                                FlowGetAppState(pflow),
+                                                                FlowGetAppParser(pflow),
                                                                 flags);
         }
         FLOWLOCK_UNLOCK(pflow);
@@ -1304,10 +1315,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alindex, alversion, flags);
         if (has_inspectable_state == 1) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
-                                           flags, alproto, alversion);
+                                           flags, alindex, alversion);
         } else if (has_inspectable_state == 2) {
             /* no inspectable state, so pretend we don't have a state at all */
             has_state = 0;
@@ -1321,7 +1332,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alindex, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
@@ -1580,7 +1591,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(pflow, flags);
+        DeStateUpdateInspectTransactionId(pflow, alindex, flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
@@ -5222,7 +5233,7 @@ static int SigTest06Real (int mpm_type)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5326,7 +5337,7 @@ static int SigTest07Real (int mpm_type)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5430,7 +5441,7 @@ static int SigTest08Real (int mpm_type)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5535,7 +5546,7 @@ static int SigTest09Real (int mpm_type)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5632,7 +5643,7 @@ static int SigTest10Real (int mpm_type)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -5728,7 +5739,7 @@ static int SigTest11Real (int mpm_type)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -10979,7 +10990,7 @@ static int SigTestDropFlow01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -11009,7 +11020,7 @@ static int SigTestDropFlow01(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -11082,7 +11093,7 @@ static int SigTestDropFlow02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -11112,7 +11123,7 @@ static int SigTestDropFlow02(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -11203,7 +11214,7 @@ static int SigTestDropFlow03(void)
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -11243,7 +11254,7 @@ static int SigTestDropFlow03(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -11376,7 +11387,7 @@ static int SigTestDropFlow04(void)
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -11415,7 +11426,7 @@ static int SigTestDropFlow04(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;

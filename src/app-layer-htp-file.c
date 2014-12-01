@@ -346,7 +346,7 @@ static int HTPFileParserTest01(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -460,7 +460,7 @@ static int HTPFileParserTest02(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -606,7 +606,7 @@ static int HTPFileParserTest03(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -757,7 +757,7 @@ static int HTPFileParserTest04(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -850,7 +850,7 @@ static int HTPFileParserTest05(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -975,7 +975,7 @@ static int HTPFileParserTest06(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1089,7 +1089,7 @@ static int HTPFileParserTest07(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1190,7 +1190,7 @@ static int HTPFileParserTest08(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1198,7 +1198,9 @@ static int HTPFileParserTest08(void)
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,FlowGetAppState(f),
+                                                                        0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1308,7 +1310,7 @@ static int HTPFileParserTest09(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1316,7 +1318,9 @@ static int HTPFileParserTest09(void)
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,FlowGetAppState(f),
+                                                                        0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -1424,7 +1428,7 @@ static int HTPFileParserTest10(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1432,7 +1436,9 @@ static int HTPFileParserTest10(void)
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,FlowGetAppState(f),
+                                                                        0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -1559,14 +1565,16 @@ static int HTPFileParserTest11(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,FlowGetAppState(f),
+                                                                        0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);

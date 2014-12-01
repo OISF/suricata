@@ -158,8 +158,8 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
         FileStoreFileById(fc, file_id);
     } else if (this_tx) {
         /* flag tx all files will be stored */
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
-            HtpState *htp_state = f->alstate;
+        if (FlowGetAppProtocol(f) == ALPROTO_HTTP && FlowGetAppState(f) != NULL) {
+            HtpState *htp_state = FlowGetAppState(f);
             if (toserver_dir) {
                 htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TS;
                 FileStoreAllFilesForTx(htp_state->files_ts, tx_id);
@@ -172,8 +172,8 @@ static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData
         }
     } else if (this_flow) {
         /* flag flow all files will be stored */
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
-            HtpState *htp_state = f->alstate;
+        if (FlowGetAppProtocol(f) == ALPROTO_HTTP && FlowGetAppState(f) != NULL) {
+            HtpState *htp_state = FlowGetAppState(f);
             if (toserver_dir) {
                 htp_state->flags |= HTP_FLAG_STORE_FILES_TS;
                 FileStoreAllFiles(htp_state->files_ts);
@@ -226,8 +226,10 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 
     FLOWLOCK_WRLOCK(p->flow);
 
-    FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
-                                                p->flow->alstate, flags);
+    FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto,
+                                                FlowGetAppProtocol(p->flow),
+                                                FlowGetAppState(p->flow),
+                                                flags);
 
     /* filestore for single files only */
     if (s->filestore_sm->ctx == NULL) {

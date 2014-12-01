@@ -1064,7 +1064,7 @@ int DCERPCUDPParserTest01(void)
 	}
 	SCMutexUnlock(&f.m);
 
-	DCERPCUDPState *dcerpc_state = f.alstate;
+	DCERPCUDPState *dcerpc_state = FlowGetAppState(&f);
 	if (dcerpc_state == NULL) {
 		printf("no dcerpc state: ");
 		result = 0;

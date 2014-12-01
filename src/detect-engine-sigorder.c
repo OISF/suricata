@@ -1939,7 +1939,7 @@ static int SCSigOrderingTest12(void)
 
     FLOW_INITIALIZE(&f);
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_UNKNOWN;
+    FlowSetAppProtocol(&f, ALPROTO_UNKNOWN);
     f.proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
