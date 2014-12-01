@@ -737,6 +737,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     sm->ctx = (void *)pd;
     SigMatchAppendSMToList(s, sm, sm_list);
 
+    if (pd->capidx != 0) {
+        if (DetectFlowvarPostMatchSetup(s, pd->capidx) < 0)
+            goto error_nofree;
+    }
+
     if (!(pd->flags & DETECT_PCRE_RELATIVE))
         goto okay;
 
@@ -758,11 +763,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     } else if (prev_pm->type == DETECT_PCRE) {
         DetectPcreData *tmp = (DetectPcreData *)prev_pm->ctx;
         tmp->flags |= DETECT_PCRE_RELATIVE_NEXT;
-    }
-
-    if (pd->capidx != 0) {
-        if (DetectFlowvarPostMatchSetup(s, pd->capidx) < 0)
-            goto error_nofree;
     }
 
  okay:
