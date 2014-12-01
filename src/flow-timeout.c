@@ -527,12 +527,12 @@ static inline void FlowForceReassemblyForHash(void)
     int server_ok;
 
     uint32_t idx = 0;
-
+#if 0
     /* We use this packet just for reassembly purpose */
     Packet *reassemble_p = PacketGetFromAlloc();
     if (reassemble_p == NULL)
         return;
-
+#endif
     for (idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
 
@@ -543,8 +543,9 @@ static inline void FlowForceReassemblyForHash(void)
 
         /* we need to loop through all the flows in the queue */
         while (f != NULL) {
+#if 0
             PACKET_RECYCLE(reassemble_p);
-
+#endif
             FLOWLOCK_WRLOCK(f);
 
             /* Get the tcp session for the flow */
@@ -557,8 +558,11 @@ static inline void FlowForceReassemblyForHash(void)
                 continue;
             }
 
-            (void)FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok);
+            if (FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok) == 1)
+                FlowForceReassemblyForFlowV2(f, server_ok, client_ok);
 
+            FLOWLOCK_UNLOCK(f);
+#if 0
             /* ah ah!  We have some unattended toserver segments */
             if (client_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
                 StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
@@ -653,15 +657,16 @@ static inline void FlowForceReassemblyForHash(void)
                     }
                 }
             }
-
+#endif
             /* next flow in the queue */
             f = f->hnext;
         }
         FBLOCK_UNLOCK(fb);
     }
-
+#if 0
     PKT_SET_SRC(reassemble_p, PKT_SRC_FFR_SHUTDOWN);
     TmqhOutputPacketpool(NULL, reassemble_p);
+#endif
     return;
 }
 
