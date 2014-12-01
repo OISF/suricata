@@ -45,6 +45,8 @@ struct TmSlot_;
 #define THV_DEINIT    (1 << 7)
 #define THV_RUNNING_DONE (1 << 8) /** thread has completed running and is entering
                                    * the de-init phase */
+#define THV_KILL_PKTACQ (1 << 9)    /**< flag thread to stop packet acq */
+#define THV_FLOW_LOOP (1 << 10)   /**< thread is in flow shutdown loop */
 
 /** Thread flags set and read by threads, to control the threads, when they
  *  encounter certain conditions like failure */
