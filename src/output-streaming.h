@@ -50,4 +50,6 @@ int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc, Out
 
 void TmModuleStreamingLoggerRegister (void);
 
+void OutputStreamingShutdown(void);
+
 #endif /* __OUTPUT_STREAMING_H__ */

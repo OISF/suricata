@@ -215,6 +215,7 @@ log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
+log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
 output.c output.h \
@@ -234,6 +235,7 @@ output-json-ssh.c output-json-ssh.h \
 output-json-tls.c output-json-tls.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
+output-stats.c output-stats.h \
 output-streaming.c output-streaming.h \
 output-tx.c output-tx.h \
 output-json.c output-json.h \

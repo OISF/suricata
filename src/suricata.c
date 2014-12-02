@@ -96,6 +96,7 @@
 #include "output-json-smtp.h"
 #include "log-filestore.h"
 #include "log-tcp-data.h"
+#include "log-stats.h"
 
 #include "output-json.h"
 
@@ -892,6 +893,8 @@ void RegisterAllModules()
     TmModuleJsonDnsLogRegister();
     /* tcp streaming data */
     TmModuleLogTcpDataLogRegister();
+    /* log stats */
+    TmModuleLogStatsLogRegister();
 
     TmModuleJsonAlertLogRegister();
     /* flow/netflow */
@@ -904,6 +907,7 @@ void RegisterAllModules()
     TmModuleFileLoggerRegister();
     TmModuleFiledataLoggerRegister();
     TmModuleStreamingLoggerRegister();
+    TmModuleStatsLoggerRegister();
     TmModuleDebugList();
     /* nflog */
     TmModuleReceiveNFLOGRegister();
@@ -2069,10 +2073,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     StorageInit();
     CIDRInit();
     SigParsePrepare();
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
-        SCPerfInitCounterApi();
-    }
 #ifdef PROFILING
     SCProfilingRulesGlobalInit();
     SCProfilingKeywordsGlobalInit();
@@ -2283,6 +2283,7 @@ int main(int argc, char **argv)
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
+        SCPerfInitCounterApi();
     }
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
