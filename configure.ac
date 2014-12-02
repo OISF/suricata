@@ -1621,6 +1621,32 @@
         fi
     fi
 
+  # JEMalloc
+    AC_ARG_ENABLE(jemalloc,
+            AS_HELP_STRING([--enable-jemalloc], [Enable JEMalloc support [default=no]]),,[enable_jemalloc=no])
+    AS_IF([test "x$enable_jemalloc" = "xyes"], [
+        AC_ARG_WITH(jemalloc_libraries,
+               [  --with-jemalloc-libraries=DIR    jemalloc library directory],
+               [with_jemalloc_libraries="$withval"],[with_jemalloc_libraries="no"])
+
+        if test "$with_jemalloc_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_jemalloc_libraries} -ljemalloc"
+        fi
+
+ #       AC_CHECK_HEADER(jemalloc/jemalloc.h,,[AC_ERROR(jemalloc/jemalloc.h not found ...)])
+
+        JEMALLOC=""
+        AC_CHECK_LIB(jemalloc, malloc,, JEMALLOC="no")
+
+        if test "$JEMALLOC" = "no"; then
+            echo
+            echo "   ERROR!  jemalloc library not found, go get it"
+            echo "   from http://www.canonware.com/jemalloc/ or your distribution:"
+            echo
+            exit 1
+        fi
+    ])
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1727,6 +1753,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
+  JEMalloc support:                        ${enable_jemalloc}
 
   Suricatasc install:                      ${enable_python}
 
