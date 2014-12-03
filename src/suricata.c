@@ -91,6 +91,7 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
+#include "log-file-common.h"
 #include "log-file.h"
 #include "output-json-file.h"
 #include "output-json-smtp.h"
