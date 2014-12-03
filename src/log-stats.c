@@ -47,7 +47,7 @@
 
 #define DEFAULT_LOG_FILENAME "stats.log"
 #define MODULE_NAME "LogStatsLog"
-#define OUTPUT_BUFFER_SIZE 65535
+#define OUTPUT_BUFFER_SIZE 16384
 
 TmEcode LogStatsLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
@@ -102,8 +102,18 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
     for (u = 0; u < st->nstats; u++) {
         if (st->stats[u].name == NULL)
             break;
-        MemBufferWriteString(aft->buffer, "%-25s | %-25s | %-" PRIu64 "\n",
-                st->stats[u].name, st->stats[u].tm_name, st->stats[u].value);
+
+        char line[1024];
+        size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
+                  st->stats[u].name, st->stats[u].tm_name, st->stats[u].value);
+
+        /* since we can have many threads, the buffer might not be big enough.
+         * Expand if necessary. */
+        if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
+            MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
+        }
+
+        MemBufferWriteString(aft->buffer, "%s", line);
     }
 
     SCMutexLock(&aft->statslog_ctx->file_ctx->fp_mutex);
