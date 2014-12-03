@@ -2309,7 +2309,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_hhhd ||
         has_co_hrhhd ||
         has_co_dnsquery)
-{
+    {
 
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
