@@ -523,14 +523,26 @@ error:
     return -1;
 }
 
+static void SCACTileReallocOutputTable(SCACTileCtx *ctx, int new_state_count)
+{
+
+    /* reallocate space in the output table for the new state */
+    size_t size = ctx->allocated_state_count * sizeof(SCACTileOutputTable);
+    void *ptmp = SCRealloc(ctx->output_table, size);
+    if (ptmp == NULL) {
+        SCFree(ctx->output_table);
+        ctx->output_table = NULL;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    ctx->output_table = ptmp;
+}
+
 static void SCACTileReallocState(SCACTileCtx *ctx, int new_state_count)
 {
-    void *ptmp;
-    int size = 0;
-
     /* reallocate space in the goto table to include a new state */
-    size = ctx->allocated_state_count * sizeof(int32_t) * 256;
-    ptmp = SCRealloc(ctx->goto_table, size);
+    size_t size = ctx->allocated_state_count * sizeof(int32_t) * 256;
+    void *ptmp = SCRealloc(ctx->goto_table, size);
     if (ptmp == NULL) {
         SCFree(ctx->goto_table);
         ctx->goto_table = NULL;
@@ -539,16 +551,7 @@ static void SCACTileReallocState(SCACTileCtx *ctx, int new_state_count)
     }
     ctx->goto_table = ptmp;
 
-    /* reallocate space in the output table for the new state */
-    size = ctx->allocated_state_count * sizeof(SCACTileOutputTable);
-    ptmp = SCRealloc(ctx->output_table, size);
-    if (ptmp == NULL) {
-        SCFree(ctx->output_table);
-        ctx->output_table = NULL;
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    ctx->output_table = ptmp;
+    SCACTileReallocOutputTable(ctx, new_state_count);
 }
 
 /**
@@ -1133,7 +1136,7 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     SCACTileCtx *ctx = search_ctx->init_ctx;
 
     /* Resize the output table to be only as big as its final size. */
-    SCACTileReallocState(ctx, ctx->state_count);
+    SCACTileReallocOutputTable(ctx, ctx->state_count);
 
     search_ctx->search = ctx->search;
     memcpy(search_ctx->translate_table, ctx->translate_table, sizeof(ctx->translate_table));
