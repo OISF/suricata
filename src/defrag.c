@@ -291,7 +291,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
                    "fragmentation re-assembly, dumping fragments.");
-        goto remove_tracker;
+        goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
     rp->recursion_level = p->recursion_level;
@@ -311,7 +311,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         if (frag->offset == 0) {
 
             if (PacketCopyData(rp, frag->pkt, frag->len) == -1)
-                goto remove_tracker;
+                goto error_remove_tracker;
 
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
@@ -327,12 +327,12 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
             if (pkt_end > (int)MAX_PAYLOAD_SIZE) {
                 SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble "
                         "fragmented packet, exceeds size of packet buffer.");
-                goto remove_tracker;
+                goto error_remove_tracker;
             }
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim) == -1) {
-                goto remove_tracker;
+                goto error_remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;
@@ -350,12 +350,16 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
         old, rp->ip4h->ip_len + rp->ip4h->ip_off);
     SET_PKT_LEN(rp, ip_hdr_offset + hlen + fragmentable_len);
 
-remove_tracker:
-    /** \todo check locking */
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
 done:
     return rp;
+
+error_remove_tracker:
+    tracker->remove = 1;
+    DefragTrackerFreeFrags(tracker);
+    PacketFreeOrRelease(rp);
+    return NULL;
 }
 
 /**
@@ -405,7 +409,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
                 "fragmentation re-assembly, dumping fragments.");
-        goto remove_tracker;
+        goto error_remove_tracker;
     }
     PKT_SET_SRC(rp, PKT_SRC_DEFRAG);
 
@@ -428,11 +432,11 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
              * IPv6 headers. We also copy in its data, but remove the
              * fragmentation header. */
             if (PacketCopyData(rp, frag->pkt, frag->frag_hdr_offset) == -1)
-                goto remove_tracker;
+                goto error_remove_tracker;
             if (PacketCopyDataOffset(rp, frag->frag_hdr_offset,
                 frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
                 frag->data_len) == -1)
-                goto remove_tracker;
+                goto error_remove_tracker;
             ip_hdr_offset = frag->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
@@ -445,13 +449,13 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
              * and the frag header. */
             unfragmentable_len = (fragmentable_offset - ip_hdr_offset) - IPV6_HEADER_LEN;
             if (unfragmentable_len >= fragmentable_offset)
-                goto remove_tracker;
+                goto error_remove_tracker;
         }
         else {
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim) == -1)
-                goto remove_tracker;
+                goto error_remove_tracker;
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;
         }
@@ -468,12 +472,16 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
     SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) +
             unfragmentable_len + fragmentable_len);
 
-remove_tracker:
-    /** \todo check locking */
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
 done:
     return rp;
+
+error_remove_tracker:
+    tracker->remove = 1;
+    DefragTrackerFreeFrags(tracker);
+    PacketFreeOrRelease(rp);
+    return NULL;
 }
 
 /**
