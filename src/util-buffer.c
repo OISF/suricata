@@ -51,6 +51,34 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
     return buffer;
 }
 
+/** \brief expand membuffer by size of 'expand_by'
+ *
+ *  If expansion failed, buffer will still be valid.
+ *
+ *  \retval result 0 ok, -1 expansion failed
+ */
+int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by) {
+    if (((*buffer)->size + expand_by) > MAX_LIMIT) {
+        SCLogWarning(SC_ERR_MEM_BUFFER_API, "Mem buffer asked to create "
+                     "buffer with size greater than API limit - %d", MAX_LIMIT);
+        return -1;
+    }
+
+    uint32_t total_size = (*buffer)->size + sizeof(MemBuffer) + expand_by;
+
+    MemBuffer *tbuffer = SCRealloc(*buffer, total_size);
+    if (unlikely(tbuffer == NULL)) {
+        return -1;
+    }
+
+    *buffer = tbuffer;
+    (*buffer)->size += expand_by;
+    (*buffer)->buffer = (uint8_t *)tbuffer + sizeof(MemBuffer);
+
+    SCLogDebug("expanded buffer by %u, size is now %u", expand_by, (*buffer)->size);
+    return 0;
+}
+
 void MemBufferFree(MemBuffer *buffer)
 {
     SCFree(buffer);

@@ -31,6 +31,7 @@ typedef struct MemBuffer_ {
 } MemBuffer;
 
 MemBuffer *MemBufferCreateNew(uint32_t size);
+int MemBufferExpand(MemBuffer **buffer, uint32_t expand_by);
 void MemBufferFree(MemBuffer *buffer);
 
 /**
@@ -52,6 +53,11 @@ void MemBufferFree(MemBuffer *buffer);
  * \brief Get the MemBuffers current offset.
  */
 #define MEMBUFFER_OFFSET(mem_buffer) (mem_buffer)->offset
+
+/**
+ * \brief Get the MemBuffers current size.
+ */
+#define MEMBUFFER_SIZE(mem_buffer) (mem_buffer)->size
 
 /**
  * \brief Write a buffer to the file pointer.
