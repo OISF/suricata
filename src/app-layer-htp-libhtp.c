@@ -201,11 +201,13 @@ bstr *SCHTPGenerateNormalizedUri(htp_tx_t *tx, htp_uri_t *uri, int uri_include_a
 
     if (uri->query != NULL) {
         bstr *query = bstr_dup(uri->query);
-        uint64_t flags = 0;
-        htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, query, &flags);
-        bstr_add_c_noex(r, "?");
-        bstr_add_noex(r, query);
-        bstr_free(query);
+        if (query) {
+            uint64_t flags = 0;
+            htp_urldecode_inplace(tx->cfg, HTP_DECODER_URLENCODED, query, &flags);
+            bstr_add_c_noex(r, "?");
+            bstr_add_noex(r, query);
+            bstr_free(query);
+        }
     }
 
     if (uri->fragment != NULL) {
