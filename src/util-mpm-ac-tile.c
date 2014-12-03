@@ -1196,24 +1196,42 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     SCFree(ctx->init_hash);
     ctx->init_hash = NULL;
 
-    /* handle no case patterns */
-    ctx->pid_pat_list = SCMalloc((ctx->max_pat_id + 1)* sizeof(SCACTilePatternList));
-    if (ctx->pid_pat_list == NULL) {
+    /* Handle case patterns by storing a copy of the pattern to compare
+     * to each possible match (no-case).
+     *
+     * Allocate the memory for the array and each of the strings as one block.
+     */
+    size_t string_space_needed = 0;
+    for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+        if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
+            /* Round up to next 8 byte aligned length */
+            uint32_t space = ((ctx->parray[i]->len + 7) / 8) * 8;
+            string_space_needed += space;
+        }
+    }
+
+    size_t pattern_list_size = (ctx->max_pat_id + 1) * sizeof(SCACTilePatternList);
+    size_t mem_size = string_space_needed + pattern_list_size;
+    void *mem_block = SCCalloc(1, mem_size);
+    if (mem_block == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
-    memset(ctx->pid_pat_list, 0, (ctx->max_pat_id + 1) * sizeof(SCACTilePatternList));
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += mem_size;
+    /* Split the allocated block into pattern list array and string space. */
+    ctx->pid_pat_list = mem_block;
+    uint8_t *string_space = mem_block + pattern_list_size;
 
+    /* Now make the copies of the no-case strings. */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         if (!(ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE)) {
-            ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
-            if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                exit(EXIT_FAILURE);
-            }
-            memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
-                   ctx->parray[i]->original_pat, ctx->parray[i]->len);
-            ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
+            uint32_t len = ctx->parray[i]->len;
+            uint32_t space = ((len + 7) / 8) * 8;
+            memcpy(string_space, ctx->parray[i]->original_pat, len);
+            ctx->pid_pat_list[ctx->parray[i]->id].cs = string_space;
+            ctx->pid_pat_list[ctx->parray[i]->id].patlen = len;
+            string_space += space;
         }
     }
 
@@ -1338,33 +1356,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
         ctx->parray = NULL;
     }
 
-    if (ctx->state_table != NULL) {
-        SCFree(ctx->state_table);
-
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (ctx->state_count *
-                                 ctx->bytes_per_state * ctx->alphabet_storage);
-    }
-
-    if (ctx->output_table != NULL) {
-        int state;
-        for (state = 0; state < ctx->state_count; state++) {
-            if (ctx->output_table[state].pids != NULL) {
-                SCFree(ctx->output_table[state].pids);
-            }
-        }
-        SCFree(ctx->output_table);
-    }
-
-    if (ctx->pid_pat_list != NULL) {
-        int i;
-        for (i = 0; i < (ctx->max_pat_id + 1); i++) {
-            if (ctx->pid_pat_list[i].cs != NULL)
-                SCFree(ctx->pid_pat_list[i].cs);
-        }
-        SCFree(ctx->pid_pat_list);
-    }
-
     SCFree(ctx);
     search_ctx->init_ctx = NULL;
 }
@@ -1383,7 +1374,10 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
     /* Destroy Initialization data */
     SCACTileDestroyInitCtx(mpm_ctx);
 
-    // TODO: Free Search tables
+    /* Free Search tables */
+    SCFree(search_ctx->state_table);
+    SCFree(search_ctx->pid_pat_list);
+    SCFree(search_ctx->output_table);
 
     SCFree(search_ctx);
     mpm_ctx->ctx = NULL;
