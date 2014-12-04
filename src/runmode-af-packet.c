@@ -52,6 +52,7 @@
 #include "util-affinity.h"
 #include "util-device.h"
 #include "util-runmodes.h"
+#include "util-ioctl.h"
 
 #include "source-af-packet.h"
 
@@ -184,7 +185,17 @@ void *ParseAFPConfig(const char *iface)
         }
     }
     if (aconf->threads == 0) {
+        int rss_queues;
         aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+        /* Get the number of RSS queues and take the min */
+        rss_queues = GetIfaceRSSQueuesNum(iface);
+        if (rss_queues > 0) {
+            if (rss_queues < aconf->threads) {
+                aconf->threads = rss_queues;
+                SCLogInfo("More core than RSS queues, using %d threads for interface %s",
+                          aconf->threads, iface);
+            }
+        }
         if (aconf->threads)
             SCLogInfo("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
     }
