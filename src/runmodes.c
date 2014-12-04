@@ -272,7 +272,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
         }
     }
 
-    if (custom_mode == NULL) {
+    if (custom_mode == NULL || strcmp(custom_mode, "auto") == 0) {
         switch (runmode) {
             case RUNMODE_PCAP_DEV:
                 custom_mode = RunModeIdsGetDefaultMode();
