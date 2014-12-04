@@ -24,3 +24,4 @@
 int GetIfaceMTU(char *pcap_dev);
 int GetIfaceMaxPacketSize(char *pcap_dev);
 int GetIfaceOffloading(char *pcap_dev);
+int GetIfaceRSSQueuesNum(const char *pcap_dev);

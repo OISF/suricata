@@ -210,3 +210,36 @@ int GetIfaceOffloading(char *pcap_dev)
 #endif
 }
 
+int GetIfaceRSSQueuesNum(const char *pcap_dev)
+{
+#ifdef HAVE_LINUX_ETHTOOL_H
+    struct ifreq ifr;
+    struct ethtool_rxnfc nfccmd;
+    int fd;
+
+    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1) {
+        return -1;
+    }
+
+    nfccmd.cmd = ETHTOOL_GRXRINGS;
+    ifr.ifr_data = (void*) &nfccmd;
+
+    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+        if (errno != ENOTSUP) {
+            SCLogWarning(SC_ERR_SYSCALL,
+                         "Failure when trying to get number of RSS queue ioctl: %d",
+                         errno);
+        }
+        close(fd);
+        return 0;
+    }
+    close(fd);
+    SCLogInfo("Found %d RX RSS queues for '%s'", (int)nfccmd.data,
+            pcap_dev);
+    return (int)nfccmd.data;
+#else
+    return 0;
+#endif
+}
