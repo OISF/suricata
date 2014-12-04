@@ -57,11 +57,11 @@
 
 extern int max_pending_packets;
 
-static const char *default_mode_autofp = NULL;
+static const char *default_mode_workers = NULL;
 
 const char *RunModeAFPGetDefaultMode(void)
 {
-    return default_mode_autofp;
+    return default_mode_workers;
 }
 
 void RunModeIdsAFPRegister(void)
@@ -73,7 +73,7 @@ void RunModeIdsAFPRegister(void)
                               "Workers af-packet mode, each thread does all"
                               " tasks from acquisition to logging",
                               RunModeIdsAFPWorkers);
-    default_mode_autofp = "autofp";
+    default_mode_workers = "workers";
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
                               "Multi socket AF_PACKET mode.  Packets from "
                               "each flow are assigned to a single detect "
@@ -173,13 +173,22 @@ void *ParseAFPConfig(const char *iface)
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
-        aconf->threads = 1;
+        aconf->threads = 0;
     } else {
         if (threadsstr != NULL) {
-            aconf->threads = (uint8_t)atoi(threadsstr);
+            if (strcmp(threadsstr, "auto") == 0) {
+                aconf->threads = 0;
+            } else {
+                aconf->threads = (uint8_t)atoi(threadsstr);
+            }
         }
     }
     if (aconf->threads == 0) {
+        aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+        if (aconf->threads)
+            SCLogInfo("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
+    }
+    if (aconf->threads <= 0) {
         aconf->threads = 1;
     }
 

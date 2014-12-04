@@ -367,9 +367,8 @@ nflog:
 # Set threads to > 1 to use PACKET_FANOUT support
 af-packet:
   - interface: eth0
-    # Number of receive threads (>1 will enable experimental flow pinned
-    # runmode)
-    threads: 1
+    # Number of receive threads. "auto" uses the number of cores
+    threads: auto
     # Default clusterid.  AF_PACKET will load balance packets based on flow.
     # All threads/processes that will participate need to have the same
     # clusterid.
@@ -420,7 +419,7 @@ af-packet:
     #copy-mode: ips
     #copy-iface: eth1
   - interface: eth1
-    threads: 1
+    threads: auto
     cluster-id: 98
     cluster-type: cluster_flow
     defrag: yes
@@ -428,7 +427,7 @@ af-packet:
     # disable-promisc: no
   # Put default values here
   - interface: default
-    #threads: 2
+    #threads: auto
     #use-mmap: yes
 
 legacy:
