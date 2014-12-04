@@ -53,9 +53,6 @@ void RunModeIdsPcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "single",
                               "Single threaded pcap live mode",
                               RunModeIdsPcapSingle);
-    RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "auto",
-                              "Multi threaded pcap live mode",
-                              RunModeIdsPcapAuto);
     default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "autofp",
                               "Multi threaded pcap live mode.  Packets from "
@@ -261,54 +258,6 @@ int RunModeIdsPcapSingle(DetectEngineCtx *de_ctx)
     }
 
     SCLogInfo("RunModeIdsPcapSingle initialised");
-
-    SCReturnInt(0);
-}
-
-
-/**
- * \brief RunModeIdsPcapAuto set up the following thread packet handlers:
- *        - Receive thread (from iface pcap)
- *        - Decode thread
- *        - Stream thread
- *        - Detect: If we have only 1 cpu, it will setup one Detect thread
- *                  If we have more than one, it will setup num_cpus - 1
- *                  starting from the second cpu available.
- *        - Respond/Reject thread
- *        - Outputs thread
- *        By default the threads will use the first cpu available
- *        except the Detection threads if we have more than one cpu.
- *
- * \param de_ctx Pointer to the Detection Engine.
- *
- * \retval 0 If all goes well. (If any problem is detected the engine will
- *           exit()).
- */
-int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
-{
-    /* tname = Detect + cpuid, this is 11bytes length as max */
-    char *live_dev = NULL;
-    int ret;
-
-    SCEnter();
-
-    RunModeInitialize();
-    TimeModeSetLive();
-
-    (void) ConfGet("pcap.single-pcap-dev", &live_dev);
-
-    ret = RunModeSetLiveCaptureAuto(de_ctx,
-                                    ParsePcapConfig,
-                                    PcapConfigGeThreadsCount,
-                                    "ReceivePcap",
-                                    "DecodePcap", "RecvPcap",
-                                    live_dev);
-    if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
-        exit(EXIT_FAILURE);
-    }
-
-    SCLogInfo("RunModeIdsPcapAuto initialised");
 
     SCReturnInt(0);
 }

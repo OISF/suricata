@@ -58,9 +58,6 @@ const char *RunModeIpsIPFWGetDefaultMode(void)
 void RunModeIpsIPFWRegister(void)
 {
     default_mode = "autofp";
-    RunModeRegisterNewRunMode(RUNMODE_IPFW, "auto",
-                              "Multi threaded IPFW IPS mode",
-                              RunModeIpsIPFWAuto);
 
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "autofp",
                               "Multi threaded IPFW IPS mode with respect to flow",
@@ -72,28 +69,6 @@ void RunModeIpsIPFWRegister(void)
 
     return;
 }
-
-int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
-{
-    SCEnter();
-    int ret = 0;
-#ifdef IPFW
-
-    RunModeInitialize();
-
-    TimeModeSetLive();
-
-    LiveDeviceHasNoStats();
-
-    ret = RunModeSetIPSAuto(de_ctx,
-            IPFWGetThread,
-            "ReceiveIPFW",
-            "VerdictIPFW",
-            "DecodeIPFW");
-#endif /* IPFW */
-    return ret;
-}
-
 
 int RunModeIpsIPFWAutoFp(DetectEngineCtx *de_ctx)
 {

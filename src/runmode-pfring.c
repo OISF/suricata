@@ -54,9 +54,6 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_PFRING, "auto",
-                              "Multi threaded pfring mode",
-                              RunModeIdsPfringAuto);
     default_mode_autofp = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "autofp",
                               "Multi threaded pfring mode.  Packets from "
@@ -420,55 +417,6 @@ static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
     return 0;
 }
 #endif
-
-/**
- * \brief RunModeIdsPfringAuto set up the following thread packet handlers:
- *        - Receive thread (from pfring)
- *        - Decode thread
- *        - Stream thread
- *        - Detect: If we have only 1 cpu, it will setup one Detect thread
- *                  If we have more than one, it will setup num_cpus - 1
- *                  starting from the second cpu available.
- *        - Respond/Reject thread
- *        - Outputs thread
- *        By default the threads will use the first cpu available
- *        except the Detection threads if we have more than one cpu.
- *
- * \param de_ctx Pointer to the Detection Engine.
- *
- * \retval 0 If all goes well. (If any problem is detected the engine will
- *           exit()).
- */
-int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
-{
-    SCEnter();
-/* We include only if pfring is enabled */
-#ifdef HAVE_PFRING
-    int ret;
-    char *live_dev = NULL;
-    ConfigIfaceParserFunc tparser;
-
-    RunModeInitialize();
-
-    TimeModeSetLive();
-
-    ret = GetDevAndParser(&live_dev, &tparser);
-    if (ret != 0) {
-        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
-                "Unable to get parser and interface params");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = RunModeSetLiveCaptureAuto(de_ctx, tparser, PfringConfigGeThreadsCount,
-                                    "ReceivePfring", "DecodePfring",
-                                    "RxPFR", live_dev);
-    if (ret != 0) {
-        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
-        exit(EXIT_FAILURE);
-    }
-#endif /* HAVE_PFRING */
-    return 0;
-}
 
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
 {

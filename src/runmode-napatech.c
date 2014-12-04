@@ -45,9 +45,8 @@
 // need NapatechStreamDevConf structure
 #include "source-napatech.h"
 
-#define NT_RUNMODE_AUTO    1
-#define NT_RUNMODE_AUTOFP  2
-#define NT_RUNMODE_WORKERS 4
+#define NT_RUNMODE_AUTOFP  1
+#define NT_RUNMODE_WORKERS 2
 
 static const char *default_mode = NULL;
 #ifdef HAVE_NAPATECH
@@ -63,9 +62,6 @@ void RunModeNapatechRegister(void)
 {
 #ifdef HAVE_NAPATECH
     default_mode = "autofp";
-    RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "auto",
-            "Multi threaded Napatech mode",
-            RunModeNapatechAuto);
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "autofp",
             "Multi threaded Napatech mode.  Packets from "
             "each flow are assigned to a single detect "
@@ -211,11 +207,6 @@ int NapatechInit(DetectEngineCtx *de_ctx, int runmode)
     }
 
     switch(runmode) {
-        case NT_RUNMODE_AUTO:
-            ret = RunModeSetLiveCaptureAuto(de_ctx, NapatechConfigParser, NapatechGetThreadsCount,
-                                            "NapatechStream", "NapatechDecode",
-                                            "RxNT", NULL);
-            break;
         case NT_RUNMODE_AUTOFP:
             ret = RunModeSetLiveCaptureAutoFp(de_ctx, NapatechConfigParser, NapatechGetThreadsCount,
                                               "NapatechStream", "NapatechDecode",
@@ -235,11 +226,6 @@ int NapatechInit(DetectEngineCtx *de_ctx, int runmode)
         exit(EXIT_FAILURE);
     }
     return 0;
-}
-
-int RunModeNapatechAuto(DetectEngineCtx *de_ctx)
-{
-    return NapatechInit(de_ctx, NT_RUNMODE_AUTO);
 }
 
 int RunModeNapatechAutoFp(DetectEngineCtx *de_ctx)
