@@ -220,6 +220,9 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
+        SCLogWarning(SC_ERR_SYSCALL,
+                "Failure when opening socket for ioctl: %d",
+                errno);
         return -1;
     }
 
