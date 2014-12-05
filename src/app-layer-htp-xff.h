@@ -31,11 +31,15 @@
 #define XFF_EXTRADATA 2
 /** XFF overwrite mode */
 #define XFF_OVERWRITE 4
+/** XFF is to be used in a reverse proxy deployment */
+#define XFF_REVERSE 8
+/** XFF is to be used in a forward proxy deployment */
+#define XFF_FORWARD 16
 /** Single XFF IP maximum length (default value based on IPv6 address length) */
 #define XFF_MAXLEN 46
 
 typedef struct HttpXFFCfg_ {
-    uint8_t mode; /**< XFF operation mode */
+    uint8_t flags; /**< XFF operation mode and deployment */
     char *header; /**< XFF header name */
 } HttpXFFCfg;
 
