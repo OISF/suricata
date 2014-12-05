@@ -341,6 +341,11 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
+    if (GetIfaceOffloading(iface) == 1) {
+        SCLogWarning(SC_ERR_AFP_CREATE,
+                "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+    }
+
     return aconf;
 }
 

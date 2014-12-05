@@ -1502,11 +1502,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             goto socket_err;
         }
 
-        if (GetIfaceOffloading(devname) == 1) {
-            SCLogWarning(SC_ERR_AFP_CREATE,
-                         "Using mmap mode with GRO or LRO activated can lead to capture problems");
-        }
-
         /* Allocate RX ring */
 #define DEFAULT_ORDER 3
         for (order = DEFAULT_ORDER; order >= 0; order--) {
