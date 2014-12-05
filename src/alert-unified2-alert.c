@@ -336,7 +336,7 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
 
     /* overwrite mode can only work per u2 block, not per individual
      * alert. So we'll look for an XFF record once */
-    if ((xff_cfg->mode & XFF_OVERWRITE) && p->flow != NULL) {
+    if ((xff_cfg->flags & XFF_OVERWRITE) && p->flow != NULL) {
         char buffer[XFF_MAXLEN];
         int have_xff_ip = 0;
 
@@ -896,7 +896,7 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
 
         HttpXFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
-        if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
+        if ((xff_cfg->flags & XFF_EXTRADATA) && p->flow != NULL) {
             char buffer[XFF_MAXLEN];
             int have_xff_ip = 0;
 
@@ -1073,7 +1073,7 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
 
         HttpXFFCfg *xff_cfg = aun->unified2alert_ctx->xff_cfg;
 
-        if ((xff_cfg->mode & XFF_EXTRADATA) && p->flow != NULL) {
+        if ((xff_cfg->flags & XFF_EXTRADATA) && p->flow != NULL) {
             char buffer[XFF_MAXLEN];
             int have_xff_ip = 0;
 

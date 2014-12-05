@@ -109,12 +109,16 @@ outputs:
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
             # with the one reported in the X-Forwarded-For HTTP header. This is
-            # helpful when reviewing alerts for traffic that is being reversed
-            # proxied.
+            # helpful when reviewing alerts for traffic that is being reverse
+            # or forward proxied.
             xff:
               enabled: no
               # Two operation modes are available, "extra-data" and "overwrite".
               mode: extra-data
+              # Two proxy deployments are supported, "reverse" and "forward". In
+              # a "reverse" deployment the IP address used is the last one, in a
+              # "forward" deployment the first IP address is used.
+              deployment: reverse
               # Header name where the actual IP address will be reported, if more
               # than one IP address is present, the last IP address will be the
               # one taken into consideration.
@@ -153,8 +157,8 @@ outputs:
       # HTTP X-Forwarded-For support by adding the unified2 extra header or
       # overwriting the source or destination IP address (depending on flow
       # direction) with the one reported in the X-Forwarded-For HTTP header.
-      # This is helpful when reviewing alerts for traffic that is being reversed
-      # proxied.
+      # This is helpful when reviewing alerts for traffic that is being reverse
+      # or forward proxied.
       xff:
         enabled: no
         # Two operation modes are available, "extra-data" and "overwrite". Note
@@ -162,6 +166,10 @@ outputs:
         # X-Forwarded-For header is of a different version of the packet
         # received, it will fall-back to "extra-data" mode.
         mode: extra-data
+        # Two proxy deployments are supported, "reverse" and "forward". In
+        # a "reverse" deployment the IP address used is the last one, in a
+        # "forward" deployment the first IP address is used.
+        deployment: reverse
         # Header name where the actual IP address will be reported, if more
         # than one IP address is present, the last IP address will be the
         # one taken into consideration.

@@ -256,7 +256,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
 
         /* xff header */
-        if (!(xff_cfg->mode & XFF_DISABLED) && p->flow != NULL) {
+        if (!(xff_cfg->flags & XFF_DISABLED) && p->flow != NULL) {
             int have_xff_ip = 0;
             char buffer[XFF_MAXLEN];
 
@@ -271,10 +271,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             FLOWLOCK_UNLOCK(p->flow);
 
             if (have_xff_ip) {
-                if (xff_cfg->mode & XFF_EXTRADATA) {
+                if (xff_cfg->flags & XFF_EXTRADATA) {
                     json_object_set_new(js, "xff", json_string(buffer));
                 }
-                else if (xff_cfg->mode & XFF_OVERWRITE) {
+                else if (xff_cfg->flags & XFF_OVERWRITE) {
                     if (p->flowflags & FLOW_PKT_TOCLIENT) {
                         json_object_set(js, "dest_ip", json_string(buffer));
                     } else {

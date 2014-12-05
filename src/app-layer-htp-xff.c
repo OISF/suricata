@@ -140,7 +140,7 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
         const char *xff_mode = ConfNodeLookupChildValue(xff_node, "mode");
 
         if (xff_mode != NULL && strcasecmp(xff_mode, "overwrite") == 0) {
-            result->mode |= XFF_OVERWRITE;
+            result->flags |= XFF_OVERWRITE;
         } else {
             if (xff_mode == NULL) {
                 SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The XFF mode hasn't been defined, falling back to extra-data mode");
@@ -149,7 +149,22 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
                 SCLogWarning(SC_WARN_XFF_INVALID_MODE, "The XFF mode %s is invalid, falling back to extra-data mode",
                         xff_mode);
             }
-            result->mode |= XFF_EXTRADATA;
+            result->flags |= XFF_EXTRADATA;
+        }
+
+        const char *xff_deployment = ConfNodeLookupChildValue(xff_node, "deployment");
+
+        if (xff_deployment != NULL && strcasecmp(xff_deployment, "forward") == 0) {
+            result->flags |= XFF_FORWARD;
+        } else {
+            if (xff_deployment == NULL) {
+                SCLogWarning(SC_WARN_XFF_INVALID_DEPLOYMENT, "The XFF deployment hasn't been defined, falling back to reverse proxy deployment");
+            }
+            else if (strcasecmp(xff_deployment, "reverse") != 0) {
+                SCLogWarning(SC_WARN_XFF_INVALID_DEPLOYMENT, "The XFF mode %s is invalid, falling back to reverse proxy deployment",
+                        xff_deployment);
+            }
+            result->flags |= XFF_REVERSE;
         }
 
         const char *xff_header = ConfNodeLookupChildValue(xff_node, "header");
@@ -163,6 +178,6 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
         }
     }
     else {
-        result->mode = XFF_DISABLED;
+        result->flags = XFF_DISABLED;
     }
 }
