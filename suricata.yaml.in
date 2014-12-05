@@ -105,6 +105,20 @@ outputs:
             # payload-printable: yes # enable dumping payload in printable (lossy) format
             # packet: yes            # enable dumping of packet (without stream segments)
             # http: yes              # enable dumping of http fields
+
+            # HTTP X-Forwarded-For support by adding an extra field or overwriting
+            # the source or destination IP address (depending on flow direction)
+            # with the one reported in the X-Forwarded-For HTTP header. This is
+            # helpful when reviewing alerts for traffic that is being reversed
+            # proxied.
+            xff:
+              enabled: no
+              # Two operation modes are available, "extra-data" and "overwrite".
+              mode: extra-data
+              # Header name where the actual IP address will be reported, if more
+              # than one IP address is present, the last IP address will be the
+              # one taken into consideration.
+              header: X-Forwarded-For
         - http:
             extended: yes     # enable this for extended logging information
             # custom allows additional http fields to be included in eve-log
@@ -136,10 +150,11 @@ outputs:
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
 
-      # HTTP X-Forwarded-For support by adding the unified2 extra header that
-      # will contain the actual client IP address or by overwriting the source
-      # IP address (helpful when inspecting traffic that is being reversed
-      # proxied).
+      # HTTP X-Forwarded-For support by adding the unified2 extra header or
+      # overwriting the source or destination IP address (depending on flow
+      # direction) with the one reported in the X-Forwarded-For HTTP header.
+      # This is helpful when reviewing alerts for traffic that is being reversed
+      # proxied.
       xff:
         enabled: no
         # Two operation modes are available, "extra-data" and "overwrite". Note
@@ -147,10 +162,10 @@ outputs:
         # X-Forwarded-For header is of a different version of the packet
         # received, it will fall-back to "extra-data" mode.
         mode: extra-data
-        # Header name were the actual IP address will be reported, if more than
-        # one IP address is present, the last IP address will be the one taken
-        # into consideration.
-        header: X-Forwarded-For 
+        # Header name where the actual IP address will be reported, if more
+        # than one IP address is present, the last IP address will be the
+        # one taken into consideration.
+        header: X-Forwarded-For
 
   # a line based log of HTTP requests (no alerts)
   - http-log:
