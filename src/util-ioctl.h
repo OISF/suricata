@@ -21,7 +21,7 @@
  * \author Eric Leblond <eleblond@edenwall.com>
  */
 
-int GetIfaceMTU(char *pcap_dev);
-int GetIfaceMaxPacketSize(char *pcap_dev);
-int GetIfaceOffloading(char *pcap_dev);
+int GetIfaceMTU(const char *pcap_dev);
+int GetIfaceMaxPacketSize(const char *pcap_dev);
+int GetIfaceOffloading(const char *pcap_dev);
 int GetIfaceRSSQueuesNum(const char *pcap_dev);

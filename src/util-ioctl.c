@@ -47,7 +47,7 @@
  *
  * \param Name of a network interface
  */
-int GetIfaceMaxHWHeaderLength(char *pcap_dev)
+int GetIfaceMaxHWHeaderLength(const char *pcap_dev)
 {
     if ((!strcmp("eth", pcap_dev))
             ||
@@ -76,7 +76,7 @@ int GetIfaceMaxHWHeaderLength(char *pcap_dev)
  * \param Name of link
  * \retval -1 in case of error, 0 if MTU can not be found
  */
-int GetIfaceMTU(char *pcap_dev)
+int GetIfaceMTU(const char *pcap_dev)
 {
 #ifdef SIOCGIFMTU
     struct ifreq ifr;
@@ -115,7 +115,7 @@ int GetIfaceMTU(char *pcap_dev)
  * \param Name of a network interface
  * \retval 0 in case of error
  */
-int GetIfaceMaxPacketSize(char *pcap_dev)
+int GetIfaceMaxPacketSize(const char *pcap_dev)
 {
     int ll_header = GetIfaceMaxHWHeaderLength(pcap_dev);
     int mtu = 0;
@@ -150,7 +150,7 @@ int GetIfaceMaxPacketSize(char *pcap_dev)
  * \param Name of link
  * \retval -1 in case of error, 0 if none, 1 if some
  */
-int GetIfaceOffloading(char *pcap_dev)
+int GetIfaceOffloading(const char *pcap_dev)
 {
 #if defined (ETHTOOL_GGRO) && defined (ETHTOOL_GFLAGS)
     struct ifreq ifr;
