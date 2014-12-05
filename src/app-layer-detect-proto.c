@@ -1729,19 +1729,17 @@ AppProto AppLayerProtoDetectGetProtoByName(char *alproto_name)
 {
     SCEnter();
 
-    AppProto a = ALPROTO_UNKNOWN;
-
+    AppProto a;
     for (a = 0; a < ALPROTO_MAX; a++) {
         if (alpd_ctx.alproto_names[a] != NULL &&
             strlen(alpd_ctx.alproto_names[a]) == strlen(alproto_name) &&
             (SCMemcmp(alpd_ctx.alproto_names[a], alproto_name, strlen(alproto_name)) == 0))
         {
-            goto end;
+            SCReturnCT(a, "AppProto");
         }
     }
 
- end:
-    SCReturnCT(a, "AppProto");
+    SCReturnCT(ALPROTO_UNKNOWN, "AppProto");
 }
 
 char *AppLayerProtoDetectGetProtoName(AppProto alproto)
