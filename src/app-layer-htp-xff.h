@@ -45,8 +45,8 @@ typedef struct HttpXFFCfg_ {
 
 void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result);
 
-int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, char *xff_header, char *dstbuf, int dstbuflen);
+int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 
-int HttpXFFGetIP(const Packet *p, char *xff_header, char *dstbuf, int dstbuflen);
+int HttpXFFGetIP(const Packet *p, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 
 #endif /* __APP_LAYER_HTP_XFF_H__ */
