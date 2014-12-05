@@ -44,6 +44,8 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
+#include "app-layer-htp.h"
+#include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
 
@@ -74,6 +76,7 @@
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
     uint8_t flags;
+    HttpXFFCfg *xff_cfg;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
@@ -250,6 +253,37 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_object_set_new(js, "packet", json_string((char *)encoded_packet));
         }
 
+        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
+
+        /* xff header */
+        if (!(xff_cfg->mode & XFF_DISABLED) && p->flow != NULL) {
+            int have_xff_ip = 0;
+            char buffer[XFF_MAXLEN];
+
+            FLOWLOCK_RDLOCK(p->flow);
+            if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
+                if (pa->flags & PACKET_ALERT_FLAG_TX) {
+                    have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg->header, buffer, XFF_MAXLEN);
+                } else {
+                    have_xff_ip = HttpXFFGetIP(p, xff_cfg->header, buffer, XFF_MAXLEN);
+                }
+            }
+            FLOWLOCK_UNLOCK(p->flow);
+
+            if (have_xff_ip) {
+                if (xff_cfg->mode & XFF_EXTRADATA) {
+                    json_object_set_new(js, "xff", json_string(buffer));
+                }
+                else if (xff_cfg->mode & XFF_OVERWRITE) {
+                    if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                        json_object_set(js, "dest_ip", json_string(buffer));
+                    } else {
+                        json_object_set(js, "src_ip", json_string(buffer));
+                    }
+                }
+            }
+        }
+
         OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
         json_object_del(js, "alert");
     }
@@ -413,6 +447,11 @@ static void JsonAlertLogDeInitCtxSub(OutputCtx *output_ctx)
     AlertJsonOutputCtx *json_output_ctx = (AlertJsonOutputCtx *) output_ctx->data;
 
     if (json_output_ctx != NULL) {
+        HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
+        if (xff_cfg != NULL) {
+            SCFree(xff_cfg);
+        }
+
         SCFree(json_output_ctx);
     }
     SCFree(output_ctx);
@@ -455,19 +494,27 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
 static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
     AlertJsonThread *ajt = parent_ctx->data;
+    AlertJsonOutputCtx *json_output_ctx = NULL;
+    HttpXFFCfg *xff_cfg = NULL;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
 
-    AlertJsonOutputCtx *json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
+    json_output_ctx = SCMalloc(sizeof(AlertJsonOutputCtx));
     if (unlikely(json_output_ctx == NULL)) {
-        SCFree(output_ctx);
-        return NULL;
+        goto error;
     }
-
     memset(json_output_ctx, 0, sizeof(AlertJsonOutputCtx));
+
+    xff_cfg = SCMalloc(sizeof(HttpXFFCfg));
+    if (unlikely(xff_cfg == NULL)) {
+        goto error;
+    }
+    memset(xff_cfg, 0, sizeof(HttpXFFCfg));
+
     json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->xff_cfg = xff_cfg;
 
     if (conf != NULL) {
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
@@ -495,12 +542,24 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
                 json_output_ctx->flags |= LOG_JSON_PACKET;
             }
         }
+
+        HttpXFFGetCfg(conf, xff_cfg);
     }
 
     output_ctx->data = json_output_ctx;
     output_ctx->DeInit = JsonAlertLogDeInitCtxSub;
 
     return output_ctx;
+
+error:
+    if (json_output_ctx != NULL) {
+        SCFree(json_output_ctx);
+    }
+    if (output_ctx != NULL) {
+        SCFree(output_ctx);
+    }
+
+    return NULL;
 }
 
 void TmModuleJsonAlertLogRegister (void)
