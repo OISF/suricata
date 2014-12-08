@@ -913,6 +913,17 @@ static void SigRefFree (Signature *s)
     SCReturn;
 }
 
+static void SigMatchFreeArrays(Signature *s)
+{
+    if (s != NULL) {
+        int type;
+        for (type = 0; type < DETECT_SM_LIST_MAX; type++) {
+            if (s->sm_arrays[type] != NULL)
+                SCFree(s->sm_arrays[type]);
+        }
+    }
+}
+
 void SigFree(Signature *s)
 {
     if (s == NULL)
@@ -933,6 +944,7 @@ void SigFree(Signature *s)
             sm = nsm;
         }
     }
+    SigMatchFreeArrays(s);
 
     DetectAddressHeadCleanup(&s->src);
     DetectAddressHeadCleanup(&s->dst);
