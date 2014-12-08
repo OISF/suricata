@@ -87,7 +87,7 @@ void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint3
             return;
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+    snprintf((char *)buffer->buffer, buffer->size, "unknown");
 }
 
 void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -101,7 +101,7 @@ void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint
             return;
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+    snprintf((char *)buffer->buffer, buffer->size, "unknown");
 }
 
 void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -119,7 +119,7 @@ void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, u
             }
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+    snprintf((char *)buffer->buffer, buffer->size, "unknown");
 }
 
 void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -137,7 +137,7 @@ void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer,
             }
         }
     }
-    sprintf((char *)buffer->buffer, "unknown");
+    snprintf((char *)buffer->buffer, buffer->size, "unknown");
 }
 
 #ifdef HAVE_LIBJANSSON
@@ -206,10 +206,10 @@ void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js) {
             json_object_set_new(container, "state", json_string("closed"));
 #ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
-                char md5_buffer[512];
+                char md5_buffer[META_BUFFER_SIZE];
                 size_t x;
                 for (x = 0; x < sizeof(ff->md5); x++) {
-                    sprintf(md5_buffer, "%02x", ff->md5[x]);
+                    snprintf(md5_buffer, META_BUFFER_SIZE, "%02x", ff->md5[x]);
                 }
                 json_object_set_new(container, "md5", json_string(md5_buffer));
             }
@@ -227,11 +227,11 @@ void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js) {
     }
 
     MemBufferReset(buffer);
-    sprintf((char *)buffer->buffer, "%"PRIu64"", ff->size);
+    snprintf((char *)buffer->buffer, buffer->size, "%"PRIu64"", ff->size);
     json_object_set_new(container, "size", json_string((char *)buffer->buffer));
 
     MemBufferReset(buffer);
-    sprintf((char *)buffer->buffer, ff->flags & FILE_STORED ? "true" : "false");
+    snprintf((char *)buffer->buffer, buffer->size, ff->flags & FILE_STORED ? "true" : "false");
     json_object_set_new(container, "stored", json_string((char *)buffer->buffer));
 
     MemBufferFree(buffer);
