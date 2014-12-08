@@ -185,11 +185,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 
     PatternMatchDestroyGroup(sgh);
 
-    if (sgh->head_array != NULL) {
-        SCFree(sgh->head_array);
-        sgh->head_array = NULL;
-    }
-
     if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_free_cnt++;
         detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(Signature *));
@@ -1739,42 +1734,6 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             sgh->non_mpm_id_array[sgh->non_mpm_id_cnt++] = s->num;
         }
     }
-    return 0;
-}
-
-int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    Signature *s = NULL;
-    uint32_t idx = 0;
-    uint32_t sig = 0;
-
-    if (sgh == NULL)
-        return 0;
-
-    BUG_ON(sgh->head_array != NULL);
-
-    sgh->head_array = SCMalloc(sgh->sig_cnt * sizeof(SignatureHeader));
-    if (sgh->head_array == NULL)
-        return -1;
-
-    memset(sgh->head_array, 0, sgh->sig_cnt * sizeof(SignatureHeader));
-
-    detect_siggroup_matcharray_init_cnt++;
-    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(SignatureHeader *));
-
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        sgh->head_array[idx].hdr_copy1 = s->hdr_copy1;
-        sgh->head_array[idx].hdr_copy2 = s->hdr_copy2;
-        sgh->head_array[idx].hdr_copy3 = s->hdr_copy3;
-        sgh->head_array[idx].full_sig = s;
-
-        idx++;
-    }
-
     return 0;
 }
 
