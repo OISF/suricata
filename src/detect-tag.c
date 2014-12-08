@@ -57,7 +57,7 @@ SC_ATOMIC_EXTERN(unsigned int, num_tags);
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectTagMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectTagSetup(DetectEngineCtx *, Signature *, char *);
 void DetectTagRegisterTests(void);
 void DetectTagDataFree(void *);
@@ -109,9 +109,9 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectTagMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectTagData *td = (DetectTagData *) m->ctx;
+    const DetectTagData *td = (const DetectTagData *)ctx;
     DetectTagDataEntry tde;
     memset(&tde, 0, sizeof(DetectTagDataEntry));
 
@@ -313,7 +313,7 @@ int DetectTagSetup(DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
         goto error;
 
     sm->type = DETECT_TAG;
-    sm->ctx = (void *)td;
+    sm->ctx = (SigMatchCtx *)td;
 
     /* Append it to the list of tags */
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);

@@ -1356,6 +1356,16 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
      * rules haven't been loaded yet. */
     uint16_t counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
                                                       SC_PERF_TYPE_UINT64, "NULL");
+#ifdef PROFILING
+    uint16_t counter_mpm_list = SCPerfTVRegisterAvgCounter("detect.mpm_list", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    uint16_t counter_nonmpm_list = SCPerfTVRegisterAvgCounter("detect.nonmpm_list", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    uint16_t counter_fnonmpm_list = SCPerfTVRegisterAvgCounter("detect.fnonmpm_list", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+    uint16_t counter_match_list = SCPerfTVRegisterAvgCounter("detect.match_list", tv,
+                                                      SC_PERF_TYPE_UINT64, "NULL");
+#endif
     if (de_ctx->delayed_detect == 1 && de_ctx->delayed_detect_initialized == 0) {
         *data = NULL;
         return TM_ECODE_OK;
@@ -1369,11 +1379,20 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->tv = tv;
     det_ctx->de_ctx = de_ctx;
 
+    det_ctx->non_mpm_id_array =  SCCalloc(32000, sizeof(SigIntId)); // TODO proper size or dynamicly grow
+    BUG_ON(det_ctx->non_mpm_id_array == NULL);
+
     if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
         return TM_ECODE_FAILED;
 
     /** alert counter setup */
     det_ctx->counter_alerts = counter_alerts;
+#ifdef PROFILING
+    det_ctx->counter_mpm_list = counter_mpm_list;
+    det_ctx->counter_nonmpm_list = counter_nonmpm_list;
+    det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
+    det_ctx->counter_match_list = counter_match_list;
+#endif
 
     /* pass thread data back to caller */
     *data = (void *)det_ctx;
@@ -1444,6 +1463,9 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
         PmqFree(&det_ctx->smsg_pmq[i]);
     }
+
+    if (det_ctx->non_mpm_id_array != NULL)
+        SCFree(det_ctx->non_mpm_id_array);
 
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);

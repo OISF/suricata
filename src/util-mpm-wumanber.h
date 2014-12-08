@@ -38,6 +38,11 @@ typedef struct WmPattern_ {
     uint16_t prefix_cs;
     uint8_t flags;
     uint32_t id; /* global pattern id */
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
 } WmPattern;
 
 typedef struct WmHashItem_ {

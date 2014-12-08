@@ -38,7 +38,7 @@
 #include "util-unittest-helper.h"
 
 static int DetectSameipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                             Signature *, SigMatch *);
+                             Signature *, const SigMatchCtx *);
 static int DetectSameipSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectSameipRegisterTests(void);
 
@@ -71,7 +71,7 @@ void DetectSameipRegister(void)
  * \retval 1 match
  */
 static int DetectSameipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                             Packet *p, Signature *s, SigMatch *m)
+                             Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     return CMP_ADDR(&p->src, &p->dst) ? 1 : 0;
 }

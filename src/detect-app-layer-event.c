@@ -47,7 +47,7 @@
 
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, Signature *s, SigMatch *m);
+                                       Packet *p, Signature *s, const SigMatchCtx *ctx);
 static int DetectAppLayerEventAppMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
                                 uint8_t, void *, Signature *, SigMatch *);
 static int DetectAppLayerEventSetupP1(DetectEngineCtx *, Signature *, char *);
@@ -74,9 +74,9 @@ void DetectAppLayerEventRegister(void)
 
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                                Packet *p, Signature *s, SigMatch *m)
+                                Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
+    const DetectAppLayerEventData *aled = (const DetectAppLayerEventData *)ctx;
 
     return AppLayerDecoderEventsIsEventSet(p->app_layer_events,
                                            aled->event_id);
@@ -223,7 +223,7 @@ static int DetectAppLayerEventSetupP2(Signature *s,
 {
     AppLayerEventType event_type = 0;
 
-    if (DetectAppLayerEventParseAppP2(sm->ctx, s->proto.proto,
+    if (DetectAppLayerEventParseAppP2((DetectAppLayerEventData *)sm->ctx, s->proto.proto,
                                       &event_type) < 0) {
         /* DetectAppLayerEventParseAppP2 prints errors */
         return -1;
@@ -253,7 +253,7 @@ static int DetectAppLayerEventSetupP1(DetectEngineCtx *de_ctx, Signature *s, cha
         goto error;
 
     sm->type = DETECT_AL_APP_LAYER_EVENT;
-    sm->ctx = (void *)data;
+    sm->ctx = (SigMatchCtx *)data;
 
     if (s->alproto != ALPROTO_UNKNOWN) {
         if (s->alproto != data->alproto) {
