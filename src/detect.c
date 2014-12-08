@@ -483,122 +483,6 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     SCReturnInt(ret);
 }
 
-/**
- *  \brief See if we can prefilter a signature on inexpensive checks
- *
- *  Order of SignatureHeader access:
- *  1. flags
- *  2. alproto
- *  3. mpm_pattern_id_div8
- *  4. mpm_pattern_id_mod8
- *  5. num
- *
- *  \retval 0 can't match, don't inspect
- *  \retval 1 might match, further inspection required
- */
-int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *det_ctx,
-                                                  Packet *p, SignatureHeader *s,
-                                                  AppProto alproto)
-{
-    /* if the sig has alproto and the session as well they should match */
-    if (likely(s->flags & SIG_FLAG_APPLAYER)) {
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
-            if (s->alproto == ALPROTO_DCERPC) {
-                if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
-                    SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
-                    return 0;
-                }
-            } else {
-                SCLogDebug("alproto mismatch");
-                return 0;
-            }
-        }
-    }
-
-    if (unlikely(s->flags & SIG_FLAG_DSIZE)) {
-        if (likely(p->payload_len < s->dsize_low || p->payload_len > s->dsize_high)) {
-            SCLogDebug("kicked out as p->payload_len %u, dsize low %u, hi %u",
-                    p->payload_len, s->dsize_low, s->dsize_high);
-            return 0;
-        }
-    }
-
-    /* check for a pattern match of the one pattern in this sig. */
-    if (likely(s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER)))
-    {
-        /* filter out sigs that want pattern matches, but
-         * have no matches */
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-            if (s->flags & SIG_FLAG_MPM_PACKET) {
-                if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_STREAM) {
-                /* filter out sigs that want pattern matches, but
-                 * have no matches */
-                if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_APPLAYER) {
-                if (!(s->flags & SIG_FLAG_MPM_APPLAYER_NEG)) {
-                    return 0;
-                }
-            }
-        }
-    }
-
-    /* de_state check, filter out all signatures that already had a match before
-     * or just partially match */
-    if (s->flags & SIG_FLAG_STATE_MATCH) {
-        /* we run after DeStateDetectContinueDetection, so we might have
-         * state NEW here. In that case we'd want to continue detection
-         * for this sig. If we have NOSTATE, stateful detection didn't
-         * start yet for this sig, so we will inspect it.
-         */
-        if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
-            return 0;
-    }
-
-    return 1;
-}
-
-#if defined(__SSE3__) || defined(__tile__)
-/* SIMD implementations are in detect-simd.c */
-#else
-/* Non-SIMD implementation */
-/**
- *  \brief build an array of signatures that will be inspected
- *
- *  All signatures that can be filtered out on forehand are not added to it.
- *
- *  \param de_ctx detection engine ctx
- *  \param det_ctx detection engine thread ctx -- array is stored here
- *  \param p packet
- *  \param mask Packets mask
- *  \param alproto application layer protocol
- */
-void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
-                                       Packet *p, SignatureMask mask,
-                                       AppProto alproto)
-{
-    uint32_t u;
-
-    /* reset previous run */
-    det_ctx->match_array_cnt = 0;
-
-    for (u = 0; u < det_ctx->sgh->sig_cnt; u++) {
-        SignatureHeader *s = &det_ctx->sgh->head_array[u];
-        if ((mask & s->mask) == s->mask) {
-            if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
-                /* okay, store it */
-                det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
-                det_ctx->match_array_cnt++;
-            }
-        }
-    }
-}
-#endif /* No SIMD implementation */
-
 int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    Signature *s)
@@ -4192,8 +4076,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
         if (sgh == NULL)
             continue;
-
-        SigGroupHeadBuildHeadArray(de_ctx, sgh);
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
@@ -4204,7 +4086,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
-        SigGroupHeadBuildHeadArray(de_ctx, de_ctx->decoder_event_sgh);
         /* no need to set filestore count here as that would make a
          * signature not decode event only. */
     }
@@ -12213,8 +12094,9 @@ void SigRegisterTests(void)
     UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04, 1);
 
     UtRegisterTest("SigTestPorts01", SigTestPorts01, 1);
-
+#if 0
     DetectSimdRegisterTests();
+#endif
 #endif /* UNITTESTS */
 }
 
