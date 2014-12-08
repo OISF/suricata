@@ -297,6 +297,7 @@ int UnixCommandAccept(UnixCommand *this)
         SCLogInfo("Command server: client message is too long, "
                   "disconnect him.");
         close(client);
+        return 0;
     }
     buffer[ret] = 0;
 
