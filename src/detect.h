@@ -333,37 +333,6 @@ typedef struct IPOnlyCIDRItem_ {
 
 } IPOnlyCIDRItem;
 
-/** \brief Subset of the Signature for cache efficient prefiltering
- */
-typedef struct SignatureHeader_ {
-    union {
-        struct {
-            /* coccinelle: SignatureHeader:flags:SIG_FLAG */
-            uint32_t flags;
-            AppProto alproto;
-            uint16_t dsize_low;
-        };
-        uint64_t hdr_copy1;
-    };
-    union {
-        struct {
-            uint16_t dsize_high;
-            uint16_t mpm_pattern_id_div_8;
-        };
-        uint32_t hdr_copy2;
-    };
-    union {
-        struct {
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
-            SigIntId num; /**< signature number, internal id */
-        };
-        uint32_t hdr_copy3;
-    };
-    /** pointer to the full signature */
-    struct Signature_ *full_sig;
-} SignatureHeader;
-
 /** \brief Used to start a pointer to SigMatch context
  * Should never be dereferenced without casting to something else.
  */
@@ -988,10 +957,6 @@ typedef struct SigGroupHead_ {
 #if defined(__SSE3__) || defined(__tile__)
     SignatureMask *mask_array;
 #endif
-    /** chunk of memory containing the "header" part of each
-     *  signature ordered as an array. Used to pre-filter the
-     *  signatures to be inspected in a cache efficient way. */
-    SignatureHeader *head_array;
 
     SigIntId *non_mpm_id_array;
     uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
@@ -1184,9 +1149,6 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
 void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *,
                                        Packet *, SignatureMask,
                                        uint16_t);
-int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *,
-                                                  Packet *, SignatureHeader *,
-                                                  uint16_t);
 void SigMatchFree(SigMatch *sm);
 void SigCleanSignatures(DetectEngineCtx *);
 

@@ -71,7 +71,6 @@ detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
 detect.c detect.h \
-detect-simd.c \
 detect-classtype.c detect-classtype.h \
 detect-content.c detect-content.h \
 detect-csum.c detect-csum.h \
