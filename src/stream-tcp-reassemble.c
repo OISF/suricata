@@ -7715,6 +7715,7 @@ static int StreamTcpReassembleInlineTest01(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -7793,6 +7794,7 @@ static int StreamTcpReassembleInlineTest02(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -7904,6 +7906,7 @@ static int StreamTcpReassembleInlineTest03(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8020,6 +8023,7 @@ static int StreamTcpReassembleInlineTest04(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8133,6 +8137,7 @@ static int StreamTcpReassembleInlineTest05(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8227,6 +8232,7 @@ static int StreamTcpReassembleInlineTest06(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8356,6 +8362,7 @@ static int StreamTcpReassembleInlineTest07(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8491,6 +8498,7 @@ static int StreamTcpReassembleInlineTest08(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8624,6 +8632,7 @@ static int StreamTcpReassembleInlineTest09(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
@@ -8771,6 +8780,7 @@ static int StreamTcpReassembleInlineTest10(void)
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.server, 1);
 

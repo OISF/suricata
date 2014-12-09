@@ -29,6 +29,8 @@
 void StreamTcpUTInit(TcpReassemblyThreadCtx **);
 void StreamTcpUTDeinit(TcpReassemblyThreadCtx *);
 
+void StreamTcpUTInitInline(void);
+
 void StreamTcpUTSetupSession(TcpSession *);
 void StreamTcpUTClearSession(TcpSession *);
 
