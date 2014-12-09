@@ -2835,12 +2835,27 @@ typedef struct ReassembleData_ {
     uint32_t data_sent; /* data passed on this run */
 } ReassembleData;
 
+/** \internal
+ *  \brief test if segment follows a gap. If so, handle the gap
+ *
+ *  If in inline mode, segment may be un-ack'd. In this case we
+ *  consider it a gap, but it's not 'final' yet.
+ *
+ *  \retval bool 1 gap 0 no gap
+ */
 int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
                  Packet *p, uint32_t next_seq)
 {
     if (unlikely(SEQ_GT(seg->seq, next_seq))) {
         /* we've run into a sequence gap */
+
+        if (StreamTcpInlineMode()) {
+            /* don't conclude it's a gap until we see that the data
+             * that is missing was acked. */
+            if (SEQ_GT(seg->seq,stream->last_ack) && ssn->state != TCP_CLOSED)
+                return 1;
+        }
 
         /* first, pass on data before the gap */
         if (rd->data_len > 0) {
@@ -2902,40 +2917,57 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
                 seg->payload_len, rd->ra_base_seq, stream->last_ack);
 
-        /* handle segments partly before ra_base_seq */
-        if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
-            payload_offset = (rd->ra_base_seq + 1) - seg->seq;
-            SCLogDebug("payload_offset %u", payload_offset);
+        if (StreamTcpInlineMode() == 0) {
+            /* handle segments partly before ra_base_seq */
+            if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
+                payload_offset = (rd->ra_base_seq + 1) - seg->seq;
+                SCLogDebug("payload_offset %u", payload_offset);
 
-            if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                if (SEQ_LT(stream->last_ack, (rd->ra_base_seq + 1))) {
-                    payload_len = (stream->last_ack - seg->seq);
-                    SCLogDebug("payload_len %u", payload_len);
+                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
+                    if (SEQ_LT(stream->last_ack, (rd->ra_base_seq + 1))) {
+                        payload_len = (stream->last_ack - seg->seq);
+                        SCLogDebug("payload_len %u", payload_len);
+                    } else {
+                        payload_len = (stream->last_ack - seg->seq) - payload_offset;
+                        SCLogDebug("payload_len %u", payload_len);
+                    }
+                    rd->partial = TRUE;
                 } else {
-                    payload_len = (stream->last_ack - seg->seq) - payload_offset;
+                    payload_len = seg->payload_len - payload_offset;
                     SCLogDebug("payload_len %u", payload_len);
                 }
-                rd->partial = TRUE;
-            } else {
-                payload_len = seg->payload_len - payload_offset;
-                SCLogDebug("payload_len %u", payload_len);
-            }
 
-            if (SCLogDebugEnabled()) {
-                BUG_ON(payload_offset > seg->payload_len);
-                BUG_ON((payload_len + payload_offset) > seg->payload_len);
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
+                }
+            } else {
+                payload_offset = 0;
+
+                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
+                    payload_len = stream->last_ack - seg->seq;
+                    SCLogDebug("payload_len %u", payload_len);
+
+                    rd->partial = TRUE;
+                } else {
+                    payload_len = seg->payload_len;
+                    SCLogDebug("payload_len %u", payload_len);
+                }
             }
+        /* inline mode, don't consider last_ack as we process un-ACK'd segments */
         } else {
-            payload_offset = 0;
+            /* handle segments partly before ra_base_seq */
+            if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
+                payload_offset = rd->ra_base_seq - seg->seq - 1;
+                payload_len = seg->payload_len - payload_offset;
 
-            if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                payload_len = stream->last_ack - seg->seq;
-                SCLogDebug("payload_len %u", payload_len);
-
-                rd->partial = TRUE;
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
+                }
             } else {
+                payload_offset = 0;
                 payload_len = seg->payload_len;
-                SCLogDebug("payload_len %u", payload_len);
             }
         }
         SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
@@ -3165,8 +3197,14 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
     }
 
-    for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
+    for (; seg != NULL; )
     {
+        /* if in inline mode, we process all segments regardless of whether
+         * they are ack'd or not. In non-inline, we process only those that
+         * are at least partly ack'd. */
+        if (StreamTcpInlineMode() == 0 && SEQ_GEQ(seg->seq, stream->last_ack))
+            break;
+
         SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
@@ -3219,6 +3257,16 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                               rd.data, rd.data_len,
                               StreamGetAppLayerFlags(ssn, stream, p));
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
+    }
+
+    /* if no data was sent to the applayer, we send it a empty 'nudge'
+     * when in inline mode */
+    if (StreamTcpInlineMode() && rd.data_sent == 0 && ssn->state > TCP_ESTABLISHED) {
+        SCLogDebug("sending empty eof message");
+        /* send EOF to app layer */
+        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                NULL, 0, StreamGetAppLayerFlags(ssn, stream, p));
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
@@ -3580,7 +3628,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
      * functions to handle EOF */
     if (StreamTcpInlineMode()) {
         int r = 0;
-        if (StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
+        if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
         if (StreamTcpReassembleInlineRaw(ra_ctx, ssn, stream, p) < 0)
             r = -1;
@@ -8783,9 +8831,9 @@ static int StreamTcpReassembleInlineTest10(void)
     }
     ssn.server.next_seq = 4;
 
-    int r = StreamTcpReassembleInlineAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
+    int r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
     if (r < 0) {
-        printf("StreamTcpReassembleInlineAppLayer failed: ");
+        printf("StreamTcpReassembleAppLayer failed: ");
         goto end;
     }
 
@@ -8805,9 +8853,9 @@ static int StreamTcpReassembleInlineTest10(void)
     }
     ssn.server.next_seq = 19;
 
-    r = StreamTcpReassembleInlineAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
+    r = StreamTcpReassembleAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
     if (r < 0) {
-        printf("StreamTcpReassembleInlineAppLayer failed: ");
+        printf("StreamTcpReassembleAppLayer failed: ");
         goto end;
     }
 
