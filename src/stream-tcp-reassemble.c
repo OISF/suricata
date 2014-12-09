@@ -2851,6 +2851,7 @@ typedef struct ReassembleData_ {
     uint32_t data_len;
     uint8_t data[4096];
     int partial;        /* last segment was processed only partially */
+    uint32_t data_sent; /* data passed on this run */
 } ReassembleData;
 
 int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -2870,6 +2871,7 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     rd->data, rd->data_len, flags);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += rd->data_len;
             rd->data_len = 0;
         }
 
@@ -2988,6 +2990,7 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                     rd->data, rd->data_len, flags);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += rd->data_len;
             rd->data_len = 0;
 
             /* if after the first data chunk we have no alproto yet,
@@ -3048,6 +3051,7 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                             rd->data, rd->data_len, flags);
                     AppLayerProfilingStore(ra_ctx->app_tctx, p);
+                    rd->data_sent += rd->data_len;
                     rd->data_len = 0;
 
                     /* if after the first data chunk we have no alproto yet,
@@ -3149,6 +3153,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     ReassembleData rd;
     rd.ra_base_seq = stream->ra_app_base_seq;
     rd.data_len = 0;
+    rd.data_sent = 0;
     rd.partial = FALSE;
     uint32_t next_seq = rd.ra_base_seq + 1;
 
