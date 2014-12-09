@@ -2032,6 +2032,59 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
     SCReturnInt(1);
 }
 
+/**
+ *  \brief see if app layer is done with a segment
+ *
+ *  \retval 1 app layer is done with this segment
+ *  \retval 0 not done yet
+ */
+#define StreamTcpAppLayerSegmentProcessed(stream, segment) \
+    (( ( (stream)->flags & STREAMTCP_STREAM_FLAG_GAP ) || \
+       ( (segment)->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ) ? 1 :0 ))
+
+/** \internal
+ *  \brief check if we can remove a segment from our segment list
+ *
+ *  If a segment is entirely before the oldest smsg, we can discard it. Otherwise
+ *  we keep it around to be able to log it.
+ *
+ *  \retval 1 yes
+ *  \retval 0 no
+ */
+static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
+{
+    if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
+        /* not (seg is entirely before first smsg, skip) */
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->seq))) {
+            SCReturnInt(0);
+        }
+    } else if (stream == &ssn->server && ssn->toclient_smsg_head != NULL) {
+        /* not (seg is entirely before first smsg, skip) */
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toclient_smsg_head->seq))) {
+            SCReturnInt(0);
+        }
+    }
+
+    /* if proto detect isn't done, we're not returning */
+    if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
+        SCReturnInt(0);
+    }
+
+    /* check app layer conditions */
+    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+        if (!(StreamTcpAppLayerSegmentProcessed(stream, seg))) {
+            SCReturnInt(0);
+        }
+    }
+
+    /* check raw reassembly conditions */
+    if (!(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+        SCReturnInt(0);
+    }
+
+    SCReturnInt(1);
+}
+
 static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 {
     if (seg->prev == NULL) {
@@ -2047,16 +2100,6 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
     if (stream->seg_list_tail == seg)
         stream->seg_list_tail = seg->prev;
 }
-
-/**
- *  \brief see if app layer is done with a segment
- *
- *  \retval 1 app layer is done with this segment
- *  \retval 0 not done yet
- */
-#define StreamTcpAppLayerSegmentProcessed(stream, segment) \
-    (( ( (stream)->flags & STREAMTCP_STREAM_FLAG_GAP ) || \
-       ( (segment)->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ) ? 1 :0 ))
 
 /**
  *  \brief Update the stream reassembly upon receiving a data segment
@@ -2717,49 +2760,6 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
     }
     SCLogDebug("stream->ra_raw_base_seq %u", stream->ra_raw_base_seq);
     SCReturnInt(0);
-}
-
-/** \internal
- *  \brief check if we can remove a segment from our segment list
- *
- *  If a segment is entirely before the oldest smsg, we can discard it. Otherwise
- *  we keep it around to be able to log it.
- *
- *  \retval 1 yes
- *  \retval 0 no
- */
-static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, TcpStream *stream, TcpSegment *seg)
-{
-    if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
-        /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->seq))) {
-            SCReturnInt(0);
-        }
-    } else if (stream == &ssn->server && ssn->toclient_smsg_head != NULL) {
-        /* not (seg is entirely before first smsg, skip) */
-        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toclient_smsg_head->seq))) {
-            SCReturnInt(0);
-        }
-    }
-
-    /* if proto detect isn't done, we're not returning */
-    if (!(StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream))) {
-        SCReturnInt(0);
-    }
-
-    /* check app layer conditions */
-    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
-        if (!(StreamTcpAppLayerSegmentProcessed(stream, seg))) {
-            SCReturnInt(0);
-        }
-    }
-
-    /* check raw reassembly conditions */
-    if (!(seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
-        SCReturnInt(0);
-    }
-
-    SCReturnInt(1);
 }
 
 /** \brief Remove idle TcpSegments from TcpSession
