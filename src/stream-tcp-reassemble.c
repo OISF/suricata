@@ -1935,25 +1935,40 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     } \
 }
 
-#define STREAM_SET_INLINE_FLAGS(ssn, stream, p, flag) { \
-    flag = 0; \
-    if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
-        flag |= STREAM_START; \
-    } \
-    if (ssn->state == TCP_CLOSED) { \
-        flag |= STREAM_EOF; \
-    } \
-    if (p->flags & PKT_PSEUDO_STREAM_END) { \
-        flag |= STREAM_EOF; \
-    } \
-    if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
-        flag |= STREAM_TOSERVER; \
-    } else { \
-        flag |= STREAM_TOCLIENT; \
-    } \
-    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {    \
-        flag |= STREAM_DEPTH; \
-    } \
+static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
+                                      Packet *p)
+{
+    uint8_t flag = 0;
+
+    if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+        flag |= STREAM_START;
+    }
+
+    if (ssn->state == TCP_CLOSED) {
+        flag |= STREAM_EOF;
+    }
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        flag |= STREAM_EOF;
+    }
+
+    if (StreamTcpInlineMode() == 0) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag |= STREAM_TOCLIENT;
+        } else {
+            flag |= STREAM_TOSERVER;
+        }
+    } else {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag |= STREAM_TOSERVER;
+        } else {
+            flag |= STREAM_TOCLIENT;
+        }
+    }
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        flag |= STREAM_DEPTH;
+    }
+    return flag;
 }
 
 static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
@@ -2121,8 +2136,6 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
 {
     SCEnter();
 
-    uint8_t flags = 0;
-
     /* this function can be directly called by app layer protocol
      * detection. */
     if (stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
@@ -2145,9 +2158,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
         if (ssn->state > TCP_ESTABLISHED) {
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
-            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                  NULL, 0, flags);
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream, NULL, 0,
+                                  StreamGetAppLayerFlags(ssn, stream, p));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
         } else {
@@ -2182,9 +2194,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
     if (!(p->flow->flags & FLOW_NO_APPLAYER_INSPECTION)) {
         if (SEQ_GT(seg->seq, next_seq) && SEQ_LT(seg->seq, stream->last_ack)) {
             /* send gap signal */
-            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0, flags|STREAM_GAP);
+                    NULL, 0, StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2238,11 +2249,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
             if (data_len > 0) {
                 SCLogDebug("pre GAP data");
 
-                STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-
                 /* process what we have so far */
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                      data, data_len, flags);
+                        data, data_len, StreamGetAppLayerFlags(ssn, stream, p));
                 AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_len = 0;
             }
@@ -2262,9 +2271,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
             ra_base_seq = seg->seq - 1;
 
             /* send gap signal */
-            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0, flags|STREAM_GAP);
+                    NULL, 0, StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
             data_sent += data_len;
 
@@ -2325,10 +2333,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
             /* queue the smsg if it's full */
             if (data_len == sizeof(data)) {
                 /* process what we have so far */
-                STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-                BUG_ON(data_len > sizeof(data));
                 AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                      data, data_len, flags);
+                        data, data_len, StreamGetAppLayerFlags(ssn, stream, p));
                 AppLayerProfilingStore(ra_ctx->app_tctx, p);
                 data_sent += data_len;
                 data_len = 0;
@@ -2379,10 +2385,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
 
                     if (data_len == sizeof(data)) {
                         /* process what we have so far */
-                        STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
-                        BUG_ON(data_len > sizeof(data));
                         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                              data, data_len, flags);
+                                data, data_len, StreamGetAppLayerFlags(ssn, stream, p));
                         AppLayerProfilingStore(ra_ctx->app_tctx, p);
                         data_sent += data_len;
                         data_len = 0;
@@ -2415,10 +2419,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
     if (data_len > 0) {
         SCLogDebug("data_len > 0, %u", data_len);
         /* process what we have so far */
-        STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         BUG_ON(data_len > sizeof(data));
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                              data, data_len, flags);
+                data, data_len, StreamGetAppLayerFlags(ssn, stream, p));
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         data_sent += data_len;
     }
@@ -2426,9 +2429,8 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
     if (data_sent == 0 && ssn->state > TCP_ESTABLISHED) {
         SCLogDebug("sending empty eof message");
         /* send EOF to app layer */
-        STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                              NULL, 0, flags);
+                NULL, 0, StreamGetAppLayerFlags(ssn, stream, p));
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
