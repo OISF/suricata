@@ -2958,6 +2958,41 @@ typedef struct ReassembleRawData_ {
     uint16_t smsg_offset; // TODO diff with smsg->data_len?
 } ReassembleRawData;
 
+static void DoHandleRawGap(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, Packet *p,
+        ReassembleRawData *rd, uint32_t next_seq)
+{
+    /* we've run into a sequence gap */
+    if (SEQ_GT(seg->seq, next_seq)) {
+        /* pass on pre existing smsg (if any) */
+        if (rd->smsg != NULL && rd->smsg->data_len > 0) {
+            /* if app layer protocol has not been detected till yet,
+               then check did we have sent message to app layer already
+               or not. If not then sent the message and set flag that first
+               message has been sent. No more data till proto has not
+               been detected */
+            StreamTcpStoreStreamChunk(ssn, rd->smsg, p, 0);
+            stream->ra_raw_base_seq = rd->ra_base_seq;
+            rd->smsg = NULL;
+        }
+
+        /* see what the length of the gap is, gap length is seg->seq -
+         * (ra_base_seq +1) */
+#ifdef DEBUG
+        uint32_t gap_len = seg->seq - next_seq;
+        SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
+                "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
+                next_seq, seg->seq, stream->last_ack, gap_len);
+#endif
+        stream->ra_raw_base_seq = rd->ra_base_seq;
+
+        /* We have missed the packet and end host has ack'd it, so
+         * IDS should advance it's ra_base_seq and should not consider this
+         * packet any longer, even if it is retransmitted, as end host will
+         * drop it anyway */
+        rd->ra_base_seq = seg->seq - 1;
+    }
+}
+
 static int DoRawReassemble(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, Packet *p,
     ReassembleRawData *rd)
 {
@@ -3190,37 +3225,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             continue;
         }
 
-        /* we've run into a sequence gap */
-        if (SEQ_GT(seg->seq, next_seq)) {
-
-            /* pass on pre existing smsg (if any) */
-            if (rd.smsg != NULL && rd.smsg->data_len > 0) {
-                /* if app layer protocol has not been detected till yet,
-                   then check did we have sent message to app layer already
-                   or not. If not then sent the message and set flag that first
-                   message has been sent. No more data till proto has not
-                   been detected */
-                StreamTcpStoreStreamChunk(ssn, rd.smsg, p, 0);
-                stream->ra_raw_base_seq = rd.ra_base_seq;
-                rd.smsg = NULL;
-            }
-
-            /* see what the length of the gap is, gap length is seg->seq -
-             * (ra_base_seq +1) */
-#ifdef DEBUG
-            uint32_t gap_len = seg->seq - next_seq;
-            SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
-                    "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
-                    next_seq, seg->seq, stream->last_ack, gap_len);
-#endif
-            stream->ra_raw_base_seq = rd.ra_base_seq;
-
-            /* We have missed the packet and end host has ack'd it, so
-             * IDS should advance it's ra_base_seq and should not consider this
-             * packet any longer, even if it is retransmitted, as end host will
-             * drop it anyway */
-            rd.ra_base_seq = seg->seq - 1;
-        }
+        DoHandleRawGap(ssn, stream, seg, p, &rd, next_seq);
 
         if (DoRawReassemble(ssn, stream, seg, p, &rd) == 0)
             break;
