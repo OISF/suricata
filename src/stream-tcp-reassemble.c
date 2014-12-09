@@ -2839,6 +2839,237 @@ static void GetSessionSize(TcpSession *ssn, Packet *p)
 }
 #endif
 
+typedef struct ReassembleData_ {
+    uint32_t ra_base_seq;
+    uint32_t data_len;
+    uint8_t data[4096];
+    int partial;        /* last segment was processed only partially */
+} ReassembleData;
+
+int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+                 TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
+                 Packet *p, uint8_t flags, uint32_t next_seq)
+{
+    if (unlikely(SEQ_GT(seg->seq, next_seq))) {
+        /* we've run into a sequence gap */
+
+        /* first, pass on data before the gap */
+        if (rd->data_len > 0) {
+            SCLogDebug("pre GAP data");
+
+            STREAM_SET_FLAGS(ssn, stream, p, flags);
+
+            /* process what we have so far */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    rd->data, rd->data_len, flags);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_len = 0;
+        }
+
+#ifdef DEBUG
+        uint32_t gap_len = seg->seq - next_seq;
+        SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
+                "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
+                next_seq, seg->seq, stream->last_ack, gap_len);
+#endif
+        /* We have missed the packet and end host has ack'd it, so
+         * IDS should advance it's ra_base_seq and should not consider this
+         * packet any longer, even if it is retransmitted, as end host will
+         * drop it anyway */
+        rd->ra_base_seq = seg->seq - 1;
+
+        /* send gap "signal" */
+        STREAM_SET_FLAGS(ssn, stream, p, flags);
+        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                NULL, 0, flags|STREAM_GAP);
+        AppLayerProfilingStore(ra_ctx->app_tctx, p);
+
+        /* set a GAP flag and make sure not bothering this stream anymore */
+        SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
+        stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+
+        StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+        SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
+#ifdef DEBUG
+        dbg_app_layer_gap++;
+#endif
+        return 1;
+    }
+    return 0;
+}
+
+static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+                 TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
+                 Packet *p, uint8_t flags)
+{
+    uint16_t payload_offset = 0;
+    uint16_t payload_len = 0;
+
+    /* start clean */
+    rd->partial = FALSE;
+
+    /* if the segment ends beyond ra_base_seq we need to consider it */
+    if (SEQ_GT((seg->seq + seg->payload_len), rd->ra_base_seq+1)) {
+        SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
+                "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
+                seg->payload_len, rd->ra_base_seq, stream->last_ack);
+
+        /* handle segments partly before ra_base_seq */
+        if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
+            payload_offset = (rd->ra_base_seq + 1) - seg->seq;
+            SCLogDebug("payload_offset %u", payload_offset);
+
+            if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
+                if (SEQ_LT(stream->last_ack, (rd->ra_base_seq + 1))) {
+                    payload_len = (stream->last_ack - seg->seq);
+                    SCLogDebug("payload_len %u", payload_len);
+                } else {
+                    payload_len = (stream->last_ack - seg->seq) - payload_offset;
+                    SCLogDebug("payload_len %u", payload_len);
+                }
+                rd->partial = TRUE;
+            } else {
+                payload_len = seg->payload_len - payload_offset;
+                SCLogDebug("payload_len %u", payload_len);
+            }
+
+            if (SCLogDebugEnabled()) {
+                BUG_ON(payload_offset > seg->payload_len);
+                BUG_ON((payload_len + payload_offset) > seg->payload_len);
+            }
+        } else {
+            payload_offset = 0;
+
+            if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
+                payload_len = stream->last_ack - seg->seq;
+                SCLogDebug("payload_len %u", payload_len);
+
+                rd->partial = TRUE;
+            } else {
+                payload_len = seg->payload_len;
+                SCLogDebug("payload_len %u", payload_len);
+            }
+        }
+        SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
+                " and stream->last_ack is %"PRIu32"", payload_offset,
+                payload_len, stream->last_ack);
+
+        if (payload_len == 0) {
+            SCLogDebug("no payload_len, so bail out");
+            return 0;
+        }
+
+        /* copy the data into the smsg */
+        uint16_t copy_size = sizeof(rd->data) - rd->data_len;
+        if (copy_size > payload_len) {
+            copy_size = payload_len;
+        }
+        if (SCLogDebugEnabled()) {
+            BUG_ON(copy_size > sizeof(rd->data));
+        }
+        SCLogDebug("copy_size is %"PRIu16"", copy_size);
+        memcpy(rd->data + rd->data_len, seg->payload + payload_offset, copy_size);
+        rd->data_len += copy_size;
+        rd->ra_base_seq += copy_size;
+        SCLogDebug("ra_base_seq %"PRIu32", data_len %"PRIu32, rd->ra_base_seq, rd->data_len);
+
+        /* queue the smsg if it's full */
+        if (rd->data_len == sizeof(rd->data)) {
+            /* process what we have so far */
+            STREAM_SET_FLAGS(ssn, stream, p, flags);
+//            BUG_ON(rd->data_len > sizeof(rd->data));
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    rd->data, rd->data_len, flags);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_len = 0;
+
+            /* if after the first data chunk we have no alproto yet,
+             * there is no point in continueing here. */
+            if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                SCLogDebug("no alproto after first data chunk");
+                return 0;
+            }
+        }
+
+        /* if the payload len is bigger than what we copied, we handle the
+         * rest of the payload next... */
+        if (copy_size < payload_len) {
+            SCLogDebug("copy_size %" PRIu32 " < %" PRIu32 "", copy_size,
+                    payload_len);
+
+            payload_offset += copy_size;
+            payload_len -= copy_size;
+            SCLogDebug("payload_offset is %"PRIu16", seg->payload_len is "
+                    "%"PRIu16" and stream->last_ack is %"PRIu32"",
+                    payload_offset, seg->payload_len, stream->last_ack);
+            if (SCLogDebugEnabled()) {
+                BUG_ON(payload_offset > seg->payload_len);
+            }
+
+            /* we need a while loop here as the packets theoretically can be
+             * 64k */
+            char segment_done = FALSE;
+            while (segment_done == FALSE) {
+                SCLogDebug("new msg at offset %" PRIu32 ", payload_len "
+                        "%" PRIu32 "", payload_offset, payload_len);
+                rd->data_len = 0;
+
+                copy_size = sizeof(rd->data) - rd->data_len;
+                if (copy_size > (seg->payload_len - payload_offset)) {
+                    copy_size = (seg->payload_len - payload_offset);
+                }
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(copy_size > sizeof(rd->data));
+                }
+
+                SCLogDebug("copy payload_offset %" PRIu32 ", data_len "
+                        "%" PRIu32 ", copy_size %" PRIu32 "",
+                        payload_offset, rd->data_len, copy_size);
+                memcpy(rd->data + rd->data_len, seg->payload +
+                        payload_offset, copy_size);
+                rd->data_len += copy_size;
+                rd->ra_base_seq += copy_size;
+                SCLogDebug("ra_base_seq %"PRIu32, rd->ra_base_seq);
+                SCLogDebug("copied payload_offset %" PRIu32 ", "
+                        "data_len %" PRIu32 ", copy_size %" PRIu32 "",
+                        payload_offset, rd->data_len, copy_size);
+
+                if (rd->data_len == sizeof(rd->data)) {
+                    /* process what we have so far */
+                    STREAM_SET_FLAGS(ssn, stream, p, flags);
+//                    BUG_ON(rd->data_len > sizeof(rd->data));
+                    AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                            rd->data, rd->data_len, flags);
+                    AppLayerProfilingStore(ra_ctx->app_tctx, p);
+                    rd->data_len = 0;
+
+                    /* if after the first data chunk we have no alproto yet,
+                     * there is no point in continueing here. */
+                    if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                        SCLogDebug("no alproto after first data chunk");
+                        return 0;
+                    }
+                }
+
+                /* see if we have segment payload left to process */
+                if ((copy_size + payload_offset) < seg->payload_len) {
+                    payload_offset += copy_size;
+                    payload_len -= copy_size;
+
+                    if (SCLogDebugEnabled()) {
+                        BUG_ON(payload_offset > seg->payload_len);
+                    }
+                } else {
+                    payload_offset = 0;
+                    segment_done = TRUE;
+                }
+            }
+        }
+    }
+
+    return 1;
+}
+
 /**
  *  \brief Update the stream reassembly upon receiving an ACK packet.
  *
@@ -2908,15 +3139,14 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
     /* stream->ra_app_base_seq remains at stream->isn until protocol is
      * detected. */
-    uint32_t ra_base_seq = stream->ra_app_base_seq;
-    uint8_t data[4096];
-    uint32_t data_len = 0;
-    uint16_t payload_offset = 0;
-    uint16_t payload_len = 0;
-    uint32_t next_seq = ra_base_seq + 1;
+    ReassembleData rd;
+    rd.ra_base_seq = stream->ra_app_base_seq;
+    rd.data_len = 0;
+    rd.partial = FALSE;
+    uint32_t next_seq = rd.ra_base_seq + 1;
 
     SCLogDebug("ra_base_seq %"PRIu32", last_ack %"PRIu32", next_seq %"PRIu32,
-            ra_base_seq, stream->last_ack, next_seq);
+            rd.ra_base_seq, stream->last_ack, next_seq);
 
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
@@ -2972,219 +3202,18 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             continue;
         }
 
-        /* we've run into a sequence gap */
-        if (SEQ_GT(seg->seq, next_seq)) {
-
-            /* first, pass on data before the gap */
-            if (data_len > 0) {
-                SCLogDebug("pre GAP data");
-
-                STREAM_SET_FLAGS(ssn, stream, p, flags);
-
-                /* process what we have so far */
-                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                      data, data_len, flags);
-                AppLayerProfilingStore(ra_ctx->app_tctx, p);
-                data_len = 0;
-            }
-
-            /* see what the length of the gap is, gap length is seg->seq -
-             * (ra_base_seq +1) */
-#ifdef DEBUG
-            uint32_t gap_len = seg->seq - next_seq;
-            SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
-                    "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
-                    next_seq, seg->seq, stream->last_ack, gap_len);
-#endif
-            /* We have missed the packet and end host has ack'd it, so
-             * IDS should advance it's ra_base_seq and should not consider this
-             * packet any longer, even if it is retransmitted, as end host will
-             * drop it anyway */
-            ra_base_seq = seg->seq - 1;
-
-            /* send gap signal */
-            STREAM_SET_FLAGS(ssn, stream, p, flags);
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0, flags|STREAM_GAP);
-            AppLayerProfilingStore(ra_ctx->app_tctx, p);
-
-            /* set a GAP flag and make sure not bothering this stream anymore */
-            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
-            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
-
-            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-            SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
-#ifdef DEBUG
-            dbg_app_layer_gap++;
-#endif
+        /* check if we have a sequence gap and if so, handle it */
+        if (DoHandleGap(tv, ra_ctx, ssn, stream, seg, &rd, p, flags, next_seq) == 1)
             break;
-        }
 
-        int partial = FALSE;
-
-        /* if the segment ends beyond ra_base_seq we need to consider it */
-        if (SEQ_GT((seg->seq + seg->payload_len), ra_base_seq+1)) {
-            SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
-                    "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
-                    seg->payload_len, ra_base_seq, stream->last_ack);
-
-            /* handle segments partly before ra_base_seq */
-            if (SEQ_GT(ra_base_seq, seg->seq)) {
-                payload_offset = (ra_base_seq + 1) - seg->seq;
-                SCLogDebug("payload_offset %u", payload_offset);
-
-                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                    if (SEQ_LT(stream->last_ack, (ra_base_seq + 1))) {
-                        payload_len = (stream->last_ack - seg->seq);
-                        SCLogDebug("payload_len %u", payload_len);
-                    } else {
-                        payload_len = (stream->last_ack - seg->seq) - payload_offset;
-                        SCLogDebug("payload_len %u", payload_len);
-                    }
-                    partial = TRUE;
-                } else {
-                    payload_len = seg->payload_len - payload_offset;
-                    SCLogDebug("payload_len %u", payload_len);
-                }
-
-                if (SCLogDebugEnabled()) {
-                    BUG_ON(payload_offset > seg->payload_len);
-                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
-                }
-            } else {
-                payload_offset = 0;
-
-                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                    payload_len = stream->last_ack - seg->seq;
-                    SCLogDebug("payload_len %u", payload_len);
-
-                    partial = TRUE;
-                } else {
-                    payload_len = seg->payload_len;
-                    SCLogDebug("payload_len %u", payload_len);
-                }
-            }
-            SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
-                       " and stream->last_ack is %"PRIu32"", payload_offset,
-                        payload_len, stream->last_ack);
-
-            if (payload_len == 0) {
-                SCLogDebug("no payload_len, so bail out");
-                break;
-            }
-
-            /* copy the data into the smsg */
-            uint16_t copy_size = sizeof(data) - data_len;
-            if (copy_size > payload_len) {
-                copy_size = payload_len;
-            }
-            if (SCLogDebugEnabled()) {
-                BUG_ON(copy_size > sizeof(data));
-            }
-            SCLogDebug("copy_size is %"PRIu16"", copy_size);
-            memcpy(data + data_len, seg->payload + payload_offset, copy_size);
-            data_len += copy_size;
-            ra_base_seq += copy_size;
-            SCLogDebug("ra_base_seq %"PRIu32", data_len %"PRIu32, ra_base_seq, data_len);
-
-            /* queue the smsg if it's full */
-            if (data_len == sizeof(data)) {
-                /* process what we have so far */
-                STREAM_SET_FLAGS(ssn, stream, p, flags);
-                BUG_ON(data_len > sizeof(data));
-                AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                      data, data_len, flags);
-                AppLayerProfilingStore(ra_ctx->app_tctx, p);
-                data_len = 0;
-
-                /* if after the first data chunk we have no alproto yet,
-                 * there is no point in continueing here. */
-                if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-                    SCLogDebug("no alproto after first data chunk");
-                    break;
-                }
-            }
-
-            /* if the payload len is bigger than what we copied, we handle the
-             * rest of the payload next... */
-            if (copy_size < payload_len) {
-                SCLogDebug("copy_size %" PRIu32 " < %" PRIu32 "", copy_size,
-                            payload_len);
-
-                payload_offset += copy_size;
-                payload_len -= copy_size;
-                SCLogDebug("payload_offset is %"PRIu16", seg->payload_len is "
-                           "%"PRIu16" and stream->last_ack is %"PRIu32"",
-                            payload_offset, seg->payload_len, stream->last_ack);
-                if (SCLogDebugEnabled()) {
-                    BUG_ON(payload_offset > seg->payload_len);
-                }
-
-                /* we need a while loop here as the packets theoretically can be
-                 * 64k */
-                char segment_done = FALSE;
-                while (segment_done == FALSE) {
-                    SCLogDebug("new msg at offset %" PRIu32 ", payload_len "
-                               "%" PRIu32 "", payload_offset, payload_len);
-                    data_len = 0;
-
-                    copy_size = sizeof(data) - data_len;
-                    if (copy_size > (seg->payload_len - payload_offset)) {
-                        copy_size = (seg->payload_len - payload_offset);
-                    }
-                    if (SCLogDebugEnabled()) {
-                        BUG_ON(copy_size > sizeof(data));
-                    }
-
-                    SCLogDebug("copy payload_offset %" PRIu32 ", data_len "
-                                "%" PRIu32 ", copy_size %" PRIu32 "",
-                                payload_offset, data_len, copy_size);
-                    memcpy(data + data_len, seg->payload +
-                            payload_offset, copy_size);
-                    data_len += copy_size;
-                    ra_base_seq += copy_size;
-                    SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
-                    SCLogDebug("copied payload_offset %" PRIu32 ", "
-                               "data_len %" PRIu32 ", copy_size %" PRIu32 "",
-                               payload_offset, data_len, copy_size);
-
-                    if (data_len == sizeof(data)) {
-                        /* process what we have so far */
-                        STREAM_SET_FLAGS(ssn, stream, p, flags);
-                        BUG_ON(data_len > sizeof(data));
-                        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                              data, data_len, flags);
-                        AppLayerProfilingStore(ra_ctx->app_tctx, p);
-                        data_len = 0;
-
-                        /* if after the first data chunk we have no alproto yet,
-                         * there is no point in continueing here. */
-                        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-                            SCLogDebug("no alproto after first data chunk");
-                            break;
-                        }
-                    }
-
-                    /* see if we have segment payload left to process */
-                    if ((copy_size + payload_offset) < seg->payload_len) {
-                        payload_offset += copy_size;
-                        payload_len -= copy_size;
-
-                        if (SCLogDebugEnabled()) {
-                            BUG_ON(payload_offset > seg->payload_len);
-                        }
-                    } else {
-                        payload_offset = 0;
-                        segment_done = TRUE;
-                    }
-                }
-            }
-        }
+        /* process this segment */
+        if (DoReassemble(tv, ra_ctx, ssn, stream, seg, &rd, p, flags) == 0)
+            break;
 
         /* done with this segment, return it to the pool */
         TcpSegment *next_seg = seg->next;
         next_seq = seg->seq + seg->payload_len;
-        if (partial == FALSE) {
+        if (rd.partial == FALSE) {
             SCLogDebug("fully done with segment in app layer reassembly (seg %p seq %"PRIu32")",
                     seg, seg->seq);
             seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
@@ -3196,19 +3225,19 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* put the partly filled smsg in the queue to the l7 handler */
-    if (data_len > 0) {
-        SCLogDebug("data_len > 0, %u", data_len);
+    if (rd.data_len > 0) {
+        SCLogDebug("data_len > 0, %u", rd.data_len);
         /* process what we have so far */
         STREAM_SET_FLAGS(ssn, stream, p, flags);
-        BUG_ON(data_len > sizeof(data));
+        BUG_ON(rd.data_len > sizeof(rd.data));
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                              data, data_len, flags);
+                              rd.data, rd.data_len, flags);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
     /* store ra_base_seq in the stream */
     if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-        stream->ra_app_base_seq = ra_base_seq;
+        stream->ra_app_base_seq = rd.ra_base_seq;
     } else {
         TcpSegment *tmp_seg = stream->seg_list;
         while (tmp_seg != NULL) {
