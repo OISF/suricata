@@ -1914,27 +1914,6 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     SCReturnInt(0);
 }
 
-#define STREAM_SET_FLAGS(ssn, stream, p, flag) { \
-    flag = 0; \
-    if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
-        flag |= STREAM_START; \
-    } \
-    if (ssn->state == TCP_CLOSED) { \
-        flag |= STREAM_EOF; \
-    } \
-    if (p->flags & PKT_PSEUDO_STREAM_END) { \
-        flag |= STREAM_EOF; \
-    } \
-    if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
-        flag |= STREAM_TOCLIENT; \
-    } else { \
-        flag |= STREAM_TOSERVER; \
-    } \
-    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {    \
-        flag |= STREAM_DEPTH; \
-    } \
-}
-
 static uint8_t StreamGetAppLayerFlags(TcpSession *ssn, TcpStream *stream,
                                       Packet *p)
 {
@@ -2858,7 +2837,7 @@ typedef struct ReassembleData_ {
 
 int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
-                 Packet *p, uint8_t flags, uint32_t next_seq)
+                 Packet *p, uint32_t next_seq)
 {
     if (unlikely(SEQ_GT(seg->seq, next_seq))) {
         /* we've run into a sequence gap */
@@ -2867,11 +2846,10 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (rd->data_len > 0) {
             SCLogDebug("pre GAP data");
 
-            STREAM_SET_FLAGS(ssn, stream, p, flags);
-
             /* process what we have so far */
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    rd->data, rd->data_len, flags);
+                    rd->data, rd->data_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
             rd->data_sent += rd->data_len;
             rd->data_len = 0;
@@ -2890,9 +2868,8 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         rd->ra_base_seq = seg->seq - 1;
 
         /* send gap "signal" */
-        STREAM_SET_FLAGS(ssn, stream, p, flags);
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                NULL, 0, flags|STREAM_GAP);
+                NULL, 0, StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
         /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2911,7 +2888,7 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
 static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
-                 Packet *p, uint8_t flags)
+                 Packet *p)
 {
     uint16_t payload_offset = 0;
     uint16_t payload_len = 0;
@@ -2987,10 +2964,9 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         /* queue the smsg if it's full */
         if (rd->data_len == sizeof(rd->data)) {
             /* process what we have so far */
-            STREAM_SET_FLAGS(ssn, stream, p, flags);
-//            BUG_ON(rd->data_len > sizeof(rd->data));
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    rd->data, rd->data_len, flags);
+                    rd->data, rd->data_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
             rd->data_sent += rd->data_len;
             rd->data_len = 0;
@@ -3048,10 +3024,9 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (rd->data_len == sizeof(rd->data)) {
                     /* process what we have so far */
-                    STREAM_SET_FLAGS(ssn, stream, p, flags);
-//                    BUG_ON(rd->data_len > sizeof(rd->data));
                     AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                            rd->data, rd->data_len, flags);
+                            rd->data, rd->data_len,
+                            StreamGetAppLayerFlags(ssn, stream, p));
                     AppLayerProfilingStore(ra_ctx->app_tctx, p);
                     rd->data_sent += rd->data_len;
                     rd->data_len = 0;
@@ -3111,8 +3086,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         SCReturnInt(0);
     }
 
-    uint8_t flags = 0;
-
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
     PrintList(stream->seg_list);
@@ -3130,9 +3103,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         if (ssn->state >= TCP_CLOSING || (p->flags & PKT_PSEUDO_STREAM_END)) {
             SCLogDebug("sending empty eof message");
             /* send EOF to app layer */
-            STREAM_SET_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                                  NULL, 0, flags);
+                                  NULL, 0,
+                                  StreamGetAppLayerFlags(ssn, stream, p));
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             SCReturnInt(0);
@@ -3174,9 +3147,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (!(p->flow->flags & FLOW_NO_APPLAYER_INSPECTION)) {
         if (SEQ_GT(seg->seq, next_seq) && SEQ_LT(seg->seq, stream->last_ack)) {
             /* send gap signal */
-            STREAM_SET_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0, flags|STREAM_GAP);
+                    NULL, 0,
+                    StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
             AppLayerProfilingStore(ra_ctx->app_tctx, p);
 
             /* set a GAP flag and make sure not bothering this stream anymore */
@@ -3217,11 +3190,11 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
 
         /* check if we have a sequence gap and if so, handle it */
-        if (DoHandleGap(tv, ra_ctx, ssn, stream, seg, &rd, p, flags, next_seq) == 1)
+        if (DoHandleGap(tv, ra_ctx, ssn, stream, seg, &rd, p, next_seq) == 1)
             break;
 
         /* process this segment */
-        if (DoReassemble(tv, ra_ctx, ssn, stream, seg, &rd, p, flags) == 0)
+        if (DoReassemble(tv, ra_ctx, ssn, stream, seg, &rd, p) == 0)
             break;
 
         /* done with this segment, return it to the pool */
@@ -3242,10 +3215,10 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     if (rd.data_len > 0) {
         SCLogDebug("data_len > 0, %u", rd.data_len);
         /* process what we have so far */
-        STREAM_SET_FLAGS(ssn, stream, p, flags);
         BUG_ON(rd.data_len > sizeof(rd.data));
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                              rd.data, rd.data_len, flags);
+                              rd.data, rd.data_len,
+                              StreamGetAppLayerFlags(ssn, stream, p));
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
     }
 
