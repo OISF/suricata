@@ -798,8 +798,8 @@ uint32_t WmSearch2Hash9(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -906,8 +906,8 @@ uint32_t WmSearch2Hash12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1014,8 +1014,8 @@ uint32_t WmSearch2Hash14(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1118,8 +1118,8 @@ uint32_t WmSearch2Hash15(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1224,8 +1224,8 @@ uint32_t WmSearch2Hash16(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1318,8 +1318,8 @@ uint32_t WmSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     if (mpm_ctx->minlen == 1) {
