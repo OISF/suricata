@@ -918,8 +918,8 @@ uint32_t B3gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (pos <= (uint32_t)(buflen - B3G_Q + 1)) {
@@ -1024,8 +1024,8 @@ uint32_t B3gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (pos <= (buflen - ctx->m)) {
@@ -1121,8 +1121,8 @@ uint32_t B3gSearch12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatch
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1193,8 +1193,8 @@ uint32_t B3gSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
@@ -1251,8 +1251,8 @@ uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
 
     uint8_t *bitarray = NULL;
     if (pmq) {
-      bitarray = alloca(pmq->pattern_id_bitarray_size);
-      memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+        bitarray = alloca(pmq->pattern_id_bitarray_size);
+        memset(bitarray, 0, pmq->pattern_id_bitarray_size);
     }
 
     while (buf <= bufend) {
