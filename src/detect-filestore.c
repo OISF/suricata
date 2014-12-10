@@ -236,7 +236,7 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
             FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
         }
     } else {
-      DetectFilestoreData *filestore = (DetectFilestoreData *)s->filestore_sm->ctx;
+        DetectFilestoreData *filestore = (DetectFilestoreData *)s->filestore_sm->ctx;
         uint16_t u;
 
         for (u = 0; u < det_ctx->filestore_cnt; u++) {
