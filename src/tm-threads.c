@@ -1994,7 +1994,7 @@ void TmThreadsListThreads(void)
         t = &thread_store.threads[s];
         if (t == NULL || t->in_use == 0)
             continue;
-        SCLogInfo("Thread %"PRIuMAX", %s type %d, tv %p", (uintmax_t)s, t->name, t->type, t->tv);
+        SCLogInfo("Thread %"PRIuMAX", %s type %d, tv %p", (uintmax_t)s+1, t->name, t->type, t->tv);
     }
 
     SCMutexUnlock(&thread_store_lock);
@@ -2023,7 +2023,7 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
             t->in_use = 1;
 
             SCMutexUnlock(&thread_store_lock);
-            return (int)s;
+            return (int)(s+1);
         }
     }
 
@@ -2043,18 +2043,21 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
     thread_store.threads_size += STEP;
 
     SCMutexUnlock(&thread_store_lock);
-    return (int)s;
+    return (int)(s+1);
 }
 #undef STEP
 
 void TmThreadsUnregisterThread(const int id)
 {
     SCMutexLock(&thread_store_lock);
-    if (id < 0 || id >= (int)thread_store.threads_size)
+    if (id <= 0 || id > (int)thread_store.threads_size)
         return;
 
+    /* id is one higher than index */
+    int idx = id - 1;
+
     /* reset thread_id, which serves as clearing the record */
-    thread_store.threads[id].in_use = 0;
+    thread_store.threads[idx].in_use = 0;
 
     /* check if we have at least one registered thread left */
     size_t s;
@@ -2080,12 +2083,14 @@ end:
  *  \note if packet was not accepted, it's still the responsibility
  *        of the caller.
  */
-int TmThreadsInjectPacketsById(Packet **packets, int id)
+int TmThreadsInjectPacketsById(Packet **packets, const int id)
 {
-    if (id < 0 || id >= (int)thread_store.threads_size)
+    if (id <= 0 || id > (int)thread_store.threads_size)
         return 0;
 
-    Thread *t = &thread_store.threads[id];
+    int idx = id - 1;
+
+    Thread *t = &thread_store.threads[idx];
     ThreadVars *tv = t->tv;
 
     if (tv == NULL || tv->stream_pq == NULL)
