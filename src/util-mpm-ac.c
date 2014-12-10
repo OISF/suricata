@@ -218,6 +218,10 @@ static inline void SCACFreePattern(MpmCtx *mpm_ctx, SCACPattern *p)
         mpm_ctx->memory_size -= p->len;
     }
 
+    if (p != NULL && p->sids != NULL) {
+        SCFree(p->sids);
+    }
+
     if (p != NULL) {
         SCFree(p);
         mpm_ctx->memory_cnt--;
@@ -1089,6 +1093,9 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
         //SCLogInfo("ctx->parray[i]->sids_size %u", ctx->parray[i]->sids_size);
         ctx->pid_pat_list[ctx->parray[i]->id].sids_size = ctx->parray[i]->sids_size;
         ctx->pid_pat_list[ctx->parray[i]->id].sids = ctx->parray[i]->sids;
+
+        ctx->parray[i]->sids_size = 0;
+        ctx->parray[i]->sids = NULL;
     }
 
     /* prepare the state table required by AC */
