@@ -1911,7 +1911,10 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
         flag |= STREAM_START; \
     } \
-    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {    \
+    if (ssn->state == TCP_CLOSED) { \
+        flag |= STREAM_EOF; \
+    } \
+    if (p->flags & PKT_PSEUDO_STREAM_END) { \
         flag |= STREAM_EOF; \
     } \
     if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
@@ -1929,7 +1932,10 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (!(stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
         flag |= STREAM_START; \
     } \
-    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {    \
+    if (ssn->state == TCP_CLOSED) { \
+        flag |= STREAM_EOF; \
+    } \
+    if (p->flags & PKT_PSEUDO_STREAM_END) { \
         flag |= STREAM_EOF; \
     } \
     if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
