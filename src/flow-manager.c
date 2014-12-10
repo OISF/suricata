@@ -244,7 +244,7 @@ static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts)
     int server = 0, client = 0;
     if (!(f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) &&
             FlowForceReassemblyNeedReassembly(f, &server, &client) == 1) {
-        FlowForceReassemblyForFlowV2(f, server, client);
+        FlowForceReassemblyForFlow(f, server, client);
         return 0;
     }
 #ifdef DEBUG
