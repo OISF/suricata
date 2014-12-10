@@ -419,7 +419,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
 #ifdef DEBUG
-    BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR_V2);
+    BUG_ON(p->pkt_src != PKT_SRC_WIRE && p->pkt_src != PKT_SRC_FFR);
 #endif
 
     PacketDecodeFinalize(tv, dtv, p);
