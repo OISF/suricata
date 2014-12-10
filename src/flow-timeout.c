@@ -328,7 +328,7 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
  *
  * \retval 0 This flow doesn't need any reassembly processing; 1 otherwise.
  */
-int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
+int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     TcpSession *ssn;
@@ -358,7 +358,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (p1 == NULL) {
             goto done;
         }
-        PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+        PKT_SET_SRC(p1, PKT_SRC_FFR);
 
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
@@ -367,7 +367,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
 
             p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p3 == NULL) {
@@ -377,7 +377,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p2);
                 goto done;
             }
-            PKT_SET_SRC(p3, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p3, PKT_SRC_FFR);
         } else {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p2 == NULL) {
@@ -385,7 +385,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         }
 
     } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
@@ -394,7 +394,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
@@ -402,13 +402,13 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         } else {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
@@ -417,7 +417,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                     TmqhOutputPacketpool(NULL, p1);
                     goto done;
                 }
-                PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+                PKT_SET_SRC(p2, PKT_SRC_FFR);
             }
         }
 
@@ -427,7 +427,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
@@ -435,13 +435,13 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
         } else {
             /* impossible */
             BUG_ON(1);
@@ -517,7 +517,7 @@ static inline void FlowForceReassemblyForHash(void)
             }
 
             if (FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok) == 1) {
-                FlowForceReassemblyForFlowV2(f, server_ok, client_ok);
+                FlowForceReassemblyForFlow(f, server_ok, client_ok);
             }
 
             FLOWLOCK_UNLOCK(f);
