@@ -295,12 +295,13 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
         FlowKillFlowRecyclerThread();
-        RunModeShutDown();
 
         /* kill remaining mgt threads */
         TmThreadKillThreadsFamily(TVT_MGMT);
         TmThreadClearThreadsFamily(TVT_MGMT);
         SCPerfReleaseResources();
+
+        RunModeShutDown();
 
         /* mgt and ppt threads killed, we can run non thread-safe
          * shutdown functions */
