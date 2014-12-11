@@ -32,28 +32,28 @@ else:
 sc = SuricataSC(SOCKET_PATH, verbose=args.verbose)
 try:
     sc.connect()
-except SuricataNetException, err:
-    print "Unable to connect to socket %s: %s" % (SOCKET_PATH, err)
+except SuricataNetException as err:
+    print("Unable to connect to socket %s: %s" % (SOCKET_PATH, err))
     sys.exit(1)
-except SuricataReturnException, err:
-    print "Unable to negotiate version with server: %s" % (err)
+except SuricataReturnException as err:
+    print("Unable to negotiate version with server: %s" % (err))
     sys.exit(1)
 
 if args.command:
     (command, arguments) = sc.parse_command(args.command)
-    print sc.send_command(command, arguments)
+    print(sc.send_command(command, arguments))
     sc.close()
     sys.exit(0)
 
 try:
     sc.interactive()
-except SuricataNetException, err:
-    print "Communication error: %s" % (err)
+except SuricataNetException as err:
+    print("Communication error: %s" % (err))
     sys.exit(1)
-except SuricataReturnException, err:
-    print "Invalid return from server: %s" % (err)
+except SuricataReturnException as err:
+    print("Invalid return from server: %s" % (err))
     sys.exit(1)
 
-print "[+] Quit command client"
+print("[+] Quit command client")
 
 sc.close()

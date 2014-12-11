@@ -14,7 +14,10 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-import simplejson as json
+try:
+    import simplejson as json
+except:
+    import json
 import re
 import readline
 from socket import socket, AF_UNIX, error
@@ -69,7 +72,7 @@ class SuricataCompleter:
         if state == 0:
             self.generator = self.complete(text)
         try:
-            return self.generator.next()
+            return next(self.generator)
         except StopIteration:
             return None
         return None
@@ -86,11 +89,14 @@ class SuricataSC:
         data = ""
         while i < 5:
             i += 1
-            data += self.socket.recv(SIZE)
+            if sys.version < '3':
+                data += self.socket.recv(SIZE)
+            else:
+                data += self.socket.recv(SIZE).decode('iso-8859-1')
             try:
                 cmdret = json.loads(data)
                 break
-            except json.decoder.JSONDecodeError:
+            except:
                 sleep(0.3)
         return cmdret
 
@@ -103,15 +109,18 @@ class SuricataSC:
         if (arguments != None):
             cmdmsg['arguments'] = arguments
         if self.verbose:
-            print "SND: " + json.dumps(cmdmsg)
-        self.socket.send(json.dumps(cmdmsg))
+            print("SND: " + json.dumps(cmdmsg))
+        if sys.version < '3':
+            self.socket.send(json.dumps(cmdmsg))
+        else:
+            self.socket.send(bytes(json.dumps(cmdmsg), 'iso-8859-1'))
         cmdret = self.json_recv()
 
         if cmdret == None:
             raise SuricataReturnException("Unable to get message from server")
 
         if self.verbose:
-            print "RCV: "+ json.dumps(cmdret)
+            print("RCV: "+ json.dumps(cmdret))
 
         return cmdret
 
@@ -119,14 +128,17 @@ class SuricataSC:
         try:
             self.socket = socket(AF_UNIX)
             self.socket.connect(self.sck_path)
-        except error, err:
+        except error as err:
             raise SuricataNetException(err)
 
         self.socket.settimeout(10)
         #send version
         if self.verbose:
-            print "SND: " + json.dumps({"version": VERSION})
-        self.socket.send(json.dumps({"version": VERSION}))
+            print("SND: " + json.dumps({"version": VERSION}))
+        if sys.version < '3':
+            self.socket.send(json.dumps({"version": VERSION}))
+        else:
+            self.socket.send(bytes(json.dumps({"version": VERSION}), 'iso-8859-1'))
 
         # get return
         cmdret = self.json_recv()
@@ -135,7 +147,7 @@ class SuricataSC:
             raise SuricataReturnException("Unable to get message from server")
 
         if self.verbose:
-            print "RCV: "+ json.dumps(cmdret)
+            print("RCV: "+ json.dumps(cmdret))
 
         if cmdret["return"] == "NOK":
             raise SuricataReturnException("Error: %s" % (cmdret["message"]))
@@ -192,27 +204,30 @@ class SuricataSC:
         return (cmd, arguments)
 
     def interactive(self):
-        print "Command list: " + ", ".join(self.cmd_list)
+        print("Command list: " + ", ".join(self.cmd_list))
         try:
             readline.set_completer(SuricataCompleter(self.cmd_list))
             readline.set_completer_delims(";")
             readline.parse_and_bind('tab: complete')
             while True:
-                command = raw_input(">>> ").strip()
+                if sys.version < '3':
+                    command = raw_input(">>> ").strip()
+                else:
+                    command = input(">>> ").strip()
                 if command == "quit":
                     break;
                 try:
                     (cmd, arguments) = self.parse_command(command)
-                except SuricataCommandException, err:
-                    print err
+                except SuricataCommandException as err:
+                    print(err)
                     continue
                 cmdret = self.send_command(cmd, arguments)
                 #decode json message
                 if cmdret["return"] == "NOK":
-                    print "Error:"
-                    print json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': '))
+                    print("Error:")
+                    print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
                 else:
-                    print "Success:"
-                    print json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': '))
+                    print("Success:")
+                    print(json.dumps(cmdret["message"], sort_keys=True, indent=4, separators=(',', ': ')))
         except KeyboardInterrupt:
-            print "[!] Interrupted"
+            print("[!] Interrupted")
