@@ -114,14 +114,22 @@ int UnixNew(UnixCommand * this)
     }
 
     if (ConfGet("unix-command.filename", &socketname) == 1) {
-        int socketlen = strlen(SOCKET_PATH) + strlen(socketname) + 2;
-        sockettarget = SCMalloc(socketlen);
-        if (unlikely(sockettarget == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
-            return 0;
+        if (PathIsAbsolute(socketname)) {
+            sockettarget = SCStrdup(socketname);
+            if (unlikely(sockettarget == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
+                return 0;
+            }
+        } else {
+            int socketlen = strlen(SOCKET_PATH) + strlen(socketname) + 2;
+            sockettarget = SCMalloc(socketlen);
+            if (unlikely(sockettarget == NULL)) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate socket name");
+                return 0;
+            }
+            snprintf(sockettarget, socketlen, "%s/%s", SOCKET_PATH, socketname);
         }
-        snprintf(sockettarget, socketlen, "%s/%s", SOCKET_PATH, socketname);
-        SCLogInfo("Use unix socket file '%s'.", sockettarget);
+        SCLogInfo("Using unix socket file '%s'", sockettarget);
     }
     if (sockettarget == NULL) {
         sockettarget = SCStrdup(SOCKET_TARGET);
