@@ -25,7 +25,7 @@ parser.add_argument('socket', metavar='socket', nargs='?', help='socket file to 
 args = parser.parse_args()
 
 if args.socket != None:
-    SOCKET_PATH = "@e_localstatedir@/" + args.socket[0]
+    SOCKET_PATH = args.socket
 else:
     SOCKET_PATH = "@e_localstatedir@/suricata-command.socket"
 
