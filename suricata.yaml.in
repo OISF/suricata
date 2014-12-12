@@ -275,6 +275,7 @@ outputs:
   # - rules that contain the "filestore" keyword.
   - file-store:
       enabled: no       # set to yes to enable
+      #format: json      # 'regular' or 'json'
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
       force-md5: no     # force logging of md5 checksums
