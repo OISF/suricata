@@ -46,6 +46,7 @@
 #include "util-atomic.h"
 #include "util-file.h"
 #include "util-time.h"
+#include "util-error.h"
 
 #include "output.h"
 
@@ -287,7 +288,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         if (fp != NULL) {
             LogFileLogPrintJsonObj(fp, js);
         } else {
-            SCLogInfo("Opening %s failed: %s", metafilename, strerror(errno));
+            SCLogError(SC_ERR_NO_JSON_SUPPORT,"Opening %s failed: %s", metafilename, strerror(errno));
         }
         fclose(fp);
     }
