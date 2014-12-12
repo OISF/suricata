@@ -1,3 +1,17 @@
+2.0.5 -- 2014-12-12
+
+Bug #1190: http_header keyword not matching when SYN|ACK and ACK missing
+Bug #1246: EVE output Unix domain socket not working
+Bug #1272: Segfault in libhtp 0.5.15
+Bug #1298: Filestore keyword parsing issue (2.0.x)
+Bug #1303: improve stream 'bad window update' detection
+Bug #1304: improve stream handling of back SACK values
+Bug #1305: fix tcp session reuse for ssh/ssl sessions
+Bug #1307: byte_extract, within combination not working (2.0.x)
+Bug #1326: pcre pkt/flowvar capture broken for non-relative matches
+Bug #1329: Invalid rule being processed and loaded.
+Bug #1330: Flow memuse bookkeeping error (2.0.x)
+
 2.0.4 -- 2014-09-23
 
 Bug #1276: ipv6 defrag issue with routing headers
