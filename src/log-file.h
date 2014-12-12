@@ -30,6 +30,7 @@ typedef struct LogFileLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    MemBuffer *json_buffer;
 } LogFileLogThread;
 
 void TmModuleLogFileLogRegister (void);

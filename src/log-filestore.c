@@ -79,9 +79,10 @@ typedef struct LogFilestoreLogThread_ {
     LogFilestoreFileCtx *file_ctx;
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
+    MemBuffer *meta_buffer;
 } LogFilestoreLogThread;
 
-static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag) {
+static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag, MemBuffer *buffer) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -119,8 +120,7 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
 
-        MemBuffer *buffer;
-        buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+        MemBufferReset(buffer);
 
         /* Only applicable to HTTP traffic */
         if (p->flow->alproto == ALPROTO_HTTP) {
@@ -154,7 +154,6 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
         fprintf(fp, "FILENAME:          %s\n", buffer->buffer);
         
         fclose(fp);
-        MemBufferFree(buffer);
     }
 }
 
@@ -234,12 +233,12 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
 #ifdef HAVE_LIBJANSSON
 	    if (flog->flags & META_FORMAT_JSON) {
-            LogFileLogTransactionMeta(p, ff, filemeta_json);
+            LogFileLogTransactionMeta(p, ff, filemeta_json, aft->meta_buffer);
         } else {
-            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
+            LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->meta_buffer);
         }
 #else
-        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags);
+        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->meta_buffer);
 #endif
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
@@ -267,7 +266,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 #ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
         if (flog->flags & META_FORMAT_JSON) {
-            LogFileLogFileMeta(p, ff, filemeta_json);
+            LogFileLogFileMeta(p, ff, filemeta_json, aft->meta_buffer);
         } else {
             LogFilestoreLogCloseMetaFileRegular(ff);
         }
@@ -308,6 +307,13 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
         return TM_ECODE_FAILED;
     }
 
+    /* Allocate the Json MemBuffer */
+    aft->meta_buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+    if (aft->meta_buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
@@ -340,6 +346,8 @@ static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+
+    MemBufferFree(aft->meta_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(LogFilestoreLogThread));

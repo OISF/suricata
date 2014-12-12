@@ -70,7 +70,6 @@ void LogFileMetaGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer
     }
 }
 
-
 void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
@@ -146,10 +145,8 @@ void LogFileLogPrintJsonObj(FILE *fp, json_t *js) {
     fprintf(fp, "%s", js_data);
 }
 
-void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js) {
-    MemBuffer *buffer;
-    buffer = MemBufferCreateNew(META_BUFFER_SIZE);
-
+void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
+    MemBufferReset(buffer);
     if (p->flow->alproto == ALPROTO_HTTP) {
         json_t *http = json_object();
 
@@ -181,16 +178,13 @@ void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js) {
         json_object_set_new(smtp, "sender", json_string((char *)buffer->buffer));
         json_object_set_new(js, "smtp", smtp);
     }
-
-    MemBufferFree(buffer);
 }
 
 
-void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js) {
+void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
     json_t *container = json_object();
 
-    MemBuffer *buffer;
-    buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+    MemBufferReset(buffer);
     
     PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size, ff->name, ff->name_len);
     json_object_set_new(container, "filename", json_string((char *)buffer->buffer));
@@ -233,8 +227,6 @@ void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js) {
     MemBufferReset(buffer);
     MemBufferWriteString(buffer, ff->flags & FILE_STORED ? "true" : "false");
     json_object_set_new(container, "stored", json_string((char *)buffer->buffer));
-
-    MemBufferFree(buffer);
     json_object_set_new(js, "metadata", container);
 }
 #endif

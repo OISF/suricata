@@ -125,8 +125,8 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "file-log");
     json_t *file_json = json_object();
-    LogFileLogTransactionMeta(p, ff, file_json);
-    LogFileLogFileMeta(p, ff, file_json);
+    LogFileLogTransactionMeta(p, ff, file_json, aft->json_buffer);
+    LogFileLogFileMeta(p, ff, file_json, aft->json_buffer);
     json_object_set_new(js, "file-log", file_json);
 
     LogFileLogPrintJsonObj(fp, js);
@@ -164,6 +164,12 @@ static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    aft->json_buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+    if (aft->json_buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
@@ -177,6 +183,8 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+
+    MemBufferFree(aft->json_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(LogFileLogThread));
