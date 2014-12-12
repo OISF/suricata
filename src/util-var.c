@@ -31,6 +31,7 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
+#include "host-bit.h"
 
 #include "util-debug.h"
 
@@ -48,6 +49,13 @@ void GenericVarFree(GenericVar *gv)
             FlowBit *fb = (FlowBit *)gv;
             //printf("GenericVarFree: fb %p, removing\n", fb);
             FlowBitFree(fb);
+            break;
+        }
+        case DETECT_HOSTBITS:
+        {
+            HostBit *fb = (HostBit *)gv;
+            //printf("GenericVarFree: fb %p, removing\n", fb);
+            HostBitFree(fb);
             break;
         }
         case DETECT_FLOWVAR:
