@@ -69,8 +69,6 @@
 
 #include "util-optimize.h"
 
-#include "util-memrchr.h"
-
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
 #endif

@@ -30,6 +30,7 @@
 #include "app-layer-htp-xff.h"
 
 #include "util-misc.h"
+#include "util-memrchr.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7
@@ -94,7 +95,7 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
             /** Get the first IP address from the chain */
             p_xff = memchr(xff_chain, ',', bstr_len(h_xff->value));
             if (p_xff != NULL) {
-                xff_chain[bstr_len(h_xff->value) - strlen((char *)p_xff)]=0;
+                xff_chain[bstr_len(h_xff->value) - (p_xff - xff_chain)]=0;
             }
             p_xff = xff_chain;
         }
