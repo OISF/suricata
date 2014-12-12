@@ -159,7 +159,8 @@ void LogFileLogPrintJsonObj(FILE *fp, json_t *js)
                                JSON_COMPACT|
                                JSON_ENSURE_ASCII|
                                JSON_ESCAPE_SLASH);
-    fprintf(fp, "%s", js_data);
+    if (js_data != NULL)
+        fprintf(fp, "%s", js_data);
 }
 
 int LogFileLogTransactionMeta(const Packet *p, const File *ff,
