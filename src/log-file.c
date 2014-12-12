@@ -87,7 +87,8 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const char
     return 0;
 }
 
-void TmModuleLogFileLogRegister (void) {
+void TmModuleLogFileLogRegister (void)
+{
     tmm_modules[TMM_FILELOG].name = MODULE_NAME_FILELOG;
     tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
     tmm_modules[TMM_FILELOG].Func = NULL;
@@ -102,7 +103,8 @@ void TmModuleLogFileLogRegister (void) {
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static int LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff) {
+static int LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff)
+{
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
     /* As writes are done via the LogFileCtx, check for rotation here. */
@@ -205,7 +207,8 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
+void LogFileLogExitPrintStats(ThreadVars *tv, void *data)
+{
     LogFileLogThread *aft = (LogFileLogThread *)data;
     if (aft == NULL) {
         return;
@@ -285,7 +288,8 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
     return 0;
 }
 
-void TmModuleLogFileLogRegister (void) {
+void TmModuleLogFileLogRegister (void)
+{
     tmm_modules[TMM_FILELOG].name = MODULE_NAME_FILELOG;
     tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
     tmm_modules[TMM_FILELOG].Func = NULL;

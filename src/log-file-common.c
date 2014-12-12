@@ -37,7 +37,9 @@
 #include <jansson.h>
 #endif
 
-void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     SMTPState *state = (SMTPState *) p->flow->alstate;
     if (state != NULL) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
@@ -53,7 +55,9 @@ void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff, MemBuffer *buf
     }
 }
 
-void LogFileMetaGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetSmtpSender(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     SMTPState *state = (SMTPState *) p->flow->alstate;
     if (state != NULL) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
@@ -70,7 +74,9 @@ void LogFileMetaGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer
     }
 }
 
-void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetUri(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -89,7 +95,9 @@ void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint3
     MemBufferWriteString(buffer, "unknown");
 }
 
-void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetHost(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -103,7 +111,9 @@ void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint
     MemBufferWriteString(buffer, "unknown");
 }
 
-void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetReferer(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -121,7 +131,9 @@ void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, u
     MemBufferWriteString(buffer, "unkown");
 }
 
-void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
+void LogFileMetaGetUserAgent(const Packet *p, const File *ff,
+    MemBuffer *buffer, uint32_t fflag)
+{
     HtpState *htp_state = (HtpState *)p->flow->alstate;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -140,12 +152,19 @@ void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer,
 }
 
 #ifdef HAVE_LIBJANSSON
-void LogFileLogPrintJsonObj(FILE *fp, json_t *js) {
-    char *js_data = json_dumps(js, JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|JSON_ESCAPE_SLASH);
+void LogFileLogPrintJsonObj(FILE *fp, json_t *js)
+{
+    char *js_data = json_dumps(js,
+                               JSON_PRESERVE_ORDER|
+                               JSON_COMPACT|
+                               JSON_ENSURE_ASCII|
+                               JSON_ESCAPE_SLASH);
     fprintf(fp, "%s", js_data);
 }
 
-int LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
+int LogFileLogTransactionMeta(const Packet *p, const File *ff,
+    json_t *js, MemBuffer *buffer)
+{
     MemBufferReset(buffer);
     if (p->flow->alproto == ALPROTO_HTTP) {
         json_t *http = json_object();
@@ -185,7 +204,9 @@ int LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBu
 }
 
 
-int LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
+int LogFileLogFileMeta(const Packet *p, const File *ff,
+    json_t *js, MemBuffer *buffer)
+{
     json_t *container = json_object();
     if (unlikely(container == NULL))
         return TM_ECODE_OK;

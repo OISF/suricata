@@ -83,7 +83,9 @@ typedef struct LogFilestoreLogThread_ {
     MemBuffer *meta_buffer;
 } LogFilestoreLogThread;
 
-static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff, const char *filename, int ipver, uint32_t fflag, MemBuffer *buffer) {
+static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff,
+        const char *filename, int ipver, uint32_t fflag, MemBuffer *buffer)
+{
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -158,7 +160,8 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
     }
 }
 
-static void LogFilestoreLogCloseMetaFileRegular(const File *ff) {
+static void LogFilestoreLogCloseMetaFileRegular(const File *ff)
+{
     char filename[PATH_MAX] = "";
     snprintf(filename, sizeof(filename), "%s/file.%u", g_logfile_base_dir, ff->file_id);
     char metafilename[PATH_MAX] = "";
@@ -197,7 +200,8 @@ static void LogFilestoreLogCloseMetaFileRegular(const File *ff) {
     }
 }
 
-static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, const FileData *ffd, uint8_t flags)
+static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+    const File *ff, const FileData *ffd, uint8_t flags)
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
@@ -363,7 +367,8 @@ static TmEcode LogFilestoreLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data) {
+static void LogFilestoreLogExitPrintStats(ThreadVars *tv, void *data)
+{
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)data;
     if (aft == NULL) {
         return;
@@ -480,7 +485,8 @@ filectx_error:
     return NULL;
 }
 
-void TmModuleLogFilestoreRegister (void) {
+void TmModuleLogFilestoreRegister (void)
+{
     tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
     tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
     tmm_modules[TMM_FILESTORE].Func = NULL;
