@@ -42,8 +42,8 @@ void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer,
 
 #ifdef HAVE_LIBJANSSON
 void LogFileLogPrintJsonObj(FILE *fp, json_t *js);
-void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);
-void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);
+int LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);
+int LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);
 #endif
 
 #endif /* __LOG_FILELOG_H__ */

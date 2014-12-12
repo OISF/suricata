@@ -225,7 +225,13 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
 #ifdef HAVE_LIBJANSSON
     json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+    
     json_t *filemeta_json = json_object();
+    if (unlikely(filemeta_json == NULL))
+        json_decref(js);
+        return TM_ECODE_OK;
 #endif
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {

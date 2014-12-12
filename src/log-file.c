@@ -102,7 +102,7 @@ void TmModuleLogFileLogRegister (void) {
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff) {
+static int LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff) {
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
     /* As writes are done via the LogFileCtx, check for rotation here. */
@@ -118,13 +118,20 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
      * event file rotation failed. */
     if (aft->file_ctx->fp == NULL) {
         SCMutexUnlock(&aft->file_ctx->fp_mutex);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     FILE *fp = aft->file_ctx->fp;
 
     json_t *js = CreateJSONHeader((Packet *)p, 1, "file-log");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+    
     json_t *file_json = json_object();
+    if (unlikely(file_json == NULL))
+        json_decref(js);
+        return TM_ECODE_OK;
+
     LogFileLogTransactionMeta(p, ff, file_json, aft->json_buffer);
     LogFileLogFileMeta(p, ff, file_json, aft->json_buffer);
     json_object_set_new(js, "file-log", file_json);
@@ -133,6 +140,11 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
 
     fflush(fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
+
+    json_object_clear(js);
+    json_decref(js);
+
+    return TM_ECODE_OK;
 }
 
 static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)

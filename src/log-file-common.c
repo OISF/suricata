@@ -145,10 +145,12 @@ void LogFileLogPrintJsonObj(FILE *fp, json_t *js) {
     fprintf(fp, "%s", js_data);
 }
 
-void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
+int LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
     MemBufferReset(buffer);
     if (p->flow->alproto == ALPROTO_HTTP) {
         json_t *http = json_object();
+        if (unlikely(http == NULL))
+            return TM_ECODE_OK;
 
         LogFileMetaGetUri(p, ff, buffer, META_FORMAT_JSON);
         json_object_set_new(http, "uri", json_string((char *)buffer->buffer));
@@ -169,7 +171,8 @@ void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemB
         json_object_set_new(js, "http", http);
     } else if (p->flow->alproto == ALPROTO_SMTP) {
         json_t *smtp = json_object();
-    
+        if (unlikely(smtp == NULL))
+            return TM_ECODE_OK; 
         LogFileMetaGetSmtpMessageID(p, ff, buffer, META_FORMAT_JSON);
         json_object_set_new(smtp, "message-id", json_string((char *)buffer->buffer));
         MemBufferReset(buffer);
@@ -178,12 +181,14 @@ void LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemB
         json_object_set_new(smtp, "sender", json_string((char *)buffer->buffer));
         json_object_set_new(js, "smtp", smtp);
     }
+    return TM_ECODE_OK;
 }
 
 
-void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
+int LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer) {
     json_t *container = json_object();
-
+    if (unlikely(container == NULL))
+        return TM_ECODE_OK;
     MemBufferReset(buffer);
     
     PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size, ff->name, ff->name_len);
@@ -228,5 +233,7 @@ void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *
     MemBufferWriteString(buffer, ff->flags & FILE_STORED ? "true" : "false");
     json_object_set_new(container, "stored", json_string((char *)buffer->buffer));
     json_object_set_new(js, "metadata", container);
+
+    return TM_ECODE_OK;
 }
 #endif
