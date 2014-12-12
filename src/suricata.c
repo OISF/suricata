@@ -129,6 +129,7 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "pkt-var.h"
+#include "host-bit.h"
 
 #include "host.h"
 #include "unix-manager.h"
@@ -2079,6 +2080,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TagInitCtx();
     ThresholdInit();
+    HostBitInitCtx();
 
     if (DetectAddressTestConfVars() < 0) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,

@@ -60,6 +60,7 @@
 #include "pkt-var.h"
 
 #include "host.h"
+#include "host-bit.h"
 #include "unix-manager.h"
 
 #include "app-layer-detect-proto.h"
@@ -170,6 +171,8 @@ void RunUnittests(int list_unittests, char *regex_arg)
 
     DetectEngineRegisterAppInspectionEngines();
 
+    HostBitInitCtx();
+
     StorageFinalize();
    /* test and initialize the unittesting subsystem */
     if(regex_arg == NULL){
@@ -193,6 +196,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     ByteRegisterTests();
     MpmRegisterTests();
     FlowBitRegisterTests();
+    HostBitRegisterTests();
     SCPerfRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
