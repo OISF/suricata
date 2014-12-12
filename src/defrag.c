@@ -358,7 +358,8 @@ done:
 error_remove_tracker:
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
-    PacketFreeOrRelease(rp);
+    if (rp != NULL)
+        PacketFreeOrRelease(rp);
     return NULL;
 }
 
@@ -480,7 +481,8 @@ done:
 error_remove_tracker:
     tracker->remove = 1;
     DefragTrackerFreeFrags(tracker);
-    PacketFreeOrRelease(rp);
+    if (rp != NULL)
+        PacketFreeOrRelease(rp);
     return NULL;
 }
 
