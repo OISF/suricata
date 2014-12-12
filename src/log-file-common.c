@@ -87,7 +87,7 @@ void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint3
             return;
         }
     }
-    snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    MemBufferWriteString(buffer, "unknown");
 }
 
 void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -101,7 +101,7 @@ void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint
             return;
         }
     }
-    snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    MemBufferWriteString(buffer, "unknown");
 }
 
 void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -119,7 +119,7 @@ void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, u
             }
         }
     }
-    snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    MemBufferWriteString(buffer, "unkown");
 }
 
 void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag) {
@@ -137,7 +137,7 @@ void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer,
             }
         }
     }
-    snprintf((char *)buffer->buffer, buffer->size, "unknown");
+    MemBufferWriteString(buffer, "unkown");
 }
 
 #ifdef HAVE_LIBJANSSON
@@ -227,11 +227,11 @@ void LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js) {
     }
 
     MemBufferReset(buffer);
-    snprintf((char *)buffer->buffer, buffer->size, "%"PRIu64"", ff->size);
+    MemBufferWriteString(buffer, "%"PRIu64"", ff->size);
     json_object_set_new(container, "size", json_string((char *)buffer->buffer));
 
     MemBufferReset(buffer);
-    snprintf((char *)buffer->buffer, buffer->size, ff->flags & FILE_STORED ? "true" : "false");
+    MemBufferWriteString(buffer, ff->flags & FILE_STORED ? "true" : "false");
     json_object_set_new(container, "stored", json_string((char *)buffer->buffer));
 
     MemBufferFree(buffer);
