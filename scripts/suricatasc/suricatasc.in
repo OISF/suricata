@@ -41,9 +41,13 @@ except SuricataReturnException as err:
 
 if args.command:
     (command, arguments) = sc.parse_command(args.command)
-    print(sc.send_command(command, arguments))
+    res = sc.send_command(command, arguments)
+    print(res)
     sc.close()
-    sys.exit(0)
+    if res['return'] == 'OK':
+        sys.exit(0)
+    else:
+        sys.exit(1)
 
 try:
     sc.interactive()
