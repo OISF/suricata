@@ -291,6 +291,9 @@ typedef enum {
     SC_WARN_LUA_SCRIPT,
     SC_ERR_LUA_SCRIPT,
     SC_WARN_NO_STATS_LOGGERS,
+    SC_ERR_NO_NETMAP,
+    SC_ERR_NETMAP_CREATE,
+    SC_ERR_NETMAP_READ,
 } SCError;
 
 const char *SCErrorToString(SCError);
