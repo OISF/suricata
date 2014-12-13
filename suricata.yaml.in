@@ -453,6 +453,39 @@ af-packet:
     #threads: auto
     #use-mmap: yes
 
+# netmap support
+netmap:
+ - interface: eth2
+   # Number of receive threads. "auto" uses number of RSS queues on interface.
+   threads: auto
+   # You can use the following variables to activate netmap tap or IPS mode.
+   # If copy-mode is set to ips or tap, the traffic coming to the current
+   # interface will be copied to the copy-iface interface. If 'tap' is set, the
+   # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+   # will not be copied.
+   #copy-mode: tap
+   #copy-iface: eth3
+   # Set to yes to disable promiscuous mode
+   # disable-promisc: no
+   # Choose checksum verification mode for the interface. At the moment
+   # of the capture, some packets may be with an invalid checksum due to
+   # offloading to the network card of the checksum computation.
+   # Possible values are:
+   #  - yes: checksum validation is forced
+   #  - no: checksum validation is disabled
+   #  - auto: suricata uses a statistical approach to detect when
+   #  checksum off-loading is used.
+   # Warning: 'checksum-validation' must be set to yes to have any validation
+   #checksum-checks: auto
+   # BPF filter to apply to this interface. The pcap filter syntax apply here.
+   #bpf-filter: port 80 or udp
+ #- interface: eth3
+   #threads: auto
+   #copy-mode: tap
+   #copy-iface: eth2
+   # Put default values here
+ - interface: default
+
 legacy:
   uricontent: enabled
 
