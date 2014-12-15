@@ -134,8 +134,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(aft->json_buffer);
-
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
@@ -158,6 +156,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             json_decref(js);
             return TM_ECODE_OK;
         }
+
+        MemBufferReset(aft->json_buffer);
 
         json_object_set_new(ajs, "action", json_string(action));
         json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
@@ -303,11 +303,11 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
-    MemBufferReset(buffer);
-
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     for (i = 0; i < p->alerts.cnt; i++) {
+        MemBufferReset(buffer);
+
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
             continue;
