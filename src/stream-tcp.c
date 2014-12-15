@@ -4386,6 +4386,17 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
+int TcpSessionPacketSsnReuse(const Packet *p, void *tcp_ssn)
+{
+    TcpSession *ssn = tcp_ssn;
+    if (ssn->state == TCP_CLOSED) {
+        if(!(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
