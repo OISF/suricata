@@ -4371,6 +4371,17 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
+int TcpSessionPacketSsnReuse(const Packet *p, void *tcp_ssn)
+{
+    TcpSession *ssn = tcp_ssn;
+    if (ssn->state == TCP_CLOSED) {
+        if(!(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
@@ -4534,51 +4545,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                  * We also check it's not a SYN/ACK, all other SYN pkt
                  * validation is done at StreamTcpPacketStateNone();
                  */
-                if (PKT_IS_TOSERVER(p) && (p->tcph->th_flags & TH_SYN) &&
-                    !(p->tcph->th_flags & TH_ACK) &&
-                    !(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
-                {
-                    SCLogDebug("reusing closed TCP session");
-
-                    /* return segments */
-                    StreamTcpReturnStreamSegments(&ssn->client);
-                    StreamTcpReturnStreamSegments(&ssn->server);
-                    /* free SACK list */
-                    StreamTcpSackFreeList(&ssn->client);
-                    StreamTcpSackFreeList(&ssn->server);
-                    /* reset the app layer state */
-                    FlowCleanupAppLayer(p->flow);
-
-                    ssn->state = 0;
-                    ssn->flags = 0;
-                    ssn->client.flags = 0;
-                    ssn->server.flags = 0;
-
-                    /* set state the NONE, also pulls flow out of closed queue */
-                    StreamTcpPacketSetState(p, ssn, TCP_NONE);
-
-                    p->flow->alproto_ts = p->flow->alproto_tc = p->flow->alproto = ALPROTO_UNKNOWN;
-                    p->flow->data_al_so_far[0] = p->flow->data_al_so_far[1] = 0;
-                    ssn->data_first_seen_dir = 0;
-                    p->flow->flags &= (~FLOW_TS_PM_ALPROTO_DETECT_DONE &
-                                       ~FLOW_TS_PP_ALPROTO_DETECT_DONE &
-                                       ~FLOW_TC_PM_ALPROTO_DETECT_DONE &
-                                       ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
-                    p->flow->flags &= ~ FLOW_NO_APPLAYER_INSPECTION;
-                    if (p->flow->de_state != NULL) {
-                        SCMutexLock(&p->flow->de_state_m);
-                        DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT));
-                        SCMutexUnlock(&p->flow->de_state_m);
-                    }
-
-                    if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
-                        goto error;
-                    }
-
-                    SCPerfCounterIncr(stt->counter_tcp_reused_ssn, tv->sc_perf_pca);
-                } else {
-                    SCLogDebug("packet received on closed state");
-                }
+#ifdef DEBUG_VALIDATION
+                BUG_ON((TcpSessionPacketSsnReuse(p, (void *)ssn)));
+#endif
+                SCLogDebug("packet received on closed state");
                 break;
             default:
                 SCLogDebug("packet received on default state");
@@ -4775,9 +4745,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_no_flow = SCPerfTVRegisterCounter("tcp.no_flow", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
-    stt->counter_tcp_reused_ssn = SCPerfTVRegisterCounter("tcp.reused_ssn", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
