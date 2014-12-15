@@ -1205,6 +1205,11 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 502
+      # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
+      # is recommended to keep the TCP connection opened with a remote device 
+      # and not to open and close it for each MODBUS/TCP transaction. In that 
+      # case, it is important to set the depth of the stream reassembling as
+      # unlimited (stream.reassembly.depth: 0)
     # smb2 detection is disabled internally inside the engine.
     #smb2:
     #  enabled: yes
