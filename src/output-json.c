@@ -348,8 +348,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
     if (json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
     } else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) {
+        int prev_offset = MEMBUFFER_OFFSET(buffer);
         MemBufferWriteString(buffer, "%s\n", js_s);
-        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer) + prev_offset,
             MEMBUFFER_OFFSET(buffer), file_ctx);
     }
     SCMutexUnlock(&file_ctx->fp_mutex);
