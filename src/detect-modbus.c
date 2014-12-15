@@ -292,7 +292,7 @@ static DetectModbus *DetectModbusFunctionParse(char *str)
     if (unlikely(modbus == NULL))
         goto error;
 
-    if (isdigit(ptr[0])) {
+    if (isdigit((unsigned char)ptr[0])) {
         modbus->function = atoi((const char*) ptr);
         SCLogDebug("will look for modbus function %d", modbus->function);
 
