@@ -4536,15 +4536,17 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 }
                 break;
             case TCP_CLOSED:
-                /* TCP session memory is not returned to pool until timeout.
-                 * If in the mean time we receive any other session from
-                 * the same client reusing same port then we switch back to
-                 * tcp state none, but only on a valid SYN that is not a
-                 * resend from our previous session.
-                 *
-                 * We also check it's not a SYN/ACK, all other SYN pkt
-                 * validation is done at StreamTcpPacketStateNone();
-                 */
+                /* TCP session memory is not returned to pool until timeout. */
+#ifdef DEBUG_VALIDATION
+                /* SSN reuse logic moved to the flow engine. Validating that
+                 * we're not seeing it here anymore. */
+                if (PKT_IS_TOSERVER(p) && (p->tcph->th_flags & TH_SYN) &&
+                    !(p->tcph->th_flags & TH_ACK) &&
+                    TcpSessionPacketSsnReuse(p, (void *)ssn))
+                {
+                    BUG_ON(1);
+                }
+#endif
                 SCLogDebug("packet received on closed state");
                 break;
             default:
