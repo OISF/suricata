@@ -829,7 +829,7 @@ static int ModbusParseDiagnosticRequest(ModbusTransaction   *tx,
     if (tx->subFunction != MODBUS_SUBFUNC_QUERY_DATA) {
         switch (tx->subFunction) {
             case MODBUS_SUBFUNC_RESTART_COM:
-                if ((data != 0x00) || (data != 0xFF00))
+                if ((data != 0x00) && (data != 0xFF00))
                     goto error;
                 break;
 
