@@ -93,6 +93,7 @@ typedef struct FlowTimeoutCounters_ {
     uint32_t new;
     uint32_t est;
     uint32_t clo;
+    uint32_t tcp_reuse;
 } FlowTimeoutCounters;
 
 /**
@@ -305,6 +306,9 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             f->hnext = NULL;
             f->hprev = NULL;
 
+            if (f->flags & FLOW_TCP_REUSED)
+                counters->tcp_reuse++;
+
             if (state == FLOW_STATE_NEW)
                 f->flow_end_flags |= FLOW_END_FLAG_STATE_NEW;
             else if (state == FLOW_STATE_ESTABLISHED)
@@ -490,6 +494,7 @@ typedef struct FlowManagerThreadData_ {
     uint16_t flow_mgr_spare;
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
+    uint16_t flow_tcp_reuse;
 } FlowManagerThreadData;
 
 static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -533,6 +538,8 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     ftd->flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", t,
             SC_PERF_TYPE_UINT64, "NULL");
     ftd->flow_emerg_mode_over = SCPerfTVRegisterCounter("flow.emerg_mode_over", t,
+            SC_PERF_TYPE_UINT64, "NULL");
+    ftd->flow_tcp_reuse = SCPerfTVRegisterCounter("flow.tcp_reuse", t,
             SC_PERF_TYPE_UINT64, "NULL");
 
     PacketPoolInit();
@@ -617,7 +624,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             FlowUpdateSpareFlows();
 
         /* try to time out flows */
-        FlowTimeoutCounters counters = { 0, 0, 0, };
+        FlowTimeoutCounters counters = { 0, 0, 0, 0, };
         FlowTimeoutHash(&ts, 0 /* check all */, ftd->min, ftd->max, &counters);
 
 
@@ -638,6 +645,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         SCPerfCounterAddUI64(ftd->flow_mgr_cnt_est, th_v->sc_perf_pca, (uint64_t)counters.est);
         long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
         SCPerfCounterSetUI64(ftd->flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
+        SCPerfCounterAddUI64(ftd->flow_tcp_reuse, th_v->sc_perf_pca, (uint64_t)counters.tcp_reuse);
 
         uint32_t len = 0;
         FQLOCK_LOCK(&flow_spare_q);
@@ -1252,7 +1260,7 @@ static int FlowMgrTest05 (void)
     struct timeval ts;
     TimeGet(&ts);
     /* try to time out flows */
-    FlowTimeoutCounters counters = { 0, 0, 0, };
+    FlowTimeoutCounters counters = { 0, 0, 0, 0, };
     FlowTimeoutHash(&ts, 0 /* check all */, 0, flow_config.hash_size, &counters);
 
     if (flow_recycle_q.len > 0) {
