@@ -4545,6 +4545,9 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                  * We also check it's not a SYN/ACK, all other SYN pkt
                  * validation is done at StreamTcpPacketStateNone();
                  */
+#ifdef DEBUG_VALIDATION
+                BUG_ON((TcpSessionPacketSsnReuse(p, (void *)ssn)));
+#endif
                 SCLogDebug("packet received on closed state");
                 break;
             default:
