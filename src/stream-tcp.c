@@ -4747,9 +4747,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_no_flow = SCPerfTVRegisterCounter("tcp.no_flow", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
-    stt->counter_tcp_reused_ssn = SCPerfTVRegisterCounter("tcp.reused_ssn", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
     stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
