@@ -698,6 +698,8 @@ void FlowForceReassembly(void)
                 else
                     SCCondSignal(&data_queues[tv->inq->id].cond_q);
                 while (!TmThreadsCheckFlag(tv, THV_PAUSED)) {
+                    if (TmThreadsCheckFlag(tv, THV_RUNNING_DONE))
+                        break;
                     if (tv->inq->q_type == 0)
                         SCCondSignal(&trans_q[tv->inq->id].cond_q);
                     else

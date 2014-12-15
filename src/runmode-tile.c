@@ -226,15 +226,23 @@ int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
         }
 
         /* create the threads */
+        char *queue_name = thread_name; /* for simplicity */
         ThreadVars *tv_worker =
              TmThreadCreatePacketHandler(thread_name,
-                                         "packetpool", "packetpool",
+                                         queue_name, "packetpool",
                                          "packetpool", "packetpool", 
                                          "pktacqloop");
         if (tv_worker == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
         }
+
+        /* Hack - The Packet Queue must be marked as having at least one
+         * writer to avoid error reporting. The queue is written by the flow
+         * manager when it generates pseudo packets. */
+        Tmq *inq = TmqGetQueueByName(queue_name);
+        inq->writer_cnt++;
+
         tm_module = TmModuleGetByName("ReceiveMpipe");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName failed for ReceiveMpipe\n");

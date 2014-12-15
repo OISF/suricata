@@ -396,11 +396,26 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
         if (update_counter-- <= 0) {
             /* Only periodically update and check for termination. */
             SCPerfSyncCountersIfSignalled(tv);
-            update_counter = 10000;
+            update_counter = 1000;
 
             if (suricata_ctl_flags != 0) {
               break;
             }
+
+            /* Check for Pseudo packets */
+            PacketQueue *q = &trans_q[tv->inq->id];
+            SCMutexLock(&q->mutex_q);
+            while (q->len > 0) {
+                Packet *p = PacketDequeue(q);
+                SCMutexUnlock(&q->mutex_q);
+
+                if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+                    TmqhOutputPacketpool(ptv->tv, p);
+                    SCReturnInt(TM_ECODE_FAILED);
+                }
+                SCMutexLock(&q->mutex_q);
+            }
+            SCMutexUnlock(&q->mutex_q);
         }
     }
     SCReturnInt(TM_ECODE_OK);
