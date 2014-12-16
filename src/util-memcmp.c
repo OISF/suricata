@@ -322,6 +322,46 @@ static int MemcmpTest17 (void) {
     return 1;
 }
 
+struct MemcmpTest18Tests {
+    char *a;
+    char *b;
+    int result;
+} memcmp_tests18_tests[] = {
+        { "abcdefgh", "!bcdefgh", 1, },
+        { "?bcdefgh", "!bcdefgh", 1, },
+        { "!bcdefgh", "abcdefgh", 1, },
+        { "!bcdefgh", "?bcdefgh", 1, },
+        { "zbcdefgh", "bbcdefgh", 1, },
+
+        { "abcdefgh12345678", "!bcdefgh12345678", 1, },
+        { "?bcdefgh12345678", "!bcdefgh12345678", 1, },
+        { "!bcdefgh12345678", "abcdefgh12345678", 1, },
+        { "!bcdefgh12345678", "?bcdefgh12345678", 1, },
+        { "bbcdefgh12345678", "zbcdefgh12345678", 1, },
+
+        { "abcdefgh", "abcdefgh", 0, },
+        { "abcdefgh", "Abcdefgh", 0, },
+        { "abcdefgh12345678", "Abcdefgh12345678", 0, },
+
+        { NULL, NULL, 0 },
+
+    };
+
+static int MemcmpTest18 (void)
+{
+    struct MemcmpTest18Tests *t = memcmp_tests18_tests;
+
+    while (t && t->a != NULL) {
+
+        if (SCMemcmpLowercase(t->a, t->b, strlen(t->a)-1) != t->result)
+            return 0;
+        SCLogInfo("ok");
+        t++;
+    }
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void MemcmpRegisterTests(void) {
@@ -343,6 +383,7 @@ void MemcmpRegisterTests(void) {
     UtRegisterTest("MemcmpTest15", MemcmpTest15, 1);
     UtRegisterTest("MemcmpTest16", MemcmpTest16, 1);
     UtRegisterTest("MemcmpTest17", MemcmpTest17, 1);
+    UtRegisterTest("MemcmpTest18", MemcmpTest18, 1);
 #endif /* UNITTESTS */
 }
 
