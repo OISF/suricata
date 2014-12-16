@@ -419,6 +419,21 @@ void DetectHostbitFree (void *ptr)
 }
 
 #ifdef UNITTESTS
+
+static void HostBitsTestSetup(void)
+{
+    StorageInit();
+    HostBitInitCtx();
+    StorageFinalize();
+    HostInitConfig(TRUE);
+}
+
+static void HostBitsTestShutdown(void)
+{
+    HostCleanup();
+    StorageCleanup();
+}
+
 /**
  * \test HostBitsTestSig01 is a test for a valid noalert flowbits option
  *
@@ -442,8 +457,6 @@ static int HostBitsTestSig01(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    HostInitConfig(TRUE);
-
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
     p->src.family = AF_INET;
@@ -451,6 +464,8 @@ static int HostBitsTestSig01(void)
     p->payload = buf;
     p->payload_len = buflen;
     p->proto = IPPROTO_TCP;
+
+    HostBitsTestSetup();
 
     de_ctx = DetectEngineCtxInit();
 
@@ -489,7 +504,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    HostCleanup();
+    HostBitsTestShutdown();
 
     SCFree(p);
     return result;
@@ -530,13 +545,13 @@ static int HostBitsTestSig02(void)
     if (s == NULL) {
         error_count++;
     }
-
+/* TODO reenable after both is supported
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:set,abc,both; content:\"GET \"; sid:3;)");
     if (s == NULL) {
         error_count++;
     }
-
+*/
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:unset,abc,src; content:\"GET \"; sid:4;)");
     if (s == NULL) {
@@ -680,6 +695,8 @@ static int HostBitsTestSig04(void)
     p->payload_len = buflen;
     p->proto = IPPROTO_TCP;
 
+    HostBitsTestSetup();
+
     de_ctx = DetectEngineCtxInit();
 
     if (de_ctx == NULL) {
@@ -708,6 +725,8 @@ static int HostBitsTestSig04(void)
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    HostBitsTestShutdown();
+
     SCFree(p);
     return result;
 
@@ -725,6 +744,8 @@ end:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
+
+    HostBitsTestShutdown();
 
     SCFree(p);
     return result;
@@ -761,6 +782,8 @@ static int HostBitsTestSig05(void)
     p->payload_len = buflen;
     p->proto = IPPROTO_TCP;
 
+    HostBitsTestSetup();
+
     de_ctx = DetectEngineCtxInit();
 
     if (de_ctx == NULL) {
@@ -791,6 +814,8 @@ static int HostBitsTestSig05(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostBitsTestShutdown();
+
     SCFree(p);
     return result;
 end:
@@ -807,6 +832,8 @@ end:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
+
+    HostBitsTestShutdown();
 
     SCFree(p);
     return result;
@@ -1052,7 +1079,7 @@ static int HostBitsTestSig07(void)
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
 
-    HostInitConfig(TRUE);
+    HostBitsTestSetup();
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
@@ -1106,8 +1133,7 @@ static int HostBitsTestSig07(void)
 
     FLOW_DESTROY(&f);
 
-    HostCleanup();
-
+    HostBitsTestShutdown();
     SCFree(p);
     return result;
 end:
@@ -1127,6 +1153,7 @@ end:
 
     FLOW_DESTROY(&f);
 
+    HostBitsTestShutdown();
     SCFree(p);
     return result;
 }
@@ -1158,7 +1185,7 @@ static int HostBitsTestSig08(void)
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
 
-    HostInitConfig(TRUE);
+    HostBitsTestSetup();
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
@@ -1233,7 +1260,7 @@ static int HostBitsTestSig08(void)
 
     FLOW_DESTROY(&f);
 
-    HostCleanup();
+    HostBitsTestShutdown();
 
     SCFree(p);
     return result;
@@ -1253,6 +1280,8 @@ end:
     }
 
     FLOW_DESTROY(&f);
+
+    HostBitsTestShutdown();
 
     SCFree(p);
     return result;
