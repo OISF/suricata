@@ -32,9 +32,14 @@
 #define DETECT_HOSTBITS_CMD_NOALERT  5
 #define DETECT_HOSTBITS_CMD_MAX      6
 
+#define DETECT_HOSTBITS_DIR_SRC      0
+#define DETECT_HOSTBITS_DIR_DST      1
+#define DETECT_HOSTBITS_DIR_BOTH     2
+
 typedef struct DetectHostbitsData_ {
     uint16_t idx;
     uint8_t cmd;
+    uint8_t dir;
 } DetectHostbitsData;
 
 /* prototypes */
