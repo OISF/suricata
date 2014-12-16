@@ -41,12 +41,12 @@ void MemcmpRegisterTests(void);
 static inline int
 MemcmpLowercase(const void *s1, const void *s2, size_t n)
 {
-    size_t i;
+    ssize_t i;
 
     /* check backwards because we already tested the first
      * 2 to 4 chars. This way we are more likely to detect
      * a miss and thus speed up a little... */
-    for (i = n - 1; i; i--) {
+    for (i = n - 1; i >= 0; i--) {
         if (((uint8_t *)s1)[i] != u8_tolower(*(((uint8_t *)s2)+i)))
             return 1;
     }
