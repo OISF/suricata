@@ -158,7 +158,12 @@ void LogFileLogPrintJsonObj(FILE *fp, json_t *js)
                                JSON_PRESERVE_ORDER|
                                JSON_COMPACT|
                                JSON_ENSURE_ASCII|
-                               JSON_ESCAPE_SLASH);
+#ifdef JSON_ESCAPE_SLAH
+                               JSON_ESCAPE_SLASH
+#else
+                               0
+#endif
+                               );
     if (js_data != NULL)
         fprintf(fp, "%s", js_data);
 }

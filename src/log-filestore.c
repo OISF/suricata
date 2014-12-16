@@ -229,21 +229,26 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
             g_logfile_base_dir, ff->file_id);
 
 #ifdef HAVE_LIBJANSSON
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-store");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
+    /* Only create the json structure of json format is set in config */
+    json_t *js;
+    json_t *filemeta_json;
+    if (flog->flags & META_FORMAT_JSON) {
+        js = CreateJSONHeader((Packet *)p, 1, "file-store");
+        if (unlikely(js == NULL))
+            return TM_ECODE_OK;
     
-    json_t *filemeta_json = json_object();
-    if (unlikely(filemeta_json == NULL))
-        json_decref(js);
-        return TM_ECODE_OK;
+        filemeta_json = json_object();
+        if (unlikely(filemeta_json == NULL))
+            json_decref(js);
+            return TM_ECODE_OK;
+    }
 #endif
 
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
 #ifdef HAVE_LIBJANSSON
-	    if (flog->flags & META_FORMAT_JSON) {
+        if (flog->flags & META_FORMAT_JSON) {
             LogFileLogTransactionMeta(p, ff, filemeta_json, aft->meta_buffer);
         } else {
             LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->meta_buffer);
@@ -425,7 +430,8 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
     LogFilestoreFileCtx *filestorelog_ctx = SCCalloc(1, sizeof(LogFilestoreFileCtx));
     if (unlikely(filestorelog_ctx == NULL))
-        goto filectx_error;
+        LogFileFreeCtx(file_ctx);
+        return NULL;
     filestorelog_ctx->file_ctx = file_ctx;
 
     filestorelog_ctx->flags = 0;
@@ -440,6 +446,10 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
             SCLogInfo("Setting filestore metadata format to JSON");
 #else
             SCLogError(SC_ERR_NO_JSON_SUPPORT, "libjansson was not enabled at build-time");
+
+            /* Free the allocated memory */
+            LogFileFreeCtx(filestorelog_ctx->file_ctx);
+            SCFree(filestorelog_ctx);
             return NULL;
 #endif
         } else {
@@ -471,18 +481,16 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL))
-        goto filestorelog_error;
+    if (unlikely(output_ctx == NULL)) {
+        /* Free the allocated memory */
+        LogFileFreeCtx(filestorelog_ctx->file_ctx);
+        SCFree(filestorelog_ctx);
+        return NULL;
+    }
     output_ctx->data = filestorelog_ctx;
     output_ctx->DeInit = LogFilestoreLogDeInitCtx;
 
     return output_ctx;
-
-filestorelog_error:
-    SCFree(filestorelog_ctx);
-filectx_error:
-    LogFileFreeCtx(file_ctx);
-    return NULL;
 }
 
 void TmModuleLogFilestoreRegister (void)

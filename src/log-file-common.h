@@ -30,8 +30,6 @@
 #define META_FORMAT_JSON 1
 #define META_BUFFER_SIZE 2048
 #define META_MD5_BUFFER 512
-#define CHECK_PROTO_NO 0
-#define CHECK_PROTO_YES 1
 
 void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
 void LogFileMetaGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
