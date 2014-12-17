@@ -62,39 +62,6 @@
 
 #include "util-profiling.h"
 
-static TmSlot *stream_pseudo_pkt_stream_tm_slot = NULL;
-static ThreadVars *stream_pseudo_pkt_stream_TV = NULL;
-
-static TmSlot *stream_pseudo_pkt_detect_tm_slot = NULL;
-static ThreadVars *stream_pseudo_pkt_detect_TV = NULL;
-static ThreadVars *stream_pseudo_pkt_detect_prev_TV = NULL;
-
-static TmSlot *stream_pseudo_pkt_decode_tm_slot = NULL;
-static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
-
-/**
- * \internal
- * \brief Flush out if we have any unattended packets.
- */
-static inline void FlowForceReassemblyFlushPendingPseudoPackets(void)
-{
-    /* we don't lock the queue, since flow manager is dead */
-    if (stream_pseudo_pkt_decode_tm_slot->slot_post_pq.len == 0)
-        return;
-
-    SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    Packet *p = PacketDequeue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq);
-    SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    if (TmThreadsSlotProcessPkt(stream_pseudo_pkt_decode_TV,
-                                stream_pseudo_pkt_decode_tm_slot,
-                                p) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_TM_THREADS_ERROR, "Received error from FFR on "
-                   "flushing packets through decode->.. TMs");
-    }
-
-    return;
-}
-
 /**
  * \internal
  * \brief Pseudo packet setup for flow forced reassembly.
@@ -271,11 +238,13 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
                                                          TcpSession *ssn,
                                                          int dummy)
 {
-    Packet *p;
-
-    p = PacketGetFromAlloc();
-    if (p == NULL)
+    PacketPoolWait();
+    Packet *p = PacketPoolGetPacket();
+    if (p == NULL) {
         return NULL;
+    }
+
+    PACKET_PROFILING_START(p);
 
     return FlowForceReassemblyPseudoPacketSetup(p, direction, f, ssn, dummy);
 }
@@ -361,7 +330,7 @@ int FlowForceReassemblyNeedReassembly(Flow *f, int *server, int *client)
  *
  * \retval 0 This flow doesn't need any reassembly processing; 1 otherwise.
  */
-int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
+int FlowForceReassemblyForFlow(Flow *f, int server, int client)
 {
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
     TcpSession *ssn;
@@ -391,7 +360,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
         if (p1 == NULL) {
             goto done;
         }
-        PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+        PKT_SET_SRC(p1, PKT_SRC_FFR);
 
         if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
@@ -400,7 +369,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
 
             p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p3 == NULL) {
@@ -410,7 +379,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p2);
                 goto done;
             }
-            PKT_SET_SRC(p3, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p3, PKT_SRC_FFR);
         } else {
             p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p2 == NULL) {
@@ -418,7 +387,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         }
 
     } else if (client == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
@@ -427,7 +396,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
@@ -435,13 +404,13 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         } else {
             p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
                 p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
@@ -450,7 +419,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                     TmqhOutputPacketpool(NULL, p1);
                     goto done;
                 }
-                PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+                PKT_SET_SRC(p2, PKT_SRC_FFR);
             }
         }
 
@@ -460,7 +429,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
 
             p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p2 == NULL) {
@@ -468,28 +437,33 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
                 TmqhOutputPacketpool(NULL, p1);
                 goto done;
             }
-            PKT_SET_SRC(p2, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p2, PKT_SRC_FFR);
         } else if (server == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
                 goto done;
             }
-            PKT_SET_SRC(p1, PKT_SRC_FFR_V2);
+            PKT_SET_SRC(p1, PKT_SRC_FFR);
         } else {
             /* impossible */
             BUG_ON(1);
         }
     }
 
-    SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
-    if (p2 != NULL)
-        PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p2);
-    if (p3 != NULL)
-        PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p3);
-    SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
-    if (stream_pseudo_pkt_decode_TV->inq != NULL) {
-        SCCondSignal(&trans_q[stream_pseudo_pkt_decode_TV->inq->id].cond_q);
+    /* inject the packet(s) into the appropriate thread */
+    int thread_id = (int)f->thread_id;
+    Packet *packets[4] = { p1, p2 ? p2 : p3, p2 ? p3 : NULL, NULL }; /**< null terminated array of packets */
+    if (unlikely(!(TmThreadsInjectPacketsById(packets, thread_id)))) {
+        FlowDeReference(&p1->flow);
+        TmqhOutputPacketpool(NULL, p1);
+        if (p2) {
+            FlowDeReference(&p2->flow);
+            TmqhOutputPacketpool(NULL, p2);
+        }
+        if (p3) {
+            FlowDeReference(&p3->flow);
+            TmqhOutputPacketpool(NULL, p3);
+        }
     }
 
     /* done, in case of error (no packet) we still tag flow as complete
@@ -518,15 +492,9 @@ static inline void FlowForceReassemblyForHash(void)
 {
     Flow *f;
     TcpSession *ssn;
-    int client_ok;
-    int server_ok;
-
+    int client_ok = 0;
+    int server_ok = 0;
     uint32_t idx = 0;
-
-    /* We use this packet just for reassembly purpose */
-    Packet *reassemble_p = PacketGetFromAlloc();
-    if (reassemble_p == NULL)
-        return;
 
     for (idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
@@ -538,8 +506,6 @@ static inline void FlowForceReassemblyForHash(void)
 
         /* we need to loop through all the flows in the queue */
         while (f != NULL) {
-            PACKET_RECYCLE(reassemble_p);
-
             FLOWLOCK_WRLOCK(f);
 
             /* Get the tcp session for the flow */
@@ -552,111 +518,17 @@ static inline void FlowForceReassemblyForHash(void)
                 continue;
             }
 
-            (void)FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok);
-
-            /* ah ah!  We have some unattended toserver segments */
-            if (client_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-                StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
-
-                ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
-                        ssn->client.seg_list_tail->payload_len);
-
-                FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
-                StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
-                        stt->ra_ctx, ssn, &ssn->server,
-                        reassemble_p, NULL);
-                FlowDeReference(&reassemble_p->flow);
-            }
-            /* oh oh!  We have some unattended toclient segments */
-            if (server_ok == STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY) {
-                StreamTcpThread *stt = SC_ATOMIC_GET(stream_pseudo_pkt_stream_tm_slot->slot_data);
-
-                ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
-                        ssn->server.seg_list_tail->payload_len);
-
-                FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
-                StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
-                        stt->ra_ctx, ssn, &ssn->client,
-                        reassemble_p, NULL);
-                FlowDeReference(&reassemble_p->flow);
+            if (FlowForceReassemblyNeedReassembly(f, &server_ok, &client_ok) == 1) {
+                FlowForceReassemblyForFlow(f, server_ok, client_ok);
             }
 
             FLOWLOCK_UNLOCK(f);
-
-            /* insert a pseudo packet in the toserver direction */
-            if (client_ok) {
-                FLOWLOCK_WRLOCK(f);
-                Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
-                FLOWLOCK_UNLOCK(f);
-
-                if (p == NULL) {
-                    TmqhOutputPacketpool(NULL, reassemble_p);
-                    FBLOCK_UNLOCK(fb);
-                    return;
-                }
-                PKT_SET_SRC(p, PKT_SRC_FFR_SHUTDOWN);
-
-                if (stream_pseudo_pkt_detect_prev_TV != NULL) {
-                    stream_pseudo_pkt_detect_prev_TV->
-                        tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
-                } else {
-                    TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
-                    while (s != NULL) {
-                        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
-                        SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
-                                    &s->slot_post_pq);
-                        s = s->slot_next;
-                    }
-
-                    if (stream_pseudo_pkt_detect_TV != NULL) {
-                        stream_pseudo_pkt_detect_TV->
-                            tmqh_out(stream_pseudo_pkt_detect_TV, p);
-                    } else {
-                        TmqhOutputPacketpool(NULL, p);
-                    }
-                }
-            }
-            if (server_ok) {
-                FLOWLOCK_WRLOCK(f);
-                Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-                FLOWLOCK_UNLOCK(f);
-
-                if (p == NULL) {
-                    TmqhOutputPacketpool(NULL, reassemble_p);
-                    FBLOCK_UNLOCK(fb);
-                    return;
-                }
-                PKT_SET_SRC(p, PKT_SRC_FFR_SHUTDOWN);
-
-                if (stream_pseudo_pkt_detect_prev_TV != NULL) {
-                    stream_pseudo_pkt_detect_prev_TV->
-                        tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
-                } else {
-                    TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
-                    while (s != NULL) {
-                        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
-                        SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
-                                    &s->slot_post_pq);
-                        s = s->slot_next;
-                    }
-
-                    if (stream_pseudo_pkt_detect_TV != NULL) {
-                        stream_pseudo_pkt_detect_TV->
-                            tmqh_out(stream_pseudo_pkt_detect_TV, p);
-                    } else {
-                        TmqhOutputPacketpool(NULL, p);
-                    }
-                }
-            }
 
             /* next flow in the queue */
             f = f->hnext;
         }
         FBLOCK_UNLOCK(fb);
     }
-
-    PKT_SET_SRC(reassemble_p, PKT_SRC_FFR_SHUTDOWN);
-    TmqhOutputPacketpool(NULL, reassemble_p);
     return;
 }
 
@@ -665,141 +537,11 @@ static inline void FlowForceReassemblyForHash(void)
  */
 void FlowForceReassembly(void)
 {
-    /* Do remember.  We need to have packet acquire disabled by now */
-
-    /** ----- Part 1 ------*/
-    /* Flush out unattended packets */
-    FlowForceReassemblyFlushPendingPseudoPackets();
-
-    /** ----- Part 2 ----- **/
-    /* Check if all threads are idle.  We need this so that we have all
-     * packets freeds.  As a consequence, no flows are in use */
-
-    SCMutexLock(&tv_root_lock);
-
-    /* all receive threads are part of packet processing threads */
-    ThreadVars *tv = tv_root[TVT_PPT];
-
-    /* we are doing this in order receive -> decode -> ... -> log */
-    while (tv != NULL) {
-        if (tv->inq != NULL) {
-            /* we wait till we dry out all the inq packets, before we
-             * kill this thread.  Do note that you should have disabled
-             * packet acquire by now using TmThreadDisableReceiveThreads()*/
-            if (!(strlen(tv->inq->name) == strlen("packetpool") &&
-                  strcasecmp(tv->inq->name, "packetpool") == 0)) {
-                PacketQueue *q = &trans_q[tv->inq->id];
-                while (q->len != 0) {
-                    usleep(100);
-                }
-                TmThreadsSetFlag(tv, THV_PAUSE);
-                if (tv->inq->q_type == 0)
-                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                else
-                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
-                while (!TmThreadsCheckFlag(tv, THV_PAUSED)) {
-                    if (tv->inq->q_type == 0)
-                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                    else
-                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
-                    usleep(100);
-                }
-                TmThreadsUnsetFlag(tv, THV_PAUSE);
-            }
-        }
-        tv = tv->next;
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-
-    /** ----- Part 3 ----- **/
+    /* called by 'main()' which has no packet pool */
+    PacketPoolInit();
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
-
+    PacketPoolDestroy();
     return;
 }
 
-/**
- *  \param detect_disabled bool, indicating if we use a detection engine (true)
- */
-void FlowForceReassemblySetup(int detect_disabled)
-{
-    /* get StreamTCP TM's slot and TV containing this slot */
-    stream_pseudo_pkt_stream_tm_slot = TmSlotGetSlotForTM(TMM_STREAMTCP);
-    if (stream_pseudo_pkt_stream_tm_slot == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve the slot for STREAMTCP TM");
-        exit(EXIT_FAILURE);
-    }
-    stream_pseudo_pkt_stream_TV =
-        TmThreadsGetTVContainingSlot(stream_pseudo_pkt_stream_tm_slot);
-    if (stream_pseudo_pkt_stream_TV == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve the TV containing STREAMTCP TM slot");
-        exit(EXIT_FAILURE);
-    }
-
-    if (!detect_disabled) {
-        /* get detect TM's slot and TV containing this slot */
-        stream_pseudo_pkt_detect_tm_slot = TmSlotGetSlotForTM(TMM_DETECT);
-        if (stream_pseudo_pkt_detect_tm_slot == NULL) {
-            /* yes, this is fatal! */
-            SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                    "retrieve a slot for DETECT TM");
-            exit(EXIT_FAILURE);
-        }
-        stream_pseudo_pkt_detect_TV =
-            TmThreadsGetTVContainingSlot(stream_pseudo_pkt_detect_tm_slot);
-        if (stream_pseudo_pkt_detect_TV == NULL) {
-            /* yes, this is fatal! */
-            SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                    "retrieve the TV containing the Detect TM slot");
-            exit(EXIT_FAILURE);
-        }
-        if (stream_pseudo_pkt_detect_TV->tm_slots == stream_pseudo_pkt_detect_tm_slot) {
-            stream_pseudo_pkt_detect_prev_TV = stream_pseudo_pkt_detect_TV->prev;
-        }
-        if (strcasecmp(stream_pseudo_pkt_detect_TV->outqh_name, "packetpool") == 0) {
-            stream_pseudo_pkt_detect_TV = NULL;
-        }
-    }
-
-    SCMutexLock(&tv_root_lock);
-    ThreadVars *tv = tv_root[TVT_PPT];
-    int done = 0;
-    while (tv) {
-        TmSlot *slots = tv->tm_slots;
-        while (slots) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
-            if (tm->flags & TM_FLAG_DECODE_TM) {
-                done = 1;
-                stream_pseudo_pkt_decode_tm_slot = slots;
-                break;
-            }
-            slots = slots->slot_next;
-        }
-        if (done)
-            break;
-        tv = tv->next;
-    }
-    SCMutexUnlock(&tv_root_lock);
-
-    if (stream_pseudo_pkt_decode_tm_slot == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve the slot for DECODE TM");
-        exit(EXIT_FAILURE);
-    }
-    stream_pseudo_pkt_decode_TV =
-        TmThreadsGetTVContainingSlot(stream_pseudo_pkt_decode_tm_slot);
-    if (stream_pseudo_pkt_decode_TV == NULL) {
-        /* yes, this is fatal! */
-        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
-                   "retrieve the TV containing the Decode TM slot");
-        exit(EXIT_FAILURE);
-    }
-
-    return;
-}

@@ -130,7 +130,8 @@ void TmThreadWaitForFlag(ThreadVars *, uint16_t);
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
-void TmThreadDisableThreadsWithTMS(uint8_t tm_flags);
+void TmThreadDisablePacketThreads(void);
+void TmThreadDisableReceiveThreads(void);
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 /**
@@ -194,5 +195,11 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 
     return r;
 }
+
+
+void TmThreadsListThreads(void);
+int TmThreadsRegisterThread(ThreadVars *tv, const int type);
+void TmThreadsUnregisterThread(const int id);
+int TmThreadsInjectPacketsById(Packet **, int id);
 
 #endif /* __TM_THREADS_H__ */
