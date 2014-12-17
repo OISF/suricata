@@ -1241,7 +1241,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
         }
     }
 
-    size_t pattern_list_size = (ctx->max_pat_id + 1) * sizeof(SCACTilePatternList);
+    size_t pattern_list_size = mpm_ctx->pattern_cnt * sizeof(SCACTilePatternList);
     size_t mem_size = string_space_needed + pattern_list_size;
     void *mem_block = SCCalloc(1, mem_size);
     if (mem_block == NULL) {
@@ -1251,7 +1251,7 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += mem_size;
     /* Split the allocated block into pattern list array and string space. */
-    ctx->pid_pat_list = mem_block;
+    ctx->pattern_list = mem_block;
     uint8_t *string_space = mem_block + pattern_list_size;
 
     /* Now make the copies of the no-case strings. */
@@ -1260,8 +1260,8 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
             uint32_t len = ctx->parray[i]->len;
             uint32_t space = ((len + 7) / 8) * 8;
             memcpy(string_space, ctx->parray[i]->original_pat, len);
-            ctx->pid_pat_list[ctx->parray[i]->id].cs = string_space;
-            ctx->pid_pat_list[ctx->parray[i]->id].patlen = len;
+            ctx->pattern_list[i].cs = string_space;
+            ctx->pattern_list[i].patlen = len;
             string_space += space;
         }
         ctx->pattern_list[i].pid = ctx->parray[i]->id;
@@ -1443,7 +1443,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
     /* Free Search tables */
     SCFree(search_ctx->state_table);
-    SCFree(search_ctx->pid_pat_list);
+    SCFree(search_ctx->pattern_list);
     SCFree(search_ctx->output_table);
 
     SCFree(search_ctx);
