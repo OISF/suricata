@@ -52,8 +52,7 @@ enum PktSrcEnum {
     PKT_SRC_DECODER_TEREDO,
     PKT_SRC_DEFRAG,
     PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO,
-    PKT_SRC_FFR_V2,
-    PKT_SRC_FFR_SHUTDOWN,
+    PKT_SRC_FFR,
 };
 
 #include "source-nflog.h"
