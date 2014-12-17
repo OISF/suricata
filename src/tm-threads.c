@@ -1697,6 +1697,7 @@ void TmThreadKillThreadsFamily(int family)
     if ((family < 0) || (family >= TVT_MAX))
         return;
 
+    SCMutexLock(&tv_root_lock);
     tv = tv_root[family];
 
     while (tv) {
@@ -1704,6 +1705,7 @@ void TmThreadKillThreadsFamily(int family)
 
         tv = tv->next;
     }
+    SCMutexUnlock(&tv_root_lock);
 }
 
 void TmThreadKillThreads(void)
