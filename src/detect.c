@@ -11562,6 +11562,65 @@ end:
     return result;
 }
 
+/** \test almost identical patterns */
+static int SigTestBug01(void)
+{
+    int result = 0;
+    Packet *p1 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    uint8_t payload[] = "!mymy";
+
+    memset(&tv, 0, sizeof(ThreadVars));
+
+    p1 = UTHBuildPacket(payload, sizeof(payload), IPPROTO_TCP);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                   "(content:\"Omymy\"; nocase; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                                   "(content:\"!mymy\"; nocase; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sig 1 alerted on p1, but it should not: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(p1, 2))) {
+        printf("sig 2 did not p1, but it should have: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
 static const char *dummy_conf_string2 =
     "%YAML 1.1\n"
     "---\n"
@@ -11966,6 +12025,7 @@ void SigRegisterTests(void)
     UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04, 1);
 
     UtRegisterTest("SigTestPorts01", SigTestPorts01, 1);
+    UtRegisterTest("SigTestBug01", SigTestBug01, 1);
 
     DetectSimdRegisterTests();
 #endif /* UNITTESTS */
