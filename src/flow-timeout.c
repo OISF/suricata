@@ -238,11 +238,13 @@ static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
                                                          TcpSession *ssn,
                                                          int dummy)
 {
-    Packet *p;
-
-    p = PacketGetFromAlloc();
-    if (p == NULL)
+    PacketPoolWait();
+    Packet *p = PacketPoolGetPacket();
+    if (p == NULL) {
         return NULL;
+    }
+
+    PACKET_PROFILING_START(p);
 
     return FlowForceReassemblyPseudoPacketSetup(p, direction, f, ssn, dummy);
 }
@@ -535,9 +537,11 @@ static inline void FlowForceReassemblyForHash(void)
  */
 void FlowForceReassembly(void)
 {
+    /* called by 'main()' which has no packet pool */
+    PacketPoolInit();
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
-
+    PacketPoolDestroy();
     return;
 }
 
