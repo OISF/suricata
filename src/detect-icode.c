@@ -45,7 +45,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectICodeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectICodeMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectICodeSetup(DetectEngineCtx *, Signature *, char *);
 void DetectICodeRegisterTests(void);
 void DetectICodeFree(void *);
@@ -98,11 +98,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectICodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     uint8_t picode;
-    DetectICodeData *icd = (DetectICodeData *)m->ctx;
+    const DetectICodeData *icd = (const DetectICodeData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
         return 0;
@@ -259,7 +259,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodest
     if (sm == NULL) goto error;
 
     sm->type = DETECT_ICODE;
-    sm->ctx = (void *)icd;
+    sm->ctx = (SigMatchCtx *)icd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

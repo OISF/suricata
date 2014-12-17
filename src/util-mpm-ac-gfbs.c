@@ -59,9 +59,9 @@ void SCACGfbsInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void SCACGfbsDestroyCtx(MpmCtx *);
 void SCACGfbsDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
 int SCACGfbsAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACGfbsAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
-                         uint32_t, uint32_t, uint8_t);
+                         uint32_t, SigIntId, uint8_t);
 int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen);
@@ -284,7 +284,7 @@ static inline int SCACGfbsInitHashAdd(SCACGfbsCtx *ctx, SCACGfbsPattern *p)
  */
 static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                               uint16_t offset, uint16_t depth, uint32_t pid,
-                              uint32_t sid, uint8_t flags)
+                              SigIntId sid, uint8_t flags)
 {
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
 
@@ -363,6 +363,29 @@ static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         /* we need the max pat id */
         if (pid > ctx->max_pat_id)
             ctx->max_pat_id = pid;
+
+        p->sids_size = 1;
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
+        BUG_ON(p->sids == NULL);
+        p->sids[0] = sid;
+    } else {
+        /* TODO figure out how we can be called multiple times for the same CTX with the same sid */
+
+        int found = 0;
+        uint32_t x = 0;
+        for (x = 0; x < p->sids_size; x++) {
+            if (p->sids[x] == sid) {
+                found = 1;
+                break;
+            }
+        }
+        if (!found) {
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
+            BUG_ON(sids == NULL);
+            p->sids = sids;
+            p->sids[p->sids_size] = sid;
+            p->sids_size++;
+        }
     }
 
     return 0;
@@ -473,7 +496,7 @@ static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
  * \param mpm_ctx     Pointer to the mpm context.
  */
 static inline void SCACGfbsEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pid,
-                             MpmCtx *mpm_ctx)
+                                 MpmCtx *mpm_ctx)
 {
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     int32_t state = 0;
@@ -1067,6 +1090,10 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
                    ctx->parray[i]->original_pat, ctx->parray[i]->len);
             ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
         }
+
+        /* ACPatternList now owns this memory */
+        ctx->pid_pat_list[ctx->parray[i]->id].sids_size = ctx->parray[i]->sids_size;
+        ctx->pid_pat_list[ctx->parray[i]->id].sids = ctx->parray[i]->sids;
     }
 
     /* prepare the state table required by AC */
@@ -1236,6 +1263,8 @@ void SCACGfbsDestroyCtx(MpmCtx *mpm_ctx)
         for (i = 0; i < (ctx->max_pat_id + 1); i++) {
             if (ctx->pid_pat_list[i].cs != NULL)
                 SCFree(ctx->pid_pat_list[i].cs);
+            if (ctx->pid_pat_list[i].sids != NULL)
+                SCFree(ctx->pid_pat_list[i].sids);
         }
         SCFree(ctx->pid_pat_list);
     }
@@ -1267,6 +1296,9 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     uint8_t buf_local;
 
     SCACGfbsPatternList *pid_pat_list = ctx->pid_pat_list;
+
+    uint8_t bitarray[pmq->pattern_id_bitarray_size];
+    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
 
     /* really hate the extra cmp here, but can't help it */
     if (ctx->state_count < 32767) {
@@ -1370,26 +1402,33 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k = 0;
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
-                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
-                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
+                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
+                                     pid_pat_list[lower_pid].patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
 
-                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = (pids[k] & 0x0000FFFF);
+                            bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+
+                            MpmAddPid(pmq, lower_pid);
+                            MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
                     } else {
-                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
+                            bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
+
+                            MpmAddPid(pmq, pids[k]);
+                            MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
                     }
@@ -1495,26 +1534,33 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k = 0;
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
-                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
-                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                        if (SCMemcmp(pid_pat_list[lower_pid].cs,
+                                     buf + i - pid_pat_list[lower_pid].patlen + 1,
+                                     pid_pat_list[lower_pid].patlen) != 0) {
                             /* inside loop */
                             continue;
                         }
 
-                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                        if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = (pids[k] & 0x0000FFFF);
+                            bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+
+                            MpmAddPid(pmq, lower_pid);
+                            MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
                     } else {
-                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                        if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
+                            bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
                             pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
+
+                            MpmAddPid(pmq, pids[k]);
+                            MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
                     }
@@ -1547,7 +1593,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
  */
 int SCACGfbsAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
     return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
@@ -1572,7 +1618,7 @@ int SCACGfbsAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
  */
 int SCACGfbsAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
-                         uint32_t sid, uint8_t flags)
+                         SigIntId sid, uint8_t flags)
 {
     return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
 }

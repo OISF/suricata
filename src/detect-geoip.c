@@ -63,7 +63,7 @@ void DetectGeoipRegister(void)
 
 
 static int DetectGeoipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                             Signature *, SigMatch *);
+                             Signature *, const SigMatchCtx *);
 static int DetectGeoipSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectGeoipRegisterTests(void);
 static void DetectGeoipDataFree(void *);
@@ -131,7 +131,7 @@ static const char *GeolocateIPv4(GeoIP *geoengine, uint32_t ip)
  * \retval 0 no match
  * \retval 1 match
  */
-static int CheckGeoMatchIPv4(DetectGeoipData *geoipdata, uint32_t ip)
+static int CheckGeoMatchIPv4(const DetectGeoipData *geoipdata, uint32_t ip)
 {
     const char *country;
     int i;
@@ -165,9 +165,9 @@ static int CheckGeoMatchIPv4(DetectGeoipData *geoipdata, uint32_t ip)
  * \retval 1 match
  */
 static int DetectGeoipMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                             Packet *p, Signature *s, SigMatch *m)
+                             Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    DetectGeoipData *geoipdata = (DetectGeoipData *)m->ctx;
+    const DetectGeoipData *geoipdata = (const DetectGeoipData *)ctx;
     int matches = 0;
 
     if (PKT_IS_PSEUDOPKT(p))
@@ -339,7 +339,7 @@ static int DetectGeoipSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         goto error;
 
     sm->type = DETECT_GEOIP;
-    sm->ctx = (void *)geoipdata;
+    sm->ctx = (SigMatchCtx *)geoipdata;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

@@ -48,7 +48,7 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, char *);
@@ -114,11 +114,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
 
-    DetectEngineEventData *de = (DetectEngineEventData *)m->ctx;
+    const DetectEngineEventData *de = (const DetectEngineEventData *)ctx;
 
     if (ENGINE_ISSET_EVENT(p, de->event)) {
         SCLogDebug("de->event matched %u", de->event);
@@ -214,7 +214,7 @@ static int _DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char 
         goto error;
 
     sm->type = smtype;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
@@ -377,9 +377,9 @@ int EngineEventTestParse06 (void)
         goto error;
 
     sm->type = DETECT_DECODE_EVENT;
-    sm->ctx = (void *)de;
+    sm->ctx = (SigMatchCtx *)de;
 
-    ret = DetectEngineEventMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectEngineEventMatch(&tv,NULL,p,NULL,sm->ctx);
 
     if(ret) {
         SCFree(p);

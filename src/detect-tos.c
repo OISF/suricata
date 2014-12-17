@@ -50,7 +50,7 @@ static pcre_extra *parse_regex_study;
 
 static int DetectTosSetup(DetectEngineCtx *, Signature *, char *);
 static int DetectTosMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-                          Signature *, SigMatch *);
+                          Signature *, const SigMatchCtx *);
 static void DetectTosRegisterTests(void);
 static void DetectTosFree(void *);
 
@@ -103,9 +103,9 @@ error:
  * \retval 1 match
  */
 int DetectTosMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Packet *p,
-                   Signature *s, SigMatch *sm)
+                   Signature *s, const SigMatchCtx *ctx)
 {
-    DetectTosData *tosd = (DetectTosData *)sm->ctx;
+    const DetectTosData *tosd = (const DetectTosData *)ctx;
     int result = 0;
 
     if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {
@@ -215,7 +215,7 @@ int DetectTosSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
 
     sm->type = DETECT_TOS;
-    sm->ctx = (void *)tosd;
+    sm->ctx = (SigMatchCtx *)tosd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;

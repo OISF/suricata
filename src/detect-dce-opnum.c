@@ -409,7 +409,7 @@ static int DetectDceOpnumTestParse02(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
@@ -438,7 +438,7 @@ static int DetectDceOpnumTestParse03(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
@@ -467,7 +467,7 @@ static int DetectDceOpnumTestParse04(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
@@ -533,7 +533,7 @@ static int DetectDceOpnumTestParse05(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
@@ -599,7 +599,7 @@ static int DetectDceOpnumTestParse06(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
@@ -647,7 +647,7 @@ static int DetectDceOpnumTestParse07(void)
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
-        dod = temp->ctx;
+        dod = (DetectDceOpnumData *)temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
