@@ -4382,6 +4382,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    /* assign the thread id to the flow */
+    if (unlikely(p->flow->thread_id == 0)) {
+        p->flow->thread_id = (FlowThreadId)tv->id;
+#ifdef DEBUG
+    } else if (unlikely((FlowThreadId)tv->id != p->flow->thread_id)) {
+        SCLogDebug("wrong thread: flow has %u, we are %d", p->flow->thread_id, tv->id);
+#endif
+    }
+
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
     /* track TCP flags */
@@ -4431,6 +4440,23 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         if (ssn != NULL)
             SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
     } else {
+        /* special case for PKT_PSEUDO_STREAM_END packets:
+         * bypass the state handling and various packet checks,
+         * we care about reassembly here. */
+        if (p->flags & PKT_PSEUDO_STREAM_END) {
+            if (PKT_IS_TOCLIENT(p)) {
+                ssn->client.last_ack = TCP_GET_ACK(p);
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                        &ssn->server, p, pq);
+            } else {
+                ssn->server.last_ack = TCP_GET_ACK(p);
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                        &ssn->client, p, pq);
+            }
+            /* straight to 'skip' as we already handled reassembly */
+            goto skip;
+        }
+
         /* check if the packet is in right direction, when we missed the
            SYN packet and picked up midstream session. */
         if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM_SYNACK)

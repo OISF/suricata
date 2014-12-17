@@ -185,6 +185,56 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     return TM_ECODE_OK;
 }
 
+/** \internal
+ *
+ *  \brief Process flow timeout packets
+ *
+ *  Process flow timeout pseudo packets. During shutdown this loop
+ *  is run until the flow engine kills the thread and the queue is
+ *  empty.
+ */
+static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
+{
+    TmSlot *stream_slot = NULL, *slot = NULL;
+    int run = 1;
+    int r = TM_ECODE_OK;
+
+    for (slot = s; slot != NULL; slot = slot->slot_next) {
+        if (slot->tm_id == TMM_STREAMTCP) {
+            stream_slot = slot;
+            break;
+        }
+    }
+
+    if (tv->stream_pq == NULL || stream_slot == NULL)
+        return r;
+
+    SCLogDebug("flow end loop starting");
+    while(run) {
+        Packet *p;
+        if (tv->stream_pq->len != 0) {
+            SCMutexLock(&tv->stream_pq->mutex_q);
+            p = PacketDequeue(tv->stream_pq);
+            SCMutexUnlock(&tv->stream_pq->mutex_q);
+            BUG_ON(p == NULL);
+
+            if ((r = TmThreadsSlotProcessPkt(tv, stream_slot, p) != TM_ECODE_OK)) {
+                if (r == TM_ECODE_FAILED)
+                    run = 0;
+            }
+        } else {
+            usleep(1);
+        }
+
+        if (tv->stream_pq->len == 0 && TmThreadsCheckFlag(tv, THV_KILL)) {
+            run = 0;
+        }
+    }
+    SCLogDebug("flow end loop complete");
+
+    return r;
+}
+
 /*
 
     pcap/nfq
@@ -257,12 +307,11 @@ void *TmThreadsSlotPktAcqLoop(void *td)
                 if (r == TM_ECODE_DONE) {
                     EngineDone();
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
-                    pthread_exit((void *) -1);
+                    goto error;
                 } else {
                     EngineKill();
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                    pthread_exit((void *) -1);
-                    return NULL;
+                    goto error;
                 }
             }
             (void)SC_ATOMIC_SET(slot->slot_data, slot_data);
@@ -271,6 +320,16 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
         memset(&slot->slot_post_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
+
+        /* get the 'pre qeueue' from module before the stream module */
+        if (slot->slot_next != NULL && slot->slot_next->tm_id == TMM_STREAMTCP) {
+            SCLogDebug("pre-stream packetqueue %p (postq)", &s->slot_post_pq);
+            tv->stream_pq = &slot->slot_post_pq;
+        /* if the stream module is the first, get the threads input queue */
+        } else if (slot == (TmSlot *)tv->tm_slots && slot->tm_id == TMM_STREAMTCP) {
+            tv->stream_pq = &trans_q[tv->inq->id];
+            SCLogDebug("pre-stream packetqueue %p (inq)", &slot->slot_pre_pq);
+        }
     }
 
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
@@ -288,7 +347,7 @@ void *TmThreadsSlotPktAcqLoop(void *td)
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
-        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)
+        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL_PKTACQ)
             || suricata_ctl_flags) {
             run = 0;
         }
@@ -297,6 +356,11 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         }
     }
     SCPerfSyncCounters(tv);
+
+    TmThreadsSetFlag(tv, THV_FLOW_LOOP);
+
+    /* process all pseudo packets the flow timeout may throw at us */
+    TmThreadTimeoutLoop(tv, s);
 
     PacketPoolDestroy();
 
@@ -312,15 +376,23 @@ void *TmThreadsSlotPktAcqLoop(void *td)
             r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
-                pthread_exit((void *) -1);
-                return NULL;
+                goto error;
             }
         }
+
+        BUG_ON(slot->slot_pre_pq.len);
+        BUG_ON(slot->slot_post_pq.len);
     }
 
+    tv->stream_pq = NULL;
     SCLogDebug("%s ending", tv->name);
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
+
+error:
+    tv->stream_pq = NULL;
+    pthread_exit((void *) -1);
     return NULL;
 }
 
@@ -368,8 +440,7 @@ void *TmThreadsSlotVar(void *td)
                 EngineKill();
 
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
-                pthread_exit((void *) -1);
-                return NULL;
+                goto error;
             }
             (void)SC_ATOMIC_SET(s->slot_data, slot_data);
         }
@@ -377,6 +448,19 @@ void *TmThreadsSlotVar(void *td)
         SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
         memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&s->slot_post_pq.mutex_q, NULL);
+
+        /* special case: we need to access the stream queue
+         * from the flow timeout code */
+
+        /* get the 'pre qeueue' from module before the stream module */
+        if (s->slot_next != NULL && s->slot_next->tm_id == TMM_STREAMTCP) {
+            SCLogDebug("pre-stream packetqueue %p (preq)", &s->slot_pre_pq);
+            tv->stream_pq = &s->slot_pre_pq;
+        /* if the stream module is the first, get the threads input queue */
+        } else if (s == (TmSlot *)tv->tm_slots && s->tm_id == TMM_STREAMTCP) {
+            tv->stream_pq = &trans_q[tv->inq->id];
+            SCLogDebug("pre-stream packetqueue %p (inq)", &s->slot_pre_pq);
+        }
     }
 
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
@@ -461,15 +545,22 @@ void *TmThreadsSlotVar(void *td)
             r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
-                pthread_exit((void *) -1);
-                return NULL;
+                goto error;
             }
         }
+        BUG_ON(s->slot_pre_pq.len);
+        BUG_ON(s->slot_post_pq.len);
     }
 
     SCLogDebug("%s ending", tv->name);
+    tv->stream_pq = NULL;
     TmThreadsSetFlag(tv, THV_CLOSED);
     pthread_exit((void *) 0);
+    return NULL;
+
+error:
+    tv->stream_pq = NULL;
+    pthread_exit((void *) -1);
     return NULL;
 }
 
@@ -1156,8 +1247,11 @@ ThreadVars *TmThreadCreatePacketHandler(char *name, char *inq_name,
     tv = TmThreadCreate(name, inq_name, inqh_name, outq_name, outqh_name,
                         slots, NULL, 0);
 
-    if (tv != NULL)
+    if (tv != NULL) {
         tv->type = TVT_PPT;
+        tv->id = TmThreadsRegisterThread(tv, tv->type);
+    }
+
 
     return tv;
 }
@@ -1183,6 +1277,7 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
 
     if (tv != NULL) {
         tv->type = TVT_MGMT;
+        tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
     }
 
@@ -1210,6 +1305,7 @@ ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
 
     if (tv != NULL) {
         tv->type = TVT_MGMT;
+        tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
 
         TmModule *m = TmModuleGetByName(module);
@@ -1242,6 +1338,7 @@ ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *),
 
     if (tv != NULL) {
         tv->type = TVT_CMD;
+        tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
     }
 
@@ -1400,9 +1497,13 @@ void TmThreadKillThread(ThreadVars *tv)
 }
 
 /**
- * \brief Disable all threads having the specified TMs.
+ *  \brief Disable all threads having the specified TMs.
+ *
+ *  Breaks out of the packet acquisition loop, and bumps
+ *  into the 'flow loop', where it will process packets
+ *  from the flow engine's shutdown handling.
  */
-void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
+void TmThreadDisableReceiveThreads(void)
 {
     /* value in seconds */
 #define THREAD_KILL_MAX_WAIT_TIME 60
@@ -1429,7 +1530,7 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
         while (slots != NULL) {
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
-            if (tm->flags & tm_flags) {
+            if (tm->flags & TM_FLAG_RECEIVE_TM) {
                 disable = 1;
                 break;
             }
@@ -1452,9 +1553,8 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
                 }
             }
 
-            /* we found our receive TV.  Send it a KILL signal.  This is all
-             * we need to do to kill receive threads */
-            TmThreadsSetFlag(tv, THV_KILL);
+            /* we found a receive TV. Send it a KILL_PKTACQ signal. */
+            TmThreadsSetFlag(tv, THV_KILL_PKTACQ);
 
             if (tv->inq != NULL) {
                 int i;
@@ -1467,7 +1567,8 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
                 SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
             }
 
-            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+            /* wait for it to enter the 'flow loop' stage */
+            while (!TmThreadsCheckFlag(tv, THV_FLOW_LOOP)) {
                 usleep(WAIT_TIME);
                 total_wait_time += WAIT_TIME / 1000000.0;
                 if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
@@ -1476,6 +1577,77 @@ void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
                                "Killing engine", tv->name);
                     exit(EXIT_FAILURE);
                 }
+            }
+        }
+
+        tv = tv->next;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+/**
+ * \brief Disable all threads having the specified TMs.
+ */
+void TmThreadDisablePacketThreads(void)
+{
+    /* value in seconds */
+#define THREAD_KILL_MAX_WAIT_TIME 60
+    /* value in microseconds */
+#define WAIT_TIME 100
+
+    double total_wait_time = 0;
+
+    ThreadVars *tv = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* all receive threads are part of packet processing threads */
+    tv = tv_root[TVT_PPT];
+
+    /* we do have to keep in mind that TVs are arranged in the order
+     * right from receive to log.  The moment we fail to find a
+     * receive TM amongst the slots in a tv, it indicates we are done
+     * with all receive threads */
+    while (tv) {
+        if (tv->inq != NULL) {
+            /* we wait till we dry out all the inq packets, before we
+             * kill this thread.  Do note that you should have disabled
+             * packet acquire by now using TmThreadDisableReceiveThreads()*/
+            if (!(strlen(tv->inq->name) == strlen("packetpool") &&
+                        strcasecmp(tv->inq->name, "packetpool") == 0)) {
+                PacketQueue *q = &trans_q[tv->inq->id];
+                while (q->len != 0) {
+                    usleep(1000);
+                }
+            }
+        }
+
+        /* we found our receive TV.  Send it a KILL signal.  This is all
+         * we need to do to kill receive threads */
+        TmThreadsSetFlag(tv, THV_KILL);
+
+        if (tv->inq != NULL) {
+            int i;
+            for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                if (tv->inq->q_type == 0)
+                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                else
+                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
+            }
+            SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
+        }
+
+        while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+            usleep(WAIT_TIME);
+            total_wait_time += WAIT_TIME / 1000000.0;
+            if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
+                SCLogError(SC_ERR_FATAL, "Engine unable to "
+                        "disable detect thread - \"%s\".  "
+                        "Killing engine", tv->name);
+                exit(EXIT_FAILURE);
             }
         }
 
@@ -1562,6 +1734,8 @@ void TmThreadFree(ThreadVars *tv)
         s = s->slot_next;
         SCFree(ps);
     }
+
+    TmThreadsUnregisterThread(tv->id);
     SCFree(tv);
 }
 
@@ -1761,6 +1935,8 @@ void TmThreadPauseThreads()
     ThreadVars *tv = NULL;
     int i = 0;
 
+    TmThreadsListThreads();
+
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
@@ -1919,4 +2095,147 @@ ThreadVars *TmThreadsGetCallingThread(void)
     SCMutexUnlock(&tv_root_lock);
 
     return NULL;
+}
+
+typedef struct Thread_ {
+    ThreadVars *tv;     /**< threadvars structure */
+    const char *name;
+    int type;
+    int in_use;         /**< bool to indicate this is in use */
+} Thread;
+
+typedef struct Threads_ {
+    Thread *threads;
+    size_t threads_size;
+    int threads_cnt;
+} Threads;
+
+static Threads thread_store = { NULL, 0, 0 };
+static SCMutex thread_store_lock = PTHREAD_MUTEX_INITIALIZER;
+
+void TmThreadsListThreads(void)
+{
+    Thread *t;
+    size_t s;
+
+    SCMutexLock(&thread_store_lock);
+
+    for (s = 0; s < thread_store.threads_size; s++) {
+        t = &thread_store.threads[s];
+        if (t == NULL || t->in_use == 0)
+            continue;
+        SCLogInfo("Thread %"PRIuMAX", %s type %d, tv %p", (uintmax_t)s+1, t->name, t->type, t->tv);
+    }
+
+    SCMutexUnlock(&thread_store_lock);
+}
+
+#define STEP 32
+/**
+ *  \retval id thread id, or 0 if not found
+ */
+int TmThreadsRegisterThread(ThreadVars *tv, const int type)
+{
+    SCMutexLock(&thread_store_lock);
+    if (thread_store.threads == NULL) {
+        thread_store.threads = SCCalloc(STEP, sizeof(Thread));
+        BUG_ON(thread_store.threads == NULL);
+        thread_store.threads_size = STEP;
+    }
+
+    size_t s;
+    for (s = 0; s < thread_store.threads_size; s++) {
+        if (thread_store.threads[s].in_use == 0) {
+            Thread *t = &thread_store.threads[s];
+            t->name = tv->name;
+            t->type = type;
+            t->tv = tv;
+            t->in_use = 1;
+
+            SCMutexUnlock(&thread_store_lock);
+            return (int)(s+1);
+        }
+    }
+
+    /* if we get here the array is completely filled */
+    void *newmem = SCRealloc(thread_store.threads, ((thread_store.threads_size + STEP) * sizeof(Thread)));
+    BUG_ON(newmem == NULL);
+    thread_store.threads = newmem;
+    memset((uint8_t *)thread_store.threads + (thread_store.threads_size * sizeof(Thread)), 0x00, STEP);
+
+    Thread *t = &thread_store.threads[thread_store.threads_size];
+    t->name = tv->name;
+    t->type = type;
+    t->tv = tv;
+    t->in_use = 1;
+
+    s = thread_store.threads_size;
+    thread_store.threads_size += STEP;
+
+    SCMutexUnlock(&thread_store_lock);
+    return (int)(s+1);
+}
+#undef STEP
+
+void TmThreadsUnregisterThread(const int id)
+{
+    SCMutexLock(&thread_store_lock);
+    if (id <= 0 || id > (int)thread_store.threads_size)
+        return;
+
+    /* id is one higher than index */
+    int idx = id - 1;
+
+    /* reset thread_id, which serves as clearing the record */
+    thread_store.threads[idx].in_use = 0;
+
+    /* check if we have at least one registered thread left */
+    size_t s;
+    for (s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        if (t->in_use == 1) {
+            goto end;
+        }
+    }
+
+    /* if we get here no threads are registered */
+    SCFree(thread_store.threads);
+    thread_store.threads = NULL;
+    thread_store.threads_size = 0;
+    thread_store.threads_cnt = 0;
+
+end:
+    SCMutexUnlock(&thread_store_lock);
+}
+
+/**
+ *  \retval r 1 if packet was accepted, 0 otherwise
+ *  \note if packet was not accepted, it's still the responsibility
+ *        of the caller.
+ */
+int TmThreadsInjectPacketsById(Packet **packets, const int id)
+{
+    if (id <= 0 || id > (int)thread_store.threads_size)
+        return 0;
+
+    int idx = id - 1;
+
+    Thread *t = &thread_store.threads[idx];
+    ThreadVars *tv = t->tv;
+
+    if (tv == NULL || tv->stream_pq == NULL)
+        return 0;
+
+    SCMutexLock(&tv->stream_pq->mutex_q);
+    while (*packets != NULL) {
+        PacketEnqueue(tv->stream_pq, *packets);
+        packets++;
+    }
+    SCMutexUnlock(&tv->stream_pq->mutex_q);
+
+    /* wake up listening thread(s) if necessary */
+    if (tv->inq != NULL) {
+        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+    }
+    return 1;
 }

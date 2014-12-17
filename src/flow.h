@@ -272,6 +272,9 @@ typedef unsigned int FlowRefCount;
 typedef unsigned short FlowRefCount;
 #endif
 
+/** Local Thread ID */
+typedef uint16_t FlowThreadId;
+
 /**
  *  \brief Flow data structure.
  *
@@ -356,6 +359,9 @@ typedef struct Flow_
      *  inspection. If it doesn't match the currently in use de_ctx, the
      *  de_state and stored sgh ptrs are reset. */
     uint32_t de_ctx_id;
+
+    /** Thread ID for the stream/detect portion of this flow */
+    FlowThreadId thread_id;
 
     /** application level storage ptrs.
      *

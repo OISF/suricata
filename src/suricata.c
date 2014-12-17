@@ -2392,20 +2392,19 @@ int main(int argc, char **argv)
         FlowKillFlowManagerThread();
     }
 
-    /* Disable packet acquire thread first */
-    TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
+    /* Disable packet acquisition first */
+    TmThreadDisableReceiveThreads();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowForceReassembly();
+        /* kill receive threads when they have processed all
+         * flow timeout packets */
+        TmThreadDisablePacketThreads();
     }
 
     SCPrintElapsedTime(&suri);
 
     if (suri.rule_reload == 1) {
-        /* Disable detect threads first.  This is required by live rule swap */
-        TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM |
-                                      TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM);
-
         /* wait if live rule swap is in progress */
         if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
             SCLogInfo("Live rule swap in progress.  Waiting for it to end "
@@ -2430,6 +2429,7 @@ int main(int argc, char **argv)
         FlowKillFlowRecyclerThread();
     }
 
+    /* kill remaining threads */
     TmThreadKillThreads();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
