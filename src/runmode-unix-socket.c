@@ -290,11 +290,11 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         /* handle graceful shutdown of the flow engine, it's helper
          * threads and the packet threads */
         FlowKillFlowManagerThread();
-        TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
+        TmThreadDisableReceiveThreads();
         FlowForceReassembly();
-        TmThreadKillThreadsFamily(TVT_PPT);
-        TmThreadClearThreadsFamily(TVT_PPT);
+        TmThreadDisablePacketThreads();
         FlowKillFlowRecyclerThread();
+        TmThreadClearThreadsFamily(TVT_PPT);
 
         /* kill remaining mgt threads */
         TmThreadKillThreadsFamily(TVT_MGMT);

@@ -55,6 +55,7 @@
         (f)->data_al_so_far[0] = 0; \
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
+        (f)->thread_id = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->de_state = NULL; \
@@ -97,6 +98,7 @@
         (f)->data_al_so_far[0] = 0; \
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
+        (f)->thread_id = 0; \
         if ((f)->de_state != NULL) { \
             SCMutexLock(&(f)->de_state_m); \
             DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \
