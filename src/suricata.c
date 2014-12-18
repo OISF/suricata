@@ -130,6 +130,7 @@
 #include "flow-bit.h"
 #include "pkt-var.h"
 
+#include "ippair.h"
 #include "host.h"
 #include "unix-manager.h"
 
@@ -2224,6 +2225,7 @@ int main(int argc, char **argv)
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
+        IPPairInitConfig(IPPAIR_VERBOSE);
     }
 
     DetectEngineCtx *de_ctx = NULL;
@@ -2434,6 +2436,7 @@ int main(int argc, char **argv)
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         SCPerfReleaseResources();
+        IPPairShutdown();
         FlowShutdown();
         StreamTcpFreeConfig(STREAM_VERBOSE);
     }

@@ -60,6 +60,7 @@
 #include "pkt-var.h"
 
 #include "host.h"
+#include "ippair.h"
 #include "unix-manager.h"
 
 #include "app-layer-detect-proto.h"
@@ -214,6 +215,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     TmqhFlowRegisterTests();
     FlowRegisterTests();
     HostRegisterUnittests();
+    IPPairRegisterUnittests();
     SCSigRegisterSignatureOrderingTests();
     SCRadixRegisterTests();
     DefragRegisterTests();

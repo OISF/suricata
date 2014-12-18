@@ -210,6 +210,10 @@ host.c host.h \
 host-queue.c host-queue.h \
 host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
+ippair.c ippair.h \
+ippair-queue.c ippair-queue.h \
+ippair-storage.c ippair-storage.h \
+ippair-timeout.c ippair-timeout.h \
 log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \

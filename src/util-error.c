@@ -302,6 +302,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_LUA_SCRIPT);
         CASE_CODE (SC_ERR_LUA_SCRIPT);
         CASE_CODE (SC_WARN_NO_STATS_LOGGERS);
+        CASE_CODE (SC_ERR_IPPAIR_INIT);
     }
 
     return "UNKNOWN_ERROR";
