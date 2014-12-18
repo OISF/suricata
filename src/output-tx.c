@@ -125,7 +125,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 1);
     int proto_logged = 0;
 
-    for (; tx_id < total_txs; tx_id++)
+    int i;
+    for (i = 0; i < total_txs; i++, tx_id++)
     {
         void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
         if (tx == NULL) {
