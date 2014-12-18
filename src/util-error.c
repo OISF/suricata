@@ -305,6 +305,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_NETMAP);
         CASE_CODE (SC_ERR_NETMAP_CREATE);
         CASE_CODE (SC_ERR_NETMAP_READ);
+        CASE_CODE (SC_ERR_IPPAIR_INIT);
     }
 
     return "UNKNOWN_ERROR";
