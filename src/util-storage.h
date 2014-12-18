@@ -29,6 +29,7 @@
 typedef enum StorageEnum_ {
     STORAGE_HOST,
     STORAGE_FLOW,
+    STORAGE_IPPAIR,
 
     STORAGE_MAX,
 } StorageEnum;
