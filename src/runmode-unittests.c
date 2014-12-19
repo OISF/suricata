@@ -213,6 +213,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     ConfYamlRegisterTests();
     TmqhFlowRegisterTests();
     FlowRegisterTests();
+    HostRegisterUnittests();
     SCSigRegisterSignatureOrderingTests();
     SCRadixRegisterTests();
     DefragRegisterTests();
