@@ -280,7 +280,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
     } else if (strcasecmp(node->val, "no") == 0) {
         goto disabled;
     } else if (strcasecmp(node->val, "detection-only") == 0) {
-        goto enabled;
+        goto disabled;
     } else {
         SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
         exit(EXIT_FAILURE);
