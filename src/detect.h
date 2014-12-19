@@ -1184,6 +1184,8 @@ enum {
     DETECT_AL_DNS_QUERY,
     DETECT_AL_MODBUS,
 
+    DETECT_XBITS,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

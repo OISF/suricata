@@ -109,6 +109,7 @@
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
 #include "detect-hostbits.h"
+#include "detect-xbits.h"
 #include "detect-csum.h"
 #include "detect-stream_size.h"
 #include "detect-engine-sigorder.h"
@@ -5004,6 +5005,7 @@ void SigTableSetup(void)
     DetectNoalertRegister();
     DetectFlowbitsRegister();
     DetectHostbitsRegister();
+    DetectXbitsRegister();
     DetectEngineEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
