@@ -198,6 +198,7 @@ detect-urilen.c detect-urilen.h \
 detect-window.c detect-window.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
+detect-xbits.c detect-xbits.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \
@@ -213,6 +214,7 @@ host-queue.c host-queue.h \
 host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
 ippair.c ippair.h \
+ippair-bit.c ippair-bit.h \
 ippair-queue.c ippair-queue.h \
 ippair-storage.c ippair-storage.h \
 ippair-timeout.c ippair-timeout.h \
