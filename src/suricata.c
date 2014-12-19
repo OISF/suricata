@@ -133,6 +133,8 @@
 #include "host-bit.h"
 
 #include "ippair.h"
+#include "ippair-bit.h"
+
 #include "host.h"
 #include "unix-manager.h"
 
@@ -2099,6 +2101,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     TagInitCtx();
     ThresholdInit();
     HostBitInitCtx();
+    IPPairBitInitCtx();
 
     if (DetectAddressTestConfVars() < 0) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
