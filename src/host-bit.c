@@ -63,12 +63,12 @@ int HostHasHostBits(Host *host)
 }
 
 /* get the bit with idx from the host */
-static HostBit *HostBitGet(Host *h, uint16_t idx)
+static XBit *HostBitGet(Host *h, uint16_t idx)
 {
     GenericVar *gv = HostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
-        if (gv->type == DETECT_HOSTBITS && gv->idx == idx) {
-            return (HostBit *)gv;
+        if (gv->type == DETECT_XBITS && gv->idx == idx) {
+            return (XBit *)gv;
         }
     }
 
@@ -78,13 +78,13 @@ static HostBit *HostBitGet(Host *h, uint16_t idx)
 /* add a flowbit to the flow */
 static void HostBitAdd(Host *h, uint16_t idx)
 {
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {
-        fb = SCMalloc(sizeof(HostBit));
+        fb = SCMalloc(sizeof(XBit));
         if (unlikely(fb == NULL))
             return;
 
-        fb->type = DETECT_HOSTBITS;
+        fb->type = DETECT_XBITS;
         fb->idx = idx;
         fb->next = NULL;
 
@@ -96,7 +96,7 @@ static void HostBitAdd(Host *h, uint16_t idx)
 
 static void HostBitRemove(Host *h, uint16_t idx)
 {
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb == NULL)
         return;
 
@@ -109,7 +109,7 @@ static void HostBitRemove(Host *h, uint16_t idx)
 
 void HostBitSet(Host *h, uint16_t idx)
 {
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {
         HostBitAdd(h, idx);
     }
@@ -117,7 +117,7 @@ void HostBitSet(Host *h, uint16_t idx)
 
 void HostBitUnset(Host *h, uint16_t idx)
 {
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
         HostBitRemove(h, idx);
     }
@@ -125,7 +125,7 @@ void HostBitUnset(Host *h, uint16_t idx)
 
 void HostBitToggle(Host *h, uint16_t idx)
 {
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
         HostBitRemove(h, idx);
     } else {
@@ -137,7 +137,7 @@ int HostBitIsset(Host *h, uint16_t idx)
 {
     int r = 0;
 
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb != NULL) {
         r = 1;
     }
@@ -148,22 +148,13 @@ int HostBitIsnotset(Host *h, uint16_t idx)
 {
     int r = 0;
 
-    HostBit *fb = HostBitGet(h, idx);
+    XBit *fb = HostBitGet(h, idx);
     if (fb == NULL) {
         r = 1;
     }
 
     return r;
 }
-
-void HostBitFree(HostBit *fb)
-{
-    if (fb == NULL)
-        return;
-
-    SCFree(fb);
-}
-
 
 /* TESTS */
 #ifdef UNITTESTS
@@ -178,7 +169,7 @@ static int HostBitTest01 (void)
 
     HostBitAdd(h, 0);
 
-    HostBit *fb = HostBitGet(h,0);
+    XBit *fb = HostBitGet(h,0);
     if (fb != NULL)
         ret = 1;
 
@@ -197,7 +188,7 @@ static int HostBitTest02 (void)
     if (h == NULL)
         goto end;
 
-    HostBit *fb = HostBitGet(h,0);
+    XBit *fb = HostBitGet(h,0);
     if (fb == NULL)
         ret = 1;
 
@@ -218,7 +209,7 @@ static int HostBitTest03 (void)
 
     HostBitAdd(h, 0);
 
-    HostBit *fb = HostBitGet(h,0);
+    XBit *fb = HostBitGet(h,0);
     if (fb == NULL) {
         printf("fb == NULL although it was just added: ");
         goto end;
@@ -254,7 +245,7 @@ static int HostBitTest04 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,0);
+    XBit *fb = HostBitGet(h,0);
     if (fb != NULL)
         ret = 1;
 
@@ -278,7 +269,7 @@ static int HostBitTest05 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,1);
+    XBit *fb = HostBitGet(h,1);
     if (fb != NULL)
         ret = 1;
 
@@ -302,7 +293,7 @@ static int HostBitTest06 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,2);
+    XBit *fb = HostBitGet(h,2);
     if (fb != NULL)
         ret = 1;
 
@@ -326,7 +317,7 @@ static int HostBitTest07 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,3);
+    XBit *fb = HostBitGet(h,3);
     if (fb != NULL)
         ret = 1;
 
@@ -350,7 +341,7 @@ static int HostBitTest08 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,0);
+    XBit *fb = HostBitGet(h,0);
     if (fb == NULL)
         goto end;
 
@@ -383,7 +374,7 @@ static int HostBitTest09 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,1);
+    XBit *fb = HostBitGet(h,1);
     if (fb == NULL)
         goto end;
 
@@ -416,7 +407,7 @@ static int HostBitTest10 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,2);
+    XBit *fb = HostBitGet(h,2);
     if (fb == NULL)
         goto end;
 
@@ -449,7 +440,7 @@ static int HostBitTest11 (void)
     HostBitAdd(h, 2);
     HostBitAdd(h, 3);
 
-    HostBit *fb = HostBitGet(h,3);
+    XBit *fb = HostBitGet(h,3);
     if (fb == NULL)
         goto end;
 
