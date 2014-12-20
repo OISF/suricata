@@ -27,8 +27,8 @@
 int VariableNameInitHash(DetectEngineCtx *);
 void VariableNameFreeHash(DetectEngineCtx *);
 
-uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, uint8_t);
-char * VariableIdxGetName(DetectEngineCtx *, uint16_t , uint8_t);
+uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, enum VarTypes);
+char * VariableIdxGetName(DetectEngineCtx *, uint16_t , enum VarTypes);
 
 #endif
 

@@ -197,6 +197,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     int ov[MAX_SUBSTRINGS];
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
+    enum VarTypes var_type = VAR_TYPE_NOT_SET;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 2 && ret != 3 && ret != 4) {
@@ -224,12 +225,15 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
             }
             SCLogDebug("hb_dir_str %s", hb_dir_str);
             if (strlen(hb_dir_str) > 0) {
-                if (strcmp(hb_dir_str, "ip_src") == 0)
+                if (strcmp(hb_dir_str, "ip_src") == 0) {
                     hb_dir = DETECT_XBITS_TRACK_IPSRC;
-                else if (strcmp(hb_dir_str, "ip_dst") == 0)
+                    var_type = VAR_TYPE_HOST_BIT;
+                } else if (strcmp(hb_dir_str, "ip_dst") == 0) {
                     hb_dir = DETECT_XBITS_TRACK_IPDST;
-                else if (strcmp(hb_dir_str, "ip_pair") == 0) {
+                    var_type = VAR_TYPE_HOST_BIT;
+                } else if (strcmp(hb_dir_str, "ip_pair") == 0) {
                     hb_dir = DETECT_XBITS_TRACK_IPPAIR;
+                    var_type = VAR_TYPE_IPPAIR_BIT;
                 } else {
                     // TODO
                     goto error;
@@ -276,9 +280,10 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, DETECT_XBITS);
+    cd->idx = VariableNameGetIdx(de_ctx, fb_name, var_type);
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
+    cd->type = var_type;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
         cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
