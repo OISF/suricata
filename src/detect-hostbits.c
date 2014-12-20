@@ -388,6 +388,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = VAR_TYPE_HOST_BIT;
+    cd->expire = 300;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
         cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
