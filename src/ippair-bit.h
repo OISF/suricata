@@ -27,18 +27,7 @@
 #include "ippair.h"
 #include "util-var.h"
 
-typedef struct XBit_ {
-    uint8_t type; /* type, DETECT_XBITS in this case */
-    uint16_t idx; /* name idx */
-    GenericVar *next; /* right now just implement this as a list,
-                       * in the long run we have think of something
-                       * faster. */
-} XBit;
-
-void XBitFree(XBit *fb);
-
 void IPPairBitInitCtx(void);
-void IPPairBitFree(XBit *);
 void IPPairBitRegisterTests(void);
 
 int IPPairHasIPPairBits(IPPair *host);

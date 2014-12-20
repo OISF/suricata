@@ -36,6 +36,14 @@
 
 #include "util-debug.h"
 
+static void XBitFree(XBit *fb)
+{
+    if (fb == NULL)
+        return;
+
+    SCFree(fb);
+}
+
 void GenericVarFree(GenericVar *gv)
 {
     if (gv == NULL)
