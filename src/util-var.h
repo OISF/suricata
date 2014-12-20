@@ -54,6 +54,7 @@ typedef struct XBit_ {
     uint8_t type;       /* type, DETECT_XBITS in this case */
     uint16_t idx;       /* name idx */
     GenericVar *next;
+    uint32_t expire;
 } XBit;
 
 void GenericVarFree(GenericVar *);
