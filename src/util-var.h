@@ -24,6 +24,26 @@
 #ifndef __UTIL_VAR_H__
 #define __UTIL_VAR_H__
 
+enum VarTypes {
+    VAR_TYPE_NOT_SET,
+
+    VAR_TYPE_PKT_BIT,
+    VAR_TYPE_PKT_INT,
+    VAR_TYPE_PKT_VAR,
+
+    VAR_TYPE_FLOW_BIT,
+    VAR_TYPE_FLOW_INT,
+    VAR_TYPE_FLOW_VAR,
+
+    VAR_TYPE_HOST_BIT,
+    VAR_TYPE_HOST_INT,
+    VAR_TYPE_HOST_VAR,
+
+    VAR_TYPE_IPPAIR_BIT,
+    VAR_TYPE_IPPAIR_INT,
+    VAR_TYPE_IPPAIR_VAR,
+};
+
 typedef struct GenericVar_ {
     uint8_t type;
     uint16_t idx;
