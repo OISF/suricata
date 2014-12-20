@@ -41,6 +41,7 @@ typedef struct DetectXbitsData_ {
     uint16_t idx;
     uint8_t cmd;
     uint8_t tracker;
+    uint32_t expire;
     /** data type: host/ippair/flow used for sig sorting in sigorder */
     enum VarTypes type;
 } DetectXbitsData;
