@@ -156,14 +156,6 @@ int IPPairBitIsnotset(IPPair *h, uint16_t idx)
     return r;
 }
 
-void XBitFree(XBit *fb)
-{
-    if (fb == NULL)
-        return;
-
-    SCFree(fb);
-}
-
 
 /* TESTS */
 #ifdef UNITTESTS
