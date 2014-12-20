@@ -188,7 +188,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     fd->name = SCStrdup(varname);
     if (unlikely(fd->name == NULL))
         goto error;
-    fd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWVAR);
+    fd->idx = VariableNameGetIdx(de_ctx, varname, VAR_TYPE_FLOW_VAR);
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */

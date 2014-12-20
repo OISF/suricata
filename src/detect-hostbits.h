@@ -24,23 +24,7 @@
 #ifndef __DETECT_HOSTBITS_H__
 #define __DETECT_HOSTBITS_H__
 
-#define DETECT_HOSTBITS_CMD_SET      0
-#define DETECT_HOSTBITS_CMD_TOGGLE   1
-#define DETECT_HOSTBITS_CMD_UNSET    2
-#define DETECT_HOSTBITS_CMD_ISNOTSET 3
-#define DETECT_HOSTBITS_CMD_ISSET    4
-#define DETECT_HOSTBITS_CMD_NOALERT  5
-#define DETECT_HOSTBITS_CMD_MAX      6
-
-#define DETECT_HOSTBITS_DIR_SRC      0
-#define DETECT_HOSTBITS_DIR_DST      1
-#define DETECT_HOSTBITS_DIR_BOTH     2
-
-typedef struct DetectHostbitsData_ {
-    uint16_t idx;
-    uint8_t cmd;
-    uint8_t dir;
-} DetectHostbitsData;
+#include "detect-xbits.h"
 
 /* prototypes */
 void DetectHostbitsRegister (void);

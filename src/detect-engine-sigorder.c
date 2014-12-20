@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
-#include "detect-hostbits.h"
+#include "detect-xbits.h"
 #include "detect-flowbits.h"
 #include "detect-flowint.h"
 #include "detect-parse.h"
@@ -59,10 +59,10 @@
 #define DETECT_FLOWINT_TYPE_SET_READ 3
 #define DETECT_FLOWINT_TYPE_SET      4
 
-#define DETECT_HOSTBITS_NOT_USED      1
-#define DETECT_HOSTBITS_TYPE_READ     2
-#define DETECT_HOSTBITS_TYPE_SET_READ 3
-#define DETECT_HOSTBITS_TYPE_SET      4
+#define DETECT_XBITS_NOT_USED      1
+#define DETECT_XBITS_TYPE_READ     2
+#define DETECT_XBITS_TYPE_SET_READ 3
+#define DETECT_XBITS_TYPE_SET      4
 
 
 /**
@@ -347,37 +347,39 @@ static inline int SCSigGetPktvarType(Signature *sig)
 }
 
 /**
- * \brief Returns the hostbit type set for this signature.  If more than one
- *        hostbit has been set for the same rule, we return the hostbit type of
+ * \brief Returns the xbit type set for this signature.  If more than one
+ *        xbit has been set for the same rule, we return the xbit type of
  *        the maximum priority/value, where priority/value is maximum for the
  *        ones that set the value and the lowest for ones that read the value.
- *        If no hostbit has been set for the rule, we return 0, which indicates
- *        the least value amongst hostbit types.
+ *        If no xbit has been set for the rule, we return 0, which indicates
+ *        the least value amongst xbit types.
  *
- * \param sig Pointer to the Signature from which the hostbit value has to be
+ * \param sig Pointer to the Signature from which the xbit value has to be
  *            returned.
  *
- * \retval hostbits The hostbits type for this signature if it is set; if it is
+ * \retval xbits The xbits type for this signature if it is set; if it is
  *                  not set, return 0
  */
-static inline int SCSigGetHostbitsType(Signature *sig)
+static inline int SCSigGetXbitsType(Signature *sig, enum VarTypes type)
 {
-    DetectHostbitsData *fb = NULL;
-    int hostbits_user_type = DETECT_HOSTBITS_NOT_USED;
+    DetectXbitsData *fb = NULL;
+    int xbits_user_type = DETECT_XBITS_NOT_USED;
     int read = 0;
     int write = 0;
     SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
 
     while (sm != NULL) {
-        if (sm->type == DETECT_HOSTBITS) {
-            fb = (DetectHostbitsData *)sm->ctx;
-            if (fb->cmd == DETECT_HOSTBITS_CMD_ISNOTSET ||
-                fb->cmd == DETECT_HOSTBITS_CMD_ISSET) {
-                read++;
-            } else {
+        if (sm->type == DETECT_XBITS) {
+            fb = (DetectXbitsData *)sm->ctx;
+            if (fb->type == type) {
+                if (fb->cmd == DETECT_XBITS_CMD_ISNOTSET ||
+                        fb->cmd == DETECT_XBITS_CMD_ISSET) {
+                    read++;
+                } else {
 #ifdef DEBUG
-                BUG_ON(1);
+                    BUG_ON(1);
 #endif
+                }
             }
         }
 
@@ -387,15 +389,17 @@ static inline int SCSigGetHostbitsType(Signature *sig)
     sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_HOSTBITS) {
-            fb = (DetectHostbitsData *)sm->ctx;
-            if (fb->cmd == DETECT_HOSTBITS_CMD_SET ||
-                fb->cmd == DETECT_HOSTBITS_CMD_UNSET ||
-                fb->cmd == DETECT_HOSTBITS_CMD_TOGGLE) {
-                write++;
-            } else {
+            fb = (DetectXbitsData *)sm->ctx;
+            if (fb->type == type) {
+                if (fb->cmd == DETECT_XBITS_CMD_SET ||
+                        fb->cmd == DETECT_XBITS_CMD_UNSET ||
+                        fb->cmd == DETECT_XBITS_CMD_TOGGLE) {
+                    write++;
+                } else {
 #ifdef DEBUG
-                BUG_ON(1);
+                    BUG_ON(1);
 #endif
+                }
             }
         }
 
@@ -403,16 +407,16 @@ static inline int SCSigGetHostbitsType(Signature *sig)
     }
 
     if (read > 0 && write == 0) {
-        hostbits_user_type = DETECT_HOSTBITS_TYPE_READ;
+        xbits_user_type = DETECT_XBITS_TYPE_READ;
     } else if (read == 0 && write > 0) {
-        hostbits_user_type = DETECT_HOSTBITS_TYPE_SET;
+        xbits_user_type = DETECT_XBITS_TYPE_SET;
     } else if (read > 0 && write > 0) {
-        hostbits_user_type = DETECT_HOSTBITS_TYPE_SET_READ;
+        xbits_user_type = DETECT_XBITS_TYPE_SET_READ;
     }
 
-    SCLogDebug("Sig %s typeval %d", sig->msg, hostbits_user_type);
+    SCLogDebug("Sig %s typeval %d", sig->msg, xbits_user_type);
 
-    return hostbits_user_type;
+    return xbits_user_type;
 }
 
 /**
@@ -457,15 +461,27 @@ static inline void SCSigProcessUserDataForPktvar(SCSigSignatureWrapper *sw)
 }
 
 /**
- * \brief Processes the flowbits data for this signature and caches it for
+ * \brief Processes the hostbits data for this signature and caches it for
  *        future use.  This is needed to optimize the sig_ordering module.
  *
- * \param sw The sigwrapper/signature for which the flowbits data has to be
+ * \param sw The sigwrapper/signature for which the hostbits data has to be
  *           cached
  */
 static inline void SCSigProcessUserDataForHostbits(SCSigSignatureWrapper *sw)
 {
-    sw->user[SC_RADIX_USER_DATA_HOSTBITS] = SCSigGetHostbitsType(sw->sig);
+    sw->user[SC_RADIX_USER_DATA_HOSTBITS] = SCSigGetXbitsType(sw->sig, VAR_TYPE_HOST_BIT);
+}
+
+/**
+ * \brief Processes the hostbits data for this signature and caches it for
+ *        future use.  This is needed to optimize the sig_ordering module.
+ *
+ * \param sw The sigwrapper/signature for which the hostbits data has to be
+ *           cached
+ */
+static inline void SCSigProcessUserDataForIPPairbits(SCSigSignatureWrapper *sw)
+{
+    sw->user[SC_RADIX_USER_DATA_IPPAIRBITS] = SCSigGetXbitsType(sw->sig, VAR_TYPE_IPPAIR_BIT);
 }
 
 /* Return 1 if sw1 comes before sw2 in the final list. */
@@ -630,6 +646,20 @@ static int SCSigOrderByHostbitsCompare(SCSigSignatureWrapper *sw1,
 }
 
 /**
+ * \brief Orders an incoming Signature based on its ippairbits (xbits) type
+ *
+ * \param de_ctx Pointer to the detection engine context from which the
+ *               signatures have to be ordered.
+ * \param sw     The new signature that has to be ordered based on its bits
+ */
+static int SCSigOrderByIPPairbitsCompare(SCSigSignatureWrapper *sw1,
+                                         SCSigSignatureWrapper *sw2)
+{
+    return sw1->user[SC_RADIX_USER_DATA_IPPAIRBITS] -
+        sw2->user[SC_RADIX_USER_DATA_IPPAIRBITS];
+}
+
+/**
  * \brief Orders an incoming Signature based on its priority type
  *
  * \param de_ctx Pointer to the detection engine context from which the
@@ -666,6 +696,7 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
     SCSigProcessUserDataForFlowint(sw);
     SCSigProcessUserDataForPktvar(sw);
     SCSigProcessUserDataForHostbits(sw);
+    SCSigProcessUserDataForIPPairbits(sw);
 
     return sw;
 }
@@ -746,6 +777,7 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvarCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByHostbitsCompare);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByIPPairbitsCompare);
     SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriorityCompare);
 }
 
