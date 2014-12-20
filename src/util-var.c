@@ -60,13 +60,6 @@ void GenericVarFree(GenericVar *gv)
             FlowBitFree(fb);
             break;
         }
-        case DETECT_HOSTBITS:
-        {
-            HostBit *fb = (HostBit *)gv;
-            //printf("GenericVarFree: fb %p, removing\n", fb);
-            HostBitFree(fb);
-            break;
-        }
         case DETECT_XBITS:
         {
             XBit *fb = (XBit *)gv;
