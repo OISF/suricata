@@ -26,6 +26,8 @@
 
 #include "detect-xbits.h"
 
+int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd);
+
 /* prototypes */
 void DetectHostbitsRegister (void);
 
