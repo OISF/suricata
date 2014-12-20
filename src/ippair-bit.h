@@ -32,10 +32,10 @@ void IPPairBitRegisterTests(void);
 
 int IPPairHasIPPairBits(IPPair *host);
 
-void IPPairBitSet(IPPair *, uint16_t);
+void IPPairBitSet(IPPair *, uint16_t, uint32_t);
 void IPPairBitUnset(IPPair *, uint16_t);
-void IPPairBitToggle(IPPair *, uint16_t);
-int IPPairBitIsset(IPPair *, uint16_t);
-int IPPairBitIsnotset(IPPair *, uint16_t);
+void IPPairBitToggle(IPPair *, uint16_t, uint32_t);
+int IPPairBitIsset(IPPair *, uint16_t, uint32_t);
+int IPPairBitIsnotset(IPPair *, uint16_t, uint32_t);
 
 #endif /* __IPPAIR_BIT_H__ */
