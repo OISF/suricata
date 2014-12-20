@@ -234,7 +234,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, DETECT_FLOWBITS);
+    cd->idx = VariableNameGetIdx(de_ctx, fb_name, VAR_TYPE_FLOW_BIT);
     cd->cmd = fb_cmd;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
@@ -606,7 +606,7 @@ static int FlowBitsTestSig04(void)
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
 
-    idx = VariableNameGetIdx(de_ctx, "fbt", DETECT_FLOWBITS);
+    idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_FLOW_BIT);
 
     if (s == NULL || idx != 1) {
         goto end;
@@ -787,7 +787,7 @@ static int FlowBitsTestSig06(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", DETECT_FLOWBITS);
+    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
 
     gv = p->flow->flowvar;
 
@@ -893,7 +893,7 @@ static int FlowBitsTestSig07(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", DETECT_FLOWBITS);
+    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
 
     gv = p->flow->flowvar;
 
@@ -1002,7 +1002,7 @@ static int FlowBitsTestSig08(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", DETECT_FLOWBITS);
+    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_FLOW_BIT);
 
     gv = p->flow->flowvar;
 

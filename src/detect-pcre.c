@@ -620,9 +620,9 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
     }
     if (pd->capname != NULL) {
         if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
-            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, DETECT_PKTVAR);
+            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, VAR_TYPE_PKT_VAR);
         else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
-            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, DETECT_FLOWVAR);
+            pd->capidx = VariableNameGetIdx(de_ctx, (char *)pd->capname, VAR_TYPE_FLOW_VAR);
     }
 
     SCLogDebug("pd->capname %s", pd->capname);

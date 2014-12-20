@@ -831,7 +831,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                         goto error;
                     }
 
-                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, DETECT_FLOWVAR);
+                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, VAR_TYPE_FLOW_VAR);
                     ld->flowvar[ld->flowvars++] = idx;
                     SCLogDebug("script uses flowvar %u with script id %u", idx, ld->flowvars - 1);
                 }
@@ -853,7 +853,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                         goto error;
                     }
 
-                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, DETECT_FLOWINT);
+                    uint16_t idx = VariableNameGetIdx(de_ctx, (char *)value, VAR_TYPE_FLOW_INT);
                     ld->flowint[ld->flowints++] = idx;
                     SCLogDebug("script uses flowint %u with script id %u", idx, ld->flowints - 1);
                 }
