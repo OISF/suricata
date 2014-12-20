@@ -30,6 +30,7 @@
 #include "flow.h"
 #include "flow-util.h"
 #include "detect-xbits.h"
+#include "detect-hostbits.h"
 #include "util-spm.h"
 
 #include "detect-engine-sigorder.h"
@@ -188,6 +189,9 @@ int DetectXbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
         return 0;
 
     switch (fd->type) {
+        case VAR_TYPE_HOST_BIT:
+            return DetectXbitMatchHost(p, (const DetectXbitsData *)fd);
+            break;
         case VAR_TYPE_IPPAIR_BIT:
             return DetectXbitMatchIPPair(p, (const DetectXbitsData *)fd);
             break;
