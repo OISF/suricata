@@ -32,9 +32,9 @@ void HostBitRegisterTests(void);
 
 int HostHasHostBits(Host *host);
 
-void HostBitSet(Host *, uint16_t);
+void HostBitSet(Host *, uint16_t, uint32_t);
 void HostBitUnset(Host *, uint16_t);
-void HostBitToggle(Host *, uint16_t);
-int HostBitIsset(Host *, uint16_t);
-int HostBitIsnotset(Host *, uint16_t);
-#endif /* __FLOW_BIT_H__ */
+void HostBitToggle(Host *, uint16_t, uint32_t);
+int HostBitIsset(Host *, uint16_t, uint32_t);
+int HostBitIsnotset(Host *, uint16_t, uint32_t);
+#endif /* __HOST_BIT_H__ */
