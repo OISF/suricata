@@ -26,6 +26,9 @@
 
 #include "detect-engine-tag.h"
 #include "detect-engine-threshold.h"
+
+#include "host-bit.h"
+
 #include "reputation.h"
 
 uint32_t HostGetSpareCount(void)
@@ -51,6 +54,7 @@ static int HostHostTimedOut(Host *h, struct timeval *ts)
 {
     int tags = 0;
     int thresholds = 0;
+    int vars = 0;
 
     /** never prune a host that is used by a packet
      *  we are currently processing in one of the threads */
@@ -71,8 +75,11 @@ static int HostHostTimedOut(Host *h, struct timeval *ts)
     if (ThresholdHostHasThreshold(h) && ThresholdTimeoutCheck(h, ts) == 0) {
         thresholds = 1;
     }
+    if (HostHasHostBits(h) && HostBitsTimedoutCheck(h, ts) == 0) {
+        vars = 1;
+    }
 
-    if (tags || thresholds)
+    if (tags || thresholds || vars)
         return 0;
 
     SCLogDebug("host %p timed out", h);
