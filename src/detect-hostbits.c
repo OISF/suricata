@@ -106,10 +106,10 @@ error:
     return;
 }
 
-static int DetectHostbitMatchToggle (Packet *p, DetectHostbitsData *fd)
+static int DetectHostbitMatchToggle (Packet *p, DetectXbitsData *fd)
 {
-    switch (fd->dir) {
-        case DETECT_HOSTBITS_DIR_SRC:
+    switch (fd->tracker) {
+        case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostGetHostFromHash(&p->src);
                 if (p->host_src == NULL)
@@ -121,7 +121,7 @@ static int DetectHostbitMatchToggle (Packet *p, DetectHostbitsData *fd)
             HostBitToggle(p->host_src,fd->idx);
             HostUnlock(p->host_src);
             break;
-        case DETECT_HOSTBITS_DIR_DST:
+        case DETECT_XBITS_TRACK_IPDST:
             if (p->host_dst == NULL) {
                 p->host_dst = HostGetHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
@@ -138,10 +138,10 @@ static int DetectHostbitMatchToggle (Packet *p, DetectHostbitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectHostbitMatchUnset (Packet *p, DetectHostbitsData *fd)
+static int DetectHostbitMatchUnset (Packet *p, DetectXbitsData *fd)
 {
-    switch (fd->dir) {
-        case DETECT_HOSTBITS_DIR_SRC:
+    switch (fd->tracker) {
+        case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
                 if (p->host_src == NULL)
@@ -152,7 +152,7 @@ static int DetectHostbitMatchUnset (Packet *p, DetectHostbitsData *fd)
             HostBitUnset(p->host_src,fd->idx);
             HostUnlock(p->host_src);
             break;
-        case DETECT_HOSTBITS_DIR_DST:
+        case DETECT_XBITS_TRACK_IPDST:
             if (p->host_dst == NULL) {
                 p->host_dst = HostLookupHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
@@ -167,10 +167,10 @@ static int DetectHostbitMatchUnset (Packet *p, DetectHostbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchSet (Packet *p, DetectHostbitsData *fd)
+static int DetectHostbitMatchSet (Packet *p, DetectXbitsData *fd)
 {
-    switch (fd->dir) {
-        case DETECT_HOSTBITS_DIR_SRC:
+    switch (fd->tracker) {
+        case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostGetHostFromHash(&p->src);
                 if (p->host_src == NULL)
@@ -181,7 +181,7 @@ static int DetectHostbitMatchSet (Packet *p, DetectHostbitsData *fd)
             HostBitSet(p->host_src,fd->idx);
             HostUnlock(p->host_src);
             break;
-        case DETECT_HOSTBITS_DIR_DST:
+        case DETECT_XBITS_TRACK_IPDST:
             if (p->host_dst == NULL) {
                 p->host_dst = HostGetHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
@@ -196,11 +196,11 @@ static int DetectHostbitMatchSet (Packet *p, DetectHostbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchIsset (Packet *p, DetectHostbitsData *fd)
+static int DetectHostbitMatchIsset (Packet *p, DetectXbitsData *fd)
 {
     int r = 0;
-    switch (fd->dir) {
-        case DETECT_HOSTBITS_DIR_SRC:
+    switch (fd->tracker) {
+        case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
                 if (p->host_src == NULL)
@@ -208,11 +208,10 @@ static int DetectHostbitMatchIsset (Packet *p, DetectHostbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostLock(p->host_src);
             r = HostBitIsset(p->host_src,fd->idx);
             HostUnlock(p->host_src);
             return r;
-        case DETECT_HOSTBITS_DIR_DST:
+        case DETECT_XBITS_TRACK_IPDST:
             if (p->host_dst == NULL) {
                 p->host_dst = HostLookupHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
@@ -220,7 +219,6 @@ static int DetectHostbitMatchIsset (Packet *p, DetectHostbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostLock(p->host_dst);
             r = HostBitIsset(p->host_dst,fd->idx);
             HostUnlock(p->host_dst);
             return r;
@@ -228,11 +226,11 @@ static int DetectHostbitMatchIsset (Packet *p, DetectHostbitsData *fd)
     return 0;
 }
 
-static int DetectHostbitMatchIsnotset (Packet *p, DetectHostbitsData *fd)
+static int DetectHostbitMatchIsnotset (Packet *p, DetectXbitsData *fd)
 {
     int r = 0;
-    switch (fd->dir) {
-        case DETECT_HOSTBITS_DIR_SRC:
+    switch (fd->tracker) {
+        case DETECT_XBITS_TRACK_IPSRC:
             if (p->host_src == NULL) {
                 p->host_src = HostLookupHostFromHash(&p->src);
                 if (p->host_src == NULL)
@@ -240,11 +238,10 @@ static int DetectHostbitMatchIsnotset (Packet *p, DetectHostbitsData *fd)
             } else
                 HostLock(p->host_src);
 
-            HostLock(p->host_src);
             r = HostBitIsnotset(p->host_src,fd->idx);
             HostUnlock(p->host_src);
             return r;
-        case DETECT_HOSTBITS_DIR_DST:
+        case DETECT_XBITS_TRACK_IPDST:
             if (p->host_dst == NULL) {
                 p->host_dst = HostLookupHostFromHash(&p->dst);
                 if (p->host_dst == NULL)
@@ -252,7 +249,6 @@ static int DetectHostbitMatchIsnotset (Packet *p, DetectHostbitsData *fd)
             } else
                 HostLock(p->host_dst);
 
-            HostLock(p->host_dst);
             r = HostBitIsnotset(p->host_dst,fd->idx);
             HostUnlock(p->host_dst);
             return r;
@@ -268,20 +264,20 @@ static int DetectHostbitMatchIsnotset (Packet *p, DetectHostbitsData *fd)
 
 int DetectHostbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
-    DetectHostbitsData *fd = (DetectHostbitsData *)m->ctx;
+    DetectXbitsData *fd = (DetectXbitsData *)m->ctx;
     if (fd == NULL)
         return 0;
 
     switch (fd->cmd) {
-        case DETECT_HOSTBITS_CMD_ISSET:
+        case DETECT_XBITS_CMD_ISSET:
             return DetectHostbitMatchIsset(p,fd);
-        case DETECT_HOSTBITS_CMD_ISNOTSET:
+        case DETECT_XBITS_CMD_ISNOTSET:
             return DetectHostbitMatchIsnotset(p,fd);
-        case DETECT_HOSTBITS_CMD_SET:
+        case DETECT_XBITS_CMD_SET:
             return DetectHostbitMatchSet(p,fd);
-        case DETECT_HOSTBITS_CMD_UNSET:
+        case DETECT_XBITS_CMD_UNSET:
             return DetectHostbitMatchUnset(p,fd);
-        case DETECT_HOSTBITS_CMD_TOGGLE:
+        case DETECT_XBITS_CMD_TOGGLE:
             return DetectHostbitMatchToggle(p,fd);
         default:
             SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
@@ -293,7 +289,7 @@ int DetectHostbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
 
 int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    DetectHostbitsData *cd = NULL;
+    DetectXbitsData *cd = NULL;
     SigMatch *sm = NULL;
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
@@ -330,11 +326,11 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
             SCLogInfo("hb_dir_str %s", hb_dir_str);
             if (strlen(hb_dir_str) > 0) {
                 if (strcmp(hb_dir_str, "src") == 0)
-                    hb_dir = DETECT_HOSTBITS_DIR_SRC;
+                    hb_dir = DETECT_XBITS_TRACK_IPSRC;
                 else if (strcmp(hb_dir_str, "dst") == 0)
-                    hb_dir = DETECT_HOSTBITS_DIR_DST;
+                    hb_dir = DETECT_XBITS_TRACK_IPDST;
                 else if (strcmp(hb_dir_str, "both") == 0) {
-                    hb_dir = DETECT_HOSTBITS_DIR_BOTH;
+                    //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
                     SCLogError(SC_ERR_UNIMPLEMENTED, "'both' not implemented");
                     goto error;
                 } else {
@@ -346,46 +342,47 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     }
 
     if (strcmp(fb_cmd_str,"noalert") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_NOALERT;
+        fb_cmd = DETECT_XBITS_CMD_NOALERT;
     } else if (strcmp(fb_cmd_str,"isset") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_ISSET;
+        fb_cmd = DETECT_XBITS_CMD_ISSET;
     } else if (strcmp(fb_cmd_str,"isnotset") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_ISNOTSET;
+        fb_cmd = DETECT_XBITS_CMD_ISNOTSET;
     } else if (strcmp(fb_cmd_str,"set") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_SET;
+        fb_cmd = DETECT_XBITS_CMD_SET;
     } else if (strcmp(fb_cmd_str,"unset") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_UNSET;
+        fb_cmd = DETECT_XBITS_CMD_UNSET;
     } else if (strcmp(fb_cmd_str,"toggle") == 0) {
-        fb_cmd = DETECT_HOSTBITS_CMD_TOGGLE;
+        fb_cmd = DETECT_XBITS_CMD_TOGGLE;
     } else {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "ERROR: flowbits action \"%s\" is not supported.", fb_cmd_str);
         goto error;
     }
 
     switch (fb_cmd) {
-        case DETECT_HOSTBITS_CMD_NOALERT:
+        case DETECT_XBITS_CMD_NOALERT:
             if (strlen(fb_name) != 0)
                 goto error;
             s->flags |= SIG_FLAG_NOALERT;
             return 0;
-        case DETECT_HOSTBITS_CMD_ISNOTSET:
-        case DETECT_HOSTBITS_CMD_ISSET:
-        case DETECT_HOSTBITS_CMD_SET:
-        case DETECT_HOSTBITS_CMD_UNSET:
-        case DETECT_HOSTBITS_CMD_TOGGLE:
+        case DETECT_XBITS_CMD_ISNOTSET:
+        case DETECT_XBITS_CMD_ISSET:
+        case DETECT_XBITS_CMD_SET:
+        case DETECT_XBITS_CMD_UNSET:
+        case DETECT_XBITS_CMD_TOGGLE:
         default:
             if (strlen(fb_name) == 0)
                 goto error;
             break;
     }
 
-    cd = SCMalloc(sizeof(DetectHostbitsData));
+    cd = SCMalloc(sizeof(DetectXbitsData));
     if (unlikely(cd == NULL))
         goto error;
 
-    cd->idx = VariableNameGetIdx(de_ctx, fb_name, DETECT_HOSTBITS);
+    cd->idx = VariableNameGetIdx(de_ctx, fb_name, VAR_TYPE_HOST_BIT);
     cd->cmd = fb_cmd;
-    cd->dir = hb_dir;
+    cd->tracker = hb_dir;
+    cd->type = VAR_TYPE_HOST_BIT;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
         cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
@@ -400,19 +397,19 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     sm->ctx = (void *)cd;
 
     switch (fb_cmd) {
-        case DETECT_HOSTBITS_CMD_NOALERT:
+        case DETECT_XBITS_CMD_NOALERT:
             /* nothing to do */
             break;
 
-        case DETECT_HOSTBITS_CMD_ISNOTSET:
-        case DETECT_HOSTBITS_CMD_ISSET:
+        case DETECT_XBITS_CMD_ISNOTSET:
+        case DETECT_XBITS_CMD_ISSET:
             /* checks, so packet list */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
 
-        case DETECT_HOSTBITS_CMD_SET:
-        case DETECT_HOSTBITS_CMD_UNSET:
-        case DETECT_HOSTBITS_CMD_TOGGLE:
+        case DETECT_XBITS_CMD_SET:
+        case DETECT_XBITS_CMD_UNSET:
+        case DETECT_XBITS_CMD_TOGGLE:
             /* modifiers, only run when entire sig has matched */
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_POSTMATCH);
             break;
@@ -430,7 +427,7 @@ error:
 
 void DetectHostbitFree (void *ptr)
 {
-    DetectHostbitsData *fd = (DetectHostbitsData *)ptr;
+    DetectXbitsData *fd = (DetectXbitsData *)ptr;
 
     if (fd == NULL)
         return;
@@ -727,7 +724,7 @@ static int HostBitsTestSig04(void)
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
 
-    idx = VariableNameGetIdx(de_ctx, "fbt", DETECT_HOSTBITS);
+    idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_HOST_BIT);
 
     if (s == NULL || idx != 1) {
         goto end;
@@ -922,7 +919,7 @@ static int HostBitsTestSig06(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", DETECT_HOSTBITS);
+    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_HOST_BIT);
 
     gv = p->flow->flowvar;
 
@@ -1028,7 +1025,7 @@ static int HostBitsTestSig07(void)
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    idx = VariableNameGetIdx(de_ctx, "myflow", DETECT_HOSTBITS);
+    idx = VariableNameGetIdx(de_ctx, "myflow", VAR_TYPE_HOST_BIT);
 
     gv = p->flow->flowvar;
 
