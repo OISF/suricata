@@ -63,6 +63,7 @@
 
 #include "host-timeout.h"
 #include "defrag-timeout.h"
+#include "ippair-timeout.h"
 
 #include "output-flow.h"
 
@@ -625,6 +626,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             DefragTimeoutHash(&ts);
             //uint32_t hosts_pruned =
             HostTimeoutHash(&ts);
+            IPPairTimeoutHash(&ts);
         }
 /*
         SCPerfCounterAddUI64(flow_mgr_host_prune, th_v->sc_perf_pca, (uint64_t)hosts_pruned);

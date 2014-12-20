@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,17 +18,17 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_VAR_NAME_H__
-#define __UTIL_VAR_NAME_H__
+#ifndef __DETECT_HOSTBITS_H__
+#define __DETECT_HOSTBITS_H__
 
-int VariableNameInitHash(DetectEngineCtx *);
-void VariableNameFreeHash(DetectEngineCtx *);
+#include "detect-xbits.h"
 
-uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, enum VarTypes);
-char * VariableIdxGetName(DetectEngineCtx *, uint16_t , enum VarTypes);
+int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd);
 
-#endif
+/* prototypes */
+void DetectHostbitsRegister (void);
 
+#endif /* __DETECT_HOSTBITS_H__ */

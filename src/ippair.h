@@ -21,8 +21,8 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __HOST_H__
-#define __HOST_H__
+#ifndef __IPPAIR_H__
+#define __IPPAIR_H__
 
 #include "decode.h"
 #include "util-storage.h"
@@ -55,49 +55,46 @@
     #error Enable HRLOCK_SPIN or HRLOCK_MUTEX
 #endif
 
-typedef struct Host_ {
-    /** host mutex */
+typedef struct IPPair_ {
+    /** ippair mutex */
     SCMutex m;
 
-    /** host address -- ipv4 or ipv6 */
-    Address a;
+    /** ippair addresses -- ipv4 or ipv6 */
+    Address a[2];
 
     /** use cnt, reference counter */
     SC_ATOMIC_DECLARE(unsigned int, use_cnt);
-
-    /** pointers to iprep storage */
-    void *iprep;
 
     /** storage api handle */
     Storage *storage;
 
     /** hash pointers, protected by hash row mutex/spin */
-    struct Host_ *hnext;
-    struct Host_ *hprev;
+    struct IPPair_ *hnext;
+    struct IPPair_ *hprev;
 
-    /** list pointers, protected by host-queue mutex/spin */
-    struct Host_ *lnext;
-    struct Host_ *lprev;
-} Host;
+    /** list pointers, protected by ippair-queue mutex/spin */
+    struct IPPair_ *lnext;
+    struct IPPair_ *lprev;
+} IPPair;
 
-typedef struct HostHashRow_ {
+typedef struct IPPairHashRow_ {
     HRLOCK_TYPE lock;
-    Host *head;
-    Host *tail;
-} __attribute__((aligned(CLS))) HostHashRow;
+    IPPair *head;
+    IPPair *tail;
+} __attribute__((aligned(CLS))) IPPairHashRow;
 
-/** host hash table */
-HostHashRow *host_hash;
+/** ippair hash table */
+IPPairHashRow *ippair_hash;
 
-#define HOST_VERBOSE    0
-#define HOST_QUIET      1
+#define IPPAIR_VERBOSE    0
+#define IPPAIR_QUIET      1
 
-typedef struct HostConfig_ {
+typedef struct IPPairConfig_ {
     uint64_t memcap;
     uint32_t hash_rand;
     uint32_t hash_size;
     uint32_t prealloc;
-} HostConfig;
+} IPPairConfig;
 
 /** \brief check if a memory alloc would fit in the memcap
  *
@@ -106,52 +103,53 @@ typedef struct HostConfig_ {
  *  \retval 1 it fits
  *  \retval 0 no fit
  */
-#define HOST_CHECK_MEMCAP(size) \
-    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= host_config.memcap))
+#define IPPAIR_CHECK_MEMCAP(size) \
+    ((((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)(size)) <= ippair_config.memcap))
 
-#define HostIncrUsecnt(h) \
+#define IPPairIncrUsecnt(h) \
     (void)SC_ATOMIC_ADD((h)->use_cnt, 1)
-#define HostDecrUsecnt(h) \
+#define IPPairDecrUsecnt(h) \
     (void)SC_ATOMIC_SUB((h)->use_cnt, 1)
 
-#define HostReference(dst_h_ptr, h) do {            \
+#define IPPairReference(dst_h_ptr, h) do {            \
         if ((h) != NULL) {                          \
-            HostIncrUsecnt((h));                    \
+            IPPairIncrUsecnt((h));                    \
             *(dst_h_ptr) = h;                       \
         }                                           \
     } while (0)
 
-#define HostDeReference(src_h_ptr) do {               \
+#define IPPairDeReference(src_h_ptr) do {               \
         if (*(src_h_ptr) != NULL) {                   \
-            HostDecrUsecnt(*(src_h_ptr));             \
+            IPPairDecrUsecnt(*(src_h_ptr));             \
             *(src_h_ptr) = NULL;                      \
         }                                             \
     } while (0)
 
-HostConfig host_config;
-SC_ATOMIC_DECLARE(unsigned long long int,host_memuse);
-SC_ATOMIC_DECLARE(unsigned int,host_counter);
-SC_ATOMIC_DECLARE(unsigned int,host_prune_idx);
+IPPairConfig ippair_config;
+SC_ATOMIC_DECLARE(unsigned long long int,ippair_memuse);
+SC_ATOMIC_DECLARE(unsigned int,ippair_counter);
+SC_ATOMIC_DECLARE(unsigned int,ippair_prune_idx);
 
-void HostInitConfig(char quiet);
-void HostShutdown(void);
-void HostCleanup(void);
+void IPPairInitConfig(char quiet);
+void IPPairShutdown(void);
+void IPPairCleanup(void);
 
-Host *HostLookupHostFromHash (Address *);
-Host *HostGetHostFromHash (Address *);
-void HostRelease(Host *);
-void HostLock(Host *);
-void HostClearMemory(Host *);
-void HostMoveToSpare(Host *);
-uint32_t HostSpareQueueGetSize(void);
-void HostPrintStats (void);
+IPPair *IPPairLookupIPPairFromHash (Address *, Address *);
+IPPair *IPPairGetIPPairFromHash (Address *, Address *);
+void IPPairRelease(IPPair *);
+void IPPairLock(IPPair *);
+void IPPairClearMemory(IPPair *);
+void IPPairMoveToSpare(IPPair *);
+uint32_t IPPairSpareQueueGetSize(void);
+void IPPairPrintStats (void);
 
-void HostRegisterUnittests(void);
+void IPPairRegisterUnittests(void);
 
-Host *HostAlloc();
-void HostFree();
+IPPair *IPPairAlloc(void);
+void IPPairFree(IPPair *);
 
-void HostUnlock(Host *h);
+void IPPairLock(IPPair *);
+void IPPairUnlock(IPPair *);
 
-#endif /* __HOST_H__ */
+#endif /* __IPPAIR_H__ */
 

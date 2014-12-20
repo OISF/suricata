@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2013 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,16 +19,27 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * IPPair wrapper around storage api
  */
 
-#ifndef __UTIL_VAR_NAME_H__
-#define __UTIL_VAR_NAME_H__
+#ifndef __IPPAIR_STORAGE_H__
+#define __IPPAIR_STORAGE_H__
 
-int VariableNameInitHash(DetectEngineCtx *);
-void VariableNameFreeHash(DetectEngineCtx *);
+#include "util-storage.h"
+#include "ippair.h"
 
-uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, enum VarTypes);
-char * VariableIdxGetName(DetectEngineCtx *, uint16_t , enum VarTypes);
+unsigned int IPPairStorageSize(void);
 
-#endif
+void *IPPairGetStorageById(IPPair *h, int id);
+int IPPairSetStorageById(IPPair *h, int id, void *ptr);
+void *IPPairAllocStorageById(IPPair *h, int id);
 
+void IPPairFreeStorageById(IPPair *h, int id);
+void IPPairFreeStorage(IPPair *h);
+
+void RegisterIPPairStorageTests(void);
+
+int IPPairStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *));
+
+#endif /* __IPPAIR_STORAGE_H__ */

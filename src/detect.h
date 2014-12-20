@@ -1073,6 +1073,7 @@ enum {
     DETECT_PKTVAR,
     DETECT_NOALERT,
     DETECT_FLOWBITS,
+    DETECT_HOSTBITS,
     DETECT_IPV4_CSUM,
     DETECT_TCPV4_CSUM,
     DETECT_TCPV6_CSUM,
@@ -1149,6 +1150,8 @@ enum {
 
     DETECT_AL_DNS_QUERY,
     DETECT_AL_MODBUS,
+
+    DETECT_XBITS,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

@@ -42,6 +42,7 @@
 #include "output.h"
 #include "host.h"
 #include "defrag.h"
+#include "ippair.h"
 
 static const char *default_mode = NULL;
 
@@ -308,6 +309,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         SCPerfReleaseResources();
         RunModeShutDown();
         FlowShutdown();
+        IPPairShutdown();
         HostCleanup();
         StreamTcpFreeConfig(STREAM_VERBOSE);
         DefragDestroy();
@@ -339,6 +341,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         PcapFilesFree(cfile);
         DefragInit();
         FlowInitConfig(FLOW_QUIET);
+        IPPairInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
         SCPerfInitCounterApi();
