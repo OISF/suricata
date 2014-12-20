@@ -106,7 +106,7 @@ error:
     return;
 }
 
-static int DetectHostbitMatchToggle (Packet *p, DetectXbitsData *fd)
+static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -138,7 +138,7 @@ static int DetectHostbitMatchToggle (Packet *p, DetectXbitsData *fd)
 }
 
 /* return true even if bit not found */
-static int DetectHostbitMatchUnset (Packet *p, DetectXbitsData *fd)
+static int DetectHostbitMatchUnset (Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -167,7 +167,7 @@ static int DetectHostbitMatchUnset (Packet *p, DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchSet (Packet *p, DetectXbitsData *fd)
+static int DetectHostbitMatchSet (Packet *p, const DetectXbitsData *fd)
 {
     switch (fd->tracker) {
         case DETECT_XBITS_TRACK_IPSRC:
@@ -196,7 +196,7 @@ static int DetectHostbitMatchSet (Packet *p, DetectXbitsData *fd)
     return 1;
 }
 
-static int DetectHostbitMatchIsset (Packet *p, DetectXbitsData *fd)
+static int DetectHostbitMatchIsset (Packet *p, const DetectXbitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -226,7 +226,7 @@ static int DetectHostbitMatchIsset (Packet *p, DetectXbitsData *fd)
     return 0;
 }
 
-static int DetectHostbitMatchIsnotset (Packet *p, DetectXbitsData *fd)
+static int DetectHostbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
 {
     int r = 0;
     switch (fd->tracker) {
@@ -256,6 +256,27 @@ static int DetectHostbitMatchIsnotset (Packet *p, DetectXbitsData *fd)
     return 0;
 }
 
+int DetectXbitMatchHost(Packet *p, const DetectXbitsData *xd)
+{
+    switch (xd->cmd) {
+        case DETECT_XBITS_CMD_ISSET:
+            return DetectHostbitMatchIsset(p,xd);
+        case DETECT_XBITS_CMD_ISNOTSET:
+            return DetectHostbitMatchIsnotset(p,xd);
+        case DETECT_XBITS_CMD_SET:
+            return DetectHostbitMatchSet(p,xd);
+        case DETECT_XBITS_CMD_UNSET:
+            return DetectHostbitMatchUnset(p,xd);
+        case DETECT_XBITS_CMD_TOGGLE:
+            return DetectHostbitMatchToggle(p,xd);
+        default:
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
+            return 0;
+    }
+
+    return 0;
+}
+
 /*
  * returns 0: no match
  *         1: match
@@ -264,27 +285,11 @@ static int DetectHostbitMatchIsnotset (Packet *p, DetectXbitsData *fd)
 
 int DetectHostbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
-    DetectXbitsData *fd = (DetectXbitsData *)m->ctx;
-    if (fd == NULL)
+    const DetectXbitsData *xd = (const DetectXbitsData *)m->ctx;
+    if (xd == NULL)
         return 0;
 
-    switch (fd->cmd) {
-        case DETECT_XBITS_CMD_ISSET:
-            return DetectHostbitMatchIsset(p,fd);
-        case DETECT_XBITS_CMD_ISNOTSET:
-            return DetectHostbitMatchIsnotset(p,fd);
-        case DETECT_XBITS_CMD_SET:
-            return DetectHostbitMatchSet(p,fd);
-        case DETECT_XBITS_CMD_UNSET:
-            return DetectHostbitMatchUnset(p,fd);
-        case DETECT_XBITS_CMD_TOGGLE:
-            return DetectHostbitMatchToggle(p,fd);
-        default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
-            return 0;
-    }
-
-    return 0;
+    return DetectXbitMatchHost(p, xd);
 }
 
 int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
