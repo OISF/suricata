@@ -62,6 +62,21 @@ int IPPairHasBits(IPPair *ippair)
     return IPPairGetStorageById(ippair, ippair_bit_id) ? 1 : 0;
 }
 
+/** \retval 1 ippair timed out wrt xbits
+  * \retval 0 ippair still has active (non-expired) xbits */
+int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts)
+{
+    GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_XBITS) {
+            XBit *xb = (XBit *)gv;
+            if (xb->expire > ts->tv_sec)
+                return 0;
+        }
+    }
+    return 1;
+}
+
 /* get the bit with idx from the ippair */
 static XBit *IPPairBitGet(IPPair *h, uint16_t idx)
 {
