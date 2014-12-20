@@ -30,6 +30,12 @@ typedef struct GenericVar_ {
     struct GenericVar_ *next;
 } GenericVar;
 
+typedef struct XBit_ {
+    uint8_t type;       /* type, DETECT_XBITS in this case */
+    uint16_t idx;       /* name idx */
+    GenericVar *next;
+} XBit;
+
 void GenericVarFree(GenericVar *);
 void GenericVarAppend(GenericVar **, GenericVar *);
 void GenericVarRemove(GenericVar **, GenericVar *);
