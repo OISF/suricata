@@ -27,16 +27,7 @@
 #include "host.h"
 #include "util-var.h"
 
-typedef struct HostBit_ {
-    uint8_t type; /* type, DETECT_HOSTBITS in this case */
-    uint16_t idx; /* name idx */
-    GenericVar *next; /* right now just implement this as a list,
-                       * in the long run we have think of something
-                       * faster. */
-} HostBit;
-
 void HostBitInitCtx(void);
-void HostBitFree(HostBit *);
 void HostBitRegisterTests(void);
 
 int HostHasHostBits(Host *host);
