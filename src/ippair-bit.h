@@ -30,7 +30,8 @@
 void IPPairBitInitCtx(void);
 void IPPairBitRegisterTests(void);
 
-int IPPairHasIPPairBits(IPPair *host);
+int IPPairHasBits(IPPair *host);
+int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts);
 
 void IPPairBitSet(IPPair *, uint16_t, uint32_t);
 void IPPairBitUnset(IPPair *, uint16_t);

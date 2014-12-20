@@ -23,6 +23,7 @@
 
 #include "suricata-common.h"
 #include "ippair.h"
+#include "ippair-bit.h"
 
 uint32_t IPPairGetSpareCount(void)
 {
@@ -43,11 +44,21 @@ uint32_t IPPairGetActiveCount(void)
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
  */
-static int IPPairIPPairTimedOut(IPPair *h, struct timeval *ts)
+static int IPPairTimedOut(IPPair *h, struct timeval *ts)
 {
+    int vars = 0;
+
     /** never prune a ippair that is used by a packet
      *  we are currently processing in one of the threads */
     if (SC_ATOMIC_GET(h->use_cnt) > 0) {
+        return 0;
+    }
+
+    if (IPPairHasBits(h) && IPPairBitsTimedoutCheck(h, ts) == 0) {
+        vars = 1;
+    }
+
+    if (vars) {
         return 0;
     }
 
@@ -80,7 +91,7 @@ static uint32_t IPPairHashRowTimeout(IPPairHashRow *hb, IPPair *h, struct timeva
 
         /* check if the ippair is fully timed out and
          * ready to be discarded. */
-        if (IPPairIPPairTimedOut(h, ts) == 1) {
+        if (IPPairTimedOut(h, ts) == 1) {
             /* remove from the hash */
             if (h->hprev != NULL)
                 h->hprev->hnext = h->hnext;
