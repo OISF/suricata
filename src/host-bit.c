@@ -62,6 +62,21 @@ int HostHasHostBits(Host *host)
     return HostGetStorageById(host, host_bit_id) ? 1 : 0;
 }
 
+/** \retval 1 host timed out wrt xbits
+  * \retval 0 host still has active (non-expired) xbits */
+int HostBitsTimedoutCheck(Host *h, struct timeval *ts)
+{
+    GenericVar *gv = HostGetStorageById(h, host_bit_id);
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_XBITS) {
+            XBit *xb = (XBit *)gv;
+            if (xb->expire > ts->tv_sec)
+                return 0;
+        }
+    }
+    return 1;
+}
+
 /* get the bit with idx from the host */
 static XBit *HostBitGet(Host *h, uint16_t idx)
 {
