@@ -155,6 +155,26 @@ static int DetectIPPairbitMatchIsnotset (Packet *p, const DetectXbitsData *fd)
     return r;
 }
 
+static int DetectXbitMatchIPPair(Packet *p, const DetectXbitsData *xd)
+{
+    switch (xd->cmd) {
+        case DETECT_XBITS_CMD_ISSET:
+            return DetectIPPairbitMatchIsset(p,xd);
+        case DETECT_XBITS_CMD_ISNOTSET:
+            return DetectIPPairbitMatchIsnotset(p,xd);
+        case DETECT_XBITS_CMD_SET:
+            return DetectIPPairbitMatchSet(p,xd);
+        case DETECT_XBITS_CMD_UNSET:
+            return DetectIPPairbitMatchUnset(p,xd);
+        case DETECT_XBITS_CMD_TOGGLE:
+            return DetectIPPairbitMatchToggle(p,xd);
+        default:
+            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", xd->cmd);
+            return 0;
+    }
+    return 0;
+}
+
 /*
  * returns 0: no match
  *         1: match
@@ -167,22 +187,13 @@ int DetectXbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
     if (fd == NULL)
         return 0;
 
-    switch (fd->cmd) {
-        case DETECT_XBITS_CMD_ISSET:
-            return DetectIPPairbitMatchIsset(p,fd);
-        case DETECT_XBITS_CMD_ISNOTSET:
-            return DetectIPPairbitMatchIsnotset(p,fd);
-        case DETECT_XBITS_CMD_SET:
-            return DetectIPPairbitMatchSet(p,fd);
-        case DETECT_XBITS_CMD_UNSET:
-            return DetectIPPairbitMatchUnset(p,fd);
-        case DETECT_XBITS_CMD_TOGGLE:
-            return DetectIPPairbitMatchToggle(p,fd);
+    switch (fd->type) {
+        case VAR_TYPE_IPPAIR_BIT:
+            return DetectXbitMatchIPPair(p, (const DetectXbitsData *)fd);
+            break;
         default:
-            SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
-            return 0;
+            break;
     }
-
     return 0;
 }
 
