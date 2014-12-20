@@ -76,7 +76,7 @@ static XBit *IPPairBitGet(IPPair *h, uint16_t idx)
 }
 
 /* add a flowbit to the flow */
-static void IPPairBitAdd(IPPair *h, uint16_t idx)
+static void IPPairBitAdd(IPPair *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
@@ -87,10 +87,15 @@ static void IPPairBitAdd(IPPair *h, uint16_t idx)
         fb->type = DETECT_XBITS;
         fb->idx = idx;
         fb->next = NULL;
+        fb->expire = expire;
 
         GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
         GenericVarAppend(&gv, (GenericVar *)fb);
         IPPairSetStorageById(h, ippair_bit_id, gv);
+
+    // bit already set, lets update it's timer
+    } else {
+        fb->expire = expire;
     }
 }
 
@@ -107,11 +112,11 @@ static void IPPairBitRemove(IPPair *h, uint16_t idx)
     }
 }
 
-void IPPairBitSet(IPPair *h, uint16_t idx)
+void IPPairBitSet(IPPair *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
-        IPPairBitAdd(h, idx);
+        IPPairBitAdd(h, idx, expire);
     }
 }
 
@@ -123,37 +128,43 @@ void IPPairBitUnset(IPPair *h, uint16_t idx)
     }
 }
 
-void IPPairBitToggle(IPPair *h, uint16_t idx)
+void IPPairBitToggle(IPPair *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
         IPPairBitRemove(h, idx);
     } else {
-        IPPairBitAdd(h, idx);
+        IPPairBitAdd(h, idx, expire);
     }
 }
 
-int IPPairBitIsset(IPPair *h, uint16_t idx)
+int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
 {
-    int r = 0;
-
     XBit *fb = IPPairBitGet(h, idx);
     if (fb != NULL) {
-        r = 1;
+        if (fb->expire < ts) {
+            IPPairBitRemove(h, idx);
+            return 0;
+        }
+
+        return 1;
     }
-    return r;
+    return 0;
 }
 
-int IPPairBitIsnotset(IPPair *h, uint16_t idx)
+int IPPairBitIsnotset(IPPair *h, uint16_t idx, uint32_t ts)
 {
-    int r = 0;
-
     XBit *fb = IPPairBitGet(h, idx);
     if (fb == NULL) {
-        r = 1;
+        return 1;
     }
 
-    return r;
+    if (fb->expire < ts) {
+        IPPairBitRemove(h, idx);
+        return 1;
+    }
+
+    return 0;
 }
 
 
@@ -168,7 +179,7 @@ static int IPPairBitTest01 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
+    IPPairBitAdd(h, 0, 0);
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb != NULL)
@@ -208,7 +219,7 @@ static int IPPairBitTest03 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
+    IPPairBitAdd(h, 0, 30);
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb == NULL) {
@@ -241,10 +252,10 @@ static int IPPairBitTest04 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,30);
+    IPPairBitAdd(h, 1,30);
+    IPPairBitAdd(h, 2,30);
+    IPPairBitAdd(h, 3,30);
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb != NULL)
@@ -265,10 +276,10 @@ static int IPPairBitTest05 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,1);
     if (fb != NULL)
@@ -289,10 +300,10 @@ static int IPPairBitTest06 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,2);
     if (fb != NULL)
@@ -313,10 +324,10 @@ static int IPPairBitTest07 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,3);
     if (fb != NULL)
@@ -337,10 +348,10 @@ static int IPPairBitTest08 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,0);
     if (fb == NULL)
@@ -370,10 +381,10 @@ static int IPPairBitTest09 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,1);
     if (fb == NULL)
@@ -403,10 +414,10 @@ static int IPPairBitTest10 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,2);
     if (fb == NULL)
@@ -436,10 +447,10 @@ static int IPPairBitTest11 (void)
     if (h == NULL)
         goto end;
 
-    IPPairBitAdd(h, 0);
-    IPPairBitAdd(h, 1);
-    IPPairBitAdd(h, 2);
-    IPPairBitAdd(h, 3);
+    IPPairBitAdd(h, 0,90);
+    IPPairBitAdd(h, 1,90);
+    IPPairBitAdd(h, 2,90);
+    IPPairBitAdd(h, 3,90);
 
     XBit *fb = IPPairBitGet(h,3);
     if (fb == NULL)
