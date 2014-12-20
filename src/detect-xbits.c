@@ -50,10 +50,10 @@
 #include "util-debug.h"
 
 /*
-    xbits:set,bitname,track ip_pair
+    xbits:set,bitname,track ip_pair,expire 60
  */
 
-#define PARSE_REGEX         "([a-z]+)(?:,([^,]+))?(?:,(?:track\\s+([^,]+)))"
+#define PARSE_REGEX     "([a-z]+)" "(?:,\\s*([^,]+))?" "(?:,\\s*(?:track\\s+([^,]+)))" "(?:,\\s*(?:expire\\s+([^,]+)))?"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -213,10 +213,11 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
     enum VarTypes var_type = VAR_TYPE_NOT_SET;
+    int expire = 30;
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret != 2 && ret != 3 && ret != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for hostbits.", rawstr);
+    if (ret != 2 && ret != 3 && ret != 4 && ret != 5) {
+        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for xbits.", rawstr);
         return -1;
     }
     SCLogInfo("ret %d, %s", ret, rawstr);
@@ -253,6 +254,18 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
                     // TODO
                     goto error;
                 }
+            }
+
+            if (ret >= 5) {
+                char expire_str[16] = "";
+                res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, expire_str, sizeof(expire_str));
+                if (res < 0) {
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+                    goto error;
+                }
+                SCLogInfo("expire_str %s", expire_str);
+                expire = atoi(expire_str);
+                SCLogInfo("expire %d", expire);
             }
         }
     }
@@ -299,6 +312,7 @@ int DetectXbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     cd->cmd = fb_cmd;
     cd->tracker = hb_dir;
     cd->type = var_type;
+    cd->expire = expire;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
         cd->idx, fb_cmd_str, strlen(fb_name) ? fb_name : "(none)");
