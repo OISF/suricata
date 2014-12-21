@@ -101,6 +101,8 @@
 #include "detect-filestore.h"
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
+#include "detect-filesha1.h"
+#include "detect-filesha256.h"
 #include "detect-filesize.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
@@ -1644,6 +1646,22 @@ end:
                     FileDisableMd5(pflow, STREAM_TOSERVER);
                 }
 
+                /* see if this sgh requires us to consider file SHA1 */
+                if (!FileForceSHA1() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
+                {
+                    SCLogDebug("disabling SHA1 for flow");
+                    FileDisableSHA1(pflow, STREAM_TOSERVER);
+                }
+
+                /* see if this sgh requires us to consider file SHA256 */
+                if (!FileForceSHA256() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
+                {
+                    SCLogDebug("disabling SHA256 for flow");
+                    FileDisableSHA256(pflow, STREAM_TOSERVER);
+                }
+
                 /* see if this sgh requires us to consider filesize */
                 if (pflow->sgh_toserver == NULL ||
                             !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
@@ -1673,6 +1691,22 @@ end:
                 {
                     SCLogDebug("disabling md5 for flow");
                     FileDisableMd5(pflow, STREAM_TOCLIENT);
+                }
+
+                /* check if this flow needs SHA1, if not disable it */
+                if (!FileForceSHA1() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
+                {
+                    SCLogDebug("disabling SHA1 for flow");
+                    FileDisableSHA1(pflow, STREAM_TOCLIENT);
+                }
+
+                /* check if this flow needs SHA256, if not disable it */
+                if (!FileForceSHA256() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
+                {
+                    SCLogDebug("disabling SHA256 for flow");
+                    FileDisableSHA256(pflow, STREAM_TOCLIENT);
                 }
 
                 /* see if this sgh requires us to consider filesize */
@@ -1856,6 +1890,44 @@ int SignatureIsFileMd5Inspecting(Signature *s)
         return 0;
 
     if (s->file_flags & FILE_SIG_NEED_MD5)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filesha1 keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFileSHA1Inspecting(Signature *s)
+{
+    if (s == NULL)
+        return 0;
+
+    if (s->file_flags & FILE_SIG_NEED_SHA1)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filesha256 keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFileSHA256Inspecting(Signature *s)
+{
+    if (s == NULL)
+        return 0;
+
+    if (s->file_flags & FILE_SIG_NEED_SHA256)
         return 1;
 
     return 0;
@@ -3998,6 +4070,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
+        SigGroupHeadSetFileSHA1Flag(de_ctx, sgh);
+        SigGroupHeadSetFileSHA256Flag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
@@ -4805,6 +4879,8 @@ void SigTableSetup(void)
     DetectFilestoreRegister();
     DetectFilemagicRegister();
     DetectFileMd5Register();
+    DetectFileSHA1Register();
+    DetectFileSHA256Register();
     DetectFilesizeRegister();
     DetectAppLayerEventRegister();
     DetectHttpUARegister();

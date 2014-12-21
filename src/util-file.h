@@ -33,11 +33,15 @@
 #define FILE_NOMAGIC    0x0002
 #define FILE_NOMD5      0x0004
 #define FILE_MD5        0x0008
-#define FILE_LOGGED     0x0010
-#define FILE_NOSTORE    0x0020
-#define FILE_STORE      0x0040
-#define FILE_STORED     0x0080
-#define FILE_NOTRACK    0x0100 /**< track size of file */
+#define FILE_NOSHA1     0x0010
+#define FILE_SHA1       0x0020
+#define FILE_NOSHA256   0x0040
+#define FILE_SHA256     0x0080
+#define FILE_LOGGED     0x0100
+#define FILE_NOSTORE    0x0200
+#define FILE_STORE      0x0400
+#define FILE_STORED     0x0800
+#define FILE_NOTRACK    0x1000 /**< track size of file */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -73,6 +77,10 @@ typedef struct File_ {
 #ifdef HAVE_NSS
     HASHContext *md5_ctx;
     uint8_t md5[MD5_LENGTH];
+    HASHContext *sha1_ctx;
+    uint8_t sha1[SHA1_LENGTH];
+    HASHContext *sha256_ctx;
+    uint8_t sha256[SHA256_LENGTH];
 #endif
 #ifdef DEBUG
     uint64_t chunks_cnt;
@@ -175,8 +183,14 @@ void FileForceMagicEnable(void);
 int FileForceMagic(void);
 
 void FileDisableMd5(Flow *f, uint8_t);
+void FileDisableSHA1(Flow *f, uint8_t);
+void FileDisableSHA256(Flow *f, uint8_t);
 void FileForceMd5Enable(void);
+void FileForceSHA1Enable(void);
+void FileForceSHA256Enable(void);
 int FileForceMd5(void);
+int FileForceSHA1(void);
+int FileForceSHA256(void);
 
 void FileForceTrackingEnable(void);
 
