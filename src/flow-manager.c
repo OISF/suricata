@@ -541,6 +541,7 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
 
 static TmEcode FlowManagerThreadDeinit(ThreadVars *t, void *data)
 {
+    PacketPoolDestroy();
     SCFree(data);
     return TM_ECODE_OK;
 }
