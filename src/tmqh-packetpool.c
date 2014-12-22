@@ -294,6 +294,21 @@ void PacketPoolInit(void)
 void PacketPoolDestroy(void)
 {
     Packet *p = NULL;
+    PktPool *my_pool = GetThreadPacketPool();
+    if (my_pool && my_pool->pending_head != NULL) {
+        p = my_pool->pending_head;
+        while (p) {
+            Packet *next_p = p->next;
+            PacketFree(p);
+            p = next_p;
+            my_pool->pending_count--;
+        }
+        BUG_ON(my_pool->pending_count);
+        my_pool->pending_pool = NULL;
+        my_pool->pending_head = NULL;
+        my_pool->pending_tail = NULL;
+    }
+
     while ((p = PacketPoolGetPacket()) != NULL) {
         PacketFree(p);
     }
