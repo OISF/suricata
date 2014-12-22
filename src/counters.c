@@ -276,7 +276,6 @@ static void *SCPerfMgmtThread(void *arg)
     tv_local->cap_flags = 0;
 
     SCDropCaps(tv_local);
-    PacketPoolInit();
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
@@ -356,7 +355,6 @@ static void *SCPerfWakeupThread(void *arg)
     tv_local->cap_flags = 0;
 
     SCDropCaps(tv_local);
-    PacketPoolInit();
 
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
