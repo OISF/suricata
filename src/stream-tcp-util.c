@@ -40,6 +40,8 @@
 
 /* unittest helper functions */
 
+extern int stream_inline;
+
 void StreamTcpUTInit(TcpReassemblyThreadCtx **ra_ctx)
 {
     StreamTcpInitConfig(TRUE);
@@ -50,6 +52,11 @@ void StreamTcpUTDeinit(TcpReassemblyThreadCtx *ra_ctx)
 {
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
+    stream_inline = 0;
+}
+
+void StreamTcpUTInitInline(void) {
+    stream_inline = 1;
 }
 
 void StreamTcpUTSetupSession(TcpSession *ssn)
