@@ -1,4 +1,5 @@
 /* Copyright (C) 2007-2013 Open Information Security Foundation
+ * Copyright (C) 2014 European Commission
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -34,6 +35,7 @@
 #include "tm-threads.h"
 
 #include "util-print.h"
+#include "util-crypt.h"
 #include "util-unittest.h"
 
 #include "util-debug.h"
@@ -120,62 +122,122 @@ typedef enum {
     HTTP_FIELD_VARY,
     HTTP_FIELD_WARNING,
     HTTP_FIELD_WWW_AUTHENTICATE,
+    HTTP_FIELD_PROXY_USERNAME,
     HTTP_FIELD_SIZE
 } HttpField;
+
+static json_t *HTTPUsernameExtract(char *authofield)
+{
+    char * basicstring = "Basic ";
+    unsigned long inlen = 0;
+    unsigned long outlen = 0;
+    char * res = NULL;
+    char * sep = NULL;
+    json_t * jres = NULL;
+    int ret;
+
+    if (authofield == NULL)
+        return NULL;
+
+    if (strlen(authofield) <= 6) {
+        SCLogInfo("Too short authorization field: '%s'", authofield);
+        return NULL;
+    }
+
+    if (strncmp(basicstring, authofield, 6) != 0) {
+        return NULL;
+    }
+    authofield = authofield + 6; /* length of basicstring */
+
+    inlen = strlen(authofield);
+    if (inlen < 512) {
+        res = SCCalloc(strlen(authofield), sizeof(char));
+        if (res == NULL)
+            return NULL;
+        outlen = inlen;
+        ret = Base64Decode((unsigned char *)authofield, inlen, (unsigned char *)res, &outlen);
+        if (ret != SC_BASE64_OK) {
+            SCFree(res);
+            return NULL;
+        }
+        sep = strchr(res, ':');
+        if (sep == NULL) {
+            SCFree(res);
+            return NULL;
+        }
+        *sep = 0;
+        jres = json_string(res);
+        SCFree(res);
+        return jres;
+    } else {
+        return NULL;
+    }
+}
+
+static json_t *HTTPUIntegerExtract(char *integ)
+{
+    unsigned int res;
+
+    res = strtoul(integ, NULL, 10);
+    
+    return json_integer(res);
+}
 
 struct {
     char *config_field;
     char *htp_field;
     uint32_t flags;
+    json_t * (*ParseFunc)(char *);
 } http_fields[] =  {
-    { "accept", "accept", LOG_HTTP_REQUEST },
-    { "accept_charset", "accept-charset", LOG_HTTP_REQUEST },
-    { "accept_encoding", "accept-encoding", LOG_HTTP_REQUEST },
-    { "accept_language", "accept-language", LOG_HTTP_REQUEST },
-    { "accept_datetime", "accept-datetime", LOG_HTTP_REQUEST },
-    { "authorization", "authorization", LOG_HTTP_REQUEST },
-    { "cache_control", "cache-control", LOG_HTTP_REQUEST },
-    { "cookie", "cookie", LOG_HTTP_REQUEST|LOG_HTTP_ARRAY },
-    { "from", "from", LOG_HTTP_REQUEST },
-    { "max_forwards", "max-forwards", LOG_HTTP_REQUEST },
-    { "origin", "origin", LOG_HTTP_REQUEST },
-    { "pragma", "pragma", LOG_HTTP_REQUEST },
-    { "proxy_authorization", "proxy-authorization", LOG_HTTP_REQUEST },
-    { "range", "range", LOG_HTTP_REQUEST },
-    { "te", "te", LOG_HTTP_REQUEST },
-    { "via", "via", LOG_HTTP_REQUEST },
-    { "x_requested_with", "x-requested-with", LOG_HTTP_REQUEST },
-    { "dnt", "dnt", LOG_HTTP_REQUEST },
-    { "x_forwarded_proto", "x-forwarded-proto", LOG_HTTP_REQUEST },
-    { "accept_range", "accept-range", 0 },
-    { "age", "age", 0 },
-    { "allow", "allow", 0 },
-    { "connection", "connection", 0 },
-    { "content_encoding", "content-encoding", 0 },
-    { "content_language", "content-language", 0 },
-    { "content_length", "content-length", 0 },
-    { "content_location", "content-location", 0 },
-    { "content_md5", "content-md5", 0 },
-    { "content_range", "content-range", 0 },
-    { "content_type", "content-type", 0 },
-    { "date", "date", 0 },
-    { "etag", "etags", 0 },
-    { "expires", "expires" , 0 },
-    { "last_modified", "last-modified", 0 },
-    { "link", "link", 0 },
-    { "location", "location", 0 },
-    { "proxy_authenticate", "proxy-authenticate", 0 },
-    { "referrer", "referrer", LOG_HTTP_EXTENDED },
-    { "refresh", "refresh", 0 },
-    { "retry_after", "retry-after", 0 },
-    { "server", "server", 0 },
-    { "set_cookie", "set-cookie", 0 },
-    { "trailer", "trailer", 0 },
-    { "transfer_encoding", "transfer-encoding", 0 },
-    { "upgrade", "upgrade", 0 },
-    { "vary", "vary", 0 },
-    { "warning", "warning", 0 },
-    { "www_authenticate", "www-authenticate", 0 },
+    { "accept", "accept", LOG_HTTP_REQUEST, NULL },
+    { "accept_charset", "accept-charset", LOG_HTTP_REQUEST, NULL },
+    { "accept_encoding", "accept-encoding", LOG_HTTP_REQUEST, NULL },
+    { "accept_language", "accept-language", LOG_HTTP_REQUEST, NULL },
+    { "accept_datetime", "accept-datetime", LOG_HTTP_REQUEST, NULL },
+    { "authorization", "authorization", LOG_HTTP_REQUEST, NULL },
+    { "cache_control", "cache-control", LOG_HTTP_REQUEST, NULL },
+    { "cookie", "cookie", LOG_HTTP_REQUEST|LOG_HTTP_ARRAY, NULL },
+    { "from", "from", LOG_HTTP_REQUEST, NULL },
+    { "max_forwards", "max-forwards", LOG_HTTP_REQUEST, NULL },
+    { "origin", "origin", LOG_HTTP_REQUEST, NULL },
+    { "pragma", "pragma", LOG_HTTP_REQUEST, NULL },
+    { "proxy_authorization", "proxy-authorization", LOG_HTTP_REQUEST, NULL },
+    { "range", "range", LOG_HTTP_REQUEST, NULL },
+    { "te", "te", LOG_HTTP_REQUEST, NULL },
+    { "via", "via", LOG_HTTP_REQUEST, NULL },
+    { "x_requested_with", "x-requested-with", LOG_HTTP_REQUEST, NULL },
+    { "dnt", "dnt", LOG_HTTP_REQUEST, NULL },
+    { "x_forwarded_proto", "x-forwarded-proto", LOG_HTTP_REQUEST, NULL },
+    { "accept_range", "accept-range", 0, NULL },
+    { "age", "age", 0, NULL },
+    { "allow", "allow", 0, NULL },
+    { "connection", "connection", 0, NULL },
+    { "content_encoding", "content-encoding", 0, NULL },
+    { "content_language", "content-language", 0, NULL },
+    { "content_length", "content-length", 0, HTTPUIntegerExtract },
+    { "content_location", "content-location", 0, NULL },
+    { "content_md5", "content-md5", 0, NULL },
+    { "content_range", "content-range", 0, NULL },
+    { "content_type", "content-type", 0, NULL },
+    { "date", "date", 0, NULL },
+    { "etag", "etags", 0, NULL },
+    { "expires", "expires" , 0, NULL },
+    { "last_modified", "last-modified", 0, NULL },
+    { "link", "link", 0, NULL },
+    { "location", "location", 0, NULL },
+    { "proxy_authenticate", "proxy-authenticate", 0, NULL },
+    { "referrer", "referrer", LOG_HTTP_EXTENDED, NULL },
+    { "refresh", "refresh", 0, NULL },
+    { "retry_after", "retry-after", 0, NULL },
+    { "server", "server", 0, NULL },
+    { "set_cookie", "set-cookie", 0, NULL },
+    { "trailer", "trailer", 0, NULL },
+    { "transfer_encoding", "transfer-encoding", 0, NULL },
+    { "upgrade", "upgrade", 0, NULL },
+    { "vary", "vary", 0, NULL },
+    { "warning", "warning", 0, NULL },
+    { "www_authenticate", "www-authenticate", 0, NULL },
+    { "proxy_username", "proxy-authorization", LOG_HTTP_REQUEST, HTTPUsernameExtract },
 };
 
 void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
@@ -249,9 +311,10 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
 static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t *tx)
 {
     char *c;
+    json_t *pc;
     HttpField f;
 
-    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
+    for (f = HTTP_FIELD_ACCEPT; f <= HTTP_FIELD_SIZE; f++)
     {
         if ((http_ctx->fields & (1ULL<<f)) != 0)
         {
@@ -277,9 +340,18 @@ static void JsonHttpLogJSONCustom(LogHttpFileCtx *http_ctx, json_t *js, htp_tx_t
                 if (h_field != NULL) {
                     c = bstr_util_strdup_to_c(h_field->value);
                     if (c != NULL) {
-                        json_object_set_new(js,
-                                http_fields[f].config_field,
-                                json_string(c));
+                        if (http_fields[f].ParseFunc) {
+                            pc = http_fields[f].ParseFunc(c);
+                            if (pc != NULL) {
+                                json_object_set_new(js,
+                                        http_fields[f].config_field,
+                                        pc);
+                            }
+                        } else {
+                            json_object_set_new(js,
+                                    http_fields[f].config_field,
+                                    json_string(c));
+                        }
                         SCFree(c);
                     }
                 }
@@ -327,7 +399,8 @@ void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     if (tx->response_status != NULL) {
         c = bstr_util_strdup_to_c(tx->response_status);
         if (c != NULL) {
-            json_object_set_new(js, "status", json_string(c));
+            unsigned int val = strtoul(c, NULL, 10);
+            json_object_set_new(js, "status", json_integer(val));
             SCFree(c);
         }
 
@@ -494,7 +567,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
                 if (field != NULL)
                 {
                     HttpField f;
-                    for (f = HTTP_FIELD_ACCEPT; f < HTTP_FIELD_SIZE; f++)
+                    for (f = HTTP_FIELD_ACCEPT; f <= HTTP_FIELD_SIZE; f++)
                     {
                         if ((strcmp(http_fields[f].config_field,
                                    field->val) == 0) ||
