@@ -43,16 +43,19 @@ void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff,
     SMTPState *state = (SMTPState *) p->flow->alstate;
     if (state != NULL) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
-        if (tx == NULL || tx->msg_tail == NULL)
+        if (tx == NULL || tx->msg_tail == NULL) {
+            MemBufferWriteString(buffer, "unknown");
             return;
+        }
 
         /* Message Id */
         if (tx->msg_tail->msg_id != NULL) {
                 PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
                                (uint8_t *)tx->msg_tail->msg_id, tx->msg_tail->msg_id_len);
+                return;
         }
-
     }
+    MemBufferWriteString(buffer, "unknown");
 }
 
 void LogFileMetaGetSmtpSender(const Packet *p, const File *ff,
@@ -61,17 +64,20 @@ void LogFileMetaGetSmtpSender(const Packet *p, const File *ff,
     SMTPState *state = (SMTPState *) p->flow->alstate;
     if (state != NULL) {
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
-        if (tx == NULL || tx->msg_tail == NULL)
+        if (tx == NULL || tx->msg_tail == NULL) {
+            MemBufferWriteString(buffer, "unknown");
             return;
+        }
 
         /* Sender */
         MimeDecField *field = MimeDecFindField(tx->msg_tail, "from");
         if (field != NULL) {
                 PrintRawUriBuf((char *)buffer->buffer, &buffer->offset, buffer->size,
                                (uint8_t *) field->value, field->value_len);
+                return;
         }
-
     }
+    MemBufferWriteString(buffer, "unknown");
 }
 
 void LogFileMetaGetUri(const Packet *p, const File *ff,
@@ -89,7 +95,6 @@ void LogFileMetaGetUri(const Packet *p, const File *ff,
                                bstr_len(tx_ud->request_uri_normalized));
                 return;
             }
-            return;
         }
     }
     MemBufferWriteString(buffer, "unknown");
