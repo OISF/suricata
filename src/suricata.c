@@ -63,6 +63,8 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 
+#include "detect-filemd5.h"
+
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
 #include "tm-threads.h"
@@ -2305,6 +2307,10 @@ int main(int argc, char **argv)
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                                        UNIX_CMD_TAKE_ARGS);
             UnixManagerRegisterCommand("iface-list", LiveDeviceIfaceList, NULL, 0);
+            /* FIXME */
+            SCLogNotice("Registering 'filemd5' commands to unix socket");
+            UnixManagerRegisterCommand("filemd5-list", DetectFileMd5CommandList, 0, 0);
+            UnixManagerRegisterCommand("filemd5-reload", DetectFileMd5CommandReload, NULL, UNIX_CMD_TAKE_ARGS);
 #endif
         }
         /* Spawn the flow manager thread */

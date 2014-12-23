@@ -41,9 +41,12 @@
 #include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-print.h"
+#include "util-atomic.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+
+#include "unix-manager.h"
 
 #include "app-layer.h"
 
@@ -53,6 +56,8 @@
 
 #include "queue.h"
 #include "util-rohash.h"
+
+#include <urcu.h>
 
 #ifndef HAVE_NSS
 
@@ -75,7 +80,7 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
     sigmatch_table[DETECT_FILEMD5].flags = SIGMATCH_NOT_BUILT;
 
-	SCLogDebug("registering filemd5 rule option");
+    SCLogDebug("registering filemd5 rule option");
     return;
 }
 
@@ -85,7 +90,210 @@ static int DetectFileMd5Match (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, Signature *, SigMatch *);
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, char *);
 static void DetectFileMd5RegisterTests(void);
-static void DetectFileMd5Free(void *);
+static void DetectFileMd5DataFree(void *);
+static int MD5LoadHash(ROHashTable *hash, char *string, char *filename, int line_no);
+
+static TAILQ_HEAD(, DetectFileMd5_) md5_files =
+            TAILQ_HEAD_INITIALIZER(md5_files);
+
+static DetectFileMd5 *DetectFileMd5InList(const char * str)
+{
+    DetectFileMd5 *elt;
+
+    TAILQ_FOREACH(elt, &md5_files, next) {
+        if (!strcmp(elt->filename, str)) {
+            SC_ATOMIC_ADD(elt->ref, 1);
+            return elt;
+        }
+    }
+    return NULL;
+}
+
+static int BuildMd5File(DetectFileMd5 *filemd5)
+{
+    ROHashTable* fhash = NULL;
+    ROHashTable* old = NULL;
+    FILE *fp = NULL;
+    char *filename = NULL;
+
+    if (filemd5 == NULL) {
+        goto error;
+    }
+
+    fhash = ROHashInit(18, 16);
+    if (fhash == NULL) {
+        goto error;
+    }
+
+    /* get full filename */
+    filename = DetectLoadCompleteSigPath(filemd5->filename);
+    if (filename == NULL) {
+        goto error;
+    }
+
+    char line[8192] = "";
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening md5 file %s: %s", filename, strerror(errno));
+        goto error;
+    }
+
+    int line_no = 0;
+    while(fgets(line, (int)sizeof(line), fp) != NULL) {
+        size_t len = strlen(line);
+        line_no++;
+
+        /* ignore comments and empty lines */
+        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+            continue;
+
+        while (isspace(line[--len]));
+
+        /* Check if we have a trailing newline, and remove it */
+        len = strlen(line);
+        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
+            line[len - 1] = '\0';
+        }
+
+        /* cut off longer lines */
+        if (strlen(line) > 32)
+            line[32] = 0x00;
+
+        if (MD5LoadHash(fhash, line, filename, line_no) != 1) {
+            goto error;
+        }
+    }
+
+    fclose(fp);
+    fp = NULL;
+
+    if (ROHashInitFinalize(fhash) != 1) {
+        goto error;
+    }
+    /* FIXME add ROhash helper */
+    SCLogInfo("MD5 hash size %u bytes (items: %u)", ROHashMemorySize(fhash), fhash->items);
+
+    old = filemd5->hash;
+
+    rcu_assign_pointer(filemd5->hash, fhash);
+
+    if (old) {
+        /* Wait for readers of old hash */
+        synchronize_rcu();
+        ROHashFree(old);
+    }
+
+    SCFree(filename);
+    return 1;
+
+error:
+    if (fp)
+        fclose(fp);
+    if (fhash)
+        ROHashFree(old);
+    if (filename)
+        SCFree(filename);
+    return -1;
+}
+
+static DetectFileMd5* AddDetectFileMd5(char *str)
+{
+    DetectFileMd5 *file = NULL;
+
+    if (str == NULL)
+        return NULL;
+
+    file = SCMalloc(sizeof(DetectFileMd5));
+    if (file == NULL)
+        goto error;
+
+    file->hash = NULL;
+    file->filename = SCStrdup(str);
+    SC_ATOMIC_INIT(file->ref);
+    SC_ATOMIC_SET(file->ref, 1);
+
+    if (file->filename == NULL)
+        goto error;
+
+    if (BuildMd5File(file) != 1) {
+        goto error;
+    }
+
+    TAILQ_INSERT_TAIL(&md5_files, file, next);
+
+    return file;
+
+error:
+    if (file) {
+        if (file->filename) {
+            SCFree(file->filename);
+        }
+        SCFree(file);
+    }
+    return NULL;
+}
+
+TmEcode DetectFileMd5CommandList(json_t *cmd, json_t* answer, void *data)
+{
+    int i = 0;
+    DetectFileMd5 *file;
+    json_t *jdata;
+    json_t *jarray;
+
+    jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    jarray = json_array();
+    if (jarray == NULL) {
+        json_decref(jdata);
+        json_object_set_new(answer, "message",
+                            json_string("internal error at json object creation"));
+        return TM_ECODE_FAILED;
+    }
+    TAILQ_FOREACH(file, &md5_files, next) {
+        json_array_append_new(jarray, json_string(file->filename));
+        i++;
+    }
+    json_object_set_new(jdata, "count", json_integer(i));
+    json_object_set_new(jdata, "files", jarray);
+    json_object_set_new(answer, "message", jdata);
+    return TM_ECODE_OK;
+}
+
+TmEcode DetectFileMd5CommandReload(json_t *cmd, json_t* answer, void *data)
+{
+    DetectFileMd5 *file;
+    const char *filename;
+    json_t *jarg = json_object_get(cmd, "filename");
+
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+
+    filename = json_string_value(jarg);
+
+    file = DetectFileMd5InList(filename);
+
+    if (file == NULL) {
+        json_object_set_new(answer, "message", json_string("md5 file not known by Suricata"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (BuildMd5File(file) != 1) {
+        json_object_set_new(answer, "message", json_string("unable to reload MD5 file"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogInfo("Reloaded MD5 file: '%s' ", filename);
+    json_object_set_new(answer, "message", json_string("Reload succesful"));
+    return TM_ECODE_OK;
+}
+
 
 /**
  * \brief Registration function for keyword: filemd5
@@ -98,10 +306,10 @@ void DetectFileMd5Register(void)
     sigmatch_table[DETECT_FILEMD5].FileMatch = DetectFileMd5Match;
     sigmatch_table[DETECT_FILEMD5].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5Setup;
-    sigmatch_table[DETECT_FILEMD5].Free  = DetectFileMd5Free;
+    sigmatch_table[DETECT_FILEMD5].Free  = DetectFileMd5DataFree;
     sigmatch_table[DETECT_FILEMD5].RegisterTests = DetectFileMd5RegisterTests;
 
-	SCLogDebug("registering filemd5 rule option");
+    SCLogDebug("registering filemd5 rule option");
     return;
 }
 
@@ -173,6 +381,7 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
     int ret = 0;
     DetectFileMd5Data *filemd5 = (DetectFileMd5Data *)m->ctx;
+    ROHashTable *lhash = NULL;
 
     if (file->txid < det_ctx->tx_id) {
         SCReturnInt(0);
@@ -187,7 +396,13 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     if (file->flags & FILE_MD5) {
-        if (MD5MatchLookupBuffer(filemd5->hash, file->md5, sizeof(file->md5)) == 1) {
+        rcu_read_lock();
+        lhash = rcu_dereference(filemd5->file->hash);
+        if (lhash == NULL) {
+            rcu_read_lock();
+            SCReturnInt(0);
+        }
+        if (MD5MatchLookupBuffer(lhash, file->md5, sizeof(file->md5)) == 1) {
             if (filemd5->negated == 0)
                 ret = 1;
             else
@@ -198,10 +413,12 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             else
                 ret = 1;
         }
+        rcu_read_unlock();
     }
 
     SCReturnInt(ret);
 }
+
 
 /**
  * \brief Parse the filemd5 keyword
@@ -211,11 +428,9 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval filemd5 pointer to DetectFileMd5Data on success
  * \retval NULL on failure
  */
-static DetectFileMd5Data *DetectFileMd5Parse (char *str)
+static DetectFileMd5Data *DetectFileMd5Parse(char *str)
 {
     DetectFileMd5Data *filemd5 = NULL;
-    FILE *fp = NULL;
-    char *filename = NULL;
 
     /* We have a correct filemd5 option */
     filemd5 = SCMalloc(sizeof(DetectFileMd5Data));
@@ -229,67 +444,21 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
         str++;
     }
 
-    filemd5->hash = ROHashInit(18, 16);
-    if (filemd5->hash == NULL) {
+    /* Check if we find str in the list of already build hash */
+    filemd5->file = DetectFileMd5InList(str);
+    if (filemd5->file)
+        return filemd5;
+
+    /* Build and add it if needed */
+    filemd5->file = AddDetectFileMd5(str);
+    if (filemd5->file == NULL)
         goto error;
-    }
 
-    /* get full filename */
-    filename = DetectLoadCompleteSigPath(str);
-    if (filename == NULL) {
-        goto error;
-    }
-
-    char line[8192] = "";
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening md5 file %s: %s", filename, strerror(errno));
-        goto error;
-    }
-
-    int line_no = 0;
-    while(fgets(line, (int)sizeof(line), fp) != NULL) {
-        size_t len = strlen(line);
-        line_no++;
-
-        /* ignore comments and empty lines */
-        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
-            continue;
-
-        while (isspace(line[--len]));
-
-        /* Check if we have a trailing newline, and remove it */
-        len = strlen(line);
-        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
-            line[len - 1] = '\0';
-        }
-
-        /* cut off longer lines */
-        if (strlen(line) > 32)
-            line[32] = 0x00;
-
-        if (MD5LoadHash(filemd5->hash, line, filename, line_no) != 1) {
-            goto error;
-        }
-    }
-    fclose(fp);
-    fp = NULL;
-
-    if (ROHashInitFinalize(filemd5->hash) != 1) {
-        goto error;
-    }
-    SCLogInfo("MD5 hash size %u bytes%s", ROHashMemorySize(filemd5->hash), filemd5->negated ? ", negated match" : "");
-
-    SCFree(filename);
     return filemd5;
 
 error:
     if (filemd5 != NULL)
-        DetectFileMd5Free(filemd5);
-    if (fp != NULL)
-        fclose(fp);
-    if (filename != NULL)
-        SCFree(filename);
+        DetectFileMd5DataFree(filemd5);
     return NULL;
 }
 
@@ -338,10 +507,30 @@ static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
 error:
     if (filemd5 != NULL)
-        DetectFileMd5Free(filemd5);
+        DetectFileMd5DataFree(filemd5);
     if (sm != NULL)
         SCFree(sm);
     return -1;
+}
+
+static void DetectFileMd5Free(DetectFileMd5 *file)
+{
+    ROHashTable *hash;
+    if (file == NULL)
+        return;
+
+    SC_ATOMIC_SUB(file->ref, 1);
+    if (SC_ATOMIC_GET(file->ref) == 0) {
+        if (file->hash) {
+            hash = file->hash;
+            /* This may be not needed but be cautious */
+            rcu_assign_pointer(file->hash, NULL);
+            synchronize_rcu();
+            ROHashFree(hash);
+        }
+        if (file->filename)
+            SCFree(file->filename);
+    }
 }
 
 /**
@@ -349,12 +538,12 @@ error:
  *
  * \param filemd5 pointer to DetectFileMd5Data
  */
-static void DetectFileMd5Free(void *ptr)
+static void DetectFileMd5DataFree(void *ptr)
 {
     if (ptr != NULL) {
         DetectFileMd5Data *filemd5 = (DetectFileMd5Data *)ptr;
-        if (filemd5->hash != NULL)
-            ROHashFree(filemd5->hash);
+        if (filemd5->file != NULL)
+            DetectFileMd5Free(filemd5->file);
         SCFree(filemd5);
     }
 }

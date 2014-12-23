@@ -26,12 +26,21 @@
 
 #include "util-rohash.h"
 
-typedef struct DetectFileMd5Data {
+typedef struct DetectFileMd5_ {
     ROHashTable *hash;
+    char *filename;
+    SC_ATOMIC_DECLARE(int, ref);
+    TAILQ_ENTRY(DetectFileMd5_) next;
+} DetectFileMd5;
+
+typedef struct DetectFileMd5Data_ {
     int negated;
+    DetectFileMd5 *file;
 } DetectFileMd5Data;
 
 /* prototypes */
 void DetectFileMd5Register (void);
+TmEcode DetectFileMd5CommandList(json_t *cmd, json_t* answer, void *data);
+TmEcode DetectFileMd5CommandReload(json_t *cmd, json_t* answer, void *data);
 
 #endif /* __DETECT_FILEMD5_H__ */
