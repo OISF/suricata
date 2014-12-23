@@ -158,14 +158,18 @@ void LogFileLogPrintJsonObj(FILE *fp, json_t *js)
                                JSON_PRESERVE_ORDER|
                                JSON_COMPACT|
                                JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLAH
+#ifdef JSON_ESCAPE_SLASH
                                JSON_ESCAPE_SLASH
 #else
                                0
 #endif
                                );
-    if (js_data != NULL)
+    if (js_data != NULL) {
         fprintf(fp, "%s", js_data);
+    } else {
+        SCLogError(SC_ERR_EMPTY_METADATA_JSON,
+                   "Could not print file metadata (empty json structure)");
+    }
 }
 
 int LogFileLogTransactionMeta(const Packet *p, const File *ff,
