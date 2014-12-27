@@ -28,6 +28,8 @@
 
 #define PFRING_IFACE_NAME_LENGTH 48
 
+#define PFRING_RING_PROTECT (1<<0)
+
 #define PFRING_COPY_MODE_NONE   0
 #define PFRING_COPY_MODE_TAP    1
 #define PFRING_COPY_MODE_IPS    2
@@ -64,6 +66,7 @@ typedef struct PfringPeer_ {
 #ifdef HAVE_PFRING
     pfring *pd;
 #endif
+    SCMutex ring_protect;
     int flags;
     int turn;
     struct PfringPeer_ *peer;
