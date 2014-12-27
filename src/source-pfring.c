@@ -138,6 +138,7 @@ typedef struct PfringThreadVars_
     uint64_t bytes;
     uint64_t pkts;
 
+    int flags;
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
 
@@ -206,6 +207,9 @@ void TmModuleDecodePfringRegister (void)
 
 void PfringPeerClean(PfringPeer *peer)
 {
+    if (peer->flags & PFRING_RING_PROTECT)
+        SCMutexDestroy(&peer->ring_protect);
+
     SCFree(peer);
 }
 
@@ -252,6 +256,9 @@ TmEcode PfringPeersListAdd(PfringThreadVars *ptv)
     if (unlikely(peer == NULL))
         return TM_ECODE_FAILED;
     memset(peer, 0, sizeof(PfringPeer));
+
+    if (peer->flags & PFRING_RING_PROTECT)
+        SCMutexInit(&peer->ring_protect, NULL);
 
     strlcpy(peer->iface, ptv->interface, PFRING_IFACE_NAME_LENGTH);
     peer->turn = peerslist.turn++;
@@ -350,11 +357,20 @@ TmEcode PfringWritePacket(Packet *p)
         }
     }
 
+    if (p->pfring_v.peer->flags & PFRING_RING_PROTECT)
+        SCMutexLock(&p->pfring_v.peer->ring_protect);
+
     r = pfring_send(p->pfring_v.peer->pd, (char *)pkt_buffer, buffer_size, p->pfring_v.copy_mode);
     if (r < 0) {
         SCLogWarning(SC_ERR_SOCKET, "Sending packet failed");
+        if (p->pfring_v.peer->flags & PFRING_RING_PROTECT)
+            SCMutexLock(&p->pfring_v.peer->ring_protect);
+
         return TM_ECODE_FAILED;
     }
+
+    if (p->pfring_v.peer->flags & PFRING_RING_PROTECT)
+        SCMutexUnlock(&p->pfring_v.peer->ring_protect);
 
     return TM_ECODE_OK;
 }
@@ -694,6 +710,11 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
             ptv->tv,
             SC_PERF_TYPE_UINT64,
             "NULL");
+
+    char *active_runmode = RunmodeGetActive();
+
+    if (active_runmode && strcmp("workers", active_runmode) != 0)
+        ptv->flags |= PFRING_RING_PROTECT;
 
     /* A bit strange to have this here but we only have vlan information
      * during reading so we need to know if we want to keep vlan during
