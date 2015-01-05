@@ -1254,20 +1254,13 @@ static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
 
 }
 
-/** \todo slow */
+/** \retval cnt highest tx id */
 static uint64_t SMTPStateGetTxCnt(void *state)
 {
     uint64_t cnt = 0;
     SMTPState *smtp_state = state;
     if (smtp_state) {
-        SMTPTransaction *tx = NULL;
-
-        if (smtp_state->curr_tx == NULL)
-            return 0ULL;
-
-        TAILQ_FOREACH(tx, &smtp_state->tx_list, next) {
-            cnt++;
-        }
+        cnt = smtp_state->tx_cnt;
     }
     SCLogDebug("returning %"PRIu64, cnt);
     return cnt;
