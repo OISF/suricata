@@ -65,8 +65,8 @@
 
 typedef struct DetectContentData_ {
     uint8_t *content;
-    uint8_t content_len;
-    uint8_t replace_len;
+    uint16_t content_len;
+    uint16_t replace_len;
     /* for chopped fast pattern, the length */
     uint16_t fp_chop_len;
     /* would want to move PatIntId here and flags down to remove the padding
