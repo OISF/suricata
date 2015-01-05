@@ -223,7 +223,7 @@ void PacketPoolReturnPacket(Packet *p)
 
     PktPool *pool = p->pool;
     if (pool == NULL) {
-        free(p);
+        PacketFree(p);
         return;
     }
 
