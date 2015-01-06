@@ -279,13 +279,16 @@ SCProfilingDestroy(void)
     if (profiling_packets_csv_enabled) {
         if (packet_profile_csv_fp != NULL)
             fclose(packet_profile_csv_fp);
+        packet_profile_csv_fp = NULL;
     }
 
     if (profiling_csv_file_name != NULL)
         SCFree(profiling_csv_file_name);
+    profiling_csv_file_name = NULL;
 
     if (profiling_file_name != NULL)
         SCFree(profiling_file_name);
+    profiling_file_name = NULL;
 
 #ifdef PROFILE_LOCKING
     LockRecordFreeHash();

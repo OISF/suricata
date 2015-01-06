@@ -43,6 +43,8 @@
 #include "host.h"
 #include "defrag.h"
 
+#include "util-profiling.h"
+
 static const char *default_mode = NULL;
 
 int unix_socket_mode_is_running = 0;
@@ -312,6 +314,11 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         StreamTcpFreeConfig(STREAM_VERBOSE);
         DefragDestroy();
         TmqResetQueues();
+#ifdef PROFILING
+        if (profiling_rules_enabled)
+            SCProfilingDump();
+        SCProfilingDestroy();
+#endif
     }
     if (!TAILQ_EMPTY(&this->files)) {
         PcapFiles *cfile = TAILQ_FIRST(&this->files);
@@ -337,6 +344,11 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             return TM_ECODE_FAILED;
         }
         PcapFilesFree(cfile);
+#ifdef PROFILING
+        SCProfilingRulesGlobalInit();
+        SCProfilingKeywordsGlobalInit();
+        SCProfilingInit();
+#endif /* PROFILING */
         DefragInit();
         FlowInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);

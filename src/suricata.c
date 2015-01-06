@@ -2070,9 +2070,11 @@ static int PostConfLoadedSetup(SCInstance *suri)
     CIDRInit();
     SigParsePrepare();
 #ifdef PROFILING
-    SCProfilingRulesGlobalInit();
-    SCProfilingKeywordsGlobalInit();
-    SCProfilingInit();
+    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+        SCProfilingRulesGlobalInit();
+        SCProfilingKeywordsGlobalInit();
+        SCProfilingInit();
+    }
 #endif /* PROFILING */
     SCReputationInitCtx();
     SCProtoNameInit();
@@ -2483,9 +2485,11 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef PROFILING
-    if (profiling_rules_enabled)
-        SCProfilingDump();
-    SCProfilingDestroy();
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        if (profiling_rules_enabled)
+            SCProfilingDump();
+        SCProfilingDestroy();
+    }
 #endif
 
 #ifdef OS_WIN32
