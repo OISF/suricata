@@ -254,6 +254,9 @@ void PacketPoolReturnPacket(Packet *p)
                 SCMutexUnlock(&pool->return_stack.mutex);
                 /* Clear the list of pending packets to return. */
                 my_pool->pending_pool = NULL;
+                my_pool->pending_head = NULL;
+                my_pool->pending_tail = NULL;
+                my_pool->pending_count = 0;
             }
         } else {
             /* Push onto return stack for this pool */
@@ -297,7 +300,7 @@ void PacketPoolDestroy(void)
 {
     Packet *p = NULL;
     PktPool *my_pool = GetThreadPacketPool();
-    if (my_pool && my_pool->pending_head != NULL) {
+    if (my_pool && my_pool->pending_pool != NULL) {
         p = my_pool->pending_head;
         while (p) {
             Packet *next_p = p->next;
