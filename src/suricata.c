@@ -641,6 +641,7 @@ void SCPrintBuildInfo(void)
     char *bits = "<unknown>-bits";
     char *endian = "<unknown>-endian";
     char features[2048] = "";
+    char *tls = "pthread key";
 
 #ifdef REVISION
     printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
@@ -717,6 +718,9 @@ void SCPrintBuildInfo(void)
 #endif
 #ifdef PROFILE_LOCKING
     strlcat(features, "PROFILE_LOCKING ", sizeof(features));
+#endif
+#ifdef TLS
+    strlcat(features, "TLS ", sizeof(features));
 #endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
@@ -798,10 +802,14 @@ void SCPrintBuildInfo(void)
 #ifdef CLS
     printf("L1 cache line size (CLS)=%d\n", CLS);
 #endif
+#ifdef TLS
+    tls = "__thread";
+#endif
+    printf("thread local storage method: %s\n", tls);
 
     printf("compiled with %s, linked against %s\n",
            HTP_VERSION_STRING_FULL, htp_get_version());
-
+    printf("\n");
 #include "build-info.h"
 }
 
