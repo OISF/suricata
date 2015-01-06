@@ -26,19 +26,30 @@
 
 #include "util-buffer.h"
 
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+#endif
+
 #define META_FORMAT_REGULAR 0
 #define META_FORMAT_JSON 1
 #define META_BUFFER_SIZE 2048
 #define META_MD5_BUFFER 512
 
-void LogFileMetaGetSmtpMessageID(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
-void LogFileMetaGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
-void LogFileMetaGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
-void LogFileMetaGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
-void LogFileMetaGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
-void LogFileMetaGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetSmtpMessageID(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetSmtpSender(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetUri(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetHost(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetReferer(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
+void LogFileMetadataGetUserAgent(const Packet *p, const File *ff, MemBuffer *buffer, uint32_t fflag);
 
 #ifdef HAVE_LIBJANSSON
+typedef struct LogFileJSON_ {
+    json_t *main;
+    json_t *meta;
+} LogFileJSON;
+
+void LogFileClearJSON(LogFileJSON *json_data);
+void LogFileCreateJSON(const Packet *p, const char *name, json_t *main, json_t *metadata);
 void LogFileLogPrintJsonObj(FILE *fp, json_t *js);
 int LogFileLogTransactionMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);
 int LogFileLogFileMeta(const Packet *p, const File *ff, json_t *js, MemBuffer *buffer);

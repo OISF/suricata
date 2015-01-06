@@ -81,6 +81,9 @@ typedef struct LogFilestoreLogThread_ {
     /** LogFilestoreCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
     MemBuffer *meta_buffer;
+#ifdef HAVE_LIBJANSSON
+    LogFileJSON *json_data;
+#endif
 } LogFilestoreLogThread;
 
 static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff,
@@ -127,28 +130,28 @@ static void LogFilestoreLogCreateMetaFileRegular(const Packet *p, const File *ff
 
         /* Only applicable to HTTP traffic */
         if (p->flow->alproto == ALPROTO_HTTP) {
-            LogFileMetaGetUri(p, ff, buffer, fflag);
+            LogFileMetadataGetUri(p, ff, buffer, fflag);
             fprintf(fp, "HTTP URI:          %s\n", buffer->buffer); 
             MemBufferReset(buffer);
 
-            LogFileMetaGetHost(p, ff, buffer, fflag);
+            LogFileMetadataGetHost(p, ff, buffer, fflag);
             fprintf(fp, "HTTP HOST:         %s\n", buffer->buffer);
             MemBufferReset(buffer);
 
-            LogFileMetaGetReferer(p, ff, buffer, fflag);
+            LogFileMetadataGetReferer(p, ff, buffer, fflag);
             fprintf(fp, "HTTP REFERER:      %s\n", buffer->buffer);
             MemBufferReset(buffer);
 
-            LogFileMetaGetUserAgent(p, ff, buffer, fflag);
+            LogFileMetadataGetUserAgent(p, ff, buffer, fflag);
             fprintf(fp, "HTTP USER AGENT:   %s\n", buffer->buffer);
             MemBufferReset(buffer);
         } else if (p->flow->alproto == ALPROTO_SMTP) {
             /* Only applicable to SMTP */
-            LogFileMetaGetSmtpMessageID(p, ff, buffer, fflag);
+            LogFileMetadataGetSmtpMessageID(p, ff, buffer, fflag);
             fprintf(fp, "MESSAGE-ID:        %s\n", buffer->buffer);
             MemBufferReset(buffer);
 
-            LogFileMetaGetSmtpSender(p, ff, buffer, fflag);
+            LogFileMetadataGetSmtpSender(p, ff, buffer, fflag);
             fprintf(fp, "SENDER:            %s\n", buffer->buffer);
         }
      
@@ -228,34 +231,20 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
 
-#ifdef HAVE_LIBJANSSON
-    /* Only create the json structure of json format is set in config */
-    json_t *js;
-    json_t *filemeta_json;
-    if (flog->flags & META_FORMAT_JSON) {
-        js = CreateJSONHeader((Packet *)p, 1, "file-store");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
-    
-        filemeta_json = json_object();
-        if (unlikely(filemeta_json == NULL))
-            json_decref(js);
-            return TM_ECODE_OK;
-    }
-#endif
-
     if (flags & OUTPUT_FILEDATA_FLAG_OPEN) {
         aft->file_cnt++;
 
-#ifdef HAVE_LIBJANSSON
+        /* Cannot have meta format JSON set without libjansson at build */
         if (flog->flags & META_FORMAT_JSON) {
-            LogFileLogTransactionMeta(p, ff, filemeta_json, aft->meta_buffer);
+#ifdef HAVE_LIBJANSSON
+            LogFileCreateJSON(p, "file-store", aft->json_data->main, aft->json_data->meta);
+            if (unlikely(aft->json_data->main == NULL))
+                return TM_ECODE_OK;
+            LogFileLogTransactionMeta(p, ff, aft->json_data->meta, aft->meta_buffer);
+#endif
         } else {
             LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->meta_buffer);
         }
-#else
-        LogFilestoreLogCreateMetaFileRegular(p, ff, filename, ipver, flog->flags, aft->meta_buffer);
-#endif
 
         file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
         if (file_fd == -1) {
@@ -279,34 +268,30 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         close(file_fd);
     }
 
-#ifdef HAVE_LIBJANSSON
     if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+
+        /* Flag cannot be set to JSON format without libjansson enabled at build */
         if (flog->flags & META_FORMAT_JSON) {
-            LogFileLogFileMeta(p, ff, filemeta_json, aft->meta_buffer);
+#ifdef HAVE_LIBJANSSON
+            LogFileLogFileMeta(p, ff, aft->json_data->meta, aft->meta_buffer); 
+            json_object_set_new(aft->json_data->main, "file-store", aft->json_data->meta);
+            
+            char metafilename[PATH_MAX] = "";
+            snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+            FILE *fp = fopen(metafilename, "w");
+            if (fp != NULL) {
+                LogFileLogPrintJsonObj(fp, aft->json_data->main);
+            } else {
+                SCLogError(SC_ERR_NO_JSON_SUPPORT,"Opening %s failed: %s", metafilename, strerror(errno));
+            }
+            fclose(fp);
+            LogFileClearJSON(aft->json_data);
+#endif
         } else {
             LogFilestoreLogCloseMetaFileRegular(ff);
         }
     }
-
-    if (flog->flags & META_FORMAT_JSON) {
-        json_object_set_new(js, "file-store", filemeta_json);
-        
-        char metafilename[PATH_MAX] = "";
-        snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-        FILE *fp = fopen(metafilename, "w");
-        if (fp != NULL) {
-            LogFileLogPrintJsonObj(fp, js);
-        } else {
-            SCLogError(SC_ERR_NO_JSON_SUPPORT,"Opening %s failed: %s", metafilename, strerror(errno));
-        }
-        fclose(fp);
-    }
-#else
-    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-        LogFilestoreLogCloseMetaFileRegular(ff);        
-    }
-#endif
-    return 0;
+    return TM_ECODE_OK;
 }
 
 static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **data)

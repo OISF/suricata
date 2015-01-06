@@ -125,26 +125,21 @@ static int LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const 
 
     FILE *fp = aft->file_ctx->fp;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "file-log");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-    
-    json_t *file_json = json_object();
-    if (unlikely(file_json == NULL))
-        json_decref(js);
-        return TM_ECODE_OK;
+    LogFileCreateJSON(p, "file-log", aft->json_data->main, aft->json_data->meta);
 
-    LogFileLogTransactionMeta(p, ff, file_json, aft->json_buffer);
-    LogFileLogFileMeta(p, ff, file_json, aft->json_buffer);
-    json_object_set_new(js, "file-log", file_json);
+    if (unlikely(aft->json_data->main == NULL) || unlikely(aft->json_data->meta)) {
+        return TM_ECODE_OK;
+    }
 
-    LogFileLogPrintJsonObj(fp, js);
+    LogFileLogTransactionMeta(p, ff, aft->json_data->meta, aft->json_buffer);
+    LogFileLogFileMeta(p, ff, aft->json_data->meta, aft->json_buffer);
+    json_object_set_new(aft->json_data->main, "file-log", aft->json_data->meta);
+
+    LogFileLogPrintJsonObj(fp, aft->json_data->main);
 
     fflush(fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
-
-    json_object_clear(js);
-    json_decref(js);
+    LogFileClearJSON(aft->json_data);
 
     return TM_ECODE_OK;
 }

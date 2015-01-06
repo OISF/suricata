@@ -25,12 +25,16 @@
 #define __LOG_FILELOG_H__
 
 #include "util-logopenfile.h"
+#include "log-file-common.h"
 
 typedef struct LogFileLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
     MemBuffer *json_buffer;
+#ifdef HAVE_LIBJANSSON
+    LogFileJSON *json_data;
+#endif
 } LogFileLogThread;
 
 void TmModuleLogFileLogRegister (void);
