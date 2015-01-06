@@ -66,7 +66,7 @@ static int pkt_pool_thread_key_initialized = 0;
 
 static void PktPoolThreadDestroy(void * buf)
 {
-    free(buf);
+    SCFreeAligned(buf);
 }
 
 static void TmqhPacketPoolInit(void)
@@ -101,6 +101,8 @@ static PktPool *ThreadPacketPoolCreate(void)
         SCLogError(SC_ERR_MEM_ALLOC, "malloc failed");
         exit(EXIT_FAILURE);
     }
+    memset(pool,0x0,sizeof(*pool));
+
     int r = pthread_setspecific(pkt_pool_thread_key, pool);
     if (r != 0) {
         SCLogError(SC_ERR_MEM_ALLOC, "pthread_setspecific failed with %d", r);
