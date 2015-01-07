@@ -24,7 +24,15 @@
 #ifndef __SOURCE_PFRING_H__
 #define __SOURCE_PFRING_H__
 
+#define HAVE_RW_LOCK
+
 #define PFRING_IFACE_NAME_LENGTH 48
+
+#define PFRING_RING_PROTECT (1<<0)
+
+#define PFRING_COPY_MODE_NONE   0
+#define PFRING_COPY_MODE_TAP    1
+#define PFRING_COPY_MODE_IPS    2
 
 #include <config.h>
 #ifdef HAVE_PFRING
@@ -44,15 +52,40 @@ typedef struct PfringIfaceConfig_
 
     char *bpf_filter;
 
+    int copy_mode;
+    char *out_interface;
+    int flush_packet;
+
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
 
+typedef struct PfringPeer_ {
+    char iface[PFRING_IFACE_NAME_LENGTH];
+#ifdef HAVE_PFRING
+    pfring *pd;
+#endif
+    SCMutex ring_protect;
+    int flags;
+    int turn;
+    struct PfringPeer_ *peer;
+    TAILQ_ENTRY(PfringPeer_) next;
+} PfringPeer;
 
+typedef struct PfringPacketVars_
+{
+    int copy_mode;
+    PfringPeer *peer;
+    PfringPeer *mpeer;
+} PfringPacketVars;
 
 void TmModuleReceivePfringRegister (void);
 void TmModuleDecodePfringRegister (void);
+
+TmEcode PfringPeersListInit();
+TmEcode PfringPeersListCheck();
+void PfringPeersListClean();
 
 int PfringConfGetThreads(void);
 void PfringLoadConfig(void);
