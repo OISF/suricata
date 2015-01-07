@@ -73,7 +73,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRItemNew()
 
     item = SCMalloc(sizeof(IPOnlyCIDRItem));
     if (unlikely(item == NULL))
-        SCReturnPtr(NULL, "NULL");
+        SCReturnPtr(NULL, "IPOnlyCIDRItem");
     memset(item, 0, sizeof(IPOnlyCIDRItem));
 
     SCReturnPtr(item, "IPOnlyCIDRItem");
