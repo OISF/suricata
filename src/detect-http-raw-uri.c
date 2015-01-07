@@ -304,9 +304,9 @@ int DetectHttpRawUriTest12(void)
     }
 
     DetectContentData *ud1 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
     DetectContentData *ud2 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -351,9 +351,9 @@ int DetectHttpRawUriTest13(void)
     }
 
     DetectContentData *ud1 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
     DetectContentData *ud2 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||
@@ -470,9 +470,9 @@ int DetectHttpRawUriTest17(void)
     }
 
     DetectContentData *ud1 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
+      (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
     DetectContentData *ud2 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
+      (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_DISTANCE ||
@@ -518,9 +518,9 @@ int DetectHttpRawUriTest18(void)
     }
 
     DetectContentData *ud1 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->prev->ctx;
     DetectContentData *ud2 =
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
+        (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]->ctx;
     if (ud1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
         memcmp(ud1->content, "one", ud1->content_len) != 0 ||
         ud2->flags != DETECT_CONTENT_WITHIN ||

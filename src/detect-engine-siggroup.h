@@ -84,11 +84,11 @@ void SigGroupHeadRegisterTests(void);
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
-
-int SigGroupHeadBuildHeadArray(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
+
+int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */

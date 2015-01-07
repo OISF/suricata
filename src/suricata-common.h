@@ -282,6 +282,10 @@
 #define pcre_free_study pcre_free
 #endif
 
+#ifndef MIN
+#define MIN(x, y) (((x)<(y))?(x):(y))
+#endif
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_MPM,
     PROF_DETECT_MPM_PACKET,         /* PKT MPM */
@@ -305,6 +309,7 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_RULES,
     PROF_DETECT_STATEFUL,
     PROF_DETECT_PREFILTER,
+    PROF_DETECT_NONMPMLIST,
     PROF_DETECT_ALERT,
     PROF_DETECT_CLEANUP,
     PROF_DETECT_GETSGH,

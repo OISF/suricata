@@ -586,7 +586,7 @@ cuda:
     cuda-streams: 2
 
 # Select the multi pattern algorithm you want to run for scan/search the
-# in the engine. The supported algorithms are b2g, b2gc, b2gm, b3g, wumanber,
+# in the engine. The supported algorithms are b2g, b3g, wumanber,
 # ac and ac-gfbs.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
@@ -619,14 +619,6 @@ mpm-algo: ac
 # settings.
 
 pattern-matcher:
-  - b2gc:
-      search-algo: B2gSearchBNDMq
-      hash-size: low
-      bf-size: medium
-  - b2gm:
-      search-algo: B2gSearchBNDMq
-      hash-size: low
-      bf-size: medium
   - b2g:
       search-algo: B2gSearchBNDMq
       hash-size: low

@@ -115,7 +115,7 @@ static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, F
 {
     SCEnter();
 
-    DetectFilesizeData *fsd = m->ctx;
+    DetectFilesizeData *fsd = (DetectFilesizeData *)m->ctx;
     int ret = 0;
     SCLogDebug("file size %"PRIu64", check %"PRIu64, file->size, fsd->size1);
 
@@ -306,7 +306,7 @@ static int DetectFilesizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
         goto error;
 
     sm->type = DETECT_FILESIZE;
-    sm->ctx = (void *)fsd;
+    sm->ctx = (SigMatchCtx *)fsd;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 

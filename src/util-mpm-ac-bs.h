@@ -39,12 +39,20 @@ typedef struct SCACBSPattern_ {
     /* pattern id */
     uint32_t id;
 
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
     struct SCACBSPattern_ *next;
 } SCACBSPattern;
 
 typedef struct SCACBSPatternList_ {
     uint8_t *cs;
     uint16_t patlen;
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
 } SCACBSPatternList;
 
 typedef struct SCACBSOutputTable_ {
