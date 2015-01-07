@@ -135,12 +135,10 @@ void StreamTcpReassembleDecrMemuse(uint64_t size)
     return;
 }
 
-void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rtv)
+uint64_t StreamTcpReassembleMemuseGlobalCounter(void)
 {
     uint64_t smemuse = SC_ATOMIC_GET(ra_memuse);
-    if (tv != NULL && rtv != NULL)
-        SCPerfCounterSetUI64(tv, rtv->counter_tcp_reass_memuse, smemuse);
-    return;
+    return smemuse;
 }
 
 /**
@@ -515,6 +513,9 @@ int StreamTcpReassembleInit(char quiet)
     SCMutexInit(&segment_pool_memuse_mutex, NULL);
     SCMutexInit(&segment_pool_cnt_mutex, NULL);
 #endif
+
+    SCPerfTVRegisterGlobalCounter("tcp.reassembly_memuse",
+            StreamTcpReassembleMemuseGlobalCounter);
     return 0;
 }
 
@@ -3419,7 +3420,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     }
 
-    StreamTcpReassembleMemuseCounter(tv, ra_ctx);
     SCReturnInt(0);
 }
 

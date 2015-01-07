@@ -57,8 +57,6 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_segment_memcap;
     /** number of streams that stop reassembly because their depth is reached */
     uint16_t counter_tcp_stream_depth;
-    /** account memory usage for the reassembly portion of the stream engine */
-    uint16_t counter_tcp_reass_memuse;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
     uint16_t counter_tcp_reass_gap;
     /** account memory usage by suricata to handle HTTP protocol (not counting
