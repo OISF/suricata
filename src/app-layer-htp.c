@@ -38,6 +38,7 @@
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
+#include "counters.h"
 
 #include "util-print.h"
 #include "util-pool.h"
@@ -2545,6 +2546,9 @@ void HTPConfigure(void)
         HTPConfigParseParameters(htprec, s, cfgtree);
         HTPConfigSetDefaultsPhase2(s->name, htprec);
     }
+
+    StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
+    StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
 
     SCReturn;
 }

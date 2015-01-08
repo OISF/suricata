@@ -65,6 +65,7 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
+#include "app-layer-htp-mem.h"
 
 #include "util-host-os-info.h"
 #include "util-privs.h"
@@ -5092,9 +5093,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
     stt->ra_ctx->counter_tcp_stream_depth = StatsRegisterCounter("tcp.stream_depth_reached", tv);
     stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", tv);
-    /** \fixme Find a better place in 2.1 as it is linked with app layer */
-    stt->ra_ctx->counter_htp_memuse = StatsRegisterCounter("http.memuse", tv);
-    stt->ra_ctx->counter_htp_memcap = StatsRegisterCounter("http.memcap", tv);
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);

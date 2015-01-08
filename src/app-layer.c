@@ -435,9 +435,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /** \fixme a bit hacky but will be improved in 2.1 */
-    if (*alproto == ALPROTO_HTTP)
-        HTPMemuseCounter(tv, ra_ctx);
-    else if (*alproto == ALPROTO_DNS)
+    if (*alproto == ALPROTO_DNS)
         DNSUpdateCounters(tv, app_tctx);
     goto end;
  failure:
