@@ -39,6 +39,10 @@
 
 #include "util-profiling.h"
 
+#include "conf-yaml-loader.h"
+
+#include "detect-engine.h"
+
 static const char *default_mode = NULL;
 
 int unix_socket_mode_is_running = 0;
@@ -385,6 +389,146 @@ void UnixSocketPcapFile(TmEcode tm)
     }
 #endif
 }
+
+#ifdef BUILD_UNIX_SOCKET
+/**
+ * \brief Command to add a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    const char *filename;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    /* 1 get tenant id */
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    /* 2 get tenant yaml */
+    jarg = json_object_get(cmd, "filename");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    filename = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("file does not exist"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogDebug("add-tenant: %d %s", tenant_id, filename);
+
+    /* 3 register it in the system */
+
+    /* 3A yaml parsing */
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, ConfYamlLoadFileWithPrefix failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, node == NULL"));
+        return TM_ECODE_FAILED;
+    }
+#if 0
+    ConfDump();
+#endif
+
+    /* 3B setup the de_ctx */
+    DetectEngineCtx *de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("detect engine failed to load"));
+        return TM_ECODE_FAILED;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
+
+    de_ctx->tenant_id = tenant_id;
+
+    SigLoadSignatures(de_ctx, NULL, 0);
+
+    DetectEngineAddToMaster(de_ctx);
+
+    /* 3C for each thread, replace det_ctx */
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to remove a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    /* 1 get tenant id */
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    SCLogInfo("remove-tenant: %d TODO", tenant_id);
+
+    /* 2 remove it from the system */
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+    DetectEngineCtx *de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant detect engine not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(de_ctx);
+    DetectEngineDeReference(&de_ctx);
+
+    /* update the threads */
+    /** TODO */
+
+    /* walk free list, freeing the removed de_ctx */
+    DetectEnginePruneFreeList();
+
+    /* remove config */
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNodeRemove(node); /* frees node */
+    node = NULL;
+#if 0
+    ConfDump();
+#endif
+    json_object_set_new(answer, "message", json_string("work in progress"));
+    return TM_ECODE_OK;
+}
+#endif /* BUILD_UNIX_SOCKET */
 
 /**
  * \brief Single thread version of the Pcap file processing.
