@@ -386,6 +386,96 @@ void UnixSocketPcapFile(TmEcode tm)
 #endif
 }
 
+#ifdef BUILD_UNIX_SOCKET
+/**
+ * \brief Command to add a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+    const char *filename;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    // 2 get tenant yaml
+
+    jarg = json_object_get(cmd, "filename");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    filename = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("file does not exist"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogInfo("add-tenant: %d %s TODO", tenant_id, filename);
+
+    // 3 register it in the system (TODO)
+
+        // A setup the de_ctx
+
+        // B for each thread, replace det_ctx
+
+    json_object_set_new(answer, "message", json_string("not implemented"));
+    return TM_ECODE_FAILED;
+//    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to remove a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    SCLogInfo("remove-tenant: %d TODO", tenant_id);
+
+    // 3 remove it from the system (TODO)
+
+    json_object_set_new(answer, "message", json_string("not implemented"));
+    return TM_ECODE_FAILED;
+//    return TM_ECODE_OK;
+}
+#endif /* BUILD_UNIX_SOCKET */
+
 /**
  * \brief Single thread version of the Pcap file processing.
  */
@@ -410,6 +500,9 @@ int RunModeUnixSocketSingle(void)
     UnixManagerRegisterCommand("pcap-file-number", UnixSocketPcapFilesNumber, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
+
+    UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, pcapcmd, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, pcapcmd, UNIX_CMD_TAKE_ARGS);
 
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
 #endif
