@@ -71,6 +71,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
 
 int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineGetCurrent(void);
+DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id);
 void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
