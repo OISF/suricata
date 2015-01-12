@@ -1640,6 +1640,30 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
     return de_ctx;
 }
 
+DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return NULL;
+    }
+
+    DetectEngineCtx *de_ctx = master->list;
+    while (de_ctx) {
+        if (de_ctx->tenant_id == tenant_id) {
+            de_ctx->ref_cnt++;
+            break;
+        }
+
+        de_ctx = de_ctx->next;
+    }
+
+    SCMutexUnlock(&master->lock);
+    return de_ctx;
+}
+
 void DetectEngineDeReference(DetectEngineCtx **de_ctx)
 {
     BUG_ON((*de_ctx)->ref_cnt == 0);
