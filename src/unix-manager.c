@@ -873,6 +873,9 @@ void *UnixManagerThread(void *td)
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
+    UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
