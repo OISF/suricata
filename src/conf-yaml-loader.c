@@ -448,6 +448,71 @@ ConfYamlLoadString(const char *string, size_t len)
     return ret;
 }
 
+/**
+ * \brief Load configuration from a YAML file, insert in tree at 'prefix'
+ *
+ * This function will load a configuration file and insert it into the
+ * config tree at 'prefix'. This means that if this is called with prefix
+ * "abc" and the file contains a parameter "def", it will be loaded as
+ * "abc.def".
+ *
+ * \param filename Filename of configuration file to load.
+ * \param prefix Name prefix to use.
+ *
+ * \retval 0 on success, -1 on failure.
+ */
+int
+ConfYamlLoadFileWithPrefix(const char *filename, const char *prefix)
+{
+    FILE *infile;
+    yaml_parser_t parser;
+    int ret;
+    ConfNode *root = ConfGetNode(prefix);
+
+    if (yaml_parser_initialize(&parser) != 1) {
+        SCLogError(SC_ERR_FATAL, "failed to initialize yaml parser.");
+        return -1;
+    }
+
+    struct stat stat_buf;
+    if (stat(filename, &stat_buf) == 0) {
+        if (stat_buf.st_mode & S_IFDIR) {
+            SCLogError(SC_ERR_FATAL, "yaml argument is not a file but a directory: %s. "
+                    "Please specify the yaml file in your -c option.", filename);
+            return -1;
+        }
+    }
+
+    infile = fopen(filename, "r");
+    if (infile == NULL) {
+        SCLogError(SC_ERR_FATAL, "failed to open file: %s: %s", filename,
+            strerror(errno));
+        yaml_parser_delete(&parser);
+        return -1;
+    }
+
+    if (conf_dirname == NULL) {
+        ConfYamlSetConfDirname(filename);
+    }
+
+    if (root == NULL) {
+        /* if node at 'prefix' doesn't yet exist, add a place holder */
+        ConfSet(prefix, "<prefix root node>");
+        root = ConfGetNode(prefix);
+        if (root == NULL) {
+            fclose(infile);
+            yaml_parser_delete(&parser);
+            return -1;
+        }
+    }
+    yaml_parser_set_input_file(&parser, infile);
+    ret = ConfYamlParse(&parser, root, 0);
+    yaml_parser_delete(&parser);
+    fclose(infile);
+
+    return ret;
+}
+
 #ifdef UNITTESTS
 
 static int
