@@ -491,9 +491,22 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
 
     // 3 remove it from the system (TODO)
 
-    json_object_set_new(answer, "message", json_string("not implemented"));
-    return TM_ECODE_FAILED;
-//    return TM_ECODE_OK;
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNodeRemove(node); /* frees node */
+    node = NULL;
+#if 0
+    ConfDump();
+#endif
+    json_object_set_new(answer, "message", json_string("work in progress"));
+    return TM_ECODE_OK;
 }
 #endif /* BUILD_UNIX_SOCKET */
 
