@@ -947,6 +947,7 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
 int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint16_t flags)
+
 {
     SCEnter();
 
@@ -995,7 +996,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
     } else {
         ff->state = FILE_STATE_CLOSED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
-
+    }
 #ifdef HAVE_NSS
         if (ff->md5_ctx) {
             unsigned int len = 0;
@@ -1011,7 +1012,6 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
             FileEndSha256(ff);
         }
 #endif
-    }
 
     SCReturnInt(0);
 }

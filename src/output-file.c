@@ -126,10 +126,10 @@ static void OutputFileLogFfc(ThreadVars *tv,
             SCLogDebug("ff %p", ff);
 
             if (file_trunc && ff->state < FILE_STATE_CLOSED)
-                ff->state = FILE_STATE_TRUNCATED;
+                FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
 
             if (file_close && ff->state < FILE_STATE_CLOSED)
-                ff->state = FILE_STATE_TRUNCATED;
+                FileCloseFilePtr(ff, NULL, 0, FILE_TRUNCATED);
 
             SCLogDebug("ff %p state %u", ff, ff->state);
 
