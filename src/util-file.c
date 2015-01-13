@@ -931,6 +931,7 @@ int FileOpenFileWithId(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
 
 int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint16_t flags)
+
 {
     SCEnter();
 
@@ -975,20 +976,20 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
     } else {
         ff->state = FILE_STATE_CLOSED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
+    }
 
-        if (ff->md5_ctx) {
-            SCMd5Finalize(ff->md5_ctx, ff->md5, sizeof(ff->md5));
-            ff->md5_ctx = NULL;
-            ff->flags |= FILE_MD5;
-        }
-        if (ff->sha1_ctx) {
-            SCSha1Finalize(ff->sha1_ctx, ff->sha1, sizeof(ff->sha1));
-            ff->sha1_ctx = NULL;
-            ff->flags |= FILE_SHA1;
-        }
-        if (ff->sha256_ctx) {
-            FileEndSha256(ff);
-        }
+    if (ff->md5_ctx) {
+        SCMd5Finalize(ff->md5_ctx, ff->md5, sizeof(ff->md5));
+        ff->md5_ctx = NULL;
+        ff->flags |= FILE_MD5;
+    }
+    if (ff->sha1_ctx) {
+        SCSha1Finalize(ff->sha1_ctx, ff->sha1, sizeof(ff->sha1));
+        ff->sha1_ctx = NULL;
+        ff->flags |= FILE_SHA1;
+    }
+    if (ff->sha256_ctx) {
+        FileEndSha256(ff);
     }
 
     SCReturnInt(0);

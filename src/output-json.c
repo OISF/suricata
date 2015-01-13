@@ -142,24 +142,6 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             JB_SET_STRING(jb, "state", "CLOSED");
-            if (ff->flags & FILE_MD5) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->md5[x]);
-                }
-                jb_set_string(jb, "md5", str);
-            }
-            if (ff->flags & FILE_SHA1) {
-                size_t x;
-                int i;
-                char str[256];
-                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
-                    i += snprintf(&str[i], 255-i, "%02x", ff->sha1[x]);
-                }
-                jb_set_string(jb, "sha1", str);
-            }
             break;
         case FILE_STATE_TRUNCATED:
             JB_SET_STRING(jb, "state", "TRUNCATED");
@@ -172,6 +154,24 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
             break;
     }
 
+    if (ff->flags & FILE_MD5) {
+        size_t x;
+        int i;
+        char str[256];
+        for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
+            i += snprintf(&str[i], 255 - i, "%02x", ff->md5[x]);
+        }
+        jb_set_string(jb, "md5", str);
+    }
+    if (ff->flags & FILE_SHA1) {
+        size_t x;
+        int i;
+        char str[256];
+        for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
+            i += snprintf(&str[i], 255 - i, "%02x", ff->sha1[x]);
+        }
+        jb_set_string(jb, "sha1", str);
+    }
     if (ff->flags & FILE_SHA256) {
         size_t x;
         int i;
