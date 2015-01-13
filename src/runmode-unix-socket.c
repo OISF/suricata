@@ -39,6 +39,8 @@
 
 #include "util-profiling.h"
 
+#include "conf-yaml-loader.h"
+
 static const char *default_mode = NULL;
 
 int unix_socket_mode_is_running = 0;
@@ -436,13 +438,32 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 
     // 3 register it in the system (TODO)
 
-        // A setup the de_ctx
+        // A yaml parsing
 
-        // B for each thread, replace det_ctx
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
 
-    json_object_set_new(answer, "message", json_string("not implemented"));
-    return TM_ECODE_FAILED;
-//    return TM_ECODE_OK;
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, ConfYamlLoadFileWithPrefix failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, node == NULL"));
+        return TM_ECODE_FAILED;
+    }
+#if 0
+    ConfDump();
+#endif
+
+        // B setup the de_ctx
+
+        // C for each thread, replace det_ctx
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+//    return TM_ECODE_FAILED;
+    return TM_ECODE_OK;
 }
 
 /**
