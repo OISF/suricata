@@ -62,7 +62,7 @@ static ConfNode *root_backup = NULL;
  *   created node for the provided name.  On error, NULL will be returned.
  */
 static ConfNode *
-ConfGetNodeOrCreate(char *name, int final)
+ConfGetNodeOrCreate(const char *name, int final)
 {
     ConfNode *parent = root;
     ConfNode *node = NULL;
@@ -178,7 +178,7 @@ ConfNodeFree(ConfNode *node)
  *    node does not exist.
  */
 ConfNode *
-ConfGetNode(char *name)
+ConfGetNode(const char *name)
 {
     ConfNode *node = root;
     char node_name[NODE_NAME_MAX];
@@ -224,7 +224,7 @@ ConfGetRootNode(void)
  * \retval 1 if the value was set otherwise 0.
  */
 int
-ConfSet(char *name, char *val)
+ConfSet(const char *name, char *val)
 {
     ConfNode *node = ConfGetNodeOrCreate(name, 0);
     if (node == NULL || node->final) {
@@ -254,7 +254,7 @@ ConfSet(char *name, char *val)
  * \retval 1 if the value was set otherwise 0.
  */
 int
-ConfSetFinal(char *name, char *val)
+ConfSetFinal(const char *name, char *val)
 {
     ConfNode *node = ConfGetNodeOrCreate(name, 1);
     if (node == NULL) {
@@ -287,7 +287,7 @@ ConfSetFinal(char *name, char *val)
  *   be returned.
  */
 int
-ConfGet(char *name, char **vptr)
+ConfGet(const char *name, char **vptr)
 {
     ConfNode *node = ConfGetNode(name);
     if (node == NULL) {
@@ -300,7 +300,7 @@ ConfGet(char *name, char **vptr)
     }
 }
 
-int ConfGetChildValue(ConfNode *base, char *name, char **vptr)
+int ConfGetChildValue(const ConfNode *base, const char *name, char **vptr)
 {
     ConfNode *node = ConfNodeLookupChild(base, name);
 
@@ -315,7 +315,7 @@ int ConfGetChildValue(ConfNode *base, char *name, char **vptr)
 }
 
 
-int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, char **vptr)
+int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, char **vptr)
 {
     int ret = ConfGetChildValue(base, name, vptr);
     /* Get 'default' value */
@@ -336,7 +336,7 @@ int ConfGetChildValueWithDefault(ConfNode *base, ConfNode *dflt, char *name, cha
  * converted to an interger, otherwise 0 will be returned.
  */
 int
-ConfGetInt(char *name, intmax_t *val)
+ConfGetInt(const char *name, intmax_t *val)
 {
     char *strval;
     intmax_t tmpint;
@@ -356,7 +356,7 @@ ConfGetInt(char *name, intmax_t *val)
     return 1;
 }
 
-int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val)
+int ConfGetChildValueInt(const ConfNode *base, const char *name, intmax_t *val)
 {
     char *strval;
     intmax_t tmpint;
@@ -376,7 +376,7 @@ int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val)
 
 }
 
-int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, intmax_t *val)
+int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val)
 {
     int ret = ConfGetChildValueInt(base, name, val);
     /* Get 'default' value */
@@ -398,7 +398,7 @@ int ConfGetChildValueIntWithDefault(ConfNode *base, ConfNode *dflt, char *name, 
  * converted to a boolean, otherwise 0 will be returned.
  */
 int
-ConfGetBool(char *name, int *val)
+ConfGetBool(const char *name, int *val)
 {
     char *strval;
 
@@ -411,7 +411,7 @@ ConfGetBool(char *name, int *val)
     return 1;
 }
 
-int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
+int ConfGetChildValueBool(const ConfNode *base, const char *name, int *val)
 {
     char *strval;
 
@@ -424,7 +424,7 @@ int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
     return 1;
 }
 
-int ConfGetChildValueBoolWithDefault(ConfNode *base, ConfNode *dflt, char *name, int *val)
+int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, int *val)
 {
     int ret = ConfGetChildValueBool(base, name, val);
     /* Get 'default' value */
@@ -498,7 +498,7 @@ ConfValIsFalse(const char *val)
  * converted to a double, otherwise 0 will be returned.
  */
 int
-ConfGetDouble(char *name, double *val)
+ConfGetDouble(const char *name, double *val)
 {
     char *strval;
     double tmpdo;
@@ -529,7 +529,7 @@ ConfGetDouble(char *name, double *val)
  * converted to a double, otherwise 0 will be returned.
  */
 int
-ConfGetFloat(char *name, float *val)
+ConfGetFloat(const char *name, float *val)
 {
     char *strval;
     double tmpfl;
@@ -569,7 +569,7 @@ ConfNodeRemove(ConfNode *node)
  *   most likely indicating the parameter was not set.
  */
 int
-ConfRemove(char *name)
+ConfRemove(const char *name)
 {
     ConfNode *node;
 
@@ -641,7 +641,7 @@ ConfPrintNameArray(char **name_arr, int level)
  * \brief Dump a configuration node and all its children.
  */
 void
-ConfNodeDump(ConfNode *node, const char *prefix)
+ConfNodeDump(const ConfNode *node, const char *prefix)
 {
     ConfNode *child;
 
@@ -689,7 +689,7 @@ ConfDump(void)
  * \retval A pointer the child ConfNode if found otherwise NULL.
  */
 ConfNode *
-ConfNodeLookupChild(ConfNode *node, const char *name)
+ConfNodeLookupChild(const ConfNode *node, const char *name)
 {
     ConfNode *child;
 
@@ -714,7 +714,7 @@ ConfNodeLookupChild(ConfNode *node, const char *name)
  * \retval A pointer the child ConfNodes value if found otherwise NULL.
  */
 const char *
-ConfNodeLookupChildValue(ConfNode *node, const char *name)
+ConfNodeLookupChildValue(const ConfNode *node, const char *name)
 {
     ConfNode *child;
 
@@ -731,7 +731,7 @@ ConfNodeLookupChildValue(ConfNode *node, const char *name)
  * \return the ConfNode matching or NULL
  */
 
-ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *value)
+ConfNode *ConfNodeLookupKeyValue(const ConfNode *base, const char *key, const char *value)
 {
     ConfNode *child;
 
@@ -759,7 +759,7 @@ ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *va
  *     returned, even if the child node does not exist.
  */
 int
-ConfNodeChildValueIsTrue(ConfNode *node, const char *key)
+ConfNodeChildValueIsTrue(const ConfNode *node, const char *key)
 {
     const char *val;
 
@@ -773,7 +773,7 @@ ConfNodeChildValueIsTrue(ConfNode *node, const char *key)
  *  \param file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *ConfLoadCompleteIncludePath(char *file)
+char *ConfLoadCompleteIncludePath(const char *file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
