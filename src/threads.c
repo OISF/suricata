@@ -86,7 +86,14 @@ int ThreadMacrosTest03RWLocks(void) {
     int r = 0;
     r |= SCRWLockInit(&rwl_write, NULL);
     r |= SCRWLockWRLock(&rwl_write);
+/* work around OS X 10.10 Yosemite returning EDEADLK. All other
+ * OS' (and versions of OS X that I tested) seem to return EBUSY
+ * instead. */
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__==101000
+    r |= (SCRWLockTryWRLock(&rwl_write) == EDEADLK)? 0 : 1;
+#else
     r |= (SCRWLockTryWRLock(&rwl_write) == EBUSY)? 0 : 1;
+#endif
     r |= SCRWLockUnlock(&rwl_write);
     r |= SCRWLockDestroy(&rwl_write);
 
