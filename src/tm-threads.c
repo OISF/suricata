@@ -2113,7 +2113,7 @@ typedef struct Threads_ {
 } Threads;
 
 static Threads thread_store = { NULL, 0, 0 };
-static SCMutex thread_store_lock = PTHREAD_MUTEX_INITIALIZER;
+static SCMutex thread_store_lock = SCMUTEX_INITIALIZER;
 
 void TmThreadsListThreads(void)
 {
