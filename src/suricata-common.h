@@ -323,8 +323,12 @@ typedef enum PacketProfileDetectId_ {
 #include "util-path.h"
 #include "util-conf.h"
 
+#ifndef HAVE_STRLCAT
 size_t strlcat(char *, const char *src, size_t siz);
+#endif
+#ifndef HAVE_STRLCPY
 size_t strlcpy(char *dst, const char *src, size_t siz);
+#endif
 
 extern int coverage_unittests;
 extern int g_ut_modules;
