@@ -840,6 +840,19 @@ ConfNodePrune(ConfNode *node)
     }
 }
 
+/**
+ * \brief Check if a node is a sequence or node.
+ *
+ * \param node the node to check.
+ *
+ * \return 1 if node is a seuence, otherwise 0.
+ */
+int
+ConfNodeIsSequence(const ConfNode *node)
+{
+    return node->is_seq == 0 ? 0 : 1;
+}
+
 #ifdef UNITTESTS
 
 /**
@@ -1398,6 +1411,23 @@ end:
     return ret;
 }
 
+int
+ConfNodeIsSequenceTest(void)
+{
+    ConfNode *node = ConfNodeNew();
+    if (node == NULL) {
+        return 0;
+    }
+    if (ConfNodeIsSequence(node)) {
+        return 0;
+    }
+    node->is_seq = 1;
+    if (!ConfNodeIsSequence(node)) {
+        return 0;
+    }
+    return 1;
+}
+
 void
 ConfRegisterTests(void)
 {
@@ -1416,6 +1446,7 @@ ConfRegisterTests(void)
     UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
     UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest, 1);
+    UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest, 1);
 }
 
 #endif /* UNITTESTS */
