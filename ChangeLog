@@ -1,3 +1,11 @@
+2.0.6 -- 2015-01-15
+
+Bug #1364: evasion issues
+Bug #1337: output-json: duplicate logging
+Bug #1325: tls detection leads to tcp stream reassembly sequence gaps (IPS)
+Bug #1183: pcap: cppcheck warning
+Bug #1192: Suricata does not compile on OS X/Clang due to redefinition of string functions
+
 2.0.5 -- 2014-12-12
 
 Bug #1190: http_header keyword not matching when SYN|ACK and ACK missing
