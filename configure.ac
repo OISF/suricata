@@ -891,7 +891,7 @@
             LLIBNET=""
             AC_CHECK_LIB(net, libnet_write,, LLIBNET="no")
             if test "$LLIBNET" != "no"; then
-                CFLAGS="${CFLAGS} -DHAVE_LIBNET11 -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
+                CFLAGS="${CFLAGS} -DHAVE_LIBNET11 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
             else
             #if we displayed a warning already no reason to do it again.
                 if test "$LIBNET_DETECT_FAIL" = "no"; then
