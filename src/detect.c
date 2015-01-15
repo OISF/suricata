@@ -405,22 +405,30 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
         rule_files = ConfGetNode("rule-files");
         if (rule_files != NULL) {
-            TAILQ_FOREACH(file, &rule_files->head, next) {
-                sfile = DetectLoadCompleteSigPath(file->val);
-                SCLogDebug("Loading rule file: %s", sfile);
+            if (!ConfNodeIsSequence(rule_files)) {
+                SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                    "Invalid rule-files configuration section: "
+                    "expected sequence.");
+            }
+            else {
+                TAILQ_FOREACH(file, &rule_files->head, next) {
+                    sfile = DetectLoadCompleteSigPath(file->val);
+                    SCLogDebug("Loading rule file: %s", sfile);
 
-                cntf++;
-                r = DetectLoadSigFile(de_ctx, sfile, &goodsigs, &badsigs);
-                if (r < 0) {
-                    badfiles++;
-                }
-                if (goodsigs == 0) {
-                    SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
-                }
-                SCFree(sfile);
+                    cntf++;
+                    r = DetectLoadSigFile(de_ctx, sfile, &goodsigs, &badsigs);
+                    if (r < 0) {
+                        badfiles++;
+                    }
+                    if (goodsigs == 0) {
+                        SCLogWarning(SC_ERR_NO_RULES,
+                            "No rules loaded from %s", sfile);
+                    }
+                    SCFree(sfile);
 
-                goodtotal += goodsigs;
-                badtotal += badsigs;
+                    goodtotal += goodsigs;
+                    badtotal += badsigs;
+                }
             }
         }
     }

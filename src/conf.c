@@ -1414,18 +1414,26 @@ end:
 int
 ConfNodeIsSequenceTest(void)
 {
+    int retval = 0;
     ConfNode *node = ConfNodeNew();
     if (node == NULL) {
-        return 0;
+        goto end;
     }
     if (ConfNodeIsSequence(node)) {
-        return 0;
+        goto end;
     }
     node->is_seq = 1;
     if (!ConfNodeIsSequence(node)) {
-        return 0;
+        goto end;
     }
-    return 1;
+
+    retval = 1;
+
+end:
+    if (node != NULL) {
+        ConfNodeFree(node);
+    }
+    return retval;
 }
 
 void
