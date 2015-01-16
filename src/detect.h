@@ -732,6 +732,8 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
 #endif
 
+    char config_prefix[64];
+
     /** minimal: essentially a stub */
     int minimal;
 
@@ -1202,7 +1204,7 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
-char *DetectLoadCompleteSigPath(char *sig_file);
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);

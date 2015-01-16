@@ -211,7 +211,7 @@ static int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval filemd5 pointer to DetectFileMd5Data on success
  * \retval NULL on failure
  */
-static DetectFileMd5Data *DetectFileMd5Parse (char *str)
+static DetectFileMd5Data *DetectFileMd5Parse (const DetectEngineCtx *de_ctx, char *str)
 {
     DetectFileMd5Data *filemd5 = NULL;
     FILE *fp = NULL;
@@ -235,7 +235,7 @@ static DetectFileMd5Data *DetectFileMd5Parse (char *str)
     }
 
     /* get full filename */
-    filename = DetectLoadCompleteSigPath(str);
+    filename = DetectLoadCompleteSigPath(de_ctx, str);
     if (filename == NULL) {
         goto error;
     }
@@ -309,7 +309,7 @@ static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     DetectFileMd5Data *filemd5 = NULL;
     SigMatch *sm = NULL;
 
-    filemd5 = DetectFileMd5Parse(str);
+    filemd5 = DetectFileMd5Parse(de_ctx, str);
     if (filemd5 == NULL)
         goto error;
 
