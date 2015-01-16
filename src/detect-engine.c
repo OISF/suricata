@@ -543,13 +543,6 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         goto error;
     }
 
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCRConfLoadReferenceConfigFile(de_ctx);
-
-    if (ActionInitConfig() < 0) {
-        exit(EXIT_FAILURE);
-    }
-
     if (SigLoadSignatures(de_ctx, NULL, FALSE) < 0) {
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
         if (de_ctx->failure_fatal)
@@ -870,6 +863,13 @@ DetectEngineCtx *DetectEngineCtxInit(void)
 #ifdef PROFILING
     SCProfilingKeywordInitCounters(de_ctx);
 #endif
+
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCRConfLoadReferenceConfigFile(de_ctx);
+
+    if (ActionInitConfig() < 0) {
+        goto error;
+    }
 
     return de_ctx;
 error:
