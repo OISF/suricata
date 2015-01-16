@@ -1202,7 +1202,7 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
-char *DetectLoadCompleteSigPath(char *sig_file);
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);
