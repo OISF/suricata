@@ -239,14 +239,20 @@ void DetectExitPrintStats(ThreadVars *tv, void *data)
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *DetectLoadCompleteSigPath(char *sig_file)
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
+    char varname[128] = "default-rule-path";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.default-rule-path",
+                de_ctx->config_prefix);
+    }
 
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
-        if (ConfGet("default-rule-path", &defaultpath) == 1) {
+        if (ConfGet(varname, &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
@@ -406,7 +412,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         rule_files = ConfGetNode("rule-files");
         if (rule_files != NULL) {
             TAILQ_FOREACH(file, &rule_files->head, next) {
-                sfile = DetectLoadCompleteSigPath(file->val);
+                sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                 SCLogDebug("Loading rule file: %s", sfile);
 
                 cntf++;
