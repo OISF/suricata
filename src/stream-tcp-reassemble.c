@@ -551,6 +551,10 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
     AppLayerDestroyCtxThread(ra_ctx->app_tctx);
+#ifdef DEBUG
+    SCLogDebug("reassembly fast path stats: fp1 %"PRIu64" fp2 %"PRIu64" sp %"PRIu64,
+            ra_ctx->fp1, ra_ctx->fp2, ra_ctx->sp);
+#endif
     SCFree(ra_ctx);
     SCReturn;
 }
@@ -2581,7 +2585,9 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         rd->data_sent += seg->payload_len;
         rd->ra_base_seq += seg->payload_len;
-
+#ifdef DEBUG
+        ra_ctx->fp1++;
+#endif
         /* if after the first data chunk we have no alproto yet,
          * there is no point in continueing here. */
         if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
@@ -2598,7 +2604,9 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         AppLayerProfilingStore(ra_ctx->app_tctx, p);
         rd->data_sent += seg->payload_len;
         rd->ra_base_seq += seg->payload_len;
-
+#ifdef DEBUG
+        ra_ctx->fp2++;
+#endif
         /* if after the first data chunk we have no alproto yet,
          * there is no point in continueing here. */
         if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
@@ -2607,7 +2615,9 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         return 1;
     }
-
+#ifdef DEBUG
+    ra_ctx->sp++;
+#endif
     uint16_t payload_offset = 0;
     uint16_t payload_len = 0;
 

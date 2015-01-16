@@ -66,6 +66,11 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_htp_memuse;
     /* number of allocation failed due to memcap when handling HTTP protocol */
     uint16_t counter_htp_memcap;
+#ifdef DEBUG
+    uint64_t fp1;
+    uint64_t fp2;
+    uint64_t sp;
+#endif
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
