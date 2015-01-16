@@ -24,11 +24,14 @@
 #include "config.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "util-cuda.h"
 #include "util-unittest.h"
 
 int ListKeywords(const char *keyword_info)
 {
+    MpmTableSetup();
+    AppLayerSetup();
     SigTableSetup(); /* load the rule keywords */
     SigTableList(keyword_info);
     exit(EXIT_SUCCESS);
