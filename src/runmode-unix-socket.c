@@ -41,6 +41,8 @@
 
 #include "conf-yaml-loader.h"
 
+#include "detect-engine.h"
+
 static const char *default_mode = NULL;
 
 int unix_socket_mode_is_running = 0;
@@ -458,6 +460,14 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 #endif
 
         // B setup the de_ctx
+    DetectEngineCtx *de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("detect engine failed to load"));
+        return TM_ECODE_FAILED;
+    }
+    SCLogInfo("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
+
+    SigLoadSignatures(de_ctx, NULL, 0);
 
         // C for each thread, replace det_ctx
 
