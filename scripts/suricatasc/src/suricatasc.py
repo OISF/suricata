@@ -22,6 +22,7 @@ import re
 import readline
 from socket import socket, AF_UNIX, error
 from time import sleep
+import select
 import sys
 
 SURICATASC_VERSION = "0.9"
@@ -114,7 +115,12 @@ class SuricataSC:
             self.socket.send(json.dumps(cmdmsg))
         else:
             self.socket.send(bytes(json.dumps(cmdmsg), 'iso-8859-1'))
-        cmdret = self.json_recv()
+
+        ready = select.select([self.socket], [], [], 600)
+        if ready[0]:
+            cmdret = self.json_recv()
+        else:
+            cmdret = None
 
         if cmdret == None:
             raise SuricataReturnException("Unable to get message from server")
