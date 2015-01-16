@@ -402,6 +402,13 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     int goodtotal = 0;
     int badtotal = 0;
 
+    char varname[128] = "rule-files";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.rule-files",
+                de_ctx->config_prefix);
+    }
+
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
@@ -409,7 +416,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* ok, let's load signature files from the general config */
     if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
-        rule_files = ConfGetNode("rule-files");
+        rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
             TAILQ_FOREACH(file, &rule_files->head, next) {
                 sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
