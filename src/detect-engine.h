@@ -55,6 +55,7 @@ extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT
 
 /* prototypes */
 void DetectEngineRegisterAppInspectionEngines(void);
+DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
 DetectEngineCtx *DetectEngineCtxInitMinimal(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
