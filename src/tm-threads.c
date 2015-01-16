@@ -2112,8 +2112,10 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
 void TmThreadsUnregisterThread(const int id)
 {
     SCMutexLock(&thread_store_lock);
-    if (id <= 0 || id > (int)thread_store.threads_size)
+    if (id <= 0 || id > (int)thread_store.threads_size) {
+        SCMutexUnlock(&thread_store_lock);
         return;
+    }
 
     /* id is one higher than index */
     int idx = id - 1;
