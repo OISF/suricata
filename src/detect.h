@@ -730,6 +730,8 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
 #endif
 
+    char config_prefix[64];
+
     /** minimal: essentially a stub */
     int minimal;
 
