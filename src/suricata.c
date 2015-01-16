@@ -2220,10 +2220,10 @@ int main(int argc, char **argv)
     }
 
     if (MayDaemonize(&suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
 
     if (InitSignalHandler(&suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
 
 #ifdef HAVE_NSS
     /* init NSS for md5 */
@@ -2266,7 +2266,6 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-
     if (de_ctx != NULL) {
         SetupDelayedDetect(de_ctx, &suri);
 
@@ -2293,7 +2292,7 @@ int main(int argc, char **argv)
     }
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
-            exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 
     if(suri.run_mode == RUNMODE_CONF_TEST){
