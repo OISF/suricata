@@ -647,7 +647,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     return -1;
 }
 
-static DetectEngineCtx *DetectEngineCtxInitReal(int minimal)
+static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 {
     DetectEngineCtx *de_ctx;
 
@@ -666,6 +666,10 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal)
         de_ctx->minimal = 1;
         de_ctx->id = detect_engine_ctx_id++;
         return de_ctx;
+    }
+
+    if (prefix != NULL) {
+        strlcpy(de_ctx->config_prefix, prefix, sizeof(de_ctx->config_prefix));
     }
 
     if (ConfGetBool("engine.init-failure-fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
@@ -747,12 +751,17 @@ error:
 
 DetectEngineCtx *DetectEngineCtxInitMinimal(void)
 {
-    return DetectEngineCtxInitReal(1);
+    return DetectEngineCtxInitReal(1, NULL);
 }
 
 DetectEngineCtx *DetectEngineCtxInit(void)
 {
-    return DetectEngineCtxInitReal(0);
+    return DetectEngineCtxInitReal(0, NULL);
+}
+
+DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
+{
+    return DetectEngineCtxInitReal(0, prefix);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
