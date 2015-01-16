@@ -2249,12 +2249,6 @@ int main(int argc, char **argv)
             CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-        SCClassConfLoadClassficationConfigFile(de_ctx);
-        SCRConfLoadReferenceConfigFile(de_ctx);
-
-        if (ActionInitConfig() < 0) {
-            exit(EXIT_FAILURE);
-        }
     } else {
         /* disable raw reassembly */
         (void)ConfSetFinal("stream.reassembly.raw", "false");
