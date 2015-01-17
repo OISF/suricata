@@ -2306,6 +2306,7 @@ int main(int argc, char **argv)
                     "context failed.");
             exit(EXIT_FAILURE);
         }
+
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
             CudaVarsSetDeCtx(de_ctx);
@@ -2331,6 +2332,7 @@ int main(int argc, char **argv)
             if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
                 exit(EXIT_SUCCESS);
             }
+            DetectEngineAddToMaster(de_ctx);
         }
     }
 
@@ -2483,11 +2485,6 @@ int main(int argc, char **argv)
         }
     }
 
-    DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
-        BUG_ON(global_de_ctx == NULL);
-    }
-
     /* before TmThreadKillThreads, as otherwise that kills it
      * but more slowly */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
@@ -2518,9 +2515,14 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    if (global_de_ctx) {
-        DetectEngineCtxFree(global_de_ctx);
+    /** TODO this can do into it's own func */
+    de_ctx = DetectEngineGetCurrent();
+    if (de_ctx) {
+        DetectEngineMoveToFreeList(de_ctx);
+        DetectEngineDeReference(&de_ctx);
     }
+    DetectEnginePruneFreeList();
+
     AppLayerDeSetup();
 
     TagDestroyCtx();
