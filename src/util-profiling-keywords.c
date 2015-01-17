@@ -167,7 +167,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
     tms = SCLocalTime(tval.tv_sec, &local_tm);
 
     if (profiling_keywords_output_to_file == 1) {
-        SCLogInfo("file %s mode %s", profiling_file_name, profiling_file_mode);
+        SCLogDebug("file %s mode %s", profiling_file_name, profiling_file_mode);
 
         fp = fopen(profiling_file_name, profiling_file_mode);
 
