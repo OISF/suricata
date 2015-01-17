@@ -1290,8 +1290,12 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         PmqSetup(&det_ctx->smsg_pmq[i], de_ctx->max_fp_id);
     }
 
-    det_ctx->non_mpm_id_array =  SCCalloc(32000, sizeof(SigIntId)); // TODO proper size or dynamicly grow
-    BUG_ON(det_ctx->non_mpm_id_array == NULL);
+    /* sized to the max of our sgh settings. A max setting of 0 implies that all
+     * sgh's have: sgh->non_mpm_store_cnt == 0 */
+    if (de_ctx->non_mpm_store_cnt_max > 0) {
+        det_ctx->non_mpm_id_array =  SCCalloc(de_ctx->non_mpm_store_cnt_max, sizeof(SigIntId));
+        BUG_ON(det_ctx->non_mpm_id_array == NULL);
+    }
 
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
