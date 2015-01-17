@@ -734,6 +734,11 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
 #endif
+
+    /** how many de_ctx' are referencing this */
+    uint32_t ref_cnt;
+    /** list in master: either active or freelist */
+    struct DetectEngineCtx_ *next;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1038,6 +1043,19 @@ typedef struct SigGroupHead_ {
 /** sigmatch may have options, so the parser should be ready to
  *  deal with both cases */
 #define SIGMATCH_OPTIONAL_OPT   (1 << 5)
+
+typedef struct DetectEngineMasterCtx_ {
+    SCMutex lock;
+
+    /** list of active detection engines. This list is used to generate the
+     *  threads det_ctx's */
+    DetectEngineCtx *list;
+
+    /** free list, containing detection engines that will be removed but may
+     *  still be referenced by det_ctx's. Freed as soon as all references are
+     *  gone. */
+    DetectEngineCtx *free_list;
+} DetectEngineMasterCtx;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
