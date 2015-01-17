@@ -278,15 +278,11 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 void SignalHandlerSigusr2Disabled(int sig)
 {
     SCLogInfo("Live rule reload not enabled in config.");
-
-    return;
 }
 
 void SignalHandlerSigusr2StartingUp(int sig)
 {
     SCLogInfo("Live rule reload only possible after engine completely started.");
-
-    return;
 }
 
 void SignalHandlerSigusr2DelayedDetect(int sig)
@@ -297,42 +293,14 @@ void SignalHandlerSigusr2DelayedDetect(int sig)
 void SignalHandlerSigusr2SigFileStartup(int sig)
 {
     SCLogInfo("Live rule reload not possible if -s or -S option used at runtime.");
-
-    return;
 }
 
-void SignalHandlerSigusr2Idle(int sig)
-{
-    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
-        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
-        return;
-    }
-
-    SCLogInfo("Ruleset load in progress.  New ruleset load "
-              "allowed after current is done");
-
-    return;
-}
-
+/**
+ * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on
+ * it.
+ */
 void SignalHandlerSigusr2(int sig)
 {
-#if 0
-    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
-        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
-        return;
-    }
-
-    if (suricata_ctl_flags != 0) {
-        SCLogInfo("Live rule swap no longer possible. Engine in shutdown mode.");
-        return;
-    }
-
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-
-    DetectEngineSpawnLiveRuleSwapMgmtThread();
-
-    return;
-#endif
     sigusr2_count = 1;
 }
 
@@ -2414,20 +2382,6 @@ int main(int argc, char **argv)
     }
 
     SCPrintElapsedTime(&suri);
-
-    if (suri.rule_reload == 1) {
-        /* wait if live rule swap is in progress */
-        if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-            SCLogInfo("Live rule swap in progress.  Waiting for it to end "
-                    "before we shut the engine/threads down");
-            while (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-                /* sleep for 0.5 seconds */
-                usleep(500000);
-            }
-            SCLogInfo("Received notification that live rule swap is done.  "
-                    "Continuing with engine/threads shutdown");
-        }
-    }
 
     /* before TmThreadKillThreads, as otherwise that kills it
      * but more slowly */
