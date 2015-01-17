@@ -57,7 +57,6 @@ extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT
 void DetectEngineRegisterAppInspectionEngines(void);
 void DetectEngineSpawnLiveRuleSwapMgmtThread(void);
 DetectEngineCtx *DetectEngineCtxInit(void);
-DetectEngineCtx *DetectEngineGetGlobalDeCtx(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
@@ -68,6 +67,13 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 void DetectEngineResetMaxSigId(DetectEngineCtx *);
 void DetectEngineRegisterTests(void);
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
+
+int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
+DetectEngineCtx *DetectEngineGetCurrent(void);
+void DetectEnginePruneFreeList(void);
+int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
+void DetectEngineDeReference(DetectEngineCtx **de_ctx);
+int DetectEngineReload(void);
 
 /**
  * \brief Registers an app inspection engine.
