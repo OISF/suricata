@@ -1290,6 +1290,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         PmqSetup(&det_ctx->smsg_pmq[i], de_ctx->max_fp_id);
     }
 
+    det_ctx->non_mpm_id_array =  SCCalloc(32000, sizeof(SigIntId)); // TODO proper size or dynamicly grow
+    BUG_ON(det_ctx->non_mpm_id_array == NULL);
+
     /* IP-ONLY */
     DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
@@ -1378,9 +1381,6 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 
     det_ctx->tv = tv;
     det_ctx->de_ctx = de_ctx;
-
-    det_ctx->non_mpm_id_array =  SCCalloc(32000, sizeof(SigIntId)); // TODO proper size or dynamicly grow
-    BUG_ON(det_ctx->non_mpm_id_array == NULL);
 
     if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
         return TM_ECODE_FAILED;
