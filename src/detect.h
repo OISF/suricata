@@ -587,6 +587,10 @@ typedef struct DetectEngineCtx_ {
 
     uint32_t signum;
 
+    /** Maximum value of all our sgh's non_mpm_store_cnt setting,
+     *  used to alloc det_ctx::non_mpm_id_array */
+    uint32_t non_mpm_store_cnt_max;
+
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
 
@@ -977,8 +981,8 @@ typedef struct SigGroupHead_ {
     SignatureMask *mask_array;
 #endif
 
-    SignatureNonMpmStore *non_mpm_store_array;
-    uint32_t non_mpm_store_cnt; // size is cnt * sizeof(SignatureNonMpmStore)
+    SignatureNonMpmStore *non_mpm_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
+    uint32_t non_mpm_store_cnt;
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;

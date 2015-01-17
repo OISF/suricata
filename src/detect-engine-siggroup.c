@@ -1689,7 +1689,9 @@ void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     return;
 }
 
-/* build an array of rule id's for sigs with no mpm */
+/** \brief build an array of rule id's for sigs with no mpm
+ *  Also updated de_ctx::non_mpm_store_cnt_max to track the highest cnt
+ */
 int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     Signature *s = NULL;
@@ -1738,6 +1740,11 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             sgh->non_mpm_store_cnt++;
         }
     }
+
+    /* track highest cnt for any sgh in our de_ctx */
+    if (sgh->non_mpm_store_cnt > de_ctx->non_mpm_store_cnt_max)
+        de_ctx->non_mpm_store_cnt_max = sgh->non_mpm_store_cnt;
+
     return 0;
 }
 
