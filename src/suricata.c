@@ -1897,7 +1897,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     return TM_ECODE_OK;
 }
 
-static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
+static void SetupDelayedDetect(SCInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
     if (suri->offline) {
@@ -1913,7 +1913,6 @@ static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
             }
         }
     }
-    de_ctx->delayed_detect = suri->delayed_detect;
 
     SCLogInfo("Delayed detect %s", suri->delayed_detect ? "enabled" : "disabled");
     if (suri->delayed_detect) {
@@ -2236,6 +2235,9 @@ int main(int argc, char **argv)
         FlowInitConfig(FLOW_VERBOSE);
     }
 
+    if (MagicInit() != 0)
+        exit(EXIT_FAILURE);
+
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
         de_ctx = DetectEngineCtxInit();
@@ -2250,28 +2252,22 @@ int main(int argc, char **argv)
             CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-    } else {
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
-    }
-
-    if (MagicInit() != 0)
-        exit(EXIT_FAILURE);
-
-    if (de_ctx != NULL) {
-        SetupDelayedDetect(de_ctx, &suri);
-
+        SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
             if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
                 exit(EXIT_SUCCESS);
             }
-            DetectEngineAddToMaster(de_ctx);
         }
+
+        DetectEngineAddToMaster(de_ctx);
+    } else {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
     SCAsn1LoadConfig();
@@ -2342,15 +2338,13 @@ int main(int argc, char **argv)
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
-    if (de_ctx != NULL && suri.sig_file == NULL && suri.rule_reload == 1 &&
+    if (DetectEngineEnabled() && suri.sig_file == NULL && suri.rule_reload == 1 &&
             suri.delayed_detect == 0)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
-    if (de_ctx != NULL && suri.delayed_detect) {
-        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
-        de_ctx->delayed_detect_initialized = 1;
-        TmThreadActivateDummySlot();
+    if (suri.delayed_detect) {
+        /* force 'reload', this will load the rules and swap engines */
+        DetectEngineReload();
 
         if (suri.rule_reload) {
             if (suri.sig_file != NULL)
