@@ -730,6 +730,9 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
 #endif
 
+    /** minimal: essentially a stub */
+    int minimal;
+
     /** how many de_ctx' are referencing this */
     uint32_t ref_cnt;
     /** list in master: either active or freelist */
