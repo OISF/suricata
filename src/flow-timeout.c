@@ -108,6 +108,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->dp = f->sp;
         }
 
+        /* Check if we have enough room in direct data. We need ipv4 hdr + tcp hdr.
+         * Force an allocation if it is not the case.
+         */
+        if (GET_PKT_DIRECT_MAX_SIZE(p) <  40) {
+            if (PacketCallocExtPkt(p, 40) == -1) {
+                return NULL;
+            }
+        }
         /* set the ip header */
         p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
         /* version 4 and length 20 bytes for the tcp header */
@@ -145,6 +153,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->dp = f->sp;
         }
 
+        /* Check if we have enough room in direct data. We need ipv6 hdr + tcp hdr.
+         * Force an allocation if it is not the case.
+         */
+        if (GET_PKT_DIRECT_MAX_SIZE(p) <  60) {
+            if (PacketCallocExtPkt(p, 60) == -1) {
+                return NULL;
+            }
+        }
         /* set the ip header */
         p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
         /* version 6 */
