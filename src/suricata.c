@@ -194,6 +194,7 @@
 volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
+volatile sig_atomic_t sigusr2_count = 0;
 
 /*
  * Flag to indicate if the engine is at the initialization
@@ -315,6 +316,7 @@ void SignalHandlerSigusr2Idle(int sig)
 
 void SignalHandlerSigusr2(int sig)
 {
+#if 0
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
         SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
         return;
@@ -330,6 +332,8 @@ void SignalHandlerSigusr2(int sig)
     DetectEngineSpawnLiveRuleSwapMgmtThread();
 
     return;
+#endif
+    sigusr2_count = 1;
 }
 
 /**
@@ -2380,6 +2384,10 @@ int main(int argc, char **argv)
         if (sighup_count > 0) {
             OutputNotifyFileRotation();
             sighup_count--;
+        }
+        if (sigusr2_count > 0) {
+            DetectEngineReload();
+            sigusr2_count--;
         }
 
         usleep(10* 1000);
