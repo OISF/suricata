@@ -111,16 +111,6 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint16_t flag)
 }
 
 /**
- * \brief Function to use as dummy stack function
- *
- * \retval TM_ECODE_OK
- */
-TmEcode TmDummyFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    return TM_ECODE_OK;
-}
-
-/**
  * \brief Separate run function so we can call it recursively.
  *
  * \todo Deal with post_pq for slots beyond the first.
@@ -778,90 +768,6 @@ void TmSlotFree(TmSlot *tms)
 void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
 {
     _TmSlotSetFuncAppend(tv, tm, data);
-}
-
-typedef struct TmDummySlot_ {
-    TmSlot *slot;
-    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
-                        PacketQueue *);
-    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
-    TAILQ_ENTRY(TmDummySlot_) next;
-} TmDummySlot;
-
-static TAILQ_HEAD(, TmDummySlot_) dummy_slots =
-    TAILQ_HEAD_INITIALIZER(dummy_slots);
-
-/**
- * \brief Appends a new entry to the slots with a delayed option.
- *
- * \param tv   TV the slot is attached to.
- * \param tm   TM to append.
- * \param data Data to be passed on to the slot init function.
- * \param delayed Delayed start of slot if equal to 1
- */
-void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data,
-                                int delayed)
-{
-    TmSlot *slot = _TmSlotSetFuncAppend(tv, tm, data);
-    TmDummySlot *dslot = NULL;
-
-    if ((slot == NULL) || (delayed == 0)) {
-        return;
-    }
-
-    dslot = SCMalloc(sizeof(TmDummySlot));
-    if (unlikely(dslot == NULL)) {
-        TmSlotFree(slot);
-        return;
-    }
-    memset(dslot, 0, sizeof(*dslot));
-
-    dslot->SlotFunc = SC_ATOMIC_GET(slot->SlotFunc);
-    (void)SC_ATOMIC_SET(slot->SlotFunc, TmDummyFunc);
-    dslot->SlotThreadInit = slot->SlotThreadInit;
-    dslot->slot = slot;
-
-    TAILQ_INSERT_TAIL(&dummy_slots, dslot, next);
-
-    return;
-}
-
-/**
- * \brief Activate slots that have been started in delayed mode
- */
-void TmThreadActivateDummySlot()
-{
-    TmDummySlot *dslot;
-    TmSlot *s;
-    TmEcode r = TM_ECODE_OK;
-
-    TAILQ_FOREACH(dslot, &dummy_slots, next) {
-        void *slot_data = NULL;
-        s = dslot->slot;
-        if (dslot->SlotThreadInit != NULL) {
-            s->SlotThreadInit = dslot->SlotThreadInit;
-            r = s->SlotThreadInit(s->tv, s->slot_initdata, &slot_data);
-            if (r != TM_ECODE_OK) {
-                EngineKill();
-                TmThreadsSetFlag(s->tv, THV_CLOSED | THV_RUNNING_DONE);
-            }
-            (void)SC_ATOMIC_SET(s->slot_data, slot_data);
-        }
-        (void)SC_ATOMIC_CAS(&s->SlotFunc, TmDummyFunc, dslot->SlotFunc);
-    }
-}
-
-/**
- * \brief Deactivate slots that have been started in delayed mode.
- */
-void TmThreadDeActivateDummySlot()
-{
-    TmDummySlot *dslot;
-
-    TAILQ_FOREACH(dslot, &dummy_slots, next) {
-        (void)SC_ATOMIC_CAS(&dslot->slot->SlotFunc, dslot->SlotFunc, TmDummyFunc);
-        dslot->slot->SlotThreadInit = NULL;
-    }
 }
 
 /**
