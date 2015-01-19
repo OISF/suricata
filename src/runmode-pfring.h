@@ -25,10 +25,9 @@
 
 #include "suricata-common.h"
 
-int RunModeIdsPfringAuto(DetectEngineCtx *);
-int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx);
-int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx);
-int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx);
+int RunModeIdsPfringAutoFp(void);
+int RunModeIdsPfringSingle(void);
+int RunModeIdsPfringWorkers(void);
 void RunModeIdsPfringRegister(void);
 const char *RunModeIdsPfringGetDefaultMode(void);
 
