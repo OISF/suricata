@@ -2296,7 +2296,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode, de_ctx);
+    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
 
     /* In Unix socket runmode, Flow manager is started on demand */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
@@ -2305,7 +2305,7 @@ int main(int argc, char **argv)
         if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
             unix_socket = 0;
         if (unix_socket == 1) {
-            UnixManagerThreadSpawn(de_ctx, 0);
+            UnixManagerThreadSpawn(0);
 #ifdef BUILD_UNIX_SOCKET
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                                        UNIX_CMD_TAKE_ARGS);

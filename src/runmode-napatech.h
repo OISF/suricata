@@ -29,9 +29,8 @@
 #include <nt.h>
 #endif
 
-int RunModeNapatechAuto(DetectEngineCtx *);
-int RunModeNapatechAutoFp(DetectEngineCtx *);
-int RunModeNapatechWorkers(DetectEngineCtx *);
+int RunModeNapatechAutoFp(void);
+int RunModeNapatechWorkers(void);
 void RunModeNapatechRegister(void);
 const char *RunModeNapatechGetDefaultMode(void);
 

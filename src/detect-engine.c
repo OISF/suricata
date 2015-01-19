@@ -1784,6 +1784,22 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
     return det_ctx->keyword_ctxs_array[id];
 }
 
+/** \brief Check if detection is enabled
+ *  \retval bool true or false */
+int DetectEngineEnabled(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return 0;
+    }
+
+    SCMutexUnlock(&master->lock);
+    return 1;
+}
+
 DetectEngineCtx *DetectEngineGetCurrent(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
