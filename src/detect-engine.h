@@ -57,6 +57,7 @@ extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT
 void DetectEngineRegisterAppInspectionEngines(void);
 void DetectEngineSpawnLiveRuleSwapMgmtThread(void);
 DetectEngineCtx *DetectEngineCtxInit(void);
+DetectEngineCtx *DetectEngineCtxInitMinimal(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);

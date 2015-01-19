@@ -958,7 +958,7 @@ void DetectEngineSpawnLiveRuleSwapMgmtThread(void)
     SCReturn;
 }
 
-DetectEngineCtx *DetectEngineCtxInit(void)
+static DetectEngineCtx *DetectEngineCtxInitReal(int minimal)
 {
     DetectEngineCtx *de_ctx;
 
@@ -972,6 +972,12 @@ DetectEngineCtx *DetectEngineCtxInit(void)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+
+    if (minimal) {
+        de_ctx->minimal = 1;
+        de_ctx->id = detect_engine_ctx_id++;
+        return de_ctx;
+    }
 
     if (ConfGetBool("engine.init-failure-fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
@@ -1029,8 +1035,6 @@ DetectEngineCtx *DetectEngineCtxInit(void)
         goto error;
     }
 
-    de_ctx->id = detect_engine_ctx_id++;
-
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
@@ -1045,9 +1049,21 @@ DetectEngineCtx *DetectEngineCtxInit(void)
         goto error;
     }
 
+    de_ctx->id = detect_engine_ctx_id++;
     return de_ctx;
 error:
     return NULL;
+
+}
+
+DetectEngineCtx *DetectEngineCtxInitMinimal(void)
+{
+    return DetectEngineCtxInitReal(1);
+}
+
+DetectEngineCtx *DetectEngineCtxInit(void)
+{
+    return DetectEngineCtxInitReal(0);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
@@ -1562,8 +1578,9 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 #endif
     }
 
-    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK)
-        return TM_ECODE_FAILED;
+    if (det_ctx->de_ctx->minimal == 0)
+        if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK)
+            return TM_ECODE_FAILED;
 
     /** alert counter setup */
     det_ctx->counter_alerts = counter_alerts;
