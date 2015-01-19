@@ -21,14 +21,7 @@
 #include "runmodes.h"
 #include "runmode-pfring.h"
 #include "source-pfring.h"
-#include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
-
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -418,7 +411,7 @@ static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
 }
 #endif
 
-int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIdsPfringAutoFp(void)
 {
     SCEnter();
 
@@ -439,8 +432,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
-                              tparser,
+    ret = RunModeSetLiveCaptureAutoFp(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
@@ -456,7 +448,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
+int RunModeIdsPfringSingle(void)
 {
     SCEnter();
 
@@ -477,8 +469,7 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureSingle(de_ctx,
-                              tparser,
+    ret = RunModeSetLiveCaptureSingle(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
@@ -494,7 +485,7 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
+int RunModeIdsPfringWorkers(void)
 {
     SCEnter();
 
@@ -515,8 +506,7 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureWorkers(de_ctx,
-                              tparser,
+    ret = RunModeSetLiveCaptureWorkers(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
