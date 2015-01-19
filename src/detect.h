@@ -718,11 +718,6 @@ typedef struct DetectEngineCtx_ {
     char *rule_file;
     int rule_line;
 
-    /** Is detect engine using a delayed init */
-    int delayed_detect;
-    /** Did we load the signatures? */
-    int delayed_detect_initialized;
-
     /** list of keywords that need thread local ctxs */
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
