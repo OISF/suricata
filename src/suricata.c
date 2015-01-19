@@ -2240,7 +2240,12 @@ int main(int argc, char **argv)
 
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
-        de_ctx = DetectEngineCtxInit();
+        SetupDelayedDetect(&suri);
+        if (!suri.delayed_detect) {
+            de_ctx = DetectEngineCtxInit();
+        } else {
+            de_ctx = DetectEngineCtxInitMinimal();
+        }
         if (de_ctx == NULL) {
             SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
                     "context failed.");
@@ -2252,7 +2257,6 @@ int main(int argc, char **argv)
             CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-        SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
