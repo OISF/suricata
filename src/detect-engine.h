@@ -74,6 +74,7 @@ void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(void);
+int DetectEngineEnabled(void);
 
 /**
  * \brief Registers an app inspection engine.

@@ -23,7 +23,7 @@
 #ifndef __RUNMODE_UNIX_SOCKET_H__
 #define __RUNMODE_UNIX_SOCKET_H__
 
-int RunModeUnixSocketSingle(DetectEngineCtx *);
+int RunModeUnixSocketSingle(void);
 void RunModeUnixSocketRegister(void);
 const char *RunModeUnixSocketGetDefaultMode(void);
 

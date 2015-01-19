@@ -903,10 +903,9 @@ void *UnixManagerThread(void *td)
 
 /** \brief Spawn the unix socket manager thread
  *
- * \param de_ctx context for detection engine
  * \param mode if set to 1, init failure cause suricata exit
  * */
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
