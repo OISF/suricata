@@ -23,9 +23,8 @@
 #ifndef __RUNMODE_NFQ_H__
 #define __RUNMODE_NFQ_H__
 
-int RunModeIpsNFQAuto(DetectEngineCtx *);
-int RunModeIpsNFQAutoFp(DetectEngineCtx *);
-int RunModeIpsNFQWorker(DetectEngineCtx *);
+int RunModeIpsNFQAutoFp(void);
+int RunModeIpsNFQWorker(void);
 void RunModeIpsNFQRegister(void);
 const char *RunModeIpsNFQGetDefaultMode(void);
 

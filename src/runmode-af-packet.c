@@ -433,7 +433,7 @@ int AFPRunModeIsIPS()
     return has_ips;
 }
 
-int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIdsAFPAutoFp(void)
 {
     SCEnter();
 
@@ -455,8 +455,7 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
-                              ParseAFPConfig,
+    ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
                               AFPConfigGeThreadsCount,
                               "ReceiveAFP",
                               "DecodeAFP", "RxAFP",
@@ -481,14 +480,12 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
 /**
  * \brief Single thread version of the AF_PACKET processing.
  */
-int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
+int RunModeIdsAFPSingle(void)
 {
+    SCEnter();
 #ifdef HAVE_AF_PACKET
     int ret;
     char *live_dev = NULL;
-#endif
-    SCEnter();
-#ifdef HAVE_AF_PACKET
 
     RunModeInitialize();
     TimeModeSetLive();
@@ -500,8 +497,7 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureSingle(de_ctx,
-                                    ParseAFPConfig,
+    ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
                                     "DecodeAFP", "AFPacket",
@@ -529,14 +525,12 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
  * Start N threads with each thread doing all the work.
  *
  */
-int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
+int RunModeIdsAFPWorkers(void)
 {
+    SCEnter();
 #ifdef HAVE_AF_PACKET
     int ret;
     char *live_dev = NULL;
-#endif
-    SCEnter();
-#ifdef HAVE_AF_PACKET
 
     RunModeInitialize();
     TimeModeSetLive();
@@ -548,8 +542,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureWorkers(de_ctx,
-                                    ParseAFPConfig,
+    ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
                                     "DecodeAFP", "AFPacket",

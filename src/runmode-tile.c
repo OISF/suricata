@@ -29,14 +29,10 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-tile.h"
-#include "log-httplog.h"
 #include "output.h"
 #include "source-mpipe.h"
 
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
+#include "detect-engine.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -140,13 +136,12 @@ void *ParseMpipeConfig(const char *iface)
 /**
  * \brief RunModeTileMpipeWorkers set up to process all modules in each thread.
  *
- * \param de_ctx pointer to the Detection Engine
  * \param iface pointer to the name of the interface from which we will
  *              fetch the packets
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
+int RunModeTileMpipeWorkers(void)
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
@@ -262,13 +257,13 @@ int RunModeTileMpipeWorkers(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
-        if (de_ctx != NULL) {
+        if (DetectEngineEnabled()) {
             tm_module = TmModuleGetByName("Detect");
             if (tm_module == NULL) {
                 printf("ERROR: TmModuleGetByName Detect failed\n");
                 exit(EXIT_FAILURE);
             }
-            TmSlotSetFuncAppend(tv_worker, tm_module, (void *)de_ctx);
+            TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
         }
 
         tm_module = TmModuleGetByName("RespondReject");
