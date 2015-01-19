@@ -975,7 +975,7 @@ void UnixSocketKillSocketThread(void)
 
 #else /* BUILD_UNIX_SOCKET */
 
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     SCLogError(SC_ERR_UNIMPLEMENTED, "Unix socket is not compiled");
     return;
