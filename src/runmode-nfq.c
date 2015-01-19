@@ -30,14 +30,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-nfq.h"
-#include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
-
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -66,7 +59,7 @@ void RunModeIpsNFQRegister(void)
     return;
 }
 
-int RunModeIpsNFQAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIpsNFQAutoFp(void)
 {
     SCEnter();
     int ret = 0;
@@ -78,8 +71,7 @@ int RunModeIpsNFQAutoFp(DetectEngineCtx *de_ctx)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSAutoFp(de_ctx,
-            NFQGetThread,
+    ret = RunModeSetIPSAutoFp(NFQGetThread,
             "ReceiveNFQ",
             "VerdictNFQ",
             "DecodeNFQ");
@@ -87,7 +79,7 @@ int RunModeIpsNFQAutoFp(DetectEngineCtx *de_ctx)
     return ret;
 }
 
-int RunModeIpsNFQWorker(DetectEngineCtx *de_ctx)
+int RunModeIpsNFQWorker(void)
 {
     SCEnter();
     int ret = 0;
@@ -99,8 +91,7 @@ int RunModeIpsNFQWorker(DetectEngineCtx *de_ctx)
 
     LiveDeviceHasNoStats();
 
-    ret = RunModeSetIPSWorker(de_ctx,
-            NFQGetThread,
+    ret = RunModeSetIPSWorker(NFQGetThread,
             "ReceiveNFQ",
             "VerdictNFQ",
             "DecodeNFQ");

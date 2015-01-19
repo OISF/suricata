@@ -60,7 +60,7 @@ typedef struct RunMode_ {
     const char *name;
     const char *description;
     /* runmode function */
-    int (*RunModeFunc)(DetectEngineCtx *);
+    int (*RunModeFunc)(void);
 } RunMode;
 
 typedef struct RunModes_ {
@@ -148,7 +148,6 @@ static const char *RunModeTranslateModeToName(int runmode)
  *
  * \param runmode            The runmode type.
  * \param runmode_customd_id The runmode custom id.
- * \param de_ctx             Detection Engine Context.
  */
 static RunMode *RunModeGetCustomMode(int runmode, const char *custom_mode)
 {
@@ -257,9 +256,8 @@ void RunModeListRunmodes(void)
 }
 
 /**
- *  \param de_ctx Detection engine ctx. Can be NULL is detect is disabled.
  */
-void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_ctx)
+void RunModeDispatch(int runmode, const char *custom_mode)
 {
     char *local_custom_mode = NULL;
 
@@ -355,7 +353,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
         exit(EXIT_FAILURE);
     }
 
-    mode->RunModeFunc(de_ctx);
+    mode->RunModeFunc();
 
     if (local_custom_mode != NULL)
         SCFree(local_custom_mode);
@@ -373,7 +371,7 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
  */
 void RunModeRegisterNewRunMode(int runmode, const char *name,
                                const char *description,
-                               int (*RunModeFunc)(DetectEngineCtx *))
+                               int (*RunModeFunc)(void))
 {
     void *ptmp;
     if (RunModeGetCustomMode(runmode, name) != NULL) {
