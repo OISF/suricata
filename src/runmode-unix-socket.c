@@ -469,6 +469,8 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 
     SigLoadSignatures(de_ctx, NULL, 0);
 
+    DetectEngineAddToMaster(de_ctx);
+
         // C for each thread, replace det_ctx
 
     json_object_set_new(answer, "message", json_string("work in progress"));
