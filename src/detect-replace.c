@@ -261,9 +261,11 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     }
 
     SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+    DetectEngineAddToMaster(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, NULL, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    DetectEngineMoveToFreeList(de_ctx);
 
     if (PacketAlertCheck(p, sid) != 1) {
         SCLogDebug("replace: no alert on sig %d", sid);
@@ -281,14 +283,9 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
 end:
     if (dtv.app_tctx != NULL)
         AppLayerDestroyCtxThread(dtv.app_tctx);
-    if (de_ctx != NULL)
-    {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        if (det_ctx != NULL)
-            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEnginePruneFreeList();
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
