@@ -53,6 +53,7 @@ typedef enum FileState_ {
 typedef struct FileData_ {
     uint8_t *data;
     uint32_t len;
+    uint64_t stream_offset;
     int stored;     /* true if this chunk has been stored already
                      * false otherwise */
     struct FileData_ *next;
