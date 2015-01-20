@@ -1559,8 +1559,16 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->tv = tv;
     det_ctx->de_ctx = DetectEngineGetCurrent();
     if (det_ctx->de_ctx == NULL) {
-        DetectEngineThreadCtxDeinit(tv, det_ctx);
+#ifdef UNITTESTS
+        if (RunmodeIsUnittests()) {
+            det_ctx->de_ctx = (DetectEngineCtx *)initdata;
+        } else {
+            DetectEngineThreadCtxDeinit(tv, det_ctx);
+            return TM_ECODE_FAILED;
+        }
+#else
         return TM_ECODE_FAILED;
+#endif
     }
 
     if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
@@ -1705,7 +1713,12 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     }
 
     DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
+#ifdef UNITTESTS
+    if (!RunmodeIsUnittests() || det_ctx->de_ctx->ref_cnt > 0)
+        DetectEngineDeReference(&det_ctx->de_ctx);
+#else
     DetectEngineDeReference(&det_ctx->de_ctx);
+#endif
     SCFree(det_ctx);
 
     return TM_ECODE_OK;
