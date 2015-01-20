@@ -95,6 +95,7 @@ detect-engine-dns.c detect-engine-dns.h \
 detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
+detect-engine-filedata-smtp.c detect-engine-filedata-smtp.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hhd.c detect-engine-hhd.h \

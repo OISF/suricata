@@ -61,6 +61,7 @@
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
+#include "detect-engine-filedata-smtp.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -274,6 +275,14 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
           DetectEngineInspectModbus },
+        /* file_data smtp */
+        { IPPROTO_TCP,
+          ALPROTO_SMTP,
+          DETECT_SM_LIST_FILEDATA,
+          DE_STATE_FLAG_FD_SMTP_INSPECT,
+          DE_STATE_FLAG_FD_SMTP_INSPECT,
+          0,
+          DetectEngineInspectSMTPFiledata },
     };
 
     struct tmp_t data_toclient[] = {
