@@ -279,7 +279,7 @@ void DetectEngineRegisterAppInspectionEngines(void)
     struct tmp_t data_toclient[] = {
         { IPPROTO_TCP,
           ALPROTO_HTTP,
-          DETECT_SM_LIST_HSBDMATCH,
+          DETECT_SM_LIST_FILEDATA,
           DE_STATE_FLAG_HSBD_INSPECT,
           DE_STATE_FLAG_HSBD_INSPECT,
           1,
@@ -1855,7 +1855,7 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http raw uri";
         case DETECT_SM_LIST_HCBDMATCH:
             return "http client body";
-        case DETECT_SM_LIST_HSBDMATCH:
+        case DETECT_SM_LIST_FILEDATA:
             return "http server body";
         case DETECT_SM_LIST_HHDMATCH:
             return "http headers";
@@ -2287,7 +2287,7 @@ int DetectEngineTest07(void)
           DE_STATE_FLAG_HCBD_INSPECT,
           0,
           DummyTestAppInspectionEngine02 },
-        { DETECT_SM_LIST_HSBDMATCH,
+        { DETECT_SM_LIST_FILEDATA,
           DE_STATE_FLAG_HSBD_INSPECT,
           DE_STATE_FLAG_HSBD_INSPECT,
           1,

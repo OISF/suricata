@@ -1446,7 +1446,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         case DETECT_SM_LIST_UMATCH:
         case DETECT_SM_LIST_HRUDMATCH:
         case DETECT_SM_LIST_HCBDMATCH:
-        case DETECT_SM_LIST_HSBDMATCH:
+        case DETECT_SM_LIST_FILEDATA:
         case DETECT_SM_LIST_HHDMATCH:
         case DETECT_SM_LIST_HRHDMATCH:
         case DETECT_SM_LIST_HMDMATCH:
@@ -1477,7 +1477,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HSBDMATCH) {
+            } else if (sm_list == DETECT_SM_LIST_FILEDATA) {
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
@@ -1980,7 +1980,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             has_co_hcbd = 1;
         }
 
-        if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
             has_co_hsbd = 1;
         }
 
