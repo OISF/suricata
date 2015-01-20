@@ -81,7 +81,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
         return -1;
     }
 
-    s->list = DETECT_SM_LIST_HSBDMATCH;
+    s->list = DETECT_SM_LIST_FILEDATA;
 
     return 0;
 }

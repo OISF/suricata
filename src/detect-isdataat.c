@@ -261,7 +261,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     int sm_list;
     if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
+        if (s->list == DETECT_SM_LIST_FILEDATA) {
             AppLayerHtpEnableResponseBodyCallback();
             s->alproto = ALPROTO_HTTP;
         }
@@ -277,7 +277,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -292,7 +292,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -307,7 +307,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -322,7 +322,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -337,7 +337,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -352,7 +352,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -987,17 +987,17 @@ static int DetectIsdataatTestParse14(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         printf("server body list empty: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_ISDATAAT) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_ISDATAAT) {
         printf("last server body sm not isdataat: ");
         goto end;
     }
 
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ||
          !(data->flags & ISDATAAT_NEGATED) ) {
@@ -1037,17 +1037,17 @@ static int DetectIsdataatTestParse15(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         printf("server body list empty: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_ISDATAAT) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_ISDATAAT) {
         printf("last server body sm not isdataat: ");
         goto end;
     }
 
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ||
          !(data->flags & ISDATAAT_NEGATED) ) {
