@@ -760,6 +760,13 @@ typedef struct HttpReassembledBody_ {
     uint64_t offset;        /**< data offset */
 } HttpReassembledBody;
 
+typedef struct FiledataReassembledBody_ {
+    uint8_t *buffer;
+    uint32_t buffer_size;   /**< size of the buffer itself */
+    uint32_t buffer_len;    /**< data len in the buffer */
+    uint64_t offset;        /**< data offset */
+} FiledataReassembledBody;
+
 #define DETECT_FILESTORE_MAX 15
 /** \todo review how many we actually need here */
 #define DETECT_SMSG_PMQ_NUM 256
@@ -800,6 +807,11 @@ typedef struct DetectionEngineThreadCtx_ {
     uint16_t hhd_buffers_size;
     uint16_t hhd_buffers_list_len;
     uint64_t hhd_start_tx_id;
+
+    FiledataReassembledBody *smtp;
+    uint64_t smtp_start_tx_id;
+    uint16_t smtp_buffers_size;
+    uint16_t smtp_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;
