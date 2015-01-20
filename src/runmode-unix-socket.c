@@ -508,6 +508,22 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
 
+    DetectEngineCtx *de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant detect engine not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(de_ctx);
+    DetectEngineDeReference(&de_ctx);
+
+    /* update the threads */
+    /** TODO */
+
+    /* walk free list, freeing the removed de_ctx */
+    DetectEnginePruneFreeList();
+
     ConfNode *node = ConfGetNode(prefix);
     if (node == NULL) {
         json_object_set_new(answer, "message", json_string("tenant not found"));
