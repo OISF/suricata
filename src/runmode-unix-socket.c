@@ -467,6 +467,8 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     }
     SCLogInfo("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
 
+    de_ctx->tenant_id = tenant_id;
+
     SigLoadSignatures(de_ctx, NULL, 0);
 
     DetectEngineAddToMaster(de_ctx);
