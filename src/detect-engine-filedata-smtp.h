@@ -23,6 +23,8 @@
 #ifndef __DETECT_ENGINE_FILEDATA_SMTP_H__
 #define __DETECT_ENGINE_FILEDATA_SMTP_H__
 
+#include "app-layer-smtp.h"
+
 int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
                                     DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
@@ -30,5 +32,10 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
                                     void *alstate,
                                     void *tx, uint64_t tx_id);
 void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx);
+
+int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
+                           DetectEngineThreadCtx *det_ctx, Flow *f,
+                           SMTPState *smtp_state, uint8_t flags,
+                           void *tx, uint64_t idx);
 
 #endif /* __DETECT_ENGINE_FILEDATA_SMTP_H__ */
