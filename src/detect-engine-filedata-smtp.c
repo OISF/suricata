@@ -215,3 +215,34 @@ void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx)
 
     return;
 }
+
+int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
+                           DetectEngineThreadCtx *det_ctx, Flow *f,
+                           SMTPState *smtp_state, uint8_t flags,
+                           void *tx, uint64_t idx)
+{
+    FileContainer *ffc = smtp_state->files_ts;
+    uint32_t cnt = 0;
+    uint32_t buffer_len = 0;
+    uint32_t stream_start_offset = 0;
+    uint8_t *buffer = 0;
+
+    if (ffc != NULL) {
+        File *file = ffc->head;
+        for (; file != NULL; file = file->next) {
+            buffer = DetectEngineSMTPGetBufferForTX(idx,
+                                                    de_ctx, det_ctx,
+                                                    f, file,
+                                                    flags,
+                                                    &buffer_len,
+                                                    &stream_start_offset);
+
+            if (buffer_len == 0)
+                goto end;
+
+            cnt = SMTPFiledataPatternSearch(det_ctx, buffer, buffer_len, flags);
+        }
+    }
+end:
+    return cnt;
+}
