@@ -130,15 +130,11 @@ int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
 DetectWindowData *DetectWindowParse(char *windowstr)
 {
     DetectWindowData *wd = NULL;
-    char *args[3] = {NULL,NULL,NULL}; /* PR: Why PCRE MAX_SUBSTRING must be multiple of 3? */
-	#define MAX_SUBSTRINGS 30
-
+#define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-
     ret = pcre_exec(parse_regex, parse_regex_study, windowstr, strlen(windowstr), 0, 0, ov, MAX_SUBSTRINGS);
-
     if (ret < 1 || ret > 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, windowstr);
         goto error;
@@ -149,45 +145,39 @@ DetectWindowData *DetectWindowParse(char *windowstr)
         goto error;
 
     if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        char copy_str[128] = "";
+        res = pcre_copy_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 1,
+                copy_str, sizeof(copy_str));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        args[0] = (char *)str_ptr;
+
         /* Detect if it's negated */
-        if (args[0][0] == '!')
+        if (copy_str[0] == '!')
             wd->negated = 1;
         else
             wd->negated = 0;
 
         if (ret > 2) {
-            res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+            res = pcre_copy_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 2,
+                    copy_str, sizeof(copy_str));
             if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
                 goto error;
             }
 
-            /* Get the window size if it's a valid value (in packets, we should alert if this doesn't happend from decode) */
-            if (-1 == ByteExtractStringUint16(&wd->size, 10, 0, str_ptr)) {
+            /* Get the window size if it's a valid value (in packets, we
+             * should alert if this doesn't happend from decode) */
+            if (-1 == ByteExtractStringUint16(&wd->size, 10, 0, copy_str)) {
                 goto error;
             }
         }
     }
 
-	int i = 0;
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL)
-            SCFree(args[i]);
-    }
     return wd;
 
 error:
-    for (i = 0; i < (ret -1) && i < 3; i++){
-        if (args[i] != NULL)
-            SCFree(args[i]);
-    }
     if (wd != NULL)
         DetectWindowFree(wd);
     return NULL;

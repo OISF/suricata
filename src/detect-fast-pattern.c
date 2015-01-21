@@ -208,7 +208,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-    const char *arg_substr = NULL;
+    char arg_substr[128] = "";
     DetectContentData *cd = NULL;
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL &&
@@ -320,8 +320,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
         /* fast pattern chop */
     } else if (ret == 4) {
-        res = pcre_get_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                 2, &arg_substr);
+        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
+                                 2, arg_substr, sizeof(arg_substr));
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
                        "for fast_pattern offset");
@@ -334,8 +334,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             goto error;
         }
 
-        res = pcre_get_substring((char *)arg, ov, MAX_SUBSTRINGS,
-                                 3, &arg_substr);
+        res = pcre_copy_substring((char *)arg, ov, MAX_SUBSTRINGS,
+                                 3, arg_substr, sizeof(arg_substr));
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed "
                        "for fast_pattern offset");

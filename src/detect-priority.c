@@ -77,7 +77,7 @@ void DetectPriorityRegister (void)
 
 static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    const char *prio_str = NULL;
+    char copy_str[128] = "";
 
 #define MAX_SUBSTRINGS 30
     int ret = 0;
@@ -90,26 +90,24 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
         return -1;
     }
 
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &prio_str);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, copy_str, sizeof(copy_str));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         return -1;
     }
 
     long prio = 0;
     char *endptr = NULL;
-    prio = strtol(rawstr, &endptr, 10);
+    prio = strtol(copy_str, &endptr, 10);
     if (endptr == NULL || *endptr != '\0') {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
                    "to priority keyword");
-        goto error;
+        return -1;
     }
     /* if we have reached here, we have had a valid priority.  Assign it */
     s->prio = prio;
 
     return 0;
- error:
-    return -1;
 }
 
 /*------------------------------Unittests-------------------------------------*/

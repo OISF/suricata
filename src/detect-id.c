@@ -139,7 +139,6 @@ DetectIdData *DetectIdParse (char *idstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-
     ret = pcre_exec(parse_regex, parse_regex_study, idstr, strlen(idstr), 0, 0,
                     ov, MAX_SUBSTRINGS);
 
@@ -152,26 +151,16 @@ DetectIdData *DetectIdParse (char *idstr)
 
 
     if (ret > 1) {
-        const char *str_ptr;
-        char *orig;
+        char copy_str[128] = "";
         char *tmp_str;
-        res = pcre_get_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
-                                    &str_ptr);
+        res = pcre_copy_substring((char *)idstr, ov, MAX_SUBSTRINGS, 1,
+                                    copy_str, sizeof(copy_str));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
 
-        /* We have a correct id option */
-        id_d = SCMalloc(sizeof(DetectIdData));
-        if (unlikely(id_d == NULL))
-            goto error;
-
-        orig = SCStrdup((char*)str_ptr);
-        if (unlikely(orig == NULL)) {
-            goto error;
-        }
-        tmp_str=orig;
+        tmp_str = copy_str;
 
         /* Let's see if we need to scape "'s */
         if (tmp_str[0] == '"')
@@ -187,13 +176,15 @@ DetectIdData *DetectIdParse (char *idstr)
             SCLogError(SC_ERR_INVALID_VALUE, "\"id\" option  must be in "
                         "the range %u - %u",
                         DETECT_IPID_MIN, DETECT_IPID_MAX);
-
-            SCFree(orig);
             goto error;
         }
-        id_d->id = temp;
 
-        SCFree(orig);
+        /* We have a correct id option */
+        id_d = SCMalloc(sizeof(DetectIdData));
+        if (unlikely(id_d == NULL))
+            goto error;
+
+        id_d->id = temp;
 
         SCLogDebug("detect-id: will look for ip_id: %u\n", id_d->id);
     }
@@ -201,7 +192,8 @@ DetectIdData *DetectIdParse (char *idstr)
     return id_d;
 
 error:
-    if (id_d != NULL) DetectIdFree(id_d);
+    if (id_d != NULL)
+        DetectIdFree(id_d);
     return NULL;
 
 }

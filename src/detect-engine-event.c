@@ -151,16 +151,17 @@ DetectEngineEventData *DetectEngineEventParse (char *rawstr)
         goto error;
     }
 
-    const char *str_ptr;
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 0, &str_ptr);
+    char copy_str[128] = "";
+    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 0,
+            copy_str, sizeof(copy_str));
 
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     for (i = 0; DEvents[i].event_name != NULL; i++) {
-        if (strcasecmp(DEvents[i].event_name,str_ptr) == 0) {
+        if (strcasecmp(DEvents[i].event_name,copy_str) == 0) {
             found = 1;
             break;
         }
@@ -168,7 +169,7 @@ DetectEngineEventData *DetectEngineEventParse (char *rawstr)
 
     if (found == 0) {
         SCLogError(SC_ERR_UNKNOWN_DECODE_EVENT, "unknown decode event \"%s\"",
-                str_ptr);
+                copy_str);
         goto error;
     }
 
@@ -184,7 +185,8 @@ DetectEngineEventData *DetectEngineEventParse (char *rawstr)
     return de;
 
 error:
-    if (de) SCFree(de);
+    if (de)
+        SCFree(de);
     return NULL;
 }
 
