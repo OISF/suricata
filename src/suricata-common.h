@@ -313,6 +313,7 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_ALERT,
     PROF_DETECT_CLEANUP,
     PROF_DETECT_GETSGH,
+    PROF_DETECT_MPM_FD_SMTP,
 
     PROF_DETECT_SIZE,
 } PacketProfileDetectId;
