@@ -2512,6 +2512,7 @@ int main(int argc, char **argv)
         MpmCudaBufferDeSetup();
     CudaHandlerFreeProfiles();
 #endif
+    ConfDeInit();
 
     exit(engine_retval);
 }
