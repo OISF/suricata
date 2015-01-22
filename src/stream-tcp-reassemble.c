@@ -466,6 +466,19 @@ int StreamTcpReassemblyConfig(char quiet)
     if (!quiet)
         SCLogInfo("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
     StreamMsgQueuesInit(stream_chunk_prealloc);
+
+    intmax_t zero_copy_size = 128;
+    if (ConfGetInt("stream.reassembly.zero-copy-size", &zero_copy_size) == 1) {
+        if (zero_copy_size < 0 || zero_copy_size > 0xffff) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "stream.reassembly.zero-copy-size of "
+                    "%"PRIiMAX" is invalid: valid values are 0 to 65535", zero_copy_size);
+            return -1;
+        }
+    }
+    stream_config.zero_copy_size = (uint16_t)zero_copy_size;
+    if (!quiet)
+        SCLogInfo("stream.reassembly \"zero-copy-size\": %u", stream_config.zero_copy_size);
+
     return 0;
 }
 
@@ -2577,7 +2590,10 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  Packet *p)
 {
     /* fast path 1: segment is exactly what we need */
-    if (likely(rd->data_len == 0 && SEQ_EQ(seg->seq, rd->ra_base_seq+1) && SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len)))) {
+    if (likely(rd->data_len == 0 &&
+               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+               SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len))))
+    {
         /* process single segment directly */
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                 seg->payload, seg->payload_len,
@@ -2596,7 +2612,11 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         return 1;
     /* fast path 2: segment acked completely, meets minimal size req for 0copy processing */
-    } else if (rd->data_len == 0 && SEQ_EQ(seg->seq, rd->ra_base_seq+1) && SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) && seg->payload_len >= 128) {
+    } else if (rd->data_len == 0 &&
+               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+               SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) &&
+               seg->payload_len >= stream_config.zero_copy_size)
+    {
         /* process single segment directly */
         AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
                 seg->payload, seg->payload_len,
