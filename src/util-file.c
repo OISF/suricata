@@ -124,7 +124,8 @@ static int FileAppendFileData(FileContainer *ffc, FileData *ffd) {
 
 
 
-static void FilePruneFile(File *file) {
+static int FilePruneFile(File *file)
+{
     SCEnter();
 
     SCLogDebug("file %p, file->chunks_cnt %"PRIu64, file, file->chunks_cnt);
@@ -132,7 +133,7 @@ static void FilePruneFile(File *file) {
     if (!(file->flags & FILE_NOMAGIC)) {
         /* need magic but haven't set it yet, bail out */
         if (file->magic == NULL)
-            SCReturn;
+            SCReturnInt(0);
         else
             SCLogDebug("file->magic %s", file->magic);
     } else {
@@ -159,18 +160,36 @@ static void FilePruneFile(File *file) {
 #endif
         } else if (fd->stored == 0) {
             fd = NULL;
+            SCReturnInt(0);
             break;
         }
     }
 
-    SCReturn;
+    if (file->state >= FILE_STATE_CLOSED)
+        SCReturnInt(1);
+    else
+        SCReturnInt(0);
 }
 
-void FilePrune(FileContainer *ffc) {
-    File *file;
+void FilePrune(FileContainer *ffc)
+{
+    File *file = ffc->head;
 
-    for (file = ffc->head; file != NULL; file = file->next) {
-        FilePruneFile(file);
+    while (file) {
+        if (FilePruneFile(file) == 0)
+            break;
+
+        BUG_ON(file != ffc->head);
+
+        File *file_next = file->next;
+
+        /* update head and tail */
+        ffc->head = file_next;
+        if (file == ffc->tail)
+            ffc->tail = NULL;
+
+        FileFree(file);
+        file = file_next;
     }
 }
 
