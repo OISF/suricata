@@ -324,7 +324,6 @@ void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
     Flow *f = FlowGetFlowFromHash(tv, dtv, p);
-    SCLogInfo("packet %"PRIu64", f %p", p->pcap_cnt, f);
     if (f == NULL)
         return;
 
