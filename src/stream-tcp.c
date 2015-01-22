@@ -4687,6 +4687,210 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     return ret;
 }
 
+/* TODO overlap with TcpSessionPacketSsnReuse */
+
+/** TODO name, plus configurable and allow midstream
+ *  TODO also consider async? */
+int PacketIsStreamStarter(const Packet *p)
+{
+    uint8_t flag = TH_SYN;
+
+    //SCLogInfo("Want: %02x, have %02x", flag, p->tcph->th_flags);
+
+    if (p->tcph->th_flags == flag) {
+        SCLogDebug("packet %"PRIu64" is a stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
+        return 1;
+    }
+    return 0;
+}
+
+/** TODO name, plus make configurable */
+int TcpSessionDoneEnough(Packet *p, const TcpSession *ssn)
+{
+    if (FlowGetPacketDirection(p->flow, p) == TOSERVER) {
+        if (ssn == NULL) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
+            return 0;
+        }
+        if (SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            return 0;
+        }
+        if (ssn->state >= TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state == TCP_NONE) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state < TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 0;
+        }
+
+    } else {
+        if (ssn == NULL) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            return 1;
+        }
+        if (ssn->state >= TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state == TCP_NONE) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state < TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 0;
+        }
+    }
+
+
+    SCLogDebug("default: how did we get here?");
+    return 0;
+}
+
+/** \brief Handle TCP reuse of tuple
+ *
+ *  Logic:
+ *  1. see if packet could trigger a new session
+ *  2. see if the flow/ssn is in a state where we want to support the reuse
+ *  3. disconnect packet from the old flow
+ *  -> at this point new packets can still find the old flow
+ *  -> as the flow's reference count != 0, it can't disappear
+ *  4. setup a new flow unconditionally
+ *  5. attach packet to new flow
+ *  6. tag old flow as FLOW_TCP_REUSED
+ *  -> NEW packets won't find it
+ *  -> existing packets in our queues may still reference it
+ *  7. dereference the old flow (reference cnt *may* now be 0,
+ *     if no other packets reference it)
+ *
+ *  The packets that still hold a reference to the old flow are updated
+ *  by HandleFlowReuseApplyToPacket()
+ */
+static void HandleFlowReuse(Packet *p) {
+    if (likely(PacketIsStreamStarter(p) == 0))
+        return;
+
+    int reuse = 0;
+    FLOWLOCK_RDLOCK(p->flow);
+    reuse = TcpSessionDoneEnough(p, p->flow->protoctx);
+    if (!reuse) {
+        SCLogDebug("steam starter packet %"PRIu64", but state not "
+                   "ready to be reused", p->pcap_cnt);
+        FLOWLOCK_UNLOCK(p->flow);
+        return;
+    }
+
+    /* ok, this packet needs a new flow */
+
+    /* first, get a reference to the old flow */
+    Flow *old_f = NULL;
+    FlowReference(&old_f, p->flow);
+
+    /* get some settings that we move over to the new flow */
+    FlowThreadId thread_id = old_f->thread_id;
+    int autofp_tmqh_flow_qid = SC_ATOMIC_GET(old_f->autofp_tmqh_flow_qid);
+
+    /* disconnect the packet from the old flow */
+    FlowHandlePacketUpdateRemove(p->flow, p);
+    FLOWLOCK_UNLOCK(p->flow);
+    FlowDeReference(&p->flow); // < can't disappear while usecnt >0
+
+    /* Can't tag flow as reused yet, would be a race condition:
+     * new packets will not get old flow because of FLOW_TCP_REUSED,
+     * so new flow may be created. This new flow could be handled in
+     * a different thread. */
+
+    /* Get a flow. It will be either a locked flow or NULL */
+    Flow *new_f = FlowGetFlowFromHashByPacket(p);
+    if (new_f == NULL) {
+        FlowDeReference(&old_f); // < can't disappear while usecnt >0
+        return;
+    }
+
+    /* update flow and packet */
+    FlowHandlePacketUpdate(new_f, p);
+    BUG_ON(new_f != p->flow);
+
+    /* copy flow balancing settings */
+    new_f->thread_id = thread_id;
+    SC_ATOMIC_SET(new_f->autofp_tmqh_flow_qid, autofp_tmqh_flow_qid);
+
+    FLOWLOCK_UNLOCK(new_f);
+
+    /* tag original flow that it's now unused */
+    FLOWLOCK_WRLOCK(old_f);
+    SCLogDebug("old flow %p tagged with FLOW_TCP_REUSED by packet %"PRIu64"!", old_f, p->pcap_cnt);
+    old_f->flags |= FLOW_TCP_REUSED;
+    FLOWLOCK_UNLOCK(old_f);
+    FlowDeReference(&old_f); // < can't disappear while usecnt >0
+
+    SCLogDebug("new flow %p set up for packet %"PRIu64"!", p->flow, p->pcap_cnt);
+}
+
+/** \brief Handle packets that reference the wrong flow because of TCP reuse
+ *
+ *  In the case of TCP reuse we can have many packets that were assigned
+ *  a flow by the capture/decode threads before the stream engine decided
+ *  that a new flow was needed for these packets.
+ *  When HandleFlowReuse creates a new flow, the packets already processed
+ *  by the flow engine will still reference the old flow.
+ *
+ *  This function detects this case and replaces the flow for those packets.
+ *  It's a fairly expensive operation, but it should be rare as it's only
+ *  done for packets that were already in the engine when the TCP reuse
+ *  case was handled. New packets are assigned the correct flow by the
+ *  flow engine.
+ */
+static void HandleFlowReuseApplyToPacket(Packet *p)
+{
+    int need_flow_replace = 0;
+
+    FLOWLOCK_WRLOCK(p->flow);
+    if (p->flow->flags & FLOW_TCP_REUSED) {
+        SCLogDebug("packet %"PRIu64" attached to outdated flow and ssn", p->pcap_cnt);
+        need_flow_replace = 1;
+    }
+
+    if (likely(need_flow_replace == 0)) {
+        /* Work around a race condition: if HandleFlowReuse has inserted a new flow,
+         * it will not have seen both sides of the session yet. The packet we have here
+         * may be the first that got the flow directly from the hash right after the
+         * flow was added. In this case it won't have FLOW_PKT_ESTABLISHED flag set. */
+        if ((p->flow->flags & FLOW_TO_DST_SEEN) && (p->flow->flags & FLOW_TO_SRC_SEEN)) {
+            p->flowflags |= FLOW_PKT_ESTABLISHED;
+            SCLogDebug("packet %"PRIu64" / flow %p: p->flowflags |= FLOW_PKT_ESTABLISHED (%u/%u)", p->pcap_cnt, p->flow, p->flow->todstpktcnt, p->flow->tosrcpktcnt);
+        } else {
+            SCLogDebug("packet %"PRIu64" / flow %p: p->flowflags NOT FLOW_PKT_ESTABLISHED (%u/%u)", p->pcap_cnt, p->flow, p->flow->todstpktcnt, p->flow->tosrcpktcnt);
+        }
+        SCLogDebug("packet %"PRIu64" attached to regular flow %p and ssn", p->pcap_cnt, p->flow);
+        FLOWLOCK_UNLOCK(p->flow);
+        return;
+    }
+
+    /* disconnect packet from old flow */
+    FlowHandlePacketUpdateRemove(p->flow, p);
+    FLOWLOCK_UNLOCK(p->flow);
+    FlowDeReference(&p->flow); // < can't disappear while usecnt >0
+
+    /* find the new flow that does belong to this packet */
+    Flow *new_f = FlowLookupFlowFromHash(p);
+    if (new_f == NULL) {
+        // TODO reset packet flag wrt flow: direction, HAS_FLOW etc
+        p->flags &= ~PKT_HAS_FLOW;
+        return;
+    }
+    FlowHandlePacketUpdate(new_f, p);
+    BUG_ON(new_f != p->flow);
+    FLOWLOCK_UNLOCK(new_f);
+    SCLogDebug("packet %"PRIu64" switched over to new flow %p!", p->pcap_cnt, p->flow);
+}
+
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
@@ -4707,6 +4911,20 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         }
     } else {
         p->flags |= PKT_IGNORE_CHECKSUM;
+    }
+
+// TODO autofp only somehow
+    /* "autofp" handling of TCP session/flow reuse */
+    if (!(p->flags & PKT_PSEUDO_STREAM_END)) {
+        /* apply previous reuses to this packet */
+        HandleFlowReuseApplyToPacket(p);
+        if (p->flow == NULL)
+            return ret;
+
+        /* after that, check for 'new' reuse */
+        HandleFlowReuse(p);
+        if (p->flow == NULL)
+            return ret;
     }
 
     AppLayerProfilingReset(stt->ra_ctx->app_tctx);
