@@ -1179,7 +1179,10 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
+/** \internal
+ *  \retval stub_len or 0 in case of error */
+static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
+{
     SCEnter();
     uint8_t **stub_data_buffer = NULL;
     uint32_t *stub_data_buffer_len = NULL;
@@ -1237,7 +1240,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
         SCFree(*stub_data_buffer);
         *stub_data_buffer = NULL;
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        goto end;
+        SCReturnUInt(0);
     }
     *stub_data_buffer = ptmp;
 
@@ -1261,7 +1264,6 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     }
 #endif
 
-end:
     SCReturnUInt((uint32_t)stub_len);
 }
 
