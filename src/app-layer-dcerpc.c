@@ -685,17 +685,14 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 
                             dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)
                                 SCCalloc(1, sizeof(DCERPCUuidEntry));
-                            if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
-                                SCLogError(SC_ERR_MEM_ALLOC,
-                                           "Error allocating memory\n");
-                                exit(EXIT_FAILURE);
+                            if (dcerpc->dcerpcbindbindack.uuid_entry != NULL) {
+                                memcpy(dcerpc->dcerpcbindbindack.uuid_entry,
+                                        uuid_entry,
+                                        sizeof(DCERPCUuidEntry));
+                                TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.accepted_uuid_list,
+                                        dcerpc->dcerpcbindbindack.uuid_entry,
+                                        next);
                             }
-                            memcpy(dcerpc->dcerpcbindbindack.uuid_entry,
-                                   uuid_entry,
-                                   sizeof(DCERPCUuidEntry));
-                            TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.accepted_uuid_list,
-                                              dcerpc->dcerpcbindbindack.uuid_entry,
-                                              next);
                             break;
                         }
                     }
@@ -844,17 +841,14 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 
                         dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)
                             SCCalloc(1, sizeof(DCERPCUuidEntry));
-                        if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
-                            SCLogError(SC_ERR_MEM_ALLOC,
-                                       "Error allocating memory\n");
-                            exit(EXIT_FAILURE);
+                        if (dcerpc->dcerpcbindbindack.uuid_entry != NULL) {
+                            memcpy(dcerpc->dcerpcbindbindack.uuid_entry,
+                                    uuid_entry,
+                                    sizeof(DCERPCUuidEntry));
+                            TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.accepted_uuid_list,
+                                    dcerpc->dcerpcbindbindack.uuid_entry,
+                                    next);
                         }
-                        memcpy(dcerpc->dcerpcbindbindack.uuid_entry,
-                               uuid_entry,
-                               sizeof(DCERPCUuidEntry));
-                        TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.accepted_uuid_list,
-                                          dcerpc->dcerpcbindbindack.uuid_entry,
-                                          next);
                         break;
                     }
                 }
