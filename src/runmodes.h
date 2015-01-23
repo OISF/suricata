@@ -72,6 +72,11 @@ void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);
 void RunModeShutDown(void);
 
+/* bool indicating if file logger is enabled */
+int RunModeOutputFileEnabled(void);
+/* bool indicating if filedata logger is enabled */
+int RunModeOutputFiledataEnabled(void);
+
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
 #include "runmode-pfring.h"
