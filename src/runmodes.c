@@ -436,6 +436,16 @@ static TmModule *file_logger_module = NULL;
 static TmModule *filedata_logger_module = NULL;
 static TmModule *streaming_logger_module = NULL;
 
+int RunModeOutputFileEnabled(void)
+{
+    return (file_logger_module != NULL);
+}
+
+int RunModeOutputFiledataEnabled(void)
+{
+    return (filedata_logger_module != NULL);
+}
+
 /**
  * Cleanup the run mode.
  */
