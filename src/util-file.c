@@ -28,6 +28,7 @@
 #include "debug.h"
 #include "flow.h"
 #include "stream.h"
+#include "runmodes.h"
 #include "util-hash.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
@@ -173,10 +174,15 @@ static int FilePruneFile(File *file)
         }
     }
 
-    if (file->state >= FILE_STATE_CLOSED)
+    /* file is done when state is closed+, logging/storing is done (if any) */
+    if (file->state >= FILE_STATE_CLOSED &&
+        (!RunModeOutputFileEnabled() || (file->flags & FILE_LOGGED)) &&
+        (!RunModeOutputFiledataEnabled() || (file->flags & FILE_STORED)))
+    {
         SCReturnInt(1);
-    else
+    } else {
         SCReturnInt(0);
+    }
 }
 
 void FilePrune(FileContainer *ffc)
