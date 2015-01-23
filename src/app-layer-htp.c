@@ -1017,10 +1017,6 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
 {
-    htp_header_t *cl = htp_table_get_c(d->tx->request_headers, "content-length");
-    if (cl != NULL)
-        htud->request_body.content_len = SC_htp_parse_content_length(cl->value);
-
     htp_header_t *h = (htp_header_t *)htp_table_get_c(d->tx->request_headers,
             "Content-Type");
     if (h != NULL && bstr_len(h->value) > 0) {
@@ -1881,11 +1877,6 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     if (!tx_ud->request_body_init) {
         tx_ud->request_body_init = 1;
         tx_ud->operation = HTP_BODY_RESPONSE;
-
-        htp_header_t *cl = htp_table_get_c(d->tx->response_headers, "content-length");
-        if (cl != NULL)
-            tx_ud->response_body.content_len = SC_htp_parse_content_length(cl->value);
-
     }
 
     SCLogDebug("tx_ud->response_body.content_len_so_far %"PRIu64, tx_ud->response_body.content_len_so_far);

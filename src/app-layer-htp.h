@@ -170,8 +170,6 @@ typedef struct HtpBody_ {
     HtpBodyChunk *first; /**< Pointer to the first chunk */
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
 
-    /* Holds the length of the htp request body */
-    uint64_t content_len;
     /* Holds the length of the htp request body seen so far */
     uint64_t content_len_so_far;
     /* parser tracker */
