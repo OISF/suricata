@@ -280,7 +280,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
         Flow *next_flow = f->hprev;
 
-        int state = FlowGetFlowState(f);
+        int state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
@@ -413,7 +413,7 @@ static uint32_t FlowManagerHashRowCleanup(Flow *f)
 
         Flow *next_flow = f->hprev;
 
-        int state = FlowGetFlowState(f);
+        int state = SC_ATOMIC_GET(f->flow_state);
 
         /* remove from the hash */
         if (f->hprev != NULL)
@@ -1034,7 +1034,7 @@ static int FlowMgrTest01 (void)
 
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -1093,7 +1093,7 @@ static int FlowMgrTest02 (void)
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -1140,7 +1140,7 @@ static int FlowMgrTest03 (void)
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -1200,7 +1200,7 @@ static int FlowMgrTest04 (void)
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);

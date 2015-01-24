@@ -272,6 +272,13 @@ typedef unsigned int FlowRefCount;
 typedef unsigned short FlowRefCount;
 #endif
 
+#ifdef __tile__
+/* Atomic Ints performance better on Tile. */
+typedef unsigned int FlowStateType;
+#else
+typedef unsigned short FlowStateType;
+#endif
+
 /** Local Thread ID */
 typedef uint16_t FlowThreadId;
 
@@ -311,6 +318,8 @@ typedef struct Flow_
     uint16_t vlan_id[2];
 
     /* end of flow "header" */
+
+    SC_ATOMIC_DECLARE(FlowStateType, flow_state);
 
     /** how many pkts and stream msgs are using the flow *right now*. This
      *  variable is atomic so not protected by the Flow mutex "m".
@@ -414,7 +423,6 @@ typedef struct FlowProto_ {
     uint32_t emerg_est_timeout;
     uint32_t emerg_closed_timeout;
     void (*Freefunc)(void *);
-    int (*GetProtoState)(void *);
 } FlowProto;
 
 void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
@@ -428,7 +436,6 @@ void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
-int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 void FlowUpdateQueue(Flow *);
 
 struct FlowQueue_;
