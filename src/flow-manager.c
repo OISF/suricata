@@ -163,7 +163,7 @@ void FlowKillFlowManagerThread(void)
  *
  *  \retval timeout timeout in seconds
  */
-static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency)
+static inline uint32_t FlowGetFlowTimeout(const Flow *f, int state, int emergency)
 {
     uint32_t timeout;
 
@@ -208,7 +208,7 @@ static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency)
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int emergency)
+static int FlowManagerFlowTimeout(const Flow *f, int state, struct timeval *ts, int emergency)
 {
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
@@ -273,21 +273,22 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
     uint32_t cnt = 0;
 
     do {
-        if (FLOWLOCK_TRYWRLOCK(f) != 0) {
-            f = f->hprev;
-            continue;
-        }
-
-        Flow *next_flow = f->hprev;
+        /* check flow timeout based on lastts and state. Both can be
+         * accessed w/o Flow lock as we do have the hash row lock (so flow
+         * can't disappear) and flow_state is atomic. lastts can only
+         * be modified when we have both the flow and hash row lock */
 
         int state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
-            FLOWLOCK_UNLOCK(f);
             f = f->hprev;
             continue;
         }
+
+        FLOWLOCK_WRLOCK(f);
+
+        Flow *next_flow = f->hprev;
 
         /* check if the flow is fully timed out and
          * ready to be discarded. */
