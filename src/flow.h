@@ -337,7 +337,9 @@ typedef struct Flow_
 
     uint32_t flags;
 
-    /* time stamp of last update (last packet) */
+    /* time stamp of last update (last packet). Set/updated under the
+     * flow and flow hash row locks, safe to read under either the
+     * flow lock or flow hash row lock. */
     struct timeval lastts;
 
 #ifdef FLOWLOCK_RWLOCK
