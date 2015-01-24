@@ -519,6 +519,9 @@ Flow *FlowGetFlowFromHash(const Packet *p)
         FlowInit(f, p);
         f->fb = fb;
 
+        /* update the last seen timestamp of this flow */
+        f->lastts_sec = p->ts.tv_sec;
+
         FBLOCK_UNLOCK(fb);
         FlowHashCountUpdate;
         return f;
@@ -554,6 +557,9 @@ Flow *FlowGetFlowFromHash(const Packet *p)
                 FlowInit(f, p);
                 f->fb = fb;
 
+                /* update the last seen timestamp of this flow */
+                f->lastts_sec = p->ts.tv_sec;
+
                 FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
                 return f;
@@ -579,6 +585,9 @@ Flow *FlowGetFlowFromHash(const Packet *p)
 
                 /* found our flow, lock & return */
                 FLOWLOCK_WRLOCK(f);
+                /* update the last seen timestamp of this flow */
+                f->lastts_sec = p->ts.tv_sec;
+
                 FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
                 return f;
@@ -588,6 +597,9 @@ Flow *FlowGetFlowFromHash(const Packet *p)
 
     /* lock & return */
     FLOWLOCK_WRLOCK(f);
+    /* update the last seen timestamp of this flow */
+    f->lastts_sec = p->ts.tv_sec;
+
     FBLOCK_UNLOCK(fb);
     FlowHashCountUpdate;
     return f;
