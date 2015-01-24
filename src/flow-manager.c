@@ -126,24 +126,6 @@ void FlowKillFlowManagerThread(void)
 }
 
 /** \internal
- *  \brief Get the flow's state
- *
- *  \param f flow
- *
- *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
- */
-static inline int FlowGetFlowState(Flow *f) {
-    if (flow_proto[f->protomap].GetProtoState != NULL) {
-        return flow_proto[f->protomap].GetProtoState(f->protoctx);
-    } else {
-        if ((f->flags & FLOW_TO_SRC_SEEN) && (f->flags & FLOW_TO_DST_SEEN))
-            return FLOW_STATE_ESTABLISHED;
-        else
-            return FLOW_STATE_NEW;
-    }
-}
-
-/** \internal
  *  \brief get timeout for flow
  *
  *  \param f flow
@@ -266,7 +248,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
         Flow *next_flow = f->hprev;
 
-        int state = FlowGetFlowState(f);
+        int state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
@@ -624,7 +606,7 @@ static int FlowMgrTest01 (void) {
 
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -682,7 +664,7 @@ static int FlowMgrTest02 (void) {
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -728,7 +710,7 @@ static int FlowMgrTest03 (void) {
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -787,7 +769,7 @@ static int FlowMgrTest04 (void) {
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
