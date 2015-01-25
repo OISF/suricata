@@ -151,17 +151,15 @@ int LiveBuildDeviceListCustom(char * runmode, char * itemname)
         return 0;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        if (!strcmp(child->val, itemname)) {
-            ConfNode *subchild;
-            TAILQ_FOREACH(subchild, &child->head, next) {
-                if ((!strcmp(subchild->name, itemname))) {
-                    if (!strcmp(subchild->val, "default"))
-                        break;
-                    SCLogInfo("Adding %s %s from config file",
-                              itemname, subchild->val);
-                    LiveRegisterDevice(subchild->val);
-                    i++;
-                }
+        ConfNode *subchild;
+        TAILQ_FOREACH(subchild, &child->head, next) {
+            if ((!strcmp(subchild->name, itemname))) {
+                if (!strcmp(subchild->val, "default"))
+                    break;
+                SCLogInfo("Adding %s %s from config file",
+                          itemname, subchild->val);
+                LiveRegisterDevice(subchild->val);
+                i++;
             }
         }
     }
