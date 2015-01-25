@@ -1340,6 +1340,15 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     int tp_hdrlen = sizeof(struct tpacket_hdr);
     int snaplen = default_packet_size;
 
+    if (snaplen == 0) {
+        snaplen = GetIfaceMaxPacketSize(ptv->iface);
+        if (snaplen <= 0) {
+            SCLogWarning(SC_ERR_INVALID_VALUE,
+                         "Unable to get MTU, setting snaplen to sane default of 1514");
+            snaplen = 1514;
+        }
+    }
+
     ptv->req.tp_frame_size = TPACKET_ALIGN(snaplen +TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + sizeof(struct sockaddr_ll) + ETH_HLEN) - ETH_HLEN);
     ptv->req.tp_block_size = getpagesize() << order;
     int frames_per_block = ptv->req.tp_block_size / ptv->req.tp_frame_size;
