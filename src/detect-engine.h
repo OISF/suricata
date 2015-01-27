@@ -72,6 +72,7 @@ int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineGetCurrent(void);
 void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
+DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(void);
 int DetectEngineEnabled(void);
