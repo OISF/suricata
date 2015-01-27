@@ -1307,7 +1307,7 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
-    det_ctx->de_ctx = DetectEngineGetCurrent();
+    det_ctx->de_ctx = DetectEngineReference(initdata);
     if (det_ctx->de_ctx == NULL) {
         return TM_ECODE_FAILED;
     }
@@ -1524,6 +1524,14 @@ DetectEngineCtx *DetectEngineGetCurrent(void)
     SCLogDebug("master->list %p ref_cnt %u", master->list, master->list->ref_cnt);
     SCMutexUnlock(&master->lock);
     return master->list;
+}
+
+DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx == NULL)
+        return NULL;
+    de_ctx->ref_cnt++;
+    return de_ctx;
 }
 
 void DetectEngineDeReference(DetectEngineCtx **de_ctx)
