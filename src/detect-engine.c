@@ -97,7 +97,8 @@
 
 static uint32_t detect_engine_ctx_id = 1;
 
-static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *, void *, void **);
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx);
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
@@ -517,17 +518,16 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
             detect_tvs[i] = tv;
-            TmEcode r = DetectEngineThreadCtxInitForLiveRuleSwap(tv, (void *)new_de_ctx,
-                                                                 (void **)&new_det_ctx[i]);
-            i++;
-            if (r == TM_ECODE_FAILED) {
+            new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            if (new_det_ctx[i] == NULL) {
                 SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
                 SCMutexUnlock(&tv_root_lock);
                 goto error;
             }
             SCLogDebug("live rule swap created new det_ctx - %p and de_ctx "
-                       "- %p\n", new_det_ctx, new_de_ctx);
+                       "- %p\n", new_det_ctx[i], new_de_ctx);
+            i++;
             break;
         }
 
@@ -1288,28 +1288,31 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 
 /**
  * \internal
- * \brief This thread is an exact duplicate of DetectEngineThreadCtxInit(),
- *        except that the counters API 2 calls doesn't let us use the same
- *        init function.  Once we have the new counters API it should let
- *        us use the same init function.
+ * \brief initialize a det_ctx for reload cases
+ * \param new_de_ctx the new detection engine
+ * \retval det_ctx detection engine thread ctx or NULL in case of error
  */
-static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *initdata, void **data)
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx)
 {
-    *data = NULL;
-
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
-        return TM_ECODE_FAILED;
+        return NULL;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
-    det_ctx->de_ctx = DetectEngineReference(initdata);
+    det_ctx->de_ctx = DetectEngineReference(new_de_ctx);
     if (det_ctx->de_ctx == NULL) {
-        return TM_ECODE_FAILED;
+        SCFree(det_ctx);
+        return NULL;
     }
 
-    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK)
-        return TM_ECODE_FAILED;
+    /* most of the init happens here */
+    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
+        DetectEngineDeReference(&det_ctx->de_ctx);
+        SCFree(det_ctx);
+        return NULL;
+    }
 
     /** alert counter setup */
     det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
@@ -1328,12 +1331,8 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
     det_ctx->counter_match_list = counter_match_list;
 #endif
-    /* no counter creation here */
 
-    /* pass thread data back to caller */
-    *data = (void *)det_ctx;
-
-    return TM_ECODE_OK;
+    return det_ctx;
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
