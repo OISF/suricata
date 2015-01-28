@@ -88,6 +88,15 @@ static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
 
 /***** L7 layer dispatchers *****/
 
+static void DisableAppLayer(Flow *f, TcpSession *ssn)
+{
+    SCLogInfo("disable app layer for flow %p, ssn %p", f, ssn);
+    FlowSetSessionNoApplayerInspectionFlag(f);
+    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+    StreamTcpDisableAppLayerReassembly(ssn);
+}
+
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           Packet *p, Flow *f,
                           TcpSession *ssn, TcpStream *stream,
@@ -221,9 +230,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     }
                 }
                 if (ret < 0) {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+                    DisableAppLayer(f, ssn);
                     goto failure;
                 }
             }
@@ -250,9 +257,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     goto failure;
@@ -301,9 +306,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
                     SCLogDebug("midstream end pd %p", ssn);
                     /* midstream and toserver detection failed: give up */
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     goto end;
                 }
@@ -330,9 +333,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
                 {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     goto failure;
                 }
 
@@ -374,26 +375,20 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
                 } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                         size_ts > 100000 && size_tc == 0)
                 {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
                 } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
                         size_tc > 100000 && size_ts == 0)
                 {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
@@ -404,9 +399,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
                            FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
                 {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
@@ -417,9 +410,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
                            FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
                 {
-                    FlowSetSessionNoApplayerInspectionFlag(f);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-                    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+                    DisableAppLayer(f, ssn);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
