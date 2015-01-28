@@ -240,6 +240,7 @@ typedef struct TcpSession_ {
 #define StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream) \
     ((stream)->flags &= ~STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED);
 #define StreamTcpDisableAppLayerReassembly(ssn) do { \
+        SCLogDebug("setting STREAMTCP_FLAG_APP_LAYER_DISABLED on ssn %p", ssn); \
         ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
     } while (0);
 
