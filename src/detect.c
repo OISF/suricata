@@ -11583,7 +11583,7 @@ static int SigTestDropFlow03(void)
         SCLogDebug("This flow/stream triggered a drop rule");
         FlowSetNoPacketInspectionFlag(p2->flow);
         DecodeSetNoPacketInspectionFlag(p2);
-        FlowSetSessionNoApplayerInspectionFlag(p2->flow);
+        StreamTcpDisableAppLayer(p2->flow);
         p2->action |= ACTION_DROP;
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p2);
@@ -11766,7 +11766,7 @@ static int SigTestDropFlow04(void)
     if (StreamTcpCheckFlowDrops(p2) == 1) {
         FlowSetNoPacketInspectionFlag(p2->flow);
         DecodeSetNoPacketInspectionFlag(p2);
-        FlowSetSessionNoApplayerInspectionFlag(p2->flow);
+        StreamTcpDisableAppLayer(p2->flow);
         p2->action |= ACTION_DROP;
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p2);

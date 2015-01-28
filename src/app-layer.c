@@ -88,13 +88,10 @@ static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
 
 /***** L7 layer dispatchers *****/
 
-static void DisableAppLayer(Flow *f, TcpSession *ssn)
+static void DisableAppLayer(Flow *f)
 {
-    SCLogInfo("disable app layer for flow %p, ssn %p", f, ssn);
-    FlowSetSessionNoApplayerInspectionFlag(f);
-    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
-    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
-    StreamTcpDisableAppLayerReassembly(ssn);
+    SCLogDebug("disable app layer for flow %p", f);
+    StreamTcpDisableAppLayer(f);
 }
 
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -116,8 +113,8 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     uint8_t first_data_dir;
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
-    if (f->flags & FLOW_NO_APPLAYER_INSPECTION) {
-        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) {
+        SCLogDebug("STREAMTCP_FLAG_APP_LAYER_DISABLED is set");
         goto end;
     }
 
@@ -230,7 +227,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     }
                 }
                 if (ret < 0) {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     goto failure;
                 }
             }
@@ -257,7 +254,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if (first_data_dir && !(first_data_dir & ssn->data_first_seen_dir)) {
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_WRONG_DIRECTION_FIRST_DATA);
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     /* Set a value that is neither STREAM_TOSERVER, nor STREAM_TOCLIENT */
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     goto failure;
@@ -306,7 +303,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER)) {
                     SCLogDebug("midstream end pd %p", ssn);
                     /* midstream and toserver detection failed: give up */
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     goto end;
                 }
@@ -333,7 +330,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 if ((ssn->data_first_seen_dir != APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) &&
                     (first_data_dir) && !(first_data_dir & flags))
                 {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     goto failure;
                 }
 
@@ -375,20 +372,20 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                     FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
                 } else if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
                         size_ts > 100000 && size_tc == 0)
                 {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
                 } else if (FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) &&
                         size_tc > 100000 && size_ts == 0)
                 {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
@@ -399,7 +396,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
                            FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT))
                 {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
@@ -410,7 +407,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                            FLOW_IS_PP_DONE(f, STREAM_TOCLIENT) && !(FLOW_IS_PM_DONE(f, STREAM_TOCLIENT)) &&
                            FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER))
                 {
-                    DisableAppLayer(f, ssn);
+                    DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);

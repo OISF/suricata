@@ -4481,7 +4481,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         SCLogDebug("This flow/stream triggered a drop rule");
         FlowSetNoPacketInspectionFlag(p->flow);
         DecodeSetNoPacketInspectionFlag(p);
-        FlowSetSessionNoApplayerInspectionFlag(p->flow);
+        StreamTcpDisableAppLayer(p->flow);
         PACKET_DROP(p);
         /* return the segments to the pool */
         StreamTcpSessionPktFree(p);

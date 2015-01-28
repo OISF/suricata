@@ -279,6 +279,28 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
     stream->seg_list_tail = NULL;
 }
 
+/** \param f locked flow */
+void StreamTcpDisableAppLayer(Flow *f)
+{
+    if (f->protoctx == NULL)
+        return;
+
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->client);
+    StreamTcpSetStreamFlagAppProtoDetectionCompleted(&ssn->server);
+    StreamTcpDisableAppLayerReassembly(ssn);
+}
+
+/** \param f locked flow */
+int StreamTcpAppLayerIsDisabled(Flow *f)
+{
+    if (f->protoctx == NULL || f->proto != IPPROTO_TCP)
+        return 0;
+
+    TcpSession *ssn = (TcpSession *)f->protoctx;
+    return (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED);
+}
+
 typedef struct SegmentSizes_
 {
     uint16_t pktsize;

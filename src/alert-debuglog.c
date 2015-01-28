@@ -54,6 +54,8 @@
 #include "util-logopenfile.h"
 #include "util-time.h"
 
+#include "stream-tcp-reassemble.h"
+
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
 #define MODULE_NAME "AlertDebugLog"
@@ -213,7 +215,9 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                          p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
 
     if (p->flow != NULL) {
+        int applayer = 0;
         FLOWLOCK_RDLOCK(p->flow);
+        applayer = StreamTcpAppLayerIsDisabled(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
         MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n"
@@ -231,7 +235,7 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
                              p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
                              p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-                             p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE",
+                             applayer ? "TRUE" : "FALSE",
                              (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */

@@ -76,7 +76,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
 /** alproto detect done.  Right now we need it only for udp */
 #define FLOW_ALPROTO_DETECT_DONE          0x00008000
-#define FLOW_NO_APPLAYER_INSPECTION       0x00010000
+
+// vacany 1x
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00020000
@@ -445,7 +446,6 @@ static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
 static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
-static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
@@ -511,15 +511,6 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f)
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
 
     SCReturn;
-}
-
-/** \brief set flow flag to disable app layer inspection
- *
- *  \param f *LOCKED* flow
- */
-static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f)
-{
-    f->flags |= FLOW_NO_APPLAYER_INSPECTION;
 }
 
 /**

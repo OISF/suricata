@@ -1622,7 +1622,7 @@ int SMTPParserTest01(void)
     }
 
     if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION) ||
-        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        !(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
         !(((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
         !(((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         goto end;
@@ -2907,7 +2907,7 @@ int SMTPParserTest05(void)
     }
 
     if ((f.flags & FLOW_NOPAYLOAD_INSPECTION) ||
-        (f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
+        (ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) ||
         (((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
         (((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         goto end;

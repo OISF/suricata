@@ -904,17 +904,20 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     if (pstate->flags & APP_LAYER_PARSER_NO_INSPECTION) {
         AppLayerParserSetEOF(pstate);
         FlowSetNoPayloadInspectionFlag(f);
-        FlowSetSessionNoApplayerInspectionFlag(f);
 
-        /* Set the no reassembly flag for both the stream in this TcpSession */
-        if (f->proto == IPPROTO_TCP && pstate->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
-            /* Used only if it's TCP */
-            TcpSession *ssn = f->protoctx;
-            if (ssn != NULL) {
-                StreamTcpSetSessionNoReassemblyFlag(ssn,
-                                                    flags & STREAM_TOCLIENT ? 1 : 0);
-                StreamTcpSetSessionNoReassemblyFlag(ssn,
-                                                    flags & STREAM_TOSERVER ? 1 : 0);
+        if (f->proto == IPPROTO_TCP) {
+            StreamTcpDisableAppLayer(f);
+
+            /* Set the no reassembly flag for both the stream in this TcpSession */
+            if (pstate->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
+                /* Used only if it's TCP */
+                TcpSession *ssn = f->protoctx;
+                if (ssn != NULL) {
+                    StreamTcpSetSessionNoReassemblyFlag(ssn,
+                            flags & STREAM_TOCLIENT ? 1 : 0);
+                    StreamTcpSetSessionNoReassemblyFlag(ssn,
+                            flags & STREAM_TOSERVER ? 1 : 0);
+                }
             }
         }
     }
@@ -945,7 +948,9 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
  error:
     /* Set the no app layer inspection flag for both
      * the stream in this Flow */
-    FlowSetSessionNoApplayerInspectionFlag(f);
+    if (f->proto == IPPROTO_TCP) {
+        StreamTcpDisableAppLayer(f);
+    }
     AppLayerParserSetEOF(pstate);
     SCReturnInt(-1);
 }
@@ -1280,7 +1285,7 @@ static int AppLayerParserTest01(void)
     }
     SCMutexUnlock(&f->m);
 
-    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+    if (!(ssn.flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         printf("flag should have been set, but is not: ");
         goto end;
     }
