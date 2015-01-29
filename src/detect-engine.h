@@ -78,6 +78,7 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(void);
 int DetectEngineEnabled(void);
+int DetectEngineMTApply(void);
 
 /**
  * \brief Registers an app inspection engine.
