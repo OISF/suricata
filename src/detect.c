@@ -1874,16 +1874,27 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
-        printf("ERROR: Detect has no detection engine ctx\n");
-        goto error;
-    }
-
     if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
-                  det_ctx, de_ctx);
+        SCLogDebug("Detect Engine using new det_ctx - %p",
+                  det_ctx);
+    }
+
+    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    if (de_ctx == NULL) {
+        if (det_ctx->mt_det_ctxs == 0) {
+            printf("ERROR: Detect has no detection engine ctx\n");
+            goto error;
+        }
+
+        det_ctx = det_ctx->mt_det_ctxs[1];
+        BUG_ON(det_ctx == NULL);
+        de_ctx = det_ctx->de_ctx;
+        BUG_ON(de_ctx == NULL);
+        if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+            (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+            SCLogDebug("MT de_ctx %p det_ctx %p", de_ctx, det_ctx);
+        }
     }
 
     /* see if the packet matches one or more of the sigs */

@@ -104,6 +104,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, NULL, NULL, };
 
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv);
+
 /* 2 - for each direction */
 DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
 
@@ -595,7 +597,10 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
             detect_tvs[i] = tv;
-            new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            if (new_de_ctx != NULL)
+                new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            else
+                new_det_ctx[i] = DetectEngineThreadCtxInitForMT(tv);
             if (new_det_ctx[i] == NULL) {
                 SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
@@ -1451,6 +1456,19 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
         return TM_ECODE_OK;
     }
 
+    if (det_ctx->mt_det_ctxs != NULL) {
+        uint32_t x;
+        for (x = 0; x < det_ctx->mt_det_ctxs_cnt; x++) {
+            if (det_ctx->mt_det_ctxs[x] == NULL)
+                continue;
+
+            DetectEngineThreadCtxDeinit(tv, det_ctx->mt_det_ctxs[x]);
+            det_ctx->mt_det_ctxs[x] = NULL;
+        }
+        SCFree(det_ctx->mt_det_ctxs);
+        det_ctx->mt_det_ctxs = NULL;
+    }
+
 #ifdef PROFILING
     SCProfilingRuleThreadCleanup(det_ctx);
     SCProfilingKeywordThreadCleanup(det_ctx);
@@ -1857,6 +1875,81 @@ int DetectEngineReload(const char *filename)
     /* update the threads */
     DetectEngineReloadThreads(new_de_ctx);
     SCLogDebug("threads now run new_de_ctx %p", new_de_ctx);
+
+    /* walk free list, freeing the old_de_ctx */
+    DetectEnginePruneFreeList();
+
+    SCLogDebug("old_de_ctx should have been freed");
+    return 0;
+}
+
+/** NOTE: master MUST be locked before calling this */
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    int max_tenant_id = 0;
+    DetectEngineCtx *list = master->list;
+    while (list) {
+        if (list->tenant_id > max_tenant_id)
+            max_tenant_id = list->tenant_id;
+
+        list = list->next;
+    }
+
+    if (max_tenant_id == 0) {
+        SCLogInfo("no tenants left");
+        return NULL;
+    }
+
+    max_tenant_id++;
+
+    DetectEngineThreadCtx **tenant_det_ctxs = SCCalloc(max_tenant_id, sizeof(DetectEngineThreadCtx *));
+    BUG_ON(tenant_det_ctxs == NULL);
+
+    list = master->list;
+    while (list) {
+        if (list->tenant_id != 0) {
+            tenant_det_ctxs[list->tenant_id] = DetectEngineThreadCtxInitForReload(tv, list);
+            if (tenant_det_ctxs[list->tenant_id] == NULL)
+                goto error;
+        }
+        list = list->next;
+    }
+
+    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
+    if (det_ctx == NULL) {
+        goto error;
+    }
+
+    det_ctx->mt_det_ctxs = tenant_det_ctxs;
+    det_ctx->mt_det_ctxs_cnt = max_tenant_id;
+
+    return det_ctx;
+error:
+    return NULL;
+}
+
+int DetectEngineMTApply(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    DetectEngineCtx *minimal_de_ctx = NULL;
+    /* if we have no tenants, we need a minimal on */
+    if (master->list == NULL) {
+        minimal_de_ctx = master->list = DetectEngineCtxInitMinimal();
+        SCLogDebug("no tenants, using minimal %p", minimal_de_ctx);
+    } else if (master->list->next == NULL && master->list->tenant_id == 0) {
+        minimal_de_ctx = master->list;
+        SCLogDebug("no tenants, using original %p", minimal_de_ctx);
+    }
+
+    /* update the threads */
+    SCLogDebug("MT reload starting");
+    DetectEngineReloadThreads(minimal_de_ctx);
+    SCLogDebug("MT reload done");
+
+    SCMutexUnlock(&master->lock);
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
