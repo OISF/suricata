@@ -2270,6 +2270,7 @@ int main(int argc, char **argv)
     if (!suri.disabled_detect) {
         SCClassConfInit();
         SCReferenceConfInit();
+        DetectEngineMultiTenantSetup();
         SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             de_ctx = DetectEngineCtxInit();
