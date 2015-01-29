@@ -1058,6 +1058,9 @@ typedef struct SigGroupHead_ {
 typedef struct DetectEngineMasterCtx_ {
     SCMutex lock;
 
+    /** enable multi tenant mode */
+    int multi_tenant_enabled;
+
     /** list of active detection engines. This list is used to generate the
      *  threads det_ctx's */
     DetectEngineCtx *list;
