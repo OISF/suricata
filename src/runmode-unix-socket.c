@@ -415,6 +415,12 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     struct stat st;
 #endif /* OS_WIN32 */
 
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
     /* 1 get tenant id */
     json_t *jarg = json_object_get(cmd, "id");
     if (!json_is_integer(jarg)) {
@@ -495,6 +501,12 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
  */
 TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
 {
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
     /* 1 get tenant id */
     json_t *jarg = json_object_get(cmd, "id");
     if (!json_is_integer(jarg)) {
