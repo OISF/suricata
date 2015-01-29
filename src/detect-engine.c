@@ -1341,6 +1341,12 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
+    if (DetectEngineMultiTenantEnabled()) {
+        DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForMT(tv);
+        *data = (void *)mt_det_ctx;
+        return (mt_det_ctx == NULL) ? TM_ECODE_FAILED : TM_ECODE_OK;
+    }
+
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
     uint16_t counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
