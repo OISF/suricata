@@ -574,9 +574,6 @@ int RunModeUnixSocketSingle(void)
     UnixManagerRegisterCommand("pcap-file-list", UnixSocketPcapFilesList, pcapcmd, 0);
     UnixManagerRegisterCommand("pcap-current", UnixSocketPcapCurrent, pcapcmd, 0);
 
-    UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, pcapcmd, UNIX_CMD_TAKE_ARGS);
-    UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, pcapcmd, UNIX_CMD_TAKE_ARGS);
-
     UnixManagerRegisterBackgroundTask(UnixSocketPcapFilesCheck, pcapcmd);
 #endif
 
