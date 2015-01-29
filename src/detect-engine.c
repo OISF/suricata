@@ -1344,9 +1344,11 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     DetectEngineIPOnlyThreadDeinit(&det_ctx->io_ctx);
 
     /** \todo get rid of this static */
-    PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
-    PatternMatchThreadDestroy(&det_ctx->mtcs, det_ctx->de_ctx->mpm_matcher);
-    PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
+    if (det_ctx->de_ctx != NULL) {
+        PatternMatchThreadDestroy(&det_ctx->mtc, det_ctx->de_ctx->mpm_matcher);
+        PatternMatchThreadDestroy(&det_ctx->mtcs, det_ctx->de_ctx->mpm_matcher);
+        PatternMatchThreadDestroy(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
+    }
 
     PmqFree(&det_ctx->pmq);
     int i;
@@ -1398,13 +1400,15 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
         SCFree(det_ctx->hcbd);
     }
 
-    DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
+    if (det_ctx->de_ctx != NULL) {
+        DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
 #ifdef UNITTESTS
-    if (!RunmodeIsUnittests() || det_ctx->de_ctx->ref_cnt > 0)
-        DetectEngineDeReference(&det_ctx->de_ctx);
+        if (!RunmodeIsUnittests() || det_ctx->de_ctx->ref_cnt > 0)
+            DetectEngineDeReference(&det_ctx->de_ctx);
 #else
-    DetectEngineDeReference(&det_ctx->de_ctx);
+        DetectEngineDeReference(&det_ctx->de_ctx);
 #endif
+    }
     SCFree(det_ctx);
 
     return TM_ECODE_OK;
