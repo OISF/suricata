@@ -77,6 +77,7 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(const char *filename);
 int DetectEngineEnabled(void);
+int DetectEngineMTApply(void);
 
 int DetectEngineReloadStart(void);
 int DetectEngineReloadIsStart(void);
