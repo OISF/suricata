@@ -79,6 +79,8 @@ void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(void);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
+int DetectEngineMultiTenantEnabled(void);
+void DetectEngineMultiTenantSetup(void);
 
 /**
  * \brief Registers an app inspection engine.
