@@ -1,3 +1,25 @@
+2.1beta3 -- 2015-01-29
+
+Bug #977: WARNING on empty rules file is fatal (should not be)
+Bug #1184: pfring: cppcheck warnings
+Bug #1321: Flow memuse bookkeeping error
+Bug #1327: pcre pkt/flowvar capture broken for non-relative matches (master)
+Bug #1332: cppcheck: ioctl
+Bug #1336: modbus: CID 1257762: Logically dead code (DEADCODE)
+Bug #1351: output-json: duplicate logging (2.1.x)
+Bug #1354: coredumps on quitting on OpenBSD
+Bug #1355: Bus error when reading pcap-file on OpenBSD
+Bug #1363: Suricata does not compile on OS X/Clang due to redefinition of string functions (2.1.x)
+Bug #1365: evasion issues (2.1.x)
+Feature #1261: Request for Additional Lua Capabilities
+Feature #1309: Lua support for Stats output
+Feature #1310: Modbus parsing and matching
+Feature #1317: Lua: Indicator for end of flow
+Feature #1333: unix-socket: allow (easier) non-root usage
+Optimization #1339: flow timeout optimization
+Optimization #1339: flow timeout optimization
+Optimization #1371: mpm optimization
+
 2.1beta2 -- 2014-11-06
 
 Feature #549: Extract file attachments from emails
