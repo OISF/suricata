@@ -783,6 +783,9 @@ typedef struct DetectEngineThreadCtx_ {
     SigIntId *non_mpm_id_array;
     uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
 
+    uint32_t mt_det_ctxs_cnt;
+    struct DetectEngineThreadCtx_ **mt_det_ctxs;
+
     /* detection engine variables */
 
     /** offset into the payload of the last match by:
