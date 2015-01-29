@@ -770,7 +770,7 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 
     TAILQ_FOREACH(lcmd, &command.commands, next) {
         if (!strcmp(keyword, lcmd->name)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "%s already registered", keyword);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
