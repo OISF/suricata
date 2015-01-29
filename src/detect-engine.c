@@ -102,7 +102,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, NULL, NULL, };
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, };
 
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv);
 
@@ -1656,6 +1656,25 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
         return NULL;
     de_ctx->ref_cnt++;
     return de_ctx;
+}
+
+/** TODO locking? Not needed if this is a one time setting at startup */
+int DetectEngineMultiTenantEnabled(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    return (master->multi_tenant_enabled);
+}
+
+void DetectEngineMultiTenantSetup(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    int enabled = 0;
+    (void)ConfGetBool("multi-detect.enabled", &enabled);
+    if (enabled == 1) {
+        master->multi_tenant_enabled = 1;
+    }
+    SCLogInfo("multi-detect is %s (multi tenancy)",
+            master->multi_tenant_enabled ? "enabled" : "disabled");
 }
 
 DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)

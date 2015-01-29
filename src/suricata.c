@@ -2243,6 +2243,7 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
+    DetectEngineMultiTenantSetup();
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
         SetupDelayedDetect(&suri);
