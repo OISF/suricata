@@ -468,6 +468,11 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     DetectEngineAddToMaster(de_ctx);
 
     /* 3C for each thread, replace det_ctx */
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
 
     json_object_set_new(answer, "message", json_string("work in progress"));
     return TM_ECODE_OK;
@@ -508,7 +513,11 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     DetectEngineDeReference(&de_ctx);
 
     /* update the threads */
-    /** TODO */
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
 
     /* walk free list, freeing the removed de_ctx */
     DetectEnginePruneFreeList();
