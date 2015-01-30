@@ -572,6 +572,8 @@ typedef struct DetectEngineCtx_ {
     uint8_t flags;
     int failure_fatal;
 
+    int tenant_id;
+
     Signature *sig_list;
     uint32_t sig_cnt;
 
@@ -718,11 +720,6 @@ typedef struct DetectEngineCtx_ {
     char *rule_file;
     int rule_line;
 
-    /** Is detect engine using a delayed init */
-    int delayed_detect;
-    /** Did we load the signatures? */
-    int delayed_detect_initialized;
-
     /** list of keywords that need thread local ctxs */
     DetectEngineThreadKeywordCtxItem *keyword_list;
     int keyword_id;
@@ -734,6 +731,16 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
 #endif
+
+    char config_prefix[64];
+
+    /** minimal: essentially a stub */
+    int minimal;
+
+    /** how many de_ctx' are referencing this */
+    uint32_t ref_cnt;
+    /** list in master: either active or freelist */
+    struct DetectEngineCtx_ *next;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -1039,6 +1046,19 @@ typedef struct SigGroupHead_ {
  *  deal with both cases */
 #define SIGMATCH_OPTIONAL_OPT   (1 << 5)
 
+typedef struct DetectEngineMasterCtx_ {
+    SCMutex lock;
+
+    /** list of active detection engines. This list is used to generate the
+     *  threads det_ctx's */
+    DetectEngineCtx *list;
+
+    /** free list, containing detection engines that will be removed but may
+     *  still be referenced by det_ctx's. Freed as soon as all references are
+     *  gone. */
+    DetectEngineCtx *free_list;
+} DetectEngineMasterCtx;
+
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
 enum {
@@ -1184,7 +1204,7 @@ int SigGroupBuild(DetectEngineCtx *);
 int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
-char *DetectLoadCompleteSigPath(char *sig_file);
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *, char *sig_file);
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
 void SigTableList(const char *keyword);
 void SigTableSetup(void);

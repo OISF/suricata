@@ -34,7 +34,7 @@ void RunModeTileMpipeRegister(void);
 
 extern int tile_num_pipelines;
 
-int RunModeTileMpipeWorkers(DetectEngineCtx *);
+int RunModeTileMpipeWorkers(void);
 
 void *ParseMpipeConfig(const char *iface);
 

@@ -97,6 +97,10 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
     if (fd == NULL) {
         filename = SCClassConfGetConfFilename();
         if ( (fd = fopen(filename, "r")) == NULL) {
+#ifdef UNITTESTS
+            if (RunmodeIsUnittests())
+                goto error; // silently fail
+#endif
             SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
         }
@@ -206,7 +210,7 @@ static char *SCClassConfStringToLowercase(const char *str)
 
     if ( (new_str = SCStrdup(str)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
 
     temp_str = new_str;
@@ -392,13 +396,17 @@ SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t classtype_id,
 
     if ( (ct->classtype = SCClassConfStringToLowercase(classtype)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+
+        SCClassConfDeAllocClasstype(ct);
+        return NULL;
     }
 
     if (classtype_desc != NULL &&
         (ct->classtype_desc = SCStrdup(classtype_desc)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+
+        SCClassConfDeAllocClasstype(ct);
+        return NULL;
     }
 
     ct->classtype_id = classtype_id;
@@ -519,8 +527,14 @@ void SCClassConfClasstypeHashFree(void *ch)
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
 {
     if (SCClassConfInitContextAndLocalResources(de_ctx) == -1) {
-        SCLogInfo("Please check the \"classification-file\" option in your suricata.yaml file");
-        exit(EXIT_FAILURE);
+#ifdef UNITTESTS
+        if (RunmodeIsUnittests() && fd == NULL) {
+            return;
+        }
+#endif
+        SCLogError(SC_ERR_OPENING_FILE, "please check the \"classification-file\" "
+                "option in your suricata.yaml file");
+        return;
     }
 
     SCClassConfParseFile(de_ctx);

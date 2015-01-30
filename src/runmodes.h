@@ -63,10 +63,10 @@ char *RunmodeGetActive(void);
 const char *RunModeGetMainMode(void);
 
 void RunModeListRunmodes(void);
-void RunModeDispatch(int, const char *, DetectEngineCtx *);
+void RunModeDispatch(int, const char *);
 void RunModeRegisterRunModes(void);
 void RunModeRegisterNewRunMode(int, const char *, const char *,
-                               int (*RunModeFunc)(DetectEngineCtx *));
+                               int (*RunModeFunc)(void));
 void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);

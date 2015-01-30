@@ -194,6 +194,7 @@
 volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
+volatile sig_atomic_t sigusr2_count = 0;
 
 /*
  * Flag to indicate if the engine is at the initialization
@@ -277,15 +278,11 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
 void SignalHandlerSigusr2Disabled(int sig)
 {
     SCLogInfo("Live rule reload not enabled in config.");
-
-    return;
 }
 
 void SignalHandlerSigusr2StartingUp(int sig)
 {
     SCLogInfo("Live rule reload only possible after engine completely started.");
-
-    return;
 }
 
 void SignalHandlerSigusr2DelayedDetect(int sig)
@@ -296,40 +293,15 @@ void SignalHandlerSigusr2DelayedDetect(int sig)
 void SignalHandlerSigusr2SigFileStartup(int sig)
 {
     SCLogInfo("Live rule reload not possible if -s or -S option used at runtime.");
-
-    return;
 }
 
-void SignalHandlerSigusr2Idle(int sig)
-{
-    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
-        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
-        return;
-    }
-
-    SCLogInfo("Ruleset load in progress.  New ruleset load "
-              "allowed after current is done");
-
-    return;
-}
-
+/**
+ * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on
+ * it.
+ */
 void SignalHandlerSigusr2(int sig)
 {
-    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
-        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
-        return;
-    }
-
-    if (suricata_ctl_flags != 0) {
-        SCLogInfo("Live rule swap no longer possible. Engine in shutdown mode.");
-        return;
-    }
-
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-
-    DetectEngineSpawnLiveRuleSwapMgmtThread();
-
-    return;
+    sigusr2_count = 1;
 }
 
 /**
@@ -1897,7 +1869,7 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     return TM_ECODE_OK;
 }
 
-static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
+static void SetupDelayedDetect(SCInstance *suri)
 {
     /* In offline mode delayed init of detect is a bad idea */
     if (suri->offline) {
@@ -1913,7 +1885,6 @@ static void SetupDelayedDetect(DetectEngineCtx *de_ctx, SCInstance *suri)
             }
         }
     }
-    de_ctx->delayed_detect = suri->delayed_detect;
 
     SCLogInfo("Delayed detect %s", suri->delayed_detect ? "enabled" : "disabled");
     if (suri->delayed_detect) {
@@ -2236,38 +2207,27 @@ int main(int argc, char **argv)
         FlowInitConfig(FLOW_VERBOSE);
     }
 
+    if (MagicInit() != 0)
+        exit(EXIT_FAILURE);
+
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
-        de_ctx = DetectEngineCtxInit();
+        SetupDelayedDetect(&suri);
+        if (!suri.delayed_detect) {
+            de_ctx = DetectEngineCtxInit();
+        } else {
+            de_ctx = DetectEngineCtxInitMinimal();
+        }
         if (de_ctx == NULL) {
             SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
                     "context failed.");
             exit(EXIT_FAILURE);
         }
+
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
             CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
-
-        SCClassConfLoadClassficationConfigFile(de_ctx);
-        SCRConfLoadReferenceConfigFile(de_ctx);
-
-        if (ActionInitConfig() < 0) {
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-
-        /* tell the app layer to consider only the log id */
-        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
-    }
-
-    if (MagicInit() != 0)
-        exit(EXIT_FAILURE);
-
-    if (de_ctx != NULL) {
-        SetupDelayedDetect(de_ctx, &suri);
 
         if (!suri.delayed_detect) {
             if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
@@ -2276,6 +2236,14 @@ int main(int argc, char **argv)
                 exit(EXIT_SUCCESS);
             }
         }
+
+        DetectEngineAddToMaster(de_ctx);
+    } else {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+
+        /* tell the app layer to consider only the log id */
+        RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
     SCAsn1LoadConfig();
@@ -2300,7 +2268,7 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
-    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode, de_ctx);
+    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
 
     /* In Unix socket runmode, Flow manager is started on demand */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
@@ -2309,7 +2277,7 @@ int main(int argc, char **argv)
         if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
             unix_socket = 0;
         if (unix_socket == 1) {
-            UnixManagerThreadSpawn(de_ctx, 0);
+            UnixManagerThreadSpawn(0);
 #ifdef BUILD_UNIX_SOCKET
             UnixManagerRegisterCommand("iface-stat", LiveDeviceIfaceStat, NULL,
                                        UNIX_CMD_TAKE_ARGS);
@@ -2346,15 +2314,13 @@ int main(int argc, char **argv)
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
-    if (de_ctx != NULL && suri.sig_file == NULL && suri.rule_reload == 1 &&
+    if (DetectEngineEnabled() && suri.sig_file == NULL && suri.rule_reload == 1 &&
             suri.delayed_detect == 0)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
-    if (de_ctx != NULL && suri.delayed_detect) {
-        if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
-            exit(EXIT_FAILURE);
-        de_ctx->delayed_detect_initialized = 1;
-        TmThreadActivateDummySlot();
+    if (suri.delayed_detect) {
+        /* force 'reload', this will load the rules and swap engines */
+        DetectEngineReload();
 
         if (suri.rule_reload) {
             if (suri.sig_file != NULL)
@@ -2387,6 +2353,10 @@ int main(int argc, char **argv)
             OutputNotifyFileRotation();
             sighup_count--;
         }
+        if (sigusr2_count > 0) {
+            DetectEngineReload();
+            sigusr2_count--;
+        }
 
         usleep(10* 1000);
     }
@@ -2412,25 +2382,6 @@ int main(int argc, char **argv)
     }
 
     SCPrintElapsedTime(&suri);
-
-    if (suri.rule_reload == 1) {
-        /* wait if live rule swap is in progress */
-        if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-            SCLogInfo("Live rule swap in progress.  Waiting for it to end "
-                    "before we shut the engine/threads down");
-            while (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-                /* sleep for 0.5 seconds */
-                usleep(500000);
-            }
-            SCLogInfo("Received notification that live rule swap is done.  "
-                    "Continuing with engine/threads shutdown");
-        }
-    }
-
-    DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET && de_ctx != NULL) {
-        BUG_ON(global_de_ctx == NULL);
-    }
 
     /* before TmThreadKillThreads, as otherwise that kills it
      * but more slowly */
@@ -2462,9 +2413,14 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    if (global_de_ctx) {
-        DetectEngineCtxFree(global_de_ctx);
+    /** TODO this can do into it's own func */
+    de_ctx = DetectEngineGetCurrent();
+    if (de_ctx) {
+        DetectEngineMoveToFreeList(de_ctx);
+        DetectEngineDeReference(&de_ctx);
     }
+    DetectEnginePruneFreeList();
+
     AppLayerDeSetup();
 
     TagDestroyCtx();
