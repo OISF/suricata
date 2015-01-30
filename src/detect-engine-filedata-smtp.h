@@ -31,4 +31,6 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
                                     void *tx, uint64_t tx_id);
 void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx);
 
+void DetectEngineSMTPFiledataRegisterTests(void);
+
 #endif /* __DETECT_ENGINE_FILEDATA_SMTP_H__ */
