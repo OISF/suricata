@@ -202,6 +202,9 @@ void *ParsePfringConfig(const char *iface)
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     char *tmpclusterid;
     char *tmpctype = NULL;
+    char *copymodestr;
+    char *out_interface = NULL;
+    char *flushpacketstr;
 #ifdef HAVE_PFRING
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
@@ -370,6 +373,50 @@ void *ParsePfringConfig(const char *iface)
         }
     }
 
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_interface) == 1) {
+        if (strlen(out_interface) > 0) {
+            pfconf->out_interface = out_interface;
+        }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
+        if (pfconf->out_interface == NULL) {
+            SCLogError(SC_ERR_NO_OUT_IFACE,
+                      "Copy mode activated but no destination"
+                      " iface. Disabling feature");
+            SCFree(pfconf);
+            return NULL;
+        } else if (strlen(copymodestr) <= 0) {
+            pfconf->out_interface = NULL;
+        } else if (strcmp(copymodestr, "ips") == 0) {
+            SCLogInfo("PF_RING IPS mode activated %s->%s",
+                    iface,
+                    pfconf->out_interface);
+            pfconf->copy_mode = PFRING_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            SCLogInfo("PF_RING TAP mode activated %s->%s",
+                    iface,
+                    pfconf->out_interface);
+            pfconf->copy_mode = PFRING_COPY_MODE_TAP;
+        } else {
+            SCLogError(SC_ERR_INVALID_COPY_MODE,
+                      "Invalid mode (not in tap, ips)");
+            SCFree(pfconf);
+            return NULL;
+        }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "flush-packet", &flushpacketstr) == 1) {
+        if (strcmp(flushpacketstr, "yes") == 0) {
+            pfconf->flush_packet = 1;
+        } else if (strcmp(flushpacketstr, "no") == 0) {
+            pfconf->flush_packet = 0;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for flush-packet for %s: %s",
+                                                pfconf->iface, flushpacketstr);
+        }
+    }
+
     return pfconf;
 }
 
@@ -428,6 +475,11 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
 
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     RunModeInitialize();
 
     TimeModeSetLive();
@@ -450,6 +502,12 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
+        exit(EXIT_FAILURE);
+    }
+
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
 #endif /* HAVE_PFRING */
 
@@ -465,6 +523,11 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
     int ret;
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
+
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
 
     RunModeInitialize();
 
@@ -488,6 +551,12 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
+        exit(EXIT_FAILURE);
+    }
+
     SCLogInfo("RunModeIdsPfringSingle initialised");
 #endif /* HAVE_PFRING */
 
@@ -503,6 +572,11 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
     int ret;
     char *live_dev = NULL;
     ConfigIfaceParserFunc tparser;
+
+    if (PfringPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
 
     RunModeInitialize();
 
@@ -523,6 +597,12 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
+        exit(EXIT_FAILURE);
+    }
+
+    /* In IPS mode each threads must have a peer */
+    if (PfringPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
         exit(EXIT_FAILURE);
     }
 
