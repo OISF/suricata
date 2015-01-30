@@ -38,4 +38,6 @@ int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
                            SMTPState *smtp_state, uint8_t flags,
                            void *tx, uint64_t idx);
 
+void DetectEngineSMTPFiledataRegisterTests(void);
+
 #endif /* __DETECT_ENGINE_FILEDATA_SMTP_H__ */
