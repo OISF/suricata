@@ -172,15 +172,19 @@ class SuricataSC:
         if command.split(' ', 2)[0] in self.cmd_list:
             if "pcap-file " in command:
                 try:
-                    [cmd, filename, output] = command.split(' ', 2)
+                    #[cmd, filename, output] = command.split(' ', 2)
+                    parts = command.split(' ');
                 except:
                     raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                cmd, filename, output, tenant = parts[0], parts[1], parts[2], parts[3] or None
                 if cmd != "pcap-file":
                     raise SuricataCommandException("Invalid command '%s'" % (command))
                 else:
                     arguments = {}
                     arguments["filename"] = filename
                     arguments["output-dir"] = output
+                    print(tenant)
+                    arguments["tenant"] = int(tenant)
             elif "iface-stat" in command:
                 try:
                     [cmd, iface] = command.split(' ', 1)
