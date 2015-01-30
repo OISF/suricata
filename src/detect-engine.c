@@ -1683,6 +1683,11 @@ void DetectEngineMultiTenantSetup(void)
             master->multi_tenant_enabled ? "enabled" : "disabled");
 }
 
+uint32_t DetectEngineTentantGetIdFromPcap(DetectEngineThreadCtx *det_ctx, const Packet *p)
+{
+    return p->pcap_v.tenant_id;
+}
+
 DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
