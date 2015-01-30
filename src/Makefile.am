@@ -211,8 +211,9 @@ host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
 log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
-log-file.c log-file.h \
+log-file-common.c log-file-common.h \
 log-filestore.c log-filestore.h \
+log-file.c log-file.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \

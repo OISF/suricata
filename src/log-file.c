@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Andreas Moe <moe.andreas@gmail.com>
  *
  * Log files we track.
  *
@@ -51,134 +52,58 @@
 
 #include "output.h"
 
+#include "log-file-common.h"
+
 #include "log-file.h"
-#include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
-#include "app-layer-smtp.h"
-#include "util-decode-mime.h"
 #include "util-memcmp.h"
 #include "stream-tcp-reassemble.h"
 
-#define MODULE_NAME "LogFileLog"
+#define MODULE_NAME_FILELOG "LogFileLog"
 
-#define DEFAULT_LOG_FILENAME "files-json.log"
+#define DEFAULT_LOG_FILENAME_FILELOG "files-json.log"
 
-typedef struct LogFileLogThread_ {
-    LogFileCtx *file_ctx;
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    uint32_t file_cnt;
-} LogFileLogThread;
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+#include "output-json.h"
+#endif
 
-static void LogFileMetaGetUri(FILE *fp, const Packet *p, const File *ff)
+/* If we dont have libjansson in this suricata build */
+#ifndef HAVE_LIBJANSSON
+static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-            if (tx_ud != NULL) {
-                if (tx_ud->request_uri_normalized != NULL) {
-                    PrintRawJsonFp(fp,
-                                   bstr_ptr(tx_ud->request_uri_normalized),
-                                   bstr_len(tx_ud->request_uri_normalized));
-                    return;
-                }
-            }
-        }
-    }
-
-    fprintf(fp, "<unknown>");
+    SCLogDebug("Can't init file log json output thread - JSON support was disabled during build.");
+    return TM_ECODE_FAILED;
 }
 
-static void LogFileMetaGetHost(FILE *fp, const Packet *p, const File *ff)
+TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL && tx->request_hostname != NULL) {
-            PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_hostname),
-                           bstr_len(tx->request_hostname));
-            return;
-        }
-    }
-
-    fprintf(fp, "<unknown>");
+    return TM_ECODE_FAILED;
 }
 
-static void LogFileMetaGetReferer(FILE *fp, const Packet *p, const File *ff)
+int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const char *mode)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "Referer");
-            if (h != NULL) {
-                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                               bstr_len(h->value));
-                return;
-            }
-        }
-    }
-
-    fprintf(fp, "<unknown>");
+    return 0;
 }
 
-static void LogFileMetaGetUserAgent(FILE *fp, const Packet *p, const File *ff)
+void TmModuleLogFileLogRegister (void)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "User-Agent");
-            if (h != NULL) {
-                PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
-                               bstr_len(h->value));
-                return;
-            }
-        }
-    }
-
-    fprintf(fp, "<unknown>");
+    tmm_modules[TMM_FILELOG].name = MODULE_NAME_FILELOG;
+    tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
+    tmm_modules[TMM_FILELOG].Func = NULL;
+    tmm_modules[TMM_FILELOG].ThreadDeinit = LogFileLogThreadDeinit;
+    tmm_modules[TMM_FILELOG].RegisterTests = NULL;
 }
 
-static void LogFileMetaGetSmtp(FILE *fp, const Packet *p, const File *ff)
-{
-    SMTPState *state = (SMTPState *) p->flow->alstate;
-    if (state != NULL) {
-        SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, state, ff->txid);
-        if (tx == NULL || tx->msg_tail == NULL)
-            return;
-
-        /* Message Id */
-        if (tx->msg_tail->msg_id != NULL) {
-
-            fprintf(fp, "\"message-id\": \"");
-            PrintRawJsonFp(fp, (uint8_t *) tx->msg_tail->msg_id,
-                    (int) tx->msg_tail->msg_id_len);
-            fprintf(fp, "\", ");
-        }
-
-        /* Sender */
-        MimeDecField *field = MimeDecFindField(tx->msg_tail, "from");
-        if (field != NULL) {
-            fprintf(fp, "\"sender\": \"");
-            PrintRawJsonFp(fp, (uint8_t *) field->value,
-                    (int) field->value_len);
-            fprintf(fp, "\", ");
-        }
-    }
-}
+/* If we have libjansson */
+#else
 
 /**
  *  \internal
  *  \brief Write meta data on a single line json record
  */
-static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff, int ipver)
+static int LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const File *ff)
 {
     SCMutexLock(&aft->file_ctx->fp_mutex);
 
@@ -195,139 +120,40 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
      * event file rotation failed. */
     if (aft->file_ctx->fp == NULL) {
         SCMutexUnlock(&aft->file_ctx->fp_mutex);
-        return;
+        return TM_ECODE_FAILED;
     }
 
     FILE *fp = aft->file_ctx->fp;
-    char timebuf[64];
-    AppProto alproto = FlowGetAppProtocol(p->flow);
 
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+    LogFileCreateJSON(p, "file-log", aft->json_data->main, aft->json_data->meta);
 
-    fprintf(fp, "{ ");
-
-    if (ff->file_id > 0)
-        fprintf(fp, "\"id\": %u, ", ff->file_id);
-
-    fprintf(fp, "\"timestamp\": \"");
-    PrintRawJsonFp(fp, (uint8_t *)timebuf, strlen(timebuf));
-    fprintf(fp, "\", ");
-    if (p->pcap_cnt > 0) {
-        fprintf(fp, "\"pcap_pkt_num\": %"PRIu64", ", p->pcap_cnt);
+    if (unlikely(aft->json_data->main == NULL) || unlikely(aft->json_data->meta)) {
+        return TM_ECODE_OK;
     }
 
-    fprintf(fp, "\"ipver\": %d, ", ipver == AF_INET ? 4 : 6);
+    LogFileLogTransactionMeta(p, ff, aft->json_data->meta, aft->json_buffer);
+    LogFileLogFileMeta(p, ff, aft->json_data->meta, aft->json_buffer);
+    json_object_set_new(aft->json_data->main, "file-log", aft->json_data->meta);
 
-    char srcip[46], dstip[46];
-    Port sp, dp;
-    switch (ipver) {
-        case AF_INET:
-            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-            break;
-        case AF_INET6:
-            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-            break;
-        default:
-            strlcpy(srcip, "<unknown>", sizeof(srcip));
-            strlcpy(dstip, "<unknown>", sizeof(dstip));
-            break;
-    }
-    sp = p->sp;
-    dp = p->dp;
+    LogFileLogPrintJsonObj(fp, aft->json_data->main);
 
-    fprintf(fp, "\"srcip\": \"%s\", ", srcip);
-    fprintf(fp, "\"dstip\": \"%s\", ", dstip);
-    fprintf(fp, "\"protocol\": %" PRIu32 ", ", p->proto);
-    if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-        fprintf(fp, "\"sp\": %" PRIu16 ", ", sp);
-        fprintf(fp, "\"dp\": %" PRIu16 ", ", dp);
-    }
-
-    if (alproto == ALPROTO_HTTP) {
-        fprintf(fp, "\"http_uri\": \"");
-        LogFileMetaGetUri(fp, p, ff);
-        fprintf(fp, "\", ");
-
-        fprintf(fp, "\"http_host\": \"");
-        LogFileMetaGetHost(fp, p, ff);
-        fprintf(fp, "\", ");
-
-        fprintf(fp, "\"http_referer\": \"");
-        LogFileMetaGetReferer(fp, p, ff);
-        fprintf(fp, "\", ");
-
-        fprintf(fp, "\"http_user_agent\": \"");
-        LogFileMetaGetUserAgent(fp, p, ff);
-        fprintf(fp, "\", ");
-    } else if (p->flow->alproto == ALPROTO_SMTP) {
-        /* Only applicable to SMTP */
-        LogFileMetaGetSmtp(fp, p, ff);
-    }
-
-    fprintf(fp, "\"filename\": \"");
-    PrintRawJsonFp(fp, ff->name, ff->name_len);
-    fprintf(fp, "\", ");
-
-    fprintf(fp, "\"magic\": \"");
-    if (ff->magic) {
-        PrintRawJsonFp(fp, (uint8_t *)ff->magic, strlen(ff->magic));
-    } else {
-        fprintf(fp, "unknown");
-    }
-    fprintf(fp, "\", ");
-
-    switch (ff->state) {
-        case FILE_STATE_CLOSED:
-            fprintf(fp, "\"state\": \"CLOSED\", ");
-#ifdef HAVE_NSS
-            if (ff->flags & FILE_MD5) {
-                fprintf(fp, "\"md5\": \"");
-                size_t x;
-                for (x = 0; x < sizeof(ff->md5); x++) {
-                    fprintf(fp, "%02x", ff->md5[x]);
-                }
-                fprintf(fp, "\", ");
-            }
-#endif
-            break;
-        case FILE_STATE_TRUNCATED:
-            fprintf(fp, "\"state\": \"TRUNCATED\", ");
-            break;
-        case FILE_STATE_ERROR:
-            fprintf(fp, "\"state\": \"ERROR\", ");
-            break;
-        default:
-            fprintf(fp, "\"state\": \"UNKNOWN\", ");
-            break;
-    }
-    fprintf(fp, "\"stored\": %s, ", ff->flags & FILE_STORED ? "true" : "false");
-    fprintf(fp, "\"size\": %"PRIu64" ", ff->size);
-    fprintf(fp, "}\n");
     fflush(fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
+    LogFileClearJSON(aft->json_data);
+
+    return TM_ECODE_OK;
 }
 
 static int LogFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff)
 {
     SCEnter();
     LogFileLogThread *aft = (LogFileLogThread *)thread_data;
-    int ipver = -1;
-
-    if (PKT_IS_IPV4(p)) {
-        ipver = AF_INET;
-    } else if (PKT_IS_IPV6(p)) {
-        ipver = AF_INET6;
-    } else {
-        return 0;
-    }
 
     BUG_ON(ff->flags & FILE_LOGGED);
 
     SCLogDebug("ff %p", ff);
 
-    LogFileWriteJsonRecord(aft, p, ff, ipver);
+    LogFileWriteJsonRecord(aft, p, ff);
 
     aft->file_cnt++;
     return 0;
@@ -347,6 +173,12 @@ static TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    aft->json_buffer = MemBufferCreateNew(META_BUFFER_SIZE);
+    if (aft->json_buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
@@ -360,6 +192,8 @@ TmEcode LogFileLogThreadDeinit(ThreadVars *t, void *data)
     if (aft == NULL) {
         return TM_ECODE_OK;
     }
+
+    MemBufferFree(aft->json_buffer);
 
     /* clear memory */
     memset(aft, 0, sizeof(LogFileLogThread));
@@ -405,7 +239,7 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME_FILELOG) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
@@ -451,7 +285,7 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
 
 void TmModuleLogFileLogRegister (void)
 {
-    tmm_modules[TMM_FILELOG].name = MODULE_NAME;
+    tmm_modules[TMM_FILELOG].name = MODULE_NAME_FILELOG;
     tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
     tmm_modules[TMM_FILELOG].Func = NULL;
     tmm_modules[TMM_FILELOG].ThreadExitPrintStats = LogFileLogExitPrintStats;
@@ -460,8 +294,9 @@ void TmModuleLogFileLogRegister (void)
     tmm_modules[TMM_FILELOG].cap_flags = 0;
     tmm_modules[TMM_FILELOG].flags = TM_FLAG_LOGAPI_TM;
 
-    OutputRegisterFileModule(MODULE_NAME, "file-log", LogFileLogInitCtx,
+    OutputRegisterFileModule(MODULE_NAME_FILELOG, "file-log", LogFileLogInitCtx,
             LogFileLogger);
 
     SCLogDebug("registered");
 }
+#endif
