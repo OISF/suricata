@@ -1869,13 +1869,17 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
             goto error;
         }
 
-        det_ctx = det_ctx->mt_det_ctxs[1];
-        BUG_ON(det_ctx == NULL);
-        de_ctx = det_ctx->de_ctx;
-        BUG_ON(de_ctx == NULL);
-        if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
-            (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-            SCLogInfo("MT de_ctx %p det_ctx %p", de_ctx, det_ctx);
+        if (p->pcap_v.tenant_id > 0 && p->pcap_v.tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            det_ctx = det_ctx->mt_det_ctxs[p->pcap_v.tenant_id];
+            BUG_ON(det_ctx == NULL);
+            de_ctx = det_ctx->de_ctx;
+            BUG_ON(de_ctx == NULL);
+            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+                (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+                SCLogInfo("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, p->pcap_v.tenant_id);
+            }
+        } else {
+            return TM_ECODE_OK;
         }
     }
 
