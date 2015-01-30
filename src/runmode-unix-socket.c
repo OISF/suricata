@@ -50,6 +50,7 @@ int unix_socket_mode_is_running = 0;
 typedef struct PcapFiles_ {
     char *filename;
     char *output_dir;
+    int tenant_id;
     TAILQ_ENTRY(PcapFiles_) next;
 } PcapFiles;
 
@@ -152,7 +153,8 @@ static void PcapFilesFree(PcapFiles *cfile)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const char *output_dir)
+static TmEcode UnixListAddFile(PcapCommand *this,
+        const char *filename, const char *output_dir, int tenant_id)
 {
     PcapFiles *cfile = NULL;
     if (filename == NULL || this == NULL)
@@ -181,6 +183,8 @@ TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const char *out
         }
     }
 
+    cfile->tenant_id = tenant_id;
+
     TAILQ_INSERT_TAIL(&this->files, cfile, next);
     return TM_ECODE_OK;
 }
@@ -198,6 +202,7 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
     int ret;
     const char *filename;
     const char *output_dir;
+    int tenant_id = 0;
 #ifdef OS_WIN32
     struct _stat st;
 #else
@@ -243,7 +248,16 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    ret = UnixListAddFile(this, filename, output_dir);
+    json_t *targ = json_object_get(cmd, "tenant");
+    if (targ != NULL) {
+        if(!json_is_number(targ)) {
+            json_object_set_new(answer, "message", json_string("tenant is not a number"));
+            return TM_ECODE_FAILED;
+        }
+        tenant_id = json_number_value(targ);
+    }
+
+    ret = UnixListAddFile(this, filename, output_dir, tenant_id);
     switch(ret) {
         case TM_ECODE_FAILED:
             json_object_set_new(answer, "message", json_string("Unable to add file to list"));
@@ -331,6 +345,15 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         if (cfile->output_dir) {
             if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
                 SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
+                PcapFilesFree(cfile);
+                return TM_ECODE_FAILED;
+            }
+        }
+        if (cfile->tenant_id > 0) {
+            char tstr[16] = "";
+            snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
+            if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
+                SCLogInfo("Can not set working tenant-id to '%s'", tstr);
                 PcapFilesFree(cfile);
                 return TM_ECODE_FAILED;
             }
