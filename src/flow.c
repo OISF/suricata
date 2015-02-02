@@ -227,6 +227,41 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
+/**
+ *
+ *  Remove packet from flow. This assumes this happens *before* the packet
+ *  is added to the stream engine and other higher state.
+ *
+ *  \todo we can't restore the lastts
+ */
+void FlowHandlePacketUpdateRemove(Flow *f, Packet *p)
+{
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+#ifdef DEBUG
+        f->todstpktcnt--;
+        f->bytecnt -= GET_PKT_LEN(p);
+#endif
+        p->flowflags &= ~FLOW_PKT_TOSERVER;
+    } else {
+#ifdef DEBUG
+        f->tosrcpktcnt--;
+        f->bytecnt -= GET_PKT_LEN(p);
+#endif
+        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+    }
+    p->flowflags &= ~FLOW_PKT_ESTABLISHED;
+
+    /*set the detection bypass flags*/
+    if (f->flags & FLOW_NOPACKET_INSPECTION) {
+        SCLogDebug("unsetting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
+        DecodeUnsetNoPacketInspectionFlag(p);
+    }
+    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
+        SCLogDebug("unsetting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
+        DecodeUnsetNoPayloadInspectionFlag(p);
+    }
+}
+
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
