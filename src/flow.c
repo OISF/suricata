@@ -232,6 +232,8 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
  *
  *  \param f locked flow
  *  \param p packet
+ *
+ *  \note overwrites p::flowflags
  */
 void FlowHandlePacketUpdate(Flow *f, Packet *p)
 {
@@ -247,14 +249,14 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         }
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
-        p->flowflags |= FLOW_PKT_TOSERVER;
+        p->flowflags = FLOW_PKT_TOSERVER;
     } else {
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_SRC_SEEN;
         }
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
-        p->flowflags |= FLOW_PKT_TOCLIENT;
+        p->flowflags = FLOW_PKT_TOCLIENT;
     }
 
     if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
