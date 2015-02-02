@@ -872,12 +872,19 @@ void AddressDebugPrint(Address *);
         (p)->flags |= PKT_NOPAYLOAD_INSPECTION;  \
     } while (0)
 
+#define DecodeUnsetNoPayloadInspectionFlag(p) do { \
+        (p)->flags &= ~PKT_NOPAYLOAD_INSPECTION;  \
+    } while (0)
+
 /** \brief Set the No packet inspection Flag for the packet.
  *
  * \param p Packet to set the flag in
  */
 #define DecodeSetNoPacketInspectionFlag(p) do { \
         (p)->flags |= PKT_NOPACKET_INSPECTION;  \
+    } while (0)
+#define DecodeUnsetNoPacketInspectionFlag(p) do { \
+        (p)->flags &= ~PKT_NOPACKET_INSPECTION;  \
     } while (0)
 
 

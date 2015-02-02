@@ -580,6 +580,8 @@ int FlowClearMemory(Flow *,uint8_t );
 AppProto FlowGetAppProtocol(Flow *f);
 void *FlowGetAppState(Flow *f);
 
+
+void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
 #endif /* __FLOW_H__ */
