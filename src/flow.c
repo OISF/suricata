@@ -227,21 +227,16 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
-/** \brief Entry point for packet flow handling
+/** \brief Update Packet and Flow
  *
- * This is called for every packet.
+ *  Updates packet and flow based on the new packet.
  *
- *  \param tv threadvars
- *  \param p packet to handle flow for
+ *  \param f locked flow
+ *  \param p packet
  */
-void FlowHandlePacket(ThreadVars *tv, Packet *p)
+void FlowHandlePacketUpdate(Flow *f, Packet *p)
 {
-    /* Get this packet's flow from the hash. FlowHandlePacket() will setup
-     * a new flow if nescesary. If we get NULL, we're out of flow memory.
-     * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(p);
-    if (f == NULL)
-        return;
+    SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
     /* Point the Packet at the Flow */
     FlowReference(&p->flow, f);
@@ -271,7 +266,7 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
     f->bytecnt += GET_PKT_LEN(p);
 #endif
 
-    if ((f->flags & FLOW_TO_DST_SEEN) && (f->flags & FLOW_TO_SRC_SEEN)) {
+    if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -285,6 +280,26 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
+}
+
+/** \brief Entry point for packet flow handling
+ *
+ * This is called for every packet.
+ *
+ *  \param tv threadvars
+ *  \param dtv decode thread vars (for flow output api thread data)
+ *  \param p packet to handle flow for
+ */
+void FlowHandlePacket(ThreadVars *tv, Packet *p)
+{
+    /* Get this packet's flow from the hash. FlowHandlePacket() will setup
+     * a new flow if nescesary. If we get NULL, we're out of flow memory.
+     * The returned flow is locked. */
+    Flow *f = FlowGetFlowFromHash(p);
+    if (f == NULL)
+        return;
+
+    FlowHandlePacketUpdate(f, p);
 
     FLOWLOCK_UNLOCK(f);
 

@@ -543,7 +543,7 @@ int FlowClearMemory(Flow *,uint8_t );
 AppProto FlowGetAppProtocol(Flow *f);
 void *FlowGetAppState(Flow *f);
 
-
+void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
 #endif /* __FLOW_H__ */
 
