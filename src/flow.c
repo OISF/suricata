@@ -179,7 +179,7 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
  *  \retval 0 to_server
  *  \retval 1 to_client
  */
-int FlowGetPacketDirection(Flow *f, const Packet *p)
+int FlowGetPacketDirection(const Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {

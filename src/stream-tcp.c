@@ -4353,18 +4353,6 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
-int TcpSessionPacketSsnReuse(const Packet *p, void *tcp_ssn)
-{
-    TcpSession *ssn = tcp_ssn;
-    if (ssn->state == TCP_CLOSED) {
-        if(!(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq)
@@ -4638,9 +4626,9 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
 /** \internal
  *  \brief Check if Flow and TCP SSN allow this flow/tuple to be reused
  *  \retval bool true yes reuse, false no keep tracking old ssn */
-int TcpSessionReuseDoneEnough(Packet *p, const TcpSession *ssn)
+int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
-    if (FlowGetPacketDirection(p->flow, p) == TOSERVER) {
+    if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (ssn == NULL) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
             return 0;
@@ -4681,8 +4669,19 @@ int TcpSessionReuseDoneEnough(Packet *p, const TcpSession *ssn)
         }
     }
 
-
     SCLogDebug("default: how did we get here?");
+    return 0;
+}
+
+int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn)
+{
+    if (p->proto == IPPROTO_TCP && p->tcph != NULL) {
+        if (TcpSessionPacketIsStreamStarter(p) == 1) {
+            if (TcpSessionReuseDoneEnough(p, f, tcp_ssn) == 1) {
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 
@@ -4711,7 +4710,7 @@ static void TcpSessionReuseHandle(Packet *p) {
 
     int reuse = 0;
     FLOWLOCK_RDLOCK(p->flow);
-    reuse = TcpSessionReuseDoneEnough(p, p->flow->protoctx);
+    reuse = TcpSessionReuseDoneEnough(p, p->flow, p->flow->protoctx);
     if (!reuse) {
         SCLogDebug("steam starter packet %"PRIu64", but state not "
                    "ready to be reused", p->pcap_cnt);

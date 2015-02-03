@@ -386,7 +386,7 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
     return 0;
 }
 
-int TcpSessionPacketSsnReuse(const Packet *p, void *tcp_ssn);
+int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, void *tcp_ssn);
 
 static inline int FlowCompare(Flow *f, const Packet *p)
 {
@@ -401,20 +401,13 @@ static inline int FlowCompare(Flow *f, const Packet *p)
         if (f->flags & FLOW_TCP_REUSED)
             return 0;
 
-        /* lets see if we need to consider the existing session for
-         * reuse: only considering SYN packets. */
-        int syn = (p->tcph && ((p->tcph->th_flags & TH_SYN) == TH_SYN));
-        int has_protoctx = ((f->protoctx != NULL));
-
-        /* syn on existing state, need to see if we need to 'reuse' */
-        if (unlikely(syn && has_protoctx && FlowGetPacketDirection(f,p) == TOSERVER)) {
-            if (unlikely(TcpSessionPacketSsnReuse(p, f->protoctx) == 1)) {
-                /* okay, we need to setup a new flow for this packet.
-                 * Flag the flow that it's been replaced by a new one */
-                f->flags |= FLOW_TCP_REUSED;
-                SCLogDebug("flow obsolete: TCP reuse will use a new flow");
-                return 0;
-            }
+        /* lets see if we need to consider the existing session reuse */
+        if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+            /* okay, we need to setup a new flow for this packet.
+             * Flag the flow that it's been replaced by a new one */
+            f->flags |= FLOW_TCP_REUSED;
+            SCLogDebug("flow obsolete: TCP reuse will use a new flow");
+            return 0;
         }
         return 1;
     } else {
