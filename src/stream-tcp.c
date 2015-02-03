@@ -4386,18 +4386,6 @@ static int StreamTcpPacketIsBadWindowUpdate(TcpSession *ssn, Packet *p)
     return 0;
 }
 
-int TcpSessionPacketSsnReuse(const Packet *p, void *tcp_ssn)
-{
-    TcpSession *ssn = tcp_ssn;
-    if (ssn->state == TCP_CLOSED) {
-        if(!(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 /* flow is and stays locked */
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq)
@@ -4704,10 +4692,13 @@ int PacketIsStreamStarter(const Packet *p)
     return 0;
 }
 
-/** TODO name, plus make configurable */
-int TcpSessionDoneEnough(Packet *p, const TcpSession *ssn)
+/** TODO name, plus make configurable
+ *
+ *  \param ssn session or NULL
+ */
+int TcpSessionDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
-    if (FlowGetPacketDirection(p->flow, p) == TOSERVER) {
+    if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (ssn == NULL) {
             SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
             return 0;
@@ -4748,8 +4739,19 @@ int TcpSessionDoneEnough(Packet *p, const TcpSession *ssn)
         }
     }
 
-
     SCLogDebug("default: how did we get here?");
+    return 0;
+}
+
+int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn)
+{
+    if (p->proto == IPPROTO_TCP && p->tcph != NULL) {
+        if (PacketIsStreamStarter(p) == 1) {
+            if (TcpSessionDoneEnough(p, f, tcp_ssn) == 1) {
+                return 1;
+            }
+        }
+    }
     return 0;
 }
 
@@ -4778,7 +4780,7 @@ static void HandleFlowReuse(Packet *p) {
 
     int reuse = 0;
     FLOWLOCK_RDLOCK(p->flow);
-    reuse = TcpSessionDoneEnough(p, p->flow->protoctx);
+    reuse = TcpSessionDoneEnough(p, p->flow, p->flow->protoctx);
     if (!reuse) {
         SCLogDebug("steam starter packet %"PRIu64", but state not "
                    "ready to be reused", p->pcap_cnt);
