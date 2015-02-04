@@ -446,7 +446,7 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                     break;
                 case 'Q':
                     /* suricata extension (http response body inspection) */
-                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_HSBDMATCH);
+                    *sm_list = DetectPcreSetList(*sm_list, DETECT_SM_LIST_FILEDATA);
                     break;
                 case 'Y':
                     /* snort's option */
@@ -653,7 +653,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (parsed_sm_list == DETECT_SM_LIST_UMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRUDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HCBDMATCH ||
-        parsed_sm_list == DETECT_SM_LIST_HSBDMATCH ||
+        parsed_sm_list == DETECT_SM_LIST_FILEDATA ||
         parsed_sm_list == DETECT_SM_LIST_HHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HRHDMATCH ||
         parsed_sm_list == DETECT_SM_LIST_HSMDMATCH ||
@@ -681,7 +681,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
     int sm_list = -1;
     if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
+        if (s->list == DETECT_SM_LIST_FILEDATA) {
             SCLogDebug("adding to http server body list because of file data");
             AppLayerHtpEnableResponseBodyCallback();
         } else if (s->list == DETECT_SM_LIST_DMATCH) {
@@ -700,7 +700,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 sm_list = parsed_sm_list;
                 break;
 
-            case DETECT_SM_LIST_HSBDMATCH:
+            case DETECT_SM_LIST_FILEDATA:
                 AppLayerHtpEnableResponseBodyCallback();
                 s->flags |= SIG_FLAG_APPLAYER;
                 s->alproto = ALPROTO_HTTP;
@@ -1167,17 +1167,17 @@ static int DetectPcreParseTest12(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         printf("empty server body list: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE) {
         printf("last sm not pcre: ");
         goto end;
     }
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE)) {
         printf("flags not right: ");
@@ -1216,17 +1216,17 @@ static int DetectPcreParseTest13(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         printf("empty server body list: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE) {
         printf("last sm not pcre: ");
         goto end;
     }
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
         !(data->flags & DETECT_PCRE_RELATIVE)) {
         printf("flags not right: ");
@@ -1265,17 +1265,17 @@ static int DetectPcreParseTest14(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         printf("empty server body list: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_PCRE) {
         printf("last sm not pcre: ");
         goto end;
     }
 
-    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
         data->flags & DETECT_PCRE_RELATIVE) {
         printf("flags not right: ");

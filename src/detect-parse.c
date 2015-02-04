@@ -1127,7 +1127,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 }
             } else if (fd->flags & FLOW_PKT_TOSERVER) {
                 /* check for uricontent + from_server/to_client */
-                if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+                if (/*s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||*/
                     s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
                     s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use http_"
@@ -1148,7 +1148,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags &= ~SIG_FLAG_TOCLIENT;
     }
-    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
@@ -1244,7 +1244,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -1265,7 +1265,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
-                s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
@@ -1447,7 +1447,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HSBDMATCH])
+    if (sig->sm_lists[DETECT_SM_LIST_FILEDATA])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;

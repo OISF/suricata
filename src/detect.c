@@ -2022,7 +2022,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s)
     if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
-    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL)
+    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL)
         return 0;
 
     if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
@@ -2149,7 +2149,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s)
         s->sm_lists[DETECT_SM_LIST_UMATCH]    != NULL ||
         s->sm_lists[DETECT_SM_LIST_AMATCH]    != NULL ||
         s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-        s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
         s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
@@ -2299,9 +2299,16 @@ static int SignatureCreateMask(Signature *s)
         SCLogDebug("sig requires http app state");
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL) {
-        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires http app state");
+    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
+        if (s->alproto == ALPROTO_HTTP)
+            s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        else if (s->alproto == ALPROTO_SMTP)
+            s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+        else if (s->alproto == ALPROTO_UNKNOWN) {
+            s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+            s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
+        }
+        SCLogDebug("sig requires http or smtp app state");
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
@@ -2527,6 +2534,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hsbd =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "hsbd",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_smtp =
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "smtp",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hhd =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "hhd",
@@ -4666,6 +4676,16 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hsbd- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("smtp- %d\n"; mpm_ctx->pattern_cnt);
 
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
