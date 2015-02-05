@@ -86,9 +86,6 @@ int DetectEngineReloadIsStart(void);
 void DetectEngineReloadSetDone(void);
 int DetectEngineReloadIsDone(void);
 
-/* TODO move elsewhere? */
-uint32_t DetectEngineTentantGetIdFromPcap(DetectEngineThreadCtx *, const Packet *p);
-
 /**
  * \brief Registers an app inspection engine.
  *
