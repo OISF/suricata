@@ -82,9 +82,6 @@ int DetectEngineMTApply(void);
 int DetectEngineMultiTenantEnabled(void);
 void DetectEngineMultiTenantSetup(void);
 
-/* TODO move elsewhere? */
-uint32_t DetectEngineTentantGetIdFromPcap(DetectEngineThreadCtx *, const Packet *p);
-
 /**
  * \brief Registers an app inspection engine.
  *
