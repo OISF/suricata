@@ -1143,7 +1143,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+    if ((s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_SMTP) ||
+        s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
@@ -1152,7 +1153,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags &= ~SIG_FLAG_TOCLIENT;
     }
-    if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL ||
+    if ((s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL && s->alproto == ALPROTO_HTTP) ||
         s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
         sig_flags |= SIG_FLAG_TOCLIENT;
