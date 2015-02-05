@@ -294,6 +294,7 @@ typedef enum {
     SC_ERR_NO_NETMAP,
     SC_ERR_NETMAP_CREATE,
     SC_ERR_NETMAP_READ,
+    SC_ERR_THREAD_DEINIT, /**< thread's deinit function failed */
 } SCError;
 
 const char *SCErrorToString(SCError);
