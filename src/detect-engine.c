@@ -102,7 +102,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, };
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
 
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv);
 
@@ -1683,7 +1683,66 @@ void DetectEngineMultiTenantSetup(void)
             master->multi_tenant_enabled ? "enabled" : "disabled");
 }
 
-uint32_t DetectEngineTentantGetIdFromPcap(DetectEngineThreadCtx *det_ctx, const Packet *p)
+uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
+{
+    const DetectEngineThreadCtx *det_ctx = ctx;
+    uint32_t x = 0;
+    uint32_t vlan_id = 0;
+
+    if (p->vlan_idx == 0)
+        return 0;
+
+    vlan_id = p->vlan_id[0];
+
+    if (det_ctx == NULL || det_ctx->tenant_array == NULL || det_ctx->tenant_array_size == 0)
+        return 0;
+
+    /* not very efficient, but for now we're targeting only limited amounts.
+     * Can use hash/tree approach later. */
+    for (x = 0; x < det_ctx->tenant_array_size; x++) {
+        if (det_ctx->tenant_array[x].traffic_id == vlan_id)
+            return det_ctx->tenant_array[x].tenant_id;
+    }
+
+    return 0;
+}
+
+static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors selector,
+                                           uint32_t tenant_id, uint32_t traffic_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (!(master->tenant_selector == TENANT_SELECTOR_UNKNOWN || master->tenant_selector == selector)) {
+        SCLogInfo("conflicting selector already set");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    DetectEngineTenantMapping *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL) {
+        SCLogInfo("memory fail");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+    map->traffic_id = traffic_id;
+    map->tenant_id = tenant_id;
+
+    map->next = master->tenant_mapping_list;
+    master->tenant_mapping_list = map;
+
+    master->tenant_selector = selector;
+
+    SCMutexUnlock(&master->lock);
+    return 0;
+}
+
+int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+{
+    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+}
+
+uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
 {
     return p->pcap_v.tenant_id;
 }
@@ -1917,8 +1976,12 @@ int DetectEngineReload(const char *filename)
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
+    DetectEngineTenantMapping *map_array = NULL;
+    uint32_t map_array_size = 0;
+    uint32_t map_cnt = 0;
     int max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
+
     while (list) {
         if (list->tenant_id > max_tenant_id)
             max_tenant_id = list->tenant_id;
@@ -1932,6 +1995,32 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     }
 
     max_tenant_id++;
+
+    DetectEngineTenantMapping *map = master->tenant_mapping_list;
+    while (map) {
+        map_cnt++;
+        map = map->next;
+    }
+
+    if (map_cnt > 0) {
+        map_array_size = map_cnt + 1;
+
+        map_array = SCCalloc(map_array_size, sizeof(*map_array));
+        if (map_array == NULL)
+            goto error;
+
+        /* fill the array */
+        map_cnt = 0;
+        map = master->tenant_mapping_list;
+        while (map) {
+            BUG_ON(map_cnt > map_array_size);
+            map_array[map_cnt].traffic_id = map->traffic_id;
+            map_array[map_cnt].tenant_id = map->tenant_id;
+            map_cnt++;
+            map = map->next;
+        }
+
+    }
 
     DetectEngineThreadCtx **tenant_det_ctxs = SCCalloc(max_tenant_id, sizeof(DetectEngineThreadCtx *));
     BUG_ON(tenant_det_ctxs == NULL);
@@ -1954,6 +2043,23 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     det_ctx->mt_det_ctxs = tenant_det_ctxs;
     det_ctx->mt_det_ctxs_cnt = max_tenant_id;
 
+    det_ctx->tenant_array = map_array;
+    det_ctx->tenant_array_size = map_array_size;
+
+    switch (master->tenant_selector) {
+        case TENANT_SELECTOR_UNKNOWN:
+            SCLogDebug("TENANT_SELECTOR_UNKNOWN");
+            break;
+        case TENANT_SELECTOR_VLAN:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
+            SCLogDebug("TENANT_SELECTOR_VLAN");
+            break;
+        case TENANT_SELECTOR_DIRECT:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
+            SCLogDebug("TENANT_SELECTOR_DIRECT");
+            break;
+    }
+
     return det_ctx;
 error:
     return NULL;
@@ -1963,6 +2069,12 @@ int DetectEngineMTApply(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
     SCMutexLock(&master->lock);
+
+    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
+        SCLogInfo("error, no tenant selector");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
 
     DetectEngineCtx *minimal_de_ctx = NULL;
     /* if we have no tenants, we need a minimal on */
