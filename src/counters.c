@@ -320,6 +320,12 @@ static void *SCPerfMgmtThread(void *arg)
     TmThreadsSetFlag(tv_local, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
+    r = tm->ThreadDeinit(tv_local, stats_thread_data);
+    if (r != TM_ECODE_OK) {
+        SCLogError(SC_ERR_THREAD_DEINIT, "Perf Counter API "
+                   "ThreadDeinit failed");
+    }
+
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
 }
