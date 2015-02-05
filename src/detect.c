@@ -1881,13 +1881,14 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     }
 
     DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
+
+    if (det_ctx->TenantGetId != NULL) {
         if (det_ctx->mt_det_ctxs == 0) {
             printf("ERROR: Detect has no detection engine ctx\n");
             goto error;
         }
 
-        uint32_t tenant_id = DetectEngineTentantGetIdFromPcap(det_ctx, p);
+        uint32_t tenant_id = det_ctx->TenantGetId(det_ctx, p);
         if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
             det_ctx = det_ctx->mt_det_ctxs[tenant_id];
             BUG_ON(det_ctx == NULL);

@@ -786,6 +786,11 @@ typedef struct DetectEngineThreadCtx_ {
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
 
+    struct DetectEngineTenantMapping_ *tenant_array;
+    uint32_t tenant_array_size;
+
+    uint32_t (*TenantGetId)(const void *, const Packet *p);
+
     /* detection engine variables */
 
     /** offset into the payload of the last match by:
@@ -1055,6 +1060,22 @@ typedef struct SigGroupHead_ {
  *  deal with both cases */
 #define SIGMATCH_OPTIONAL_OPT   (1 << 5)
 
+enum DetectEngineTenantSelectors
+{
+    TENANT_SELECTOR_UNKNOWN = 0,    /**< not set */
+    TENANT_SELECTOR_DIRECT,         /**< method provides direct tenant id */
+    TENANT_SELECTOR_VLAN,           /**< map vlan to tenant id */
+};
+
+typedef struct DetectEngineTenantMapping_ {
+    uint32_t tenant_id;
+
+    /* traffic id that maps to the tenant id */
+    uint32_t traffic_id;
+
+    struct DetectEngineTenantMapping_ *next;
+} DetectEngineTenantMapping;
+
 typedef struct DetectEngineMasterCtx_ {
     SCMutex lock;
 
@@ -1069,6 +1090,13 @@ typedef struct DetectEngineMasterCtx_ {
      *  still be referenced by det_ctx's. Freed as soon as all references are
      *  gone. */
     DetectEngineCtx *free_list;
+
+    enum DetectEngineTenantSelectors tenant_selector;
+
+    /** list of tenant mappings. Updated under lock. Used to generate lookup
+     *  structures. */
+    DetectEngineTenantMapping *tenant_mapping_list;
+
 } DetectEngineMasterCtx;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
