@@ -22,6 +22,7 @@ import re
 import readline
 from socket import socket, AF_UNIX, error
 from time import sleep
+import select
 import sys
 
 SURICATASC_VERSION = "0.9"
@@ -79,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -114,7 +115,10 @@ class SuricataSC:
             self.socket.send(json.dumps(cmdmsg))
         else:
             self.socket.send(bytes(json.dumps(cmdmsg), 'iso-8859-1'))
-        cmdret = self.json_recv()
+
+        ready = select.select([self.socket], [], [], 600)
+        if ready[0]:
+            cmdret = self.json_recv()
 
         if cmdret == None:
             raise SuricataReturnException("Unable to get message from server")
@@ -168,15 +172,19 @@ class SuricataSC:
         if command.split(' ', 2)[0] in self.cmd_list:
             if "pcap-file " in command:
                 try:
-                    [cmd, filename, output] = command.split(' ', 2)
+                    #[cmd, filename, output] = command.split(' ', 2)
+                    parts = command.split(' ');
                 except:
                     raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                cmd, filename, output, tenant = parts[0], parts[1], parts[2], parts[3] or None
                 if cmd != "pcap-file":
                     raise SuricataCommandException("Invalid command '%s'" % (command))
                 else:
                     arguments = {}
                     arguments["filename"] = filename
                     arguments["output-dir"] = output
+                    print(tenant)
+                    arguments["tenant"] = int(tenant)
             elif "iface-stat" in command:
                 try:
                     [cmd, iface] = command.split(' ', 1)
@@ -197,6 +205,27 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["variable"] = variable
+            elif "unregister-tenant" in command:
+                try:
+                    [cmd, tenantid] = command.split(' ', 1)
+                except:
+                    raise SuricataCommandException("Unable to split command '%s'" % (command))
+                if cmd != "unregister-tenant":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["id"] = int(tenantid)
+            elif "register-tenant" in command:
+                try:
+                    [cmd, tenantid, filename] = command.split(' ', 2)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "register-tenant":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["id"] = int(tenantid)
+                    arguments["filename"] = filename
             else:
                 cmd = command
         else:

@@ -239,14 +239,20 @@ void DetectExitPrintStats(ThreadVars *tv, void *data)
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *DetectLoadCompleteSigPath(char *sig_file)
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
+    char varname[128] = "default-rule-path";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.default-rule-path",
+                de_ctx->config_prefix);
+    }
 
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
-        if (ConfGet("default-rule-path", &defaultpath) == 1) {
+        if (ConfGet(varname, &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
@@ -396,6 +402,13 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     int goodtotal = 0;
     int badtotal = 0;
 
+    char varname[128] = "rule-files";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.rule-files",
+                de_ctx->config_prefix);
+    }
+
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
@@ -403,10 +416,10 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* ok, let's load signature files from the general config */
     if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
-        rule_files = ConfGetNode("rule-files");
+        rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
             TAILQ_FOREACH(file, &rule_files->head, next) {
-                sfile = DetectLoadCompleteSigPath(file->val);
+                sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                 SCLogDebug("Loading rule file: %s", sfile);
 
                 cntf++;
@@ -1843,16 +1856,31 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
-        printf("ERROR: Detect has no detection engine ctx\n");
-        goto error;
-    }
-
     if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
-                  det_ctx, de_ctx);
+        SCLogInfo("Detect Engine using new det_ctx - %p",
+                  det_ctx);
+    }
+
+    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    if (de_ctx == NULL) {
+        if (det_ctx->mt_det_ctxs == 0) {
+            printf("ERROR: Detect has no detection engine ctx\n");
+            goto error;
+        }
+
+        if (p->pcap_v.tenant_id > 0 && p->pcap_v.tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            det_ctx = det_ctx->mt_det_ctxs[p->pcap_v.tenant_id];
+            BUG_ON(det_ctx == NULL);
+            de_ctx = det_ctx->de_ctx;
+            BUG_ON(de_ctx == NULL);
+            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+                (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+                SCLogInfo("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, p->pcap_v.tenant_id);
+            }
+        } else {
+            return TM_ECODE_OK;
+        }
     }
 
     /* see if the packet matches one or more of the sigs */
