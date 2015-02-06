@@ -277,6 +277,8 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant out of range");
         }
+    } else {
+        SCLogInfo("pcap-file.tenant-id not set");
     }
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
