@@ -1930,6 +1930,7 @@ int DetectEngineMTApply(void)
 
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogInfo("error, no tenant selector");
+        SCMutexUnlock(&master->lock);
         return -1;
     }
 
