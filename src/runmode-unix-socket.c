@@ -359,6 +359,8 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
                 PcapFilesFree(cfile);
                 return TM_ECODE_FAILED;
             }
+        } else {
+            SCLogInfo("pcap-file.tenant-id not set");
         }
         this->currentfile = SCStrdup(cfile->filename);
         if (unlikely(this->currentfile == NULL)) {
@@ -417,6 +419,87 @@ void UnixSocketPcapFile(TmEcode tm)
 }
 
 #ifdef BUILD_UNIX_SOCKET
+/**
+ * \brief Command to add a tenant handler
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
+{
+    const char *htype;
+    json_int_t traffic_id = -1;
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* 1 get tenant id */
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    /* 2 get tenant handler type */
+    jarg = json_object_get(cmd, "htype");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    htype = json_string_value(jarg);
+
+    SCLogDebug("add-tenant-handler: %d %s", tenant_id, htype);
+
+    /* 3 get optional hargs */
+    json_t *hargs = json_object_get(cmd, "hargs");
+    if (hargs != NULL) {
+        if (!json_is_integer(hargs)) {
+            SCLogInfo("error: hargs not a number");
+            json_object_set_new(answer, "message", json_string("hargs not a number"));
+            return TM_ECODE_FAILED;
+        }
+        traffic_id = json_integer_value(hargs);
+    }
+
+    /* 4 add to system */
+    int r = -1;
+    if (strcmp(htype, "pcap") == 0) {
+        r = DetectEngineTentantRegisterPcapFile(tenant_id);
+    } else if (strcmp(htype, "vlan") == 0) {
+        if (traffic_id < 0) {
+            json_object_set_new(answer, "message", json_string("vlan requires argument"));
+            return TM_ECODE_FAILED;
+        }
+        if (traffic_id > USHRT_MAX) {
+            json_object_set_new(answer, "message", json_string("vlan argument out of range"));
+            return TM_ECODE_FAILED;
+        }
+
+        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        r = DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)traffic_id);
+    }
+    if (r != 0) {
+        json_object_set_new(answer, "message", json_string("handler setup failure"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("handler added"));
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Command to add a tenant
  *

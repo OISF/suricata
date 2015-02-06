@@ -883,6 +883,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
 
