@@ -1627,6 +1627,7 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
 
     master->tenant_selector = selector;
 
+    SCLogInfo("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
     SCMutexUnlock(&master->lock);
     return 0;
 }
@@ -1634,6 +1635,12 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
 int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
     return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+}
+
+int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id)
+{
+    SCLogInfo("registering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
+    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
 }
 
 uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
