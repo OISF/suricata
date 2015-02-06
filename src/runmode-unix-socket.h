@@ -32,6 +32,7 @@ int RunModeUnixSocketIsActive(void);
 void UnixSocketPcapFile(TmEcode tm);
 
 #ifdef BUILD_UNIX_SOCKET
+TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
 #endif
