@@ -367,6 +367,12 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexUnlock(&lf_ctx->fp_mutex);
     }
 
+#ifdef HAVE_LIBHIREDIS
+    if (lf_ctx->type == LOGFILE_TYPE_REDIS && lf_ctx->redis) {
+        redisFree(lf_ctx->redis);
+    }
+#endif
+
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
     if (lf_ctx->prefix != NULL)

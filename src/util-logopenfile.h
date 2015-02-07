@@ -27,6 +27,8 @@
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
 
+#include "hiredis/hiredis.h"
+
 typedef struct {
     uint16_t fileno;
 } PcieFile;
@@ -34,14 +36,30 @@ typedef struct {
 enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
-                   LOGFILE_TYPE_UNIX_STREAM };
+                   LOGFILE_TYPE_UNIX_STREAM,
+                   LOGFILE_TYPE_REDIS };
+
+enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
+
+typedef struct RedisSetup_ {
+    enum RedisMode mode;
+    char *command;
+    char *key;
+} RedisSetup;
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+#ifdef HAVE_LIBHIREDIS
+        redisContext *redis;
+#endif
     };
+
+#ifdef HAVE_LIBHIREDIS
+    RedisSetup redis_setup;
+#endif
 
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
     void (*Close)(struct LogFileCtx_ *fp);
