@@ -52,7 +52,7 @@
 #include <jansson.h>
 
 typedef struct LogJsonFileCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
 } LogJsonFileCtx;
 
@@ -324,7 +324,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     JsonFlowLogJSON(jhl, js, f);
 
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->json_ctx, buffer);
     json_object_del(js, "http");
 
     json_object_clear(js);
@@ -336,8 +336,9 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 static void OutputFlowLogDeinit(OutputCtx *output_ctx)
 {
     LogJsonFileCtx *flow_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = flow_ctx->file_ctx;
+    LogFileCtx *logfile_ctx = flow_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(flow_ctx->json_ctx);
     SCFree(flow_ctx);
     SCFree(output_ctx);
 }
@@ -370,7 +371,16 @@ OutputCtx *OutputFlowLogInit(ConfNode *conf)
         return NULL;
     }
 
-    flow_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(output_ctx);
+        SCFree(flow_ctx);
+        return NULL;
+    }
+
+    flow_ctx->json_ctx = json_output_ctx;
+    flow_ctx->json_ctx->file_ctx = file_ctx;
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputFlowLogDeinit;
 
@@ -398,7 +408,7 @@ OutputCtx *OutputFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    flow_ctx->file_ctx = ojc->file_ctx;
+    flow_ctx->json_ctx = ojc;
     flow_ctx->flags = LOG_HTTP_DEFAULT;
 
     output_ctx->data = flow_ctx;

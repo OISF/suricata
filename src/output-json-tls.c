@@ -60,7 +60,7 @@ SC_ATOMIC_DECLARE(unsigned int, cert_id);
 #define LOG_TLS_EXTENDED    (1 << 0)
 
 typedef struct OutputTlsCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
 } OutputTlsCtx;
 
@@ -165,7 +165,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     json_object_set_new(js, "tls", tjs);
 
-    OutputJSONBuffer(js, tls_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, tls_ctx->json_ctx, buffer);
     json_object_clear(js);
     json_decref(js);
 
@@ -224,8 +224,9 @@ static void OutputTlsLogDeinit(OutputCtx *output_ctx)
     OutputTlsLoggerDisable();
 
     OutputTlsCtx *tls_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = tls_ctx->file_ctx;
+    LogFileCtx *logfile_ctx = tls_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(tls_ctx->json_ctx);
     SCFree(tls_ctx);
     SCFree(output_ctx);
 }
@@ -263,7 +264,16 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
         return NULL;
     }
 
-    tls_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(output_ctx);
+        SCFree(tls_ctx);
+        return NULL;
+    }
+
+    tls_ctx->json_ctx = json_output_ctx;
+    tls_ctx->json_ctx->file_ctx = file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
 
     if (conf) {
@@ -310,7 +320,7 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    tls_ctx->file_ctx = ojc->file_ctx;
+    tls_ctx->json_ctx = ojc;
     tls_ctx->flags = LOG_TLS_DEFAULT;
 
     if (conf) {

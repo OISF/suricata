@@ -146,10 +146,6 @@ void TmModuleOutputJsonRegister (void)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-static enum JsonOutput json_out = ALERT_FILE;
-
-static enum JsonFormat format = COMPACT;
-
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
@@ -331,7 +327,7 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     return js;
 }
 
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
+int OutputJSONBuffer(json_t *js, OutputJsonCtx *json_ctx, MemBuffer *buffer)
 {
     char *js_s = json_dumps(js,
                             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
@@ -344,15 +340,15 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
     if (unlikely(js_s == NULL))
         return TM_ECODE_OK;
 
-    SCMutexLock(&file_ctx->fp_mutex);
-    if (json_out == ALERT_SYSLOG) {
+    SCMutexLock(&json_ctx->file_ctx->fp_mutex);
+    if (json_ctx->json_out == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) {
+    } else if (json_ctx->json_out == ALERT_FILE || json_ctx->json_out == ALERT_UNIX_DGRAM || json_ctx->json_out == ALERT_UNIX_STREAM) {
         MemBufferWriteString(buffer, "%s\n", js_s);
-        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
-            MEMBUFFER_OFFSET(buffer), file_ctx);
+        json_ctx->file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer), json_ctx->file_ctx);
     }
-    SCMutexUnlock(&file_ctx->fp_mutex);
+    SCMutexUnlock(&json_ctx->file_ctx->fp_mutex);
     free(js_s);
     return 0;
 }
@@ -518,9 +514,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 exit(EXIT_FAILURE);
             }
         }
-
-        format = json_ctx->format;
-        json_out = json_ctx->json_out;
     }
 
     SCLogDebug("returning output_ctx %p", output_ctx);

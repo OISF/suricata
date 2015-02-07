@@ -65,7 +65,7 @@
 #include <jansson.h>
 
 typedef struct OutputFileCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t file_cnt;
 } OutputFileCtx;
 
@@ -246,7 +246,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
 
     /* originally just 'file', but due to bug 1127 naming it fileinfo */
     json_object_set_new(js, "fileinfo", fjs);
-    OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->filelog_ctx->json_ctx, buffer);
     json_object_del(js, "fileinfo");
     json_object_del(js, "http");
 
@@ -336,7 +336,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    output_file_ctx->file_ctx = ojc->file_ctx;
+    output_file_ctx->json_ctx = ojc;
 
     if (conf) {
         const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
