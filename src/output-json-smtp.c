@@ -65,7 +65,8 @@ static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
 {
     OutputJsonEmailCtx *email_ctx = output_ctx->data;
     if (email_ctx != NULL) {
-        LogFileFreeCtx(email_ctx->file_ctx);
+        LogFileFreeCtx(email_ctx->json_ctx->file_ctx);
+        SCFree(email_ctx->json_ctx);
         SCFree(email_ctx);
     }
     SCFree(output_ctx);
@@ -108,7 +109,16 @@ OutputCtx *OutputSmtpLogInit(ConfNode *conf)
         return NULL;
     }
 
-    email_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(output_ctx);
+        SCFree(email_ctx);
+        return NULL;
+    }
+
+    email_ctx->json_ctx = json_output_ctx;
+    email_ctx->json_ctx->file_ctx = file_ctx;
 
     output_ctx->data = email_ctx;
     output_ctx->DeInit = OutputSmtpLogDeInitCtx;
@@ -121,7 +131,7 @@ OutputCtx *OutputSmtpLogInit(ConfNode *conf)
 
 static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
     if (unlikely(email_ctx == NULL))
@@ -133,7 +143,7 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    email_ctx->file_ctx = ajt->file_ctx;
+    email_ctx->json_ctx = ojc;
 
     output_ctx->data = email_ctx;
     output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
