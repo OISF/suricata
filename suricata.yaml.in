@@ -92,13 +92,18 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
       # the following are valid when type: syslog above
       #identity: "suricata"
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #redis:
+      #  server: 127.0.0.1
+      #  port: 6379
+      #  mode: list ## possible values: list (default), channel
+      #  key: suricata ## key or channel to use (default to suricata)
       types:
         - alert:
             # payload: yes           # enable dumping payload in Base64
