@@ -58,7 +58,7 @@
 #define QUERY 0
 
 typedef struct LogDnsFileCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
 } LogDnsFileCtx;
 
@@ -109,7 +109,7 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->dnslog_ctx->json_ctx, buffer);
     json_object_del(js, "dns");
 }
 
@@ -174,7 +174,7 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     /* reset */
     MemBufferReset(buffer);
     json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(djs, aft->dnslog_ctx->json_ctx, buffer);
     json_object_del(djs, "dns");
 
     return;
@@ -277,7 +277,8 @@ static TmEcode LogDnsLogThreadDeinit(ThreadVars *t, void *data)
 static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
-    LogFileFreeCtx(dnslog_ctx->file_ctx);
+    LogFileFreeCtx(dnslog_ctx->json_ctx->file_ctx);
+    SCFree(dnslog_ctx->json_ctx);
     SCFree(dnslog_ctx);
     SCFree(output_ctx);
 }
@@ -292,7 +293,7 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
 
 static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
@@ -300,7 +301,7 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
-    dnslog_ctx->file_ctx = ajt->file_ctx;
+    dnslog_ctx->json_ctx = ojc;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -345,8 +346,6 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
-    dnslog_ctx->file_ctx = file_ctx;
-
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         LogFileFreeCtx(file_ctx);
@@ -354,6 +353,16 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(dnslog_ctx);
+        SCFree(output_ctx);
+        return NULL;
+    }
+
+    dnslog_ctx->json_ctx = json_output_ctx;
+    json_output_ctx->file_ctx = file_ctx;
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtx;
 

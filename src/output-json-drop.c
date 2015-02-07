@@ -62,7 +62,7 @@
 
 typedef struct JsonDropLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    OutputJsonCtx* json_ctx;
     MemBuffer *buffer;
 } JsonDropLogThread;
 
@@ -133,7 +133,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             break;
     }
     json_object_set_new(js, "drop", djs);
-    OutputJSONBuffer(js, aft->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->json_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -161,8 +161,16 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        MemBufferFree(aft->buffer);
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /** FIXME setting log method or maybe getting on json_ctx */
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    aft->json_ctx->file_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -176,6 +184,8 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->buffer);
+
+    SCFree(aft->json_ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(*aft));
@@ -238,14 +248,14 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
 
-    output_ctx->data = ajt->file_ctx;
+    output_ctx->data = ojc->file_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;
     return output_ctx;
 }
