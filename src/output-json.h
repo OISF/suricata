@@ -26,24 +26,20 @@
 
 void TmModuleOutputJsonRegister (void);
 
-#ifdef HAVE_LIBJANSSON
-
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
-
-void CreateJSONFlowId(json_t *js, const Flow *f);
-void JsonTcpFlags(uint8_t flags, json_t *js);
-json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
-TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
-OutputCtx *OutputJsonInitCtx(ConfNode *);
 
 enum JsonOutput { ALERT_FILE,
                   ALERT_SYSLOG,
                   ALERT_UNIX_DGRAM,
                   ALERT_UNIX_STREAM };
 enum JsonFormat { COMPACT, INDENT };
+
+typedef struct AlertJsonThread_ {
+    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    LogFileCtx *file_ctx;
+} AlertJsonThread;
 
 /*
  * Global configuration context data
@@ -54,11 +50,15 @@ typedef struct OutputJsonCtx_ {
     enum JsonFormat format;
 } OutputJsonCtx;
 
+#ifdef HAVE_LIBJANSSON
 
-typedef struct AlertJsonThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx *file_ctx;
-} AlertJsonThread;
+void CreateJSONFlowId(json_t *js, const Flow *f);
+void JsonTcpFlags(uint8_t flags, json_t *js);
+json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
+TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
+int OutputJSONBuffer(json_t *js, OutputJsonCtx *json_ctx, MemBuffer *buffer);
+OutputCtx *OutputJsonInitCtx(ConfNode *);
+
 
 #endif /* HAVE_LIBJANSSON */
 
