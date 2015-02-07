@@ -461,7 +461,7 @@ static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL))
@@ -474,7 +474,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    http_ctx->file_ctx = ajt->file_ctx;
+    http_ctx->file_ctx = ojc->file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
 
     if (conf) {

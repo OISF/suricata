@@ -493,7 +493,7 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
  */
 static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ajt = parent_ctx->data;
     AlertJsonOutputCtx *json_output_ctx = NULL;
     HttpXFFCfg *xff_cfg = NULL;
 
