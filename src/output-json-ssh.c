@@ -248,7 +248,7 @@ static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     if (OutputSshLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'ssh' logger "
@@ -266,7 +266,7 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    ssh_ctx->file_ctx = ajt->file_ctx;
+    ssh_ctx->file_ctx = ojc->file_ctx;
 
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinitSub;
