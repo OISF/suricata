@@ -292,7 +292,7 @@ static void OutputTlsLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     if (OutputTlsLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'tls' logger "
@@ -310,7 +310,7 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    tls_ctx->file_ctx = ajt->file_ctx;
+    tls_ctx->file_ctx = ojc->file_ctx;
     tls_ctx->flags = LOG_TLS_DEFAULT;
 
     if (conf) {

@@ -324,7 +324,7 @@ static void OutputFileLogDeinitSub(OutputCtx *output_ctx)
  * */
 OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputFileCtx *output_file_ctx = SCMalloc(sizeof(OutputFileCtx));
     if (unlikely(output_file_ctx == NULL))
@@ -336,7 +336,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    output_file_ctx->file_ctx = ajt->file_ctx;
+    output_file_ctx->file_ctx = ojc->file_ctx;
 
     if (conf) {
         const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
