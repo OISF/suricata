@@ -451,8 +451,8 @@ static void ModbusCheckHeader(ModbusState       *modbus,
         ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_LENGTH);
 
     /* Check Unit Identifier field that is not in invalid range */
-    if ((header->length > MODBUS_MIN_INVALID_UNIT_ID)   &&
-        (header->length < MODBUS_MAX_INVALID_UNIT_ID)   )
+    if ((header->unitId > MODBUS_MIN_INVALID_UNIT_ID)   &&
+        (header->unitId < MODBUS_MAX_INVALID_UNIT_ID)   )
         ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_UNIT_IDENTIFIER);
 
     SCReturn;
