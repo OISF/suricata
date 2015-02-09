@@ -135,14 +135,15 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     DEBUG_VALIDATE_BUG_ON(thread_data == NULL);
+    if (p->flow == NULL)
+        return TM_ECODE_OK;
+
     if (list == NULL) {
         /* No child loggers registered. */
         return TM_ECODE_OK;
     }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
-    if (p->flow == NULL)
-        return TM_ECODE_OK;
 
     Flow * const f = p->flow;
     const uint8_t ipproto = f->proto;
