@@ -42,6 +42,7 @@
 #include "output.h"
 #include "host.h"
 #include "defrag.h"
+#include "ippair.h"
 
 #include "util-profiling.h"
 
@@ -310,6 +311,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         SCPerfReleaseResources();
         RunModeShutDown();
         FlowShutdown();
+        IPPairShutdown();
         HostCleanup();
         StreamTcpFreeConfig(STREAM_VERBOSE);
         DefragDestroy();
@@ -351,6 +353,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
 #endif /* PROFILING */
         DefragInit();
         FlowInitConfig(FLOW_QUIET);
+        IPPairInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
         SCPerfInitCounterApi();

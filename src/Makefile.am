@@ -136,6 +136,7 @@ detect-fragoffset.c detect-fragoffset.h \
 detect-ftpbounce.c detect-ftpbounce.h \
 detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
+detect-hostbits.c detect-hostbits.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-header.c detect-http-header.h \
@@ -196,6 +197,7 @@ detect-urilen.c detect-urilen.h \
 detect-window.c detect-window.h \
 detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
+detect-xbits.c detect-xbits.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \
@@ -206,9 +208,15 @@ flow-timeout.c flow-timeout.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
 host.c host.h \
+host-bit.c host-bit.h \
 host-queue.c host-queue.h \
 host-storage.c host-storage.h \
 host-timeout.c host-timeout.h \
+ippair.c ippair.h \
+ippair-bit.c ippair-bit.h \
+ippair-queue.c ippair-queue.h \
+ippair-storage.c ippair-storage.h \
+ippair-timeout.c ippair-timeout.h \
 log-dnslog.c log-dnslog.h \
 log-droplog.c log-droplog.h \
 log-file.c log-file.h \

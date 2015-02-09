@@ -131,11 +131,11 @@ void VariableNameFreeHash(DetectEngineCtx *de_ctx)
 
 /** \brief Get a name idx for a name. If the name is already used reuse the idx.
  *  \param name nul terminated string with the name
- *  \param type variable type (DETECT_FLOWBITS, DETECT_PKTVAR, etc)
+ *  \param type variable type
  *  \retval 0 in case of error
- *  \retval _ the idx.
+ *  \retval idx the idx or 0
  */
-uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type)
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, enum VarTypes type)
 {
     uint16_t idx = 0;
 
@@ -170,11 +170,11 @@ error:
 
 /** \brief Get a name from the idx.
  *  \param idx index of the variable whose name is to be fetched
- *  \param type variable type (DETECT_FLOWBITS, DETECT_PKTVAR, etc)
+ *  \param type variable type
  *  \retval NULL in case of error
  *  \retval name of the variable if successful.
  */
-char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, uint8_t type)
+char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, enum VarTypes type)
 {
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (unlikely(fn == NULL))
