@@ -4680,13 +4680,16 @@ static inline int StreamTcpValidateChecksum(Packet *p)
  *  \retval bool true/false */
 static int TcpSessionPacketIsStreamStarter(const Packet *p)
 {
-    uint8_t flag = TH_SYN;
-
-    //SCLogInfo("Want: %02x, have %02x", flag, p->tcph->th_flags);
-
-    if (p->tcph->th_flags == flag) {
+    if (p->tcph->th_flags == TH_SYN) {
         SCLogDebug("packet %"PRIu64" is a stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
         return 1;
+    }
+
+    if (stream_config.midstream == TRUE || stream_config.async_oneside == TRUE) {
+        if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
+            SCLogDebug("packet %"PRIu64" is a midstream stream starter: %02x", p->pcap_cnt, p->tcph->th_flags);
+            return 1;
+        }
     }
     return 0;
 }
@@ -4694,7 +4697,7 @@ static int TcpSessionPacketIsStreamStarter(const Packet *p)
 /** \internal
  *  \brief Check if Flow and TCP SSN allow this flow/tuple to be reused
  *  \retval bool true yes reuse, false no keep tracking old ssn */
-int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
+static int TcpSessionReuseDoneEnoughSyn(const Packet *p, const Flow *f, const TcpSession *ssn)
 {
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (ssn == NULL) {
@@ -4738,6 +4741,77 @@ int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *
     }
 
     SCLogDebug("default: how did we get here?");
+    return 0;
+}
+
+/** \internal
+ *  \brief check if ssn is done enough for reuse by syn/ack
+ *  \note should only be called if midstream is enabled
+ */
+static int TcpSessionReuseDoneEnoughSynAck(const Packet *p, const Flow *f, const TcpSession *ssn)
+{
+    if (FlowGetPacketDirection(f, p) == TOCLIENT) {
+        if (ssn == NULL) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. No reuse.", p->pcap_cnt, ssn);
+            return 0;
+        }
+        if (SEQ_EQ(ssn->server.isn, TCP_GET_SEQ(p))) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p. Packet SEQ == Stream ISN. Retransmission. Don't reuse.", p->pcap_cnt, ssn);
+            return 0;
+        }
+        if (ssn->state >= TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state == TCP_NONE) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state < TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 0;
+        }
+
+    } else {
+        if (ssn == NULL) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p null. Reuse.", p->pcap_cnt, ssn);
+            return 1;
+        }
+        if (ssn->state >= TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state >= TCP_LAST_ACK (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state == TCP_NONE) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state == TCP_NONE (%u). Reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 1;
+        }
+        if (ssn->state < TCP_LAST_ACK) {
+            SCLogDebug("steam starter packet %"PRIu64", ssn %p state < TCP_LAST_ACK (%u). Don't reuse.", p->pcap_cnt, ssn, ssn->state);
+            return 0;
+        }
+    }
+
+    SCLogDebug("default: how did we get here?");
+    return 0;
+}
+
+/** \brief Check if SSN is done enough for reuse
+ *
+ *  Reuse means a new TCP session reuses the tuple (flow in suri)
+ *
+ *  \retval bool true if ssn can be reused, false if not */
+int TcpSessionReuseDoneEnough(const Packet *p, const Flow *f, const TcpSession *ssn)
+{
+    if (p->tcph->th_flags == TH_SYN) {
+        return TcpSessionReuseDoneEnoughSyn(p, f, ssn);
+    }
+
+    if (stream_config.midstream == TRUE || stream_config.async_oneside == TRUE) {
+        if (p->tcph->th_flags == (TH_SYN|TH_ACK)) {
+            return TcpSessionReuseDoneEnoughSynAck(p, f, ssn);
+        }
+    }
+
     return 0;
 }
 
