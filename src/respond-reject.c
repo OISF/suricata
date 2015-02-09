@@ -58,9 +58,7 @@ void TmModuleRespondRejectRegister (void)
 static TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data)
 {
     /* ACTION_REJECT defaults to rejecting the SRC */
-    if (!(PACKET_TEST_ACTION(p, ACTION_REJECT)) &&
-        !(PACKET_TEST_ACTION(p, ACTION_REJECT_DST)) &&
-        !(PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH))) {
+    if (likely(PACKET_TEST_ACTION(p, ACTION_REJECT_ANY) == 0)) {
         return TM_ECODE_OK;
     }
 
