@@ -289,7 +289,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
     return tx;
 }
 
-static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
+int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -1075,7 +1075,7 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-static void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))

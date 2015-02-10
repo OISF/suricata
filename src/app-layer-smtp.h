@@ -128,6 +128,8 @@ typedef struct SMTPState_ {
 
 } SMTPState;
 
+int ProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state);
+void *SMTPStateAlloc(void);
 void RegisterSMTPParsers(void);
 void SMTPParserRegisterTests(void);
 
