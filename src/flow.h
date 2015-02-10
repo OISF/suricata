@@ -46,9 +46,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TO_SRC_SEEN                  0x00000001
 /** At least on packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                  0x00000002
-
-// vacany 1x
-
+/** Don't return this from the flow hash. It has been replaced. */
+#define FLOW_TCP_REUSED                   0x00000004
 /** no magic on files in this flow */
 #define FLOW_FILE_NO_MAGIC_TS             0x00000008
 #define FLOW_FILE_NO_MAGIC_TC             0x00000010
@@ -450,7 +449,7 @@ static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
-int FlowGetPacketDirection(Flow *, const Packet *);
+int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
 
@@ -581,7 +580,11 @@ int FlowClearMemory(Flow *,uint8_t );
 AppProto FlowGetAppProtocol(Flow *f);
 void *FlowGetAppState(Flow *f);
 
+void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
+void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
+Flow *FlowGetFlowFromHashByPacket(const Packet *p);
+Flow *FlowLookupFlowFromHash(const Packet *p);
 
 #endif /* __FLOW_H__ */
 
