@@ -128,6 +128,11 @@ typedef struct SMTPState_ {
 
 } SMTPState;
 
+/* Create SMTP config structure */
+extern SMTPConfig smtp_config;
+
+int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state);
+void *SMTPStateAlloc(void);
 void RegisterSMTPParsers(void);
 void SMTPParserRegisterTests(void);
 

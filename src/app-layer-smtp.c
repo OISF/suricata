@@ -289,7 +289,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
     return tx;
 }
 
-static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
+int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -960,7 +960,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
             if (smtp_config.decode_mime) {
-                tx->mime_state = MimeDecInitParser(f, ProcessDataChunk);
+                tx->mime_state = MimeDecInitParser(f, SMTPProcessDataChunk);
                 if (tx->mime_state == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "MimeDecInitParser() failed to "
                             "allocate data");
@@ -1075,7 +1075,7 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-static void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))
@@ -4598,7 +4598,7 @@ int SMTPProcessDataChunkTest01(void){
     f.flags = FLOW_FILE_NO_STORE_TS;
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     int ret;
-    ret = ProcessDataChunk(NULL, 0, state);
+    ret = SMTPProcessDataChunk(NULL, 0, state);
 
     return ret;
 }
@@ -4655,7 +4655,7 @@ int SMTPProcessDataChunkTest02(void){
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
     int ret;
-    ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
 
 
     return ret;
@@ -4685,31 +4685,31 @@ int SMTPProcessDataChunkTest03(void){
     int ret;
 
     state->body_begin = 1;
-    ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     if(ret) goto end;
     state->body_begin = 0;
-    ret = ProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg3, sizeof(mimemsg3), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg3, sizeof(mimemsg3), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg4, sizeof(mimemsg4), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg4, sizeof(mimemsg4), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg5, sizeof(mimemsg5), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg5, sizeof(mimemsg5), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg6, sizeof(mimemsg6), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg6, sizeof(mimemsg6), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg7, sizeof(mimemsg7), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg7, sizeof(mimemsg7), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg8, sizeof(mimemsg8), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg8, sizeof(mimemsg8), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg9, sizeof(mimemsg9), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg9, sizeof(mimemsg9), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg10, sizeof(mimemsg10), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg10, sizeof(mimemsg10), state);
     if(ret) goto end;
-    ret = ProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state);
     if(ret) goto end;
     state->body_end = 1;
-    ret = ProcessDataChunk((uint8_t *)mimemsg12, sizeof(mimemsg12), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg12, sizeof(mimemsg12), state);
     if(ret) goto end;
 
     end:
@@ -4738,20 +4738,20 @@ int SMTPProcessDataChunkTest04(void){
     int ret = MIME_DEC_OK;
 
     state->body_begin = 1;
-    if(ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg3, sizeof(mimemsg3), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg4, sizeof(mimemsg4), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg5, sizeof(mimemsg5), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg6, sizeof(mimemsg6), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg7, sizeof(mimemsg7), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg3, sizeof(mimemsg3), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg4, sizeof(mimemsg4), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg5, sizeof(mimemsg5), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg6, sizeof(mimemsg6), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg7, sizeof(mimemsg7), state) != 0) goto end;
     state->body_begin = 0;
     state->body_end = 1;
-    if(ProcessDataChunk((uint8_t *)mimemsg8, sizeof(mimemsg8), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg8, sizeof(mimemsg8), state) != 0) goto end;
     state->body_end = 0;
-    if(ProcessDataChunk((uint8_t *)mimemsg9, sizeof(mimemsg9), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg10, sizeof(mimemsg10), state) != 0) goto end;
-    if(ProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg9, sizeof(mimemsg9), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg10, sizeof(mimemsg10), state) != 0) goto end;
+    if(SMTPProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state) != 0) goto end;
 
     end:
     return ret;
@@ -4774,7 +4774,7 @@ int SMTPProcessDataChunkTest05(void){
     state->body_begin = 1;
     int ret;
     uint64_t file_size = 0;
-    ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     state->body_begin = 0;
     if(ret){goto end;}
     SMTPState *smtp_state = (SMTPState *)((Flow *)state->data)->alstate;
@@ -4785,7 +4785,7 @@ int SMTPProcessDataChunkTest05(void){
     FileDisableStoring(&f, STREAM_TOSERVER);
     FileDisableMagic(&f, STREAM_TOSERVER);
     FileDisableMd5(&f, STREAM_TOSERVER);
-    ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
+    ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     if(ret){goto end;}
     printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);
     if(file->size == file_size){
