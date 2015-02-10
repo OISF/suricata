@@ -952,11 +952,16 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         ssn->flags = STREAMTCP_FLAG_MIDSTREAM;
         ssn->flags |= STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
 
+        /** window scaling for midstream pickups, we can't do much other
+         *  than assume that it's set to the max value: 14 */
+        ssn->client.wscale = TCP_WSCALE_MAX;
+        ssn->server.wscale = TCP_WSCALE_MAX;
+
         /* set the sequence numbers and window */
         ssn->client.isn = TCP_GET_SEQ(p) - 1;
         STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
         ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
-        ssn->client.window = TCP_GET_WINDOW(p);
+        ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
         ssn->client.last_ack = TCP_GET_SEQ(p);
         ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
         SCLogDebug("ssn %p: ssn->client.isn %u, ssn->client.next_seq %u",
@@ -974,11 +979,6 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         SCLogDebug("ssn %p: ssn->client.last_ack %"PRIu32", "
                 "ssn->server.last_ack %"PRIu32"", ssn,
                 ssn->client.last_ack, ssn->server.last_ack);
-
-        /** window scaling for midstream pickups, we can't do much other
-         *  than assume that it's set to the max value: 14 */
-        ssn->client.wscale = TCP_WSCALE_MAX;
-        ssn->server.wscale = TCP_WSCALE_MAX;
 
         /* Set the timestamp value for both streams, if packet has timestamp
          * option enabled.*/
