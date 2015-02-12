@@ -1848,6 +1848,11 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     DetectEngineCtx *list = master->list;
     DetectEngineThreadCtx **tenant_det_ctxs = NULL;
 
+    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
+        SCLogInfo("no tenant selector set");
+        return NULL;
+    }
+
     while (list) {
         if (list->tenant_id > max_tenant_id)
             max_tenant_id = list->tenant_id;
