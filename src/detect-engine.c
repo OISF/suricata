@@ -2030,6 +2030,23 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
         goto error;
     }
 
+    /* first register the counter. In delayed detect mode we exit right after if the
+     * rules haven't been loaded yet. */
+    uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
+#ifdef PROFILING
+    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
+    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
+    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
+    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
+#endif
+    /** alert counter setup */
+    det_ctx->counter_alerts = counter_alerts;
+#ifdef PROFILING
+    det_ctx->counter_mpm_list = counter_mpm_list;
+    det_ctx->counter_nonmpm_list = counter_nonmpm_list;
+    det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
+    det_ctx->counter_match_list = counter_match_list;
+#endif
     det_ctx->mt_det_ctxs = tenant_det_ctxs;
     det_ctx->mt_det_ctxs_cnt = max_tenant_id;
 
