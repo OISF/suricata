@@ -129,7 +129,13 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
-void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
+void PcapFileGlobalInit()
+{
+    SC_ATOMIC_INIT(pcap_g.invalid_checksums);
+}
+
+void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt)
+{
     SCEnter();
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
