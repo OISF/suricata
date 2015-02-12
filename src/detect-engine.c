@@ -1674,13 +1674,31 @@ int DetectEngineMultiTenantEnabled(void)
 void DetectEngineMultiTenantSetup(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
     int enabled = 0;
     (void)ConfGetBool("multi-detect.enabled", &enabled);
     if (enabled == 1) {
         master->multi_tenant_enabled = 1;
+
+        char *handler = NULL;
+        if (ConfGet("multi-detect.selector", &handler) == 1) {
+            SCLogInfo("selector %s", handler);
+
+            if (strcmp(handler, "vlan") == 0) {
+                master->tenant_selector = TENANT_SELECTOR_VLAN;
+            } else if (strcmp(handler, "direct") == 0) {
+                master->tenant_selector = TENANT_SELECTOR_DIRECT;
+            } else {
+                SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
+                                                 "multi-detect.selector", handler);
+                goto end;
+            }
+        }
+        SCLogInfo("multi-detect is enabled (multi tenancy). Selector: %s", handler);
     }
-    SCLogInfo("multi-detect is %s (multi tenancy)",
-            master->multi_tenant_enabled ? "enabled" : "disabled");
+    SCLogDebug("multi-detect not enabled (multi tenancy)");
+end:
+    SCMutexUnlock(&master->lock);
 }
 
 uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
