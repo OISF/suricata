@@ -83,7 +83,9 @@ int DetectEngineMultiTenantEnabled(void);
 void DetectEngineMultiTenantSetup(void);
 
 int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
+int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
+int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id);
 
 /**
  * \brief Registers an app inspection engine.
