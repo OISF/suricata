@@ -24,6 +24,8 @@
 #include "output.h"
 #include "detect-engine-mpm.h"
 
+#include "source-pcap-file.h"
+
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
 #include "alert-unified2-alert.h"
@@ -73,6 +75,8 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
 
     RunModeInitialize();
     TimeModeSetOffline();
+
+    PcapFileGlobalInit();
 
     /* create the threads */
     ThreadVars *tv = TmThreadCreatePacketHandler("PcapFile",
@@ -163,6 +167,8 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
     SCLogDebug("file %s", file);
 
     TimeModeSetOffline();
+
+    PcapFileGlobalInit();
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
