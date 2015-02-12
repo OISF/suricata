@@ -1870,6 +1870,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                                                                     ACTION_DROP)))
         return 0;
 
+    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
         printf("ERROR: Detect has no thread ctx\n");
@@ -1882,20 +1883,21 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                   det_ctx);
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-
     if (det_ctx->TenantGetId != NULL) {
+        /* in MT mode, but no tenants registered yet */
         if (det_ctx->mt_det_ctxs == 0) {
-            printf("ERROR: Detect has no detection engine ctx\n");
-            goto error;
+            return TM_ECODE_OK;
         }
 
         uint32_t tenant_id = det_ctx->TenantGetId(det_ctx, p);
         if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
             det_ctx = det_ctx->mt_det_ctxs[tenant_id];
-            BUG_ON(det_ctx == NULL);
+            if (det_ctx == NULL)
+                return TM_ECODE_OK;
             de_ctx = det_ctx->de_ctx;
-            BUG_ON(de_ctx == NULL);
+            if (de_ctx == NULL)
+                return TM_ECODE_OK;
+
             if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
                 (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
                 SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
@@ -1903,6 +1905,8 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         } else {
             return TM_ECODE_OK;
         }
+    } else {
+        de_ctx = det_ctx->de_ctx;
     }
 
     /* see if the packet matches one or more of the sigs */
