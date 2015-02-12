@@ -494,6 +494,12 @@ TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
     json_object_set_new(answer, "message", json_string("work in progress"));
 //    return TM_ECODE_FAILED;
     return TM_ECODE_OK;
