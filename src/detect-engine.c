@@ -1624,6 +1624,16 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
         return -1;
     }
 
+    DetectEngineTenantMapping *m = master->tenant_mapping_list;
+    while (m) {
+        if (m->traffic_id == traffic_id) {
+            SCLogInfo("traffic id already registered");
+            SCMutexUnlock(&master->lock);
+            return -1;
+        }
+        m = m->next;
+    }
+
     DetectEngineTenantMapping *map = SCCalloc(1, sizeof(*map));
     if (map == NULL) {
         SCLogInfo("memory fail");
