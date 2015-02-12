@@ -80,7 +80,7 @@ class SuricataCompleter:
 
 class SuricataSC:
     def __init__(self, sck_path, verbose=False):
-        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler']
+        self.cmd_list=['shutdown','quit','pcap-file','pcap-file-number','pcap-file-list','iface-list','iface-stat','register-tenant','unregister-tenant','register-tenant-handler','unregister-tenant-handler']
         self.sck_path = sck_path
         self.verbose = verbose
 
@@ -212,6 +212,23 @@ class SuricataSC:
                 else:
                     arguments = {}
                     arguments["variable"] = variable
+            elif "unregister-tenant-handler" in command:
+                try:
+                    parts = command.split(' ')
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                cmd, tenantid, htype = parts[0], parts[1], parts[2]
+                hargs = None
+                if len(parts) > 3:
+                    hargs = parts[3]
+                if cmd != "unregister-tenant-handler":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["id"] = int(tenantid)
+                    arguments["htype"] = htype
+                    if hargs != None:
+                        arguments["hargs"] = int(hargs)
             elif "register-tenant-handler" in command:
                 try:
                     parts = command.split(' ')
