@@ -1675,6 +1675,7 @@ static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelector
         map = map->next;
     }
 
+    SCMutexUnlock(&master->lock);
     return -1;
 }
 
