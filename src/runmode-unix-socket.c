@@ -20,21 +20,15 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
-#include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
-#include "detect-engine-mpm.h"
-
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
 
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "unix-manager.h"
+
+#include "detect-engine.h"
 
 #include "flow-manager.h"
 #include "flow-timeout.h"
@@ -45,6 +39,10 @@
 
 #include "util-profiling.h"
 
+#include "conf-yaml-loader.h"
+
+#include "detect-engine.h"
+
 static const char *default_mode = NULL;
 
 int unix_socket_mode_is_running = 0;
@@ -52,11 +50,11 @@ int unix_socket_mode_is_running = 0;
 typedef struct PcapFiles_ {
     char *filename;
     char *output_dir;
+    int tenant_id;
     TAILQ_ENTRY(PcapFiles_) next;
 } PcapFiles;
 
 typedef struct PcapCommand_ {
-    DetectEngineCtx *de_ctx;
     TAILQ_HEAD(, PcapFiles_) files;
     int running;
     char *currentfile;
@@ -155,7 +153,8 @@ static void PcapFilesFree(PcapFiles *cfile)
  *
  * \retval 0 in case of error, 1 in case of success
  */
-TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const char *output_dir)
+static TmEcode UnixListAddFile(PcapCommand *this,
+        const char *filename, const char *output_dir, int tenant_id)
 {
     PcapFiles *cfile = NULL;
     if (filename == NULL || this == NULL)
@@ -184,6 +183,8 @@ TmEcode UnixListAddFile(PcapCommand *this, const char *filename, const char *out
         }
     }
 
+    cfile->tenant_id = tenant_id;
+
     TAILQ_INSERT_TAIL(&this->files, cfile, next);
     return TM_ECODE_OK;
 }
@@ -201,6 +202,7 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
     int ret;
     const char *filename;
     const char *output_dir;
+    int tenant_id = 0;
 #ifdef OS_WIN32
     struct _stat st;
 #else
@@ -246,7 +248,18 @@ TmEcode UnixSocketAddPcapFile(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    ret = UnixListAddFile(this, filename, output_dir);
+    json_t *targ = json_object_get(cmd, "tenant");
+    if (targ != NULL) {
+        if(!json_is_number(targ)) {
+            SCLogInfo("error: tenant is not a number");
+            json_object_set_new(answer, "message", json_string("tenant is not a number"));
+            return TM_ECODE_FAILED;
+        }
+        tenant_id = json_number_value(targ);
+        SCLogInfo("tenant %d", tenant_id);
+    }
+
+    ret = UnixListAddFile(this, filename, output_dir, tenant_id);
     switch(ret) {
         case TM_ECODE_FAILED:
             json_object_set_new(answer, "message", json_string("Unable to add file to list"));
@@ -338,6 +351,17 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
                 return TM_ECODE_FAILED;
             }
         }
+        if (cfile->tenant_id > 0) {
+            char tstr[16] = "";
+            snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
+            if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
+                SCLogInfo("Can not set working tenant-id to '%s'", tstr);
+                PcapFilesFree(cfile);
+                return TM_ECODE_FAILED;
+            }
+        } else {
+            SCLogInfo("pcap-file.tenant-id not set");
+        }
         this->currentfile = SCStrdup(cfile->filename);
         if (unlikely(this->currentfile == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed file name allocation");
@@ -354,7 +378,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
         SCPerfInitCounterApi();
-        RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
+        RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
         SCPerfSpawnThreads();
@@ -393,10 +417,355 @@ void UnixSocketPcapFile(TmEcode tm)
 #endif
 }
 
+#ifdef BUILD_UNIX_SOCKET
+/**
+ * \brief Command to add a tenant handler
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+    const char *htype;
+    json_int_t traffic_id = -1;
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    // 2 get tenant handler type
+
+    jarg = json_object_get(cmd, "htype");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    htype = json_string_value(jarg);
+
+    SCLogInfo("add-tenant-handler: %d %s TODO", tenant_id, htype);
+
+    // 3 get optional hargs
+    json_t *hargs = json_object_get(cmd, "hargs");
+    if (hargs != NULL) {
+        if (!json_is_integer(hargs)) {
+            SCLogInfo("error: hargs not a number");
+            json_object_set_new(answer, "message", json_string("hargs not a number"));
+            return TM_ECODE_FAILED;
+        }
+        traffic_id = json_integer_value(hargs);
+    }
+
+    // 4 add to system
+
+    // TODO move into util func
+    int r = -1;
+    if (strcmp(htype, "pcap") == 0) {
+        r = DetectEngineTentantRegisterPcapFile(tenant_id);
+    } else if (strcmp(htype, "vlan") == 0) {
+        if (traffic_id < 0) {
+            json_object_set_new(answer, "message", json_string("vlan requires argument"));
+            return TM_ECODE_FAILED;
+        }
+        if (traffic_id > USHRT_MAX) {
+            json_object_set_new(answer, "message", json_string("vlan argument out of range"));
+            return TM_ECODE_FAILED;
+        }
+
+        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        r = DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)traffic_id);
+    }
+    if (r != 0) {
+        json_object_set_new(answer, "message", json_string("handler setup failure"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+//    return TM_ECODE_FAILED;
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to remove a tenant handler
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+    const char *htype;
+    json_int_t traffic_id = -1;
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    // 2 get tenant handler type
+
+    jarg = json_object_get(cmd, "htype");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    htype = json_string_value(jarg);
+
+    SCLogInfo("add-tenant-handler: %d %s TODO", tenant_id, htype);
+
+    // 3 get optional hargs
+    json_t *hargs = json_object_get(cmd, "hargs");
+    if (hargs != NULL) {
+        if (!json_is_integer(hargs)) {
+            SCLogInfo("error: hargs not a number");
+            json_object_set_new(answer, "message", json_string("hargs not a number"));
+            return TM_ECODE_FAILED;
+        }
+        traffic_id = json_integer_value(hargs);
+    }
+
+    // 4 add to system
+
+    // TODO move into util func
+    int r = -1;
+    if (strcmp(htype, "pcap") == 0) {
+        r = DetectEngineTentantUnregisterPcapFile(tenant_id);
+    } else if (strcmp(htype, "vlan") == 0) {
+        if (traffic_id < 0) {
+            json_object_set_new(answer, "message", json_string("vlan requires argument"));
+            return TM_ECODE_FAILED;
+        }
+        if (traffic_id > USHRT_MAX) {
+            json_object_set_new(answer, "message", json_string("vlan argument out of range"));
+            return TM_ECODE_FAILED;
+        }
+
+        SCLogInfo("VLAN handler: id %u maps to tenant %u", (uint32_t)traffic_id, tenant_id);
+        r = DetectEngineTentantUnregisterVlanId(tenant_id, (uint32_t)traffic_id);
+    }
+    if (r != 0) {
+        json_object_set_new(answer, "message", json_string("handler unregister failure"));
+        return TM_ECODE_FAILED;
+    }
+
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+//    return TM_ECODE_FAILED;
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to add a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+    const char *filename;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    // 2 get tenant yaml
+
+    jarg = json_object_get(cmd, "filename");
+    if (!json_is_string(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    filename = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("file does not exist"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogInfo("add-tenant: %d %s TODO", tenant_id, filename);
+
+    // 3 register it in the system (TODO)
+
+        // A yaml parsing
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, ConfYamlLoadFileWithPrefix failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("YAML loading failed, node == NULL"));
+        return TM_ECODE_FAILED;
+    }
+#if 0
+    ConfDump();
+#endif
+
+        // B setup the de_ctx
+    DetectEngineCtx *de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("detect engine failed to load"));
+        return TM_ECODE_FAILED;
+    }
+    SCLogInfo("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
+
+    de_ctx->tenant_id = tenant_id;
+
+    SigLoadSignatures(de_ctx, NULL, 0);
+
+    DetectEngineAddToMaster(de_ctx);
+
+        // C for each thread, replace det_ctx
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("work in progress"));
+//    return TM_ECODE_FAILED;
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Command to remove a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
+{
+    //PcapCommand *this = (PcapCommand *) data;
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    // 1 get tenant id
+
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        SCLogInfo("error: command is not a string");
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    SCLogInfo("remove-tenant: %d TODO", tenant_id);
+
+    // 3 remove it from the system (TODO)
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+    DetectEngineCtx *de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant detect engine not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(de_ctx);
+    DetectEngineDeReference(&de_ctx);
+
+    /* update the threads */
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    /* walk free list, freeing the removed de_ctx */
+    DetectEnginePruneFreeList();
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNodeRemove(node); /* frees node */
+    node = NULL;
+#if 0
+    ConfDump();
+#endif
+    json_object_set_new(answer, "message", json_string("work in progress"));
+    return TM_ECODE_OK;
+}
+#endif /* BUILD_UNIX_SOCKET */
+
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
+int RunModeUnixSocketSingle(void)
 {
 #ifdef BUILD_UNIX_SOCKET
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
@@ -405,12 +774,11 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
         return 1;
     }
-    pcapcmd->de_ctx = de_ctx;
     TAILQ_INIT(&pcapcmd->files);
     pcapcmd->running = 0;
     pcapcmd->currentfile = NULL;
 
-    UnixManagerThreadSpawn(de_ctx, 1);
+    UnixManagerThreadSpawn(1);
 
     unix_socket_mode_is_running = 1;
 
