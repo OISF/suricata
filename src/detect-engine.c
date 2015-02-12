@@ -1766,15 +1766,62 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
     return 0;
 }
 
+static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelectors selector,
+                                           uint32_t tenant_id, uint32_t traffic_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->tenant_mapping_list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    DetectEngineTenantMapping *prev = NULL;
+    DetectEngineTenantMapping *map = master->tenant_mapping_list;
+    while (map) {
+        if (map->traffic_id == traffic_id &&
+            map->tenant_id == tenant_id)
+        {
+            if (prev != NULL)
+                prev->next = map->next;
+            else
+                master->tenant_mapping_list = map->next;
+
+            map->next = NULL;
+            SCFree(map);
+            SCLogInfo("tenant handler %u %u %u unregistered", selector, tenant_id, traffic_id);
+            SCMutexUnlock(&master->lock);
+            return 0;
+        }
+        prev = map;
+        map = map->next;
+    }
+
+    SCMutexUnlock(&master->lock);
+    return -1;
+}
+
 int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
 {
     return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+}
+
+int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+{
+    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
 }
 
 int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id)
 {
     SCLogInfo("registering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
     return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+}
+
+int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id)
+{
+    SCLogInfo("unregistering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
+    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
 }
 
 uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
