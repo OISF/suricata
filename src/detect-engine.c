@@ -1998,6 +1998,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     uint32_t map_cnt = 0;
     int max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
+    DetectEngineThreadCtx **tenant_det_ctxs = NULL;
 
     while (list) {
         if (list->tenant_id > max_tenant_id)
@@ -2007,49 +2008,48 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     }
 
     if (max_tenant_id == 0) {
-        SCLogInfo("no tenants left");
-        return NULL;
-    }
+        SCLogInfo("no tenants left, or none registered yet");
+    } else {
+        max_tenant_id++;
 
-    max_tenant_id++;
-
-    DetectEngineTenantMapping *map = master->tenant_mapping_list;
-    while (map) {
-        map_cnt++;
-        map = map->next;
-    }
-
-    if (map_cnt > 0) {
-        map_array_size = map_cnt + 1;
-
-        map_array = SCCalloc(map_array_size, sizeof(*map_array));
-        if (map_array == NULL)
-            goto error;
-
-        /* fill the array */
-        map_cnt = 0;
-        map = master->tenant_mapping_list;
+        DetectEngineTenantMapping *map = master->tenant_mapping_list;
         while (map) {
-            BUG_ON(map_cnt > map_array_size);
-            map_array[map_cnt].traffic_id = map->traffic_id;
-            map_array[map_cnt].tenant_id = map->tenant_id;
             map_cnt++;
             map = map->next;
         }
 
-    }
+        if (map_cnt > 0) {
+            map_array_size = map_cnt + 1;
 
-    DetectEngineThreadCtx **tenant_det_ctxs = SCCalloc(max_tenant_id, sizeof(DetectEngineThreadCtx *));
-    BUG_ON(tenant_det_ctxs == NULL);
-
-    list = master->list;
-    while (list) {
-        if (list->tenant_id != 0) {
-            tenant_det_ctxs[list->tenant_id] = DetectEngineThreadCtxInitForReload(tv, list);
-            if (tenant_det_ctxs[list->tenant_id] == NULL)
+            map_array = SCCalloc(map_array_size, sizeof(*map_array));
+            if (map_array == NULL)
                 goto error;
+
+            /* fill the array */
+            map_cnt = 0;
+            map = master->tenant_mapping_list;
+            while (map) {
+                BUG_ON(map_cnt > map_array_size);
+                map_array[map_cnt].traffic_id = map->traffic_id;
+                map_array[map_cnt].tenant_id = map->tenant_id;
+                map_cnt++;
+                map = map->next;
+            }
+
         }
-        list = list->next;
+
+        tenant_det_ctxs = SCCalloc(max_tenant_id, sizeof(DetectEngineThreadCtx *));
+        BUG_ON(tenant_det_ctxs == NULL);
+
+        list = master->list;
+        while (list) {
+            if (list->tenant_id != 0) {
+                tenant_det_ctxs[list->tenant_id] = DetectEngineThreadCtxInitForReload(tv, list);
+                if (tenant_det_ctxs[list->tenant_id] == NULL)
+                    goto error;
+            }
+            list = list->next;
+        }
     }
 
     DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
