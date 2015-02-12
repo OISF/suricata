@@ -23,9 +23,9 @@
 #ifndef __RUNMODE_NFLOG_H__
 #define __RUNMODE_NFLOG_H__
 
-int RunModeIdsNflogAutoFp(DetectEngineCtx *);
-int RunModeIdsNflogSingle(DetectEngineCtx *);
-int RunModeIdsNflogWorkers(DetectEngineCtx *);
+int RunModeIdsNflogAutoFp(void);
+int RunModeIdsNflogSingle(void);
+int RunModeIdsNflogWorkers(void);
 void RunModeIdsNflogRegister(void);
 const char *RunModeIdsNflogGetDefaultMode(void);
 
