@@ -190,7 +190,7 @@ static int DetectEngineHttpCookieTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -220,7 +220,7 @@ static int DetectEngineHttpCookieTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -288,7 +288,7 @@ static int DetectEngineHttpCookieTest02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -318,7 +318,7 @@ static int DetectEngineHttpCookieTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -386,7 +386,7 @@ static int DetectEngineHttpCookieTest03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -416,7 +416,7 @@ static int DetectEngineHttpCookieTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -484,7 +484,7 @@ static int DetectEngineHttpCookieTest04(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -514,7 +514,7 @@ static int DetectEngineHttpCookieTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -582,7 +582,7 @@ static int DetectEngineHttpCookieTest05(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -612,7 +612,7 @@ static int DetectEngineHttpCookieTest05(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -680,7 +680,7 @@ static int DetectEngineHttpCookieTest06(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -710,7 +710,7 @@ static int DetectEngineHttpCookieTest06(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -778,7 +778,7 @@ static int DetectEngineHttpCookieTest07(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -808,7 +808,7 @@ static int DetectEngineHttpCookieTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -876,7 +876,7 @@ static int DetectEngineHttpCookieTest08(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -906,7 +906,7 @@ static int DetectEngineHttpCookieTest08(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -974,7 +974,7 @@ static int DetectEngineHttpCookieTest09(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1004,7 +1004,7 @@ static int DetectEngineHttpCookieTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1072,7 +1072,7 @@ static int DetectEngineHttpCookieTest10(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1103,7 +1103,7 @@ static int DetectEngineHttpCookieTest10(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1171,7 +1171,7 @@ static int DetectEngineHttpCookieTest11(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1202,7 +1202,7 @@ static int DetectEngineHttpCookieTest11(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1270,7 +1270,7 @@ static int DetectEngineHttpCookieTest12(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1301,7 +1301,7 @@ static int DetectEngineHttpCookieTest12(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1369,7 +1369,7 @@ static int DetectEngineHttpCookieTest13(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1400,7 +1400,7 @@ static int DetectEngineHttpCookieTest13(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1468,7 +1468,7 @@ static int DetectEngineHttpCookieTest14(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1499,7 +1499,7 @@ static int DetectEngineHttpCookieTest14(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1567,7 +1567,7 @@ static int DetectEngineHttpCookieTest15(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1598,7 +1598,7 @@ static int DetectEngineHttpCookieTest15(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1666,7 +1666,7 @@ static int DetectEngineHttpCookieTest16(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1697,7 +1697,7 @@ static int DetectEngineHttpCookieTest16(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1765,7 +1765,7 @@ static int DetectEngineHttpCookieTest17(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -1796,7 +1796,7 @@ static int DetectEngineHttpCookieTest17(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;

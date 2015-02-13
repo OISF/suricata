@@ -1427,7 +1427,7 @@ static int SSLParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1493,7 +1493,7 @@ static int SSLParserTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1571,7 +1571,7 @@ static int SSLParserTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1661,7 +1661,7 @@ static int SSLParserTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -1975,7 +1975,7 @@ static int SSLParserMultimsgTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2056,7 +2056,7 @@ static int SSLParserMultimsgTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2126,7 +2126,7 @@ static int SSLParserTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2322,7 +2322,7 @@ static int SSLParserTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2410,7 +2410,7 @@ static int SSLParserTest10(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2497,7 +2497,7 @@ static int SSLParserTest11(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2599,7 +2599,7 @@ static int SSLParserTest12(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2716,7 +2716,7 @@ static int SSLParserTest13(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2792,7 +2792,7 @@ static int SSLParserTest14(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -2975,7 +2975,7 @@ static int SSLParserTest18(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -3023,7 +3023,7 @@ static int SSLParserTest19(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -3113,7 +3113,7 @@ static int SSLParserTest21(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -3181,7 +3181,7 @@ static int SSLParserTest22(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
@@ -3486,7 +3486,7 @@ static int SSLParserTest23(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *app_state = f.alstate;
+    SSLState *app_state = FlowGetAppState(&f);
     if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
@@ -3734,7 +3734,7 @@ static int SSLParserTest24(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
@@ -4102,7 +4102,7 @@ static int SSLParserTest25(void)
     }
     SCMutexUnlock(&f.m);
 
-    SSLState *ssl_state = f.alstate;
+    SSLState *ssl_state = FlowGetAppState(&f);
     if (ssl_state == NULL) {
         printf("no tls state: ");
         goto end;

@@ -95,6 +95,15 @@ int AppLayerSetup(void);
 int AppLayerDeSetup(void);
 
 /**
+ * \brief Ask for application layer to restart protocol recognition
+ *
+ * Update the flow to tell the application layer to reset the protocol.
+ * If full is set to 1, then we discard the buffer content.
+ *
+ */
+void AppLayerAskReset(Flow *f, int full);
+
+/**
  * \brief Creates a new app layer thread context.
  *
  * \retval Pointer to the newly create thread context, on success;

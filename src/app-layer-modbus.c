@@ -1561,7 +1561,7 @@ static int ModbusParserTest01(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1626,7 +1626,7 @@ static int ModbusParserTest02(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1688,7 +1688,7 @@ static int ModbusParserTest03(void) {
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -1725,7 +1725,7 @@ static int ModbusParserTest03(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1813,7 +1813,7 @@ static int ModbusParserTest04(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1855,7 +1855,7 @@ static int ModbusParserTest05(void) {
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -1892,7 +1892,7 @@ static int ModbusParserTest05(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -1941,7 +1941,7 @@ static int ModbusParserTest06(void) {
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -1978,7 +1978,7 @@ static int ModbusParserTest06(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -2027,7 +2027,7 @@ static int ModbusParserTest07(void) {
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -2065,7 +2065,7 @@ static int ModbusParserTest07(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -2114,7 +2114,7 @@ static int ModbusParserTest08(void) {
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
-    f.alproto   = ALPROTO_MODBUS;
+    FlowSetAppProtocol(&f, ALPROTO_MODBUS);
     f.protoctx  = (void *)&ssn;
     f.proto     = IPPROTO_TCP;
     f.flags     |= FLOW_IPV4;
@@ -2151,7 +2151,7 @@ static int ModbusParserTest08(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -2242,7 +2242,7 @@ static int ModbusParserTest09(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;
@@ -2329,7 +2329,7 @@ static int ModbusParserTest10(void) {
     }
     SCMutexUnlock(&f.m);
 
-    ModbusState    *modbus_state = f.alstate;
+    ModbusState    *modbus_state = FlowGetAppState(&f);
     if (modbus_state == NULL) {
         printf("no modbus state: ");
         goto end;

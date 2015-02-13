@@ -558,7 +558,7 @@ static int SSHParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -624,7 +624,7 @@ static int SSHParserTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -690,7 +690,7 @@ static int SSHParserTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -742,7 +742,7 @@ static int SSHParserTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -808,7 +808,7 @@ static int SSHParserTest05(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -874,7 +874,7 @@ static int SSHParserTest06(void)
     SCMutexUnlock(&f.m);
     /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -936,7 +936,7 @@ static int SSHParserTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1023,7 +1023,7 @@ static int SSHParserTest08(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1097,7 +1097,7 @@ static int SSHParserTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1184,7 +1184,7 @@ static int SSHParserTest10(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1259,7 +1259,7 @@ static int SSHParserTest11(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1350,7 +1350,7 @@ static int SSHParserTest12(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1443,7 +1443,7 @@ static int SSHParserTest13(void)
         }
         SCMutexUnlock(&f.m);
     }
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1555,7 +1555,7 @@ static int SSHParserTest14(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1667,7 +1667,7 @@ static int SSHParserTest15(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1758,7 +1758,7 @@ static int SSHParserTest16(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1860,7 +1860,7 @@ static int SSHParserTest17(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1979,7 +1979,7 @@ static int SSHParserTest18(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1995,7 +1995,7 @@ static int SSHParserTest18(void)
         goto end;
     }
 
-    if (!(AppLayerParserStateIssetFlag(f.alparser, APP_LAYER_PARSER_NO_INSPECTION))) {
+    if (!(AppLayerParserStateIssetFlag(FlowGetAppParser(&f), APP_LAYER_PARSER_NO_INSPECTION))) {
         printf("detection not disabled: ");
         goto end;
     }
@@ -2076,7 +2076,7 @@ static int SSHParserTest19(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -2197,7 +2197,7 @@ static int SSHParserTest20(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -2304,7 +2304,7 @@ static int SSHParserTest21(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -2439,7 +2439,7 @@ static int SSHParserTest22(void)
     }
     SCMutexUnlock(&f.m);
 #endif
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -2536,7 +2536,7 @@ static int SSHParserTest24(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;

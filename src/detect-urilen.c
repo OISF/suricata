@@ -605,7 +605,7 @@ static int DetectUrilenSigTest01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -644,7 +644,7 @@ static int DetectUrilenSigTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    HtpState *htp_state = f.alstate;
+    HtpState *htp_state = FlowGetAppState(&f);
     if (htp_state == NULL) {
         SCLogDebug("no http state: ");
         goto end;

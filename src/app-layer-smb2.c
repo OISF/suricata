@@ -644,7 +644,7 @@ int SMB2ParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMB2State *smb2_state = f.alstate;
+    SMB2State *smb2_state = FlowGetAppState(&f);
     if (smb2_state == NULL) {
         printf("no smb2 state: ");
         result = 0;

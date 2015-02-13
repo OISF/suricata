@@ -1610,7 +1610,7 @@ int SMBParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1687,7 +1687,7 @@ int SMBParserTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -1983,7 +1983,7 @@ int SMBParserTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -2100,7 +2100,7 @@ int SMBParserTest04(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -2355,7 +2355,7 @@ int SMBParserTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -2429,7 +2429,7 @@ int SMBParserTest08(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -2543,7 +2543,7 @@ int SMBParserTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;
@@ -2665,7 +2665,7 @@ int SMBParserTest10(void)
     }
     SCMutexUnlock(&f.m);
 
-    SMBState *smb_state = f.alstate;
+    SMBState *smb_state = FlowGetAppState(&f);
     if (smb_state == NULL) {
         printf("no smb state: ");
         goto end;

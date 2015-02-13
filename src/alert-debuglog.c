@@ -232,7 +232,8 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
                              p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
                              p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE",
-                             (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
+                             (FlowGetAppProtocol(p->flow) != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE",
+                             FlowGetAppProtocol(p->flow));
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */
         FLOWLOCK_UNLOCK(p->flow);

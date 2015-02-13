@@ -310,7 +310,7 @@ static int DetectFtpbounceTestALMatch02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_FTP;
+    FlowSetAppProtocol(&f, ALPROTO_FTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -365,7 +365,7 @@ static int DetectFtpbounceTestALMatch02(void)
 
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;
@@ -451,7 +451,7 @@ static int DetectFtpbounceTestALMatch03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_FTP;
+    FlowSetAppProtocol(&f, ALPROTO_FTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -505,7 +505,7 @@ static int DetectFtpbounceTestALMatch03(void)
     }
     SCMutexUnlock(&f.m);
 
-    FtpState *ftp_state = f.alstate;
+    FtpState *ftp_state = FlowGetAppState(&f);
     if (ftp_state == NULL) {
         SCLogDebug("no ftp state: ");
         result = 0;

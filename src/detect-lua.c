@@ -407,7 +407,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             SCReturnInt(0);
 
         FLOWLOCK_RDLOCK(p->flow);
-        int alproto = p->flow->alproto;
+        int alproto = FlowGetAppProtocol(p->flow);
         FLOWLOCK_UNLOCK(p->flow);
 
         if (tluajit->alproto != alproto)
@@ -429,10 +429,10 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     }
     if (tluajit->alproto == ALPROTO_HTTP) {
         FLOWLOCK_RDLOCK(p->flow);
-        HtpState *htp_state = p->flow->alstate;
+        HtpState *htp_state = FlowGetAppState(p->flow);
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser,
+            uint64_t idx = AppLayerParserGetTransactionInspectId(FlowGetAppParser(p->flow),
                                                                  STREAM_TOSERVER);
             uint64_t total_txs= AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, htp_state);
             for ( ; idx < total_txs; idx++) {
@@ -539,7 +539,7 @@ static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT, NULL);
 
     if (tluajit->alproto != ALPROTO_UNKNOWN) {
-        int alproto = f->alproto;
+        int alproto = FlowGetAppProtocol(f);
         if (tluajit->alproto != alproto)
             SCReturnInt(0);
     }
@@ -1167,7 +1167,7 @@ static int LuaMatchTest01(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1203,7 +1203,7 @@ static int LuaMatchTest01(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    HtpState *http_state = f.alstate;
+    HtpState *http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1329,7 +1329,7 @@ static int LuaMatchTest02(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1465,7 +1465,7 @@ static int LuaMatchTest03(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1600,7 +1600,7 @@ static int LuaMatchTest04(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1637,7 +1637,7 @@ static int LuaMatchTest04(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    HtpState *http_state = f.alstate;
+    HtpState *http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1748,7 +1748,7 @@ static int LuaMatchTest05(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1785,7 +1785,7 @@ static int LuaMatchTest05(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    HtpState *http_state = f.alstate;
+    HtpState *http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1901,7 +1901,7 @@ static int LuaMatchTest06(void)
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1938,7 +1938,7 @@ static int LuaMatchTest06(void)
         goto end;
     }
     SCMutexUnlock(&f.m);
-    HtpState *http_state = f.alstate;
+    HtpState *http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;

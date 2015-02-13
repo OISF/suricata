@@ -76,7 +76,7 @@ typedef struct JsonFileLogThread_ {
 
 static json_t *LogFileMetaGetUri(const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     json_t *js = NULL;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -99,7 +99,7 @@ static json_t *LogFileMetaGetUri(const Packet *p, const File *ff)
 
 static json_t *LogFileMetaGetHost(const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     json_t *js = NULL;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -119,7 +119,7 @@ static json_t *LogFileMetaGetHost(const Packet *p, const File *ff)
 
 static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     json_t *js = NULL;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -144,7 +144,7 @@ static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff)
 
 static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff)
 {
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(p->flow);
     json_t *js = NULL;
     if (htp_state != NULL) {
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
@@ -187,7 +187,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
-    switch (p->flow->alproto) {
+    switch (FlowGetAppProtocol(p->flow)) {
         case ALPROTO_HTTP:
             json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));
             json_object_set_new(hjs, "hostname", LogFileMetaGetHost(p, ff));
