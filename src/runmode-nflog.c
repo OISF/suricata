@@ -169,7 +169,7 @@ int NflogConfigGeThreadsCount(void *conf)
     return 1;
 }
 
-int RunModeIdsNflogAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIdsNflogAutoFp(void)
 {
     SCEnter();
 
@@ -180,8 +180,7 @@ int RunModeIdsNflogAutoFp(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
-                                      ParseNflogConfig,
+    ret = RunModeSetLiveCaptureAutoFp(ParseNflogConfig,
                                       NflogConfigGeThreadsCount,
                                       "ReceiveNFLOG",
                                       "DecodeNFLOG",
@@ -198,7 +197,7 @@ int RunModeIdsNflogAutoFp(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-int RunModeIdsNflogSingle(DetectEngineCtx *de_ctx)
+int RunModeIdsNflogSingle(void)
 {
     SCEnter();
 
@@ -209,8 +208,7 @@ int RunModeIdsNflogSingle(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureSingle(de_ctx,
-                                      ParseNflogConfig,
+    ret = RunModeSetLiveCaptureSingle(ParseNflogConfig,
                                       NflogConfigGeThreadsCount,
                                       "ReceiveNFLOG",
                                       "DecodeNFLOG",
@@ -227,7 +225,7 @@ int RunModeIdsNflogSingle(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-int RunModeIdsNflogWorkers(DetectEngineCtx *de_ctx)
+int RunModeIdsNflogWorkers(void)
 {
     SCEnter();
 
@@ -238,8 +236,7 @@ int RunModeIdsNflogWorkers(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureWorkers(de_ctx,
-                                       ParseNflogConfig,
+    ret = RunModeSetLiveCaptureWorkers(ParseNflogConfig,
                                        NflogConfigGeThreadsCount,
                                        "ReceiveNFLOG",
                                        "DecodeNFLOG",
