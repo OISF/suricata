@@ -4929,10 +4929,12 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
             if (p->flow == NULL)
                 return ret;
 
-            /* after that, check for 'new' reuse */
-            TcpSessionReuseHandle(p);
-            if (p->flow == NULL)
-                return ret;
+            if (!(p->flowflags & FLOW_PKT_TOSERVER_FIRST)) {
+                /* after that, check for 'new' reuse */
+                TcpSessionReuseHandle(p);
+                if (p->flow == NULL)
+                    return ret;
+            }
         }
     }
     AppLayerProfilingReset(stt->ra_ctx->app_tctx);
