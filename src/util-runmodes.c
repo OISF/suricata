@@ -47,6 +47,20 @@
 
 #include "util-runmodes.h"
 
+/** set to true if flow engine and stream engine run in different
+ *  threads. */
+static int runmode_flow_stream_async = 0;
+
+void RunmodeSetFlowStreamAsync(void)
+{
+    runmode_flow_stream_async = 1;
+}
+
+int RunmodeGetFlowStreamAsync(void)
+{
+    return runmode_flow_stream_async;
+}
+
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
@@ -65,6 +79,8 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         SCLogError(SC_ERR_RUNMODE, "can't use runmode 'auto' when detection is disabled");
         return -1;
     }
+
+    RunmodeSetFlowStreamAsync();
 
     if ((nlive <= 1) && (live_dev != NULL)) {
         void *aconf;
@@ -345,6 +361,8 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
+
+    RunmodeSetFlowStreamAsync();
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -941,6 +959,8 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
+
+    RunmodeSetFlowStreamAsync();
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {

@@ -321,6 +321,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
     int thread;
 
     RunModeInitialize();
+    RunmodeSetFlowStreamAsync();
 
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {

@@ -71,6 +71,7 @@
 #include "util-profiling.h"
 #include "util-misc.h"
 #include "util-validate.h"
+#include "util-runmodes.h"
 
 #include "source-pcap-file.h"
 
@@ -4792,6 +4793,9 @@ static void TcpSessionReuseHandle(Packet *p) {
         return;
     }
 
+    SCLogDebug("steam starter packet %"PRIu64", and state "
+            "ready to be reused", p->pcap_cnt);
+
     /* ok, this packet needs a new flow */
 
     /* first, get a reference to the old flow */
@@ -4917,20 +4921,20 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         p->flags |= PKT_IGNORE_CHECKSUM;
     }
 
-// TODO autofp only somehow
-    /* "autofp" handling of TCP session/flow reuse */
-    if (!(p->flags & PKT_PSEUDO_STREAM_END)) {
-        /* apply previous reuses to this packet */
-        TcpSessionReuseHandleApplyToPacket(p);
-        if (p->flow == NULL)
-            return ret;
+    if (stt->runmode_flow_stream_async) {
+        /* "autofp" handling of TCP session/flow reuse */
+        if (!(p->flags & PKT_PSEUDO_STREAM_END)) {
+            /* apply previous reuses to this packet */
+            TcpSessionReuseHandleApplyToPacket(p);
+            if (p->flow == NULL)
+                return ret;
 
-        /* after that, check for 'new' reuse */
-        TcpSessionReuseHandle(p);
-        if (p->flow == NULL)
-            return ret;
+            /* after that, check for 'new' reuse */
+            TcpSessionReuseHandle(p);
+            if (p->flow == NULL)
+                return ret;
+        }
     }
-
     AppLayerProfilingReset(stt->ra_ctx->app_tctx);
 
     FLOWLOCK_WRLOCK(p->flow);
@@ -5036,6 +5040,11 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCMutexUnlock(&ssn_pool_mutex);
     if (stt->ssn_pool_id < 0 || ssn_pool == NULL)
         SCReturnInt(TM_ECODE_FAILED);
+
+    /* see if need to enable the TCP reuse handling in the stream engine */
+    stt->runmode_flow_stream_async = RunmodeGetFlowStreamAsync();
+    SCLogDebug("Flow and Stream engine run %s",
+            stt->runmode_flow_stream_async ? "asynchronous" : "synchronous");
 
     SCReturnInt(TM_ECODE_OK);
 }
