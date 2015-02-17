@@ -238,11 +238,11 @@ void FlowHandlePacketUpdateRemove(Flow *f, Packet *p)
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         f->todstpktcnt--;
         f->todstbytecnt -= GET_PKT_LEN(p);
-        p->flowflags &= ~FLOW_PKT_TOSERVER;
+        p->flowflags &= ~(FLOW_PKT_TOSERVER|FLOW_PKT_TOSERVER_FIRST);
     } else {
         f->tosrcpktcnt--;
         f->tosrcbytecnt -= GET_PKT_LEN(p);
-        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+        p->flowflags &= ~(FLOW_PKT_TOCLIENT|FLOW_PKT_TOCLIENT_FIRST);
     }
     p->flowflags &= ~FLOW_PKT_ESTABLISHED;
 
@@ -275,19 +275,25 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
-        if (FlowUpdateSeenFlag(p)) {
-            f->flags |= FLOW_TO_DST_SEEN;
-        }
         f->todstpktcnt++;
         f->todstbytecnt += GET_PKT_LEN(p);
         p->flowflags = FLOW_PKT_TOSERVER;
-    } else {
-        if (FlowUpdateSeenFlag(p)) {
-            f->flags |= FLOW_TO_SRC_SEEN;
+        if (!(f->flags & FLOW_TO_DST_SEEN)) {
+            if (FlowUpdateSeenFlag(p)) {
+                f->flags |= FLOW_TO_DST_SEEN;
+                p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+            }
         }
+    } else {
         f->tosrcpktcnt++;
         f->tosrcbytecnt += GET_PKT_LEN(p);
         p->flowflags = FLOW_PKT_TOCLIENT;
+        if (!(f->flags & FLOW_TO_SRC_SEEN)) {
+            if (FlowUpdateSeenFlag(p)) {
+                f->flags |= FLOW_TO_SRC_SEEN;
+                p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+            }
+        }
     }
 
     if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
