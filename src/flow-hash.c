@@ -410,7 +410,8 @@ static inline int FlowCompare(Flow *f, const Packet *p)
             /* okay, we need to setup a new flow for this packet.
              * Flag the flow that it's been replaced by a new one */
             f->flags |= FLOW_TCP_REUSED;
-            SCLogDebug("flow obsolete: TCP reuse will use a new flow");
+            SCLogDebug("flow obsolete: TCP reuse will use a new flow "
+                    "starting with packet %"PRIu64, p->pcap_cnt);
             return 0;
         }
         return 1;

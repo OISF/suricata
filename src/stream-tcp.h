@@ -76,6 +76,10 @@ typedef struct TcpStreamCnf_ {
 typedef struct StreamTcpThread_ {
     int ssn_pool_id;
 
+    /** if set to true, we activate the TCP tuple reuse code in the
+     *  stream engine. */
+    int runmode_flow_stream_async;
+
     uint64_t pkts;
 
     /** queue for pseudo packet(s) that were created in the stream
