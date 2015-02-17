@@ -171,6 +171,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PKT_ESTABLISHED            0x04
 #define FLOW_PKT_TOSERVER_IPONLY_SET    0x08
 #define FLOW_PKT_TOCLIENT_IPONLY_SET    0x10
+#define FLOW_PKT_TOSERVER_FIRST         0x20
+#define FLOW_PKT_TOCLIENT_FIRST         0x40
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
