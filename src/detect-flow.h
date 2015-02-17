@@ -24,6 +24,13 @@
 #ifndef __DETECT_FLOW_H__
 #define __DETECT_FLOW_H__
 
+#define DETECT_FLOW_FLAG_TOSERVER       0x01
+#define DETECT_FLOW_FLAG_TOCLIENT       0x02
+#define DETECT_FLOW_FLAG_ESTABLISHED    0x04
+#define DETECT_FLOW_FLAG_STATELESS      0x08
+#define DETECT_FLOW_FLAG_ONLYSTREAM     0x10
+#define DETECT_FLOW_FLAG_NOSTREAM       0x20
+
 typedef struct DetectFlowData_ {
     uint8_t flags;     /* flags to match */
     uint8_t match_cnt; /* number of matches we need */

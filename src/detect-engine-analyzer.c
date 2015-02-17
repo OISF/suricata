@@ -668,7 +668,8 @@ void EngineAnalysisRules(Signature *s, char *line)
                 }
                 DetectFlowData *fd = (DetectFlowData *)sm->ctx;
                 if (fd != NULL) {
-                    if (fd->flags & FLOW_PKT_NOSTREAM) rule_flow_nostream = 1;
+                    if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM)
+                        rule_flow_nostream = 1;
                 }
             }
             else if (sm->type == DETECT_FLOWBITS) {
