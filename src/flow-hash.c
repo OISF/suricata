@@ -48,6 +48,7 @@ SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
 static Flow *FlowGetUsedFlow(void);
+static int handle_tcp_reuse = 1;
 
 #ifdef FLOW_DEBUG_STATS
 #define FLOW_DEBUG_STATS_PROTO_ALL      0
@@ -143,6 +144,11 @@ void FlowHashDebugDeinit(void)
 #define FlowHashCountIncr
 
 #endif /* FLOW_DEBUG_STATS */
+
+void FlowDisableTcpReuseHandling(void)
+{
+    handle_tcp_reuse = 0;
+}
 
 /** \brief compare two raw ipv6 addrs
  *
@@ -401,14 +407,16 @@ static inline int FlowCompare(Flow *f, const Packet *p)
         if (f->flags & FLOW_TCP_REUSED)
             return 0;
 
-        /* lets see if we need to consider the existing session reuse */
-        if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
-            /* okay, we need to setup a new flow for this packet.
-             * Flag the flow that it's been replaced by a new one */
-            f->flags |= FLOW_TCP_REUSED;
-            SCLogDebug("flow obsolete: TCP reuse will use a new flow "
-                    "starting with packet %"PRIu64, p->pcap_cnt);
-            return 0;
+        if (handle_tcp_reuse == 1) {
+            /* lets see if we need to consider the existing session reuse */
+            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+                /* okay, we need to setup a new flow for this packet.
+                 * Flag the flow that it's been replaced by a new one */
+                f->flags |= FLOW_TCP_REUSED;
+                SCLogDebug("flow obsolete: TCP reuse will use a new flow "
+                        "starting with packet %"PRIu64, p->pcap_cnt);
+                return 0;
+            }
         }
         return 1;
     } else {
