@@ -144,6 +144,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_URI_HOST_INVALID},
     { "REQUEST_HEADER_HOST_INVALID",
         HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
+    { "URI_DELIM_NON_COMPLIANT",
+        HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -497,6 +499,7 @@ struct {
      * luckily, "Request server port=" is unique */
 /*    { "Request server port number differs from the actual TCP port", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
     { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
+    { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
