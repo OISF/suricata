@@ -146,6 +146,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_HEADER_HOST_INVALID},
     { "URI_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
+    { "METHOD_DELIM_NON_COMPLIANT",
+        HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -500,6 +502,7 @@ struct {
 /*    { "Request server port number differs from the actual TCP port", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH}, */
     { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
+    { "Request line: non-compliant delimiter between Method and URI", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -5974,6 +5977,94 @@ end:
     HtpConfigRestoreBackup();
     return result;
 }
+
+/** \test Test unusual delims in request line HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG */
+int HTPParserTest16(void)
+{
+    int result = 0;
+    Flow *f = NULL;
+    TcpSession ssn;
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    uint8_t httpbuf[] = "GET\f/blah/\fHTTP/1.1\r\n"
+                     "Host: myhost.lan\r\n"
+                     "Connection: keep-alive\r\n"
+                     "Accept: */*\r\n"
+                     "User-Agent: Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.76 Safari/537.36\r\n"
+                     "Referer: http://blah.lan/\r\n"
+                     "Accept-Encoding: gzip,deflate,sdch\r\nAccept-Language: en-US,en;q=0.8\r\n"
+                     "Cookie: blah\r\n\r\n";
+    size_t len = sizeof(httpbuf) - 1;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint8_t flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
+
+    SCMutexLock(&f->m);
+    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, (uint8_t *)httpbuf, len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        SCMutexUnlock(&f->m);
+        goto end;
+    }
+    SCMutexUnlock(&f->m);
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
+    {
+        printf("expected method M_GET and got %s: , expected protocol "
+                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
+                bstr_util_strdup_to_c(tx->request_protocol));
+        goto end;
+    }
+
+    SCMutexLock(&f->m);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    if (decoder_events == NULL) {
+        printf("no app events: ");
+        SCMutexUnlock(&f->m);
+        goto end;
+    }
+    SCMutexUnlock(&f->m);
+
+    if (decoder_events->events[0] != HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT) {
+        printf("HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT not set: ");
+        goto end;
+    }
+
+    if (decoder_events->events[1] != HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT) {
+        printf("HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT not set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -6018,6 +6109,7 @@ void HTPParserRegisterTests(void)
 
     UtRegisterTest("HTPParserTest14", HTPParserTest14, 1);
     UtRegisterTest("HTPParserTest15", HTPParserTest15, 1);
+    UtRegisterTest("HTPParserTest16", HTPParserTest16, 1);
 
     HTPFileParserRegisterTests();
 #endif /* UNITTESTS */
