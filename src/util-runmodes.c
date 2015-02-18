@@ -47,6 +47,8 @@
 
 #include "util-runmodes.h"
 
+#include "flow-hash.h"
+
 /** set to true if flow engine and stream engine run in different
  *  threads. */
 static int runmode_flow_stream_async = 0;
@@ -54,6 +56,7 @@ static int runmode_flow_stream_async = 0;
 void RunmodeSetFlowStreamAsync(void)
 {
     runmode_flow_stream_async = 1;
+    FlowDisableTcpReuseHandling();
 }
 
 int RunmodeGetFlowStreamAsync(void)

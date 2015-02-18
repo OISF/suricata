@@ -70,6 +70,8 @@ typedef struct FlowBucket_ {
 
 Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *);
 
+void FlowDisableTcpReuseHandling(void);
+
 /** enable to print stats on hash lookups in flow-debug.log */
 //#define FLOW_DEBUG_STATS
 
