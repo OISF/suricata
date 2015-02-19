@@ -1671,13 +1671,84 @@ int DetectEngineMultiTenantEnabled(void)
     return (master->multi_tenant_enabled);
 }
 
+/** \brief load a tenant from a yaml file
+ *
+ *  \param tenant_id the tenant id by which the config is known
+ *  \param filename full path of a yaml file
+ *
+ *  \retval 0 ok
+ *  \retval -1 failed
+ */
+int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    char prefix[64];
+
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+#ifdef OS_WIN32
+    struct _stat st;
+    if(_stat(filename, &st) != 0) {
+#else
+    struct stat st;
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        SCLogError(SC_ERR_FOPEN, "failed to stat file %s", filename);
+        goto error;
+    }
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
+        goto error;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        goto error;
+    }
+
+    de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                "context failed.");
+        goto error;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
+
+    de_ctx->tenant_id = tenant_id;
+
+    if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        goto error;
+    }
+
+    DetectEngineAddToMaster(de_ctx);
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ *  \brief setup multi-detect / multi-tenancy
+ *
+ *  See if MT is enabled. If so, setup the selector, tenants and mappings.
+ *  Tenants and mappings are optional, and can also dynamically be added
+ *  and removed from the unix socket.
+ */
 void DetectEngineMultiTenantSetup(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
-    SCMutexLock(&master->lock);
+
+    int failure_fatal = 0;
+    (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
+
     int enabled = 0;
     (void)ConfGetBool("multi-detect.enabled", &enabled);
     if (enabled == 1) {
+        SCMutexLock(&master->lock);
         master->multi_tenant_enabled = 1;
 
         char *handler = NULL;
@@ -1691,14 +1762,110 @@ void DetectEngineMultiTenantSetup(void)
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
                                                  "multi-detect.selector", handler);
-                goto end;
+                SCMutexUnlock(&master->lock);
+                goto error;
             }
         }
+        SCMutexUnlock(&master->lock);
         SCLogInfo("multi-detect is enabled (multi tenancy). Selector: %s", handler);
+
+        /* traffic -- tenant mappings */
+        ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
+        ConfNode *mapping_node = NULL;
+
+        if (mappings_root_node != NULL) {
+            TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+                if (strcmp(mapping_node->val, "vlan") == 0) {
+                    ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+                    if (tenant_id_node == NULL)
+                        goto bad_mapping;
+                    ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+                    if (vlan_id_node == NULL)
+                        goto bad_mapping;
+
+                    SCLogInfo("vlan %s %s", tenant_id_node->val, vlan_id_node->val);
+
+                    uint32_t tenant_id = 0;
+                    if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                                tenant_id_node->val) == -1)
+                    {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                                "of %s is invalid", tenant_id_node->val);
+                        goto bad_mapping;
+                    }
+
+                    uint16_t vlan_id = 0;
+                    if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+                                vlan_id_node->val) == -1)
+                    {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                                "of %s is invalid", vlan_id_node->val);
+                        goto bad_mapping;
+                    }
+
+                    if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+                        goto error;
+                    }
+                } else {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
+                    goto bad_mapping;
+                }
+                continue;
+
+            bad_mapping:
+                if (failure_fatal)
+                    goto error;
+            }
+        }
+
+        /* tenants */
+        ConfNode *tenants_root_node = ConfGetNode("multi-detect.tenants");
+        ConfNode *tenant_node = NULL;
+
+        if (tenants_root_node != NULL) {
+            TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
+                if (strcmp(tenant_node->val, "tenant") != 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.tenants expects a list of 'tenant's. Not %s", tenant_node->val);
+                    goto bad_tenant;
+                }
+                ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
+                if (id_node == NULL)
+                    goto bad_tenant;
+                ConfNode *yaml_node = ConfNodeLookupChild(tenant_node, "yaml");
+                if (yaml_node == NULL)
+                    goto bad_tenant;
+
+                uint32_t tenant_id = 0;
+                if (ByteExtractStringUint32(&tenant_id, 10, strlen(id_node->val),
+                            id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant_id  "
+                            "of %s is invalid", id_node->val);
+                    goto bad_tenant;
+                }
+                SCLogInfo("tenant id: %u, %s", tenant_id, yaml_node->val);
+
+                if (DetectEngineMultiTenantLoadTenant(tenant_id, yaml_node->val) != 0) {
+                    /* error logged already */
+                    goto bad_tenant;
+                }
+                continue;
+
+            bad_tenant:
+                if (failure_fatal)
+                    goto error;
+            }
+        }
+        if (DetectEngineMTApply() < 0) {
+            SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+            goto error;
+        }
+
+    } else {
+        SCLogDebug("multi-detect not enabled (multi tenancy)");
     }
-    SCLogDebug("multi-detect not enabled (multi tenancy)");
-end:
-    SCMutexUnlock(&master->lock);
+error:
+    return;
 }
 
 uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
