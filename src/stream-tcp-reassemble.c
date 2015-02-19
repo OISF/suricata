@@ -6143,6 +6143,7 @@ static int StreamTcpReassembleTest39 (void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;

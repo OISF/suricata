@@ -5958,6 +5958,7 @@ static int StreamTcpTest01 (void)
     Flow f;
     memset(p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -5985,6 +5986,7 @@ static int StreamTcpTest01 (void)
 end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6015,6 +6017,7 @@ static int StreamTcpTest02 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
@@ -6084,6 +6087,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6111,6 +6115,7 @@ static int StreamTcpTest03 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -6160,6 +6165,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6187,6 +6193,7 @@ static int StreamTcpTest04 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -6229,6 +6236,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6257,6 +6265,7 @@ static int StreamTcpTest05 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -6334,6 +6343,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6363,6 +6373,7 @@ static int StreamTcpTest06 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -6400,6 +6411,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6434,6 +6446,7 @@ static int StreamTcpTest07 (void)
     memset(&tcpvars, 0, sizeof(TCPVars));
     memset(&ts, 0, sizeof(TCPOpt));
 
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -6489,6 +6502,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6524,6 +6538,7 @@ static int StreamTcpTest08 (void)
     memset(&tcpvars, 0, sizeof(TCPVars));
     memset(&ts, 0, sizeof(TCPOpt));
 
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -6581,6 +6596,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6611,6 +6627,7 @@ static int StreamTcpTest09 (void)
     memset(&stt, 0, sizeof(StreamTcpThread));
     memset(&tcph, 0, sizeof(TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -6660,6 +6677,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6687,6 +6705,7 @@ static int StreamTcpTest10 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -6762,6 +6781,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6789,6 +6809,7 @@ static int StreamTcpTest11 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -6865,6 +6886,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6892,6 +6914,7 @@ static int StreamTcpTest12 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -6960,6 +6983,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -6988,6 +7012,7 @@ static int StreamTcpTest13 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -7068,6 +7093,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7195,6 +7221,7 @@ static int StreamTcpTest14 (void)
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&addr, 0, sizeof(addr));
     memset(&ipv4h, 0, sizeof(ipv4h));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -7333,6 +7360,7 @@ end:
     ConfRestoreContextBackup();
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7360,6 +7388,7 @@ static int StreamTcp4WHSTest01 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -7414,6 +7443,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7442,6 +7472,7 @@ static int StreamTcp4WHSTest02 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -7485,6 +7516,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7513,6 +7545,7 @@ static int StreamTcp4WHSTest03 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
 
     StreamTcpInitConfig(TRUE);
@@ -7567,6 +7600,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7601,6 +7635,7 @@ static int StreamTcpTest15 (void)
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&addr, 0, sizeof(addr));
     memset(&ipv4h, 0, sizeof(ipv4h));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -7739,6 +7774,7 @@ end:
     ConfRestoreContextBackup();
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7773,6 +7809,7 @@ static int StreamTcpTest16 (void)
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&addr, 0, sizeof(addr));
     memset(&ipv4h, 0, sizeof(ipv4h));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -7911,6 +7948,7 @@ end:
     ConfRestoreContextBackup();
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -7946,6 +7984,7 @@ static int StreamTcpTest17 (void)
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&addr, 0, sizeof(addr));
     memset(&ipv4h, 0, sizeof(ipv4h));
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     int ret = 0;
 
@@ -8084,6 +8123,7 @@ end:
     ConfRestoreContextBackup();
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -8374,6 +8414,7 @@ static int StreamTcpTest23(void)
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
+    FLOW_INITIALIZE(&f);
     ssn.client.os_policy = OS_POLICY_BSD;
     f.protoctx = &ssn;
     p->src.family = AF_INET;
@@ -8431,6 +8472,7 @@ end:
         printf("smemuse.stream_memuse %"PRIu64"\n", SC_ATOMIC_GET(st_memuse));
     }
     SCFree(p);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -8461,6 +8503,7 @@ static int StreamTcpTest24(void)
     memset(&f, 0, sizeof (Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&tcph, 0, sizeof (TCPHdr));
+    FLOW_INITIALIZE(&f);
     ssn.client.os_policy = OS_POLICY_BSD;
     f.protoctx = &ssn;
     p->src.family = AF_INET;
@@ -8518,6 +8561,7 @@ end:
         printf("smemuse.stream_memuse %"PRIu64"\n", SC_ATOMIC_GET(st_memuse));
     }
     SCFree(p);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -8547,6 +8591,7 @@ static int StreamTcpTest25(void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
@@ -8618,6 +8663,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -8647,6 +8693,7 @@ static int StreamTcpTest26(void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
@@ -8714,6 +8761,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -8743,6 +8791,7 @@ static int StreamTcpTest27(void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
@@ -8810,6 +8859,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -8897,6 +8947,7 @@ static int StreamTcpTest29(void)
     uint8_t packet[1460] = "";
     int result = 1;
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
@@ -9038,6 +9089,7 @@ static int StreamTcpTest30(void)
                                     0x49, 0x4c };
     int result = 1;
 
+    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
@@ -9179,6 +9231,7 @@ static int StreamTcpTest31(void)
 
     StreamTcpInitConfig(TRUE);
 
+    FLOW_INITIALIZE(&f);
     /* prevent L7 from kicking in */
 
     ssn.client.os_policy = OS_POLICY_LINUX;
@@ -9319,6 +9372,7 @@ static int StreamTcpTest32(void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     stt.ra_ctx = ra_ctx;
     p.flow = &f;
     tcph.th_win = htons(5480);
@@ -9409,6 +9463,8 @@ static int StreamTcpTest33 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
@@ -9511,6 +9567,8 @@ static int StreamTcpTest34 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN|TH_PUSH;
@@ -9577,6 +9635,8 @@ static int StreamTcpTest35 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    FLOW_INITIALIZE(&f);
     p.flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN|TH_URG;
@@ -9642,6 +9702,7 @@ static int StreamTcpTest36(void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     stt.ra_ctx = ra_ctx;
     p.flow = &f;
     tcph.th_win = htons(5480);
@@ -9829,6 +9890,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -9862,6 +9924,7 @@ static int StreamTcpTest38 (void)
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
 
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
@@ -9946,6 +10009,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -9978,6 +10042,7 @@ static int StreamTcpTest39 (void)
         return 0;
     memset(p, 0, SIZE_OF_PACKET);
 
+    FLOW_INITIALIZE(&f);
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
@@ -10064,6 +10129,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -10215,6 +10281,7 @@ static int StreamTcpTest42 (void)
 
     StreamTcpInitConfig(TRUE);
 
+    FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
     tcph.th_win = htons(5480);
     p->flow = &f;
@@ -10280,6 +10347,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -10307,6 +10375,7 @@ static int StreamTcpTest43 (void)
 
     StreamTcpInitConfig(TRUE);
 
+    FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
     tcph.th_win = htons(5480);
     p->flow = &f;
@@ -10372,6 +10441,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -10399,6 +10469,7 @@ static int StreamTcpTest44 (void)
 
     StreamTcpInitConfig(TRUE);
 
+    FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
     tcph.th_win = htons(5480);
     p->flow = &f;
@@ -10459,6 +10530,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -10487,6 +10559,7 @@ static int StreamTcpTest45 (void)
     StreamTcpInitConfig(TRUE);
     stream_config.max_synack_queued = 2;
 
+    FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
     tcph.th_win = htons(5480);
     p->flow = &f;
