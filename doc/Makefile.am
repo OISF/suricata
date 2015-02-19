@@ -30,5 +30,6 @@ Ubuntu_Installation.txt \
 Ubuntu_Installation_from_GIT.txt \
 Windows.txt
 
+datarootdir=@datarootdir@
 docdir = ${datarootdir}/doc/${PACKAGE}
 dist_doc_DATA = ${EXTRA_DIST}
