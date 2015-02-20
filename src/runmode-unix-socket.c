@@ -630,48 +630,20 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 
     SCLogDebug("add-tenant: %d %s", tenant_id, filename);
 
-    /* 3 register it in the system */
-
-    /* 3A yaml parsing */
-    char prefix[64];
-    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
-
-    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-        json_object_set_new(answer, "message", json_string("YAML loading failed, ConfYamlLoadFileWithPrefix failed"));
+    /* 3 load into the system */
+    if (DetectEngineMultiTenantLoadTenant(tenant_id, filename) != 0) {
+        json_object_set_new(answer, "message", json_string("adding tenant failed"));
         return TM_ECODE_FAILED;
     }
 
-    ConfNode *node = ConfGetNode(prefix);
-    if (node == NULL) {
-        json_object_set_new(answer, "message", json_string("YAML loading failed, node == NULL"));
-        return TM_ECODE_FAILED;
-    }
-#if 0
-    ConfDump();
-#endif
-
-    /* 3B setup the de_ctx */
-    DetectEngineCtx *de_ctx = DetectEngineCtxInitWithPrefix(prefix);
-    if (de_ctx == NULL) {
-        json_object_set_new(answer, "message", json_string("detect engine failed to load"));
-        return TM_ECODE_FAILED;
-    }
-    SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
-
-    de_ctx->tenant_id = tenant_id;
-
-    SigLoadSignatures(de_ctx, NULL, 0);
-
-    DetectEngineAddToMaster(de_ctx);
-
-    /* 3C for each thread, replace det_ctx */
+    /* 4 apply to the running system */
     if (DetectEngineMTApply() < 0) {
         json_object_set_new(answer, "message", json_string("couldn't apply settings"));
         // TODO cleanup
         return TM_ECODE_FAILED;
     }
 
-    json_object_set_new(answer, "message", json_string("work in progress"));
+    json_object_set_new(answer, "message", json_string("adding tenant succeeded"));
     return TM_ECODE_OK;
 }
 
