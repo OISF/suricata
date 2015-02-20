@@ -33,9 +33,16 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 #include "util-print.h"
+#include "util-misc.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
 #include "rust.h"
+
+typedef enum {
+    HASH_ALG_MD5,
+    HASH_ALG_SHA1,
+    HASH_ALG_SHA256,
+} HashAlg;
 
 extern int g_detect_disabled;
 
@@ -69,6 +76,11 @@ static int g_file_force_sha1 = 0;
  *         regardless of the rules.
  */
 static int g_file_force_sha256 = 0;
+
+/** \brief limit on number of bytes hashed.
+ *         unlimited if 0.
+ */
+static uint64_t g_hash_byte_limit = 0;
 
 /** \brief switch to force tracking off all files
  *         regardless of the rules.
@@ -136,6 +148,11 @@ uint32_t FileReassemblyDepth(void)
         return g_file_store_reassembly_depth;
     else
         return stream_config.reassembly_depth;
+}
+
+void FileHashByteLimit(uint64_t value)
+{
+    g_hash_byte_limit = value;
 }
 
 int FileForceMagic(void)
@@ -208,6 +225,18 @@ void FileForceHashParseCfg(SCConfNode *conf)
                     SCLogConfig("forcing sha256 calculation for logged or stored files");
                 }
             }
+        }
+
+        const char *conf_val;
+        if (SCConfGetChildValue(conf, "hash-byte-limit", &conf_val) == 1) {
+            uint64_t value;
+            if (ParseSizeStringU64(conf_val, &value) < 0) {
+                SCLogError("Error parsing hash-byte-limit "
+                           "from conf file - %s.  Killing engine",
+                           conf_val);
+                exit(EXIT_FAILURE);
+            }
+            FileHashByteLimit(value);
         }
     }
 }
@@ -298,6 +327,37 @@ static int FileMagicSize(void)
     /** \todo make this size configurable */
     return 512;
 }
+
+static void HashUpdate(HashAlg alg,
+                       void *ctx,
+                       const uint8_t *data,
+                       uint32_t data_len,
+                       uint64_t *bytes_hashed)
+{
+    if (g_hash_byte_limit > 0) {
+        uint64_t bytes_remaining = g_hash_byte_limit - *bytes_hashed;
+        if (data_len > bytes_remaining) {
+            data_len = (uint32_t)bytes_remaining;
+        }
+        if (data_len == 0)
+            return;
+    }
+
+    switch (alg) {
+    case HASH_ALG_MD5:
+        SCMd5Update((SCMd5 *)ctx, data, data_len);
+        break;
+    case HASH_ALG_SHA1:
+        SCSha1Update((SCSha1 *)ctx, data, data_len);
+        break;
+    case HASH_ALG_SHA256:
+        SCSha256Update((SCSha256 *)ctx, data, data_len);
+        break;
+    }
+
+    *bytes_hashed += data_len;
+}
+
 
 /**
  *  \brief get the size of the file data
@@ -654,14 +714,14 @@ static int AppendData(
     }
 
     if (file->md5_ctx) {
-        SCMd5Update(file->md5_ctx, data, data_len);
+        HashUpdate(HASH_ALG_MD5, file->md5_ctx, data, data_len, &file->md5_num_bytes);
     }
     if (file->sha1_ctx) {
-        SCSha1Update(file->sha1_ctx, data, data_len);
+        HashUpdate(HASH_ALG_SHA1, file->sha1_ctx, data, data_len, &file->sha1_num_bytes);
     }
     if (file->sha256_ctx) {
         SCLogDebug("SHA256 file %p data %p data_len %u", file, data, data_len);
-        SCSha256Update(file->sha256_ctx, data, data_len);
+        HashUpdate(HASH_ALG_SHA256, file->sha256_ctx, data, data_len, &file->sha256_num_bytes);
     } else {
         SCLogDebug("NO SHA256 file %p data %p data_len %u", file, data, data_len);
     }
@@ -715,16 +775,16 @@ static int FileAppendDataDo(
         int hash_done = 0;
         /* no storage but forced hashing */
         if (ff->md5_ctx) {
-            SCMd5Update(ff->md5_ctx, data, data_len);
+            HashUpdate(HASH_ALG_MD5, ff->md5_ctx, data, data_len, &ff->md5_num_bytes);
             hash_done = 1;
         }
         if (ff->sha1_ctx) {
-            SCSha1Update(ff->sha1_ctx, data, data_len);
+            HashUpdate(HASH_ALG_SHA1, ff->sha1_ctx, data, data_len, &ff->sha1_num_bytes);
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
             SCLogDebug("file %p data %p data_len %u", ff, data, data_len);
-            SCSha256Update(ff->sha256_ctx, data, data_len);
+            HashUpdate(HASH_ALG_SHA256, ff->sha256_ctx, data, data_len, &ff->sha256_num_bytes);
             hash_done = 1;
         }
 
@@ -1018,6 +1078,7 @@ int FileCloseFilePtr(File *ff, const StreamingBufferConfig *sbcfg, const uint8_t
         ff->state = FILE_STATE_CLOSED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
     }
+        
         if (ff->md5_ctx) {
             SCMd5Finalize(ff->md5_ctx, ff->md5, sizeof(ff->md5));
             ff->md5_ctx = NULL;
