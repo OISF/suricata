@@ -1697,6 +1697,14 @@ int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename)
         goto error;
     }
 
+    de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (de_ctx != NULL) {
+        SCLogError(SC_ERR_MT_DUPLICATE_TENANT, "tenant %u already registered",
+                tenant_id);
+        DetectEngineDeReference(&de_ctx);
+        goto error;
+    }
+
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
         goto error;
@@ -1728,6 +1736,9 @@ int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename)
     return 0;
 
 error:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
     return -1;
 }
 
