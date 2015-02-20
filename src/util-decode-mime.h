@@ -199,6 +199,7 @@ typedef struct MimeDecParseState {
     uint8_t data_chunk[DATA_CHUNK_SIZE];  /**< Buffer holding data chunk */
     SCMd5 *md5_ctx;
     uint8_t md5[SC_MD5_LEN];
+    uint32_t md5_bytes_hashed;
     bool has_md5;
     uint8_t state_flag;  /**<  Flag representing current state of parser */
     uint32_t data_chunk_len;  /**< Length of data chunk */
