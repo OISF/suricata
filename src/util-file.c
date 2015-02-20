@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 #include "util-print.h"
+#include "util-misc.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
@@ -69,6 +70,11 @@ static int g_file_force_sha1 = 0;
  *         regardless of the rules.
  */
 static int g_file_force_sha256 = 0;
+
+/** \brief limit on number of bytes hashed.
+ *         unlimited if 0.
+ */
+static uint64_t g_hash_byte_limit = 0;
 
 /** \brief switch to force tracking off all files
  *         regardless of the rules.
@@ -138,6 +144,11 @@ uint32_t FileReassemblyDepth(void)
         return g_file_store_reassembly_depth;
     else
         return stream_config.reassembly_depth;
+}
+
+void FileHashByteLimit(uint64_t value)
+{
+    g_hash_byte_limit = value;
 }
 
 int FileForceMagic(void)
@@ -225,6 +236,18 @@ void FileForceHashParseCfg(ConfNode *conf)
 #endif
             }
         }
+
+        const char *conf_val;
+        if (ConfGetChildValue(conf, "hash-byte-limit", &conf_val) == 1) {
+            uint64_t value;
+            if (ParseSizeStringU64(conf_val, &value) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing hash-byte-limit "
+                           "from conf file - %s.  Killing engine",
+                           conf_val);
+                exit(EXIT_FAILURE);
+            }
+            FileHashByteLimit(value);
+        }
     }
 }
 
@@ -281,6 +304,19 @@ static int FileMagicSize(void)
     /** \todo make this size configurable */
     return 512;
 }
+
+#ifdef HAVE_NSS
+static void HashUpdate(HASHContext *ctx, const uint8_t *data, uint32_t data_len, uint64_t *bytes_hashed) {
+    if (g_hash_byte_limit > 0) {
+        uint64_t bytes_remaining = g_hash_byte_limit - *bytes_hashed;
+        if (data_len > bytes_remaining) {
+            data_len = bytes_remaining;
+        }
+    }
+    HASH_Update(ctx, data, data_len);
+    *bytes_hashed += data_len;
+}
+#endif
 
 /**
  *  \brief get the size of the file data
@@ -613,13 +649,13 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 
 #ifdef HAVE_NSS
     if (file->md5_ctx) {
-        HASH_Update(file->md5_ctx, data, data_len);
+        HashUpdate(file->md5_ctx, data, data_len, &file->md5_num_bytes);
     }
     if (file->sha1_ctx) {
-        HASH_Update(file->sha1_ctx, data, data_len);
+        HashUpdate(file->sha1_ctx, data, data_len, &file->sha1_num_bytes);
     }
     if (file->sha256_ctx) {
-        HASH_Update(file->sha256_ctx, data, data_len);
+        HashUpdate(file->sha256_ctx, data, data_len, &file->sha256_num_bytes);
     }
 #endif
     SCReturnInt(0);
@@ -673,15 +709,15 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
         int hash_done = 0;
         /* no storage but forced hashing */
         if (ff->md5_ctx) {
-            HASH_Update(ff->md5_ctx, data, data_len);
+            HashUpdate(ff->md5_ctx, data, data_len, &ff->md5_num_bytes);
             hash_done = 1;
         }
         if (ff->sha1_ctx) {
-            HASH_Update(ff->sha1_ctx, data, data_len);
+            HashUpdate(ff->sha1_ctx, data, data_len, &ff->sha1_num_bytes);
             hash_done = 1;
         }
         if (ff->sha256_ctx) {
-            HASH_Update(ff->sha256_ctx, data, data_len);
+            HashUpdate(ff->sha256_ctx, data, data_len, &ff->sha256_num_bytes);
             hash_done = 1;
         }
 
@@ -965,11 +1001,11 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
 #ifdef HAVE_NSS
             /* no storage but hashing */
             if (ff->md5_ctx)
-                HASH_Update(ff->md5_ctx, data, data_len);
+                HashUpdate(ff->md5_ctx, data, data_len, &ff->md5_num_bytes);
             if (ff->sha1_ctx)
-                HASH_Update(ff->sha1_ctx, data, data_len);
+                HashUpdate(ff->sha1_ctx, data, data_len, &ff->sha1_num_bytes);
             if (ff->sha256_ctx)
-                HASH_Update(ff->sha256_ctx, data, data_len);
+                HashUpdate(ff->sha256_ctx, data, data_len, &ff->sha256_num_bytes);
 #endif
         } else {
             if (AppendData(ff, data, data_len) != 0) {
