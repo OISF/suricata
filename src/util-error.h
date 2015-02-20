@@ -296,6 +296,7 @@ typedef enum {
     SC_ERR_NETMAP_READ,
     SC_ERR_THREAD_DEINIT, /**< thread's deinit function failed */
     SC_ERR_MT_NO_SELECTOR,
+    SC_ERR_MT_DUPLICATE_TENANT,
 } SCError;
 
 const char *SCErrorToString(SCError);
