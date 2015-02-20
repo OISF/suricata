@@ -181,6 +181,9 @@ void EveFileInfo(JsonBuilder *jb, const File *ff, const bool stored)
         }
         jb_set_string(jb, "sha256", str);
     }
+    if (ff->flags & (FILE_MD5 | FILE_SHA1 | FILE_SHA256)) {
+        jb_set_uint(jb, "bytes_hashed", ff->num_bytes_hashed);
+    }
 
     if (stored) {
         JB_SET_TRUE(jb, "stored");

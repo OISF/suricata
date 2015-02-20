@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 #include "util-print.h"
+#include "util-misc.h"
 #include "app-layer-parser.h"
 #include "util-validate.h"
 #include "rust.h"
@@ -86,6 +87,11 @@ static int g_file_store_enable = 0;
  */
 static uint32_t g_file_store_reassembly_depth = 0;
 
+/** \brief limit on number of bytes hashed.
+ *         unlimited if 0.
+ */
+uint32_t g_hash_byte_limit = 0;
+
 /* prototypes */
 static void FileFree(File *);
 static void FileEndSha256(File *ff);
@@ -137,6 +143,11 @@ uint32_t FileReassemblyDepth(void)
         return g_file_store_reassembly_depth;
     else
         return stream_config.reassembly_depth;
+}
+
+void FileHashByteLimit(uint32_t value)
+{
+    g_hash_byte_limit = value;
 }
 
 int FileForceMagic(void)
@@ -227,6 +238,18 @@ void FileForceHashParseCfg(ConfNode *conf)
                     SCLogConfig("forcing sha256 calculation for logged or stored files");
                 }
             }
+        }
+
+        const char *conf_val;
+        if (ConfGetChildValue(conf, "hash-byte-limit", &conf_val) == 1) {
+            uint32_t value;
+            if (ParseSizeStringU32(conf_val, &value) < 0) {
+                FatalError(SC_ERR_SIZE_PARSE,
+                        "Error parsing hash-byte-limit "
+                        "from conf file - %s.  Killing engine",
+                        conf_val);
+            }
+            FileHashByteLimit(value);
         }
     }
 }
@@ -606,21 +629,43 @@ static int FileStoreNoStoreCheck(File *ff)
     SCReturnInt(0);
 }
 
+static inline uint32_t UpdateHashes(File *file, const uint8_t *data, uint32_t data_len)
+{
+    uint32_t bytes_hashed = 0;
+    uint32_t current_bytes_hashed;
+    if (file->md5_ctx) {
+        current_bytes_hashed = file->num_bytes_hashed;
+        bytes_hashed = SCMd5Update(file->md5_ctx, data, data_len, &current_bytes_hashed);
+    }
+    if (file->sha1_ctx) {
+        current_bytes_hashed = file->num_bytes_hashed;
+        uint32_t sha1_bytes_hashed =
+                SCSha1Update(file->sha1_ctx, data, data_len, &current_bytes_hashed);
+
+        DEBUG_VALIDATE_BUG_ON(bytes_hashed && sha1_bytes_hashed != bytes_hashed);
+        bytes_hashed = sha1_bytes_hashed;
+    }
+    if (file->sha256_ctx) {
+        current_bytes_hashed = file->num_bytes_hashed;
+        uint32_t sha256_bytes_hashed =
+                SCSha256Update(file->sha256_ctx, data, data_len, &current_bytes_hashed);
+
+        DEBUG_VALIDATE_BUG_ON(bytes_hashed && sha256_bytes_hashed != bytes_hashed);
+        bytes_hashed = sha256_bytes_hashed;
+    }
+    file->num_bytes_hashed += bytes_hashed;
+
+    return bytes_hashed;
+}
+
 static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
 {
     if (StreamingBufferAppendNoTrack(file->sb, data, data_len) != 0) {
         SCReturnInt(-1);
     }
 
-    if (file->md5_ctx) {
-        SCMd5Update(file->md5_ctx, data, data_len);
-    }
-    if (file->sha1_ctx) {
-        SCSha1Update(file->sha1_ctx, data, data_len);
-    }
-    if (file->sha256_ctx) {
-        SCSha256Update(file->sha256_ctx, data, data_len);
-    }
+    UpdateHashes(file, data, data_len);
+
     SCReturnInt(0);
 }
 
@@ -668,22 +713,8 @@ static int FileAppendDataDo(File *ff, const uint8_t *data, uint32_t data_len)
 
     if ((ff->flags & FILE_USE_DETECT) == 0 &&
             FileStoreNoStoreCheck(ff) == 1) {
-        int hash_done = 0;
         /* no storage but forced hashing */
-        if (ff->md5_ctx) {
-            SCMd5Update(ff->md5_ctx, data, data_len);
-            hash_done = 1;
-        }
-        if (ff->sha1_ctx) {
-            SCSha1Update(ff->sha1_ctx, data, data_len);
-            hash_done = 1;
-        }
-        if (ff->sha256_ctx) {
-            SCSha256Update(ff->sha256_ctx, data, data_len);
-            hash_done = 1;
-        }
-
-        if (hash_done)
+        if (UpdateHashes(ff, data, data_len))
             SCReturnInt(0);
 
         if (g_file_force_tracking || (!(ff->flags & FILE_NOTRACK)))
@@ -947,12 +978,7 @@ int FileCloseFilePtr(File *ff, const uint8_t *data,
         ff->size += data_len;
         if (ff->flags & FILE_NOSTORE) {
             /* no storage but hashing */
-            if (ff->md5_ctx)
-                SCMd5Update(ff->md5_ctx, data, data_len);
-            if (ff->sha1_ctx)
-                SCSha1Update(ff->sha1_ctx, data, data_len);
-            if (ff->sha256_ctx)
-                SCSha256Update(ff->sha256_ctx, data, data_len);
+            UpdateHashes(ff, data, data_len);
         } else {
             if (AppendData(ff, data, data_len) != 0) {
                 ff->state = FILE_STATE_ERROR;

@@ -88,8 +88,10 @@ typedef struct File_ {
     uint8_t md5[SC_MD5_LEN];
     SCSha1 *sha1_ctx;
     uint8_t sha1[SC_SHA1_LEN];
+    uint32_t num_bytes_hashed;
     SCSha256 *sha256_ctx;
     uint8_t sha256[SC_SHA256_LEN];
+
     uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
                                      *   flag is set */
     uint64_t content_stored;
@@ -236,6 +238,7 @@ int FileForceSha256(void);
 void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction);
 
 void FileForceHashParseCfg(ConfNode *);
+void FileHashByteLimit(uint32_t value);
 
 void FileForceTrackingEnable(void);
 
