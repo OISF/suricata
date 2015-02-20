@@ -87,6 +87,8 @@ int DetectEngineReloadIsStart(void);
 void DetectEngineReloadSetDone(void);
 int DetectEngineReloadIsDone(void);
 
+int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename);
+
 int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id);
 int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id);
