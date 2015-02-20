@@ -2271,7 +2271,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
                     state->md5_ctx = SCMd5New();
                 }
             }
-            SCMd5Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
+            SCMd5Update(state->md5_ctx, buf, len + state->current_line_delimiter_len, NULL);
         }
     }
 
