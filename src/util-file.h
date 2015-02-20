@@ -88,8 +88,12 @@ typedef struct File_ {
     uint8_t md5[SC_MD5_LEN];
     SCSha1 *sha1_ctx;
     uint8_t sha1[SC_SHA1_LEN];
+    uint32_t sha1_num_bytes;
     SCSha256 *sha256_ctx;
     uint8_t sha256[SC_SHA256_LEN];
+    uint32_t sha256_num_bytes;
+    uint32_t md5_num_bytes;
+
     uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
                                      *   flag is set */
     uint64_t content_stored;
@@ -102,6 +106,9 @@ typedef struct File_ {
     uint32_t *sid; /* signature id of a rule that triggered the filestore event */
     uint32_t sid_cnt;
     uint32_t sid_max;
+
+    /* Count of bytes currently hashed into the per-hasing-method arrays above */
+
 } File;
 
 typedef struct FileContainer_ {
@@ -236,6 +243,7 @@ int FileForceSha256(void);
 void FileUpdateFlowFileFlags(Flow *f, uint16_t set_file_flags, uint8_t direction);
 
 void FileForceHashParseCfg(ConfNode *);
+void FileHashByteLimit(uint32_t value);
 
 void FileForceTrackingEnable(void);
 
