@@ -1637,7 +1637,6 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
         return TM_ECODE_FAILED;
     }
 
-    SCMutexUnlock(&afpacket_bpf_set_filter_lock);
     return TM_ECODE_OK;
 }
 
