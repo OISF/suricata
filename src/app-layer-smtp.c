@@ -634,10 +634,10 @@ static int SMTPParseCommandBDAT(SMTPState *state)
         /* decoder event */
         return -1;
     }
-    uint8_t *endptr = NULL;
+    char *endptr = NULL;
     state->bdat_chunk_len = strtoul((const char *)state->current_line + i,
                                     (char **)&endptr, 10);
-    if (endptr == state->current_line + i) {
+    if ((uint8_t *)endptr == state->current_line + i) {
         /* decoder event */
         return -1;
     }
