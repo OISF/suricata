@@ -398,8 +398,8 @@ int MagicDetectTest04(void)
     }
 
     result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
-    if (result == NULL || strcmp(result, "OpenOffice.org 1.x Database file") != 0) {
-        printf("result %p:%s, not \"OpenOffice.org 1.x Database file\": ", result,result?result:"(null)");
+    if (result == NULL || strncmp(result, "OpenOffice.org 1.x", 18) != 0) {
+        printf("result %p:%s, not \"OpenOffice.org 1.x\": ", result,result?result:"(null)");
         goto end;
     }
 
@@ -566,8 +566,8 @@ int MagicDetectTest08(void)
     }
 
     result = MagicGlobalLookup(buffer, buffer_len);
-    if (result == NULL || strcmp(result, "OpenOffice.org 1.x Database file") != 0) {
-        printf("result %p:%s, not \"OpenOffice.org 1.x Database file\": ", result,result?result:"(null)");
+    if (result == NULL || strncmp(result, "OpenOffice.org 1.x", 18) != 0) {
+        printf("result %p:%s, not \"OpenOffice.org 1.x\": ", result,result?result:"(null)");
         goto end;
     }
 
