@@ -1,3 +1,14 @@
+2.0.7 -- 2015-02-25
+
+Bug #1385: DCERPC traffic parsing issue
+Bug #1391: http uri parsing issue
+Bug #1383: tcp midstream window issue
+Bug #1318: A thread-sync issue in streamTCP
+Bug #1375: Regressions in list keywords option
+Bug #1387: pcap-file hangs on systems w/o atomics support
+Bug #1395: dump-counters unix socket command failure
+Optimization #1376: file list is not cleaned up (2.0.x)
+
 2.0.6 -- 2015-01-15
 
 Bug #1364: evasion issues
