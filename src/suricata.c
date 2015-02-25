@@ -2091,10 +2091,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TmModuleRunInit();
 
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
-        StreamTcpInitConfig(STREAM_VERBOSE);
-    }
-
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2209,6 +2205,7 @@ int main(int argc, char **argv)
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
+        StreamTcpInitConfig(STREAM_VERBOSE);
     }
 
     DetectEngineCtx *de_ctx = NULL;
