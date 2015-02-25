@@ -2091,6 +2091,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     TmModuleRunInit();
 
+    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+        StreamTcpInitConfig(STREAM_VERBOSE);
+    }
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2289,7 +2293,6 @@ int main(int argc, char **argv)
         }
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
-        StreamTcpInitConfig(STREAM_VERBOSE);
 
         SCPerfSpawnThreads();
     }
