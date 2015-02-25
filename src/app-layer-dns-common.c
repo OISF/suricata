@@ -759,22 +759,22 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     }
 
     const DNSAnswerHeader *head = (DNSAnswerHeader *)data;
+
+    data += sizeof(DNSAnswerHeader);
+
+    SCLogDebug("head->len %u", ntohs(head->len));
+
+    if (input + input_len < data + ntohs(head->len)) {
+	SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
+	goto insufficient_data;
+    }
+
+    SCLogDebug("TTL %u", ntohl(head->ttl));
+
     switch (ntohs(head->type)) {
         case DNS_RECORD_TYPE_A:
-        case DNS_RECORD_TYPE_AAAA:
-        case DNS_RECORD_TYPE_CNAME:
         {
-            data += sizeof(DNSAnswerHeader);
-
-            SCLogDebug("head->len %u", ntohs(head->len));
-
-            if (input + input_len < data + ntohs(head->len)) {
-                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-                goto insufficient_data;
-            }
-            SCLogDebug("TTL %u", ntohl(head->ttl));
-
-            if (ntohs(head->type) == DNS_RECORD_TYPE_A && ntohs(head->len) == 4) {
+            if (ntohs(head->len) == 4) {
                 //PrintRawDataFp(stdout, data, ntohs(head->len));
                 //char a[16];
                 //PrintInet(AF_INET, (const void *)data, a, sizeof(a));
@@ -783,7 +783,17 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
                         data, 4, ntohs(dns_header->tx_id));
-            } else if (ntohs(head->type) == DNS_RECORD_TYPE_AAAA && ntohs(head->len) == 16) {
+            } else {
+                SCLogDebug("invalid length for A response data: %u", ntohs(head->len));
+		goto bad_data;
+	    }
+
+            data += ntohs(head->len);
+            break;
+        }
+        case DNS_RECORD_TYPE_AAAA:
+	{
+            if (ntohs(head->len) == 16) {
                 //char a[46];
                 //PrintInet(AF_INET6, (const void *)data, a, sizeof(a));
                 //SCLogInfo("AAAA %s TTL %u", a, ntohl(head->ttl));
@@ -791,46 +801,29 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                         ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
                         data, 16, ntohs(dns_header->tx_id));
-            } else if (ntohs(head->type) == DNS_RECORD_TYPE_CNAME) {
-                uint8_t cname[DNS_MAX_SIZE];
-                uint16_t cname_len = 0;
-
-                if ((cname_len = DNSResponseGetNameByOffset(input, input_len,
-                                data - input, cname, sizeof(cname))) == 0)
-                {
-#if DEBUG
-                    PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-                    BUG_ON(1);
-#endif
-                    goto insufficient_data;
-                }
-
-                DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
-                        ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                        cname, cname_len, ntohs(dns_header->tx_id));
-            }
+            } else {
+                SCLogDebug("invalid length for AAAA response data: %u", ntohs(head->len));
+                goto bad_data;
+	    }
 
             data += ntohs(head->len);
-            break;
-        }
+	    break;
+	}
         case DNS_RECORD_TYPE_MX:
+	case DNS_RECORD_TYPE_CNAME:
+	case DNS_RECORD_TYPE_PTR:
         {
-            data += sizeof(DNSAnswerHeader);
+            uint8_t name[DNS_MAX_SIZE];
+            uint16_t name_len = 0;
+	    uint8_t skip = 0;
 
-            SCLogDebug("head->len %u", ntohs(head->len));
+	    if (ntohs(head->type) == DNS_RECORD_TYPE_MX) {
+	        // Skip the preference header
+                skip = 2;
+	    }
 
-            if (input + input_len < data + ntohs(head->len)) {
-                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-                goto insufficient_data;
-            }
-
-            SCLogDebug("TTL %u", ntohl(head->ttl));
-
-            uint8_t mxname[DNS_MAX_SIZE];
-            uint16_t mxname_len = 0;
-
-            if ((mxname_len = DNSResponseGetNameByOffset(input, input_len,
-                            data - input + 2, mxname, sizeof(mxname))) == 0) {
+            if ((name_len = DNSResponseGetNameByOffset(input, input_len,
+                            data - input + skip, name, sizeof(name))) == 0) {
 #if DEBUG
                 PrintRawDataFp(stdout, (uint8_t *)input, input_len);
                 BUG_ON(1);
@@ -840,7 +833,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
 
             DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
-                    mxname, mxname_len, ntohs(dns_header->tx_id));
+                    name, name_len, ntohs(dns_header->tx_id));
 
             data += ntohs(head->len);
             break;
@@ -848,15 +841,6 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         case DNS_RECORD_TYPE_NS:
         case DNS_RECORD_TYPE_SOA:
         {
-            data += sizeof(DNSAnswerHeader);
-
-            if (input + input_len < data + ntohs(head->len)) {
-                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-                goto insufficient_data;
-            }
-
-            SCLogDebug("TTL %u", ntohl(head->ttl));
-
             uint8_t pname[DNS_MAX_SIZE];
             uint16_t pname_len = 0;
 
@@ -925,13 +909,6 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         }
         case DNS_RECORD_TYPE_TXT:
         {
-            data += sizeof(DNSAnswerHeader);
-
-            if (input + input_len < data + ntohs(head->len)) {
-                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-                goto insufficient_data;
-            }
-
             uint16_t datalen = ntohs(head->len);
             uint8_t txtlen = *data;
             const uint8_t *tdata = data + 1;
@@ -961,13 +938,6 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         }
         default:    /* unsupported record */
         {
-            data += sizeof(DNSAnswerHeader);
-
-            if (input + input_len < data + ntohs(head->len)) {
-                SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-                goto insufficient_data;
-            }
-
             DNSStoreAnswerInState(dns_state, list, NULL, 0,
                     ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
                     NULL, 0, ntohs(dns_header->tx_id));
