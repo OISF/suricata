@@ -24,11 +24,18 @@
 #include "config.h"
 #include "app-layer-detect-proto.h"
 #include "app-layer.h"
+#include "app-layer-parser.h"
 #include "util-cuda.h"
 #include "util-unittest.h"
+#include "util-debug.h"
+#include "conf-yaml-loader.h"
 
 int ListKeywords(const char *keyword_info)
 {
+    if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
+        SCLogLoadConfig(0, 0);
+    MpmTableSetup();
+    AppLayerSetup();
     SigTableSetup(); /* load the rule keywords */
     SigTableList(keyword_info);
     exit(EXIT_SUCCESS);
@@ -36,6 +43,8 @@ int ListKeywords(const char *keyword_info)
 
 int ListAppLayerProtocols()
 {
+    if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
+        SCLogLoadConfig(0, 0);
     MpmTableSetup();
     AppLayerSetup();
     AppLayerListSupportedProtocols();
