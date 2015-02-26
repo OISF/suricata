@@ -244,6 +244,21 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
     return r;
 }
 
+static inline int StateIsValid(uint16_t alproto, void *alstate)
+{
+    if (alstate != NULL) {
+        if (alproto == ALPROTO_HTTP) {
+            HtpState *htp_state = (HtpState *)alstate;
+            if (htp_state->conn != NULL) {
+                return 1;
+            }
+        } else {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 static inline int TxIsLast(uint64_t tx_id, uint64_t total_txs)
 {
     if (total_txs - tx_id <= 1)
@@ -262,7 +277,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint32_t inspect_flags = 0;
 
     void *alstate = NULL;
-    HtpState *htp_state = NULL;
     SMBState *smb_state = NULL;
 
     void *tx = NULL;
@@ -281,17 +295,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_WRLOCK(f);
         alstate = FlowGetAppState(f);
-        if (alstate == NULL) {
+        if (!StateIsValid(alproto, alstate)) {
             FLOWLOCK_UNLOCK(f);
             goto end;
         }
-        if (alproto == ALPROTO_HTTP) {
-            htp_state = (HtpState *)alstate;
-            if (htp_state->conn == NULL) {
-                FLOWLOCK_UNLOCK(f);
-                goto end;
-            }
-        }
+
         tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         SCLogDebug("tx_id %"PRIu64, tx_id);
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
@@ -499,7 +507,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint32_t inspect_flags = 0;
 
     void *alstate = NULL;
-    HtpState *htp_state = NULL;
     SMBState *smb_state = NULL;
 
     SigIntId store_cnt = 0;
@@ -526,7 +533,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
         alstate = FlowGetAppState(f);
-        if (alstate == NULL) {
+        if (!StateIsValid(alproto, alstate)) {
             FLOWLOCK_UNLOCK(f);
             SCMutexUnlock(&f->de_state_m);
             return;
@@ -618,19 +625,10 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (alproto_supports_txs) {
                 FLOWLOCK_WRLOCK(f);
                 alstate = FlowGetAppState(f);
-                if (alstate == NULL) {
+                if (!StateIsValid(alproto, alstate)) {
                     FLOWLOCK_UNLOCK(f);
                     RULE_PROFILING_END(det_ctx, s, match, p);
                     goto end;
-                }
-
-                if (alproto == ALPROTO_HTTP) {
-                    htp_state = (HtpState *)alstate;
-                    if (htp_state->conn == NULL) {
-                        FLOWLOCK_UNLOCK(f);
-                        RULE_PROFILING_END(det_ctx, s, match, p);
-                        goto end;
-                    }
                 }
 
                 det_ctx->tx_id = inspect_tx_id;
