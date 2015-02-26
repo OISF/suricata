@@ -486,8 +486,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
                                     AppProto alproto, uint16_t alversion)
 {
-    SCMutexLock(&f->de_state_m);
-
     DetectEngineAppInspectionEngine *engine = NULL;
     SigMatch *sm = NULL;
     uint16_t file_no_match = 0;
@@ -502,8 +500,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int match = 0;
     uint8_t alert = 0;
 
-    DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
-    DeStateStore *store = dir_state->head;
     void *inspect_tx = NULL;
     uint64_t inspect_tx_id = 0;
     uint64_t total_txs = 0;
@@ -513,6 +509,10 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
      * keywords with transaction keywords.  Without this we would
      * assume that we have an alert if engine == NULL */
     uint8_t total_matches = 0;
+
+    SCMutexLock(&f->de_state_m);
+    DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
+    DeStateStore *store = dir_state->head;
 
     DeStateResetFileInspection(f, alproto, alstate, flags);
 
