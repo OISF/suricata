@@ -388,13 +388,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         KEYWORD_PROFILING_START;
                         match = sigmatch_table[sm->type].
                             AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
+                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
                     }
                 } else {
                     KEYWORD_PROFILING_START;
                     match = sigmatch_table[sm->type].
                         AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
+                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
                 }
 
                 if (match == 0)
@@ -606,13 +606,13 @@ static int DoInspectItem(ThreadVars *tv,
                         KEYWORD_PROFILING_START;
                         match = sigmatch_table[sm->type].
                             AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc, s, sm);
-                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
+                        KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
                     }
                 } else {
                     KEYWORD_PROFILING_START;
                     match = sigmatch_table[sm->type].
                         AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
-                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
+                    KEYWORD_PROFILING_END(det_ctx, sm->type, (match == 1));
                 }
 
                 if (match == 0)
