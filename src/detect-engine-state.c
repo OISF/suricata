@@ -244,30 +244,19 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
                                 AppProto alproto, uint16_t alversion)
 {
-    DetectEngineAppInspectionEngine *engine = NULL;
     SigMatch *sm = NULL;
     uint16_t file_no_match = 0;
     uint32_t inspect_flags = 0;
-
-    void *alstate = NULL;
-    SMBState *smb_state = NULL;
-
-    void *tx = NULL;
-    uint64_t tx_id = 0;
-    uint64_t total_txs = 0;
-    int match = 0;
     int store_de_state = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
-    /* this was introduced later to allow protocols that had both app
-     * keywords with transaction keywords.  Without this we would
-     * assume that we have an alert if engine == NULL */
-    int total_matches = 0;
-
     int alert_cnt = 0;
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
+        uint64_t tx_id = 0;
+        uint64_t total_txs = 0;
+
         FLOWLOCK_WRLOCK(f);
-        alstate = FlowGetAppState(f);
+        void *alstate = FlowGetAppState(f);
         if (!StateIsValid(alproto, alstate)) {
             FLOWLOCK_UNLOCK(f);
             goto end;
@@ -279,18 +268,18 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         SCLogDebug("total_txs %"PRIu64, total_txs);
 
         for (; tx_id < total_txs; tx_id++) {
-            total_matches = 0;
-            tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
+            int total_matches = 0;
+            void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
             if (tx == NULL)
                 continue;
             det_ctx->tx_id = tx_id;
             det_ctx->tx_id_set = 1;
-            engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][direction];
+            DetectEngineAppInspectionEngine *engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][direction];
             inspect_flags = 0;
             while (engine != NULL) {
                 if (s->sm_lists[engine->sm_list] != NULL) {
                     KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
-                    match = engine->Callback(tv, de_ctx, det_ctx, s, f,
+                    int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                              flags, alstate,
                                              tx, tx_id);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
@@ -314,17 +303,17 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
              * didn't have a match in one of the engines we would have
              * broken off and engine wouldn't be NULL.  Hence the alert. */
             if (engine == NULL && total_matches > 0) {
-
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                     PacketAlertAppend(det_ctx, s, p, tx_id,
                             PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
                 } else {
                     DetectSignatureApplyActions(p, s);
                 }
-
                 alert_cnt = 1;
             }
 
+            /* if this is the last tx in our list, and it's incomplete: then
+             * we store the state so that ContinueDetection knows about it */
             if (TxIsLast(tx_id, total_txs)) {
                 if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) <
                     AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
@@ -342,7 +331,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 alproto == ALPROTO_SMB2))
     {
         FLOWLOCK_WRLOCK(f);
-        alstate = FlowGetAppState(f);
+        void *alstate = FlowGetAppState(f);
         if (alstate == NULL) {
             FLOWLOCK_UNLOCK(f);
             goto end;
@@ -350,7 +339,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
         KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-            smb_state = (SMBState *)alstate;
+            SMBState *smb_state = (SMBState *)alstate;
             if (smb_state->dcerpc_present &&
                 DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
                                               flags, &smb_state->dcerpc) == 1) {
@@ -360,21 +349,18 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 } else {
                     DetectSignatureApplyActions(p, s);
                 }
-
                 alert_cnt = 1;
             }
         } else {
             if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
                                               flags, alstate) == 1) {
-                alert_cnt = 1;
-
                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                     PacketAlertAppend(det_ctx, s, p, 0,
                             PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
                     DetectSignatureApplyActions(p, s);
                 }
-
+                alert_cnt = 1;
             }
         }
         FLOWLOCK_UNLOCK(f);
@@ -386,17 +372,18 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         /* RDLOCK would be nicer, but at least tlsstore needs
          * write lock currently. */
         FLOWLOCK_WRLOCK(f);
-        alstate = FlowGetAppState(f);
+        void *alstate = FlowGetAppState(f);
         if (alstate == NULL) {
             FLOWLOCK_UNLOCK(f);
             goto end;
         }
 
-        for (match = 0; sm != NULL; sm = sm->next) {
-            match = 0;
+        int match = 0;
+        for ( ; sm != NULL; sm = sm->next) {
             if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
+                match = 0;
                 if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                    smb_state = (SMBState *)alstate;
+                    SMBState *smb_state = (SMBState *)alstate;
                     if (smb_state->dcerpc_present) {
                         KEYWORD_PROFILING_START;
                         match = sigmatch_table[sm->type].
