@@ -305,15 +305,15 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                              flags, alstate,
                                              tx, tx_id);
-                    if (match == 1) {
+                    if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                         inspect_flags |= engine->inspect_flags;
                         engine = engine->next;
                         total_matches++;
                         continue;
-                    } else if (match == 2) {
+                    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                         inspect_flags |= engine->inspect_flags;
-                    } else if (match == 3) {
+                    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                         inspect_flags |= engine->inspect_flags;
                         file_no_match++;
@@ -640,15 +640,15 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                         match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                                  flags, alstate, inspect_tx, inspect_tx_id);
-                        if (match == 1) {
+                        if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                             inspect_flags |= engine->inspect_flags;
                             engine = engine->next;
                             total_matches++;
                             continue;
-                        } else if (match == 2) {
+                        } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                             inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                             inspect_flags |= engine->inspect_flags;
-                        } else if (match == 3) {
+                        } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
                             inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                             inspect_flags |= engine->inspect_flags;
                             file_no_match++;
