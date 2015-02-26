@@ -20,14 +20,9 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-erf-dag.h"
-#include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
 
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
+#include "detect-engine.h"
 
 #include "util-debug.h"
 #include "util-time.h"
@@ -76,7 +71,7 @@ void RunModeErfDagRegister(void)
     return;
 }
 
-int RunModeIdsErfDagSingle(DetectEngineCtx *de_ctx)
+int RunModeIdsErfDagSingle(void)
 {
     int ret;
 
@@ -86,8 +81,7 @@ int RunModeIdsErfDagSingle(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureSingle(de_ctx,
-        ParseDagConfig,
+    ret = RunModeSetLiveCaptureSingle(ParseDagConfig,
         DagConfigGetThreadCount,
         "ReceiveErfDag",
         "DecodeErfDag",
@@ -103,7 +97,7 @@ int RunModeIdsErfDagSingle(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-int RunModeIdsErfDagAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIdsErfDagAutoFp(void)
 {
     int ret;
 
@@ -113,8 +107,7 @@ int RunModeIdsErfDagAutoFp(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
-        ParseDagConfig,
+    ret = RunModeSetLiveCaptureAutoFp(ParseDagConfig,
         DagConfigGetThreadCount,
         "ReceiveErfDag",
         "DecodeErfDag",
@@ -130,7 +123,7 @@ int RunModeIdsErfDagAutoFp(DetectEngineCtx *de_ctx)
     SCReturnInt(0);
 }
 
-int RunModeIdsErfDagWorkers(DetectEngineCtx *de_ctx)
+int RunModeIdsErfDagWorkers(void)
 {
     int ret;
 
@@ -140,8 +133,7 @@ int RunModeIdsErfDagWorkers(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ret = RunModeSetLiveCaptureWorkers(de_ctx,
-        ParseDagConfig,
+    ret = RunModeSetLiveCaptureWorkers(ParseDagConfig,
         DagConfigGetThreadCount,
         "ReceiveErfDag",
         "DecodeErfDag",
