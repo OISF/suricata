@@ -23,10 +23,9 @@
 #ifndef __RUNMODE_AF_PACKET_H__
 #define __RUNMODE_AF_PACKET_H__
 
-int RunModeIdsAFPAuto(DetectEngineCtx *);
-int RunModeIdsAFPSingle(DetectEngineCtx *);
-int RunModeIdsAFPAutoFp(DetectEngineCtx *);
-int RunModeIdsAFPWorkers(DetectEngineCtx *);
+int RunModeIdsAFPSingle(void);
+int RunModeIdsAFPAutoFp(void);
+int RunModeIdsAFPWorkers(void);
 void RunModeIdsAFPRegister(void);
 const char *RunModeAFPGetDefaultMode(void);
 int AFPRunModeIsIPS();

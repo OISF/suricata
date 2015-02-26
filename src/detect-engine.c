@@ -96,9 +96,12 @@
 
 static uint32_t detect_engine_ctx_id = 1;
 
-static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *, void *, void **);
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx);
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
+
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, NULL, NULL, };
 
 /* 2 - for each direction */
 DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
@@ -435,63 +438,18 @@ void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
     return;
 }
 
-static void *DetectEngineLiveRuleSwap(void *arg)
+static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 {
     SCEnter();
 
     int i = 0;
     int no_of_detect_tvs = 0;
-    DetectEngineCtx *old_de_ctx = NULL;
     ThreadVars *tv = NULL;
-
-    if (SCSetThreadName("LiveRuleSwap") < 0) {
-        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
 
     SCLogNotice("rule reload starting");
 
-    ThreadVars *tv_local = (ThreadVars *)arg;
-
-    /* block usr2.  usr2 to be handled by the main thread only */
-    UtilSignalBlock(SIGUSR2);
-
-    if (tv_local->thread_setup_flags != 0)
-        TmThreadSetupOptions(tv_local);
-
-    /* release TmThreadSpawn */
-    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
-
-    ConfDeInit();
-    ConfInit();
-
-    /* re-load the yaml file */
-    if (conf_filename != NULL) {
-        if (ConfYamlLoadFile(conf_filename) != 0) {
-            /* Error already displayed. */
-            exit(EXIT_FAILURE);
-        }
-
-        ConfNode *file;
-        ConfNode *includes = ConfGetNode("include");
-        if (includes != NULL) {
-            TAILQ_FOREACH(file, &includes->head, next) {
-                char *ifile = ConfLoadCompleteIncludePath(file->val);
-                SCLogInfo("Live Rule Swap: Including: %s", ifile);
-
-                if (ConfYamlLoadFile(ifile) != 0) {
-                    /* Error already displayed. */
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
-    } /* if (conf_filename != NULL) */
-
-#if 0
-    ConfDump();
-#endif
-
+    /* count detect threads in use */
     SCMutexLock(&tv_root_lock);
-
     tv = tv_root[TVT_PPT];
     while (tv) {
         /* obtain the slots for this TV */
@@ -500,13 +458,9 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
             if (suricata_ctl_flags != 0) {
-                TmThreadsSetFlag(tv_local, THV_CLOSED);
-
                 SCLogInfo("rule reload interupted by engine shutdown");
-
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
                 SCMutexUnlock(&tv_root_lock);
-                pthread_exit(NULL);
+                return -1;
             }
 
             if (!(tm->flags & TM_FLAG_DETECT_TM)) {
@@ -519,14 +473,13 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
         tv = tv->next;
     }
+    SCMutexUnlock(&tv_root_lock);
 
     if (no_of_detect_tvs == 0) {
-        TmThreadsSetFlag(tv_local, THV_CLOSED);
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-        SCLogInfo("===== Live rule swap FAILURE =====");
-        pthread_exit(NULL);
+        return -1;
     }
 
+    /* prepare swap structures */
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
     DetectEngineThreadCtx *new_det_ctx[no_of_detect_tvs];
     ThreadVars *detect_tvs[no_of_detect_tvs];
@@ -534,42 +487,10 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     memset(new_det_ctx, 0x00, (no_of_detect_tvs * sizeof(DetectEngineThreadCtx *)));
     memset(detect_tvs, 0x00, (no_of_detect_tvs * sizeof(ThreadVars *)));
 
-    SCMutexUnlock(&tv_root_lock);
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        SCLogError(SC_ERR_LIVE_RULE_SWAP, "Allocation failure in live "
-                   "swap.  Let's get out of here.");
-        goto error;
-    }
-
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCRConfLoadReferenceConfigFile(de_ctx);
-
-    if (ActionInitConfig() < 0) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (SigLoadSignatures(de_ctx, NULL, FALSE) < 0) {
-        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
-        if (de_ctx->failure_fatal)
-            exit(EXIT_FAILURE);
-        DetectEngineCtxFree(de_ctx);
-        SCLogError(SC_ERR_LIVE_RULE_SWAP,  "Failure encountered while "
-                   "loading new ruleset with live swap.");
-        SCLogError(SC_ERR_LIVE_RULE_SWAP, "rule reload failed");
-        TmThreadsSetFlag(tv_local, THV_CLOSED);
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-        pthread_exit(NULL);
-    }
-
-    SCThresholdConfInitContext(de_ctx, NULL);
-
     /* start the process of swapping detect threads ctxs */
 
+    /* get reference to tv's and setup new_det_ctx array */
     SCMutexLock(&tv_root_lock);
-
-    /* all receive threads are part of packet processing threads */
     tv = tv_root[TVT_PPT];
     while (tv) {
         /* obtain the slots for this TV */
@@ -578,13 +499,8 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
             if (suricata_ctl_flags != 0) {
-                TmThreadsSetFlag(tv_local, THV_CLOSED);
-
-                SCLogInfo("rule reload interupted by engine shutdown");
-
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
                 SCMutexUnlock(&tv_root_lock);
-                pthread_exit(NULL);
+                goto error;
             }
 
             if (!(tm->flags & TM_FLAG_DETECT_TM)) {
@@ -594,36 +510,32 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
             detect_tvs[i] = tv;
-            TmEcode r = DetectEngineThreadCtxInitForLiveRuleSwap(tv, (void *)de_ctx,
-                                                                 (void **)&new_det_ctx[i]);
-            i++;
-            if (r == TM_ECODE_FAILED) {
+            new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            if (new_det_ctx[i] == NULL) {
                 SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
                 SCMutexUnlock(&tv_root_lock);
                 goto error;
             }
             SCLogDebug("live rule swap created new det_ctx - %p and de_ctx "
-                       "- %p\n", new_det_ctx, de_ctx);
+                       "- %p\n", new_det_ctx[i], new_de_ctx);
+            i++;
             break;
         }
 
         tv = tv->next;
     }
+    BUG_ON(i != no_of_detect_tvs);
 
+    /* atomicly replace the det_ctx data */
     i = 0;
     tv = tv_root[TVT_PPT];
     while (tv) {
+        /* find the correct slot */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
             if (suricata_ctl_flags != 0) {
-                TmThreadsSetFlag(tv_local, THV_CLOSED);
-
-                SCLogInfo("rule reload interupted by engine shutdown");
-
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-                SCMutexUnlock(&tv_root_lock);
-                pthread_exit(NULL);
+                return -1;
             }
 
             TmModule *tm = TmModuleGetById(slots->tm_id);
@@ -638,12 +550,16 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         }
         tv = tv->next;
     }
-
     SCMutexUnlock(&tv_root_lock);
+
+    /* threads now all have new data, however they may not have started using
+     * it and may still use the old data */
 
     SCLogInfo("Live rule swap has swapped %d old det_ctx's with new ones, "
               "along with the new de_ctx", no_of_detect_tvs);
 
+    /* inject a fake packet if the detect thread isn't using the new ctx yet,
+     * this speeds up the process */
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
         int pseudo_pkt_inserted = 0;
@@ -662,7 +578,6 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                         p->flags |= PKT_PSEUDO_STREAM_END;
                         PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
                         SCMutexLock(&q->mutex_q);
-
                         PacketEnqueue(q, p);
                         SCCondSignal(&q->cond_q);
                         SCMutexUnlock(&q->mutex_q);
@@ -681,14 +596,13 @@ static void *DetectEngineLiveRuleSwap(void *arg)
      * de_ctx, till all detect threads have stopped working and sitting
      * silently after setting RUNNING_DONE flag and while waiting for
      * THV_DEINIT flag */
-    if (i != no_of_detect_tvs) {
+    if (i != no_of_detect_tvs) { // not all threads we swapped
         ThreadVars *tv = tv_root[TVT_PPT];
         while (tv) {
             /* obtain the slots for this TV */
             TmSlot *slots = tv->tm_slots;
             while (slots != NULL) {
                 TmModule *tm = TmModuleGetById(slots->tm_id);
-
                 if (!(tm->flags & TM_FLAG_DETECT_TM)) {
                     slots = slots->slot_next;
                     continue;
@@ -706,92 +620,26 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     }
 
     /* free all the ctxs */
-    old_de_ctx = old_det_ctx[0]->de_ctx;
     for (i = 0; i < no_of_detect_tvs; i++) {
         SCLogDebug("Freeing old_det_ctx - %p used by detect",
                    old_det_ctx[i]);
         DetectEngineThreadCtxDeinit(NULL, old_det_ctx[i]);
     }
-    DetectEngineCtxFree(old_de_ctx);
 
     SRepReloadComplete();
 
-    /* reset the handler */
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-
-    TmThreadsSetFlag(tv_local, THV_CLOSED);
-
     SCLogNotice("rule reload complete");
-
-    pthread_exit(NULL);
+    return 0;
 
  error:
     for (i = 0; i < no_of_detect_tvs; i++) {
         if (new_det_ctx[i] != NULL)
             DetectEngineThreadCtxDeinit(NULL, new_det_ctx[i]);
     }
-    DetectEngineCtxFree(de_ctx);
-    TmThreadsSetFlag(tv_local, THV_CLOSED);
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-    SCLogInfo("===== Live rule swap FAILURE =====");
-    pthread_exit(NULL);
+    return -1;
 }
 
-void DetectEngineSpawnLiveRuleSwapMgmtThread(void)
-{
-    SCEnter();
-
-    SCLogDebug("Spawning mgmt thread for live rule swap");
-
-    ThreadVars *tv = TmThreadCreateMgmtThread("DetectEngineLiveRuleSwap",
-                                              DetectEngineLiveRuleSwap, 0);
-    if (tv == NULL) {
-        SCLogError(SC_ERR_THREAD_CREATE, "Live rule swap thread spawn failed");
-        exit(EXIT_FAILURE);
-    }
-
-    TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
-
-    if (TmThreadSpawn(tv) != 0) {
-        SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
-                   "DetectEngineLiveRuleSwap");
-        exit(EXIT_FAILURE);
-    }
-
-    SCReturn;
-}
-
-DetectEngineCtx *DetectEngineGetGlobalDeCtx(void)
-{
-    DetectEngineCtx *de_ctx = NULL;
-
-    SCMutexLock(&tv_root_lock);
-
-    ThreadVars *tv = tv_root[TVT_PPT];
-    while (tv) {
-        /* obtain the slots for this TV */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
-
-            if (tm->flags & TM_FLAG_DETECT_TM) {
-                DetectEngineThreadCtx *det_ctx = SC_ATOMIC_GET(slots->slot_data);
-                de_ctx = det_ctx->de_ctx;
-                SCMutexUnlock(&tv_root_lock);
-                return de_ctx;
-            }
-
-            slots = slots->slot_next;
-        }
-
-        tv = tv->next;
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-    return NULL;
-}
-
-DetectEngineCtx *DetectEngineCtxInit(void)
+static DetectEngineCtx *DetectEngineCtxInitReal(int minimal)
 {
     DetectEngineCtx *de_ctx;
 
@@ -805,6 +653,12 @@ DetectEngineCtx *DetectEngineCtxInit(void)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+
+    if (minimal) {
+        de_ctx->minimal = 1;
+        de_ctx->id = detect_engine_ctx_id++;
+        return de_ctx;
+    }
 
     if (ConfGetBool("engine.init-failure-fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
@@ -862,8 +716,6 @@ DetectEngineCtx *DetectEngineCtxInit(void)
         goto error;
     }
 
-    de_ctx->id = detect_engine_ctx_id++;
-
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
 
@@ -871,9 +723,28 @@ DetectEngineCtx *DetectEngineCtxInit(void)
     SCProfilingKeywordInitCounters(de_ctx);
 #endif
 
+    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCRConfLoadReferenceConfigFile(de_ctx);
+
+    if (ActionInitConfig() < 0) {
+        goto error;
+    }
+
+    de_ctx->id = detect_engine_ctx_id++;
     return de_ctx;
 error:
     return NULL;
+
+}
+
+DetectEngineCtx *DetectEngineCtxInitMinimal(void)
+{
+    return DetectEngineCtxInitReal(1);
+}
+
+DetectEngineCtx *DetectEngineCtxInit(void)
+{
+    return DetectEngineCtxInitReal(0);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
@@ -1355,10 +1226,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
-    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
-    if (de_ctx == NULL)
-        return TM_ECODE_FAILED;
-
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
     uint16_t counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
@@ -1373,21 +1240,28 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     uint16_t counter_match_list = SCPerfTVRegisterAvgCounter("detect.match_list", tv,
                                                       SC_PERF_TYPE_UINT64, "NULL");
 #endif
-    if (de_ctx->delayed_detect == 1 && de_ctx->delayed_detect_initialized == 0) {
-        *data = NULL;
-        return TM_ECODE_OK;
-    }
-
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
         return TM_ECODE_FAILED;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
-    det_ctx->de_ctx = de_ctx;
-
-    if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
+    det_ctx->de_ctx = DetectEngineGetCurrent();
+    if (det_ctx->de_ctx == NULL) {
+#ifdef UNITTESTS
+        if (RunmodeIsUnittests()) {
+            det_ctx->de_ctx = (DetectEngineCtx *)initdata;
+        } else {
+            return TM_ECODE_FAILED;
+        }
+#else
         return TM_ECODE_FAILED;
+#endif
+    }
+
+    if (det_ctx->de_ctx->minimal == 0)
+        if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK)
+            return TM_ECODE_FAILED;
 
     /** alert counter setup */
     det_ctx->counter_alerts = counter_alerts;
@@ -1406,29 +1280,31 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 
 /**
  * \internal
- * \brief This thread is an exact duplicate of DetectEngineThreadCtxInit(),
- *        except that the counters API 2 calls doesn't let us use the same
- *        init function.  Once we have the new counters API it should let
- *        us use the same init function.
+ * \brief initialize a det_ctx for reload cases
+ * \param new_de_ctx the new detection engine
+ * \retval det_ctx detection engine thread ctx or NULL in case of error
  */
-static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *initdata, void **data)
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx)
 {
-    *data = NULL;
-
-    DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;
-    if (de_ctx == NULL)
-        return TM_ECODE_FAILED;
-
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
-        return TM_ECODE_FAILED;
+        return NULL;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
     det_ctx->tv = tv;
-    det_ctx->de_ctx = de_ctx;
+    det_ctx->de_ctx = DetectEngineReference(new_de_ctx);
+    if (det_ctx->de_ctx == NULL) {
+        SCFree(det_ctx);
+        return NULL;
+    }
 
-    if (ThreadCtxDoInit(de_ctx, det_ctx) != TM_ECODE_OK)
-        return TM_ECODE_FAILED;
+    /* most of the init happens here */
+    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
+        DetectEngineDeReference(&det_ctx->de_ctx);
+        SCFree(det_ctx);
+        return NULL;
+    }
 
     /** alert counter setup */
     det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
@@ -1447,12 +1323,8 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
     det_ctx->counter_match_list = counter_match_list;
 #endif
-    /* no counter creation here */
 
-    /* pass thread data back to caller */
-    *data = (void *)det_ctx;
-
-    return TM_ECODE_OK;
+    return det_ctx;
 }
 
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
@@ -1527,6 +1399,12 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     }
 
     DetectEngineThreadCtxDeinitKeywords(det_ctx->de_ctx, det_ctx);
+#ifdef UNITTESTS
+    if (!RunmodeIsUnittests() || det_ctx->de_ctx->ref_cnt > 0)
+        DetectEngineDeReference(&det_ctx->de_ctx);
+#else
+    DetectEngineDeReference(&det_ctx->de_ctx);
+#endif
     SCFree(det_ctx);
 
     return TM_ECODE_OK;
@@ -1601,6 +1479,211 @@ void *DetectThreadCtxGetKeywordThreadCtx(DetectEngineThreadCtx *det_ctx, int id)
         return NULL;
 
     return det_ctx->keyword_ctxs_array[id];
+}
+
+/** \brief Check if detection is enabled
+ *  \retval bool true or false */
+int DetectEngineEnabled(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return 0;
+    }
+
+    SCMutexUnlock(&master->lock);
+    return 1;
+}
+
+DetectEngineCtx *DetectEngineGetCurrent(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return NULL;
+    }
+
+    master->list->ref_cnt++;
+    SCLogDebug("master->list %p ref_cnt %u", master->list, master->list->ref_cnt);
+    SCMutexUnlock(&master->lock);
+    return master->list;
+}
+
+DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx == NULL)
+        return NULL;
+    de_ctx->ref_cnt++;
+    return de_ctx;
+}
+
+void DetectEngineDeReference(DetectEngineCtx **de_ctx)
+{
+    BUG_ON((*de_ctx)->ref_cnt == 0);
+    (*de_ctx)->ref_cnt--;
+    *de_ctx = NULL;
+}
+
+static int DetectEngineAddToList(DetectEngineCtx *instance)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+
+    if (instance == NULL)
+        return -1;
+
+    if (master->list == NULL) {
+        master->list = instance;
+    } else {
+        instance->next = master->list;
+        master->list = instance;
+    }
+
+    return 0;
+}
+
+int DetectEngineAddToMaster(DetectEngineCtx *de_ctx)
+{
+    int r;
+
+    if (de_ctx == NULL)
+        return -1;
+
+    SCLogDebug("adding de_ctx %p to master", de_ctx);
+
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+    r = DetectEngineAddToList(de_ctx);
+    SCMutexUnlock(&master->lock);
+    return r;
+}
+
+int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+
+    SCMutexLock(&master->lock);
+    DetectEngineCtx *instance = master->list;
+    if (instance == NULL) {
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    /* remove from active list */
+    if (instance == de_ctx) {
+        master->list = instance->next;
+    } else {
+        DetectEngineCtx *prev = instance;
+        instance = instance->next; /* already checked first element */
+
+        while (instance) {
+            DetectEngineCtx *next = instance->next;
+
+            if (instance == de_ctx) {
+                prev->next = instance->next;
+                break;
+            }
+
+            prev = instance;
+            instance = next;
+        }
+        if (instance == NULL) {
+            SCMutexUnlock(&master->lock);
+            return -1;
+        }
+    }
+
+    /* instance is now detached from list */
+    instance->next = NULL;
+
+    /* add to free list */
+    if (master->free_list == NULL) {
+        master->free_list = instance;
+    } else {
+        instance->next = master->free_list;
+        master->free_list = instance;
+    }
+    SCLogDebug("detect engine %p moved to free list (%u refs)", de_ctx, de_ctx->ref_cnt);
+
+    SCMutexUnlock(&master->lock);
+    return 0;
+}
+
+void DetectEnginePruneFreeList(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    DetectEngineCtx *prev = NULL;
+    DetectEngineCtx *instance = master->free_list;
+    while (instance) {
+        DetectEngineCtx *next = instance->next;
+
+        SCLogDebug("detect engine %p has %u ref(s)", instance, instance->ref_cnt);
+
+        if (instance->ref_cnt == 0) {
+            if (instance == master->free_list) {
+                master->free_list = instance->next;
+            } else {
+                prev->next = instance->next;
+            }
+
+            SCLogDebug("freeing detect engine %p", instance);
+            DetectEngineCtxFree(instance);
+            instance = NULL;
+        }
+
+        prev = instance;
+        instance = next;
+    }
+    SCMutexUnlock(&master->lock);
+}
+
+int DetectEngineReload(void)
+{
+    DetectEngineCtx *new_de_ctx = NULL;
+    DetectEngineCtx *old_de_ctx = NULL;
+
+    /* get a reference to the current de_ctx */
+    old_de_ctx = DetectEngineGetCurrent();
+    if (old_de_ctx == NULL)
+        return -1;
+    SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
+
+    /* get new detection engine */
+    new_de_ctx = DetectEngineCtxInit();
+    if (new_de_ctx == NULL) {
+        DetectEngineDeReference(&old_de_ctx);
+        return -1;
+    }
+    if (SigLoadSignatures(new_de_ctx, NULL, 0) != 0) {
+        DetectEngineCtxFree(new_de_ctx);
+        DetectEngineDeReference(&old_de_ctx);
+        return -1;
+    }
+    SCThresholdConfInitContext(new_de_ctx, NULL);
+    SCLogDebug("set up new_de_ctx %p", new_de_ctx);
+
+    /* add to master */
+    DetectEngineAddToMaster(new_de_ctx);
+
+    /* move to old free list */
+    DetectEngineMoveToFreeList(old_de_ctx);
+    DetectEngineDeReference(&old_de_ctx);
+
+    SCLogDebug("going to reload the threads to use new_de_ctx %p", new_de_ctx);
+    /* update the threads */
+    DetectEngineReloadThreads(new_de_ctx);
+    SCLogDebug("threads now run new_de_ctx %p", new_de_ctx);
+
+    /* walk free list, freeing the old_de_ctx */
+    DetectEnginePruneFreeList();
+
+    SCLogDebug("old_de_ctx should have been freed");
+    return 0;
 }
 
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)

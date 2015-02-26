@@ -93,6 +93,10 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
     if (fd == NULL) {
         filename = SCRConfGetConfFilename();
         if ((fd = fopen(filename, "r")) == NULL) {
+#ifdef UNITTESTS
+            if (RunmodeIsUnittests())
+                goto error; // silently fail
+#endif
             SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename,
                        strerror(errno));
             goto error;
@@ -492,8 +496,14 @@ void SCRConfReferenceHashFree(void *data)
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
 {
     if (SCRConfInitContextAndLocalResources(de_ctx) == -1) {
-        SCLogInfo("Please check the \"reference-config-file\" option in your suricata.yaml file");
-        exit(EXIT_FAILURE);
+#ifdef UNITTESTS
+        if (RunmodeIsUnittests() && fd == NULL) {
+            return -1;
+        }
+#endif
+        SCLogError(SC_ERR_OPENING_FILE, "please check the \"reference-config-file\" "
+                "option in your suricata.yaml file");
+        return -1;
     }
 
     SCRConfParseFile(de_ctx);
@@ -518,7 +528,7 @@ SCRConfReference *SCRConfGetReference(const char *rconf_name,
 {
     SCRConfReference *ref_conf = SCRConfAllocSCRConfReference(rconf_name, NULL);
     if (ref_conf == NULL)
-        exit(EXIT_FAILURE);
+        return NULL;
     SCRConfReference *lookup_ref_conf = HashTableLookup(de_ctx->reference_conf_ht,
                                                         ref_conf, 0);
 
