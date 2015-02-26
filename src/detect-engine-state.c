@@ -156,33 +156,6 @@ static int DeStateStoreFilestoreSigsCantMatch(SigGroupHead *sgh, DetectEngineSta
         return 0;
 }
 
-static void DeStateResetFileInspection(Flow *f, AppProto alproto, void *alstate, uint8_t direction)
-{
-    if (f == NULL || alproto != ALPROTO_HTTP || alstate == NULL || f->de_state == NULL)
-        return;
-
-    FLOWLOCK_WRLOCK(f);
-    HtpState *htp_state = (HtpState *)alstate;
-
-    if (direction & STREAM_TOSERVER) {
-        if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TS) {
-            SCLogDebug("new file in the TS direction");
-            htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TS;
-            f->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
-        }
-    } else {
-        if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TC) {
-            SCLogDebug("new file in the TC direction");
-            htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TC;
-            f->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
-        }
-    }
-
-    FLOWLOCK_UNLOCK(f);
-}
-
-
-
 DetectEngineState *DetectEngineStateAlloc(void)
 {
     DetectEngineState *d = SCMalloc(sizeof(DetectEngineState));
@@ -524,8 +497,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCMutexLock(&f->de_state_m);
     DetectEngineStateDirection *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
     DeStateStore *store = dir_state->head;
-
-    DeStateResetFileInspection(f, alproto, alstate, flags);
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         FLOWLOCK_RDLOCK(f);
