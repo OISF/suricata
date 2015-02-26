@@ -447,11 +447,15 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
-    /* see if this is a "no such name" error */
-    if (ntohs(dns_header->flags) & 0x0003) {
-        SCLogDebug("no such name");
+    /* parse rcode, e.g. "noerror" or "nxdomain" */
+    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+    if (rcode <= 10 || (rcode >= 16 && rcode <= 22)) {
+        SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
-            tx->no_such_name = 1;
+            tx->rcode = rcode;
+    } else {
+        /* this is not invalid, rcodes can be user defined */
+        SCLogDebug("unexpected DNS rcode %u", rcode);
     }
 
     if (ntohs(dns_header->flags) & 0x0080) {
