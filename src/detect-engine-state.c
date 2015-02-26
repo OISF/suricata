@@ -353,9 +353,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
 
             if (TxIsLast(tx_id, total_txs)) {
-                void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
-                if (tx == NULL)
-                    continue;
                 if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) <
                     AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags)) {
                     store_de_state = 1;
