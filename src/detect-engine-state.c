@@ -244,6 +244,13 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
     return r;
 }
 
+static inline int TxIsLast(uint64_t tx_id, uint64_t total_txs)
+{
+    if (total_txs - tx_id <= 1)
+        return 1;
+    return 0;
+}
+
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
@@ -335,7 +342,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 alert_cnt = 1;
             }
 
-            if (tx_id == (total_txs - 1)) {
+            if (TxIsLast(tx_id, total_txs)) {
                 void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
                 if (tx == NULL)
                     continue;
@@ -566,8 +573,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
                 if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
                     if (alproto_supports_txs) {
-                        if ((total_txs - inspect_tx_id) <= 1)
+                        if (TxIsLast(inspect_tx_id, total_txs)) {
                             det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
+                        }
                     } else {
                         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
                     }
@@ -590,8 +598,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
                 } else {
                     if (alproto_supports_txs) {
-                        if ((total_txs - inspect_tx_id) <= 1)
+                        if (TxIsLast(inspect_tx_id, total_txs)) {
                             det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
+                        }
                     } else {
                         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
                     }
@@ -719,8 +728,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             item->flags |= inspect_flags;
             item->nm = sm;
-            if ((total_txs - inspect_tx_id) <= 1)
+            if (TxIsLast(inspect_tx_id, total_txs)) {
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
+            }
 
             if (alert) {
                 SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
