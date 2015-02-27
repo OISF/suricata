@@ -246,9 +246,10 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
 
     fclose(log_ctx->fp);
 
-    /* Reopen the file.  In this case do not append like may have been
-     * done on the initial opening of the file. */
-    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "no");
+    /* Reopen the file. Append is forced in case the file was not
+     * moved as part of a rotation process. */
+    SCLogDebug("Reopening log file %s.", log_ctx->filename);
+    log_ctx->fp = SCLogOpenFileFp(log_ctx->filename, "yes");
     if (log_ctx->fp == NULL) {
         return -1; // Already logged by Open..Fp routine.
     }
