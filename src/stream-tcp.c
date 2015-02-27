@@ -4513,10 +4513,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                                        ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
                     p->flow->flags &= ~ FLOW_NO_APPLAYER_INSPECTION;
                     if (p->flow->de_state != NULL) {
-                        SCMutexLock(&p->flow->de_state_m);
                         DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT));
-                        SCMutexUnlock(&p->flow->de_state_m);
                     }
+                    p->flow->detect_alversion[0] = 0;
+                    p->flow->detect_alversion[1] = 0;
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;
