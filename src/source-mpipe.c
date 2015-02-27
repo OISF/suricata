@@ -317,6 +317,24 @@ static uint16_t XlateStack(MpipeThreadVars *ptv, int stack_idx)
     }
 }
 
+static void SendNoOpPacket(ThreadVars *tv, TmSlot *slot)
+{
+    Packet *p = PacketPoolGetPacket();
+    if (p == NULL) {
+        return;
+    }
+
+    p->datalink = DLT_RAW;
+    p->proto = IPPROTO_TCP;
+
+    /* So that DecodeMpipe ignores is. */
+    p->flags |= PKT_PSEUDO_STREAM_END;
+
+    p->flow = NULL;
+
+    TmThreadsSlotProcessPkt(tv, slot, p);
+}
+
 /**
  * \brief Receives packets from an interface via gxio mpipe.
  */
@@ -348,6 +366,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
     MpipeReceiveOpenIqueue(rank);
     gxio_mpipe_iqueue_t* iqueue = thread_iqueue;
     int update_counter = 0;
+    uint64_t last_packet_time = get_cycle_count();
 
     for (;;) {
 
@@ -392,6 +411,8 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
             }
             /* Move forward M packets in ingress ring. */
             gxio_mpipe_iqueue_advance(iqueue, m);
+
+            last_packet_time = get_cycle_count();
         }
         if (update_counter-- <= 0) {
             /* Only periodically update and check for termination. */
@@ -400,6 +421,14 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
 
             if (suricata_ctl_flags != 0) {
               break;
+            }
+
+            // If no packet has been received for some period of time, process a NOP packet
+            // just to make sure that pseudo packets from the Flow manager get processed.
+            uint64_t now = get_cycle_count();
+            if (now - last_packet_time > 100000000) {
+                SendNoOpPacket(ptv->tv, ptv->slot);
+                last_packet_time = now;
             }
         }
     }
