@@ -57,13 +57,14 @@
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
         (f)->thread_id = 0; \
+        (f)->detect_alversion[0] = 0; \
+        (f)->detect_alversion[1] = 0; \
         (f)->alparser = NULL; \
         (f)->alstate = NULL; \
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         (f)->flowvar = NULL; \
-        SCMutexInit(&(f)->de_state_m, NULL); \
         (f)->hnext = NULL; \
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
@@ -101,10 +102,10 @@
         (f)->data_al_so_far[1] = 0; \
         (f)->de_ctx_id = 0; \
         (f)->thread_id = 0; \
+        (f)->detect_alversion[0] = 0; \
+        (f)->detect_alversion[1] = 0; \
         if ((f)->de_state != NULL) { \
-            SCMutexLock(&(f)->de_state_m); \
             DetectEngineStateReset((f)->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT)); \
-            SCMutexUnlock(&(f)->de_state_m); \
         } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
@@ -123,12 +124,9 @@
         \
         FLOWLOCK_DESTROY((f)); \
         if ((f)->de_state != NULL) { \
-            SCMutexLock(&(f)->de_state_m); \
-            DetectEngineStateFree((f)->de_state); \
-            SCMutexUnlock(&(f)->de_state_m); \
+            DetectEngineStateFlowFree((f)->de_state); \
         } \
         GenericVarFree((f)->flowvar); \
-        SCMutexDestroy(&(f)->de_state_m); \
         SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
     } while(0)
 

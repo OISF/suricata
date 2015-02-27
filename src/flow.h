@@ -370,6 +370,9 @@ typedef struct Flow_
     /** Thread ID for the stream/detect portion of this flow */
     FlowThreadId thread_id;
 
+    /** detect state 'alversion' inspected for both directions */
+    uint8_t detect_alversion[2];
+
     /** application level storage ptrs.
      *
      */
@@ -377,7 +380,7 @@ typedef struct Flow_
     void *alstate;      /**< application layer state */
 
     /** detection engine state */
-    struct DetectEngineState_ *de_state;
+    struct DetectEngineStateFlow_ *de_state;
 
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
@@ -388,8 +391,6 @@ typedef struct Flow_
 
     /* pointer to the var list */
     GenericVar *flowvar;
-
-    SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
     /** hash list pointers, protected by fb->s */
     struct Flow_ *hnext; /* hash list */
