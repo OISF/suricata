@@ -638,7 +638,8 @@ int SigParseProto(Signature *s, const char *protostr)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SigParsePort(Signature *s, const char *portstr, char flag)
+static int SigParsePort(const DetectEngineCtx *de_ctx,
+        Signature *s, const char *portstr, char flag)
 {
     int r = 0;
 
@@ -650,12 +651,12 @@ int SigParsePort(Signature *s, const char *portstr, char flag)
         if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_SP_ANY;
 
-        r = DetectPortParse(&s->sp, (char *)portstr);
+        r = DetectPortParse(de_ctx, &s->sp, (char *)portstr);
     } else if (flag == 1) {
         if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_DP_ANY;
 
-        r = DetectPortParse(&s->dp, (char *)portstr);
+        r = DetectPortParse(de_ctx, &s->dp, (char *)portstr);
     }
 
     if (r < 0)
@@ -804,9 +805,9 @@ static int SigParseBasics(const DetectEngineCtx *de_ctx,
      * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
      * changes that we made sees to it that at this point of time we don't
      * set the ip proto for the sig.  We do it a bit later. */
-    if (SigParsePort(s, parser->sp, SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (SigParsePort(de_ctx, s, parser->sp, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
-    if (SigParsePort(s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (SigParsePort(de_ctx, s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     return 0;
@@ -1925,7 +1926,7 @@ int SigParseTest02 (void)
         goto end;
     }
 
-    int r = DetectPortParse(&port, "0:20");
+    int r = DetectPortParse(de_ctx, &port, "0:20");
     if (r < 0)
         goto end;
 
