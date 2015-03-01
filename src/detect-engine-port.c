@@ -1082,7 +1082,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
 
                 address[x - 1] = '\0';
 
-                rule_var_port = SCRuleVarsGetConfVar(address,
+                rule_var_port = SCRuleVarsGetConfVar(de_ctx, address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
@@ -1142,7 +1142,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 char *temp_rule_var_port = NULL,
                      *alloc_rule_var_port = NULL;
 
-                rule_var_port = SCRuleVarsGetConfVar(address,
+                rule_var_port = SCRuleVarsGetConfVar(de_ctx, address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
