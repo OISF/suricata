@@ -1029,7 +1029,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
 
-                rule_var_address = SCRuleVarsGetConfVar(address,
+                rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
@@ -1081,7 +1081,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
             x = 0;
 
             if (d_set == 1) {
-                rule_var_address = SCRuleVarsGetConfVar(address,
+                rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
