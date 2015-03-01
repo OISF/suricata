@@ -795,10 +795,10 @@ static int SigParseBasics(const DetectEngineCtx *de_ctx,
         goto error;
 
     /* For IPOnly */
-    if (IPOnlySigParseAddress(s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
 
-    if (IPOnlySigParseAddress(s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
