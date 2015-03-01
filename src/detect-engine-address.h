@@ -33,7 +33,7 @@ void DetectAddressHeadFree(DetectAddressHead *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 
 int DetectAddressParseString(DetectAddress *, char *);
-int DetectAddressParse(DetectAddressHead *, char *);
+int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, char *);
 
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
