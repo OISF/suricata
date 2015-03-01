@@ -1391,7 +1391,7 @@ void AppLayerProtoDetectPPRegister(uint8_t ipproto,
     SCEnter();
 
     DetectPort *head = NULL;
-    DetectPortParse(&head, portstr);
+    DetectPortParse(NULL,&head, portstr);
     DetectPort *temp_dp = head;
     while (temp_dp != NULL) {
         uint32_t port = temp_dp->port;
