@@ -1891,6 +1891,8 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
 
         uint32_t tenant_id = det_ctx->TenantGetId(det_ctx, p);
         if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            p->tenant_id = tenant_id;
+
             det_ctx = det_ctx->mt_det_ctxs[tenant_id];
             if (det_ctx == NULL)
                 return TM_ECODE_OK;
