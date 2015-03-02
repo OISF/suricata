@@ -770,7 +770,7 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 
     TAILQ_FOREACH(lcmd, &command.commands, next) {
         if (!strcmp(keyword, lcmd->name)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "%s already registered", keyword);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
@@ -873,6 +873,11 @@ void *UnixManagerThread(void *td)
 #if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 #endif
+    UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
@@ -903,10 +908,9 @@ void *UnixManagerThread(void *td)
 
 /** \brief Spawn the unix socket manager thread
  *
- * \param de_ctx context for detection engine
  * \param mode if set to 1, init failure cause suricata exit
  * */
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
@@ -976,7 +980,7 @@ void UnixSocketKillSocketThread(void)
 
 #else /* BUILD_UNIX_SOCKET */
 
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     SCLogError(SC_ERR_UNIMPLEMENTED, "Unix socket is not compiled");
     return;

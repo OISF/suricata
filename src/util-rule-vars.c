@@ -62,13 +62,14 @@ SCEnumCharMap sc_rule_vars_type_map[ ] = {
  * \retval conf_var_name_value Pointer to the string containing the conf value
  *                             on success; NULL on failure.
  */
-char *SCRuleVarsGetConfVar(const char *conf_var_name,
+char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
+                           const char *conf_var_name,
                            SCRuleVarsType conf_vars_type)
 {
     SCEnter();
 
     const char *conf_var_type_name = NULL;
-    char conf_var_full_name[1024] = "";
+    char conf_var_full_name[2048] = "";
     char *conf_var_full_name_value = NULL;
 
     if (conf_var_name == NULL)
@@ -79,9 +80,16 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
     if (conf_var_type_name == NULL)
         goto end;
 
-    if (snprintf(conf_var_full_name, sizeof(conf_var_full_name), "%s.%s",
-                 conf_var_type_name, conf_var_name) < 0) {
-        goto end;
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        if (snprintf(conf_var_full_name, sizeof(conf_var_full_name), "%s.%s.%s",
+                    de_ctx->config_prefix, conf_var_type_name, conf_var_name) < 0) {
+            goto end;
+        }
+    } else {
+        if (snprintf(conf_var_full_name, sizeof(conf_var_full_name), "%s.%s",
+                    conf_var_type_name, conf_var_name) < 0) {
+            goto end;
+        }
     }
 
     if (ConfGet(conf_var_full_name, &conf_var_full_name_value) != 1) {
@@ -180,44 +188,44 @@ int SCRuleVarsPositiveTest01(void)
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
     /* check for address-groups */
-    result &= (SCRuleVarsGetConfVar("$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
                       "[192.168.0.0/16,10.8.0.0/16,127.0.0.1,2001:888:13c5:"
                       "5AFE::/64,2001:888:13c5:CAFE::/64]") == 0);
-    result &= (SCRuleVarsGetConfVar("$EXTERNAL_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$EXTERNAL_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$EXTERNAL_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$EXTERNAL_NET", SC_RULE_VARS_ADDRESS_GROUPS),
                       "[!192.168.0.0/16,2000::/3]") == 0);
-    result &= (SCRuleVarsGetConfVar("$HTTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$HTTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$HTTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$HTTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "!192.168.0.0/16") == 0);
-    result &= (SCRuleVarsGetConfVar("$SMTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$SMTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$SMTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$SMTP_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "!192.168.0.0/16") == 0);
-    result &= (SCRuleVarsGetConfVar("$SQL_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$SQL_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$SQL_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$SQL_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "!192.168.0.0/16") == 0);
-    result &= (SCRuleVarsGetConfVar("$DNS_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$DNS_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$DNS_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$DNS_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "any") == 0);
-    result &= (SCRuleVarsGetConfVar("$TELNET_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$TELNET_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$TELNET_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$TELNET_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "any") == 0);
-    result &= (SCRuleVarsGetConfVar("$AIM_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$AIM_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$AIM_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$AIM_SERVERS", SC_RULE_VARS_ADDRESS_GROUPS),
                       "any") == 0);
 
     /* check for port-groups */
-    result &= (SCRuleVarsGetConfVar("$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "80:81,88") == 0);
-    result &= (SCRuleVarsGetConfVar("$SHELLCODE_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$SHELLCODE_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$SHELLCODE_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$SHELLCODE_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "80") == 0);
-    result &= (SCRuleVarsGetConfVar("$ORACLE_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$ORACLE_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$ORACLE_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$ORACLE_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "1521") == 0);
-    result &= (SCRuleVarsGetConfVar("$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
-               strcmp(SCRuleVarsGetConfVar("$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS),
+    result &= (SCRuleVarsGetConfVar(NULL,"$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$SSH_PORTS", SC_RULE_VARS_PORT_GROUPS),
                       "22") == 0);
 
     ConfDeInit();
@@ -238,11 +246,11 @@ int SCRuleVarsNegativeTest02(void)
     ConfInit();
     ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
 
-    result &= (SCRuleVarsGetConfVar("$HOME_NETW", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
-    result &= (SCRuleVarsGetConfVar("$home_net", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
+    result &= (SCRuleVarsGetConfVar(NULL,"$HOME_NETW", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
+    result &= (SCRuleVarsGetConfVar(NULL,"$home_net", SC_RULE_VARS_ADDRESS_GROUPS) == NULL);
 
-    result &= (SCRuleVarsGetConfVar("$TOMCAT_PORTSW", SC_RULE_VARS_PORT_GROUPS) == NULL);
-    result &= (SCRuleVarsGetConfVar("$tomcat_ports", SC_RULE_VARS_PORT_GROUPS) == NULL);
+    result &= (SCRuleVarsGetConfVar(NULL,"$TOMCAT_PORTSW", SC_RULE_VARS_PORT_GROUPS) == NULL);
+    result &= (SCRuleVarsGetConfVar(NULL,"$tomcat_ports", SC_RULE_VARS_PORT_GROUPS) == NULL);
 
     ConfDeInit();
     ConfRestoreContextBackup();
@@ -422,16 +430,92 @@ end:
     return result;
 }
 
+static const char *dummy_mt_conf_string =
+    "%YAML 1.1\n"
+    "---\n"
+    "vars:\n"
+    "\n"
+    "  address-groups:\n"
+    "\n"
+    "    HOME_NET: \"[1.2.3.4]\"\n"
+    "  port-groups:\n"
+    "    HTTP_PORTS: \"12345\"\n"
+    "multi-detect:\n"
+    "  0:\n"
+    "    vars:\n"
+    "\n"
+    "      address-groups:\n"
+    "\n"
+    "        HOME_NET: \"[8.8.8.8]\"\n"
+    "      port-groups:\n"
+    "        HTTP_PORTS: \"54321\"\n"
+    "\n";
+
+/**
+ * \test Check that valid address and port group vars are correctly retrieved
+ *       from the configuration.
+ */
+int SCRuleVarsMTest01(void)
+{
+    int result = 0;
+    DetectEngineCtx *de_ctx = NULL;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_mt_conf_string, strlen(dummy_mt_conf_string));
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        return 0;
+    de_ctx->flags |= DE_QUIET;
+    snprintf(de_ctx->config_prefix, sizeof(de_ctx->config_prefix),
+                "multi-detect.0");
+
+    /* check for address-groups */
+    result = (SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+                      "[8.8.8.8]") == 0);
+    if (result == 0)
+        goto end;
+
+    result = (SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$HOME_NET", SC_RULE_VARS_ADDRESS_GROUPS),
+                      "[1.2.3.4]") == 0);
+    if (result == 0)
+        goto end;
+
+    /* check for port-groups */
+    result = (SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(de_ctx,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+                      "54321") == 0);
+    if (result == 0)
+        goto end;
+
+    result = (SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS) != NULL &&
+               strcmp(SCRuleVarsGetConfVar(NULL,"$HTTP_PORTS", SC_RULE_VARS_PORT_GROUPS),
+                      "12345") == 0);
+    if (result == 0)
+        goto end;
+
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SCRuleVarsRegisterTests(void)
 {
-
 #ifdef UNITTESTS
     UtRegisterTest("SCRuleVarsPositiveTest01", SCRuleVarsPositiveTest01, 1);
     UtRegisterTest("SCRuleVarsNegativeTest02", SCRuleVarsNegativeTest02, 1);
     UtRegisterTest("SCRuleVarsPositiveTest03", SCRuleVarsPositiveTest03, 1);
     UtRegisterTest("SCRuleVarsNegativeTest04", SCRuleVarsNegativeTest04, 1);
+
+    UtRegisterTest("SCRuleVarsMTest01", SCRuleVarsMTest01, 1);
 #endif
 
     return;
