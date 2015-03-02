@@ -111,7 +111,6 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
     /* reset */
     MemBufferReset(aft->buffer);
     /* time & tx*/
-    /* time & tx*/
     MemBufferWriteString(aft->buffer,
             "%s [**] Response TX %04x [**] ", timebuf, tx->tx_id);
 
