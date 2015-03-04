@@ -692,6 +692,7 @@ static int AppLayerTest01(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -907,6 +908,7 @@ static int AppLayerTest01(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -930,6 +932,7 @@ static int AppLayerTest02(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -1194,6 +1197,7 @@ static int AppLayerTest02(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -1217,6 +1221,7 @@ static int AppLayerTest03(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -1431,6 +1436,7 @@ static int AppLayerTest03(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -1454,6 +1460,7 @@ static int AppLayerTest04(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -1717,6 +1724,7 @@ static int AppLayerTest04(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -1740,6 +1748,7 @@ static int AppLayerTest05(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -1955,6 +1964,7 @@ static int AppLayerTest05(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -1978,6 +1988,7 @@ static int AppLayerTest06(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -2169,6 +2180,7 @@ static int AppLayerTest06(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -2192,6 +2204,7 @@ static int AppLayerTest07(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -2407,6 +2420,7 @@ static int AppLayerTest07(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -2430,6 +2444,7 @@ static int AppLayerTest08(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -2645,6 +2660,7 @@ static int AppLayerTest08(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -2670,6 +2686,7 @@ static int AppLayerTest09(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -2925,6 +2942,7 @@ static int AppLayerTest09(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -2949,6 +2967,7 @@ static int AppLayerTest10(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -3179,6 +3198,7 @@ static int AppLayerTest10(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
@@ -3204,6 +3224,7 @@ static int AppLayerTest11(void)
     StreamTcpThreadInit(&tv, NULL, (void **)&stt);
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    FLOW_INITIALIZE(&f);
     f.flags = FLOW_IPV4;
     f.proto = IPPROTO_TCP;
     p->flow = &f;
@@ -3483,6 +3504,7 @@ static int AppLayerTest11(void)
  end:
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    FLOW_DESTROY(&f);
     return ret;
 }
 
