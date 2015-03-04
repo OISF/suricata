@@ -994,6 +994,8 @@ void TmModuleFlowManagerRegister (void)
     tmm_modules[TMM_FLOWMANAGER].cap_flags = 0;
     tmm_modules[TMM_FLOWMANAGER].flags = TM_FLAG_MANAGEMENT_TM;
     SCLogDebug("%s registered", tmm_modules[TMM_FLOWMANAGER].name);
+
+    SC_ATOMIC_INIT(flowmgr_cnt);
 }
 
 void TmModuleFlowRecyclerRegister (void)
@@ -1006,6 +1008,8 @@ void TmModuleFlowRecyclerRegister (void)
     tmm_modules[TMM_FLOWRECYCLER].cap_flags = 0;
     tmm_modules[TMM_FLOWRECYCLER].flags = TM_FLAG_MANAGEMENT_TM;
     SCLogDebug("%s registered", tmm_modules[TMM_FLOWRECYCLER].name);
+
+    SC_ATOMIC_INIT(flowrec_cnt);
 }
 
 #ifdef UNITTESTS
