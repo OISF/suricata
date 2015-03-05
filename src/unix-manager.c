@@ -647,6 +647,18 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    SCEnter();
+    DetectEngineReloadStart();
+
+    while (DetectEngineReloadIsDone() == 0)
+        usleep(100);
+
+    json_object_set_new(server_msg, "message", json_string("done"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
@@ -870,9 +882,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
-#if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
-#endif
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
