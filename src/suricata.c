@@ -2381,7 +2381,7 @@ int main(int argc, char **argv)
 
     if (suri.delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload();
+        DetectEngineReload(NULL);
 
         if (suri.rule_reload) {
             if (suri.sig_file != NULL)
@@ -2415,7 +2415,7 @@ int main(int argc, char **argv)
             sighup_count--;
         }
         if (sigusr2_count > 0) {
-            DetectEngineReload();
+            DetectEngineReload(conf_filename);
             sigusr2_count--;
         }
 
