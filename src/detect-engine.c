@@ -761,7 +761,10 @@ DetectEngineCtx *DetectEngineCtxInit(void)
 
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix)
 {
-    return DetectEngineCtxInitReal(0, prefix);
+    if (prefix == NULL || strlen(prefix) == 0)
+        return DetectEngineCtxInit();
+    else
+        return DetectEngineCtxInitReal(0, prefix);
 }
 
 static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
@@ -829,6 +832,19 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+
+    /* if we have a config prefix, remove the config from the tree */
+    if (strlen(de_ctx->config_prefix) > 0) {
+        /* remove config */
+        ConfNode *node = ConfGetNode(de_ctx->config_prefix);
+        if (node != NULL) {
+            ConfNodeRemove(node); /* frees node */
+        }
+#if 0
+        ConfDump();
+#endif
+    }
+
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
