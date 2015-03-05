@@ -1671,10 +1671,44 @@ void DetectEnginePruneFreeList(void)
     SCMutexUnlock(&master->lock);
 }
 
-int DetectEngineReload(void)
+static int reloads = 0;
+
+/** \brief Reload the detection engine
+ *
+ *  \param filename YAML file to load for the detect config
+ *
+ *  \retval -1 error
+ *  \retval 0 ok
+ */
+int DetectEngineReload(const char *filename)
 {
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
+
+    char prefix[128] = "";
+    if (filename != NULL) {
+        snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
+
+        ConfNode *node = ConfGetNode(prefix);
+        if (node != NULL) {
+            SCLogError(SC_ERR_CONF_YAML_ERROR, "reload %d already loaded", reloads-1);
+            return -1;
+        }
+
+        if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
+            return -1;
+        }
+
+        node = ConfGetNode(prefix);
+        if (node == NULL) {
+            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+            return -1;
+        }
+#if 0
+        ConfDump();
+#endif
+    }
 
     /* get a reference to the current de_ctx */
     old_de_ctx = DetectEngineGetCurrent();
@@ -1683,8 +1717,10 @@ int DetectEngineReload(void)
     SCLogDebug("get ref to old_de_ctx %p", old_de_ctx);
 
     /* get new detection engine */
-    new_de_ctx = DetectEngineCtxInit();
+    new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
     if (new_de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                "context failed.");
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
