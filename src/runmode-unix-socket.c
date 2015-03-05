@@ -513,18 +513,6 @@ TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data)
     /* walk free list, freeing the removed de_ctx */
     DetectEnginePruneFreeList();
 
-    /* remove config */
-    ConfNode *node = ConfGetNode(prefix);
-    if (node == NULL) {
-        json_object_set_new(answer, "message", json_string("tenant not found"));
-        return TM_ECODE_FAILED;
-    }
-
-    ConfNodeRemove(node); /* frees node */
-    node = NULL;
-#if 0
-    ConfDump();
-#endif
     json_object_set_new(answer, "message", json_string("work in progress"));
     return TM_ECODE_OK;
 }
