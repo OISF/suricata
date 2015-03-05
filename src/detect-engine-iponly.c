@@ -581,7 +581,8 @@ static void SigNumArrayFree(void *tmp)
  * \retval 0 if success
  * \retval -1 if fails
  */
-static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
+static IPOnlyCIDRItem *IPOnlyCIDRListParse2(const DetectEngineCtx *de_ctx,
+                                            char *s, int negate)
 {
     size_t x = 0;
     size_t u = 0;
@@ -615,7 +616,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                 address[x - 1] = '\0';
                 x = 0;
 
-                if ( (subhead = IPOnlyCIDRListParse2(address,
+                if ( (subhead = IPOnlyCIDRListParse2(de_ctx, address,
                                                 (negate + n_set) % 2)) == NULL)
                     goto error;
 
@@ -629,7 +630,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
 
-                rule_var_address = SCRuleVarsGetConfVar(address,
+                rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                   SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
@@ -646,7 +647,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                              "[%s]", rule_var_address);
                 }
 
-                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                subhead = IPOnlyCIDRListParse2(de_ctx, temp_rule_var_address,
                                                (negate + n_set) % 2);
                 head = IPOnlyCIDRItemInsert(head, subhead);
 
@@ -689,7 +690,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
             x = 0;
 
             if (d_set == 1) {
-                rule_var_address = SCRuleVarsGetConfVar(address,
+                rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                     SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
@@ -703,7 +704,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
-                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                subhead = IPOnlyCIDRListParse2(de_ctx, temp_rule_var_address,
                                                (negate + n_set) % 2);
                 head = IPOnlyCIDRItemInsert(head, subhead);
 
@@ -751,14 +752,15 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int IPOnlyCIDRListParse(IPOnlyCIDRItem **gh, char *str)
+static int IPOnlyCIDRListParse(const DetectEngineCtx *de_ctx,
+                               IPOnlyCIDRItem **gh, char *str)
 {
     SCLogDebug("gh %p, str %s", gh, str);
 
     if (gh == NULL)
         goto error;
 
-    *gh = IPOnlyCIDRListParse2(str, 0);
+    *gh = IPOnlyCIDRListParse2(de_ctx, str, 0);
     if (*gh == NULL) {
         SCLogDebug("DetectAddressParse2 returned null");
         goto error;
@@ -782,7 +784,8 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
+int IPOnlySigParseAddress(const DetectEngineCtx *de_ctx,
+                          Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
     IPOnlyCIDRItem *tmp = NULL;
@@ -792,15 +795,15 @@ int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_SRC_ANY;
 
-            if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)"0.0.0.0/0") < 0)
                 goto error;
 
-            if (IPOnlyCIDRListParse(&tmp, (char *)"::/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"::/0") < 0)
                 goto error;
 
             s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
 
-        } else if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrSrc, (char *)addrstr) < 0) {
             goto error;
         }
 
@@ -809,15 +812,15 @@ int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
         if (strcasecmp(addrstr, "any") == 0) {
             s->flags |= SIG_FLAG_DST_ANY;
 
-            if (IPOnlyCIDRListParse(&tmp, (char *)"0.0.0.0/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &tmp, (char *)"0.0.0.0/0") < 0)
                 goto error;
 
-            if (IPOnlyCIDRListParse(&s->CidrDst, (char *)"::/0") < 0)
+            if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)"::/0") < 0)
                 goto error;
 
             s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
 
-        } else if (IPOnlyCIDRListParse(&s->CidrDst, (char *)addrstr) < 0) {
+        } else if (IPOnlyCIDRListParse(de_ctx, &s->CidrDst, (char *)addrstr) < 0) {
             goto error;
         }
 

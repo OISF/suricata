@@ -332,7 +332,7 @@ int NetmapRunModeIsIPS()
 
 #endif // #ifdef HAVE_NETMAP
 
-int RunModeIdsNetmapAutoFp(DetectEngineCtx *de_ctx)
+int RunModeIdsNetmapAutoFp(void)
 {
     SCEnter();
 
@@ -348,7 +348,7 @@ int RunModeIdsNetmapAutoFp(DetectEngineCtx *de_ctx)
 
     SCLogDebug("live_dev %s", live_dev);
 
-    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
+    ret = RunModeSetLiveCaptureAutoFp(
                               ParseNetmapConfig,
                               NetmapConfigGeThreadsCount,
                               "ReceiveNetmap",
@@ -368,7 +368,7 @@ int RunModeIdsNetmapAutoFp(DetectEngineCtx *de_ctx)
 /**
 * \brief Single thread version of the netmap processing.
 */
-int RunModeIdsNetmapSingle(DetectEngineCtx *de_ctx)
+int RunModeIdsNetmapSingle(void)
 {
     SCEnter();
 
@@ -381,7 +381,7 @@ int RunModeIdsNetmapSingle(DetectEngineCtx *de_ctx)
 
     (void)ConfGet("netmap.live-interface", &live_dev);
 
-    ret = RunModeSetLiveCaptureSingle(de_ctx,
+    ret = RunModeSetLiveCaptureSingle(
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
@@ -404,7 +404,7 @@ int RunModeIdsNetmapSingle(DetectEngineCtx *de_ctx)
 * Start N threads with each thread doing all the work.
 *
 */
-int RunModeIdsNetmapWorkers(DetectEngineCtx *de_ctx)
+int RunModeIdsNetmapWorkers(void)
 {
     SCEnter();
 
@@ -417,7 +417,7 @@ int RunModeIdsNetmapWorkers(DetectEngineCtx *de_ctx)
 
     (void)ConfGet("netmap.live-interface", &live_dev);
 
-    ret = RunModeSetLiveCaptureWorkers(de_ctx,
+    ret = RunModeSetLiveCaptureWorkers(
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",

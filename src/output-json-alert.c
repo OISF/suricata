@@ -172,6 +172,9 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         if (pa->flags & PACKET_ALERT_FLAG_TX)
             json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
 
+        if (p->tenant_id > 0)
+            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
+
         /* alert */
         json_object_set_new(js, "alert", ajs);
 
@@ -352,6 +355,9 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         json_object_set_new(ajs, "category",
                             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
         json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
+
+        if (p->tenant_id > 0)
+            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
