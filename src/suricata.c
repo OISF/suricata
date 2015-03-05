@@ -2414,9 +2414,13 @@ int main(int argc, char **argv)
             OutputNotifyFileRotation();
             sighup_count--;
         }
+
         if (sigusr2_count > 0) {
             DetectEngineReload(conf_filename);
             sigusr2_count--;
+        } else if (DetectEngineReloadIsStart()) {
+            DetectEngineReload(conf_filename);
+            DetectEngineReloadSetDone();
         }
 
         usleep(10* 1000);

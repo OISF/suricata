@@ -78,6 +78,12 @@ void DetectEngineDeReference(DetectEngineCtx **de_ctx);
 int DetectEngineReload(const char *filename);
 int DetectEngineEnabled(void);
 
+int DetectEngineReloadStart(void);
+int DetectEngineReloadIsStart(void);
+void DetectEngineReloadSetDone(void);
+int DetectEngineReloadIsDone(void);
+
+
 /**
  * \brief Registers an app inspection engine.
  *

@@ -446,6 +446,69 @@ void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
     return;
 }
 
+/* code to control the main thread to do a reload */
+
+enum DetectEngineSyncState {
+    IDLE,   /**< ready to start a reload */
+    RELOAD, /**< command main thread to do the reload */
+    DONE,   /**< main thread telling us reload is done */
+};
+
+
+typedef struct DetectEngineSyncer_ {
+    SCMutex m;
+    enum DetectEngineSyncState state;
+} DetectEngineSyncer;
+
+static DetectEngineSyncer detect_sync = { SCMUTEX_INITIALIZER, IDLE };
+
+/* tell main to start reloading */
+int DetectEngineReloadStart(void)
+{
+    int r = 0;
+    SCMutexLock(&detect_sync.m);
+    if (detect_sync.state == IDLE) {
+        detect_sync.state = RELOAD;
+    } else {
+        r = -1;
+    }
+    SCMutexUnlock(&detect_sync.m);
+    return r;
+}
+
+/* main thread checks this to see if it should start */
+int DetectEngineReloadIsStart(void)
+{
+    int r = 0;
+    SCMutexLock(&detect_sync.m);
+    if (detect_sync.state == RELOAD) {
+        r = 1;
+    }
+    SCMutexUnlock(&detect_sync.m);
+    return r;
+}
+
+/* main thread sets done when it's done */
+void DetectEngineReloadSetDone(void)
+{
+    SCMutexLock(&detect_sync.m);
+    detect_sync.state = DONE;
+    SCMutexUnlock(&detect_sync.m);
+}
+
+/* caller loops this until it returns 1 */
+int DetectEngineReloadIsDone(void)
+{
+    int r = 0;
+    SCMutexLock(&detect_sync.m);
+    if (detect_sync.state == DONE) {
+        r = 1;
+        detect_sync.state = IDLE;
+    }
+    SCMutexUnlock(&detect_sync.m);
+    return r;
+}
+
 static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 {
     SCEnter();
