@@ -40,6 +40,7 @@
 
 #include "output.h"
 #include "log-dnslog.h"
+#include "app-layer-dns-common.h"
 #include "app-layer-dns-udp.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -109,16 +110,18 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
 
     /* reset */
     MemBufferReset(aft->buffer);
-
     /* time & tx*/
     MemBufferWriteString(aft->buffer,
             "%s [**] Response TX %04x [**] ", timebuf, tx->tx_id);
 
     if (entry == NULL) {
-        if (tx->no_such_name)
-            MemBufferWriteString(aft->buffer, "No Such Name");
-        else if (tx->recursion_desired)
+        if (tx->rcode) {
+            char rcode[16] = "";
+            DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+            MemBufferWriteString(aft->buffer, "%s", rcode);
+        } else if (tx->recursion_desired) {
             MemBufferWriteString(aft->buffer, "Recursion Desired");
+        }
     } else {
         /* query */
         if (entry->fqdn_len > 0) {
@@ -216,7 +219,7 @@ static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
         LogQuery(aft, timebuf, dstip, srcip, dp, sp, dns_tx, query);
     }
 
-    if (dns_tx->no_such_name)
+    if (dns_tx->rcode)
         LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
     if (dns_tx->recursion_desired)
         LogAnswer(aft, timebuf, srcip, dstip, sp, dp, dns_tx, NULL);
