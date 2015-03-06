@@ -574,8 +574,8 @@ static inline void FlowDeReference(Flow **d)
 
 int FlowClearMemory(Flow *,uint8_t );
 
-AppProto FlowGetAppProtocol(Flow *f);
-void *FlowGetAppState(Flow *f);
+AppProto FlowGetAppProtocol(const Flow *f);
+void *FlowGetAppState(const Flow *f);
 
 void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);

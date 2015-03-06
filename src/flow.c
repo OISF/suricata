@@ -860,12 +860,12 @@ int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
     return 1;
 }
 
-AppProto FlowGetAppProtocol(Flow *f)
+AppProto FlowGetAppProtocol(const Flow *f)
 {
     return f->alproto;
 }
 
-void *FlowGetAppState(Flow *f)
+void *FlowGetAppState(const Flow *f)
 {
     return f->alstate;
 }
