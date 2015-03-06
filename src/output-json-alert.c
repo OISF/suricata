@@ -53,6 +53,7 @@
 #include "output-json.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
+#include "output-json-ssh.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -72,6 +73,7 @@
 #define LOG_JSON_PAYLOAD_BASE64 4
 #define LOG_JSON_HTTP 8
 #define LOG_JSON_TLS 16
+#define LOG_JSON_SSH 32
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -138,6 +140,22 @@ static void AlertJsonTls(const Flow *f, json_t *js)
         JsonTlsLogJSONExtended(tjs, ssl_state);
 
         json_object_set_new(js, "tls", tjs);
+    }
+
+    return;
+}
+
+static void AlertJsonSsh(const Flow *f, json_t *js)
+{
+    SshState *ssh_state = (SshState *)f->alstate;
+    if (ssh_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonSshLogJSON(tjs, ssh_state);
+
+        json_object_set_new(js, "ssh", tjs);
     }
 
     return;
@@ -215,6 +233,19 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_TLS)
                     AlertJsonTls(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_SSH) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_SSH)
+                    AlertJsonSsh(p->flow, js);
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -554,7 +585,13 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
         const char *http = ConfNodeLookupChildValue(conf, "http");
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
+        const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
 
+        if (ssh != NULL) {
+            if (ConfValIsTrue(ssh)) {
+                json_output_ctx->flags |= LOG_JSON_SSH;
+            }
+        }
         if (tls != NULL) {
             if (ConfValIsTrue(tls)) {
                 json_output_ctx->flags |= LOG_JSON_TLS;
