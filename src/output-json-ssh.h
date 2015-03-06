@@ -26,4 +26,10 @@
 
 void TmModuleJsonSshLogRegister (void);
 
+#ifdef HAVE_LIBJANSSON
+#include "app-layer-ssh.h"
+
+void JsonSshLogJSON(json_t *js, SshState *tx);
+#endif
+
 #endif /* __OUTPUT_JSON_SSH_H__ */
