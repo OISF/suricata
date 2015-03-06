@@ -108,7 +108,7 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
  */
 static void AlertJsonHttp(const Flow *f, json_t *js)
 {
-    HtpState *htp_state = (HtpState *)f->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
         uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
@@ -130,7 +130,7 @@ static void AlertJsonHttp(const Flow *f, json_t *js)
 
 static void AlertJsonTls(const Flow *f, json_t *js)
 {
-    SSLState *ssl_state = (SSLState *)f->alstate;
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
     if (ssl_state) {
         json_t *tjs = json_object();
         if (unlikely(tjs == NULL))
@@ -147,7 +147,7 @@ static void AlertJsonTls(const Flow *f, json_t *js)
 
 static void AlertJsonSsh(const Flow *f, json_t *js)
 {
-    SshState *ssh_state = (SshState *)f->alstate;
+    SshState *ssh_state = (SshState *)FlowGetAppState(f);
     if (ssh_state) {
         json_t *tjs = json_object();
         if (unlikely(tjs == NULL))
