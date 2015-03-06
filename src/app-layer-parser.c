@@ -106,6 +106,9 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
+    DetectEngineState *(*GetTxDetectState)(void *tx);
+    int (*SetTxDetectState)(void *tx, DetectEngineState *);
+
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
      * STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -468,6 +471,18 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
+        DetectEngineState *(*GetTxDetectState)(void *tx),
+        int (*SetTxDetectState)(void *tx, DetectEngineState *))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
+
+    SCReturn;
+}
+
 /***** Get and transaction functions *****/
 
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
@@ -780,6 +795,31 @@ uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto,
     }
 
     SCReturnCT(active_id, "uint64_t");
+}
+
+int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState != NULL)
+        return TRUE;
+    return FALSE;
+}
+
+DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
+{
+    SCEnter();
+    DetectEngineState *s;
+    s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx);
+    SCReturnPtr(s, "DetectEngineState");
+}
+
+int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx, DetectEngineState *s)
+{
+    int r;
+    SCEnter();
+    if ((alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx) != NULL))
+        SCReturnInt(-EBUSY);
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(tx, s);
+    SCReturnInt(r);
 }
 
 /***** General *****/
