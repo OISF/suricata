@@ -504,7 +504,7 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", "AFP",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -552,7 +552,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", "AFP",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
