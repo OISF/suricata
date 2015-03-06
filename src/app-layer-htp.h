@@ -36,6 +36,7 @@
 #include "util-radix-tree.h"
 #include "util-file.h"
 #include "app-layer-htp-mem.h"
+#include "detect-engine-state.h"
 
 #include <htp/htp.h>
 
@@ -228,6 +229,7 @@ typedef struct HtpTxUserData_ {
     uint8_t request_body_type;
     uint8_t response_body_type;
 
+    DetectEngineState *de_state;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
