@@ -52,6 +52,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-http.h"
+#include "output-json-tls.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -70,6 +71,7 @@
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
 #define LOG_JSON_HTTP 8
+#define LOG_JSON_TLS 16
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -119,6 +121,23 @@ static void AlertJsonHttp(const Flow *f, json_t *js)
 
             json_object_set_new(js, "http", hjs);
         }
+    }
+
+    return;
+}
+
+static void AlertJsonTls(const Flow *f, json_t *js)
+{
+    SSLState *ssl_state = (SSLState *)f->alstate;
+    if (ssl_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonTlsLogJSONBasic(tjs, ssl_state);
+        JsonTlsLogJSONExtended(tjs, ssl_state);
+
+        json_object_set_new(js, "tls", tjs);
     }
 
     return;
@@ -183,6 +202,19 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_HTTP)
                     AlertJsonHttp(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_TLS) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_TLS)
+                    AlertJsonTls(p->flow, js);
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -521,7 +553,13 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
         const char *http = ConfNodeLookupChildValue(conf, "http");
+        const char *tls = ConfNodeLookupChildValue(conf, "tls");
 
+        if (tls != NULL) {
+            if (ConfValIsTrue(tls)) {
+                json_output_ctx->flags |= LOG_JSON_TLS;
+            }
+        }
         if (http != NULL) {
             if (ConfValIsTrue(http)) {
                 json_output_ctx->flags |= LOG_JSON_HTTP;
