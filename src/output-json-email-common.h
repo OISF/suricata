@@ -25,7 +25,7 @@
 #define __OUTPUT_JSON_EMAIL_COMMON_H__
 
 typedef struct OutputJsonEmailCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
 } OutputJsonEmailCtx;
 

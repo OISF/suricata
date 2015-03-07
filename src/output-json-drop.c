@@ -60,9 +60,13 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+typedef struct LogDropFileCtx_ {
+    OutputJsonCtx *json_ctx;
+} LogDropFileCtx;
+
 typedef struct JsonDropLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    LogDropFileCtx* logdropfile_ctx;
     MemBuffer *buffer;
 } JsonDropLogThread;
 
@@ -133,7 +137,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             break;
     }
     json_object_set_new(js, "drop", djs);
-    OutputJSONBuffer(js, aft->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->logdropfile_ctx->json_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -162,7 +166,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    aft->logdropfile_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -187,9 +191,11 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
 static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
 {
     OutputDropLoggerDisable();
-
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+    LogDropFileCtx *drop_ctx = (LogDropFileCtx *)output_ctx->data;
+    LogFileCtx *logfile_ctx = drop_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(drop_ctx->json_ctx);
+    SCFree(drop_ctx);
     SCFree(output_ctx);
 }
 
@@ -220,12 +226,29 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
+    LogDropFileCtx *drop_ctx = SCMalloc(sizeof(LogDropFileCtx));
+    if (unlikely(drop_ctx == NULL)) {
+        LogFileFreeCtx(logfile_ctx);
+        return NULL;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
 
-    output_ctx->data = logfile_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(logfile_ctx);
+        SCFree(output_ctx);
+        SCFree(drop_ctx);
+        return NULL;
+    }
+
+    drop_ctx->json_ctx = json_output_ctx;
+    drop_ctx->json_ctx->file_ctx = logfile_ctx;
+
+    output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtx;
     return output_ctx;
 }
@@ -238,14 +261,14 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
 
-    output_ctx->data = ajt->file_ctx;
+    output_ctx->data = ojc->file_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;
     return output_ctx;
 }

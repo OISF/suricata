@@ -74,14 +74,14 @@
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
-    LogFileCtx* file_ctx;
+    OutputJsonCtx* json_ctx;
     uint8_t flags;
     HttpXFFCfg *xff_cfg;
 } AlertJsonOutputCtx;
 
 typedef struct JsonAlertLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    OutputJsonCtx* json_ctx;
     MemBuffer *json_buffer;
     MemBuffer *payload_buffer;
     AlertJsonOutputCtx* json_output_ctx;
@@ -284,7 +284,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
-        OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
+        OutputJSONBuffer(js, json_output_ctx->json_ctx, aft->json_buffer);
         json_object_del(js, "alert");
     }
     json_object_clear(js);
@@ -355,7 +355,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
-        OutputJSONBuffer(js, aft->file_ctx, buffer);
+        OutputJSONBuffer(js, aft->json_output_ctx->json_ctx, buffer);
         json_object_clear(js);
         json_decref(js);
     }
@@ -408,7 +408,7 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     /** Use the Output Context (file pointer and mutex) */
     AlertJsonOutputCtx *json_output_ctx = ((OutputCtx *)initdata)->data;
-    aft->file_ctx = json_output_ctx->file_ctx;
+    aft->json_ctx = json_output_ctx->json_ctx;
     aft->json_output_ctx = json_output_ctx;
 
     *data = (void *)aft;
@@ -493,7 +493,7 @@ static OutputCtx *JsonAlertLogInitCtx(ConfNode *conf)
  */
 static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
     AlertJsonOutputCtx *json_output_ctx = NULL;
     HttpXFFCfg *xff_cfg = NULL;
 
@@ -513,7 +513,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
     memset(xff_cfg, 0, sizeof(HttpXFFCfg));
 
-    json_output_ctx->file_ctx = ajt->file_ctx;
+    json_output_ctx->json_ctx = ojc;
     json_output_ctx->xff_cfg = xff_cfg;
 
     if (conf != NULL) {

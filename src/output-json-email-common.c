@@ -247,7 +247,7 @@ int JsonEmailLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
     MemBufferReset(buffer);
 
     if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
+        OutputJSONBuffer(js, jhl->emaillog_ctx->json_ctx, buffer);
     }
     json_object_del(js, "smtp");
 
