@@ -52,6 +52,7 @@
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
+#include "detect-engine-hrl.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
@@ -159,6 +160,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_URI_INSPECT,
           0,
           DetectEngineInspectPacketUris },
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
+          DETECT_SM_LIST_HRLMATCH,
+          DE_STATE_FLAG_HRL_INSPECT,
+          DE_STATE_FLAG_HRL_INSPECT,
+          0,
+          DetectEngineInspectHttpRequestLine },
         { IPPROTO_TCP,
           ALPROTO_HTTP,
           DETECT_SM_LIST_HCBDMATCH,
@@ -1558,6 +1566,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type) {
             return "http cookie";
         case DETECT_SM_LIST_HUADMATCH:
             return "http user-agent";
+        case DETECT_SM_LIST_HRLMATCH:
+            return "http request line";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 
