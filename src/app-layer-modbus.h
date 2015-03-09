@@ -88,6 +88,8 @@ typedef struct ModbusTransaction_ {
     uint8_t     function;
     uint8_t     category;
     uint8_t     type;
+    uint8_t     replied;                    /**< bool indicating request is replied to. */
+
     union {
         uint16_t    subFunction;
         uint8_t     mei;
@@ -106,8 +108,6 @@ typedef struct ModbusTransaction_ {
     uint16_t    *data;  /**< to store data to write, bit is converted in 16bits. */
 
     AppLayerDecoderEvents *decoder_events;  /**< per tx events */
-
-    uint8_t     replied;                    /**< bool indicating request is replied to. */
 
     TAILQ_ENTRY(ModbusTransaction_) next;
 } ModbusTransaction;
