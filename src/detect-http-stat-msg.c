@@ -239,7 +239,7 @@ static int DetectHttpStatMsgSigTest01(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -285,7 +285,7 @@ static int DetectHttpStatMsgSigTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -354,7 +354,7 @@ static int DetectHttpStatMsgSigTest02(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -393,7 +393,7 @@ static int DetectHttpStatMsgSigTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -459,7 +459,7 @@ static int DetectHttpStatMsgSigTest03(void)
     p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
+    FlowSetAppProtocol(&f, ALPROTO_HTTP);
 
     StreamTcpInitConfig(TRUE);
 
@@ -505,7 +505,7 @@ static int DetectHttpStatMsgSigTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    http_state = f.alstate;
+    http_state = FlowGetAppState(&f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;

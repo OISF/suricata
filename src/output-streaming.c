@@ -144,7 +144,7 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 {
     SCLogDebug("called with %p, %d, %p, %02x", f, close, cbdata, iflags);
 
-    HtpState *s = f->alstate;
+    HtpState *s = FlowGetAppState(f);
     if (s != NULL && s->conn != NULL) {
         int tx_progress_done_value_ts =
             AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP, 0);
@@ -153,10 +153,10 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
 
         // for each tx
         uint64_t tx_id = 0;
-        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
+        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, FlowGetAppProtocol(f), FlowGetAppState(f));
         SCLogDebug("s->conn %p", s->conn);
         for (tx_id = 0; tx_id < total_txs; tx_id++) { // TODO optimization store log tx
-            htp_tx_t *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, tx_id);
+            htp_tx_t *tx = AppLayerParserGetTx(f->proto, FlowGetAppProtocol(f), FlowGetAppState(f), tx_id);
             if (tx != NULL) {
                 int tx_done = 0;
                 int tx_logged = 0;
@@ -328,7 +328,7 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, 
         }
     }
     if (op_thread_data->loggers & (1<<STREAMING_HTTP_BODIES)) {
-        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+        if (FlowGetAppProtocol(f) == ALPROTO_HTTP && FlowGetAppState(f) != NULL) {
             int close = 0;
             TcpSession *ssn = f->protoctx;
             if (ssn) {

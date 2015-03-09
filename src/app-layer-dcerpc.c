@@ -2429,7 +2429,7 @@ int DCERPCParserTest01(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -2661,7 +2661,7 @@ int DCERPCParserTest02(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -2861,7 +2861,7 @@ int DCERPCParserTest03(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4311,7 +4311,7 @@ int DCERPCParserTest05(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4486,7 +4486,7 @@ int DCERPCParserTest06(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4572,7 +4572,7 @@ int DCERPCParserTest07(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4664,7 +4664,7 @@ int DCERPCParserTest08(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4724,7 +4724,7 @@ int DCERPCParserTest09(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4798,7 +4798,7 @@ int DCERPCParserTest10(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4899,7 +4899,7 @@ int DCERPCParserTest11(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -4998,7 +4998,7 @@ int DCERPCParserTest12(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -5076,7 +5076,7 @@ int DCERPCParserTest13(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -5167,7 +5167,7 @@ int DCERPCParserTest14(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -5229,7 +5229,7 @@ int DCERPCParserTest15(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -5691,7 +5691,7 @@ int DCERPCParserTest16(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -5937,7 +5937,7 @@ int DCERPCParserTest17(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -6082,7 +6082,7 @@ int DCERPCParserTest18(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         result = 0;
@@ -6346,7 +6346,7 @@ int DCERPCParserTest19(void)
     }
     SCMutexUnlock(&f.m);
 
-    DCERPCState *dcerpc_state = f.alstate;
+    DCERPCState *dcerpc_state = FlowGetAppState(&f);
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;

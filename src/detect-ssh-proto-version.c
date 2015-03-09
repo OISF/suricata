@@ -377,7 +377,7 @@ static int DetectSshVersionTestDetect01(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_SSH;
+    FlowSetAppProtocol(&f, ALPROTO_SSH);
 
     StreamTcpInitConfig(TRUE);
 
@@ -426,7 +426,7 @@ static int DetectSshVersionTestDetect01(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -490,7 +490,7 @@ static int DetectSshVersionTestDetect02(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_SSH;
+    FlowSetAppProtocol(&f, ALPROTO_SSH);
 
     StreamTcpInitConfig(TRUE);
 
@@ -538,7 +538,7 @@ static int DetectSshVersionTestDetect02(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -601,7 +601,7 @@ static int DetectSshVersionTestDetect03(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_SSH;
+    FlowSetAppProtocol(&f, ALPROTO_SSH);
 
     StreamTcpInitConfig(TRUE);
 
@@ -650,7 +650,7 @@ static int DetectSshVersionTestDetect03(void)
     }
     SCMutexUnlock(&f.m);
 
-    SshState *ssh_state = f.alstate;
+    SshState *ssh_state = FlowGetAppState(&f);
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;

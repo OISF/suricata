@@ -44,7 +44,7 @@ int DetectEngineAptEventInspect(ThreadVars *tv,
     SigMatch *sm;
     DetectAppLayerEventData *aled = NULL;
 
-    alproto = f->alproto;
+    alproto = FlowGetAppProtocol(f);
     decoder_events = AppLayerParserGetEventsByTx(f->proto, alproto, alstate, tx_id);
     if (decoder_events == NULL)
         goto end;

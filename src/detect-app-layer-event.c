@@ -92,7 +92,7 @@ static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
     if (r == 0) {
-        decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+        decoder_events = AppLayerParserGetDecoderEvents(FlowGetAppParser(f));
         if (decoder_events != NULL &&
                 AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
             r = 1;

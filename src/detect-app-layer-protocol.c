@@ -40,8 +40,8 @@ int DetectAppLayerProtocolMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int r = 0;
     DetectAppLayerProtocolData *data = (DetectAppLayerProtocolData *)m->ctx;
 
-    r = (data->negated) ? (f->alproto != data->alproto) :
-        (f->alproto == data->alproto);
+    r = (data->negated) ? (FlowGetAppProtocol(f) != data->alproto) :
+        (FlowGetAppProtocol(f) == data->alproto);
 
     return r;
 }

@@ -746,7 +746,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         case HTP_STREAM_TUNNEL:
-            break;
+            AppLayerAskReset(hstate->f, 0);
+            SCReturnInt(ret);
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
@@ -2841,7 +2842,7 @@ int HTPParserTest01(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -2905,7 +2906,7 @@ int HTPParserTest02(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -2974,7 +2975,7 @@ int HTPParserTest03(void)
         }
         SCMutexUnlock(&f->m);
     }
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3036,7 +3037,7 @@ int HTPParserTest04(void)
     }
     SCMutexUnlock(&f->m);
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3152,7 +3153,7 @@ int HTPParserTest05(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3271,7 +3272,7 @@ int HTPParserTest06(void)
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3355,7 +3356,7 @@ int HTPParserTest07(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3454,7 +3455,7 @@ libhtp:\n\
     }
     SCMutexUnlock(&f->m);
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3541,7 +3542,7 @@ libhtp:\n\
     }
     SCMutexUnlock(&f->m);
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -3619,7 +3620,7 @@ int HTPParserTest10(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3711,7 +3712,7 @@ static int HTPParserTest11(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3796,7 +3797,7 @@ static int HTPParserTest12(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -3884,7 +3885,7 @@ int HTPParserTest13(void)
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -4296,7 +4297,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -4479,7 +4480,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -4650,7 +4651,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -4819,7 +4820,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -4958,7 +4959,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5070,7 +5071,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5182,7 +5183,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5295,7 +5296,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5405,7 +5406,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5516,7 +5517,7 @@ libhtp:\n\
         SCMutexUnlock(&f->m);
     }
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5582,7 +5583,7 @@ static int HTPBodyReassemblyTest01(void)
     memset(&tx, 0, sizeof(tx));
 
     hstate.f = &flow;
-    flow.alparser = parser;
+    FlowSetAppParser(&flow, parser);
 
     uint8_t chunk1[] = "--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
     uint8_t chunk2[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
@@ -5681,7 +5682,7 @@ libhtp:\n\
     }
     SCMutexUnlock(&f->m);
 
-    http_state = f->alstate;
+    http_state = FlowGetAppState(f);
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -5689,7 +5690,7 @@ libhtp:\n\
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetDecoderEvents(FlowGetAppParser(f));
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -5807,7 +5808,7 @@ libhtp:\n\
         }
         SCMutexUnlock(&f->m);
     }
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -5823,7 +5824,10 @@ libhtp:\n\
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,
+                                                                        FlowGetAppState(f),
+                                                                        0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);
@@ -5937,7 +5941,7 @@ libhtp:\n\
         }
         SCMutexUnlock(&f->m);
     }
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -5953,7 +5957,10 @@ libhtp:\n\
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP,
+                                                                        ALPROTO_HTTP,
+                                                                        FlowGetAppState(f),
+                                                                        0);
     if (decoder_events != NULL) {
         printf("app events: ");
         SCMutexUnlock(&f->m);
@@ -6020,7 +6027,7 @@ int HTPParserTest16(void)
     }
     SCMutexUnlock(&f->m);
 
-    htp_state = f->alstate;
+    htp_state = FlowGetAppState(f);
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -6036,7 +6043,7 @@ int HTPParserTest16(void)
     }
 
     SCMutexLock(&f->m);
-    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP,f->alstate, 0);
+    AppLayerDecoderEvents *decoder_events = AppLayerParserGetEventsByTx(IPPROTO_TCP, ALPROTO_HTTP, FlowGetAppState(f), 0);
     if (decoder_events == NULL) {
         printf("no app events: ");
         SCMutexUnlock(&f->m);

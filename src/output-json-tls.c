@@ -72,7 +72,19 @@ typedef struct JsonTlsLogThread_ {
 
 #define SSL_VERSION_LENGTH 13
 
-static void LogTlsLogExtendedJSON(json_t *tjs, SSLState * state)
+void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state)
+{
+    /* tls.subject */
+    json_object_set_new(js, "subject",
+                        json_string(ssl_state->server_connp.cert0_subject));
+
+    /* tls.issuerdn */
+    json_object_set_new(js, "issuerdn",
+                        json_string(ssl_state->server_connp.cert0_issuerdn));
+
+}
+
+void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 {
     char ssl_version[SSL_VERSION_LENGTH + 1];
 
@@ -145,16 +157,10 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     /* reset */
     MemBufferReset(buffer);
 
-    /* tls.subject */
-    json_object_set_new(tjs, "subject",
-                        json_string(ssl_state->server_connp.cert0_subject));
-
-    /* tls.issuerdn */
-    json_object_set_new(tjs, "issuerdn",
-                        json_string(ssl_state->server_connp.cert0_issuerdn));
+    JsonTlsLogJSONBasic(tjs, ssl_state);
 
     if (tls_ctx->flags & LOG_TLS_EXTENDED) {
-        LogTlsLogExtendedJSON(tjs, ssl_state);
+        JsonTlsLogJSONExtended(tjs, ssl_state);
     }
 
     json_object_set_new(js, "tls", tjs);
