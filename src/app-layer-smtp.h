@@ -62,6 +62,7 @@ typedef struct SMTPTransaction_ {
     MimeDecParseState *mime_state;
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
+    DetectEngineState *de_state;
 
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
