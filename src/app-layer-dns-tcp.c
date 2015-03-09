@@ -637,6 +637,8 @@ void RegisterDNSTCPParsers(void) {
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_DNS, DNSGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_DNS, DNSHasEvents);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_DNS,
+                                               DNSGetTxDetectState, DNSSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_DNS, DNSGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_DNS, DNSGetTxCnt);

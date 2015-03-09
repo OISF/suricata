@@ -149,6 +149,7 @@ typedef struct DNSTransaction_ {
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
 
     TAILQ_ENTRY(DNSTransaction_) next;
+    DetectEngineState *de_state;
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
@@ -198,6 +199,9 @@ int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 
 void DNSStateTransactionFree(void *state, uint64_t tx_id);
 DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16_t tx_id);
+
+DetectEngineState *DNSGetTxDetectState(void *vtx);
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s);
 
 void DNSSetEvent(DNSState *s, uint8_t e);
 void *DNSStateAlloc(void);
