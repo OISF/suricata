@@ -1128,6 +1128,8 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
 
     if (tx->decoder_events != NULL) {
         AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+    if (tx->de_state != NULL)
+        DetectEngineStateFree(tx->de_state);
 #if 0
         if (tx->decoder_events->cnt <= smtp_state->events)
             smtp_state->events -= tx->decoder_events->cnt;
@@ -1332,6 +1334,19 @@ static AppLayerDecoderEvents *SMTPGetEvents(void *state, uint64_t tx_id)
     return NULL;
 }
 
+static DetectEngineState *SMTPGetTxDetectState(void *vtx)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    return tx->de_state;
+}
+
+static int SMTPSetTxDetectState(void *vtx, DetectEngineState *s)
+{
+    SMTPTransaction *tx = (SMTPTransaction *)vtx;
+    tx->de_state = s;
+    return 0;
+}
+
 /**
  * \brief Register the SMTP Protocol parser.
  */
@@ -1359,6 +1374,8 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetEventInfo);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPGetEvents);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_SMTP,
+                                               SMTPGetTxDetectState, SMTPSetTxDetectState);
 
         AppLayerParserRegisterLocalStorageFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                                SMTPLocalStorageFree);
