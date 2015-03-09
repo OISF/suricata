@@ -1563,13 +1563,6 @@ int SMTPParserTest01(void)
         goto end;
     }
 
-    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION) ||
-        !(f.flags & FLOW_NO_APPLAYER_INSPECTION) ||
-        !(((TcpSession *)f.protoctx)->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        !(((TcpSession *)f.protoctx)->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        goto end;
-    }
-
     result = 1;
 end:
     if (alp_tctx != NULL)
