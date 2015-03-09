@@ -321,6 +321,9 @@ static void HtpTxUserDataFree(HtpTxUserData *htud)
         AppLayerDecoderEventsFreeEvents(&htud->decoder_events);
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
+        if (htud->de_state != NULL) {
+            DetectEngineStateFree(htud->de_state);
+        }
         HTPFree(htud, sizeof(HtpTxUserData));
     }
 }
