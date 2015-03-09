@@ -332,6 +332,9 @@ static void ModbusTxFree(ModbusTransaction *tx) {
 
     AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
+    if (tx->de_state != NULL)
+        DetectEngineStateFree(tx->de_state);
+
     SCFree(tx);
     SCReturn;
 }
@@ -1332,6 +1335,19 @@ static uint16_t ModbusProbingParser(uint8_t     *input,
     return ALPROTO_MODBUS;
 }
 
+DetectEngineState *ModbusGetTxDetectState(void *vtx)
+{
+    ModbusTransaction *tx = (ModbusTransaction *)vtx;
+    return tx->de_state;
+}
+
+int ModbusSetTxDetectState(void *vtx, DetectEngineState *s)
+{
+    ModbusTransaction *tx = (ModbusTransaction *)vtx;
+    tx->de_state = s;
+    return 0;
+}
+
 /**
  * \brief Function to register the Modbus protocol parsers and other functions
  */
@@ -1392,6 +1408,8 @@ void RegisterModbusParsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusHasEvents);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS,
+                                               ModbusGetTxDetectState, ModbusSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxCnt);
