@@ -398,6 +398,8 @@ void RegisterDNSUDPParsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_DNS, DNSHasEvents);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
+                                               DNSGetTxDetectState, DNSSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_DNS,
                                     DNSGetTx);
