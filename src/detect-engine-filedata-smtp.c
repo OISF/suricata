@@ -53,6 +53,9 @@
 #include "conf-yaml-loader.h"
 
 #define BUFFER_STEP 50
+#define FILECONTENT_CONTENT_LIMIT 1000
+#define FILECONTENT_INSPECT_MIN_SIZE 1000
+#define FILECONTENT_INSPECT_WINDOW 1000
 
 static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
 {
@@ -122,10 +125,50 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         index = (tx_id - det_ctx->smtp_start_tx_id);
     }
 
+    /* no new data */
+    if (curr_file->content_inspected == curr_file->content_len_so_far) {
+        SCLogDebug("no new data");
+        goto end;
+    }
+
+    curr_chunk = curr_file->chunks_head;
+    if (curr_chunk == NULL) {
+        SCLogDebug("no data chunks to inspect for this transaction");
+        goto end;
+    }
+
+    if ((FILECONTENT_CONTENT_LIMIT == 0 ||
+         curr_file->content_len_so_far < FILECONTENT_CONTENT_LIMIT) &&
+        curr_file->content_len_so_far < FILECONTENT_INSPECT_MIN_SIZE &&
+        !(flags & STREAM_EOF)) {
+        SCLogDebug("we still haven't seen the entire content. "
+                   "Let's defer content inspection till we see the "
+                   "entire content.");
+        goto end;
+    }
+
     if (curr_file != NULL) {
+        int first = 1;
         curr_chunk = curr_file->chunks_head;
         while (curr_chunk != NULL) {
             /* see if we can filter out chunks */
+            if (curr_file->content_inspected > 0) {
+                if (curr_chunk->stream_offset < curr_file->content_inspected) {
+                    if ((curr_file->content_inspected - curr_chunk->stream_offset) > FILECONTENT_INSPECT_WINDOW) {
+                        curr_chunk = curr_chunk->next;
+                        continue;
+                    } else {
+                        /* include this one */
+                    }
+                } else {
+                    /* include this one */
+                }
+            }
+
+            if (first) {
+                det_ctx->smtp[index].offset = curr_chunk->stream_offset;
+                first = 0;
+            }
 
             /* see if we need to grow the buffer */
             if (det_ctx->smtp[index].buffer == NULL || (det_ctx->smtp[index].buffer_len + curr_chunk->len) > det_ctx->smtp[index].buffer_size) {
@@ -146,6 +189,9 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
 
             curr_chunk = curr_chunk->next;
         }
+
+        /* updat inspected tracker */
+        curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
     }
 
     buffer = det_ctx->smtp[index].buffer;

@@ -79,6 +79,8 @@ typedef struct File_ {
     uint64_t chunks_cnt;
     uint64_t chunks_cnt_max;
 #endif
+    uint64_t content_len_so_far;
+    uint64_t content_inspected;
 } File;
 
 typedef struct FileContainer_ {
