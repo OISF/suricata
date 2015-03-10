@@ -226,6 +226,8 @@ if not args.check:
         res = SubmitBuild(args.branch, builder_name = build)
         if res == -1:
             print "Unable to start build. Check command line parameters"
+            if args.docker:
+                print "If you are running SELinux in enforced mode, you may want to run 'chcon -Rt svirt_sandbox_file_t " + os.path.split(os.path.dirname(os.path.realpath(__file__)))[0] + "'"
             sys.exit(-1)
 
 buildids = {}
