@@ -14,6 +14,12 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+# Note to Docker users:
+# If you are running SELinux in enforced mode, you may want to run
+#   chcon -Rt svirt_sandbox_file_t SURICATA_ROOTSRC_DIR
+# or the buildbot will not be able to access to the data in /data/oisf
+# and the git step will fail.
+
 import urllib, urllib2, cookielib
 try:
     import simplejson as json
