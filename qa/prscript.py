@@ -19,6 +19,13 @@ import simplejson as json
 import time
 import argparse
 import sys
+import os
+
+GOT_DOCKER = True
+try:
+    from docker import Client
+except:
+    GOT_DOCKER = False
 # variables
 #  - github user
 #  - buildbot user and password
@@ -36,6 +43,10 @@ parser.add_argument('--norebase', action='store_const', const=True, help='do not
 parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='name of suricata repository on github')
 parser.add_argument('-d', '--docker', action='store_const', const=True, help='use docker based testing', default=False)
 parser.add_argument('-l', '--local', action='store_const', const=True, help='local testing before github push', default=False)
+if GOT_DOCKER:
+    parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container', default=False)
+    parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container', default=False)
+    parser.add_argument('-S', '--stop', action='store_const', const=True, help='stop docker container', default=False)
 parser.add_argument('branch', metavar='branch', help='github branch to build')
 args = parser.parse_args()
 username = args.username
@@ -125,10 +136,9 @@ def FindBuild(branch, extension = "", builder_name = None):
 
 def GetBuildStatus(builder, buildid, extension="", builder_name = None):
     if builder_name == None:
-        # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
-        request = urllib2.Request(JSON_BUILDERS_URI + username + extension + '/builds/' + str(buildid))
-    else:
-        request = urllib2.Request(JSON_BUILDERS_URI + builder_name + '/builds/' + str(buildid))
+        builder_name = username + extension
+    # https://buildbot.suricata-ids.org/json/builders/build%20deb6/builds/11
+    request = urllib2.Request(JSON_BUILDERS_URI + builder_name + '/builds/' + str(buildid))
     page = urllib2.urlopen(request)
     result = page.read()
     if args.verbose:
@@ -166,6 +176,43 @@ if not args.local and TestRepoSync(args.branch) == -1:
     else:
         print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
         sys.exit(-1)
+
+def CreateContainer():
+    if not os.geteuid() == 0:
+        print "Command must be run as root"
+        sys.exit(-1)
+    cli = Client()
+    # FIXME check if existing
+    print "Pulling docking image, that will take long"
+    cli.pull('regit/suri-buildbot')
+    cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf'])
+    sys.exit(0)
+
+def StartContainer():
+    if not os.geteuid() == 0:
+        print "Command must be run as root"
+        sys.exit(-1)
+    cli = Client()
+    suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
+    print "Using base src dir: " + suri_src_dir
+    cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}} )
+    sys.exit(0)
+
+def StopContainer():
+    if not os.geteuid() == 0:
+        print "Command must be run as root"
+        sys.exit(-1)
+    cli = Client()
+    cli.stop('suri-buildbot')
+    sys.exit(0)
+
+if GOT_DOCKER:
+    if args.create:
+        CreateContainer()
+    if args.start:
+        StartContainer()
+    if args.stop:
+        StopContainer()
 
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
