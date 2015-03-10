@@ -231,6 +231,8 @@ void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction);
  */
 void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction);
 
+void DetectEngineStateResetTxs(Flow *f);
+
 void DeStateRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_STATE_H__ */

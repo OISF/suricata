@@ -984,6 +984,45 @@ void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction)
     return;
 }
 
+/** \brief Reset de state for active tx'
+ *  To be used on detect engine reload.
+ *  \param f write LOCKED flow
+ */
+void DetectEngineStateResetTxs(Flow *f)
+{
+    if (AppLayerParserProtocolSupportsTxs(f->proto, f->alproto)) {
+        void *alstate = FlowGetAppState(f);
+        if (!StateIsValid(f->alproto, alstate)) {
+            return;
+        }
+
+        uint64_t inspect_ts = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOCLIENT);
+        uint64_t inspect_tc = AppLayerParserGetTransactionInspectId(f->alparser, STREAM_TOSERVER);
+
+        uint64_t inspect_tx_id = MIN(inspect_ts, inspect_tc);
+
+        uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, alstate);
+
+        for ( ; inspect_tx_id < total_txs; inspect_tx_id++) {
+            void *inspect_tx = AppLayerParserGetTx(f->proto, f->alproto, alstate, inspect_tx_id);
+            if (inspect_tx != NULL) {
+                DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(f->proto, f->alproto, inspect_tx);
+                if (tx_de_state == NULL) {
+                    continue;
+                }
+
+                tx_de_state->dir_state[0].cnt = 0;
+                tx_de_state->dir_state[0].filestore_cnt = 0;
+                tx_de_state->dir_state[0].flags = 0;
+
+                tx_de_state->dir_state[1].cnt = 0;
+                tx_de_state->dir_state[1].filestore_cnt = 0;
+                tx_de_state->dir_state[1].flags = 0;
+            }
+        }
+    }
+}
+
 /** \brief get string for match enum */
 const char *DeStateMatchResultToString(DeStateMatchResult res)
 {

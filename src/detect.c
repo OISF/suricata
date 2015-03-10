@@ -1201,6 +1201,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 DetectEngineStateReset(pflow->de_state,
                         (STREAM_TOSERVER|STREAM_TOCLIENT));
+                DetectEngineStateResetTxs(pflow);
             }
 
             /* set the iponly stuff */
