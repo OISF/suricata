@@ -97,9 +97,11 @@ static int FileAppendFileDataFilePtr(File *ff, FileData *ffd)
     if (ff->chunks_tail == NULL) {
         ff->chunks_head = ffd;
         ff->chunks_tail = ffd;
+        ff->content_len_so_far = ffd->len;
     } else {
         ff->chunks_tail->next = ffd;
         ff->chunks_tail = ffd;
+        ff->content_len_so_far += ffd->len;
     }
 
 #ifdef DEBUG
