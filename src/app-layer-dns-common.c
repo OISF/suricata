@@ -277,6 +277,9 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 
     AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
+    if (tx->de_state != NULL)
+        DetectEngineStateFree(tx->de_state);
+
     DNSDecrMemcap(sizeof(DNSTransaction), state);
     SCFree(tx);
     SCReturn;
@@ -342,6 +345,19 @@ DNSTransaction *DNSTransactionFindByTxId(const DNSState *dns_state, const uint16
     }
     /* not found */
     return NULL;
+}
+
+DetectEngineState *DNSGetTxDetectState(void *vtx)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    return tx->de_state;
+}
+
+int DNSSetTxDetectState(void *vtx, DetectEngineState *s)
+{
+    DNSTransaction *tx = (DNSTransaction *)vtx;
+    tx->de_state = s;
+    return 0;
 }
 
 void *DNSStateAlloc(void)

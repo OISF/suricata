@@ -77,6 +77,7 @@
 #define DE_STATE_FLAG_DNSQUERY_INSPECT    (1 << 17)
 #define DE_STATE_FLAG_APP_EVENT_INSPECT   (1 << 18)
 #define DE_STATE_FLAG_MODBUS_INSPECT	  (1 << 19)
+#define DE_STATE_FLAG_HRL_INSPECT	      (1 << 20)
 
 /* state flags */
 #define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
@@ -103,8 +104,9 @@ typedef enum {
     DE_STATE_MATCH_NO_NEW_STATE,
 } DeStateMatchResult;
 
+/* TX BASED (inspect engines) */
+
 typedef struct DeStateStoreItem_ {
-    SigMatch *nm;
     uint32_t flags;
     SigIntId sid;
 } DeStateStoreItem;
@@ -119,13 +121,36 @@ typedef struct DetectEngineStateDirection_ {
     DeStateStore *tail;
     SigIntId cnt;
     uint16_t filestore_cnt;
-    uint8_t alversion;
     uint8_t flags;
 } DetectEngineStateDirection;
 
 typedef struct DetectEngineState_ {
     DetectEngineStateDirection dir_state[2];
 } DetectEngineState;
+
+/* FLOW BASED (AMATCH) */
+
+typedef struct DeStateStoreFlowRule_ {
+    SigMatch *nm;
+    uint32_t flags;
+    SigIntId sid;
+} DeStateStoreFlowRule;
+
+typedef struct DeStateStoreFlowRules_ {
+    DeStateStoreFlowRule store[DE_STATE_CHUNK_SIZE];
+    struct DeStateStoreFlowRules_ *next;
+} DeStateStoreFlowRules;
+
+typedef struct DetectEngineStateDirectionFlow_ {
+    DeStateStoreFlowRules *head;
+    DeStateStoreFlowRules *tail;
+    SigIntId cnt;
+    uint8_t flags;
+} DetectEngineStateDirectionFlow;
+
+typedef struct DetectEngineStateFlow_ {
+    DetectEngineStateDirectionFlow dir_state[2];
+} DetectEngineStateFlow;
 
 /**
  * \brief Alloc a DetectEngineState object.
@@ -140,6 +165,7 @@ DetectEngineState *DetectEngineStateAlloc(void);
  * \param state DetectEngineState instance to free.
  */
 void DetectEngineStateFree(DetectEngineState *state);
+void DetectEngineStateFlowFree(DetectEngineStateFlow *state);
 
 /**
  * \brief Check if a flow already contains(newly updated as well) de state.
@@ -203,7 +229,9 @@ void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction);
  * \param state     Pointer to the state(LOCKED).
  * \param direction Direction flags - STREAM_TOSERVER or STREAM_TOCLIENT.
  */
-void DetectEngineStateReset(DetectEngineState *state, uint8_t direction);
+void DetectEngineStateReset(DetectEngineStateFlow *state, uint8_t direction);
+
+void DetectEngineStateResetTxs(Flow *f);
 
 void DeStateRegisterTests(void);
 

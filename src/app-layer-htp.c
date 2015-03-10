@@ -321,6 +321,9 @@ static void HtpTxUserDataFree(HtpTxUserData *htud)
         AppLayerDecoderEventsFreeEvents(&htud->decoder_events);
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
+        if (htud->de_state != NULL) {
+            DetectEngineStateFree(htud->de_state);
+        }
         HTPFree(htud, sizeof(HtpTxUserData));
     }
 }
@@ -2629,6 +2632,28 @@ static void HTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
+static DetectEngineState *HTPGetTxDetectState(void *vtx)
+{
+    htp_tx_t *tx = (htp_tx_t *)vtx;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    return tx_ud ? tx_ud->de_state : NULL;
+}
+
+static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
+{
+    htp_tx_t *tx = (htp_tx_t *)vtx;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud == NULL) {
+        tx_ud = HTPMalloc(sizeof(*tx_ud));
+        if (unlikely(tx_ud == NULL))
+            return -ENOMEM;
+        memset(tx_ud, 0, sizeof(*tx_ud));
+        htp_tx_set_user_data(tx, tx_ud);
+    }
+    tx_ud->de_state = s;
+    return 0;
+}
+
 static int HTPRegisterPatternsForProtocolDetection(void)
 {
     /* toserver */
@@ -2758,6 +2783,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetEventInfo);
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
+                                               HTPGetTxDetectState, HTPSetTxDetectState);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
                                      HTPHandleRequestData);
