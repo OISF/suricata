@@ -28,6 +28,12 @@ import sys
 import os
 import copy
 
+GOT_NOTIFY = True
+try:
+    import pynotify
+except:
+    GOT_NOTIFY = False
+
 GOT_DOCKER = True
 try:
     from docker import Client
@@ -50,6 +56,8 @@ parser.add_argument('--norebase', action='store_const', const=True, help='do not
 parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='name of suricata repository on github')
 parser.add_argument('-d', '--docker', action='store_const', const=True, help='use docker based testing', default=False)
 parser.add_argument('-l', '--local', action='store_const', const=True, help='local testing before github push', default=False)
+if GOT_NOTIFY:
+    parser.add_argument('-n', '--notify', action='store_const', const=True, help='send desktop notification', default=False)
 if GOT_DOCKER:
     parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container', default=False)
     parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container', default=False)
@@ -69,6 +77,18 @@ else:
 
 BUILDERS_URI=BASE_URI+"builders/"
 JSON_BUILDERS_URI=BASE_URI+"json/builders/"
+
+if GOT_NOTIFY:
+    if args.notify:
+        pynotify.init("PRscript")
+
+def SendNotification(title, text):
+    if not GOT_NOTIFY:
+        return
+    if not args.notify:
+        return
+    n = pynotify.Notification(title, text)
+    n.show()
 
 def TestRepoSync(branch):
     request = urllib2.Request(GITHUB_MASTER_URI)
@@ -269,15 +289,26 @@ if args.docker:
             if ret == -1:
                 res = -1
                 up_buildids.pop(build, None)
-                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                if len(up_buildids):
+                    remains = " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                else:
+                    remains = ""
+                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + remains
             elif ret == 0:
                 up_buildids.pop(build, None)
-                print "Build successful for " + build + " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                if len(up_buildids):
+                    remains = " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
+                else:
+                    remains = ""
+                print "Build successful for " + build + remains
         time.sleep(5)
         buildids = up_buildids
     if res == -1:
+        SendNotification("PRscript failure", "Some builds have failed. Check <a href='" + BASE_URI + "waterfall'>waterfall</a> for results.")
         sys.exit(-1)
     else:
+        print "PRscript completed successfully"
+        SendNotification("PRscript success", "Congrats! All builds have passed.")
         sys.exit(0)
 else:
     for build in buildids:
@@ -288,6 +319,8 @@ if res == 0:
         print "You can copy/paste following lines into github PR"
         for build in buildids:
             print "- PR " + build + ": " + BUILDERS_URI + build + "/builds/" + str(buildids[build])
+    SendNotification("OISF PRscript success", "Congrats! All builds have passed.")
     sys.exit(0)
 else:
+    SendNotification("OISF PRscript failure", "Some builds have failed. Check <a href='" + BASE_URI + "waterfall'>waterfall</a> for results.")
     sys.exit(-1)
