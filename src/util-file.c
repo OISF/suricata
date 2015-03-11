@@ -796,8 +796,10 @@ void FileDisableStoringForFile(File *ff) {
     ff->flags |= FILE_NOSTORE;
 
     if (ff->state == FILE_STATE_OPENED && ff->size >= (uint64_t)FileMagicSize()) {
-        (void)FileCloseFilePtr(ff, NULL, 0,
-                (FILE_TRUNCATED|FILE_NOSTORE));
+        if (g_file_force_md5 == 0 && g_file_force_tracking == 0) {
+            (void)FileCloseFilePtr(ff, NULL, 0,
+                    (FILE_TRUNCATED|FILE_NOSTORE));
+        }
     }
 }
 
