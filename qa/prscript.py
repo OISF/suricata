@@ -26,6 +26,7 @@ import time
 import argparse
 import sys
 import os
+import copy
 
 GOT_DOCKER = True
 try:
@@ -258,8 +259,27 @@ else:
     sys.exit(0)
 
 res = 0
-for build in buildids:
-    res = WaitForBuildResult(build, buildids[build], builder_name = build)
+if args.docker:
+    while len(buildids):
+        up_buildids = copy.copy(buildids)
+        for build in buildids:
+            ret = GetBuildStatus(build, buildids[build], builder_name = build)
+            if ret == -1:
+                res = -1
+                up_buildids.pop(build, None)
+                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + " (" + ', '.join(up_buildids.keys()) + " remaining)"
+            elif ret == 0:
+                up_buildids.pop(build, None)
+                print "Build successful for " + build + " (" + ', '.join(up_buildids.keys()) + " remaining)"
+        time.sleep(5)
+        buildids = up_buildids
+    if res == -1:
+        sys.exit(-1)
+    else:
+        sys.exit(0)
+else:
+    for build in buildids:
+        res = WaitForBuildResult(build, buildids[build], builder_name = build)
 
 if res == 0:
     if not args.norebase and not args.docker:
