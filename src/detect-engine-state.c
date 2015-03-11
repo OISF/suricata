@@ -331,7 +331,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     PacketAlertAppend(det_ctx, s, p, tx_id,
                             PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_TX);
                 } else {
-                    PACKET_UPDATE_ACTION(p, s->action);
+                    DetectSignatureApplyActions(p, s);
                 }
 
                 alert_cnt = 1;
@@ -373,7 +373,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     PacketAlertAppend(det_ctx, s, p, 0,
                             PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
-                    PACKET_UPDATE_ACTION(p, s->action);
+                    DetectSignatureApplyActions(p, s);
                 }
 
                 alert_cnt = 1;
@@ -387,7 +387,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     PacketAlertAppend(det_ctx, s, p, 0,
                             PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
-                    PACKET_UPDATE_ACTION(p, s->action);
+                    DetectSignatureApplyActions(p, s);
                 }
 
             }
@@ -442,7 +442,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     PacketAlertAppend(det_ctx, s, p, 0,
                             PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
-                    PACKET_UPDATE_ACTION(p, s->action);
+                    DetectSignatureApplyActions(p, s);
                 }
                 alert_cnt = 1;
             }
@@ -736,7 +736,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         PacketAlertAppend(det_ctx, s, p, 0,
                                 PACKET_ALERT_FLAG_STATE_MATCH);
                 } else {
-                    PACKET_UPDATE_ACTION(p, s->action);
+                    DetectSignatureApplyActions(p, s);
                 }
             }
 
