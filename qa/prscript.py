@@ -64,7 +64,7 @@ cookie = None
 
 if args.docker:
     BASE_URI="http://localhost:8010/"
-    BUILDERS_LIST = ["build", "clang", "debug", "features", "profiling", "pcaps"]
+    BUILDERS_LIST = ["gcc", "clang", "debug", "features", "profiling", "pcaps"]
 else:
     BUILDERS_LIST = [username, username + "-pcap"]
 
@@ -194,7 +194,7 @@ def CreateContainer():
     # FIXME check if existing
     print "Pulling docking image, that will take long"
     cli.pull('regit/suri-buildbot')
-    cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf'])
+    cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf', '/data/buildbot/master/master.cfg'])
     sys.exit(0)
 
 def StartContainer():
@@ -204,7 +204,7 @@ def StartContainer():
     cli = Client()
     suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
     print "Using base src dir: " + suri_src_dir
-    cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}} )
+    cli.start('suri-buildbot', port_bindings={8010:8010, 22:None}, binds={suri_src_dir: { 'bind': '/data/oisf', 'ro': True}, os.path.join(suri_src_dir,'qa','docker','buildbot.cfg'): { 'bind': '/data/buildbot/master/master.cfg', 'ro': True}} )
     sys.exit(0)
 
 def StopContainer():
