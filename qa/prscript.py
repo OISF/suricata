@@ -190,7 +190,7 @@ def CreateContainer():
         sys.exit(-1)
     cli = Client()
     # FIXME check if existing
-    print "Pulling docking image, that will take long"
+    print "Pulling docking image, first run should take long"
     cli.pull('regit/suri-buildbot')
     cli.create_container(name='suri-buildbot', image='regit/suri-buildbot', ports=[8010, 22], volumes=['/data/oisf', '/data/buildbot/master/master.cfg'])
     sys.exit(0)
@@ -248,8 +248,12 @@ for build in BUILDERS_LIST:
         print "No build found for " + BUILDERS_URI + build
         sys.exit(0)
     else:
-        print "You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid)
+        if not args.docker:
+            print "You can watch build progress at " + BUILDERS_URI + build + "/builds/" + str(buildid)
         buildids[build] = buildid
+
+if args.docker:
+    print "You can watch build progress at " + BASE_URI + "waterfall"
 
 if len(buildids):
     print "Waiting for build completion"
@@ -265,10 +269,10 @@ if args.docker:
             if ret == -1:
                 res = -1
                 up_buildids.pop(build, None)
-                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + " (" + ', '.join(up_buildids.keys()) + " remaining)"
+                print "Build failure for " + build + ": " + BUILDERS_URI + build + '/builds/' + str(buildids[build]) + " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
             elif ret == 0:
                 up_buildids.pop(build, None)
-                print "Build successful for " + build + " (" + ', '.join(up_buildids.keys()) + " remaining)"
+                print "Build successful for " + build + " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
         time.sleep(5)
         buildids = up_buildids
     if res == -1:
