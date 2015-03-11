@@ -237,9 +237,7 @@ if not args.check:
 buildids = {}
 
 if args.docker:
-    from time import sleep
-    print "Waiting 2 seconds"
-    sleep(2)
+    time.sleep(2)
 
 # get build number and exit if we don't have
 for build in BUILDERS_LIST:
