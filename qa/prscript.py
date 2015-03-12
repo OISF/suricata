@@ -71,6 +71,11 @@ username = args.username
 password = args.password
 cookie = None
 
+if not args.local:
+    if not args.username:
+        print "You need to specify a github username (-u option) for this mode (or use -l to disable)"
+        sys.exit(-1)
+
 if GOT_DOCKER:
     if args.create or args.start or args.stop:
         args.docker = True
