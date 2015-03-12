@@ -146,6 +146,13 @@ void PacketPoolWait(void)
 {
     PktPool *my_pool = GetThreadPacketPool();
 
+    if (PacketPoolIsEmpty(my_pool)) {
+        SCMutexLock(&my_pool->return_stack.mutex);
+        SC_ATOMIC_ADD(my_pool->return_stack.sync_now, 1);
+        SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
+        SCMutexUnlock(&my_pool->return_stack.mutex);
+    }
+
     while(PacketPoolIsEmpty(my_pool))
         cc_barrier();
 }
@@ -246,12 +253,14 @@ void PacketPoolReturnPacket(Packet *p)
             p->next = my_pool->pending_head;
             my_pool->pending_head = p;
             my_pool->pending_count++;
-            if (my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
+            if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
                 /* Return the entire list of pending packets. */
                 SCMutexLock(&pool->return_stack.mutex);
                 my_pool->pending_tail->next = pool->return_stack.head;
                 pool->return_stack.head = my_pool->pending_head;
+                SC_ATOMIC_RESET(pool->return_stack.sync_now);
                 SCMutexUnlock(&pool->return_stack.mutex);
+                SCCondSignal(&pool->return_stack.cond);
                 /* Clear the list of pending packets to return. */
                 my_pool->pending_pool = NULL;
                 my_pool->pending_head = NULL;
@@ -263,7 +272,9 @@ void PacketPoolReturnPacket(Packet *p)
             SCMutexLock(&pool->return_stack.mutex);
             p->next = pool->return_stack.head;
             pool->return_stack.head = p;
+            SC_ATOMIC_RESET(pool->return_stack.sync_now);
             SCMutexUnlock(&pool->return_stack.mutex);
+            SCCondSignal(&pool->return_stack.cond);
         }
     }
 }
@@ -279,6 +290,8 @@ void PacketPoolInit(void)
     PktPool *my_pool = GetThreadPacketPool();
 
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
+    SCCondInit(&my_pool->return_stack.cond, NULL);
+    SC_ATOMIC_INIT(my_pool->return_stack.sync_now);
 
     /* pre allocate packets */
     SCLogDebug("preallocating packets... packet size %" PRIuMAX "",
@@ -317,6 +330,8 @@ void PacketPoolDestroy(void)
     while ((p = PacketPoolGetPacket()) != NULL) {
         PacketFree(p);
     }
+
+    SC_ATOMIC_DESTROY(my_pool->return_stack.sync_now);
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *tv)
