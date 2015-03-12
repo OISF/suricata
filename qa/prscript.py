@@ -65,18 +65,22 @@ if GOT_DOCKER:
     parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container', default=False)
     parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container', default=False)
     parser.add_argument('-S', '--stop', action='store_const', const=True, help='stop docker container', default=False)
-parser.add_argument('branch', metavar='branch', help='github branch to build')
+parser.add_argument('branch', metavar='branch', help='github branch to build', nargs='?')
 args = parser.parse_args()
 username = args.username
 password = args.password
 cookie = None
+
+if GOT_DOCKER:
+    if args.create or args.start or args.stop:
+        args.docker = True
+        args.local = True
 
 if args.docker:
     BASE_URI="http://localhost:8010/"
     BUILDERS_LIST = ["gcc", "clang", "debug", "features", "profiling", "pcaps"]
 else:
     BUILDERS_LIST = [username, username + "-pcap"]
-
 
 BUILDERS_URI=BASE_URI+"builders/"
 JSON_BUILDERS_URI=BASE_URI+"json/builders/"
@@ -243,6 +247,10 @@ if GOT_DOCKER:
         StartContainer()
     if args.stop:
         StopContainer()
+
+if not args.branch:
+    print "You need to specify a branch for this mode"
+    sys.exit(-1)
 
 # submit buildbot form to build current branch on the devel builder
 if not args.check:
