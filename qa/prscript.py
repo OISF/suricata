@@ -50,36 +50,46 @@ BASE_URI="https://buildbot.openinfosecfoundation.org/"
 GITHUB_BASE_URI = "https://api.github.com/repos/"
 GITHUB_MASTER_URI = "https://api.github.com/repos/inliniac/suricata/commits?sha=master"
 
-parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
+if GOT_DOCKER:
+    parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR')
+else:
+    parser = argparse.ArgumentParser(prog='prscript', description='Script checking validity of branch before PR',
+                                     epilog='You need to install Python docker module to enable docker container handling options.')
 parser.add_argument('-u', '--username', dest='username', help='github and buildbot user')
 parser.add_argument('-p', '--password', dest='password', help='buildbot password')
 parser.add_argument('-c', '--check', action='store_const', const=True, help='only check last build', default=False)
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
 parser.add_argument('--norebase', action='store_const', const=True, help='do not test if branch is in sync with master', default=False)
 parser.add_argument('-r', '--repository', dest='repository', default='suricata', help='name of suricata repository on github')
-parser.add_argument('-d', '--docker', action='store_const', const=True, help='use docker based testing', default=False)
 parser.add_argument('-l', '--local', action='store_const', const=True, help='local testing before github push', default=False)
 if GOT_NOTIFY:
     parser.add_argument('-n', '--notify', action='store_const', const=True, help='send desktop notification', default=False)
-if GOT_DOCKER:
-    parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container', default=False)
-    parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container', default=False)
-    parser.add_argument('-S', '--stop', action='store_const', const=True, help='stop docker container', default=False)
+
+docker_deps = ""
+if not GOT_DOCKER:
+    docker_deps = " (disabled)"
+parser.add_argument('-d', '--docker', action='store_const', const=True, help='use docker based testing', default=False)
+parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container' + docker_deps, default=False)
+parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container' + docker_deps, default=False)
+parser.add_argument('-S', '--stop', action='store_const', const=True, help='stop docker container' + docker_deps, default=False)
 parser.add_argument('branch', metavar='branch', help='github branch to build', nargs='?')
 args = parser.parse_args()
 username = args.username
 password = args.password
 cookie = None
 
+if args.create or args.start or args.stop:
+    if GOT_DOCKER:
+        args.docker = True
+        args.local = True
+    else:
+        print "You need to install python docker to use docker handling features."
+        sys.exit(-1)
+
 if not args.local:
     if not args.username:
         print "You need to specify a github username (-u option) for this mode (or use -l to disable)"
         sys.exit(-1)
-
-if GOT_DOCKER:
-    if args.create or args.start or args.stop:
-        args.docker = True
-        args.local = True
 
 if args.docker:
     BASE_URI="http://localhost:8010/"
