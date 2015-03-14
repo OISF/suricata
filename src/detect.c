@@ -418,11 +418,15 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
         rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
+#if 0 // breaks MT inclusion
             if (!ConfNodeIsSequence(rule_files)) {
                 SCLogWarning(SC_ERR_INVALID_ARGUMENT,
                     "Invalid rule-files configuration section: "
                     "expected a list of filenames.");
             }
+#else
+            if (0) { }
+#endif
             else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
