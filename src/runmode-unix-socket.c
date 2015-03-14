@@ -647,6 +647,108 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     return TM_ECODE_OK;
 }
 
+static int reload_cnt = 1;
+/**
+ * \brief Command to reload a tenant
+ *
+ * \param cmd the content of command Arguments as a json_t object
+ * \param answer the json_t object that has to be used to answer
+ * \param data pointer to data defining the context here a PcapCommand::
+ */
+TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
+{
+    const char *filename;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
+    struct stat st;
+#endif /* OS_WIN32 */
+
+    if (!(DetectEngineMultiTenantEnabled())) {
+        SCLogInfo("error: multi-tenant support not enabled");
+        json_object_set_new(answer, "message", json_string("multi-tenant support not enabled"));
+        return TM_ECODE_FAILED;
+    }
+
+    /* 1 get tenant id */
+    json_t *jarg = json_object_get(cmd, "id");
+    if (!json_is_integer(jarg)) {
+        json_object_set_new(answer, "message", json_string("id is not an integer"));
+        return TM_ECODE_FAILED;
+    }
+    int tenant_id = json_integer_value(jarg);
+
+    /* 2 get tenant yaml */
+    jarg = json_object_get(cmd, "filename");
+    if (!json_is_string(jarg)) {
+        json_object_set_new(answer, "message", json_string("command is not a string"));
+        return TM_ECODE_FAILED;
+    }
+    filename = json_string_value(jarg);
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        json_object_set_new(answer, "message", json_string("file does not exist"));
+        return TM_ECODE_FAILED;
+    }
+
+    SCLogDebug("reload-tenant: %d %s", tenant_id, filename);
+
+    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (old_de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("tenant detect engine not found"));
+        return TM_ECODE_FAILED;
+    }
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
+    reload_cnt++;
+    SCLogInfo("prefix %s", prefix);
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        json_object_set_new(answer, "message", json_string("failed to load yaml"));
+        return TM_ECODE_FAILED;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        json_object_set_new(answer, "message", json_string("failed to properly setup yaml"));
+        return TM_ECODE_FAILED;
+    }
+
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (new_de_ctx == NULL) {
+        json_object_set_new(answer, "message", json_string("initializing detection engine failed"));
+        return TM_ECODE_FAILED;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
+
+    new_de_ctx->tenant_id = tenant_id;
+
+    if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
+        json_object_set_new(answer, "message", json_string("loading rules failed"));
+        return TM_ECODE_FAILED;
+    }
+
+    DetectEngineAddToMaster(new_de_ctx);
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(old_de_ctx);
+    DetectEngineDeReference(&old_de_ctx);
+
+    /*  apply to the running system */
+    if (DetectEngineMTApply() < 0) {
+        json_object_set_new(answer, "message", json_string("couldn't apply settings"));
+        // TODO cleanup
+        return TM_ECODE_FAILED;
+    }
+
+    json_object_set_new(answer, "message", json_string("reloading tenant succeeded"));
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Command to remove a tenant
  *
