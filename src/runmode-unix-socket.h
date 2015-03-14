@@ -35,6 +35,7 @@ void UnixSocketPcapFile(TmEcode tm);
 TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data);
 TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
 #endif
 
