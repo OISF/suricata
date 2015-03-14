@@ -141,7 +141,7 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
         data += sizeof(DNSQueryTrailer);
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(0);
 bad_data:
@@ -262,7 +262,7 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 bad_data:
 insufficient_data:
     SCReturnInt(-1);
@@ -277,7 +277,7 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
-	DNSState *dns_state = (DNSState *)dstate;
+    DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
 
     /** \todo remove this when PP is fixed to enforce ipproto */
@@ -351,7 +351,7 @@ next_record:
             goto bad_data;
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);
 bad_data:
@@ -449,7 +449,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
 
     /* parse rcode, e.g. "noerror" or "nxdomain" */
     uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
-    if (rcode <= 10 || (rcode >= 16 && rcode <= 22)) {
+    if (rcode <= DNS_RCODE_NOTZONE || (rcode >= DNS_RCODE_BADSIG && rcode <= DNS_RCODE_BADTRUNC)) {
         SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
             tx->rcode = rcode;
@@ -468,7 +468,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         tx->replied = 1;
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 bad_data:
 insufficient_data:
     SCReturnInt(-1);
@@ -488,7 +488,7 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {
-	DNSState *dns_state = (DNSState *)dstate;
+    DNSState *dns_state = (DNSState *)dstate;
 
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_TCP)
@@ -557,7 +557,7 @@ next_record:
         if (r < 0)
             goto bad_data;
     }
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);
 bad_data:
@@ -666,6 +666,6 @@ void RegisterDNSTCPParsers(void)
 #ifdef UNITTESTS
 void DNSTCPParserRegisterTests(void)
 {
-//	UtRegisterTest("DNSTCPParserTest01", DNSTCPParserTest01, 1);
+//    UtRegisterTest("DNSTCPParserTest01", DNSTCPParserTest01, 1);
 }
 #endif

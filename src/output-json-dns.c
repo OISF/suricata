@@ -163,7 +163,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
             json_object_set_new(js, "rdata", json_string(a));
         } else if (entry->data_len == 0) {
             json_object_set_new(js, "rdata", json_string(""));
-        } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME || entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR) {
+        } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME || 
+                    entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR) {
             if (entry->data_len != 0) {
                 char buffer[256] = "";
                 uint16_t copy_len = entry->data_len < (sizeof(buffer) - 1) ?
@@ -228,13 +229,13 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
     /* rcode != noerror */
     if (tx->rcode) {
-	/* Most DNS servers do not support multiple queries because
-	 * the rcode in response is not per-query.  Multiple queries
-	 * are likely to lead to FORMERR, so log this. */
+        /* Most DNS servers do not support multiple queries because
+         * the rcode in response is not per-query.  Multiple queries
+         * are likely to lead to FORMERR, so log this. */
         DNSQueryEntry *query = NULL;
         TAILQ_FOREACH(query, &tx->query_list, next) {
             OutputFailure(aft, js, tx, query);
-	}
+        }
     }
 
     DNSAnswerEntry *entry = NULL;

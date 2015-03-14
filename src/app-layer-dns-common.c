@@ -765,8 +765,8 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
     SCLogDebug("head->len %u", ntohs(head->len));
 
     if (input + input_len < data + ntohs(head->len)) {
-	SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
-	goto insufficient_data;
+        SCLogDebug("input buffer too small for data of len %u", ntohs(head->len));
+        goto insufficient_data;
     }
 
     SCLogDebug("TTL %u", ntohl(head->ttl));
@@ -785,14 +785,14 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                         data, 4, ntohs(dns_header->tx_id));
             } else {
                 SCLogDebug("invalid length for A response data: %u", ntohs(head->len));
-		goto bad_data;
-	    }
-
+                goto bad_data;
+            }
+            
             data += ntohs(head->len);
             break;
         }
         case DNS_RECORD_TYPE_AAAA:
-	{
+        {
             if (ntohs(head->len) == 16) {
                 //char a[46];
                 //PrintInet(AF_INET6, (const void *)data, a, sizeof(a));
@@ -804,23 +804,23 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             } else {
                 SCLogDebug("invalid length for AAAA response data: %u", ntohs(head->len));
                 goto bad_data;
-	    }
+            }
 
             data += ntohs(head->len);
-	    break;
-	}
+            break;
+        }
         case DNS_RECORD_TYPE_MX:
-	case DNS_RECORD_TYPE_CNAME:
-	case DNS_RECORD_TYPE_PTR:
+        case DNS_RECORD_TYPE_CNAME:
+        case DNS_RECORD_TYPE_PTR:
         {
             uint8_t name[DNS_MAX_SIZE];
             uint16_t name_len = 0;
-	    uint8_t skip = 0;
+            uint8_t skip = 0;
 
-	    if (ntohs(head->type) == DNS_RECORD_TYPE_MX) {
-	        // Skip the preference header
+            if (ntohs(head->type) == DNS_RECORD_TYPE_MX) {
+                // Skip the preference header
                 skip = 2;
-	    }
+            }
 
             if ((name_len = DNSResponseGetNameByOffset(input, input_len,
                             data - input + skip, name, sizeof(name))) == 0) {
