@@ -46,7 +46,6 @@ void PacketAlertTagInit(void)
 
     memset(&g_tag_pa, 0x00, sizeof(g_tag_pa));
 
-    g_tag_pa.order_id = 1000;
     g_tag_pa.action = ACTION_ALERT;
     g_tag_pa.s = &g_tag_signature;
 }
@@ -287,8 +286,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 }
             }
 
-            /* set verdict on packet */
-            PACKET_UPDATE_ACTION(p, p->alerts.alerts[i].action);
+            /* set actions on packet */
+            DetectSignatureApplyActions(p, p->alerts.alerts[i].s);
 
             if (PACKET_TEST_ACTION(p, ACTION_PASS)) {
                 /* Ok, reset the alert cnt to end in the previous of pass

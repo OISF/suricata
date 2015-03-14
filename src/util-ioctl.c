@@ -212,7 +212,7 @@ int GetIfaceOffloading(const char *pcap_dev)
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
 {
-#ifdef HAVE_LINUX_ETHTOOL_H
+#if defined HAVE_LINUX_ETHTOOL_H && defined ETHTOOL_GRXRINGS
     struct ifreq ifr;
     struct ethtool_rxnfc nfccmd;
     int fd;

@@ -41,6 +41,10 @@ alert http any any -> any any (msg:"SURICATA HTTP request server port doesn't ma
 alert http any any -> any any (msg:"SURICATA HTTP Host part of URI is invalid"; flow:established,to_server; app-layer-event:http.request_uri_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221027; rev:1;)
 # Host header is invalid
 alert http any any -> any any (msg:"SURICATA HTTP Host header invalid"; flow:established,to_server; app-layer-event:http.request_header_host_invalid; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221028; rev:1;)
+# URI is terminated by non-compliant characters. RFC allows for space (0x20), but many implementations permit others like tab and more.
+alert http any any -> any any (msg:"SURICATA HTTP URI terminated by non-compliant character"; flow:established,to_server; app-layer-event:http.uri_delim_non_compliant; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221029; rev:1;)
+# Method is terminated by non-compliant characters. RFC allows for space (0x20), but many implementations permit others like tab and more.
+alert http any any -> any any (msg:"SURICATA HTTP METHOD terminated by non-compliant character"; flow:established,to_server; app-layer-event:http.method_delim_non_compliant; flowint:http.anomaly.count,+,1; classtype:protocol-command-decode; sid:2221030; rev:1;)
 
-# next sid 2221029
+# next sid 2221031
 

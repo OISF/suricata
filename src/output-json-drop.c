@@ -44,6 +44,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -60,9 +61,15 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+#define LOG_DROP_ALERTS 1
+
+typedef struct JsonDropOutputCtx_ {
+    LogFileCtx *file_ctx;
+    uint8_t flags;
+} JsonDropOutputCtx;
+
 typedef struct JsonDropLogThread_ {
-    /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
-    LogFileCtx* file_ctx;
+    JsonDropOutputCtx *drop_ctx;
     MemBuffer *buffer;
 } JsonDropLogThread;
 
@@ -133,7 +140,31 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             break;
     }
     json_object_set_new(js, "drop", djs);
-    OutputJSONBuffer(js, aft->file_ctx, buffer);
+
+    if (aft->drop_ctx->flags & LOG_DROP_ALERTS) {
+        int logged = 0;
+        int i;
+        for (i = 0; i < p->alerts.cnt; i++) {
+            const PacketAlert *pa = &p->alerts.alerts[i];
+            if (unlikely(pa->s == NULL)) {
+                continue;
+            }
+            if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
+               ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
+            {
+                AlertJsonHeader(pa, js);
+                logged = 1;
+            }
+        }
+        if (logged == 0) {
+            if (p->alerts.drop.action != 0) {
+                const PacketAlert *pa = &p->alerts.drop;
+                AlertJsonHeader(pa, js);
+            }
+        }
+    }
+
+    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -148,6 +179,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if (unlikely(aft == NULL))
         return TM_ECODE_FAILED;
     memset(aft, 0, sizeof(*aft));
+
     if(initdata == NULL)
     {
         SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
@@ -162,7 +194,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     /** Use the Ouptut Context (file pointer and mutex) */
-    aft->file_ctx = ((OutputCtx *)initdata)->data;
+    aft->drop_ctx = ((OutputCtx *)initdata)->data;
 
     *data = (void *)aft;
     return TM_ECODE_OK;
@@ -201,6 +233,15 @@ static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
+{
+    if (drop_ctx != NULL) {
+        if (drop_ctx->file_ctx != NULL)
+            LogFileFreeCtx(drop_ctx->file_ctx);
+        SCFree(drop_ctx);
+    }
+}
+
 #define DEFAULT_LOG_FILENAME "drop.json"
 static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
 {
@@ -210,22 +251,37 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
+    JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
+    if (drop_ctx == NULL)
+        return NULL;
+
+    drop_ctx->file_ctx = LogFileNewCtx();
+    if (drop_ctx->file_ctx == NULL) {
+        JsonDropOutputCtxFree(drop_ctx);
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
-        LogFileFreeCtx(logfile_ctx);
+    if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        JsonDropOutputCtxFree(drop_ctx);
         return NULL;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
+        JsonDropOutputCtxFree(drop_ctx);
         return NULL;
     }
 
-    output_ctx->data = logfile_ctx;
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "alerts");
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                drop_ctx->flags = LOG_DROP_ALERTS;
+            }
+        }
+    }
+
+    output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtx;
     return output_ctx;
 }
@@ -240,12 +296,28 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     AlertJsonThread *ajt = parent_ctx->data;
 
+    JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
+    if (drop_ctx == NULL)
+        return NULL;
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
+        JsonDropOutputCtxFree(drop_ctx);
         return NULL;
     }
 
-    output_ctx->data = ajt->file_ctx;
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "alerts");
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                drop_ctx->flags = LOG_DROP_ALERTS;
+            }
+        }
+    }
+
+    drop_ctx->file_ctx = ajt->file_ctx;
+
+    output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;
     return output_ctx;
 }
@@ -301,6 +373,8 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 
     if (p->flow != NULL) {
         int ret = FALSE;
+
+        /* for a flow that will be dropped fully, log just once per direction */
         FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
@@ -309,6 +383,11 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
                 ret = TRUE;
         }
         FLOWLOCK_UNLOCK(p->flow);
+
+        /* if drop is caused by signature, log anyway */
+        if (p->alerts.drop.action != 0)
+            ret = TRUE;
+
         return ret;
     } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         return TRUE;

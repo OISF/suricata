@@ -2296,6 +2296,7 @@ int main(int argc, char **argv)
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
+        StreamTcpInitConfig(STREAM_VERBOSE);
     }
 
     DetectEngineCtx *de_ctx = NULL;
@@ -2381,8 +2382,6 @@ int main(int argc, char **argv)
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
-        StreamTcpInitConfig(STREAM_VERBOSE);
-
         SCPerfSpawnThreads();
     }
 

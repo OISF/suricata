@@ -22,8 +22,9 @@
 #include "runmode-pcap-file.h"
 #include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
 #include "detect-engine-mpm.h"
+
+#include "source-pcap-file.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
@@ -74,6 +75,8 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
 
     RunModeInitialize();
     TimeModeSetOffline();
+
+    PcapFileGlobalInit();
 
     /* create the threads */
     ThreadVars *tv = TmThreadCreatePacketHandler("PcapFile",
@@ -164,6 +167,8 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
     SCLogDebug("file %s", file);
 
     TimeModeSetOffline();
+
+    PcapFileGlobalInit();
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();

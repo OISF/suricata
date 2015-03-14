@@ -105,6 +105,8 @@ outputs:
             # payload-printable: yes # enable dumping payload in printable (lossy) format
             # packet: yes            # enable dumping of packet (without stream segments)
             # http: yes              # enable dumping of http fields
+            # tls: yes               # enable dumping of tls fields
+            # ssh: yes               # enable dumping of ssh fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -134,7 +136,8 @@ outputs:
         - files:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
-        #- drop
+        #- drop:
+        #    alerts: no       # log alerts that caused drops
         - smtp
         - ssh
         # bi-directional flows

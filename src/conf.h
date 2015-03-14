@@ -87,5 +87,6 @@ int ConfGetChildValueWithDefault(const ConfNode *base, const ConfNode *dflt, con
 int ConfGetChildValueIntWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, intmax_t *val);
 int ConfGetChildValueBoolWithDefault(const ConfNode *base, const ConfNode *dflt, const char *name, int *val);
 char *ConfLoadCompleteIncludePath(const char *);
+int ConfNodeIsSequence(const ConfNode *node);
 
 #endif /* ! __CONF_H__ */

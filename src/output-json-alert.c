@@ -52,6 +52,8 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-http.h"
+#include "output-json-tls.h"
+#include "output-json-ssh.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -70,6 +72,8 @@
 #define LOG_JSON_PACKET 2
 #define LOG_JSON_PAYLOAD_BASE64 4
 #define LOG_JSON_HTTP 8
+#define LOG_JSON_TLS 16
+#define LOG_JSON_SSH 32
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -104,7 +108,7 @@ static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint
  */
 static void AlertJsonHttp(const Flow *f, json_t *js)
 {
-    HtpState *htp_state = (HtpState *)f->alstate;
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
         uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
@@ -122,6 +126,71 @@ static void AlertJsonHttp(const Flow *f, json_t *js)
     }
 
     return;
+}
+
+static void AlertJsonTls(const Flow *f, json_t *js)
+{
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
+    if (ssl_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonTlsLogJSONBasic(tjs, ssl_state);
+        JsonTlsLogJSONExtended(tjs, ssl_state);
+
+        json_object_set_new(js, "tls", tjs);
+    }
+
+    return;
+}
+
+static void AlertJsonSsh(const Flow *f, json_t *js)
+{
+    SshState *ssh_state = (SshState *)FlowGetAppState(f);
+    if (ssh_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonSshLogJSON(tjs, ssh_state);
+
+        json_object_set_new(js, "ssh", tjs);
+    }
+
+    return;
+}
+
+void AlertJsonHeader(const PacketAlert *pa, json_t *js)
+{
+    char *action = "allowed";
+    if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
+        action = "blocked";
+    } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+        action = "blocked";
+    }
+
+    json_t *ajs = json_object();
+    if (ajs == NULL) {
+        json_decref(js);
+        return;
+    }
+
+    json_object_set_new(ajs, "action", json_string(action));
+    json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
+    json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
+    json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
+    json_object_set_new(ajs, "signature",
+            json_string((pa->s->msg) ? pa->s->msg : ""));
+    json_object_set_new(ajs, "category",
+            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
+    json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
+
+    if (pa->flags & PACKET_ALERT_FLAG_TX)
+        json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
+
+    /* alert */
+    json_object_set_new(js, "alert", ajs);
 }
 
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
@@ -144,36 +213,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             continue;
         }
 
-        char *action = "allowed";
-        if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
-            action = "blocked";
-        } else if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
-            action = "blocked";
-        }
-
-        json_t *ajs = json_object();
-        if (ajs == NULL) {
-            json_decref(js);
-            return TM_ECODE_OK;
-        }
-
         MemBufferReset(aft->json_buffer);
 
-        json_object_set_new(ajs, "action", json_string(action));
-        json_object_set_new(ajs, "gid", json_integer(pa->s->gid));
-        json_object_set_new(ajs, "signature_id", json_integer(pa->s->id));
-        json_object_set_new(ajs, "rev", json_integer(pa->s->rev));
-        json_object_set_new(ajs, "signature",
-                            json_string((pa->s->msg) ? pa->s->msg : ""));
-        json_object_set_new(ajs, "category",
-                            json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
-        json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
-
-        if (pa->flags & PACKET_ALERT_FLAG_TX)
-            json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
-
         /* alert */
-        json_object_set_new(js, "alert", ajs);
+        AlertJsonHeader(pa, js);
 
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {
@@ -183,6 +226,32 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_HTTP)
                     AlertJsonHttp(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_TLS) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_TLS)
+                    AlertJsonTls(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_SSH) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_SSH)
+                    AlertJsonSsh(p->flow, js);
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -521,7 +590,19 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
         const char *payload_printable = ConfNodeLookupChildValue(conf, "payload-printable");
         const char *http = ConfNodeLookupChildValue(conf, "http");
+        const char *tls = ConfNodeLookupChildValue(conf, "tls");
+        const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
 
+        if (ssh != NULL) {
+            if (ConfValIsTrue(ssh)) {
+                json_output_ctx->flags |= LOG_JSON_SSH;
+            }
+        }
+        if (tls != NULL) {
+            if (ConfValIsTrue(tls)) {
+                json_output_ctx->flags |= LOG_JSON_TLS;
+            }
+        }
         if (http != NULL) {
             if (ConfValIsTrue(http)) {
                 json_output_ctx->flags |= LOG_JSON_HTTP;

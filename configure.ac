@@ -11,6 +11,7 @@
     AC_LANG_C
     AC_PROG_CC_C99
     AC_PROG_LIBTOOL
+    PKG_PROG_PKG_CONFIG(0.21) # 0.21 is the CentOS 5.11 version
 
     AC_DEFUN([FAIL_MESSAGE],[
             echo
@@ -656,44 +657,51 @@
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
 
+    AC_ARG_ENABLE(nflog,
+            AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
+                           [ enable_nflog="yes"],
+                           [ enable_nflog="no"])
+    AC_ARG_ENABLE(nfqueue,
+           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),[enable_nfqueue=yes],[enable_nfqueue=no])
+
+    if test "x$enable_nflog" = "xyes" || test  "x$enable_nfqueue" = "xyes"; then
   # libnfnetlink
-    case $host in
-    *-*-mingw32*)
-        ;;
-    *)
-        AC_ARG_WITH(libnfnetlink_includes,
-                [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
-                [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
-        AC_ARG_WITH(libnfnetlink_libraries,
-                [  --with-libnfnetlink-libraries=DIR    libnfnetlink library directory],
-                [with_libnfnetlink_libraries="$withval"],[with_libnfnetlink_libraries="no"])
+        case $host in
+        *-*-mingw32*)
+            ;;
+        *)
+            AC_ARG_WITH(libnfnetlink_includes,
+                    [  --with-libnfnetlink-includes=DIR  libnfnetlink include directory],
+                    [with_libnfnetlink_includes="$withval"],[with_libnfnetlink_includes=no])
+            AC_ARG_WITH(libnfnetlink_libraries,
+                    [  --with-libnfnetlink-libraries=DIR    libnfnetlink library directory],
+                    [with_libnfnetlink_libraries="$withval"],[with_libnfnetlink_libraries="no"])
 
-        if test "$with_libnfnetlink_includes" != "no"; then
-            CPPFLAGS="${CPPFLAGS} -I${with_libnfnetlink_includes}"
-        fi
+            if test "$with_libnfnetlink_includes" != "no"; then
+                CPPFLAGS="${CPPFLAGS} -I${with_libnfnetlink_includes}"
+            fi
 
-        if test "$with_libnfnetlink_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS}  -L${with_libnfnetlink_libraries}"
-        fi
+            if test "$with_libnfnetlink_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_libnfnetlink_libraries}"
+            fi
 
-        NFNL=""
-        AC_CHECK_LIB(nfnetlink, nfnl_fd,, NFNL="no")
+            NFNL=""
+            AC_CHECK_LIB(nfnetlink, nfnl_fd,, NFNL="no")
 
-        if test "$NFNL" = "no"; then
-            echo
-            echo "   ERROR!  nfnetlink library not found, go get it"
-            echo "   from www.netfilter.org."
-            echo "   we automatically append libnetfilter_queue/ when searching"
-            echo "   for headers etc. when the --with-libnfnetlink-includes directive"
-            echo "   is used"
-            echo
-        fi
-        ;;
-    esac
+            if test "$NFNL" = "no"; then
+                echo
+                echo "   ERROR!  nfnetlink library not found, go get it"
+                echo "   from www.netfilter.org."
+                echo "   we automatically append libnetfilter_queue/ when searching"
+                echo "   for headers etc. when the --with-libnfnetlink-includes directive"
+                echo "   is used"
+                echo
+            fi
+            ;;
+        esac
+    fi
 
     #enable support for NFQUEUE
-    AC_ARG_ENABLE(nfqueue,
-           AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),,[enable_nfqueue=no])
     AS_IF([test "x$enable_nfqueue" = "xyes"], [
         CFLAGS="$CFLAGS -DNFQ"
 
@@ -780,10 +788,6 @@
   ])
 
   # libnetfilter_log
-    AC_ARG_ENABLE(nflog,
-            AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
-                           [ enable_nflog="yes"],
-                           [ enable_nflog="no"])
     AC_ARG_WITH(libnetfilter_log_includes,
             [  --with-libnetfilter_log-includes=DIR  libnetfilter_log include directory],
             [with_libnetfilter_log_includes="$withval"],[with_libnetfilter_log_includes="no"])
@@ -887,7 +891,7 @@
             LLIBNET=""
             AC_CHECK_LIB(net, libnet_write,, LLIBNET="no")
             if test "$LLIBNET" != "no"; then
-                CFLAGS="${CFLAGS} -DHAVE_LIBNET11 -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
+                CFLAGS="${CFLAGS} -DHAVE_LIBNET11 -D_DEFAULT_SOURCE -D_BSD_SOURCE -D__BSD_SOURCE -D__FAVOR_BSD -DHAVE_NET_ETHERNET_H"
             else
             #if we displayed a warning already no reason to do it again.
                 if test "$LIBNET_DETECT_FAIL" = "no"; then
