@@ -267,6 +267,17 @@ class SuricataSC:
                     arguments = {}
                     arguments["id"] = int(tenantid)
                     arguments["filename"] = filename
+            elif "reload-tenant" in command:
+                try:
+                    [cmd, tenantid, filename] = command.split(' ', 2)
+                except:
+                    raise SuricataCommandException("Arguments to command '%s' is missing" % (command))
+                if cmd != "reload-tenant":
+                    raise SuricataCommandException("Invalid command '%s'" % (command))
+                else:
+                    arguments = {}
+                    arguments["id"] = int(tenantid)
+                    arguments["filename"] = filename
             else:
                 cmd = command
         else:
