@@ -1114,7 +1114,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint16_t alversion = 0;
-    int reset_de_state = 0;
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
@@ -1156,11 +1155,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 pflow->flags &= ~FLOW_SGH_TOCLIENT;
                 pflow->sgh_toserver = NULL;
                 pflow->sgh_toclient = NULL;
-                reset_de_state = 1;
 
                 pflow->de_ctx_id = de_ctx->id;
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
+
+                DetectEngineStateReset(pflow->de_state,
+                        (STREAM_TOSERVER|STREAM_TOCLIENT));
+                DetectEngineStateResetTxs(pflow);
             }
 
             /* set the iponly stuff */
@@ -1224,13 +1226,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("flag STREAM_TOCLIENT set");
         }
         SCLogDebug("p->flowflags 0x%02x", p->flowflags);
-
-        /* reset because of ruleswap */
-        if (reset_de_state) {
-            SCMutexLock(&pflow->de_state_m);
-            DetectEngineStateReset(pflow->de_state, (STREAM_TOSERVER|STREAM_TOCLIENT));
-            SCMutexUnlock(&pflow->de_state_m);
-        }
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
             ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))

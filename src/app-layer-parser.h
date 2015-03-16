@@ -26,6 +26,7 @@
 #define __APP_LAYER_PARSER_H__
 
 #include "app-layer-events.h"
+#include "detect-engine-state.h"
 #include "util-file.h"
 
 #define APP_LAYER_PARSER_EOF                    0x01
@@ -141,6 +142,9 @@ void AppLayerParserRegisterGetStateProgressCompletionStatus(uint8_t ipproto,
 void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type));
+void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
+        DetectEngineState *(*GetTxDetectState)(void *tx),
+        int (*SetTxDetectState)(void *tx, DetectEngineState *));
 
 /***** Get and transaction functions *****/
 
@@ -174,6 +178,10 @@ int AppLayerParserGetEventInfo(uint8_t ipproto, AppProto alproto, const char *ev
 uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, AppLayerParserState *pstate, uint8_t direction);
 
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
+
+int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
+DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
+int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx, DetectEngineState *s);
 
 /***** General *****/
 
