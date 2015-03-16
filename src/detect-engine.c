@@ -511,6 +511,19 @@ int DetectEngineReloadIsDone(void)
     return r;
 }
 
+/** \internal
+ *  \brief Update detect threads with new detect engine
+ *
+ *  Atomically update each detect thread with a new thread context
+ *  that is associated to the new detection engine(s).
+ *
+ *  If called in unix socket mode, it's possible that we don't have
+ *  detect threads yet.
+ *
+ *  \retval -1 error
+ *  \retval 0 no detection threads
+ *  \retval 1 successful reload
+ */
 static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 {
     SCEnter();
@@ -518,8 +531,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     int i = 0;
     int no_of_detect_tvs = 0;
     ThreadVars *tv = NULL;
-
-    SCLogNotice("rule reload starting");
 
     /* count detect threads in use */
     SCMutexLock(&tv_root_lock);
@@ -548,9 +559,12 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     }
     SCMutexUnlock(&tv_root_lock);
 
+    /* can be zero in unix socket mode */
     if (no_of_detect_tvs == 0) {
-        return -1;
+        return 0;
     }
+
+    SCLogNotice("rule reload starting");
 
     /* prepare swap structures */
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
@@ -705,7 +719,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     SRepReloadComplete();
 
     SCLogNotice("rule reload complete");
-    return 0;
+    return 1;
 
  error:
     for (i = 0; i < no_of_detect_tvs; i++) {
