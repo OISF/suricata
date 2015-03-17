@@ -4920,7 +4920,7 @@ static void TcpSessionReuseHandle(Packet *p) {
      * a different thread. */
 
     /* Get a flow. It will be either a locked flow or NULL */
-    Flow *new_f = FlowGetFlowFromHashByPacket(p);
+    Flow *new_f = FlowGetFlowFromHashByPacket(p, &p->flow);
     if (new_f == NULL) {
         FlowDeReference(&old_f); // < can't disappear while usecnt >0
         return;
@@ -4992,7 +4992,7 @@ static void TcpSessionReuseHandleApplyToPacket(Packet *p)
     FlowDeReference(&p->flow); // < can't disappear while usecnt >0
 
     /* find the new flow that does belong to this packet */
-    Flow *new_f = FlowLookupFlowFromHash(p);
+    Flow *new_f = FlowLookupFlowFromHash(p, &p->flow);
     if (new_f == NULL) {
         // TODO reset packet flag wrt flow: direction, HAS_FLOW etc
         p->flags &= ~PKT_HAS_FLOW;

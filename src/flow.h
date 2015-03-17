@@ -580,8 +580,8 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
-Flow *FlowGetFlowFromHashByPacket(const Packet *p);
-Flow *FlowLookupFlowFromHash(const Packet *p);
+Flow *FlowGetFlowFromHashByPacket(const Packet *p, Flow **dest);
+Flow *FlowLookupFlowFromHash(const Packet *p, Flow **dest);
 
 #endif /* __FLOW_H__ */
 
