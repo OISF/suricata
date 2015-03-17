@@ -173,15 +173,31 @@ void *DNSGetTx(void *alstate, uint64_t tx_id)
     DNSState *dns_state = (DNSState *)alstate;
     DNSTransaction *tx = NULL;
 
+    /* fast track: try the current tx */
     if (dns_state->curr && dns_state->curr->tx_num == tx_id + 1)
         return dns_state->curr;
 
+    /* fast track:
+     * if the prev tx_id is equal to the stored tx ptr, we can
+     * use this shortcut to get to the next. */
+    if (dns_state->iter) {
+        if (tx_id == dns_state->iter->tx_num) {
+            tx = TAILQ_NEXT(dns_state->iter, next);
+            if (tx && tx->tx_num == tx_id + 1) {
+                dns_state->iter = tx;
+                return tx;
+            }
+        }
+    }
+
+    /* no luck with the fast tracks, do the full list walk */
     TAILQ_FOREACH(tx, &dns_state->tx_list, next) {
         SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
         if ((tx_id+1) != tx->tx_num)
             continue;
 
         SCLogDebug("returning tx %p", tx);
+        dns_state->iter = tx;
         return tx;
     }
 
@@ -279,6 +295,9 @@ static void DNSTransactionFree(DNSTransaction *tx, DNSState *state)
 
     if (tx->de_state != NULL)
         DetectEngineStateFree(tx->de_state);
+
+    if (state->iter == tx)
+        state->iter = NULL;
 
     DNSDecrMemcap(sizeof(DNSTransaction), state);
     SCFree(tx);
