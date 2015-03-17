@@ -15,7 +15,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 import urllib, urllib2, cookielib
-import simplejson as json
+try:
+    import simplejson as json
+except:
+    import json
 import time
 import argparse
 import sys
