@@ -306,6 +306,8 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_NETMAP);
         CASE_CODE (SC_ERR_NETMAP_CREATE);
         CASE_CODE (SC_ERR_NETMAP_READ);
+        CASE_CODE (SC_ERR_MT_NO_SELECTOR);
+        CASE_CODE (SC_ERR_MT_DUPLICATE_TENANT);
     }
 
     return "UNKNOWN_ERROR";
