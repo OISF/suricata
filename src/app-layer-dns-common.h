@@ -156,6 +156,7 @@ typedef struct DNSTransaction_ {
 typedef struct DNSState_ {
     TAILQ_HEAD(, DNSTransaction_) tx_list;  /**< transaction list */
     DNSTransaction *curr;                   /**< ptr to current tx */
+    DNSTransaction *iter;
     uint64_t transaction_max;
     uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
     uint32_t memuse;                        /**< state memuse, for comparing with
