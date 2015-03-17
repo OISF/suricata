@@ -418,7 +418,7 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
     return f;
 }
 
-Flow *FlowGetFlowFromHashByPacket(const Packet *p)
+Flow *FlowGetFlowFromHashByPacket(const Packet *p, Flow **dest)
 {
     Flow *f = NULL;
 
@@ -448,6 +448,7 @@ Flow *FlowGetFlowFromHashByPacket(const Packet *p)
         f->fb = fb;
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&f->lastts);
+        FlowReference(dest, f);
 
     }
     FBLOCK_UNLOCK(fb);
@@ -463,7 +464,7 @@ Flow *FlowGetFlowFromHashByPacket(const Packet *p)
  *
  *  \retval f flow or NULL if not found
  */
-Flow *FlowLookupFlowFromHash(const Packet *p)
+Flow *FlowLookupFlowFromHash(const Packet *p, Flow **dest)
 {
     Flow *f = NULL;
 
@@ -516,6 +517,7 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
                 FLOWLOCK_WRLOCK(f);
                 /* update the last seen timestamp of this flow */
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
+                FlowReference(dest, f);
 
                 FBLOCK_UNLOCK(fb);
                 return f;
@@ -527,6 +529,7 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
     FLOWLOCK_WRLOCK(f);
     /* update the last seen timestamp of this flow */
     COPY_TIMESTAMP(&p->ts,&f->lastts);
+    FlowReference(dest, f);
 
     FBLOCK_UNLOCK(fb);
     return f;
@@ -549,7 +552,7 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
  *
  *  \retval f *LOCKED* flow or NULL
  */
-Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
+Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p, Flow **dest)
 {
     Flow *f = NULL;
 
@@ -580,6 +583,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
 
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&f->lastts);
+        FlowReference(dest, f);
 
         FBLOCK_UNLOCK(fb);
         return f;
@@ -615,6 +619,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
 
                 /* update the last seen timestamp of this flow */
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
+                FlowReference(dest, f);
 
                 FBLOCK_UNLOCK(fb);
                 return f;
@@ -642,6 +647,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 FLOWLOCK_WRLOCK(f);
                 /* update the last seen timestamp of this flow */
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
+                FlowReference(dest, f);
 
                 FBLOCK_UNLOCK(fb);
                 return f;
@@ -653,6 +659,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     FLOWLOCK_WRLOCK(f);
     /* update the last seen timestamp of this flow */
     COPY_TIMESTAMP(&p->ts,&f->lastts);
+    FlowReference(dest, f);
 
     FBLOCK_UNLOCK(fb);
     return f;

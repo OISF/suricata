@@ -270,9 +270,6 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
-    /* Point the Packet at the Flow */
-    FlowReference(&p->flow, f);
-
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
         f->todstpktcnt++;
@@ -329,7 +326,7 @@ void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(tv, dtv, p);
+    Flow *f = FlowGetFlowFromHash(tv, dtv, p, &p->flow);
     if (f == NULL)
         return;
 
