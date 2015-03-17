@@ -310,6 +310,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             SCLogDebug("event.type=YAML_SEQUENCE_START_EVENT; state=%d", state);
             if (ConfYamlParse(parser, node, 1) != 0)
                 goto fail;
+            node->is_seq = 1;
             state = CONF_KEY;
         }
         else if (event.type == YAML_SEQUENCE_END_EVENT) {
@@ -451,7 +452,7 @@ ConfYamlLoadString(const char *string, size_t len)
 #ifdef UNITTESTS
 
 static int
-ConfYamlRuleFileTest(void)
+ConfYamlSequenceTest(void)
 {
     char input[] = "\
 %YAML 1.1\n\
@@ -472,6 +473,8 @@ default-log-dir: /tmp\n\
     node = ConfGetNode("rule-files");
     if (node == NULL)
         return 0;
+    if (!ConfNodeIsSequence(node))
+        return 0;
     if (TAILQ_EMPTY(&node->head))
         return 0;
     int i = 0;
@@ -480,9 +483,15 @@ default-log-dir: /tmp\n\
         if (i == 0) {
             if (strcmp(filename->val, "netbios.rules") != 0)
                 return 0;
+            if (ConfNodeIsSequence(filename))
+                return 0;
+            if (filename->is_seq != 0)
+                return 0;
         }
         else if (i == 1) {
             if (strcmp(filename->val, "x11.rules") != 0)
+                return 0;
+            if (ConfNodeIsSequence(filename))
                 return 0;
         }
         else {
@@ -864,7 +873,7 @@ void
 ConfYamlRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ConfYamlRuleFileTest", ConfYamlRuleFileTest, 1);
+    UtRegisterTest("ConfYamlSequenceTest", ConfYamlSequenceTest, 1);
     UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
     UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
     UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
