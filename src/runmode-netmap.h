@@ -23,9 +23,9 @@
 #ifndef __RUNMODE_NETMAP_H__
 #define __RUNMODE_NETMAP_H__
 
-int RunModeIdsNetmapSingle(DetectEngineCtx *);
-int RunModeIdsNetmapAutoFp(DetectEngineCtx *);
-int RunModeIdsNetmapWorkers(DetectEngineCtx *);
+int RunModeIdsNetmapSingle(void);
+int RunModeIdsNetmapAutoFp(void);
+int RunModeIdsNetmapWorkers(void);
 void RunModeIdsNetmapRegister(void);
 const char *RunModeNetmapGetDefaultMode(void);
 int NetmapRunModeIsIPS();

@@ -119,9 +119,6 @@ void TmThreadCheckThreadState(void);
 TmEcode TmThreadWaitOnThreadInit(void);
 ThreadVars *TmThreadsGetCallingThread(void);
 
-void TmThreadActivateDummySlot(void);
-void TmThreadDeActivateDummySlot(void);
-
 int TmThreadsCheckFlag(ThreadVars *, uint16_t);
 void TmThreadsSetFlag(ThreadVars *, uint16_t);
 void TmThreadsUnsetFlag(ThreadVars *, uint16_t);

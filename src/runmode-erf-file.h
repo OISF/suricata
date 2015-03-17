@@ -23,8 +23,8 @@
 #ifndef __RUNMODE_ERF_FILE_H__
 #define __RUNMODE_ERF_FILE_H__
 
-int RunModeErfFileSingle(DetectEngineCtx *);
-int RunModeErfFileAutoFp(DetectEngineCtx *);
+int RunModeErfFileSingle(void);
+int RunModeErfFileAutoFp(void);
 void RunModeErfFileRegister(void);
 const char *RunModeErfFileGetDefaultMode(void);
 

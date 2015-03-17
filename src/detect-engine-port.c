@@ -1023,8 +1023,9 @@ error:
  * \retval  0 On successfully parsing.
  * \retval -1 On failure.
  */
-static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
-                             int negate)
+static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
+                             DetectPort **head, DetectPort **nhead,
+                             char *s, int negate)
 {
     size_t u = 0;
     size_t x = 0;
@@ -1064,7 +1065,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
                 x = 0;
 
-                r = DetectPortParseDo(head, nhead, address, negate? negate: n_set);
+                r = DetectPortParseDo(de_ctx, head, nhead, address, negate? negate: n_set);
                 if (r == -1)
                     goto error;
 
@@ -1081,7 +1082,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
 
                 address[x - 1] = '\0';
 
-                rule_var_port = SCRuleVarsGetConfVar(address,
+                rule_var_port = SCRuleVarsGetConfVar(de_ctx, address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
@@ -1101,7 +1102,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                              "[%s]", rule_var_port);
                     temp_rule_var_port = alloc_rule_var_port;
                 }
-                r = DetectPortParseDo(head, nhead, temp_rule_var_port,
+                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);//negate? negate: n_set);
                 if (r == -1)
                     goto error;
@@ -1141,7 +1142,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 char *temp_rule_var_port = NULL,
                      *alloc_rule_var_port = NULL;
 
-                rule_var_port = SCRuleVarsGetConfVar(address,
+                rule_var_port = SCRuleVarsGetConfVar(de_ctx, address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
@@ -1161,7 +1162,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                             "[%s]", rule_var_port);
                     temp_rule_var_port = alloc_rule_var_port;
                 }
-                r = DetectPortParseDo(head, nhead, temp_rule_var_port,
+                r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
                                   (negate + n_set) % 2);
                 if (r == -1)
                     goto error;
@@ -1360,7 +1361,7 @@ int DetectPortTestConfVars(void)
             goto error;
         }
 
-        int r = DetectPortParseDo(&gh, &ghn, seq_node->val, /* start with negate no */0);
+        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
             DetectPortCleanupList(gh);
             goto error;
@@ -1398,7 +1399,8 @@ int DetectPortTestConfVars(void)
  * \retval 0 on success
  * \retval -1 on error
  */
-int DetectPortParse(DetectPort **head, char *str)
+int DetectPortParse(const DetectEngineCtx *de_ctx,
+                    DetectPort **head, char *str)
 {
     int r;
 
@@ -1407,7 +1409,7 @@ int DetectPortParse(DetectPort **head, char *str)
     /* negate port list */
     DetectPort *nhead = NULL;
 
-    r = DetectPortParseDo(head, &nhead, str,/* start with negate no */0);
+    r = DetectPortParseDo(de_ctx, head, &nhead, str,/* start with negate no */0);
     if (r < 0)
         goto error;
 
@@ -1719,7 +1721,7 @@ int PortTestParse01 (void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(&dd,"80");
+    int r = DetectPortParse(NULL,&dd,"80");
     if (r == 0) {
         DetectPortFree(dd);
         return 1;
@@ -1736,9 +1738,9 @@ int PortTestParse02 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"80");
+    int r = DetectPortParse(NULL,&dd,"80");
     if (r == 0) {
-        r = DetectPortParse(&dd,"22");
+        r = DetectPortParse(NULL,&dd,"22");
         if (r == 0) {
             result = 1;
         }
@@ -1758,9 +1760,9 @@ int PortTestParse03 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"80:88");
+    int r = DetectPortParse(NULL,&dd,"80:88");
     if (r == 0) {
-        r = DetectPortParse(&dd,"85:100");
+        r = DetectPortParse(NULL,&dd,"85:100");
         if (r == 0) {
             result = 1;
         }
@@ -1780,7 +1782,7 @@ int PortTestParse04 (void)
 {
     DetectPort *dd = NULL;
 
-    int r = DetectPortParse(&dd,"!80:81");
+    int r = DetectPortParse(NULL,&dd,"!80:81");
     if (r == 0) {
         DetectPortCleanupList(dd);
         return 1;
@@ -1798,7 +1800,7 @@ int PortTestParse05 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"!80:81");
+    int r = DetectPortParse(NULL,&dd,"!80:81");
     if (r != 0)
         goto end;
 
@@ -1825,15 +1827,15 @@ int PortTestParse06 (void)
     DetectPort *dd = NULL, *copy = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"22");
+    int r = DetectPortParse(NULL,&dd,"22");
     if (r != 0)
         goto end;
 
-    r = DetectPortParse(&dd,"80");
+    r = DetectPortParse(NULL,&dd,"80");
     if (r != 0)
         goto end;
 
-    r = DetectPortParse(&dd,"143");
+    r = DetectPortParse(NULL,&dd,"143");
     if (r != 0)
         goto end;
 
@@ -1879,7 +1881,7 @@ int PortTestParse07 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"!21:902");
+    int r = DetectPortParse(NULL,&dd,"!21:902");
     if (r != 0)
         goto end;
 
@@ -1906,7 +1908,7 @@ int PortTestParse08 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"[80:!80]");
+    int r = DetectPortParse(NULL,&dd,"[80:!80]");
     if (r == 0)
         goto end;
 
@@ -1924,7 +1926,7 @@ int PortTestParse09 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"1024:");
+    int r = DetectPortParse(NULL,&dd,"1024:");
     if (r != 0)
         goto end;
 
@@ -1948,7 +1950,7 @@ int PortTestParse10 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"77777777777777777777777777777777777777777777");
+    int r = DetectPortParse(NULL,&dd,"77777777777777777777777777777777777777777777");
     if (r != 0) {
         result = 1 ;
         goto end;
@@ -1968,7 +1970,7 @@ int PortTestParse11 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"1024:65536");
+    int r = DetectPortParse(NULL,&dd,"1024:65536");
     if (r != 0) {
         result = 1 ;
         goto end;
@@ -1988,7 +1990,7 @@ int PortTestParse12 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"1024:65535");
+    int r = DetectPortParse(NULL,&dd,"1024:65535");
     if (r != 0) {
         goto end;
     }
@@ -2008,7 +2010,7 @@ int PortTestParse13 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"65536:65535");
+    int r = DetectPortParse(NULL,&dd,"65536:65535");
     if (r != 0) {
         result = 1 ;
         goto end;
@@ -2055,7 +2057,7 @@ int PortTestParse15 (void)
     DetectPort *dd = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"![0:100,1000:3000]");
+    int r = DetectPortParse(NULL,&dd,"![0:100,1000:3000]");
     if (r != 0 || dd->next == NULL)
         goto end;
 
@@ -2079,15 +2081,15 @@ int PortTestParse16 (void)
     DetectPort *dd = NULL, *copy = NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dd,"22");
+    int r = DetectPortParse(NULL,&dd,"22");
     if (r != 0)
         goto end;
 
-    r = DetectPortParse(&dd,"80");
+    r = DetectPortParse(NULL,&dd,"80");
     if (r != 0)
         goto end;
 
-    r = DetectPortParse(&dd,"143");
+    r = DetectPortParse(NULL,&dd,"143");
     if (r != 0)
         goto end;
 
@@ -2135,7 +2137,7 @@ int PortTestFunctions01(void)
     int result = 0;
 
     /* Parse */
-    int r = DetectPortParse(&head,"![0:100,1000:65535]");
+    int r = DetectPortParse(NULL,&head,"![0:100,1000:65535]");
     if (r != 0 || head->next != NULL)
         goto end;
 
@@ -2147,7 +2149,7 @@ int PortTestFunctions01(void)
     if (!(head->next == NULL))
         goto end;
 
-    r = DetectPortParse(&dp1,"2000:3000");
+    r = DetectPortParse(NULL, &dp1,"2000:3000");
     if (r != 0 || dp1->next != NULL)
         goto end;
     if (!(dp1->port == 2000))
@@ -2198,11 +2200,11 @@ int PortTestFunctions02(void)
     int result = 0;
 
     /* Parse */
-    int r = DetectPortParse(&head, "![0:100,1000:65535]");
+    int r = DetectPortParse(NULL,&head, "![0:100,1000:65535]");
     if (r != 0 || head->next != NULL)
         goto end;
 
-    r = DetectPortParse(&dp1, "!200:300");
+    r = DetectPortParse(NULL, &dp1, "!200:300");
     if (r != 0 || dp1->next == NULL)
         goto end;
 
@@ -2211,7 +2213,7 @@ int PortTestFunctions02(void)
     if (r != 0 || head->next != NULL)
         goto end;
 
-    r = DetectPortParse(&dp2, "!100:500");
+    r = DetectPortParse(NULL, &dp2, "!100:500");
     if (r != 0 || dp2->next == NULL)
         goto end;
 
@@ -2247,11 +2249,11 @@ int PortTestFunctions03(void)
     DetectPort *dp3= NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dp1, "200:300");
+    int r = DetectPortParse(NULL, &dp1, "200:300");
     if (r != 0)
         goto end;
 
-    r = DetectPortParse(&dp2, "250:300");
+    r = DetectPortParse(NULL, &dp2, "250:300");
     if (r != 0)
         goto end;
 
@@ -2312,7 +2314,7 @@ int PortTestFunctions04(void)
     DetectPort *dp2= NULL;
     int result = 0;
 
-    int r = DetectPortParse(&dp1, "200:300");
+    int r = DetectPortParse(NULL, &dp1, "200:300");
     if (r != 0)
         goto end;
 
@@ -2359,14 +2361,14 @@ static int PortTestFunctions05(void)
     s[0].num = 0;
     s[1].num = 1;
 
-    r = DetectPortParse(&dp1, "1024:65535");
+    r = DetectPortParse(NULL, &dp1, "1024:65535");
     if (r != 0) {
         printf("r != 0 but %d: ", r);
         goto end;
     }
     SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
 
-    r = DetectPortParse(&dp2, "any");
+    r = DetectPortParse(NULL, &dp2, "any");
     if (r != 0) {
         printf("r != 0 but %d: ", r);
         goto end;
@@ -2437,14 +2439,14 @@ static int PortTestFunctions06(void)
     s[0].num = 0;
     s[1].num = 1;
 
-    r = DetectPortParse(&dp1, "1024:65535");
+    r = DetectPortParse(NULL, &dp1, "1024:65535");
     if (r != 0) {
         printf("r != 0 but %d: ", r);
         goto end;
     }
     SigGroupHeadAppendSig(de_ctx, &dp1->sh, &s[0]);
 
-    r = DetectPortParse(&dp2, "any");
+    r = DetectPortParse(NULL, &dp2, "any");
     if (r != 0) {
         printf("r != 0 but %d: ", r);
         goto end;
@@ -2784,7 +2786,7 @@ static int PortTestMatchDoubleNegation(void)
     int result = 0;
     DetectPort *head = NULL, *nhead = NULL;
 
-    if (DetectPortParseDo(&head, &nhead, "![!80]", 0) == -1)
+    if (DetectPortParseDo(NULL, &head, &nhead, "![!80]", 0) == -1)
         return result;
 
     result = (head != NULL);

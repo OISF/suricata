@@ -23,12 +23,20 @@
 #ifndef __RUNMODE_UNIX_SOCKET_H__
 #define __RUNMODE_UNIX_SOCKET_H__
 
-int RunModeUnixSocketSingle(DetectEngineCtx *);
+int RunModeUnixSocketSingle(void);
 void RunModeUnixSocketRegister(void);
 const char *RunModeUnixSocketGetDefaultMode(void);
 
 int RunModeUnixSocketIsActive(void);
 
 void UnixSocketPcapFile(TmEcode tm);
+
+#ifdef BUILD_UNIX_SOCKET
+TmEcode UnixSocketRegisterTenantHandler(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketUnregisterTenantHandler(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data);
+TmEcode UnixSocketUnregisterTenant(json_t *cmd, json_t* answer, void *data);
+#endif
 
 #endif /* __RUNMODE_UNIX_SOCKET_H__ */
