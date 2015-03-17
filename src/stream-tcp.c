@@ -913,6 +913,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                     "SACK permitted for both sides", ssn);
         }
 
+        /* packet thinks it is in the wrong direction, flip it */
+        StreamTcpPacketSwitchDir(ssn, p);
+
     } else if (p->tcph->th_flags & TH_SYN) {
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
