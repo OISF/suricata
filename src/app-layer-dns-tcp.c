@@ -141,7 +141,7 @@ static int DNSTCPRequestParseProbe(uint8_t *input, uint32_t input_len)
         data += sizeof(DNSQueryTrailer);
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(0);
 bad_data:
@@ -262,7 +262,7 @@ static int DNSRequestParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 bad_data:
 insufficient_data:
     SCReturnInt(-1);
@@ -277,7 +277,7 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
-	DNSState *dns_state = (DNSState *)dstate;
+    DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
 
     /** \todo remove this when PP is fixed to enforce ipproto */
@@ -351,7 +351,7 @@ next_record:
             goto bad_data;
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);
 bad_data:
@@ -447,11 +447,15 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         }
     }
 
-    /* see if this is a "no such name" error */
-    if (ntohs(dns_header->flags) & 0x0003) {
-        SCLogDebug("no such name");
+    /* parse rcode, e.g. "noerror" or "nxdomain" */
+    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+    if (rcode <= DNS_RCODE_NOTZONE || (rcode >= DNS_RCODE_BADSIG && rcode <= DNS_RCODE_BADTRUNC)) {
+        SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
-            tx->no_such_name = 1;
+            tx->rcode = rcode;
+    } else {
+        /* this is not invalid, rcodes can be user defined */
+        SCLogDebug("unexpected DNS rcode %u", rcode);
     }
 
     if (ntohs(dns_header->flags) & 0x0080) {
@@ -464,7 +468,7 @@ static int DNSReponseParseData(Flow *f, DNSState *dns_state, const uint8_t *inpu
         tx->replied = 1;
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 bad_data:
 insufficient_data:
     SCReturnInt(-1);
@@ -484,7 +488,7 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {
-	DNSState *dns_state = (DNSState *)dstate;
+    DNSState *dns_state = (DNSState *)dstate;
 
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_TCP)
@@ -553,7 +557,7 @@ next_record:
         if (r < 0)
             goto bad_data;
     }
-	SCReturnInt(1);
+    SCReturnInt(1);
 insufficient_data:
     SCReturnInt(-1);
 bad_data:
@@ -664,6 +668,6 @@ void RegisterDNSTCPParsers(void)
 #ifdef UNITTESTS
 void DNSTCPParserRegisterTests(void)
 {
-//	UtRegisterTest("DNSTCPParserTest01", DNSTCPParserTest01, 1);
+//    UtRegisterTest("DNSTCPParserTest01", DNSTCPParserTest01, 1);
 }
 #endif

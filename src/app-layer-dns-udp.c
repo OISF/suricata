@@ -147,7 +147,7 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
         }
     }
 
-	SCReturnInt(1);
+    SCReturnInt(1);
 bad_data:
 insufficient_data:
     SCReturnInt(-1);
@@ -164,7 +164,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
 {
-	DNSState *dns_state = (DNSState *)dstate;
+    DNSState *dns_state = (DNSState *)dstate;
 
     SCLogDebug("starting %u", input_len);
 
@@ -269,11 +269,15 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
     }
 
-    /* see if this is a "no such name" error */
-    if (ntohs(dns_header->flags) & 0x0003) {
-        SCLogDebug("no such name");
+    /* parse rcode, e.g. "noerror" or "nxdomain" */
+    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+    if (rcode <= DNS_RCODE_NOTZONE || (rcode >= DNS_RCODE_BADSIG && rcode <= DNS_RCODE_BADTRUNC)) {
+        SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
-            tx->no_such_name = 1;
+            tx->rcode = rcode;
+    } else {
+        /* this is not invalid, rcodes can be user defined */
+        SCLogDebug("unexpected DNS rcode %u", rcode);
     }
 
     if (ntohs(dns_header->flags) & 0x0080) {
@@ -613,10 +617,10 @@ end:
 
 void DNSUDPParserRegisterTests(void)
 {
-	UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
-	UtRegisterTest("DNSUDPParserTest02", DNSUDPParserTest02, 1);
-	UtRegisterTest("DNSUDPParserTest03", DNSUDPParserTest03, 1);
-	UtRegisterTest("DNSUDPParserTest04", DNSUDPParserTest04, 1);
-	UtRegisterTest("DNSUDPParserTest05", DNSUDPParserTest05, 1);
+    UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
+    UtRegisterTest("DNSUDPParserTest02", DNSUDPParserTest02, 1);
+    UtRegisterTest("DNSUDPParserTest03", DNSUDPParserTest03, 1);
+    UtRegisterTest("DNSUDPParserTest04", DNSUDPParserTest04, 1);
+    UtRegisterTest("DNSUDPParserTest05", DNSUDPParserTest05, 1);
 }
 #endif
