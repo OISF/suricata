@@ -289,13 +289,12 @@ void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
-    /* if no flow we use the first queue,
-     * should be rare */
+    /* if no flow we round robin the packets over the queues */
     if (p->flow != NULL) {
         qid = SC_ATOMIC_GET(p->flow->autofp_tmqh_flow_qid);
         if (qid == -1) {
-            uint16_t i = 0;
-            int lowest_id = 0;
+            int16_t i = 0;
+            int16_t lowest_id = 0;
             TmqhFlowMode *queues = ctx->queues;
             uint32_t lowest = queues[i].q->len;
             for (i = 1; i < ctx->size; i++) {
@@ -350,7 +349,7 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
             addr >>= 7;
 
             /* we don't have to worry about possible overflow, since
-             * ctx->size will be lesser than 2 ** 31 for sure */
+             * ctx->size will be less than 2 ** 15 for sure */
             qid = addr % ctx->size;
             (void) SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, qid);
             (void) SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);

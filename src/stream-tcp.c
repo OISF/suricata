@@ -4907,7 +4907,7 @@ static void TcpSessionReuseHandle(Packet *p) {
 
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id = old_f->thread_id;
-    int autofp_tmqh_flow_qid = SC_ATOMIC_GET(old_f->autofp_tmqh_flow_qid);
+    int16_t autofp_tmqh_flow_qid = SC_ATOMIC_GET(old_f->autofp_tmqh_flow_qid);
 
     /* disconnect the packet from the old flow */
     FlowHandlePacketUpdateRemove(p->flow, p);
