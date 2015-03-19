@@ -1559,11 +1559,14 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     det_ctx->tv = tv;
     det_ctx->de_ctx = DetectEngineGetCurrent();
     if (det_ctx->de_ctx == NULL) {
+        DetectEngineThreadCtxDeinit(tv, det_ctx);
         return TM_ECODE_FAILED;
     }
 
-    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK)
+    if (ThreadCtxDoInit(det_ctx->de_ctx, det_ctx) != TM_ECODE_OK) {
+        DetectEngineThreadCtxDeinit(tv, det_ctx);
         return TM_ECODE_FAILED;
+    }
 
     /** alert counter setup */
     det_ctx->counter_alerts = counter_alerts;
