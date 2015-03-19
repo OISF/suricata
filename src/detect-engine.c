@@ -1902,10 +1902,10 @@ void DetectEnginePruneFreeList(void)
         SCLogDebug("detect engine %p has %u ref(s)", instance, instance->ref_cnt);
 
         if (instance->ref_cnt == 0) {
-            if (instance == master->free_list) {
-                master->free_list = instance->next;
+            if (prev == NULL) {
+                master->free_list = next;
             } else {
-                prev->next = instance->next;
+                prev->next = next;
             }
 
             SCLogDebug("freeing detect engine %p", instance);
