@@ -146,7 +146,6 @@ typedef struct SCInstance_ {
     uint32_t groupid;
 #endif /* OS_WIN32 */
     int delayed_detect;
-    int rule_reload;
     int disabled_detect;
     int daemon;
     int offline;
