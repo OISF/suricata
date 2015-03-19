@@ -528,9 +528,6 @@ detect-engine:
       toserver-dp-groups: 25
   - sgh-mpm-context: auto
   - inspection-recursion-limit: 3000
-  # When rule-reload is enabled, sending a USR2 signal to the Suricata process
-  # will trigger a live rule reload. Experimental feature, use with care.
-  #- rule-reload: true
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
   #- delayed-detect: yes

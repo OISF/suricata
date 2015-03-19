@@ -276,11 +276,6 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig)
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
-void SignalHandlerSigusr2Disabled(int sig)
-{
-    SCLogInfo("Live rule reload not enabled in config.");
-}
-
 void SignalHandlerSigusr2StartingUp(int sig)
 {
     SCLogInfo("Live rule reload only possible after engine completely started.");
@@ -918,25 +913,6 @@ TmEcode LoadYamlConfig(char *conf_filename)
     }
 
     SCReturnInt(TM_ECODE_OK);
-}
-
-int IsRuleReloadSet(int quiet)
-{
-    int rule_reload = 0;
-
-    ConfNode *denode = NULL;
-    ConfNode *decnf = ConfGetNode("detect-engine");
-    if (decnf != NULL) {
-        TAILQ_FOREACH(denode, &decnf->head, next) {
-            if (strcmp(denode->val, "rule-reload") == 0) {
-                (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
-                if (!quiet)
-                    SCLogInfo("Live rule reloads %s",
-                              rule_reload ? "enabled" : "disabled");
-            }
-        }
-    }
-    return rule_reload;
 }
 
 static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
@@ -2026,8 +2002,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     MpmCudaEnvironmentSetup();
 #endif
 
-    suri->rule_reload = IsRuleReloadSet(FALSE);
-
     switch (suri->checksum_validation) {
         case 0:
             ConfSet("stream.checksum-validation", "0");
@@ -2140,14 +2114,10 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     DetectEngineRegisterAppInspectionEngines();
 
-    if (suri->rule_reload) {
-        if (suri->sig_file != NULL)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
-        else
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2StartingUp);
-    } else {
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
-    }
+    if (suri->sig_file != NULL)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+    else
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2StartingUp);
 
     StorageFinalize();
 
@@ -2375,7 +2345,7 @@ int main(int argc, char **argv)
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase or while threads are still
      * starting up. */
-    if (DetectEngineEnabled() && suri.sig_file == NULL && suri.rule_reload == 1 &&
+    if (DetectEngineEnabled() && suri.sig_file == NULL &&
             suri.delayed_detect == 0)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
@@ -2383,12 +2353,10 @@ int main(int argc, char **argv)
         /* force 'reload', this will load the rules and swap engines */
         DetectEngineReload(NULL);
 
-        if (suri.rule_reload) {
-            if (suri.sig_file != NULL)
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
-            else
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
-        }
+        if (suri.sig_file != NULL)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+        else
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
