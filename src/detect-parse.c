@@ -552,10 +552,12 @@ error:
     return -1;
 }
 
-/* XXX implement this for real
+/** \brief Parse address string and update signature
  *
+ *  \retval 0 ok, -1 error
  */
-int SigParseAddress(Signature *s, const char *addrstr, char flag)
+int SigParseAddress(const DetectEngineCtx *de_ctx,
+        Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
 
@@ -564,13 +566,13 @@ int SigParseAddress(Signature *s, const char *addrstr, char flag)
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        if (DetectAddressParse(&s->src, (char *)addrstr) < 0)
+        if (DetectAddressParse(de_ctx, &s->src, (char *)addrstr) < 0)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        if (DetectAddressParse(&s->dst, (char *)addrstr) < 0)
+        if (DetectAddressParse(de_ctx, &s->dst, (char *)addrstr) < 0)
             goto error;
     }
 
@@ -636,7 +638,8 @@ int SigParseProto(Signature *s, const char *protostr)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SigParsePort(Signature *s, const char *portstr, char flag)
+static int SigParsePort(const DetectEngineCtx *de_ctx,
+        Signature *s, const char *portstr, char flag)
 {
     int r = 0;
 
@@ -648,12 +651,12 @@ int SigParsePort(Signature *s, const char *portstr, char flag)
         if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_SP_ANY;
 
-        r = DetectPortParse(&s->sp, (char *)portstr);
+        r = DetectPortParse(de_ctx, &s->sp, (char *)portstr);
     } else if (flag == 1) {
         if (strcasecmp(portstr, "any") == 0)
             s->flags |= SIG_FLAG_DP_ANY;
 
-        r = DetectPortParse(&s->dp, (char *)portstr);
+        r = DetectPortParse(de_ctx, &s->dp, (char *)portstr);
     }
 
     if (r < 0)
@@ -737,7 +740,8 @@ int SigParseAction(Signature *s, const char *action)
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
  */
-static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
+static int SigParseBasics(const DetectEngineCtx *de_ctx,
+        Signature *s, const char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
 {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
@@ -784,26 +788,26 @@ static int SigParseBasics(Signature *s, char *sigstr, SignatureParser *parser, u
         s->init_flags |= SIG_FLAG_INIT_BIDIREC;
 
     /* Parse Address & Ports */
-    if (SigParseAddress(s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (SigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
        goto error;
 
-    if (SigParseAddress(s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (SigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     /* For IPOnly */
-    if (IPOnlySigParseAddress(s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(de_ctx, s, parser->src, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
 
-    if (IPOnlySigParseAddress(s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (IPOnlySigParseAddress(de_ctx, s, parser->dst, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     /* By AWS - Traditionally we should be doing this only for tcp/udp/sctp,
      * but we do it for regardless of ip proto, since the dns/dnstcp/dnsudp
      * changes that we made sees to it that at this point of time we don't
      * set the ip proto for the sig.  We do it a bit later. */
-    if (SigParsePort(s, parser->sp, SIG_DIREC_SRC ^ addrs_direction) < 0)
+    if (SigParsePort(de_ctx, s, parser->sp, SIG_DIREC_SRC ^ addrs_direction) < 0)
         goto error;
-    if (SigParsePort(s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
+    if (SigParsePort(de_ctx, s, parser->dp, SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
 
     return 0;
@@ -832,7 +836,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
 
     s->sig_str = sigstr;
 
-    int ret = SigParseBasics(s, sigstr, &parser, addrs_direction);
+    int ret = SigParseBasics(de_ctx, s, sigstr, &parser, addrs_direction);
     if (ret < 0) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
@@ -1922,7 +1926,7 @@ int SigParseTest02 (void)
         goto end;
     }
 
-    int r = DetectPortParse(&port, "0:20");
+    int r = DetectPortParse(de_ctx, &port, "0:20");
     if (r < 0)
         goto end;
 

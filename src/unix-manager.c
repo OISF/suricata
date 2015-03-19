@@ -647,6 +647,18 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    SCEnter();
+    DetectEngineReloadStart();
+
+    while (DetectEngineReloadIsDone() == 0)
+        usleep(100);
+
+    json_object_set_new(server_msg, "message", json_string("done"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
@@ -770,7 +782,7 @@ TmEcode UnixManagerRegisterCommand(const char * keyword,
 
     TAILQ_FOREACH(lcmd, &command.commands, next) {
         if (!strcmp(keyword, lcmd->name)) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Null keyword");
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "%s already registered", keyword);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
@@ -870,9 +882,7 @@ void *UnixManagerThread(void *td)
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
-#if 0
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
-#endif
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
@@ -903,10 +913,9 @@ void *UnixManagerThread(void *td)
 
 /** \brief Spawn the unix socket manager thread
  *
- * \param de_ctx context for detection engine
  * \param mode if set to 1, init failure cause suricata exit
  * */
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     ThreadVars *tv_unixmgr = NULL;
 
@@ -976,7 +985,7 @@ void UnixSocketKillSocketThread(void)
 
 #else /* BUILD_UNIX_SOCKET */
 
-void UnixManagerThreadSpawn(DetectEngineCtx *de_ctx, int mode)
+void UnixManagerThreadSpawn(int mode)
 {
     SCLogError(SC_ERR_UNIMPLEMENTED, "Unix socket is not compiled");
     return;

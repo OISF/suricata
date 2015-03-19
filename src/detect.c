@@ -239,14 +239,20 @@ void DetectExitPrintStats(ThreadVars *tv, void *data)
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
  */
-char *DetectLoadCompleteSigPath(char *sig_file)
+char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
+    char varname[128] = "default-rule-path";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.default-rule-path",
+                de_ctx->config_prefix);
+    }
 
     /* Path not specified */
     if (PathIsRelative(sig_file)) {
-        if (ConfGet("default-rule-path", &defaultpath) == 1) {
+        if (ConfGet(varname, &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
                           strlen(sig_file) + 2);
@@ -396,6 +402,13 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     int goodtotal = 0;
     int badtotal = 0;
 
+    char varname[128] = "rule-files";
+
+    if (strlen(de_ctx->config_prefix) > 0) {
+        snprintf(varname, sizeof(varname), "%s.rule-files",
+                de_ctx->config_prefix);
+    }
+
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
@@ -403,7 +416,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* ok, let's load signature files from the general config */
     if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
-        rule_files = ConfGetNode("rule-files");
+        rule_files = ConfGetNode(varname);
         if (rule_files != NULL) {
             if (!ConfNodeIsSequence(rule_files)) {
                 SCLogWarning(SC_ERR_INVALID_ARGUMENT,
@@ -412,7 +425,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             }
             else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
-                    sfile = DetectLoadCompleteSigPath(file->val);
+                    sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     SCLogDebug("Loading rule file: %s", sfile);
 
                     cntf++;

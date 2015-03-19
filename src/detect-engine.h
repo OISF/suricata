@@ -55,9 +55,9 @@ extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT
 
 /* prototypes */
 void DetectEngineRegisterAppInspectionEngines(void);
-void DetectEngineSpawnLiveRuleSwapMgmtThread(void);
+DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
-DetectEngineCtx *DetectEngineGetGlobalDeCtx(void);
+DetectEngineCtx *DetectEngineCtxInitMinimal(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
@@ -68,6 +68,21 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 void DetectEngineResetMaxSigId(DetectEngineCtx *);
 void DetectEngineRegisterTests(void);
 const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type);
+
+int DetectEngineAddToMaster(DetectEngineCtx *de_ctx);
+DetectEngineCtx *DetectEngineGetCurrent(void);
+void DetectEnginePruneFreeList(void);
+int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
+DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
+void DetectEngineDeReference(DetectEngineCtx **de_ctx);
+int DetectEngineReload(const char *filename);
+int DetectEngineEnabled(void);
+
+int DetectEngineReloadStart(void);
+int DetectEngineReloadIsStart(void);
+void DetectEngineReloadSetDone(void);
+int DetectEngineReloadIsDone(void);
+
 
 /**
  * \brief Registers an app inspection engine.
