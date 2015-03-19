@@ -20,21 +20,15 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pcap-file.h"
-#include "log-httplog.h"
 #include "output.h"
-#include "source-pfring.h"
-#include "detect-engine-mpm.h"
-
-#include "alert-fastlog.h"
-#include "alert-prelude.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
 
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "unix-manager.h"
+
+#include "detect-engine.h"
 
 #include "flow-manager.h"
 #include "flow-timeout.h"
@@ -56,7 +50,6 @@ typedef struct PcapFiles_ {
 } PcapFiles;
 
 typedef struct PcapCommand_ {
-    DetectEngineCtx *de_ctx;
     TAILQ_HEAD(, PcapFiles_) files;
     int running;
     char *currentfile;
@@ -354,7 +347,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
         SCPerfInitCounterApi();
-        RunModeDispatch(RUNMODE_PCAP_FILE, NULL, this->de_ctx);
+        RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
         SCPerfSpawnThreads();
@@ -396,7 +389,7 @@ void UnixSocketPcapFile(TmEcode tm)
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
+int RunModeUnixSocketSingle(void)
 {
 #ifdef BUILD_UNIX_SOCKET
     PcapCommand *pcapcmd = SCMalloc(sizeof(PcapCommand));
@@ -405,12 +398,11 @@ int RunModeUnixSocketSingle(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_MEM_ALLOC, "Can not allocate pcap command");
         return 1;
     }
-    pcapcmd->de_ctx = de_ctx;
     TAILQ_INIT(&pcapcmd->files);
     pcapcmd->running = 0;
     pcapcmd->currentfile = NULL;
 
-    UnixManagerThreadSpawn(de_ctx, 1);
+    UnixManagerThreadSpawn(1);
 
     unix_socket_mode_is_running = 1;
 
