@@ -107,13 +107,15 @@ error:
 int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
+    const int flow_locked = det_ctx->flow_locked;
     const DetectFlowintData *sfd = (const DetectFlowintData *)ctx;
     FlowVar *fv;
     FlowVar *fvt;
     uint32_t targetval;
     int ret = 0;
 
-    FLOWLOCK_WRLOCK(p->flow);
+    if (flow_locked == 0)
+        FLOWLOCK_WRLOCK(p->flow);
 
     /** ATM If we are going to compare the current var with another
      * that doesn't exist, the default value will be zero;
@@ -226,7 +228,8 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
 end:
-    FLOWLOCK_UNLOCK(p->flow);
+    if (flow_locked == 0)
+        FLOWLOCK_UNLOCK(p->flow);
     return ret;
 }
 
