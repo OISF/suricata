@@ -38,8 +38,11 @@ typedef struct FlowBit_ {
 void FlowBitFree(FlowBit *);
 void FlowBitRegisterTests(void);
 
+void FlowBitSetNoLock(Flow *, uint16_t);
 void FlowBitSet(Flow *, uint16_t);
+void FlowBitUnsetNoLock(Flow *, uint16_t);
 void FlowBitUnset(Flow *, uint16_t);
+void FlowBitToggleNoLock(Flow *, uint16_t);
 void FlowBitToggle(Flow *, uint16_t);
 int FlowBitIsset(Flow *, uint16_t);
 int FlowBitIsnotset(Flow *, uint16_t);
