@@ -728,6 +728,7 @@ static int DoInspectItem(ThreadVars *tv,
     if (TxIsLast(inspect_tx_id, total_txs)) {
         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
     }
+    RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
     if (alert) {
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
