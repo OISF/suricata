@@ -103,41 +103,50 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
 #endif /* FLOWBITS_STATS */
 }
 
-void FlowBitSet(Flow *f, uint16_t idx)
+void FlowBitSetNoLock(Flow *f, uint16_t idx)
 {
-    FLOWLOCK_WRLOCK(f);
-
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         FlowBitAdd(f, idx);
     }
+}
 
+void FlowBitSet(Flow *f, uint16_t idx)
+{
+    FLOWLOCK_WRLOCK(f);
+    FlowBitSetNoLock(f, idx);
     FLOWLOCK_UNLOCK(f);
+}
+
+void FlowBitUnsetNoLock(Flow *f, uint16_t idx)
+{
+    FlowBit *fb = FlowBitGet(f, idx);
+    if (fb != NULL) {
+        FlowBitRemove(f, idx);
+    }
 }
 
 void FlowBitUnset(Flow *f, uint16_t idx)
 {
     FLOWLOCK_WRLOCK(f);
-
-    FlowBit *fb = FlowBitGet(f, idx);
-    if (fb != NULL) {
-        FlowBitRemove(f, idx);
-    }
-
+    FlowBitUnsetNoLock(f, idx);
     FLOWLOCK_UNLOCK(f);
 }
 
-void FlowBitToggle(Flow *f, uint16_t idx)
+void FlowBitToggleNoLock(Flow *f, uint16_t idx)
 {
-    FLOWLOCK_WRLOCK(f);
-
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         FlowBitRemove(f, idx);
     } else {
         FlowBitAdd(f, idx);
     }
+}
 
+void FlowBitToggle(Flow *f, uint16_t idx)
+{
+    FLOWLOCK_WRLOCK(f);
+    FlowBitToggleNoLock(f, idx);
     FLOWLOCK_UNLOCK(f);
 }
 
