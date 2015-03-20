@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -78,6 +78,7 @@ typedef struct Task_ {
 typedef struct UnixClient_ {
     int fd;
     MemBuffer *mbuf; /**< buffer for response construction */
+    int version;
     TAILQ_ENTRY(UnixClient_) next;
 } UnixClient;
 
@@ -278,7 +279,10 @@ static void UnixCommandClose(UnixCommand  *this, int fd)
 }
 
 #define UNIX_PROTO_VERSION_LENGTH 200
-#define UNIX_PROTO_VERSION "0.1"
+#define UNIX_PROTO_VERSION_V1 "0.1"
+#define UNIX_PROTO_V1 1
+#define UNIX_PROTO_VERSION "0.2"
+#define UNIX_PROTO_V2 2
 
 static int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
 {
@@ -328,6 +332,7 @@ static int UnixCommandAccept(UnixCommand *this)
     json_t *version;
     json_error_t jerror;
     int client;
+    int client_version;
     int ret;
     UnixClient *uclient = NULL;
 
@@ -374,7 +379,8 @@ static int UnixCommandAccept(UnixCommand *this)
     }
 
     /* check client version */
-    if (strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0) {
+    if ((strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0)
+        && (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) != 0)) {
         SCLogInfo("Unix socket: invalid client version: \"%s\"",
                 json_string_value(version));
         json_decref(client_msg);
@@ -383,6 +389,11 @@ static int UnixCommandAccept(UnixCommand *this)
     } else {
         SCLogDebug("Unix socket: client version: \"%s\"",
                 json_string_value(version));
+        if (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) == 0) {
+            client_version = UNIX_PROTO_V1;
+        } else {
+            client_version = UNIX_PROTO_V2;
+        }
     }
 
     json_decref(client_msg);
@@ -402,6 +413,7 @@ static int UnixCommandAccept(UnixCommand *this)
         return 0;
     }
     uclient->fd = client;
+    uclient->version = client_version;
 
     if (UnixCommandSendJSONToClient(uclient, server_msg) != 0) {
         SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
@@ -414,9 +426,16 @@ static int UnixCommandAccept(UnixCommand *this)
 
     json_decref(server_msg);
 
+    if (client_version > UNIX_PROTO_V1) {
+        if (send(client, "\n", 1, MSG_NOSIGNAL) == -1) {
+            SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+            close(client);
+            return 0;
+        }
+    }
+
     /* client connected */
     SCLogDebug("Unix socket: client connected");
-
     TAILQ_INSERT_TAIL(&this->clients, uclient, next);
     UnixCommandSetMaxFD(this);
     return 1;
@@ -510,6 +529,13 @@ static int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *cli
         goto error;
     }
 
+    if (client->version > UNIX_PROTO_V1) {
+        if (send(client->fd, "\n", 1, MSG_NOSIGNAL) == -1) {
+            SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+            goto error_cmd;
+        }
+    }
+
     json_decref(jsoncmd);
     json_decref(server_msg);
     return ret;
@@ -526,23 +552,82 @@ static void UnixCommandRun(UnixCommand * this, UnixClient *client)
 {
     char buffer[4096];
     int ret;
-    ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
-    if (ret <= 0) {
-        if (ret == 0) {
-            SCLogDebug("Unix socket: lost connection with client");
-        } else {
-            SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
-                      strerror(errno));
+    if (client->version <= UNIX_PROTO_V1) {
+        ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
+        if (ret <= 0) {
+            if (ret == 0) {
+                SCLogDebug("Unix socket: lost connection with client");
+            } else {
+                SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
+                        strerror(errno));
+            }
+            UnixCommandClose(this, client->fd);
+            return;
         }
-        UnixCommandClose(this, client->fd);
-        return;
+        if (ret >= (int)(sizeof(buffer)-1)) {
+            SCLogError(SC_ERR_SOCKET, "Command server: client command is too long, "
+                    "disconnect him.");
+            UnixCommandClose(this, client->fd);
+        }
+        buffer[ret] = 0;
+    } else {
+        int try = 0;
+        int offset = 0;
+        int cmd_over = 0;
+        ret = recv(client->fd, buffer + offset, sizeof(buffer) - offset - 1, 0);
+        do {
+            if (ret <= 0) {
+                if (ret == 0) {
+                    SCLogInfo("Unix socket: lost connection with client");
+                } else {
+                    SCLogInfo("Unix socket: error on recv() from client: %s",
+                            strerror(errno));
+                }
+                UnixCommandClose(this, client->fd);
+                return;
+            }
+            if (ret >= (int)(sizeof(buffer)- offset - 1)) {
+                SCLogInfo("Command server: client command is too long, "
+                        "disconnect him.");
+                UnixCommandClose(this, client->fd);
+            }
+            if (buffer[ret - 1] == '\n') {
+                buffer[ret-1] = 0;
+                cmd_over = 1;
+            } else {
+                struct timeval tv;
+                fd_set select_set;
+                offset += ret;   
+                do {
+                    FD_ZERO(&select_set);
+                    FD_SET(client->fd, &select_set);
+                    tv.tv_sec = 0;
+                    tv.tv_usec = 200 * 1000;
+                    try++;
+                    ret = select(client->fd, &select_set, NULL, NULL, &tv);
+                    /* catch select() error */
+                    if (ret == -1) {
+                        /* Signal was caught: just ignore it */
+                        if (errno != EINTR) {
+                            SCLogInfo("Unix socket: lost connection with client");
+                            UnixCommandClose(this, client->fd);
+                            return;
+                        }
+                    }
+                } while (ret == 0 && try < 3);
+                if (ret > 0) {
+                    ret = recv(client->fd, buffer + offset,
+                               sizeof(buffer) - offset - 1, 0);
+                }
+            }
+        } while (try < 3 && cmd_over == 0);
+
+        if (try == 3 && cmd_over == 0) {
+            SCLogInfo("Unix socket: imcomplete client message, closing connection");
+            UnixCommandClose(this, client->fd);
+            return;
+        }
     }
-    if (ret >= (int)(sizeof(buffer)-1)) {
-        SCLogInfo("Command server: client command is too long, "
-                  "disconnect him.");
-        UnixCommandClose(this, client->fd);
-    }
-    buffer[ret] = 0;
     UnixCommandExecute(this, buffer, client);
 }
 
