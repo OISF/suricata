@@ -67,6 +67,7 @@ typedef struct Task_ {
 
 typedef struct UnixClient_ {
     int fd;
+    int version;
     TAILQ_ENTRY(UnixClient_) next;
 } UnixClient;
 
@@ -262,7 +263,10 @@ int UnixCommandSendCallback(const char *buffer, size_t size, void *data)
 }
 
 #define UNIX_PROTO_VERSION_LENGTH 200
-#define UNIX_PROTO_VERSION "0.1"
+#define UNIX_PROTO_VERSION_V1 "0.1"
+#define UNIX_PROTO_V1 1
+#define UNIX_PROTO_VERSION "0.2"
+#define UNIX_PROTO_V2 2
 
 /**
  * \brief Accept a new client on unix socket
@@ -281,6 +285,7 @@ int UnixCommandAccept(UnixCommand *this)
     json_t *version;
     json_error_t jerror;
     int client;
+    int client_version;
     int ret;
     UnixClient *uclient = NULL;
 
@@ -327,7 +332,8 @@ int UnixCommandAccept(UnixCommand *this)
     }
 
     /* check client version */
-    if (strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0) {
+    if ((strcmp(json_string_value(version), UNIX_PROTO_VERSION) != 0)
+        && (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) != 0)) {
         SCLogInfo("Unix socket: invalid client version: \"%s\"",
                 json_string_value(version));
         json_decref(client_msg);
@@ -335,7 +341,12 @@ int UnixCommandAccept(UnixCommand *this)
         return 0;
     } else {
         SCLogInfo("Unix socket: client version: \"%s\"",
-                json_string_value(version));
+                  json_string_value(version));
+        if (strcmp(json_string_value(version), UNIX_PROTO_VERSION_V1) == 0) {
+            client_version = UNIX_PROTO_V1;
+        } else {
+            client_version = UNIX_PROTO_V2;
+        }
     }
 
     json_decref(client_msg);
@@ -355,6 +366,14 @@ int UnixCommandAccept(UnixCommand *this)
     }
     json_decref(server_msg);
 
+    if (client_version > UNIX_PROTO_V1) {
+        if (send(client, "\n", 1, MSG_NOSIGNAL) == -1) {
+            SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+            close(client);
+            return 0;
+        }
+    }
+
     /* client connected */
     SCLogInfo("Unix socket: client connected");
 
@@ -364,6 +383,7 @@ int UnixCommandAccept(UnixCommand *this)
         return 0;
     }
     uclient->fd = client;
+    uclient->version = client_version;
     TAILQ_INSERT_TAIL(&this->clients, uclient, next);
     UnixCommandSetMaxFD(this);
     return 1;
@@ -457,6 +477,13 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
     if (json_dump_callback(server_msg, UnixCommandSendCallback, &client->fd, 0) == -1) {
         SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
         goto error_cmd;
+    }
+
+    if (client->version > UNIX_PROTO_V1) {
+        if (send(client->fd, "\n", 1, MSG_NOSIGNAL) == -1) {
+            SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+            goto error_cmd;
+        }
     }
 
     json_decref(jsoncmd);

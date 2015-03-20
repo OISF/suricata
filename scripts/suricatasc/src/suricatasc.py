@@ -25,10 +25,11 @@ from time import sleep
 import select
 import sys
 
-SURICATASC_VERSION = "0.9"
+SURICATASC_VERSION = "1.0"
 
-VERSION = "0.1"
-SIZE = 4096
+VERSION = "0.2"
+SIZE = 8 * 4096
+INC_SIZE = 1
 
 class SuricataException(Exception):
     """
@@ -88,17 +89,15 @@ class SuricataSC:
         cmdret = None
         i = 0
         data = ""
-        while i < 5:
+        while i < SIZE:
             i += 1
             if sys.version < '3':
-                data += self.socket.recv(SIZE)
+                data += self.socket.recv(INC_SIZE)
             else:
-                data += self.socket.recv(SIZE).decode('iso-8859-1')
-            try:
+                data += self.socket.recv(INC_SIZE).decode('iso-8859-1')
+            if data.endswith('\n'):
                 cmdret = json.loads(data)
                 break
-            except:
-                sleep(0.3)
         return cmdret
 
     def send_command(self, command, arguments = None):
