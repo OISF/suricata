@@ -731,7 +731,9 @@ static int DoInspectItem(ThreadVars *tv,
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
     if (alert) {
+        det_ctx->flow_locked = 1;
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
+        det_ctx->flow_locked = 0;
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, inspect_tx_id,
@@ -826,7 +828,9 @@ static int DoInspectFlowRule(ThreadVars *tv,
     item->nm = sm;
 
     if (alert) {
+        det_ctx->flow_locked = 1;
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
+        det_ctx->flow_locked = 0;
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, 0,

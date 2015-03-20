@@ -774,7 +774,7 @@ typedef struct HttpReassembledBody_ {
 /**
   * Detection engine thread data.
   */
-typedef struct DetectionEngineThreadCtx_ {
+typedef struct DetectEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
@@ -791,6 +791,10 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
+
+    /* bool to hint the POSTMATCH list members about the lock status of the
+     * flow. If locked this is TRUE, unlocked or no-flow: FALSE */
+    uint8_t flow_locked;
 
     HttpReassembledBody *hsbd;
     uint64_t hsbd_start_tx_id;

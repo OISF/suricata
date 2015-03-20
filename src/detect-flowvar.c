@@ -288,6 +288,7 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
 {
     DetectFlowvarList *fs, *prev;
     const DetectFlowvarData *fd;
+    const int flow_locked = det_ctx->flow_locked;
 
     if (det_ctx->flowvarlist == NULL || p->flow == NULL)
         return 1;
@@ -301,7 +302,10 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
-            FlowVarAddStr(p->flow, fs->idx, fs->buffer, fs->len);
+            if (flow_locked)
+                FlowVarAddStrNoLock(p->flow, fs->idx, fs->buffer, fs->len);
+            else
+                FlowVarAddStr(p->flow, fs->idx, fs->buffer, fs->len);
             /* memory at fs->buffer is now the responsibility of
              * the flowvar code. */
 
@@ -327,7 +331,7 @@ static int DetectFlowvarPostMatch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx
  *         - enforce storage for type ALWAYS (luajit)
  *   Only called from DetectFlowvarProcessList() when flowvarlist is not NULL .
  */
-void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f)
+void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f, const int flow_locked)
 {
     DetectFlowvarList *next;
 
@@ -339,7 +343,10 @@ void DetectFlowvarProcessListInternal(DetectFlowvarList *fs, Flow *f)
             SCLogDebug("adding to the flow %u:", fs->idx);
             //PrintRawDataFp(stdout, fs->buffer, fs->len);
 
-            FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
+            if (flow_locked)
+                FlowVarAddStrNoLock(f, fs->idx, fs->buffer, fs->len);
+            else
+                FlowVarAddStr(f, fs->idx, fs->buffer, fs->len);
             /* memory at fs->buffer is now the responsibility of
              * the flowvar code. */
         } else
