@@ -111,6 +111,9 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     FlowVar *fv;
     FlowVar *fvt;
     uint32_t targetval;
+    int ret = 0;
+
+    FLOWLOCK_WRLOCK(p->flow);
 
     /** ATM If we are going to compare the current var with another
      * that doesn't exist, the default value will be zero;
@@ -136,9 +139,10 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCLogDebug("Our var %s is at idx: %"PRIu16"", sfd->name, sfd->idx);
 
     if (sfd->modifier == FLOWINT_MODIFIER_SET) {
-        FlowVarAddInt(p->flow, sfd->idx, targetval);
+        FlowVarAddIntNoLock(p->flow, sfd->idx, targetval);
         SCLogDebug("Setting %s = %u", sfd->name, targetval);
-        return 1;
+        ret = 1;
+        goto end;
     }
 
     fv = FlowVarGet(p->flow, sfd->idx);
@@ -146,58 +150,58 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (sfd->modifier == FLOWINT_MODIFIER_ISSET) {
         SCLogDebug(" Isset %s? = %u", sfd->name,(fv) ? 1 : 0);
         if (fv != NULL)
-            return 1;
-        else
-            return 0;
+            ret = 1;
+        goto end;
     }
 
     if (sfd->modifier == FLOWINT_MODIFIER_NOTSET) {
         SCLogDebug(" Not set %s? = %u", sfd->name,(fv) ? 0 : 1);
-        if (fv != NULL)
-            return 0;
-        else
-            return 1;
+        if (fv == NULL)
+            ret = 1;
+        goto end;
     }
 
     if (fv != NULL && fv->datatype == FLOWVAR_TYPE_INT) {
         if (sfd->modifier == FLOWINT_MODIFIER_ADD) {
             SCLogDebug("Adding %u to %s", targetval, sfd->name);
-            FlowVarAddInt(p->flow, sfd->idx, fv->data.fv_int.value +
+            FlowVarAddIntNoLock(p->flow, sfd->idx, fv->data.fv_int.value +
                            targetval);
-            return 1;
+            ret = 1;
+            goto end;
         }
 
         if (sfd->modifier == FLOWINT_MODIFIER_SUB) {
             SCLogDebug("Substracting %u to %s", targetval, sfd->name);
-            FlowVarAddInt(p->flow, sfd->idx, fv->data.fv_int.value -
+            FlowVarAddIntNoLock(p->flow, sfd->idx, fv->data.fv_int.value -
                            targetval);
-            return 1;
+            ret = 1;
+            goto end;
         }
 
         switch(sfd->modifier) {
             case FLOWINT_MODIFIER_EQ:
                 SCLogDebug("( %u EQ %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value == targetval;
+                ret = (fv->data.fv_int.value == targetval);
                 break;
             case FLOWINT_MODIFIER_NE:
                 SCLogDebug("( %u NE %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value != targetval;
+                ret = (fv->data.fv_int.value != targetval);
                 break;
             case FLOWINT_MODIFIER_LT:
                 SCLogDebug("( %u LT %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value < targetval;
+                ret = (fv->data.fv_int.value < targetval);
                 break;
             case FLOWINT_MODIFIER_LE:
                 SCLogDebug("( %u LE %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value <= targetval;
+                ret = (fv->data.fv_int.value <= targetval);
                 break;
             case FLOWINT_MODIFIER_GT:
                 SCLogDebug("( %u GT %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value > targetval;
+                ret = (fv->data.fv_int.value > targetval);
                 break;
             case FLOWINT_MODIFIER_GE:
                 SCLogDebug("( %u GE %u )", fv->data.fv_int.value, targetval);
-                return fv->data.fv_int.value >= targetval;
+                ret = (fv->data.fv_int.value >= targetval);
                 break;
             default:
                 SCLogDebug("Unknown Modifier!");
@@ -210,18 +214,20 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
          * so implying a 0 set. */
         if (sfd->modifier == FLOWINT_MODIFIER_ADD) {
             SCLogDebug("Adding %u to %s (new var)", targetval, sfd->name);
-            FlowVarAddInt(p->flow, sfd->idx, targetval);
-            return 1;
+            FlowVarAddIntNoLock(p->flow, sfd->idx, targetval);
+            ret = 1;
         } else {
-
             SCLogDebug("Var not found!");
             /* It doesn't exist because it wasn't set
              * or it is a string var, that we don't compare here
              */
-            return 0;
+            ret = 0;
         }
     }
-    return 0;
+
+end:
+    FLOWLOCK_UNLOCK(p->flow);
+    return ret;
 }
 
 /**
