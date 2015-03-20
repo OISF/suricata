@@ -755,16 +755,9 @@ static int DoInspectFlowRule(ThreadVars *tv,
     DeStateStoreFlowRule *item, const uint8_t dir_state_flags,
     Packet *p, Flow *f, AppProto alproto, uint8_t flags)
 {
-    if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
-        if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
-            det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-            return 0;
-        }
-    }
-
-    /* check if a sig in state 'cant match' needs to be reconsidered
-     * as the result of a new file in the existing tx */
-    if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+    /* flag rules that are either full inspected or unable to match
+     * in the de_state_sig_array so that prefilter filters them out */
+    if (item->flags & (DE_STATE_FLAG_FULL_INSPECT|DE_STATE_FLAG_SIG_CANT_MATCH)) {
         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
         return 0;
     }
@@ -820,10 +813,12 @@ static int DoInspectFlowRule(ThreadVars *tv,
                 alert = 1;
             inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
         }
+        /* prevent the rule loop from reinspecting this rule */
         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
     }
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
+    /* store the progress in the state */
     item->flags |= inspect_flags;
     item->nm = sm;
 
@@ -854,6 +849,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SigIntId state_cnt = 0;
     uint64_t inspect_tx_id = 0;
     uint64_t total_txs = 0;
+    uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
     FLOWLOCK_WRLOCK(f);
 
@@ -887,7 +883,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     SCLogDebug("NO STATE tx %"PRIu64" (%"PRIu64")", inspect_tx_id, total_txs);
                     continue;
                 }
-                DetectEngineStateDirection *tx_dir_state = &tx_de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
+                DetectEngineStateDirection *tx_dir_state = &tx_de_state->dir_state[direction];
                 DeStateStore *tx_store = tx_dir_state->head;
 
                 /* see if we need to consider the next tx in our decision to add
@@ -923,6 +919,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     }
                 }
             }
+            /* if the current tx is in progress, we won't advance to any newer
+             * tx' just yet. */
             if (inspect_tx_inprogress) {
                 SCLogDebug("break out");
                 break;
@@ -932,7 +930,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     /* continue on flow based state rules (AMATCH) */
     if (f->de_state != NULL) {
-        DetectEngineStateDirectionFlow *dir_state = &f->de_state->dir_state[flags & STREAM_TOSERVER ? 0 : 1];
+        DetectEngineStateDirectionFlow *dir_state = &f->de_state->dir_state[direction];
         DeStateStoreFlowRules *store = dir_state->head;
         /* Loop through stored 'items' (stateful rules) and inspect them */
         for (; store != NULL; store = store->next) {
