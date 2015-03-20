@@ -454,7 +454,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 continue;
             det_ctx->tx_id = tx_id;
             det_ctx->tx_id_set = 1;
-            DetectEngineAppInspectionEngine *engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][direction];
+            DetectEngineAppInspectionEngine *engine = app_inspection_engine[f->protomap][alproto][direction];
             inspect_flags = 0;
             while (engine != NULL) {
                 if (s->sm_lists[engine->sm_list] != NULL) {
@@ -687,7 +687,7 @@ static int DoInspectItem(ThreadVars *tv,
 
     det_ctx->tx_id = inspect_tx_id;
     det_ctx->tx_id_set = 1;
-    DetectEngineAppInspectionEngine *engine = app_inspection_engine[FlowGetProtoMapping(f->proto)][alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
+    DetectEngineAppInspectionEngine *engine = app_inspection_engine[f->protomap][alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
     void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
     if (inspect_tx == NULL) {
         RULE_PROFILING_END(det_ctx, s, 0, p);
