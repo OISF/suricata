@@ -1374,10 +1374,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
-        /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
         int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
         if (has_inspectable_state == 1) {
+            /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
                                            flags, alproto, alversion);
         } else if (has_inspectable_state == 2) {
@@ -1500,7 +1500,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
         if (sflags & SIG_FLAG_STATE_MATCH) {
-            if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NO_NEW_STATE)
+            if (det_ctx->de_state_sig_array[s->num] & DE_STATE_MATCH_NO_NEW_STATE)
                 goto next;
         }
 

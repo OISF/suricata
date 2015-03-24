@@ -81,6 +81,18 @@
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 
+/** The DetectEngineThreadCtx::de_state_sig_array contains 2 separate values:
+ *  1. the first bit tells the prefilter engine to bypass the rule (or not)
+ *  2. the other bits allow 'ContinueDetect' to specify an offset again the
+ *     base tx id. This offset will then be used by 'StartDetect' to not
+ *     inspect transactions again for the same signature.
+ *
+ *  The offset in (2) has a max value due to the limited data type. If it is
+ *  set to max the code will fall back to a slower path that validates that
+ *  we're not adding duplicate rules to the detection state.
+ */
+#define MAX_STORED_TXID_OFFSET 127
+
 /******** static internal helpers *********/
 
 static inline int StateIsValid(uint16_t alproto, void *alstate)
@@ -124,7 +136,6 @@ static DeStateStoreFlowRules *DeStateStoreFlowRulesAlloc(void)
     return d;
 }
 
-#ifdef DEBUG_VALIDATION
 static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
 {
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
@@ -140,7 +151,7 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
         {
             DeStateStoreItem *item = &tx_store->store[store_cnt];
             if (item->sid == num) {
-                SCLogDebug("BUG! sid %u already in state: %p %p %p %u %u, direction %s",
+                SCLogDebug("sid %u already in state: %p %p %p %u %u, direction %s",
                             num, state, dir_state, tx_store, state_cnt,
                             store_cnt, direction & STREAM_TOSERVER ? "toserver" : "toclient");
                 return 1;
@@ -149,7 +160,6 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
     }
     return 0;
 }
-#endif
 
 static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
@@ -424,11 +434,14 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
     }
 }
 
+/**
+ *  \param check_before_add check for duplicates before adding the sig
+ */
 static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
         Flow *f, const uint8_t flags, const uint16_t alversion,
         const uint64_t tx_id, void *tx,
         Signature *s, SigMatch *sm,
-        const uint32_t inspect_flags, const uint16_t file_no_match)
+        const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
 {
     if (AppLayerParserSupportsTxDetectState(f->proto, f->alproto)) {
         DetectEngineState *destate = AppLayerParserGetTxDetectState(f->proto, f->alproto, tx);
@@ -444,7 +457,8 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
             SCLogDebug("destate created for %"PRIu64, tx_id);
         }
 
-        DeStateSignatureAppend(destate, s, inspect_flags, flags);
+        if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
+            DeStateSignatureAppend(destate, s, inspect_flags, flags);
         DeStateStoreStateVersion(f, alversion, flags);
 
         StoreStateTxHandleFiles(det_ctx, f, destate, flags, tx_id, file_no_match);
@@ -462,6 +476,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint32_t inspect_flags = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     int alert_cnt = 0;
+    int check_before_add = 0;
 
     FLOWLOCK_WRLOCK(f);
     /* TX based matches (inspect engines) */
@@ -474,7 +489,18 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             goto end;
         }
 
+        /* if continue detection already inspected this rule for this tx,
+         * continue with the first not-inspected tx */
+        uint8_t offset = det_ctx->de_state_sig_array[s->num] & 0xef;
         tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        if (offset > 0) {
+            SCLogDebug("using stored_tx_id %u instead of %u", (uint)tx_id+offset, (uint)tx_id);
+            tx_id += offset;
+        }
+        if (offset == MAX_STORED_TXID_OFFSET) {
+            check_before_add = 1;
+        }
+
         total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
         SCLogDebug("total_txs %"PRIu64, total_txs);
 
@@ -557,7 +583,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
                     /* store */
                     StoreStateTx(det_ctx, f, flags, alversion, tx_id, tx,
-                            s, sm, inspect_flags, file_no_match);
+                            s, sm, inspect_flags, file_no_match, check_before_add);
                 } else {
                     StoreStateTxFileOnly(det_ctx, f, flags, tx_id, tx, file_no_match);
                 }
@@ -704,6 +730,16 @@ static int DoInspectItem(ThreadVars *tv,
                 SCLogDebug("skip and bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
             } else {
                 SCLogDebug("just skip: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+
+                /* make sure that if we reinspect this right now from
+                 * start detection, we skip this tx we just matched on */
+                uint64_t base_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+                uint64_t offset = (inspect_tx_id + 1) - base_tx_id;
+                if (offset > MAX_STORED_TXID_OFFSET)
+                    offset = MAX_STORED_TXID_OFFSET;
+                det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+                BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
+                SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
             }
             return 0;
         }
@@ -730,6 +766,16 @@ static int DoInspectItem(ThreadVars *tv,
                 SCLogDebug("skip and bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
             } else {
                 SCLogDebug("just skip: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+
+                /* make sure that if we reinspect this right now from
+                 * start detection, we skip this tx we just matched on */
+                uint64_t base_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+                uint64_t offset = (inspect_tx_id + 1) - base_tx_id;
+                if (offset > MAX_STORED_TXID_OFFSET)
+                    offset = MAX_STORED_TXID_OFFSET;
+                det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+                BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
+                SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
             }
             return 0;
         }
@@ -794,6 +840,17 @@ static int DoInspectItem(ThreadVars *tv,
     if (TxIsLast(inspect_tx_id, total_txs) || inprogress || next_tx_no_progress) {
         det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
         SCLogDebug("inspected, now bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+    } else {
+        /* make sure that if we reinspect this right now from
+         * start detection, we skip this tx we just matched on */
+        uint64_t base_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        uint64_t offset = (inspect_tx_id + 1) - base_tx_id;
+        if (offset > MAX_STORED_TXID_OFFSET)
+            offset = MAX_STORED_TXID_OFFSET;
+        det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+        BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
+
+        SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
     }
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
@@ -1092,17 +1149,6 @@ void DetectEngineStateResetTxs(Flow *f)
             }
         }
     }
-}
-
-/** \brief get string for match enum */
-const char *DeStateMatchResultToString(DeStateMatchResult res)
-{
-    switch (res) {
-        CASE_CODE (DE_STATE_MATCH_NO_NEW_STATE);
-        CASE_CODE (DE_STATE_MATCH_HAS_NEW_STATE);
-    }
-
-    return NULL;
 }
 
 /*********Unittests*********/
