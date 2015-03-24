@@ -107,28 +107,34 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     *buffer_len = 0;
 
     if (det_ctx->hhd_buffers_list_len == 0) {
-        if (HHDCreateSpace(det_ctx, 1) < 0)
-            goto end;
-        index = 0;
+        /* get the inspect id to use as a 'base id' */
+        uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        BUG_ON(base_inspect_id > tx_id);
+        /* see how many space we need for the current tx_id */
+        uint16_t txs = (tx_id - base_inspect_id) + 1;
 
-        if (det_ctx->hhd_buffers_list_len == 0) {
-            det_ctx->hhd_start_tx_id = tx_id;
-        }
-        det_ctx->hhd_buffers_list_len++;
+        if (HHDCreateSpace(det_ctx, txs) < 0)
+            goto end;
+
+        index = (tx_id - base_inspect_id);
+        det_ctx->hhd_start_tx_id = base_inspect_id;
+        det_ctx->hhd_buffers_list_len = txs;
     } else {
+        /* tx fits in our current buffers */
         if ((tx_id - det_ctx->hhd_start_tx_id) < det_ctx->hhd_buffers_list_len) {
+            /* if we previously reassembled, return that buffer */
             if (det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)] != 0) {
                 *buffer_len = det_ctx->hhd_buffers_len[(tx_id - det_ctx->hhd_start_tx_id)];
                 return det_ctx->hhd_buffers[(tx_id - det_ctx->hhd_start_tx_id)];
             }
+            /* otherwise fall through */
         } else {
-            if (HHDCreateSpace(det_ctx, (tx_id - det_ctx->hhd_start_tx_id) + 1) < 0)
+            /* not enough space, lets expand */
+            uint16_t txs = (tx_id - det_ctx->hhd_start_tx_id) + 1;
+            if (HHDCreateSpace(det_ctx, txs) < 0)
                 goto end;
 
-            if (det_ctx->hhd_buffers_list_len == 0) {
-                det_ctx->hhd_start_tx_id = tx_id;
-            }
-            det_ctx->hhd_buffers_list_len++;
+            det_ctx->hhd_buffers_list_len = txs;
         }
         index = (tx_id - det_ctx->hhd_start_tx_id);
     }

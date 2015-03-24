@@ -105,14 +105,18 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     *stream_start_offset = 0;
 
     if (det_ctx->hcbd_buffers_list_len == 0) {
-        if (HCBDCreateSpace(det_ctx, 1) < 0)
-            goto end; /* let's consider it as stage not done for now */
-        index = 0;
+        /* get the inspect id to use as a 'base id' */
+        uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+        BUG_ON(base_inspect_id > tx_id);
+        /* see how many space we need for the current tx_id */
+        uint16_t txs = (tx_id - base_inspect_id) + 1;
 
-        if (det_ctx->hcbd_buffers_list_len == 0) {
-            det_ctx->hcbd_start_tx_id = tx_id;
-        }
-        det_ctx->hcbd_buffers_list_len++;
+        if (HCBDCreateSpace(det_ctx, txs) < 0)
+            goto end;
+
+        index = (tx_id - base_inspect_id);
+        det_ctx->hcbd_start_tx_id = base_inspect_id;
+        det_ctx->hcbd_buffers_list_len = txs;
     } else {
         if ((tx_id - det_ctx->hcbd_start_tx_id) < det_ctx->hcbd_buffers_list_len) {
             if (det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer_len != 0) {
@@ -121,13 +125,11 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                 return det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer;
             }
         } else {
-            if (HCBDCreateSpace(det_ctx, (tx_id - det_ctx->hcbd_start_tx_id) + 1) < 0)
+            uint16_t txs = (tx_id - det_ctx->hcbd_start_tx_id) + 1;
+            if (HCBDCreateSpace(det_ctx, txs) < 0)
                 goto end; /* let's consider it as stage not done for now */
 
-            if (det_ctx->hcbd_buffers_list_len == 0) {
-                det_ctx->hcbd_start_tx_id = tx_id;
-            }
-            det_ctx->hcbd_buffers_list_len++;
+            det_ctx->hcbd_buffers_list_len = txs;
         }
         index = (tx_id - det_ctx->hcbd_start_tx_id);
     }
