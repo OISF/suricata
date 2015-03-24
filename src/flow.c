@@ -179,7 +179,7 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
  *  \retval 0 to_server
  *  \retval 1 to_client
  */
-int FlowGetPacketDirection(Flow *f, const Packet *p)
+int FlowGetPacketDirection(const Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
@@ -227,21 +227,53 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
-/** \brief Entry point for packet flow handling
+/**
  *
- * This is called for every packet.
+ *  Remove packet from flow. This assumes this happens *before* the packet
+ *  is added to the stream engine and other higher state.
  *
- *  \param tv threadvars
- *  \param p packet to handle flow for
+ *  \todo we can't restore the lastts
  */
-void FlowHandlePacket(ThreadVars *tv, Packet *p)
+void FlowHandlePacketUpdateRemove(Flow *f, Packet *p)
 {
-    /* Get this packet's flow from the hash. FlowHandlePacket() will setup
-     * a new flow if nescesary. If we get NULL, we're out of flow memory.
-     * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(p);
-    if (f == NULL)
-        return;
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+#ifdef DEBUG
+        f->todstpktcnt--;
+        f->bytecnt -= GET_PKT_LEN(p);
+#endif
+        p->flowflags &= ~(FLOW_PKT_TOSERVER|FLOW_PKT_TOSERVER_FIRST);
+    } else {
+#ifdef DEBUG
+        f->tosrcpktcnt--;
+        f->bytecnt -= GET_PKT_LEN(p);
+#endif
+        p->flowflags &= ~(FLOW_PKT_TOCLIENT|FLOW_PKT_TOCLIENT_FIRST);
+    }
+    p->flowflags &= ~FLOW_PKT_ESTABLISHED;
+
+    /*set the detection bypass flags*/
+    if (f->flags & FLOW_NOPACKET_INSPECTION) {
+        SCLogDebug("unsetting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
+        DecodeUnsetNoPacketInspectionFlag(p);
+    }
+    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
+        SCLogDebug("unsetting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
+        DecodeUnsetNoPayloadInspectionFlag(p);
+    }
+}
+
+/** \brief Update Packet and Flow
+ *
+ *  Updates packet and flow based on the new packet.
+ *
+ *  \param f locked flow
+ *  \param p packet
+ *
+ *  \note overwrites p::flowflags
+ */
+void FlowHandlePacketUpdate(Flow *f, Packet *p)
+{
+    SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
 
     /* Point the Packet at the Flow */
     FlowReference(&p->flow, f);
@@ -251,27 +283,33 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
-        if (FlowUpdateSeenFlag(p)) {
-            f->flags |= FLOW_TO_DST_SEEN;
-        }
 #ifdef DEBUG
         f->todstpktcnt++;
 #endif
-        p->flowflags |= FLOW_PKT_TOSERVER;
-    } else {
-        if (FlowUpdateSeenFlag(p)) {
-            f->flags |= FLOW_TO_SRC_SEEN;
+        p->flowflags = FLOW_PKT_TOSERVER;
+        if (!(f->flags & FLOW_TO_DST_SEEN)) {
+            if (FlowUpdateSeenFlag(p)) {
+                f->flags |= FLOW_TO_DST_SEEN;
+                p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+            }
         }
+    } else {
 #ifdef DEBUG
         f->tosrcpktcnt++;
 #endif
-        p->flowflags |= FLOW_PKT_TOCLIENT;
+        p->flowflags = FLOW_PKT_TOCLIENT;
+        if (!(f->flags & FLOW_TO_SRC_SEEN)) {
+            if (FlowUpdateSeenFlag(p)) {
+                f->flags |= FLOW_TO_SRC_SEEN;
+                p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+            }
+        }
     }
 #ifdef DEBUG
     f->bytecnt += GET_PKT_LEN(p);
 #endif
 
-    if ((f->flags & FLOW_TO_DST_SEEN) && (f->flags & FLOW_TO_SRC_SEEN)) {
+    if ((f->flags & (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) == (FLOW_TO_DST_SEEN|FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -285,6 +323,26 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
         SCLogDebug("setting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
         DecodeSetNoPayloadInspectionFlag(p);
     }
+}
+
+/** \brief Entry point for packet flow handling
+ *
+ * This is called for every packet.
+ *
+ *  \param tv threadvars
+ *  \param dtv decode thread vars (for flow output api thread data)
+ *  \param p packet to handle flow for
+ */
+void FlowHandlePacket(ThreadVars *tv, Packet *p)
+{
+    /* Get this packet's flow from the hash. FlowHandlePacket() will setup
+     * a new flow if nescesary. If we get NULL, we're out of flow memory.
+     * The returned flow is locked. */
+    Flow *f = FlowGetFlowFromHash(p);
+    if (f == NULL)
+        return;
+
+    FlowHandlePacketUpdate(f, p);
 
     FLOWLOCK_UNLOCK(f);
 

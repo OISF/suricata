@@ -48,6 +48,7 @@ SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
 static Flow *FlowGetUsedFlow(void);
+static int handle_tcp_reuse = 1;
 
 #ifdef FLOW_DEBUG_STATS
 #define FLOW_DEBUG_STATS_PROTO_ALL      0
@@ -143,6 +144,11 @@ void FlowHashDebugDeinit(void)
 #define FlowHashCountIncr
 
 #endif /* FLOW_DEBUG_STATS */
+
+void FlowDisableTcpReuseHandling(void)
+{
+    handle_tcp_reuse = 0;
+}
 
 /** \brief compare two raw ipv6 addrs
  *
@@ -386,10 +392,33 @@ static inline int FlowCompareICMPv4(Flow *f, const Packet *p)
     return 0;
 }
 
+int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, void *tcp_ssn);
+
 static inline int FlowCompare(Flow *f, const Packet *p)
 {
     if (p->proto == IPPROTO_ICMP) {
         return FlowCompareICMPv4(f, p);
+    } else if (p->proto == IPPROTO_TCP) {
+        if (CMP_FLOW(f, p) == 0)
+            return 0;
+
+        /* if this session is 'reused', we don't return it anymore,
+         * so return false on the compare */
+        if (f->flags & FLOW_TCP_REUSED)
+            return 0;
+
+        if (handle_tcp_reuse == 1) {
+            /* lets see if we need to consider the existing session reuse */
+            if (unlikely(TcpSessionPacketSsnReuse(p, f, f->protoctx) == 1)) {
+                /* okay, we need to setup a new flow for this packet.
+                 * Flag the flow that it's been replaced by a new one */
+                f->flags |= FLOW_TCP_REUSED;
+                SCLogDebug("flow obsolete: TCP reuse will use a new flow "
+                        "starting with packet %"PRIu64, p->pcap_cnt);
+                return 0;
+            }
+        }
+        return 1;
     } else {
         return CMP_FLOW(f, p);
     }
@@ -473,7 +502,115 @@ static Flow *FlowGetNew(const Packet *p)
     return f;
 }
 
-/* FlowGetFlowFromHash
+Flow *FlowGetFlowFromHashByPacket(const Packet *p)
+{
+    Flow *f = NULL;
+
+    /* get the key to our bucket */
+    uint32_t key = FlowGetKey(p);
+    /* get our hash bucket and lock it */
+    FlowBucket *fb = &flow_hash[key];
+    FBLOCK_LOCK(fb);
+
+    SCLogDebug("fb %p fb->head %p", fb, fb->head);
+
+    f = FlowGetNew(p);
+    if (f != NULL) {
+        /* flow is locked */
+        if (fb->head == NULL) {
+            fb->head = f;
+            fb->tail = f;
+        } else {
+            f->hprev = fb->tail;
+            fb->tail->hnext = f;
+            fb->tail = f;
+        }
+
+        /* got one, now lock, initialize and return */
+        FlowInit(f, p);
+        f->fb = fb;
+    }
+    FBLOCK_UNLOCK(fb);
+    return f;
+}
+
+/** \brief Lookup flow based on packet
+ *
+ *  Find the flow belonging to this packet. If not found, no new flow
+ *  is set up.
+ *
+ *  \param p packet to lookup the flow for
+ *
+ *  \retval f flow or NULL if not found
+ */
+Flow *FlowLookupFlowFromHash(const Packet *p)
+{
+    Flow *f = NULL;
+
+    /* get the key to our bucket */
+    uint32_t key = FlowGetKey(p);
+    /* get our hash bucket and lock it */
+    FlowBucket *fb = &flow_hash[key];
+    FBLOCK_LOCK(fb);
+
+    SCLogDebug("fb %p fb->head %p", fb, fb->head);
+
+    /* see if the bucket already has a flow */
+    if (fb->head == NULL) {
+        FBLOCK_UNLOCK(fb);
+        return NULL;
+    }
+
+    /* ok, we have a flow in the bucket. Let's find out if it is our flow */
+    f = fb->head;
+
+    /* see if this is the flow we are looking for */
+    if (FlowCompare(f, p) == 0) {
+        while (f) {
+            FlowHashCountIncr;
+
+            f = f->hnext;
+
+            if (f == NULL) {
+                FBLOCK_UNLOCK(fb);
+                return NULL;
+            }
+
+            if (FlowCompare(f, p) != 0) {
+                /* we found our flow, lets put it on top of the
+                 * hash list -- this rewards active flows */
+                if (f->hnext) {
+                    f->hnext->hprev = f->hprev;
+                }
+                if (f->hprev) {
+                    f->hprev->hnext = f->hnext;
+                }
+                if (f == fb->tail) {
+                    fb->tail = f->hprev;
+                }
+
+                f->hnext = fb->head;
+                f->hprev = NULL;
+                fb->head->hprev = f;
+                fb->head = f;
+
+                /* found our flow, lock & return */
+                FLOWLOCK_WRLOCK(f);
+
+                FBLOCK_UNLOCK(fb);
+                return f;
+            }
+        }
+    }
+
+    /* lock & return */
+    FLOWLOCK_WRLOCK(f);
+
+    FBLOCK_UNLOCK(fb);
+    return f;
+}
+
+/** \brief Get Flow for packet
  *
  * Hash retrieval function for flows. Looks up the hash bucket containing the
  * flow pointer. Then compares the packet with the found flow to see if it is

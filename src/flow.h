@@ -46,9 +46,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TO_SRC_SEEN                  0x00000001
 /** At least on packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                  0x00000002
-
-// vacany 1x
-
+/** Don't return this from the flow hash. It has been replaced. */
+#define FLOW_TCP_REUSED                   0x00000004
 /** no magic on files in this flow */
 #define FLOW_FILE_NO_MAGIC_TS             0x00000008
 #define FLOW_FILE_NO_MAGIC_TC             0x00000010
@@ -170,13 +169,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02
 #define FLOW_PKT_ESTABLISHED            0x04
-#define FLOW_PKT_STATELESS              0x08
-#define FLOW_PKT_TOSERVER_IPONLY_SET    0x10
-#define FLOW_PKT_TOCLIENT_IPONLY_SET    0x20
-/** \todo only used by flow keyword internally. */
-#define FLOW_PKT_NOSTREAM               0x40
-/** \todo only used by flow keyword internally. */
-#define FLOW_PKT_ONLYSTREAM             0x80
+#define FLOW_PKT_TOSERVER_IPONLY_SET    0x08
+#define FLOW_PKT_TOCLIENT_IPONLY_SET    0x10
+#define FLOW_PKT_TOSERVER_FIRST         0x20
+#define FLOW_PKT_TOCLIENT_FIRST         0x40
 
 /** Mutex or RWLocks for the flow. */
 //#define FLOWLOCK_RWLOCK
@@ -425,7 +421,7 @@ static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
-int FlowGetPacketDirection(Flow *, const Packet *);
+int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
 
@@ -549,7 +545,11 @@ int FlowClearMemory(Flow *,uint8_t );
 AppProto FlowGetAppProtocol(Flow *f);
 void *FlowGetAppState(Flow *f);
 
+void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
+void FlowHandlePacketUpdate(Flow *f, Packet *p);
 
+Flow *FlowGetFlowFromHashByPacket(const Packet *p);
+Flow *FlowLookupFlowFromHash(const Packet *p);
 
 #endif /* __FLOW_H__ */
 

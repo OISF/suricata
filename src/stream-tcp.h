@@ -73,6 +73,10 @@ typedef struct TcpStreamCnf_ {
 typedef struct StreamTcpThread_ {
     int ssn_pool_id;
 
+    /** if set to true, we activate the TCP tuple reuse code in the
+     *  stream engine. */
+    int runmode_flow_stream_async;
+
     uint64_t pkts;
 
     /** queue for pseudo packet(s) that were created in the stream
@@ -161,9 +165,19 @@ static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
     if (PKT_IS_TOSERVER(p)) {
         p->flowflags &= ~FLOW_PKT_TOSERVER;
         p->flowflags |= FLOW_PKT_TOCLIENT;
+
+        if (p->flowflags & FLOW_PKT_TOSERVER_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOSERVER_FIRST;
+            p->flowflags |= FLOW_PKT_TOCLIENT_FIRST;
+        }
     } else {
         p->flowflags &= ~FLOW_PKT_TOCLIENT;
         p->flowflags |= FLOW_PKT_TOSERVER;
+
+        if (p->flowflags & FLOW_PKT_TOCLIENT_FIRST) {
+            p->flowflags &= ~FLOW_PKT_TOCLIENT_FIRST;
+            p->flowflags |= FLOW_PKT_TOSERVER_FIRST;
+        }
     }
 }
 
