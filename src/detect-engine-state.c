@@ -124,11 +124,42 @@ static DeStateStoreFlowRules *DeStateStoreFlowRulesAlloc(void)
     return d;
 }
 
+#ifdef DEBUG_VALIDATION
+static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIntId num)
+{
+    DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
+    DeStateStore *tx_store = dir_state->head;
+    SigIntId store_cnt;
+    SigIntId state_cnt = 0;
+
+    for (; tx_store != NULL; tx_store = tx_store->next) {
+        SCLogDebug("tx_store %p", tx_store);
+        for (store_cnt = 0;
+             store_cnt < DE_STATE_CHUNK_SIZE && state_cnt < dir_state->cnt;
+             store_cnt++, state_cnt++)
+        {
+            DeStateStoreItem *item = &tx_store->store[store_cnt];
+            if (item->sid == num) {
+                SCLogDebug("BUG! sid %u already in state: %p %p %p %u %u, direction %s",
+                            num, state, dir_state, tx_store, state_cnt,
+                            store_cnt, direction & STREAM_TOSERVER ? "toserver" : "toclient");
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+#endif
+
 static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
     int jump = 0;
     int i = 0;
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
+
+#ifdef DEBUG_VALIDATION
+    BUG_ON(DeStateSearchState(state, direction, s->num));
+#endif
     DeStateStore *store = dir_state->head;
 
     if (store == NULL) {
