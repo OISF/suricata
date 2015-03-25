@@ -723,18 +723,25 @@ uint32_t StreamTcpGetStreamSize(TcpStream *stream) {
 }
 
 /**
- *  \brief macro to update last_ack only if the new value is higher
+ *  \brief macro to update last_ack only if the new value is higher and
+ *         the ack value isn't beyond the next_seq
  *
  *  \param ssn session
  *  \param stream stream to update
  *  \param ack ACK value to test and set
  */
 #define StreamTcpUpdateLastAck(ssn, stream, ack) { \
-    if (SEQ_GT((ack), (stream)->last_ack)) { \
+    if (SEQ_GT((ack), (stream)->last_ack) && \
+            (SEQ_LEQ((ack),(stream)->next_seq) || \
+            ((ssn)->state >= TCP_FIN_WAIT1 && SEQ_EQ((ack),((stream)->next_seq + 1))))) \
+    { \
         (stream)->last_ack = (ack); \
         SCLogDebug("ssn %p: last_ack set to %"PRIu32, (ssn), (stream)->last_ack); \
         StreamTcpSackPruneList((stream)); \
-    } \
+    } else { \
+        SCLogDebug("ssn %p: no update: ack %u, last_ack %"PRIu32", next_seq %u (state %u)", \
+                    (ssn), (ack), (stream)->last_ack, (stream)->next_seq, (ssn)->state); \
+    }\
 }
 
 /**
@@ -2000,6 +2007,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
 
         /* Check if the ACK value is sane and inside the window limit */
         StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+        SCLogDebug("ack %u last_ack %u next_seq %u", TCP_GET_ACK(p), ssn->server.last_ack, ssn->server.next_seq);
 
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
@@ -9521,12 +9529,11 @@ static int StreamTcpTest38 (void) {
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
-    uint8_t payload[4];
+    uint8_t payload[128];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx ra_ctx;
     PacketQueue pq;
 
-    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
@@ -9543,7 +9550,7 @@ static int StreamTcpTest38 (void) {
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-    stt.ra_ctx = &ra_ctx;
+    stt.ra_ctx = ra_ctx;
 
     StreamTcpInitConfig(TRUE);
     SCMutexLock(&f.m);
@@ -9593,8 +9600,50 @@ static int StreamTcpTest38 (void) {
         goto end;
     }
 
-    p->tcph->th_ack = htonl(2984);
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 127, 128); /*AAA*/
+    p->payload = payload;
+    p->payload_len = 127;
+
+    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    if (((TcpSession *)(p->flow->protoctx))->server.next_seq != 128) {
+        printf("the server.next_seq should be 128, but it is %"PRIu32"\n",
+                ((TcpSession *)(p->flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    p->tcph->th_ack = htonl(256); // in window, but beyond next_seq
     p->tcph->th_seq = htonl(5);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOSERVER;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p->payload = payload;
+    p->payload_len = 3;
+
+    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    /* last_ack value should be 1, not 256, as the previous sent ACK value
+       is inside window, but beyond next_seq */
+    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 1) {
+        printf("the server.last_ack should be 1, but it is %"PRIu32"\n",
+                ((TcpSession *)(p->flow->protoctx))->server.last_ack);
+        goto end;
+    }
+
+    p->tcph->th_ack = htonl(128);
+    p->tcph->th_seq = htonl(8);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
 
@@ -9609,8 +9658,8 @@ static int StreamTcpTest38 (void) {
 
     /* last_ack value should be 2984 as the previous sent ACK value is inside
        window */
-    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 2984) {
-        printf("the server.last_ack should be 2984, but it is %"PRIu32"\n",
+    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 128) {
+        printf("the server.last_ack should be 128, but it is %"PRIu32"\n",
                 ((TcpSession *)(p->flow->protoctx))->server.last_ack);
         goto end;
     }
@@ -9622,6 +9671,8 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    if (stt.ra_ctx != NULL)
+        StreamTcpReassembleFreeThreadCtx(stt.ra_ctx);
     return ret;
 }
 
@@ -9638,10 +9689,9 @@ static int StreamTcpTest39 (void) {
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx ra_ctx;
     PacketQueue pq;
 
-    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
@@ -9659,7 +9709,7 @@ static int StreamTcpTest39 (void) {
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    stt.ra_ctx = &ra_ctx;
+    stt.ra_ctx = ra_ctx;
 
     StreamTcpInitConfig(TRUE);
 
@@ -9688,7 +9738,27 @@ static int StreamTcpTest39 (void) {
         goto end;
     }
 
-    p->tcph->th_ack = htonl(2984);
+    p->tcph->th_ack = htonl(1);
+    p->tcph->th_seq = htonl(1);
+    p->tcph->th_flags = TH_PUSH | TH_ACK;
+    p->flowflags = FLOW_PKT_TOCLIENT;
+
+    StreamTcpCreateTestPacket(payload, 0x41, 3, 4); /*AAA*/
+    p->payload = payload;
+    p->payload_len = 3;
+
+    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
+        printf("failed in processing packet in StreamTcpPacket\n");
+        goto end;
+    }
+
+    if (((TcpSession *)(p->flow->protoctx))->server.next_seq != 4) {
+        printf("the server.next_seq should be 4, but it is %"PRIu32"\n",
+                ((TcpSession *)(p->flow->protoctx))->server.next_seq);
+        goto end;
+    }
+
+    p->tcph->th_ack = htonl(4);
     p->tcph->th_seq = htonl(2);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
@@ -9702,15 +9772,15 @@ static int StreamTcpTest39 (void) {
         goto end;
     }
 
-    /* last_ack value should be 2984 as the previous sent ACK value is inside
+    /* last_ack value should be 4 as the previous sent ACK value is inside
        window */
-    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 2984) {
-        printf("the server.last_ack should be 2984, but it is %"PRIu32"\n",
+    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 4) {
+        printf("the server.last_ack should be 4, but it is %"PRIu32"\n",
                 ((TcpSession *)(p->flow->protoctx))->server.last_ack);
         goto end;
     }
 
-    p->tcph->th_seq = htonl(2984);
+    p->tcph->th_seq = htonl(4);
     p->tcph->th_ack = htonl(5);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -9726,8 +9796,8 @@ static int StreamTcpTest39 (void) {
 
     /* next_seq value should be 2987 as the previous sent ACK value is inside
        window */
-    if (((TcpSession *)(p->flow->protoctx))->server.next_seq != 2987) {
-        printf("the server.next_seq should be 2987, but it is %"PRIu32"\n",
+    if (((TcpSession *)(p->flow->protoctx))->server.next_seq != 7) {
+        printf("the server.next_seq should be 7, but it is %"PRIu32"\n",
                 ((TcpSession *)(p->flow->protoctx))->server.next_seq);
         goto end;
     }
@@ -9739,6 +9809,8 @@ end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
+    if (stt.ra_ctx != NULL)
+        StreamTcpReassembleFreeThreadCtx(stt.ra_ctx);
     return ret;
 }
 
