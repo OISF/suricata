@@ -1491,7 +1491,7 @@ static int DeStateSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"/\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"body\"; nocase; http_client_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -1547,11 +1547,23 @@ static int DeStateSigTest02(void)
     SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert: ");
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted too early: ");
         goto end;
     }
     p->alerts.cnt = 0;
+
+    void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, f.alstate, 0);
+    if (tx == NULL) {
+        printf("no http tx: ");
+        goto end;
+    }
+    DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP, tx);
+    if (tx_de_state == NULL || tx_de_state->dir_state[0].cnt != 1 ||
+        tx_de_state->dir_state[0].head->store[0].flags != 0x00000001) {
+        printf("de_state not present or has unexpected content: ");
+        goto end;
+    }
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
@@ -1564,8 +1576,8 @@ static int DeStateSigTest02(void)
     SCMutexUnlock(&f.m);
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("signature matched, but shouldn't have: ");
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sig 1 didn't match: ");
         goto end;
     }
     p->alerts.cnt = 0;
