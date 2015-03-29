@@ -1,4 +1,4 @@
-#app layer proto detection anomalities 
+#app layer proto detection anomalies 
 
 #HTTP
 #alert tcp any any -> any ![80,8080] (msg:"SURICATA HTTP not tcp port 80, 8080"; flow:to_server; app-layer-protocol:http; sid:9000001;)
