@@ -1,0 +1,37 @@
+#app layer proto detection anomalities 
+
+#HTTP
+#alert tcp any any -> any ![80,8080] (msg:"SURICATA HTTP not tcp port 80, 8080"; flow:to_server; app-layer-protocol:http; sid:9000001;)
+#alert tcp any any -> any 80 (msg:"SURICATA Port 80 but not HTTP"; flow:to_server; app-layer-protocol:!http; sid:9000002;)
+
+#TLS
+#alert tcp any any -> any 443 (msg:"SURICATA Port 443 but not TLS"; flow:to_server; app-layer-protocol:!tls; sid:9000003;)
+
+#FTP
+#alert tcp any any -> any ![20,21] (msg:"SURICATA FTP but not tcp port 20 or 21"; flow:to_server; app-layer-protocol:ftp; sid:9000004;)
+#alert tcp any any -> any [20,21] (msg:"SURICATA tcp port 21 but not FTP"; flow:to_server; app-layer-protocol:!ftp; sid:9000005;)
+
+#SMTP
+#alert tcp any any -> any ![25,587,465] (msg:"SURICATA SMTP but not tcp port 25,587,465"; flow:to_server; app-layer-protocol:smtp; sid:9000006;)
+#alert tcp any any -> any [25,587,465] (msg:"SURICATA tcp port 25,587,465 but not SMTP"; flow:to_server; app-layer-protocol:!smtp; sid:9000007;)
+
+#SSH
+#alert tcp any any -> any !22 (msg:"SURICATA SSH but not tcp port 22"; flow:to_server; app-layer-protocol:ssh; sid:9000008;)
+#alert tcp any any -> any 22 (msg:"SURICATA tcp port 22 but not SSH"; flow:to_server; app-layer-protocol:!ssh; sid:9000009;)
+
+#IMAP
+#alert tcp any any -> any !143 (msg:"SURICATA IMAP but not tcp port 143"; flow:to_server; app-layer-protocol:imap; sid:9000010;)
+#alert tcp any any -> any 143 (msg:"SURICATA tcp port 143 but not IMAP"; flow:to_server; app-layer-protocol:!imap; sid:9000011;)
+
+#SMB
+#alert tcp any any -> any 139 (msg:"SURICATA tcp port 139 but not SMB"; flow:to_server; app-layer-protocol:!smb; sid:9000012;)
+
+#DCERPC
+#alert tcp any any -> any [80,8080] (msg:"SURICATA DCERPC detected over port tcp 80,8080"; flow:to_server; app-layer-protocol:dcerpc; sid:9000013;)
+
+#DNS
+#alert tcp any any -> any 53 (msg:"SURICATA TCP port 53 but not DNS"; flow:to_server; app-layer-protocol:!dns; sid:9000014;)
+#alert udp any any -> any 53 (msg:"SURICATA UDP port 53 but not DNS"; flow:to_server; app-layer-protocol:!dns; sid:9000015;)
+
+#MODBUS
+#alert tcp any any -> any 502 (msg:"SURICATA TCP port 502 but not MODBUS"; flow:to_server; app-layer-protocol:!modbus; sid:9000018;)
