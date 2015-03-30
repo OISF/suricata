@@ -67,6 +67,15 @@ typedef struct SMTPTransaction_ {
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
 
+typedef struct SMTPConfig {
+
+    int decode_mime;
+    MimeDecConfig mime_config;
+    uint32_t content_limit;
+    uint32_t content_inspect_min_size;
+    uint32_t content_inspect_window;
+} SMTPConfig;
+
 typedef struct SMTPState_ {
     SMTPTransaction *curr_tx;
     TAILQ_HEAD(, SMTPTransaction_) tx_list;  /**< transaction list */
@@ -127,6 +136,9 @@ typedef struct SMTPState_ {
     FileContainer *files_ts;
 
 } SMTPState;
+
+/* Create SMTP config structure */
+extern SMTPConfig smtp_config;
 
 int ProcessDataChunk(const uint8_t *chunk, uint32_t len, MimeDecParseState *state);
 void *SMTPStateAlloc(void);
