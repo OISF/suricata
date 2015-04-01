@@ -229,7 +229,7 @@ void RunModeListRunmodes(void)
            "-----------------------\n");
 
     printf("| %-17s | %-17s | %-10s \n",
-           "RunMode Type", "Custom Mode ", "Descripition");
+           "RunMode Type", "Custom Mode ", "Description");
     printf("|-----------------------------------------------------------------"
            "-----------------------\n");
     int i = RUNMODE_UNKNOWN + 1;
