@@ -620,7 +620,7 @@ cuda:
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b3g, wumanber,
-# ac and ac-gfbs.
+# ac, ac-bs and ac-gfbs.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
 # signature groups, specified by the conf - "detect-engine.sgh-mpm-context".

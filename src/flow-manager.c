@@ -738,8 +738,6 @@ void FlowManagerThreadSpawn()
                 "FlowManager", 0);
         BUG_ON(tv_flowmgr == NULL);
 
-        TmThreadSetCPU(tv_flowmgr, MANAGEMENT_CPU_SET);
-
         if (tv_flowmgr == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(1);
@@ -899,8 +897,6 @@ void FlowRecyclerThreadSpawn()
         tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowRecyclerThread",
                 "FlowRecycler", 0);
         BUG_ON(tv_flowmgr == NULL);
-
-        TmThreadSetCPU(tv_flowmgr, MANAGEMENT_CPU_SET);
 
         if (tv_flowmgr == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
