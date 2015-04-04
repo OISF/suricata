@@ -1086,6 +1086,7 @@ rule-files:
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
  - modbus-events.rules  # available in suricata sources under rules dir
+ - protocol-anomalies.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
