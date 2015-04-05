@@ -6,4 +6,5 @@ http-events.rules \
 dns-events.rules \
 tls-events.rules \
 modbus-events.rules \
-files.rules
+files.rules \
+dnp3-events.rules

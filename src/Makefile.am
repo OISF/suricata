@@ -16,6 +16,7 @@ app-layer.c app-layer.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
+app-layer-dnp3.c app-layer-dnp3.h \
 app-layer-dns-common.c app-layer-dns-common.h \
 app-layer-dns-tcp.c app-layer-dns-tcp.h \
 app-layer-dns-udp.c app-layer-dns-udp.h \
@@ -80,6 +81,9 @@ detect-dce-stub-data.c detect-dce-stub-data.h \
 detect-depth.c detect-depth.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
+detect-dnp3-func.c \
+detect-dnp3-ind.c \
+detect-dnp3.h \
 detect-dns-query.c detect-dns-query.h \
 detect-dsize.c detect-dsize.h \
 detect-engine-address.c detect-engine-address.h \
@@ -91,6 +95,7 @@ detect-engine-apt-event.c detect-engine-apt-event.h \
 detect-engine.c detect-engine.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
+detect-engine-dnp3.c detect-engine-dnp3.h \
 detect-engine-dns.c detect-engine-dns.h \
 detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-event.c detect-engine-event.h \

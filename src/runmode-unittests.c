@@ -51,6 +51,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
+#include "detect-engine-dnp3.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -252,6 +253,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     DetectEngineHttpHHRegisterTests();
     DetectEngineHttpHRHRegisterTests();
     DetectEngineInspectModbusRegisterTests();
+    DetectEngineInspectDNP3RegisterTests();
     DetectEngineRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
