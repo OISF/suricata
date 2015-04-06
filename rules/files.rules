@@ -26,7 +26,7 @@
 
 # Store all JPG files, don't alert.
 #alert http any any -> any any (msg:"FILE magic"; filemagic:"JFIF"; filestore; noalert; sid:16; rev:1;)
-#alert http any any -> any any (msg:"FILE magic"; filemagic:"GIF"; filestore; noalert; sid:16; rev:1;)
+#alert http any any -> any any (msg:"FILE magic"; filemagic:"GIF"; filestore; noalert; sid:23; rev:1;)
 #alert http any any -> any any (msg:"FILE magic"; filemagic:"PNG"; filestore; noalert; sid:17; rev:1;)
 
 # Store all Windows executables
