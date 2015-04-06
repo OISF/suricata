@@ -4,6 +4,9 @@
 #alert tcp any any -> any ![80,8080] (msg:"SURICATA HTTP not tcp port 80, 8080"; flow:to_server; app-layer-protocol:http; sid:2271001; rev:1;)
 #alert tcp any any -> any 80 (msg:"SURICATA Port 80 but not HTTP"; flow:to_server; app-layer-protocol:!http; sid:2271002; rev:1;)
 
+#HTTPS
+#alert http any any -> any 443 (msg:"SURICATA HTTP clear text on port 443"; flow:to_server; app-layer-protocol:http; sid:2271019; rev:1;)
+
 #TLS
 #alert tcp any any -> any 443 (msg:"SURICATA Port 443 but not TLS"; flow:to_server; app-layer-protocol:!tls; sid:2271003; rev:1;)
 
