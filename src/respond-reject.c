@@ -70,18 +70,14 @@ TmEcode RespondRejectFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     if (PKT_IS_IPV4(p)) {
         if (PKT_IS_TCP(p)) {
             ret = RejectSendIPv4TCP(tv, p, data);
-        } else if(PKT_IS_UDP(p)) {
-            ret = RejectSendIPv4ICMP(tv, p, data);
         } else {
-            return TM_ECODE_OK;
+            ret = RejectSendIPv4ICMP(tv, p, data);
         }
     } else if (PKT_IS_IPV6(p)) {
         if (PKT_IS_TCP(p)) {
             ret = RejectSendIPv6TCP(tv, p, data);
-        } else if(PKT_IS_UDP(p)){
-            ret = RejectSendIPv6ICMP(tv, p, data);
         } else {
-            return TM_ECODE_OK;
+            ret = RejectSendIPv6ICMP(tv, p, data);
         }
     } else {
         /* we're only supporting IPv4 and IPv6 */
