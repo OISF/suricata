@@ -335,6 +335,14 @@ static int HasStoredSigs(Flow *f, uint8_t flags)
             return 0;
         }
 
+        int state = AppLayerParserHasTxDetectState(f->proto, alproto, f->alstate);
+        if (state == -ENOSYS) { /* proto doesn't support this API call */
+            /* fall through */
+        } else if (state == 0) {
+            return 0;
+        }
+        /* if state == 1 we also fall through */
+
         uint64_t inspect_tx_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, alproto, alstate);
 
@@ -423,7 +431,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
             destate = DetectEngineStateAlloc();
             if (destate == NULL)
                 return;
-            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, tx, destate) < 0) {
+            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
                 BUG_ON(1);
                 return;
@@ -449,7 +457,7 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
             destate = DetectEngineStateAlloc();
             if (destate == NULL)
                 return;
-            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, tx, destate) < 0) {
+            if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
                 BUG_ON(1);
                 return;

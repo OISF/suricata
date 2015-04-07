@@ -143,8 +143,9 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
     int (*StateGetEventInfo)(const char *event_name, int *event_id,
                              AppLayerEventType *event_type));
 void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
+        int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
-        int (*SetTxDetectState)(void *tx, DetectEngineState *));
+        int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
 
 /***** Get and transaction functions *****/
 
@@ -180,8 +181,9 @@ uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto, A
 uint8_t AppLayerParserGetFirstDataDir(uint8_t ipproto, AppProto alproto);
 
 int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
+int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
-int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx, DetectEngineState *s);
+int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
 
 /***** General *****/
 

@@ -1343,7 +1343,7 @@ DetectEngineState *ModbusGetTxDetectState(void *vtx)
     return tx->de_state;
 }
 
-int ModbusSetTxDetectState(void *vtx, DetectEngineState *s)
+int ModbusSetTxDetectState(void *state, void *vtx, DetectEngineState *s)
 {
     ModbusTransaction *tx = (ModbusTransaction *)vtx;
     tx->de_state = s;
@@ -1410,7 +1410,7 @@ void RegisterModbusParsers(void)
 
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusHasEvents);
-        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS,
+        AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS, NULL,
                                                ModbusGetTxDetectState, ModbusSetTxDetectState);
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTx);

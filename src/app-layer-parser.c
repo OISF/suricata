@@ -106,8 +106,9 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateGetEventInfo)(const char *event_name,
                              int *event_id, AppLayerEventType *event_type);
 
+    int (*StateHasTxDetectState)(void *alstate);
     DetectEngineState *(*GetTxDetectState)(void *tx);
-    int (*SetTxDetectState)(void *tx, DetectEngineState *);
+    int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
@@ -472,11 +473,13 @@ void AppLayerParserRegisterGetEventInfo(uint8_t ipproto, AppProto alproto,
 }
 
 void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
+        int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
-        int (*SetTxDetectState)(void *tx, DetectEngineState *))
+        int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *))
 {
     SCEnter();
 
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState = StateHasTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
 
@@ -804,6 +807,16 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
     return FALSE;
 }
 
+int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate)
+{
+    int r;
+    SCEnter();
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState == NULL)
+        return -ENOSYS;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState(alstate);
+    SCReturnInt(r);
+}
+
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx)
 {
     SCEnter();
@@ -812,13 +825,14 @@ DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alpr
     SCReturnPtr(s, "DetectEngineState");
 }
 
-int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx, DetectEngineState *s)
+int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
+                                   void *alstate, void *tx, DetectEngineState *s)
 {
     int r;
     SCEnter();
     if ((alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState(tx) != NULL))
         SCReturnInt(-EBUSY);
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(tx, s);
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(alstate, tx, s);
     SCReturnInt(r);
 }
 

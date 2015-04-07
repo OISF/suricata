@@ -310,9 +310,9 @@ error:
     SCReturnPtr(NULL, "void");
 }
 
-static void HtpTxUserDataFree(HtpTxUserData *htud)
+static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
 {
-    if (htud) {
+    if (likely(htud)) {
         HtpBodyFree(&htud->request_body);
         HtpBodyFree(&htud->response_body);
         bstr_free(htud->request_uri_normalized);
@@ -324,6 +324,11 @@ static void HtpTxUserDataFree(HtpTxUserData *htud)
         if (htud->boundary)
             HTPFree(htud->boundary, htud->boundary_len);
         if (htud->de_state != NULL) {
+            if (likely(state != NULL)) { // should be impossible that it's null
+                BUG_ON(state->tx_with_detect_state_cnt == 0);
+                state->tx_with_detect_state_cnt--;
+            }
+
             DetectEngineStateFree(htud->de_state);
         }
         HTPFree(htud, sizeof(HtpTxUserData));
@@ -357,15 +362,14 @@ void HTPStateFree(void *state)
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-                    if (htud != NULL) {
-                        HtpTxUserDataFree(htud);
-                        htp_tx_set_user_data(tx, NULL);
-                    }
+                    HtpTxUserDataFree(s, htud);
+                    htp_tx_set_user_data(tx, NULL);
                 }
             }
         }
         htp_connp_destroy_all(s->connp);
     }
+    BUG_ON(s->tx_with_detect_state_cnt > 0);
 
     FileContainerFree(s->files_ts);
     FileContainerFree(s->files_tc);
@@ -400,10 +404,8 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
     if (tx != NULL) {
         /* This will remove obsolete body chunks */
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud != NULL) {
-            HtpTxUserDataFree(htud);
-            htp_tx_set_user_data(tx, NULL);
-        }
+        HtpTxUserDataFree(s, htud);
+        htp_tx_set_user_data(tx, NULL);
 
         htp_tx_destroy(tx);
     }
@@ -2109,10 +2111,9 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->request_headers_raw_len,
                      tx_ud->request_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        HTPFree(tx_ud->request_headers_raw, tx_ud->request_headers_raw_len);
-        tx_ud->request_headers_raw = NULL;
-        tx_ud->request_headers_raw_len = 0;
-        HtpTxUserDataFree(tx_ud);
+        /* error: we're freeing the entire user data */
+        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
+        HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
@@ -2147,10 +2148,9 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
                      tx_ud->response_headers_raw_len,
                      tx_ud->response_headers_raw_len + tx_data->len);
     if (ptmp == NULL) {
-        HTPFree(tx_ud->response_headers_raw, tx_ud->response_headers_raw_len);
-        tx_ud->response_headers_raw = NULL;
-        tx_ud->response_headers_raw_len = 0;
-        HtpTxUserDataFree(tx_ud);
+        /* error: we're freeing the entire user data */
+        HtpState *hstate = htp_connp_get_user_data(tx_data->tx->connp);
+        HtpTxUserDataFree(hstate, tx_ud);
         htp_tx_set_user_data(tx_data->tx, NULL);
         return HTP_OK;
     }
@@ -2635,6 +2635,12 @@ static void HTPStateTruncate(void *state, uint8_t direction)
     }
 }
 
+static int HTPStateHasTxDetectState(void *alstate)
+{
+    HtpState *htp_state = (HtpState *)alstate;
+    return (htp_state->tx_with_detect_state_cnt > 0);
+}
+
 static DetectEngineState *HTPGetTxDetectState(void *vtx)
 {
     htp_tx_t *tx = (htp_tx_t *)vtx;
@@ -2642,8 +2648,9 @@ static DetectEngineState *HTPGetTxDetectState(void *vtx)
     return tx_ud ? tx_ud->de_state : NULL;
 }
 
-static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
+static int HTPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
 {
+    HtpState *htp_state = (HtpState *)alstate;
     htp_tx_t *tx = (htp_tx_t *)vtx;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
     if (tx_ud == NULL) {
@@ -2653,6 +2660,7 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
         memset(tx_ud, 0, sizeof(*tx_ud));
         htp_tx_set_user_data(tx, tx_ud);
     }
+    htp_state->tx_with_detect_state_cnt++;
     tx_ud->de_state = s;
     return 0;
 }
@@ -2741,6 +2749,7 @@ void RegisterHTPParsers(void)
 
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateTruncate);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_HTTP,
+                                               HTPStateHasTxDetectState,
                                                HTPGetTxDetectState, HTPSetTxDetectState);
 
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER,
