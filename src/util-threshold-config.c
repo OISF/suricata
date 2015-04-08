@@ -701,9 +701,10 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     uint8_t *ret_parsed_new_action,
     const char **ret_th_ip)
 {
-    const char *th_rule_type = NULL;
-    const char *th_gid = NULL;
-    const char *th_sid = NULL;
+    char th_rule_type[32];
+    char th_gid[16];
+    char th_sid[16];
+    char rule_extend[1024];
     const char *th_type = NULL;
     const char *th_track = NULL;
     const char *th_count = NULL;
@@ -711,7 +712,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     const char *th_new_action= NULL;
     const char *th_timeout = NULL;
     const char *th_ip = NULL;
-    const char *rule_extend = NULL;
 
     uint8_t parsed_type = 0;
     uint8_t parsed_track = 0;
@@ -736,39 +736,39 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     }
 
     /* retrieve the classtype name */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &th_rule_type);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, th_rule_type, sizeof(th_rule_type));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     /* retrieve the classtype name */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &th_gid);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, th_gid, sizeof(th_gid));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 3, &th_sid);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 3, th_sid, sizeof(th_sid));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 4, &rule_extend);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 4, rule_extend, sizeof(rule_extend));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
 
     /* get type of rule */
-    if (strncasecmp(th_rule_type,"event_filter",strlen("event_filter")) == 0) {
+    if (strcasecmp(th_rule_type,"event_filter") == 0) {
         rule_type = THRESHOLD_TYPE_EVENT_FILTER;
-    } else if (strncasecmp(th_rule_type,"threshold",strlen("threshold")) == 0) {
+    } else if (strcasecmp(th_rule_type,"threshold") == 0) {
         rule_type = THRESHOLD_TYPE_THRESHOLD;
-    } else if (strncasecmp(th_rule_type,"rate",strlen("rate")) == 0) {
+    } else if (strcasecmp(th_rule_type,"rate_filter") == 0) {
         rule_type = THRESHOLD_TYPE_RATE;
-    } else if (strncasecmp(th_rule_type,"suppress",strlen("suppress")) == 0) {
+    } else if (strcasecmp(th_rule_type,"suppress") == 0) {
         rule_type = THRESHOLD_TYPE_SUPPRESS;
     } else {
         SCLogError(SC_ERR_INVALID_VALUE, "rule type %s is unknown", th_rule_type);
@@ -996,12 +996,6 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
     *ret_th_ip = th_ip;
     return 0;
 error:
-    if (th_rule_type != NULL)
-        SCFree((char *)th_rule_type);
-    if (th_sid != NULL)
-        SCFree((char *)th_sid);
-    if (th_gid != NULL)
-        SCFree((char *)th_gid);
     if (th_track != NULL)
         SCFree((char *)th_track);
     if (th_count != NULL)
@@ -1012,8 +1006,6 @@ error:
         SCFree((char *)th_type);
     if (th_ip != NULL)
         SCFree((char *)th_ip);
-    if (rule_extend != NULL)
-        SCFree((char *)rule_extend);
     return -1;
 }
 
