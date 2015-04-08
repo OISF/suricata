@@ -52,6 +52,7 @@ uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8
 uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
+uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg);

@@ -51,6 +51,7 @@
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-engine-modbus.h"
+#include "detect-engine-filedata-smtp.h"
 #include "detect-fast-pattern.h"
 #include "flow.h"
 #include "flow-timeout.h"
@@ -253,6 +254,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     DetectEngineHttpHRHRegisterTests();
     DetectEngineInspectModbusRegisterTests();
     DetectEngineRegisterTests();
+    DetectEngineSMTPFiledataRegisterTests();
     SCLogRegisterTests();
     MagicRegisterTests();
     UtilMiscRegisterTests();
