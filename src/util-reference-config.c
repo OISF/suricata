@@ -244,8 +244,8 @@ static char *SCRConfStringToLowercase(const char *str)
  */
 static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
 {
-    const char *system = NULL;
-    const char *url = NULL;
+    char system[64];
+    char url[1024];
 
     SCRConfReference *ref_new = NULL;
     SCRConfReference *ref_lookup = NULL;
@@ -262,21 +262,23 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
     }
 
     /* retrieve the reference system */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &system);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, system, sizeof(system));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
     }
 
     /* retrieve the reference url */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &url);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, url, sizeof(url));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
     }
 
     /* Create a new instance of the parsed Reference string */
     ref_new = SCRConfAllocSCRConfReference(system, url);
+    if (ref_new == NULL)
+        goto error;
 
     /* Check if the Reference is present in the HashTable.  In case it's present
      * ignore it, as it's a duplicate.  If not present, add it to the table */
@@ -290,17 +292,9 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
         SCRConfDeAllocSCRConfReference(ref_new);
     }
 
-    /* free the substrings */
-    pcre_free_substring(system);
-    pcre_free_substring(url);
     return 0;
 
  error:
-    if (system)
-        pcre_free_substring(system);
-    if (url)
-        pcre_free_substring(url);
-
     return -1;
 }
 
