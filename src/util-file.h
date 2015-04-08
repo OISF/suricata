@@ -53,6 +53,7 @@ typedef enum FileState_ {
 typedef struct FileData_ {
     uint8_t *data;
     uint32_t len;
+    uint64_t stream_offset;
     int stored;     /* true if this chunk has been stored already
                      * false otherwise */
     struct FileData_ *next;
@@ -78,6 +79,8 @@ typedef struct File_ {
     uint64_t chunks_cnt;
     uint64_t chunks_cnt_max;
 #endif
+    uint64_t content_len_so_far;
+    uint64_t content_inspected;
 } File;
 
 typedef struct FileContainer_ {

@@ -90,7 +90,7 @@ enum DetectSigmatchListEnum {
     /* list for http_client_body keyword and the ones relative to it */
     DETECT_SM_LIST_HCBDMATCH,
     /* list for http_server_body keyword and the ones relative to it */
-    DETECT_SM_LIST_HSBDMATCH,
+    DETECT_SM_LIST_FILEDATA,
     /* list for http_header keyword and the ones relative to it */
     DETECT_SM_LIST_HHDMATCH,
     /* list for http_raw_header keyword and the ones relative to it */
@@ -705,6 +705,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hrhhd;
     int32_t sgh_mpm_context_app_proto_detect;
     int32_t sgh_mpm_context_dnsquery;
+    int32_t sgh_mpm_context_smtp;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -767,6 +768,13 @@ typedef struct HttpReassembledBody_ {
     uint64_t offset;        /**< data offset */
 } HttpReassembledBody;
 
+typedef struct FiledataReassembledBody_ {
+    uint8_t *buffer;
+    uint32_t buffer_size;   /**< size of the buffer itself */
+    uint32_t buffer_len;    /**< data len in the buffer */
+    uint64_t offset;        /**< data offset */
+} FiledataReassembledBody;
+
 #define DETECT_FILESTORE_MAX 15
 /** \todo review how many we actually need here */
 #define DETECT_SMSG_PMQ_NUM 256
@@ -811,6 +819,11 @@ typedef struct DetectEngineThreadCtx_ {
     uint16_t hhd_buffers_size;
     uint16_t hhd_buffers_list_len;
     uint64_t hhd_start_tx_id;
+
+    FiledataReassembledBody *smtp;
+    uint64_t smtp_start_tx_id;
+    uint16_t smtp_buffers_size;
+    uint16_t smtp_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;
@@ -950,6 +963,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
+#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -1012,6 +1026,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hhhd_ctx_ts;
     MpmCtx *mpm_hrhhd_ctx_ts;
     MpmCtx *mpm_dnsquery_ctx_ts;
+    MpmCtx *mpm_smtp_filedata_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;

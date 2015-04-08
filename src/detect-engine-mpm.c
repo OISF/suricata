@@ -737,6 +737,36 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
     SCReturnInt(ret);
 }
 
+/**
+ * \brief SMTP Filedata match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param buffer     Buffer to inspect.
+ * \param buffer_len buffer length.
+ * \param flags      Flags
+ *
+ *  \retval ret Number of matches.
+ */
+uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
+                              uint8_t *buffer, uint32_t buffer_len,
+                              uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    if (flags & STREAM_TOSERVER) {
+        if (det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
 /** \brief cleans up the mpm instance after a match */
 void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
 {
@@ -941,6 +971,16 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
                 SCFree(sh->mpm_hsbd_ctx_tc);
             }
             sh->mpm_hsbd_ctx_tc = NULL;
+        }
+    }
+
+    if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
+        if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
+            if (!sh->mpm_smtp_filedata_ctx_ts->global) {
+                mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].DestroyCtx(sh->mpm_smtp_filedata_ctx_ts);
+                SCFree(sh->mpm_smtp_filedata_ctx_ts);
+            }
+            sh->mpm_smtp_filedata_ctx_ts = NULL;
         }
     }
 
@@ -1446,7 +1486,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         case DETECT_SM_LIST_UMATCH:
         case DETECT_SM_LIST_HRUDMATCH:
         case DETECT_SM_LIST_HCBDMATCH:
-        case DETECT_SM_LIST_HSBDMATCH:
+        case DETECT_SM_LIST_FILEDATA:
         case DETECT_SM_LIST_HHDMATCH:
         case DETECT_SM_LIST_HRHDMATCH:
         case DETECT_SM_LIST_HMDMATCH:
@@ -1477,10 +1517,15 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HSBDMATCH) {
-                if (s->flags & SIG_FLAG_TOCLIENT)
+            } else if (sm_list == DETECT_SM_LIST_FILEDATA) {
+                if (s->flags & SIG_FLAG_TOCLIENT) {
                     mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
+                    sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
+                }
+                if (s->flags & SIG_FLAG_TOSERVER) {
+                    mpm_ctx_ts = sgh->mpm_smtp_filedata_ctx_ts;
+                    sgh->flags |= SIG_GROUP_HEAD_MPM_FD_SMTP;
+                }
                 s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
@@ -1934,6 +1979,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     uint32_t has_co_hcbd = 0;
     /* used to indicate if sgh has atleast one sig with http_server_body */
     uint32_t has_co_hsbd = 0;
+    /* used to indicate if sgh has smtp file_data inspecting content */
+    uint32_t has_co_smtp = 0;
     /* used to indicate if sgh has atleast one sig with http_header */
     uint32_t has_co_hhd = 0;
     /* used to indicate if sgh has atleast one sig with http_raw_header */
@@ -1980,8 +2027,15 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             has_co_hcbd = 1;
         }
 
-        if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL) {
-            has_co_hsbd = 1;
+        if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
+            if (s->alproto == ALPROTO_SMTP)
+                has_co_smtp = 1;
+            else if (s->alproto == ALPROTO_HTTP)
+                has_co_hsbd = 1;
+            else if (s->alproto == ALPROTO_UNKNOWN) {
+                has_co_smtp = 1;
+                has_co_hsbd = 1;
+            }
         }
 
         if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
@@ -2129,6 +2183,20 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
 
         MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher);
+    }
+
+    if (has_co_smtp) {
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_smtp_filedata_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 0);
+        } else {
+            sh->mpm_smtp_filedata_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
+        }
+        if (sh->mpm_smtp_filedata_ctx_ts == NULL) {
+            SCLogDebug("sh->mpm_smtp_filedata_ctx_ts == NULL. This should never happen");
+            exit(EXIT_FAILURE);
+        }
+
+        MpmInitCtx(sh->mpm_smtp_filedata_ctx_ts, de_ctx->mpm_matcher);
     }
 
     if (has_co_hhd) {
@@ -2299,6 +2367,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_uri ||
         has_co_hcbd ||
         has_co_hsbd ||
+        has_co_smtp ||
         has_co_hhd ||
         has_co_hrhd ||
         has_co_hmd ||
@@ -2438,6 +2507,19 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
                      if (mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare != NULL)
                          mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare(sh->mpm_hsbd_ctx_tc);
+                 }
+             }
+         }
+
+         if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
+             if (sh->mpm_smtp_filedata_ctx_ts->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
+                 sh->mpm_smtp_filedata_ctx_ts = NULL;
+             } else {
+                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                     if (mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare != NULL) {
+                         mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare(sh->mpm_smtp_filedata_ctx_ts);
+                     }
                  }
              }
          }
@@ -2639,6 +2721,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         sh->mpm_hrhhd_ctx_ts = NULL;
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
         sh->mpm_dnsquery_ctx_ts = NULL;
+        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
+        sh->mpm_smtp_filedata_ctx_ts = NULL;
 
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_tc);
         sh->mpm_proto_tcp_ctx_tc = NULL;

@@ -55,6 +55,11 @@
 #include "conf.h"
 
 #include "util-mem.h"
+#include "util-misc.h"
+
+#define FILEDATA_CONTENT_LIMIT 1000
+#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 1000
+#define FILEDATA_CONTENT_INSPECT_WINDOW 1000
 
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
@@ -209,15 +214,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
     {  NULL,  -1 },
 };
 
-typedef struct SMTPConfig {
-
-    int decode_mime;
-    MimeDecConfig mime_config;
-
-} SMTPConfig;
-
 /* Create SMTP config structure */
-static SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 } };
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 }, 0, 0, 0};
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -230,6 +228,9 @@ static void SMTPConfigure(void) {
     SCEnter();
     int ret = 0, val;
     intmax_t imval;
+    uint32_t content_limit = FILEDATA_CONTENT_LIMIT;
+    uint32_t content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+    uint32_t content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
 
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
@@ -263,6 +264,38 @@ static void SMTPConfigure(void) {
     /* Pass mime config data to MimeDec API */
     MimeDecSetConfig(&smtp_config.mime_config);
 
+    ConfNode *t = ConfGetNode("app-layer.protocols.smtp.inspected-tracker");
+    ConfNode *p = NULL;
+
+    if (t == NULL)
+        return;
+
+    TAILQ_FOREACH(p, &t->head, next) {
+        if (strcasecmp("content-limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_limit) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing content-limit "
+                           "from conf file - %s. Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        if (strcasecmp("content-inspect-min-size", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_inspect_min_size) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing content-inspect-min-size-limit "
+                           "from conf file - %s. Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        if (strcasecmp("content-inspect-window", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_inspect_window) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing content-inspect-window "
+                           "from conf file - %s. Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
     SCReturn;
 }
 
@@ -289,7 +322,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
     return tx;
 }
 
-static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
+int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state) {
 
     int ret = MIME_DEC_OK;
@@ -1075,7 +1108,7 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
  * \internal
  * \brief Function to allocate SMTP state memory.
  */
-static void *SMTPStateAlloc(void)
+void *SMTPStateAlloc(void)
 {
     SMTPState *smtp_state = SCMalloc(sizeof(SMTPState));
     if (unlikely(smtp_state == NULL))
