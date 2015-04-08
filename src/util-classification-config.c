@@ -57,7 +57,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
-static char *SCClassConfGetConfFilename(void);
+static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 /**
  * \brief Inits the context to be used by the Classification Config parsing API.
@@ -81,7 +81,7 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
     int opts = 0;
 
     /* init the hash table to be used by the classification config Classtypes */
-    de_ctx->class_conf_ht = HashTableInit(4096, SCClassConfClasstypeHashFunc,
+    de_ctx->class_conf_ht = HashTableInit(128, SCClassConfClasstypeHashFunc,
                                           SCClassConfClasstypeHashCompareFunc,
                                           SCClassConfClasstypeHashFree);
     if (de_ctx->class_conf_ht == NULL) {
@@ -95,7 +95,7 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
      * instead use an input stream against a buffer containing the
      * classification strings */
     if (fd == NULL) {
-        filename = SCClassConfGetConfFilename();
+        filename = SCClassConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
@@ -153,12 +153,26 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
  * \retval log_filename Pointer to a string containing the path for the
  *                      Classification Config file.
  */
-static char *SCClassConfGetConfFilename(void)
+static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *log_filename = NULL;
+    char config_value[256] = "";
 
-    if (ConfGet("classification-file", &log_filename) != 1) {
-        log_filename = (char *)default_file_path;
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        snprintf(config_value, sizeof(config_value),
+                 "%s.classification-file", de_ctx->config_prefix);
+
+        /* try loading prefix setting, fall back to global if that
+         * fails. */
+        if (ConfGet(config_value, &log_filename) != 1) {
+            if (ConfGet("classification-file", &log_filename) != 1) {
+                log_filename = (char *)default_file_path;
+            }
+        }
+    } else {
+        if (ConfGet("classification-file", &log_filename) != 1) {
+            log_filename = (char *)default_file_path;
+        }
     }
 
     return log_filename;
@@ -235,9 +249,9 @@ static char *SCClassConfStringToLowercase(const char *str)
  */
 int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx)
 {
-    const char *ct_name = NULL;
-    const char *ct_desc = NULL;
-    const char *ct_priority_str = NULL;
+    char ct_name[64];
+    char ct_desc[512];
+    char ct_priority_str[16];
     int ct_priority = 0;
     uint8_t ct_id = index;
 
@@ -256,23 +270,23 @@ int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx
     }
 
     /* retrieve the classtype name */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &ct_name);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, ct_name, sizeof(ct_name));
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogInfo("pcre_copy_substring() failed");
         goto error;
     }
 
     /* retrieve the classtype description */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &ct_desc);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, ct_desc, sizeof(ct_desc));
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogInfo("pcre_copy_substring() failed");
         goto error;
     }
 
     /* retrieve the classtype priority */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 3, &ct_priority_str);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 3, ct_priority_str, sizeof(ct_priority_str));
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogInfo("pcre_copy_substring() failed");
         goto error;
     }
     if (ct_priority_str == NULL) {
@@ -299,16 +313,9 @@ int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx
         SCFree(ct_new);
     }
 
-    if (ct_name) SCFree((char *)ct_name);
-    if (ct_desc) SCFree((char *)ct_desc);
-    if (ct_priority_str) SCFree((char *)ct_priority_str);
     return 0;
 
  error:
-    if (ct_name) SCFree((char *)ct_name);
-    if (ct_desc) SCFree((char *)ct_desc);
-    if (ct_priority_str) SCFree((char *)ct_priority_str);
-
     return -1;
 }
 

@@ -54,7 +54,7 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 void SCRConfReferenceHashFree(void *ch);
 
 /* used to get the reference.config file path */
-static char *SCRConfGetConfFilename(void);
+static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 /**
  * \brief Inits the context to be used by the Reference Config parsing API.
@@ -91,7 +91,7 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
      * instead use an input stream against a buffer containing the
      * reference strings */
     if (fd == NULL) {
-        filename = SCRConfGetConfFilename();
+        filename = SCRConfGetConfFilename(de_ctx);
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
@@ -150,11 +150,26 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
  * \retval log_filename Pointer to a string containing the path for the
  *                      reference.config file.
  */
-static char *SCRConfGetConfFilename(void)
+static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *path = NULL;
-    if (ConfGet("reference-config-file", &path) != 1) {
-        return (char *)file_path;
+    char config_value[256] = "";
+
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        snprintf(config_value, sizeof(config_value),
+                 "%s.reference-config-file", de_ctx->config_prefix);
+
+        /* try loading prefix setting, fall back to global if that
+         * fails. */
+        if (ConfGet(config_value, &path) != 1) {
+            if (ConfGet("reference-config-file", &path) != 1) {
+                return (char *)file_path;
+            }
+        }
+    } else {
+        if (ConfGet("reference-config-file", &path) != 1) {
+            return (char *)file_path;
+        }
     }
     return path;
 }
@@ -229,8 +244,8 @@ static char *SCRConfStringToLowercase(const char *str)
  */
 static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
 {
-    const char *system = NULL;
-    const char *url = NULL;
+    char system[64];
+    char url[1024];
 
     SCRConfReference *ref_new = NULL;
     SCRConfReference *ref_lookup = NULL;
@@ -247,21 +262,23 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
     }
 
     /* retrieve the reference system */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &system);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 1, system, sizeof(system));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
     }
 
     /* retrieve the reference url */
-    ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &url);
+    ret = pcre_copy_substring((char *)rawstr, ov, 30, 2, url, sizeof(url));
     if (ret < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring() failed");
         goto error;
     }
 
     /* Create a new instance of the parsed Reference string */
     ref_new = SCRConfAllocSCRConfReference(system, url);
+    if (ref_new == NULL)
+        goto error;
 
     /* Check if the Reference is present in the HashTable.  In case it's present
      * ignore it, as it's a duplicate.  If not present, add it to the table */
@@ -275,17 +292,9 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
         SCRConfDeAllocSCRConfReference(ref_new);
     }
 
-    /* free the substrings */
-    pcre_free_substring(system);
-    pcre_free_substring(url);
     return 0;
 
  error:
-    if (system)
-        pcre_free_substring(system);
-    if (url)
-        pcre_free_substring(url);
-
     return -1;
 }
 
