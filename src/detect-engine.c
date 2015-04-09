@@ -1391,6 +1391,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         return NULL;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
+    det_ctx->tenant_id = new_de_ctx->tenant_id;
     det_ctx->tv = tv;
     det_ctx->de_ctx = DetectEngineReference(new_de_ctx);
     if (det_ctx->de_ctx == NULL) {
@@ -1423,19 +1424,6 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
-    if (det_ctx->mt_det_ctxs != NULL) {
-        uint32_t x;
-        for (x = 0; x < det_ctx->mt_det_ctxs_cnt; x++) {
-            if (det_ctx->mt_det_ctxs[x] == NULL)
-                continue;
-
-            DetectEngineThreadCtxFree(det_ctx->mt_det_ctxs[x]);
-            det_ctx->mt_det_ctxs[x] = NULL;
-        }
-        SCFree(det_ctx->mt_det_ctxs);
-        det_ctx->mt_det_ctxs = NULL;
-    }
-
     if (det_ctx->tenant_array != NULL) {
         SCFree(det_ctx->tenant_array);
         det_ctx->tenant_array = NULL;
@@ -1526,6 +1514,10 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
         return TM_ECODE_OK;
     }
 
+    if (det_ctx->mt_det_ctxs_hash != NULL) {
+        HashTableFree(det_ctx->mt_det_ctxs_hash);
+        det_ctx->mt_det_ctxs_hash = NULL;
+    }
     DetectEngineThreadCtxFree(det_ctx);
 
     return TM_ECODE_OK;
@@ -2210,6 +2202,24 @@ int DetectEngineReload(const char *filename)
     return 0;
 }
 
+static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len)
+{
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    return det_ctx->tenant_id % h->array_size;
+}
+
+static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len)
+{
+    DetectEngineThreadCtx *det1 = (DetectEngineThreadCtx *)d1;
+    DetectEngineThreadCtx *det2 = (DetectEngineThreadCtx *)d2;
+    return (det1->tenant_id == det2->tenant_id);
+}
+
+static void TenantIdFree(void *d)
+{
+    DetectEngineThreadCtxFree(d);
+}
+
 /** NOTE: master MUST be locked before calling this */
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
 {
@@ -2219,7 +2229,6 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     uint32_t map_cnt = 0;
     int max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
-    DetectEngineThreadCtx **tenant_det_ctxs = NULL;
 
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
@@ -2227,12 +2236,17 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
         return NULL;
     }
 
+    uint32_t tcnt = 0;
     while (list) {
         if (list->tenant_id > max_tenant_id)
             max_tenant_id = list->tenant_id;
 
         list = list->next;
+        tcnt++;
     }
+
+    HashTable *mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
+    BUG_ON(mt_det_ctxs_hash == NULL);
 
     if (max_tenant_id == 0) {
         SCLogInfo("no tenants left, or none registered yet");
@@ -2265,15 +2279,14 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
 
         }
 
-        tenant_det_ctxs = SCCalloc(max_tenant_id, sizeof(DetectEngineThreadCtx *));
-        BUG_ON(tenant_det_ctxs == NULL);
-
+        /* set up hash for tenant lookup */
         list = master->list;
         while (list) {
             if (list->tenant_id != 0) {
-                tenant_det_ctxs[list->tenant_id] = DetectEngineThreadCtxInitForReload(tv, list);
-                if (tenant_det_ctxs[list->tenant_id] == NULL)
+                DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list);
+                if (mt_det_ctx == NULL)
                     goto error;
+                BUG_ON(HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0);
             }
             list = list->next;
         }
@@ -2283,6 +2296,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     if (det_ctx == NULL) {
         goto error;
     }
+    det_ctx->mt_det_ctxs_hash = mt_det_ctxs_hash;
 
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
@@ -2301,7 +2315,6 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
     det_ctx->counter_match_list = counter_match_list;
 #endif
-    det_ctx->mt_det_ctxs = tenant_det_ctxs;
     det_ctx->mt_det_ctxs_cnt = max_tenant_id;
 
     det_ctx->tenant_array = map_array;
