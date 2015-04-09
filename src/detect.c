@@ -1853,6 +1853,14 @@ void DetectSignatureApplyActions(Packet *p, const Signature *s)
 
 /* tm module api functions */
 
+static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
+{
+    /* technically we need to pass a DetectEngineThreadCtx struct with the
+     * tentant_id member. But as that member is the first in the struct, we
+     * can use the id directly. */
+    return HashTableLookup(h, &id, 0);
+}
+
 /** \brief Detection engine thread wrapper.
  *  \param tv thread vars
  *  \param p packet to inspect
@@ -1885,15 +1893,14 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
 
     if (det_ctx->TenantGetId != NULL) {
         /* in MT mode, but no tenants registered yet */
-        if (det_ctx->mt_det_ctxs == 0) {
+        if (det_ctx->mt_det_ctxs_cnt == 0) {
             return TM_ECODE_OK;
         }
 
         uint32_t tenant_id = det_ctx->TenantGetId(det_ctx, p);
         if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
             p->tenant_id = tenant_id;
-
-            det_ctx = det_ctx->mt_det_ctxs[tenant_id];
+            det_ctx = GetTenantById(det_ctx->mt_det_ctxs_hash, tenant_id);
             if (det_ctx == NULL)
                 return TM_ECODE_OK;
             de_ctx = det_ctx->de_ctx;

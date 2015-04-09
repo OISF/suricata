@@ -777,6 +777,10 @@ typedef struct HttpReassembledBody_ {
   * Detection engine thread data.
   */
 typedef struct DetectEngineThreadCtx_ {
+    /** \note multi-tenant hash lookup code from Detect() *depends*
+     *        on this beeing the first member */
+    uint32_t tenant_id;
+
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
@@ -785,6 +789,7 @@ typedef struct DetectEngineThreadCtx_ {
 
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
+    HashTable *mt_det_ctxs_hash;
 
     struct DetectEngineTenantMapping_ *tenant_array;
     uint32_t tenant_array_size;
