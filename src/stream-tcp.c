@@ -723,17 +723,14 @@ uint32_t StreamTcpGetStreamSize(TcpStream *stream) {
 }
 
 /**
- *  \brief macro to update last_ack only if the new value is higher and
- *         the ack value isn't beyond the next_seq
+ *  \brief macro to update last_ack only if the new value is higher
  *
  *  \param ssn session
  *  \param stream stream to update
  *  \param ack ACK value to test and set
  */
 #define StreamTcpUpdateLastAck(ssn, stream, ack) { \
-    if (SEQ_GT((ack), (stream)->last_ack) && \
-            (SEQ_LEQ((ack),(stream)->next_seq) || \
-            ((ssn)->state >= TCP_FIN_WAIT1 && SEQ_EQ((ack),((stream)->next_seq + 1))))) \
+    if (SEQ_GT((ack), (stream)->last_ack)) \
     { \
         (stream)->last_ack = (ack); \
         SCLogDebug("ssn %p: last_ack set to %"PRIu32, (ssn), (stream)->last_ack); \
@@ -1846,6 +1843,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
             StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
             ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+            SCLogDebug("ssn %p: ACK for missing data: ssn->client.next_seq %u", ssn, ssn->client.next_seq);
             ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
             ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
@@ -1963,6 +1961,19 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
             StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_SEQ(p));
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
 
+        /* if last ack is beyond next_seq, we have accepted ack's for missing data.
+         * In this case we do accept the data before last_ack if it is (partly)
+         * beyond next seq */
+        } else if (SEQ_GT(ssn->client.last_ack, ssn->client.next_seq) &&
+                   SEQ_GT((TCP_GET_SEQ(p)+p->payload_len),ssn->client.next_seq))
+        {
+            SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
+                    " before last_ack %"PRIu32", after next_seq %"PRIu32":"
+                    " acked data that we haven't seen before",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->client.last_ack, ssn->client.next_seq);
+            if (SEQ_EQ(TCP_GET_SEQ(p),ssn->client.next_seq)) {
+                ssn->client.next_seq += p->payload_len;
+            }
         } else {
             SCLogDebug("ssn %p: server => SEQ before last_ack, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
@@ -1989,6 +2000,14 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         ssn->client.next_seq += p->payload_len;
         SCLogDebug("ssn %p: ssn->client.next_seq %" PRIu32 "",
                     ssn, ssn->client.next_seq);
+    /* not completely as expected, but valid */
+    } else if (SEQ_LT(TCP_GET_SEQ(p),ssn->client.next_seq) &&
+               SEQ_GT((TCP_GET_SEQ(p)+p->payload_len), ssn->client.next_seq))
+    {
+        ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
+                   " (started before next_seq, ended after)",
+                   ssn, ssn->client.next_seq);
     }
 
     /* in window check */
@@ -2012,11 +2031,6 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
         }
-
-        /* Update the next_seq, in case if we have missed the server packet
-           and client has already received and acked it */
-        if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
-            ssn->server.next_seq = TCP_GET_ACK(p);
 
         StreamTcpSackUpdatePacket(&ssn->server, p);
 
@@ -2098,10 +2112,23 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
 
             ssn->server.last_ack = TCP_GET_SEQ(p);
 
+        /* if last ack is beyond next_seq, we have accepted ack's for missing data.
+         * In this case we do accept the data before last_ack if it is (partly)
+         * beyond next seq */
+        } else if (SEQ_GT(ssn->server.last_ack, ssn->server.next_seq) &&
+                   SEQ_GT((TCP_GET_SEQ(p)+p->payload_len),ssn->server.next_seq))
+        {
+            SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
+                    " before last_ack %"PRIu32", after next_seq %"PRIu32":"
+                    " acked data that we haven't seen before",
+                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->server.last_ack, ssn->server.next_seq);
+            if (SEQ_EQ(TCP_GET_SEQ(p),ssn->server.next_seq)) {
+                ssn->server.next_seq += p->payload_len;
+            }
         } else {
             SCLogDebug("ssn %p: PKT SEQ %"PRIu32" payload_len %"PRIu16
-                    " before last_ack %"PRIu32,
-                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->server.last_ack);
+                    " before last_ack %"PRIu32". next_seq %"PRIu32,
+                    ssn, TCP_GET_SEQ(p), p->payload_len, ssn->server.last_ack, ssn->server.next_seq);
             StreamTcpSetEvent(p, STREAM_EST_PKT_BEFORE_LAST_ACK);
             return -1;
         }
@@ -2118,6 +2145,14 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         ssn->server.next_seq += p->payload_len;
         SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
                 ssn, ssn->server.next_seq);
+    /* not completely as expected, but valid */
+    } else if (SEQ_LT(TCP_GET_SEQ(p),ssn->server.next_seq) &&
+               SEQ_GT((TCP_GET_SEQ(p)+p->payload_len), ssn->server.next_seq))
+    {
+        ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32
+                   " (started before next_seq, ended after)",
+                   ssn, ssn->server.next_seq);
     }
 
     if (zerowindowprobe) {
@@ -2136,11 +2171,6 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
             StreamTcpHandleTimestamp(ssn, p);
         }
-
-        /* Update the next_seq, in case if we have missed the client packet
-           and server has already received and acked it */
-        if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
-            ssn->client.next_seq = TCP_GET_ACK(p);
 
         StreamTcpSackUpdatePacket(&ssn->client, p);
 
@@ -9634,9 +9664,9 @@ static int StreamTcpTest38 (void) {
         goto end;
     }
 
-    /* last_ack value should be 1, not 256, as the previous sent ACK value
-       is inside window, but beyond next_seq */
-    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 1) {
+    /* last_ack value should be 256, as the previous sent ACK value
+       is inside window */
+    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 256) {
         printf("the server.last_ack should be 1, but it is %"PRIu32"\n",
                 ((TcpSession *)(p->flow->protoctx))->server.last_ack);
         goto end;
@@ -9656,10 +9686,10 @@ static int StreamTcpTest38 (void) {
         goto end;
     }
 
-    /* last_ack value should be 2984 as the previous sent ACK value is inside
+    /* last_ack value should be 256 as the previous sent ACK value is inside
        window */
-    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 128) {
-        printf("the server.last_ack should be 128, but it is %"PRIu32"\n",
+    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 256) {
+        printf("the server.last_ack should be 256, but it is %"PRIu32"\n",
                 ((TcpSession *)(p->flow->protoctx))->server.last_ack);
         goto end;
     }
