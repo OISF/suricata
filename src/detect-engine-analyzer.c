@@ -431,6 +431,8 @@ static void EngineAnalysisRulesPrintFP(Signature *s)
         fprintf(rule_engine_analysis_FD, "http user agent content");
     else if (list_type == DETECT_SM_LIST_DNSQUERY_MATCH)
         fprintf(rule_engine_analysis_FD, "dns query name content");
+    else if (list_type == DETECT_SM_LIST_DNP3_DATA_MATCH)
+        fprintf(rule_engine_analysis_FD, "dnp3 data content");
 
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 

@@ -166,6 +166,7 @@
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
+#include "detect-dnp3-data.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -982,6 +983,39 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
                         DetectDnsQueryInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
                         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
+                    }
+                    FLOWLOCK_UNLOCK(p->flow);
+                }
+            }
+        }
+
+        /* DNP3 data. */
+        else if (alproto == ALPROTO_DNP3 && has_state) {
+            if (p->flowflags & (FLOW_PKT_TOSERVER|FLOW_PKT_TOCLIENT)) {
+                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNP3_DATA) {
+                    FLOWLOCK_RDLOCK(p->flow);
+                    void *alstate = FlowGetAppState(p->flow);
+                    if (alstate == NULL) {
+                        SCLogInfo("no alstate");
+                        FLOWLOCK_UNLOCK(p->flow);
+                        return;
+                    }
+
+                    uint64_t idx = AppLayerParserGetTransactionInspectId(
+                        p->flow->alparser, flags);
+                    uint64_t total_txs = AppLayerParserGetTxCnt(
+                        p->flow->proto, alproto, alstate);
+                    for (; idx < total_txs; idx++) {
+                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto,
+                            alstate, idx);
+                        if (tx == NULL)
+                            continue;
+
+                        PACKET_PROFILING_DETECT_START(p,
+                            PROF_DETECT_MPM_DNP3_DATA);
+                        DetectDNP3DataInspectMpm(det_ctx, p->flow, alstate,
+                            flags, tx, idx);
+                        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNP3_DATA);
                     }
                     FLOWLOCK_UNLOCK(p->flow);
                 }
@@ -2496,6 +2530,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
         SCLogDebug("sig requires dns state");
     }
+    if (s->alproto == ALPROTO_DNP3) {
+        s->mask |= SIG_MASK_REQUIRE_DNP3_STATE;
+        SCLogDebug("sig requires dnp3 state");
+    }
     if (s->alproto == ALPROTO_FTP) {
         s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
         SCLogDebug("sig requires ftp state");
@@ -2509,6 +2547,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_DNP3_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
@@ -5057,6 +5096,7 @@ void SigTableSetup(void)
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectModbusRegister();
+    DetectDNP3DataRegister();
     DetectAppLayerProtocolRegister();
 }
 
