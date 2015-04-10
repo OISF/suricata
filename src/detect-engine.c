@@ -2532,6 +2532,10 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+        case DETECT_SM_LIST_DNP3_DATA_MATCH:
+            return "dnp3_data";
+        case DETECT_SM_LIST_DNP3_MATCH:
+            return "dnp3";
 
         case DETECT_SM_LIST_CIP_MATCH:
             return "cip";
