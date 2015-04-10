@@ -62,6 +62,7 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-dnp3-data.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -283,6 +284,14 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_FD_SMTP_INSPECT,
           0,
           DetectEngineInspectSMTPFiledata },
+        /* DNP3. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_DATA_MATCH,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          0,
+          DetectEngineInspectDNP3Data },
     };
 
     struct tmp_t data_toclient[] = {
@@ -342,7 +351,15 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_MODBUS_INSPECT,
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
-          DetectEngineInspectModbus }
+          DetectEngineInspectModbus },
+        /* DNP3. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_DATA_MATCH,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          1,
+          DetectEngineInspectDNP3Data },
     };
 
     size_t i;
@@ -1894,6 +1911,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+        case DETECT_SM_LIST_DNP3_DATA_MATCH:
+            return "dnp3_data";
 
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
