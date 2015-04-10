@@ -63,6 +63,7 @@
 #include "detect-engine-tls.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-dnp3.h"
 #include "detect-engine-template.h"
 
 #include "detect-engine.h"
@@ -299,6 +300,20 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_FD_SMTP_INSPECT,
           0,
           DetectEngineInspectSMTPFiledata },
+        /* DNP3. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_DATA_MATCH,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          0,
+          DetectEngineInspectDNP3Data },
+        /* DNP3 func, obj, ind. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_MATCH,
+          DE_STATE_FLAG_DNP3_INSPECT,
+          0,
+          DetectEngineInspectDNP3 },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -373,6 +388,20 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSRESPONSE_INSPECT,
           1,
           DetectEngineInspectDnsResponse },
+        /* DNP3. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_DATA_MATCH,
+          DE_STATE_FLAG_DNP3_DATA_INSPECT,
+          1,
+          DetectEngineInspectDNP3Data },
+        /* DNP3 func, ind, obj. */
+        { IPPROTO_TCP,
+          ALPROTO_DNP3,
+          DETECT_SM_LIST_DNP3_MATCH,
+          DE_STATE_FLAG_DNP3_INSPECT,
+          1,
+          DetectEngineInspectDNP3 },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -2725,6 +2754,10 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+        case DETECT_SM_LIST_DNP3_DATA_MATCH:
+            return "dnp3_data";
+        case DETECT_SM_LIST_DNP3_MATCH:
+            return "dnp3";
 
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
