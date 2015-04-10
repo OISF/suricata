@@ -59,6 +59,7 @@
 #include "app-layer-dns-tcp.h"
 #include "app-layer-modbus.h"
 #include "app-layer-enip.h"
+#include "app-layer-dnp3.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1222,6 +1223,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterModbusParsers();
     RegisterENIPUDPParsers();
     RegisterENIPTCPParsers();
+    RegisterDNP3Parsers();
     RegisterTemplateParsers();
 
     /** IMAP */
