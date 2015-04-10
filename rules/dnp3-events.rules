@@ -1,0 +1,17 @@
+# Flooded.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Request flood detected"; \
+      app-layer-event:dnp3.flooded; sid:5000000; rev:1;)
+
+# Length to small for PDU type. For example, link specifies the type
+# as user data, but the length field is not large enough for user
+# data.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Length too small"; \
+      app-layer-event:dnp3.len_too_small; sid:5000001; rev:2;)
+
+# Bad link layer CRC.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad link CRC"; \
+      app-layer-event:dnp3.bad_link_crc; sid:5000002; rev:1;)
+
+# Bad transport layer CRC.
+alert dnp3 any any -> any any (msg:"SURICATA DNP3 Bad transport CRC"; \
+      app-layer-event:dnp3.bad_transport_crc; sid:5000003; rev:1;)
