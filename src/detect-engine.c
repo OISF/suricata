@@ -1452,22 +1452,15 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     return det_ctx;
 }
 
-TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
+void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
-    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
-
-    if (det_ctx == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
-        return TM_ECODE_OK;
-    }
-
     if (det_ctx->mt_det_ctxs != NULL) {
         uint32_t x;
         for (x = 0; x < det_ctx->mt_det_ctxs_cnt; x++) {
             if (det_ctx->mt_det_ctxs[x] == NULL)
                 continue;
 
-            DetectEngineThreadCtxDeinit(tv, det_ctx->mt_det_ctxs[x]);
+            DetectEngineThreadCtxFree(det_ctx->mt_det_ctxs[x]);
             det_ctx->mt_det_ctxs[x] = NULL;
         }
         SCFree(det_ctx->mt_det_ctxs);
@@ -1553,6 +1546,18 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
 #endif
     }
     SCFree(det_ctx);
+}
+
+TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
+{
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+
+    if (det_ctx == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
+        return TM_ECODE_OK;
+    }
+
+    DetectEngineThreadCtxFree(det_ctx);
 
     return TM_ECODE_OK;
 }
