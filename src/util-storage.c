@@ -54,6 +54,8 @@ const char *StoragePrintType(StorageEnum type)
             return "host";
         case STORAGE_FLOW:
             return "flow";
+        case STORAGE_IPPAIR:
+            return "ippair";
         case STORAGE_MAX:
             return "max";
     }

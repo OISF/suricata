@@ -21,14 +21,22 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_VAR_NAME_H__
-#define __UTIL_VAR_NAME_H__
+#ifndef __IPPAIR_BIT_H__
+#define __IPPAIR_BIT_H__
 
-int VariableNameInitHash(DetectEngineCtx *);
-void VariableNameFreeHash(DetectEngineCtx *);
+#include "ippair.h"
+#include "util-var.h"
 
-uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, enum VarTypes);
-char * VariableIdxGetName(DetectEngineCtx *, uint16_t , enum VarTypes);
+void IPPairBitInitCtx(void);
+void IPPairBitRegisterTests(void);
 
-#endif
+int IPPairHasBits(IPPair *host);
+int IPPairBitsTimedoutCheck(IPPair *h, struct timeval *ts);
 
+void IPPairBitSet(IPPair *, uint16_t, uint32_t);
+void IPPairBitUnset(IPPair *, uint16_t);
+void IPPairBitToggle(IPPair *, uint16_t, uint32_t);
+int IPPairBitIsset(IPPair *, uint16_t, uint32_t);
+int IPPairBitIsnotset(IPPair *, uint16_t, uint32_t);
+
+#endif /* __IPPAIR_BIT_H__ */

@@ -108,6 +108,8 @@
 #include "detect-pktvar.h"
 #include "detect-noalert.h"
 #include "detect-flowbits.h"
+#include "detect-hostbits.h"
+#include "detect-xbits.h"
 #include "detect-csum.h"
 #include "detect-stream_size.h"
 #include "detect-engine-sigorder.h"
@@ -1102,7 +1104,7 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
         }
 
         FlowBit *fb = (FlowBit *) gv;
-        char *name = VariableIdxGetName(de_ctx, fb->idx, fb->type);
+        char *name = VariableIdxGetName(de_ctx, fb->idx, VAR_TYPE_FLOW_BIT);
         if (name != NULL) {
             p->debuglog_flowbits_names[i] = SCStrdup(name);
             if (p->debuglog_flowbits_names[i] == NULL) {
@@ -5002,6 +5004,8 @@ void SigTableSetup(void)
     DetectPktvarRegister();
     DetectNoalertRegister();
     DetectFlowbitsRegister();
+    DetectHostbitsRegister();
+    DetectXbitsRegister();
     DetectEngineEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
