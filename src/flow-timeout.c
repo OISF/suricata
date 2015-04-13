@@ -80,6 +80,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            TcpSession *ssn,
                                                            int dummy)
 {
+    p->tenant_id = f->tenant_id;
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
     FlowReference(&p->flow, f);
