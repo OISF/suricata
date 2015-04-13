@@ -676,6 +676,128 @@ end:
     return result;
 }
 
+/**
+ * \test Check urilen range.
+ */
+static int DetectUrilenSigTest02(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST /suricata HTTP/1.0\r\n"
+                         "Host: foo.bar.tld\r\n"
+                         "\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    /* /suricata is 9 bytes, a range match with 9 as the upper bound
+     * should match as its inclusive. */
+    s = de_ctx->sig_list = SigInit(de_ctx,
+        "alert tcp any any -> any any "
+        "(msg:\"Testing urilen\"; "
+        "urilen:7<>9; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    /* Likewise, a lower bound of 9 should also match. */
+    s = s->next = SigInit(de_ctx,
+        "alert tcp any any -> any any "
+        "(msg:\"Testing urilen\"; "
+        "urilen:9<>12; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    /* For extra sanity, make sure we don't alert if the lower bound
+     * is greater than the length. */
+    s = s->next = SigInit(de_ctx,
+        "alert tcp any any -> any any "
+        "(msg:\"Testing urilen\"; "
+        "urilen:10<>12; sid:3;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER,
+        httpbuf1, httplen1);
+    if (r != 0) {
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    HtpState *htp_state = f.alstate;
+    if (htp_state == NULL) {
+        SCLogDebug("no http state: ");
+        goto end;
+    }
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if ((!PacketAlertCheck(p, 1))) {
+        printf("sid 1 did not alert, but should have:\n");
+        goto end;
+    }
+    if (!PacketAlertCheck(p, 2)) {
+        printf("sid 2 did not alert, but should have:\n");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 3)) {
+        printf("sid 3 alerted, but should not have:\n");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -696,5 +818,6 @@ void DetectUrilenRegisterTests(void)
     UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10, 1);
     UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01, 1);
     UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01, 1);
+    UtRegisterTest("DetectUrilenSigTest02", DetectUrilenSigTest02, 1);
 #endif /* UNITTESTS */
 }
