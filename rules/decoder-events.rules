@@ -116,5 +116,12 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; d
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200098
+# skipping sids for MPLS that are not supported in 2.0.x
+
+# linktype null
+alert pkthdr any any -> any any (msg:"SURICATA NULL pkt too small"; decode-event:ltnull.pkt_too_small; sid: 2200103; rev:1;)
+# packet has type not supported by Suricata's decoders
+alert pkthdr any any -> any any (msg:"SURICATA NULL unsupported type"; decode-event:ltnull.unsupported_type; sid: 2200104; rev:1;)
+
+# next sid is 2200105
 

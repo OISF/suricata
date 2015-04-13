@@ -154,6 +154,10 @@ struct DetectEngineEvents_ {
     /* RAW EVENTS */
     { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
 
+    /* LINKTYPE NULL EVENTS */
+    { "ltnull.pkt_too_small", LTNULL_PKT_TOO_SMALL, },
+    { "ltnull.unsupported_type", LTNULL_UNSUPPORTED_TYPE, },
+
     /* STREAM EVENTS */
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
