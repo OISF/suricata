@@ -1199,6 +1199,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         FLOWLOCK_WRLOCK(pflow);
         {
+            /* store tenant_id in the flow so that we can use it
+             * for creating pseudo packets */
+            if (p->tenant_id > 0 && pflow->tenant_id == 0) {
+                pflow->tenant_id = p->tenant_id;
+            }
+
             /* live ruleswap check for flow updates */
             if (pflow->de_ctx_id == 0) {
                 /* first time this flow is inspected, set id */
@@ -1897,7 +1903,9 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
             return TM_ECODE_OK;
         }
 
-        uint32_t tenant_id = det_ctx->TenantGetId(det_ctx, p);
+        uint32_t tenant_id = p->tenant_id;
+        if (tenant_id == 0)
+            tenant_id = det_ctx->TenantGetId(det_ctx, p);
         if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
             p->tenant_id = tenant_id;
             det_ctx = GetTenantById(det_ctx->mt_det_ctxs_hash, tenant_id);
