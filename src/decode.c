@@ -269,6 +269,7 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
+    p->tenant_id = parent->tenant_id;
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -340,6 +341,7 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
     p->datalink = DLT_RAW;
+    p->tenant_id = parent->tenant_id;
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
     p->vlan_id[0] = parent->vlan_id[0];
