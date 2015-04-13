@@ -78,6 +78,7 @@ enum PktSrcEnum {
 #include "decode-udp.h"
 #include "decode-sctp.h"
 #include "decode-raw.h"
+#include "decode-null.h"
 #include "decode-vlan.h"
 #include "decode-mpls.h"
 
@@ -591,6 +592,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_eth;
     uint16_t counter_sll;
     uint16_t counter_raw;
+    uint16_t counter_null;
     uint16_t counter_tcp;
     uint16_t counter_udp;
     uint16_t counter_sctp;
@@ -854,6 +856,7 @@ int DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, P
 int DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *, uint8_t) __attribute__ ((warn_unused_result));
+int DecodeNull(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeIPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
@@ -962,8 +965,13 @@ void AddressDebugPrint(Address *);
 #endif
 #endif
 
+#ifndef DLT_NULL
+#define DLT_NULL 0
+#endif
+
 /** libpcap shows us the way to linktype codes
  * \todo we need more & maybe put them in a separate file? */
+#define LINKTYPE_NULL       DLT_NULL
 #define LINKTYPE_ETHERNET   DLT_EN10MB
 #define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_PPP        9
