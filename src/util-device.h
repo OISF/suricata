@@ -35,7 +35,7 @@ typedef struct LiveDevice_ {
 int LiveRegisterDevice(const char *dev);
 int LiveGetDeviceCount(void);
 char *LiveGetDeviceName(int number);
-void LiveSafeDeviceName(const char *devname, char *newdevname);
+int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen);
 LiveDevice *LiveGetDevice(const char *dev);
 int LiveBuildDeviceList(const char *base);
 void LiveDeviceHasNoStats(void);
