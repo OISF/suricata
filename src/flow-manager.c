@@ -118,7 +118,7 @@ void FlowKillFlowManagerThread(void)
     tv = tv_root[TVT_MGMT];
 
     while (tv != NULL) {
-        if (strncasecmp(tv->name, "FM", 2) == 0) {
+        if (strncasecmp(tv->name, "FM", 3) == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
             cnt++;
@@ -132,7 +132,7 @@ void FlowKillFlowManagerThread(void)
 
     tv = tv_root[TVT_MGMT];
     while (tv != NULL) {
-        if (strncasecmp(tv->name, "FM", 2) == 0) {
+        if (strncasecmp(tv->name, "FM-", 3) == 0) {
             /* be sure it has shut down */
             while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
                 usleep(100);
@@ -732,7 +732,7 @@ void FlowManagerThreadSpawn()
         ThreadVars *tv_flowmgr = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "FM%02u", u+1);
+        snprintf(name, sizeof(name), "FM-%02u", u+1);
 
         tv_flowmgr = TmThreadCreateMgmtThreadByName(name,
                 "FlowManager", 0);
