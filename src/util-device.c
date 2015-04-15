@@ -115,19 +115,27 @@ char *LiveGetDeviceName(int number)
  *
  *  \retval None, is added to destination char *newdevname
  */
-void LiveSafeDeviceName(const char *devname, char *newdevname)
+int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
 {
     size_t devnamelen = strlen(devname);
 
+    // If we have to shorten the interface name
     if (devnamelen > MAX_DEVNAME) {
-        strncpy(newdevname, devname, DEVNAME_CHUNCK);
-        strncpy(newdevname+DEVNAME_CHUNCK, "...", 3);
-        strncpy(newdevname+8, devname+(devnamelen-DEVNAME_CHUNCK), DEVNAME_CHUNCK);
-        strncpy(newdevname+13, "\0", 1);
+    
+        // We need 13 chars to do this shortening
+        if (destlen < 13) {
+            return 1;
+        }
+    
+        size_t length;
+        length = strlcpy(newdevname, devname, DEVNAME_CHUNCK);
+        length = strlcat(newdevname, "...", DEVNAME_CHUNCK+3);
+        length = strlcat(newdevname, devname+(devnamelen-DEVNAME_CHUNCK), length+DEVNAME_CHUNCK);
         SCLogInfo("Shortening device name to: %s", newdevname);
     } else {
-        strcpy(newdevname, devname);
+        strlcpy(newdevname, devname, destlen);
     }
+    return 0;
 }
 
 /**
