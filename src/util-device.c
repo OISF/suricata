@@ -19,6 +19,9 @@
 #include "conf.h"
 #include "util-device.h"
 
+#define MAX_DEVNAME 12
+#define DEVNAME_CHUNCK 5
+
 /**
  * \file
  *
@@ -103,6 +106,28 @@ char *LiveGetDeviceName(int number)
     }
 
     return NULL;
+}
+
+/**
+ *  \brief Shorten a device name that is to long
+ *
+ *  \param device name from config and destination for modified
+ *
+ *  \retval None, is added to destination char *newdevname
+ */
+void LiveSafeDeviceName(const char *devname, char *newdevname)
+{
+    size_t devnamelen = strlen(devname);
+
+    if (devnamelen > MAX_DEVNAME) {
+        strncpy(newdevname, devname, DEVNAME_CHUNCK);
+        strncpy(newdevname+DEVNAME_CHUNCK, "...", 3);
+        strncpy(newdevname+8, devname+(devnamelen-DEVNAME_CHUNCK), DEVNAME_CHUNCK);
+        strncpy(newdevname+13, "\0", 1);
+        SCLogInfo("Shortening device name to: %s", newdevname);
+    } else {
+        strcpy(newdevname, devname);
+    }
 }
 
 /**
