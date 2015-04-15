@@ -480,6 +480,7 @@ int RunModeIdsAFPAutoFp(void)
 /**
  * \brief Single thread version of the AF_PACKET processing.
  */
+
 int RunModeIdsAFPSingle(void)
 {
     SCEnter();
@@ -500,7 +501,7 @@ int RunModeIdsAFPSingle(void)
     ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", "C",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -545,7 +546,7 @@ int RunModeIdsAFPWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", "W",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
