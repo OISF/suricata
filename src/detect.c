@@ -171,6 +171,7 @@
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
 #include "detect-dnp3-data.h"
+#include "detect-dnp3.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -5207,6 +5208,9 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectDNP3DataRegister();
+    DetectDNP3FuncRegister();
+    DetectDNP3IndRegister();
+    DetectDNP3ObjRegister();
     DetectAppLayerProtocolRegister();
 }
 

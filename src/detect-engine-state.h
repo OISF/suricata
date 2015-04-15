@@ -80,6 +80,7 @@
 #define DE_STATE_FLAG_HRL_INSPECT	      (1 << 20)
 #define DE_STATE_FLAG_FD_SMTP_INSPECT     (1 << 21)
 #define DE_STATE_FLAG_DNP3_DATA_INSPECT   (1 << 22)
+#define DE_STATE_FLAG_DNP3_INSPECT        (1 << 23)
 
 /* state flags */
 #define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001
