@@ -191,6 +191,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         for (lthread = 0; lthread < nlive; lthread++) {
             char *live_dev = LiveGetDeviceName(lthread);
+            char visual_devname[14] = "";
             void *aconf;
             int threads_count;
 
@@ -209,6 +210,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
+                LiveSafeDeviceName(live_dev, visual_devname);
                 snprintf(tname, sizeof(tname), "%s%s%d", thread_name,
                          live_dev, thread+1);
                 char *thread_name = SCStrdup(tname);
@@ -335,12 +337,15 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
         char *n_thread_name = NULL;
+        char visual_devname[13] = "";
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
 
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s", thread_name);
         } else {
+            LiveSafeDeviceName(live_dev, visual_devname);
+            SCLogInfo("New dev name %s", visual_devname);
             snprintf(tname, sizeof(tname), "%s%s%d",
                      thread_name, live_dev, thread+1);
         }
