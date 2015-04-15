@@ -29,6 +29,7 @@
 #include "util-debug.h"
 #include "host.h"
 #include "host-storage.h"
+#include "host-bit.h"
 
 #include "util-random.h"
 #include "util-misc.h"
@@ -438,6 +439,12 @@ void HostLock(Host *h)
 {
     SCMutexLock(&h->m);
 }
+
+void HostUnlock(Host *h)
+{
+    SCMutexUnlock(&h->m);
+}
+
 
 /* HostGetHostFromHash
  *
