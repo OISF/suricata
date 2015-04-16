@@ -126,6 +126,12 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     /* id */
     json_object_set_new(js, "id", json_integer(tx->tx_id));
 
+    /* rcode */
+    char rcode[16] = "";
+    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+    json_object_set_new(js, "rcode", json_string(rcode));
+
+    /* we are logging an answer RR */
     if (entry != NULL) {
         /* query */
         if (entry->fqdn_len > 0) {
@@ -157,7 +163,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
             json_object_set_new(js, "rdata", json_string(a));
         } else if (entry->data_len == 0) {
             json_object_set_new(js, "rdata", json_string(""));
-        } else if (entry->type == DNS_RECORD_TYPE_TXT) {
+        } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME ||
+                    entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR) {
             if (entry->data_len != 0) {
                 char buffer[256] = "";
                 uint16_t copy_len = entry->data_len < (sizeof(buffer) - 1) ?
@@ -180,13 +187,55 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     return;
 }
 
+static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSQueryEntry *entry)
+{
+    MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    json_t *js = json_object();
+    if (js == NULL)
+        return;
+
+    /* type */
+    json_object_set_new(js, "type", json_string("answer"));
+
+    /* id */
+    json_object_set_new(js, "id", json_integer(tx->tx_id));
+
+    /* rcode */
+    char rcode[16] = "";
+    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+    json_object_set_new(js, "rcode", json_string(rcode));
+
+    /* no answer RRs, use query for rname */
+    char *c;
+    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
+    if (c != NULL) {
+        json_object_set_new(js, "rrname", json_string(c));
+        SCFree(c);
+    }
+
+    /* reset */
+    MemBufferReset(buffer);
+    json_object_set_new(djs, "dns", js);
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, buffer);
+    json_object_del(djs, "dns");
+
+    return;
+}
+
 static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id)
 {
 
     SCLogDebug("got a DNS response and now logging !!");
 
-    if (tx->no_such_name) {
-        OutputAnswer(aft, js, tx, NULL);
+    /* rcode != noerror */
+    if (tx->rcode) {
+        /* Most DNS servers do not support multiple queries because
+         * the rcode in response is not per-query.  Multiple queries
+         * are likely to lead to FORMERR, so log this. */
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            OutputFailure(aft, js, tx, query);
+        }
     }
 
     DNSAnswerEntry *entry = NULL;
