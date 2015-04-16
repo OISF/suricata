@@ -186,7 +186,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         for (lthread = 0; lthread < nlive; lthread++) {
             char *live_dev = LiveGetDeviceName(lthread);
-            char visual_devname[14] = "";
+            char visual_devname[12] = "";
             int shortening_result;
             void *aconf;
             int threads_count;
@@ -206,7 +206,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
-                shortening_result = LiveSafeDeviceName(live_dev, visual_devname, 13);
+                shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
                 if (shortening_result != 0) {
                     SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
                     exit(EXIT_FAILURE);
@@ -329,7 +329,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
         char *n_thread_name = NULL;
-        char visual_devname[14] = "";
+        char visual_devname[12] = "";
         int shortening_result;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
@@ -337,7 +337,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s", thread_name);
         } else {
-            shortening_result = LiveSafeDeviceName(live_dev, visual_devname, 13);
+            shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
             if (shortening_result != 0) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
                 exit(EXIT_FAILURE);
