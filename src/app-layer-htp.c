@@ -2657,6 +2657,8 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
 static int HTPRegisterPatternsForProtocolDetection(void)
 {
     /* toserver */
+
+    /* GET */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "GET|20|", 4, 0, STREAM_TOSERVER) < 0)
     {
@@ -2667,6 +2669,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* PUT */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "PUT|20|", 4, 0, STREAM_TOSERVER) < 0)
     {
@@ -2677,6 +2681,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* POST */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "POST|20|", 5, 0, STREAM_TOSERVER) < 0)
     {
@@ -2687,6 +2693,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* HEAD */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "HEAD|20|", 5, 0, STREAM_TOSERVER) < 0)
     {
@@ -2697,6 +2705,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* TRACE */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "TRACE|20|", 6, 0, STREAM_TOSERVER) < 0)
     {
@@ -2707,6 +2717,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* OPTIONS */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "OPTIONS|20|", 8, 0, STREAM_TOSERVER) < 0)
     {
@@ -2717,6 +2729,8 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     {
         return -1;
     }
+
+    /* CONNECT */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "CONNECT|20|", 8, 0, STREAM_TOSERVER) < 0)
     {
@@ -2724,6 +2738,30 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "CONNECT|09|", 8, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* DELETE */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "DELETE|20|", 7, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "DELETE|09|", 7, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* PATCH */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PATCH|20|", 6, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PATCH|09|", 6, 0, STREAM_TOSERVER) < 0)
     {
         return -1;
     }
