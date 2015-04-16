@@ -93,12 +93,10 @@ typedef struct JsonAlertLogThread_ {
 
 /* Callback function to pack payload contents from a stream into a buffer
  * so we can report them in JSON output. */
-static int AlertJsonPrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int AlertJsonDumpStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
 {
     MemBuffer *payload = (MemBuffer *)data;
-
-    PrintStringsToBuffer(payload->buffer, &payload->offset, payload->size,
-                         buf, buflen);
+    MemBufferWriteRaw(payload, buf, buflen);
 
     return 1;
 }
@@ -276,38 +274,41 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 }
 
                 StreamSegmentForEach((const Packet *)p, flag,
-                                    AlertJsonPrintStreamSegmentCallback,
+                                    AlertJsonDumpStreamSegmentCallback,
                                     (void *)payload);
 
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                     unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
-                    unsigned char encoded[len];
+                    uint8_t encoded[len];
                     Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
                     json_object_set_new(js, "payload", json_string((char *)encoded));
                 }
 
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
+                    uint8_t printable_buf[payload->offset + 1];
+                    uint32_t offset = 0;
+                    PrintStringsToBuffer(printable_buf, &offset,
+                                     sizeof(printable_buf),
+                                     (unsigned char *)payload, payload->offset);
                     json_object_set_new(js, "payload_printable",
-                                        json_string((char *)payload->buffer));
+                                        json_string((char *)printable_buf));
                 }
             } else {
                 /* This is a single packet and not a stream */
-                unsigned char packet_buf[p->payload_len + 1];
-                uint32_t offset = 0;
-
-                PrintStringsToBuffer(packet_buf, &offset,
-                                     p->payload_len + 1,
-                                     p->payload, p->payload_len);
-
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
-                    unsigned long len = sizeof(packet_buf) * 2;
-                    unsigned char encoded[len];
-                    Base64Encode(packet_buf, offset, encoded, &len);
+                    unsigned long len = p->payload_len * 2 + 1;
+                    uint8_t encoded[len];
+                    Base64Encode(p->payload, p->payload_len, encoded, &len);
                     json_object_set_new(js, "payload", json_string((char *)encoded));
                 }
 
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD) {
-                    json_object_set_new(js, "payload_printable", json_string((char *)packet_buf));
+                    uint8_t printable_buf[p->payload_len + 1];
+                    uint32_t offset = 0;
+                    PrintStringsToBuffer(printable_buf, &offset,
+                                     p->payload_len + 1,
+                                     p->payload, p->payload_len);
+                    json_object_set_new(js, "payload_printable", json_string((char *)printable_buf));
                 }
             }
 
@@ -317,7 +318,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
             unsigned long len = GET_PKT_LEN(p) * 2;
-            unsigned char encoded_packet[len];
+            uint8_t encoded_packet[len];
             Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
             json_object_set_new(js, "packet", json_string((char *)encoded_packet));
         }

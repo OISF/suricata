@@ -144,8 +144,6 @@ void MemBufferFree(MemBuffer *buffer);
         memcpy((dst)->buffer + (dst)->offset, (raw_buffer), write_len); \
         (dst)->offset += write_len;                                     \
         dst->buffer[dst->offset] = '\0';                                \
-                                                                        \
-        return;                                                         \
     } while (0)
 
 /**
