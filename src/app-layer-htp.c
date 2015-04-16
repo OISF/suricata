@@ -2766,6 +2766,91 @@ static int HTPRegisterPatternsForProtocolDetection(void)
         return -1;
     }
 
+    /* WEBDAV METHODS (rfc4918) */
+    /* PROPFIND */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PROPFIND|20|", 9, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PROPFIND|09|", 9, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* PROPPATCH */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PROPPATCH|20|", 10, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "PATCH|09|", 10, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* MKCOL */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "MKCOL|20|", 6, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "MKCOL|09|", 6, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* COPY */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "COPY|20|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "COPY|09|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* MOVE */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "MOVE|20|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "MOVE|09|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* LOCK */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "LOCK|20|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "LOCK|09|", 5, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
+    /* UNLOCK */
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "UNLOCK|20|", 7, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
+                                               "UNLOCK|09|", 7, 0, STREAM_TOSERVER) < 0)
+    {
+        return -1;
+    }
+
     /* toclient */
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
                                                "HTTP/0.9", 8, 0, STREAM_TOCLIENT) < 0)
