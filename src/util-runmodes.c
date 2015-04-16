@@ -191,6 +191,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         for (lthread = 0; lthread < nlive; lthread++) {
             char *live_dev = LiveGetDeviceName(lthread);
+            char visual_devname[14] = "";
+            int shortening_result;
             void *aconf;
             int threads_count;
 
@@ -209,8 +211,15 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
+                shortening_result = LiveSafeDeviceName(live_dev, visual_devname, 13);
+                if (shortening_result != 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
+                    exit(EXIT_FAILURE);
+                }
+                
                 snprintf(tname, sizeof(tname), "%s%s%"PRIu16, thread_name,
-                         live_dev, thread+1);
+                         visual_devname, thread+1);
+
                 char *thread_name = SCStrdup(tname);
                 if (unlikely(thread_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -335,14 +344,22 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
         char *n_thread_name = NULL;
+        char visual_devname[14] = "";
+        int shortening_result;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
 
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s", thread_name);
         } else {
+            shortening_result = LiveSafeDeviceName(live_dev, visual_devname, 13);
+            if (shortening_result != 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
+                exit(EXIT_FAILURE);
+            }
+
             snprintf(tname, sizeof(tname), "%s%s%"PRIu16,
-                     thread_name, live_dev, thread+1);
+                     thread_name, visual_devname, thread+1);
         }
         n_thread_name = SCStrdup(tname);
         if (unlikely(n_thread_name == NULL)) {
