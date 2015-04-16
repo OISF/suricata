@@ -118,7 +118,7 @@ void FlowKillFlowManagerThread(void)
     tv = tv_root[TVT_MGMT];
 
     while (tv != NULL) {
-        if (strncasecmp(tv->name, "FM", 3) == 0) {
+        if (strncasecmp(tv->name, "FM-", 3) == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
             TmThreadsSetFlag(tv, THV_DEINIT);
             cnt++;
