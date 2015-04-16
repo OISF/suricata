@@ -62,6 +62,7 @@
 #define ANOM_LONG_LINE          16  /* Lines that exceed 998 octets */
 #define ANOM_LONG_ENC_LINE      32  /* Lines that exceed 76 octets */
 #define ANOM_MALFORMED_MSG      64  /* Misc msg format errors found */
+#define ANOM_LONG_BOUNDARY     128  /* Boundary too long */
 
 /* Pubicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */

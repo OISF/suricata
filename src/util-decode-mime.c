@@ -1889,6 +1889,11 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
                 state->found_child = 1;
                 entity->ctnt_flags |= CTNT_IS_MULTIPART;
 
+                if (blen > (BOUNDARY_BUF - 2)) {
+                    state->stack->top->data->anomaly_flags |= ANOM_LONG_BOUNDARY;
+                    return MIME_DEC_ERR_PARSE;
+                }
+
                 /* Store boundary in parent node */
                 state->stack->top->bdef = SCMalloc(blen);
                 if (unlikely(state->stack->top->bdef == NULL)) {
@@ -2207,6 +2212,12 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
         if (len > 1 && buf[0] == '-' && buf[1] == '-') {
 
             tlen = node->bdef_len + 2;
+            if (tlen > BOUNDARY_BUF) {
+                if (state->stack->top->data)
+                    state->stack->top->data->anomaly_flags |= ANOM_LONG_BOUNDARY;
+                return MIME_DEC_ERR_PARSE;
+            }
+
             memcpy(temp, "--", 2);
             memcpy(temp + 2, node->bdef, node->bdef_len);
 

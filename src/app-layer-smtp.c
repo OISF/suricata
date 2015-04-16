@@ -133,6 +133,8 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
       SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME },
     { "MIME_LONG_HEADER_VALUE",
       SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE },
+    { "MIME_LONG_BOUNDARY",
+      SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG },
 
     { NULL,                      -1 },
 };
@@ -752,6 +754,9 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             }
             if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
+            }
+            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+                SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
             }
         }
         state->curr_tx->done = 1;
