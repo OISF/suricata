@@ -146,8 +146,11 @@ class SuricataSC:
         else:
             self.socket.send(bytes(json.dumps({"version": VERSION}), 'iso-8859-1'))
 
-        # get return
-        cmdret = self.json_recv()
+        ready = select.select([self.socket], [], [], 600)
+        if ready[0]:
+            cmdret = self.json_recv()
+        else:
+            cmdret = None
 
         if cmdret == None:
             raise SuricataReturnException("Unable to get message from server")
