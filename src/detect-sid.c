@@ -47,7 +47,7 @@ void DetectSidRegister (void) {
 static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
 {
     char *str = sidstr;
-    char dubbed = 0;
+    char duped = 0;
 
     /* Strip leading and trailing "s. */
     if (sidstr[0] == '\"') {
@@ -58,7 +58,7 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
         if (strlen(str) && str[strlen(str) - 1] == '\"') {
             str[strlen(str) - 1] = '\0';
         }
-        dubbed = 1;
+        duped = 1;
     }
 
     unsigned long id = 0;
@@ -76,12 +76,12 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
 
     s->id = (uint32_t)id;
 
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return 0;
 
  error:
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return -1;
 }
