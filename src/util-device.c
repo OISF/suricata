@@ -19,8 +19,7 @@
 #include "conf.h"
 #include "util-device.h"
 
-#define MAX_DEVNAME 12
-#define DEVNAME_CHUNCK 5
+#define MAX_DEVNAME 11
 
 /**
  * \file
@@ -119,18 +118,44 @@ int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
 {
     size_t devnamelen = strlen(devname);
 
-    // If we have to shorten the interface name
+    /* If we have to shorten the interface name */
     if (devnamelen > MAX_DEVNAME) {
     
-        // We need 13 chars to do this shortening
-        if (destlen < 13) {
+        /* IF the dest length is over 11 chars long it will not do any
+         * good for the shortening. The shortening is done due to the
+         * max length of pthread names (15 chars) and we use 2 chars
+         * for the threadname indicator eg. "W-" and one-two chars for 
+         * the thread number. And if the destination buffer is under
+         * 6 chars there is point in shortening it since we must at
+         * lest enter two periodes (.) into the string..
+         */
+        if ((destlen-1) > 11 && (destlen-1) < 6) {
             return 1;
         }
-    
-        size_t length;
-        length = strlcpy(newdevname, devname, DEVNAME_CHUNCK);
-        length = strlcat(newdevname, "...", DEVNAME_CHUNCK+3);
-        length = strlcat(newdevname, devname+(devnamelen-DEVNAME_CHUNCK), length+DEVNAME_CHUNCK);
+        
+        size_t length; 
+        size_t half;
+        size_t spaces;
+
+        half = (destlen-1) / 2;
+
+        /* If the destlen is an even number */
+        if (half * 2 == (destlen-1)) {
+            half = half - 1;
+        }
+
+        spaces = (destlen-1) - (half*2);
+        length = half;
+
+        /* Add the first half to the new dev name */
+        snprintf(newdevname, half+1, "%s", devname);
+        
+        /* Add the amount of spaces wanted */
+        for (uint i = half; i < half+spaces; i++) {
+            length = strlcat(newdevname, ".", destlen);
+        }
+
+        snprintf(newdevname+length, half+1, "%s", devname+(devnamelen-half));
         SCLogInfo("Shortening device name to: %s", newdevname);
     } else {
         strlcpy(newdevname, devname, destlen);
