@@ -68,7 +68,7 @@ void DetectGidRegister (void) {
 static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     char *str = rawstr;
-    char dubbed = 0;
+    char duped = 0;
 
     /* Strip leading and trailing "s. */
     if (rawstr[0] == '\"') {
@@ -79,7 +79,7 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         if (strlen(str) && str[strlen(str) - 1] == '\"') {
             str[strlen(str) - 1] = '\"';
         }
-        dubbed = 1;
+        duped = 1;
     }
 
     unsigned long gid = 0;
@@ -97,12 +97,12 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
     s->gid = (uint32_t)gid;
 
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return 0;
 
  error:
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return -1;
 }
