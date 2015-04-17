@@ -35,6 +35,7 @@ static struct timeval current_time = { 0, 0 };
 static SCSpinlock current_time_spinlock;
 static char live = TRUE;
 
+static long gmt_offset = 0;
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 
@@ -44,6 +45,20 @@ void TimeInit(void)
 
     /* Initialize Time Zone settings. */
     tzset();
+
+    /* Get GMT offset */
+    struct timeval now;
+    time_t t1, t2;
+    struct tm t;
+
+    gettimeofday(&now, NULL);
+    t1 = now.tv_sec;
+    t2 = 0;
+
+    gmtime_r(&t1, &t);
+    t.tm_isdst = 0; /* we know this GMT time isn't daylight-savings */
+    t2 = mktime(&t);
+    gmt_offset = (long) difftime(t1, t2);
 }
 
 void TimeDeinit(void)
@@ -129,9 +144,11 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
 
-    snprintf(str, size, "%04d-%02d-%02dT%02d:%02d:%02d.%06u",
+    snprintf(str, size, "%04d-%02d-%02dT%02d:%02d:%02d.%06u%+03ld:%02ld",
              t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
-             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec,
+             gmt_offset / 3600,
+             (((gmt_offset > 0) ? gmt_offset : -gmt_offset) / 60) % 60);
 }
 
 /*
