@@ -955,6 +955,52 @@ static int SMTPParseCommandBDAT(SMTPState *state)
     return 0;
 }
 
+static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8_t **target, uint16_t *target_len)
+{
+    int i = prefix_len + 1;
+    int spc_i = 0;
+
+    while (i < state->current_line_len) {
+        if (state->current_line[i] != ' ') {
+            break;
+        }
+        i++;
+    }
+
+    /* rfc1870: with the size extension the mail from can be followed by an option.
+       We use the space separator to detect it. */
+    spc_i = i;
+    while (spc_i < state->current_line_len) {
+        if (state->current_line[spc_i] == ' ') {
+            break;
+        }
+        spc_i++;
+    }
+
+    /* FIXME check arithmetic */
+    *target = SCMalloc(spc_i - i + 1);
+    if (*target == NULL)
+        return -1;
+    memcpy(*target, state->current_line + i, spc_i - i);
+    (*target)[spc_i - i] = '\0';
+    *target_len = spc_i - i;
+
+    return 0;
+
+}
+
+static int SMTPParseCommandHELO(SMTPState *state)
+{
+    return SMTPParseCommandWithParam(state, 4, &state->helo, &state->helo_len);
+}
+
+static int SMTPParseCommandMAILFROM(SMTPState *state)
+{
+    return SMTPParseCommandWithParam(state, 9,
+                                     &state->curr_tx->mail_from,
+                                     &state->curr_tx->mail_from_len);
+}
+
 /* consider 'rset' and 'quit' to be part of the existing state */
 static int NoNewTx(SMTPState *state)
 {
@@ -1027,6 +1073,21 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
             }
             state->current_command = SMTP_COMMAND_BDAT;
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        } else if (state->current_line_len >= 4 &&
+                   ((SCMemcmpLowercase("helo", state->current_line, 4) == 0) ||
+                    SCMemcmpLowercase("ehlo", state->current_line, 4) == 0))  {
+            r = SMTPParseCommandHELO(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 9 &&
+                   SCMemcmpLowercase("mail from", state->current_line, 9) == 0) {
+            r = SMTPParseCommandMAILFROM(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
@@ -1178,6 +1239,10 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
 
     if (tx->de_state != NULL)
         DetectEngineStateFree(tx->de_state);
+
+    if (tx->mail_from)
+        SCFree(tx->mail_from);
+
 #if 0
         if (tx->decoder_events->cnt <= smtp_state->events)
             smtp_state->events -= tx->decoder_events->cnt;
@@ -1203,6 +1268,10 @@ static void SMTPStateFree(void *p)
     }
     if (smtp_state->tc_current_line_db) {
         SCFree(smtp_state->tc_db);
+    }
+
+    if (smtp_state->helo) {
+        SCFree(smtp_state->helo);
     }
 
     FileContainerFree(smtp_state->files_ts);
