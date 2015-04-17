@@ -229,7 +229,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
  */
 void TmqhOutputFlowRoundRobin(ThreadVars *tv, Packet *p)
 {
-    int32_t qid = 0;
+    int16_t qid = 0;
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
@@ -271,7 +271,7 @@ void TmqhOutputFlowRoundRobin(ThreadVars *tv, Packet *p)
  */
 void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
 {
-    int32_t qid = 0;
+    int16_t qid = 0;
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
@@ -319,7 +319,7 @@ void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
  */
 void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
 {
-    int32_t qid = 0;
+    int16_t qid = 0;
 
     TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
 
