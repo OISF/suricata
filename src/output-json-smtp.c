@@ -57,8 +57,26 @@
 static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
-    int r = JsonEmailLogger(tv, thread_data, p, f, state, tx, tx_id);
-    SCReturnInt(r);
+    JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
+    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
+
+    json_t *js = CreateJSONHeader((Packet *)p, 1, "smtp");
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+
+    /* reset */
+    MemBufferReset(buffer);
+
+    if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
+        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
+    }
+    json_object_del(js, "smtp");
+
+    json_object_clear(js);
+    json_decref(js);
+
+    SCReturnInt(TM_ECODE_OK);
+
 }
 
 static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
