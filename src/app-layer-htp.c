@@ -2658,7 +2658,9 @@ static int HTPRegisterPatternsForProtocolDetection(void)
 {
     char *methods[] = { "GET", "PUT", "POST", "HEAD", "TRACE", "OPTIONS",
         "CONNECT", "DELETE", "PATCH", "PROPFIND", "PROPPATCH", "MKCOL",
-        "COPY", "MOVE", "LOCK", "UNLOCK", NULL};
+        "COPY", "MOVE", "LOCK", "UNLOCK", "CHECKOUT", "UNCHECKOUT", "CHECKIN",
+        "UPDATE", "LABEL", "REPORT", "MKWORKSPACE", "MKACTIVITY", "MERGE",
+        "INVALID", "VERSION-CONTROL", "BASELINE-CONTROL", NULL};
     char *spacings[] = { "|20|", "|09|", NULL };
     char *versions[] = { "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", NULL };
 
@@ -2668,16 +2670,17 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     int register_result;
     char method_buffer[32] = "";
 
-    // Loop through all the methods ands spacings and register the patterns
+    /* Loop through all the methods ands spacings and register the patterns */
     for (methods_pos = 0; methods[methods_pos]; methods_pos++) {
         for (spacings_pos = 0; spacings[spacings_pos]; spacings_pos++) {
 
-            // Combine the method name and the spacing
+            /* Combine the method name and the spacing */
             snprintf(method_buffer, sizeof(method_buffer), "%s%s", methods[methods_pos], spacings[spacings_pos]);
 
-            // Register the new method+spacing pattern
-            // 3 is subtracted from the length since the spacing is hex typed as |xx|
-            // but the pattern matching should only be one char.
+            /* Register the new method+spacing pattern
+             * 3 is subtracted from the length since the spacing is hex typed as |xx|
+             * but the pattern matching should only be one char
+            */
             register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
                     ALPROTO_HTTP, method_buffer, strlen(method_buffer)-3, 0, STREAM_TOSERVER);
             if (register_result < 0) {
@@ -2686,7 +2689,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
         }
     }
 
-    // Loop through all the http verions patterns that are TO_CLIENT
+    /* Loop through all the http verions patterns that are TO_CLIENT */
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
         register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
                 ALPROTO_HTTP, versions[versions_pos], strlen(versions[versions_pos]),
