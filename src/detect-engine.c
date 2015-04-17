@@ -1475,6 +1475,11 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
         det_ctx->mt_det_ctxs = NULL;
     }
 
+    if (det_ctx->tenant_array != NULL) {
+        SCFree(det_ctx->tenant_array);
+        det_ctx->tenant_array = NULL;
+    }
+
 #ifdef PROFILING
     SCProfilingRuleThreadCleanup(det_ctx);
     SCProfilingKeywordThreadCleanup(det_ctx);
