@@ -65,6 +65,10 @@ typedef struct SMTPTransaction_ {
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
     DetectEngineState *de_state;
 
+    /* MAIL FROM parameters */
+    uint8_t *mail_from;
+    uint16_t mail_from_len;
+
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
 
@@ -136,6 +140,9 @@ typedef struct SMTPState_ {
     /** the list of files sent to the server */
     FileContainer *files_ts;
 
+    /* HELO of HELO message content */
+    uint8_t *helo;
+    uint16_t helo_len;
 } SMTPState;
 
 /* Create SMTP config structure */
