@@ -2666,7 +2666,6 @@ static int HTPRegisterPatternsForProtocolDetection(void)
     uint spacings_pos;
     uint versions_pos;
     int register_result;
-    int catsize;
     char method_buffer[32] = "";
 
     // Loop through all the methods ands spacings and register the patterns
@@ -2674,8 +2673,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
         for (spacings_pos = 0; spacings[spacings_pos]; spacings_pos++) {
 
             // Combine the method name and the spacing
-            catsize = strlen(methods[methods_pos]) + strlen(spacings[spacings_pos]) + 1;
-            snprintf(method_buffer, catsize, "%s%s", methods[methods_pos], spacings[spacings_pos]);
+            snprintf(method_buffer, sizeof(method_buffer), "%s%s", methods[methods_pos], spacings[spacings_pos]);
 
             // Register the new method+spacing pattern
             // 3 is subtracted from the length since the spacing is hex typed as |xx|
@@ -2688,7 +2686,7 @@ static int HTPRegisterPatternsForProtocolDetection(void)
         }
     }
 
-    // Loop through all the http verions patterns that are TO_CIENT
+    // Loop through all the http verions patterns that are TO_CLIENT
     for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
         register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
                 ALPROTO_HTTP, versions[versions_pos], strlen(versions[versions_pos]),
