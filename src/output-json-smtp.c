@@ -54,12 +54,32 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+static json_t *JsonSmtpDataLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+{
+    json_t *sjs = json_object();
+    SMTPTransaction *tx = vtx;
+    if (sjs == NULL) {
+        return NULL;
+    }
+    if (((SMTPState *)state)->helo) {
+        json_object_set_new(sjs, "helo",
+                            json_string((const char *)((SMTPState *)state)->helo));
+    }
+    if (tx->mail_from) {
+        json_object_set_new(sjs, "mail_from",
+                            json_string((const char *)tx->mail_from));
+    }
+
+    return sjs;
+}
+
 static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
+    json_t *sjs;
     json_t *js = CreateJSONHeader((Packet *)p, 1, "smtp");
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
@@ -67,10 +87,18 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(buffer);
 
+    sjs = JsonSmtpDataLogger(tv, thread_data, p, f, state, tx, tx_id);
+    if (sjs) {
+        json_object_set_new(js, "smtp", sjs);
+    }
+
     if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
         OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
     }
-    json_object_del(js, "smtp");
+    json_object_del(js, "email");
+    if (sjs) {
+        json_object_del(js, "smtp");
+    }
 
     json_object_clear(js);
     json_decref(js);
