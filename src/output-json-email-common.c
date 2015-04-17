@@ -56,12 +56,11 @@
 #include <jansson.h>
 
 /* JSON format logging */
-static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
     MimeDecEntity *entity;
-    char *protos = NULL;
 
     json_t *sjs = json_object();
     if (sjs == NULL) {
@@ -80,7 +79,6 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             SMTPTransaction *tx = vtx;
             mime_state = tx->mime_state;
             entity = tx->msg_tail;
-            protos = "smtp";
             SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity, mime_state ? mime_state->state_flag : 0);
             break;
         default:
@@ -229,7 +227,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             } else {
                 json_decref(js_url);
             }
-            json_object_set_new(js, protos, sjs);
+            json_object_set_new(js, "email", sjs);
 
 //            FLOWLOCK_UNLOCK(p->flow);
             SCReturnInt(TM_ECODE_OK);
@@ -238,29 +236,6 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
 
 //    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(TM_ECODE_DONE);
-}
-
-int JsonEmailLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id) {
-    SCEnter();
-    JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
-
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "smtp");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    /* reset */
-    MemBufferReset(buffer);
-
-    if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
-        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
-    }
-    json_object_del(js, "smtp");
-
-    json_object_clear(js);
-    json_decref(js);
-
-    SCReturnInt(TM_ECODE_OK);
 }
 
 #endif
