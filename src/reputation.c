@@ -267,7 +267,7 @@ static int SRepCatSplitLine(char *line, uint8_t *cat, char *shortname, size_t sh
  *  \retval 1 header
  *  \retval -1 boo
  */
-static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, uint32_t *ip, uint8_t *cat, uint8_t *value)
+static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, Address *ip, uint8_t *cat, uint8_t *value)
 {
     size_t line_len = strlen(line);
     char *ptrs[3] = {NULL,NULL,NULL};
@@ -319,12 +319,14 @@ static int SRepSplitLine(SRepCIDRTree *cidr_ctx, char *line, uint32_t *ip, uint8
         SRepCIDRAddNetblock(cidr_ctx, ptrs[0], c, v);
         return 1;
     } else {
-        uint32_t addr;
-        if (inet_pton(AF_INET, ptrs[0], &addr) <= 0) {
+        if (inet_pton(AF_INET, ptrs[0], &ip->address) == 1) {
+            ip->family = AF_INET;
+        } else if (inet_pton(AF_INET6, ptrs[0], &ip->address) == 1) {
+            ip->family = AF_INET6;
+        } else {
             return -1;
         }
 
-        *ip = addr;
         *cat = c;
         *value = v;
     }
@@ -468,17 +470,21 @@ int SRepLoadFileFromFD(SRepCIDRTree *cidr_ctx, FILE *fp)
             line[len - 1] = '\0';
         }
 
-        uint32_t ip = 0;
         uint8_t cat = 0, value = 0;
-        int r = SRepSplitLine(cidr_ctx, line, &ip, &cat, &value);
+        int r = SRepSplitLine(cidr_ctx, line, &a, &cat, &value);
         if (r < 0) {
             SCLogError(SC_ERR_NO_REPUTATION, "bad line \"%s\"", line);
         } else if (r == 0) {
-            char ipstr[16];
-            PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
-            SCLogDebug("%s %u %u", ipstr, cat, value);
+            if (a.family == AF_INET) {
+                char ipstr[16];
+                PrintInet(AF_INET, (const void *)&a.address, ipstr, sizeof(ipstr));
+                SCLogDebug("%s %u %u", ipstr, cat, value);
+            } else {
+                char ipstr[128];
+                PrintInet(AF_INET6, (const void *)&a.address, ipstr, sizeof(ipstr));
+                SCLogDebug("%s %u %u", ipstr, cat, value);
+            }
 
-            a.addr_data32[0] = ip;
             Host *h = HostGetHostFromHash(&a);
             if (h == NULL) {
                 SCLogError(SC_ERR_NO_REPUTATION, "failed to get a host, increase host.memcap");
@@ -704,14 +710,14 @@ static int SRepTest01(void)
     }
 
     SRepInit(de_ctx);
-    uint32_t ip = 0;
+    Address a;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 0) {
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 0) {
         goto end;
     }
 
     char ipstr[16];
-    PrintInet(AF_INET, (const void *)&ip, ipstr, sizeof(ipstr));
+    PrintInet(AF_INET, (const void *)&a.address, ipstr, sizeof(ipstr));
 
     if (strcmp(ipstr, "1.2.3.4") != 0)
         goto end;
@@ -739,9 +745,9 @@ static int SRepTest02(void)
     }
 
     SRepInit(de_ctx);
-    uint32_t ip = 0;
+    Address a;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) == 0) {
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) == 0) {
         goto end;
     }
     result = 1;
@@ -789,9 +795,9 @@ static int SRepTest04(void)
 
     char str[] = "10.0.0.0/16,1,2";
 
-    uint32_t ip = 0;
+    Address a;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 1) {
         goto end;
     }
 
@@ -825,9 +831,9 @@ static int SRepTest05(void)
 
     char str[] = "10.0.0.0/16,1,20";
 
-    uint32_t ip = 0;
+    Address a;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 1) {
         goto end;
     }
     cat = 1;
@@ -868,9 +874,9 @@ static int SRepTest06(void)
         "0.0.0.0/0,1,10\n"
         "192.168.0.0/16,2,127";
 
-    uint32_t ip = 0;
+    Address a;
     uint8_t cat = 0, value = 0;
-    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &ip, &cat, &value) != 1) {
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) != 1) {
         goto end;
     }
     cat = 1;
@@ -882,6 +888,26 @@ static int SRepTest06(void)
 
 end:
     UTHFreePacket(p);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SRepTest07(void) {
+    char str[] = "2000:0000:0000:0000:0000:0000:0000:0001,";
+    int result = 0;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        return 0;
+    }
+
+    SRepInit(de_ctx);
+    Address a;
+    uint8_t cat = 0, value = 0;
+    if (SRepSplitLine(de_ctx->srepCIDR_ctx, str, &a, &cat, &value) == 0) {
+        goto end;
+    }
+    result = 1;
+end:
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -2322,6 +2348,7 @@ void SCReputationRegisterTests(void)
     UtRegisterTest("SRepTest04", SRepTest04, 1);
     UtRegisterTest("SRepTest05", SRepTest05, 1);
     UtRegisterTest("SRepTest06", SRepTest06, 1);
+    UtRegisterTest("SRepTest07", SRepTest07, 1);
 #endif /* UNITTESTS */
 }
 
