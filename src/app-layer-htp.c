@@ -2656,218 +2656,48 @@ static int HTPSetTxDetectState(void *vtx, DetectEngineState *s)
 
 static int HTPRegisterPatternsForProtocolDetection(void)
 {
-    /* toserver */
+    char *methods[] = { "GET", "PUT", "POST", "HEAD", "TRACE", "OPTIONS",
+        "CONNECT", "DELETE", "PATCH", "PROPFIND", "PROPPATCH", "MKCOL",
+        "COPY", "MOVE", "LOCK", "UNLOCK", NULL};
+    char *spacings[] = { "|20|", "|09|", NULL };
+    char *versions[] = { "HTTP/0.9", "HTTP/1.0", "HTTP/1.1", NULL };
 
-    /* GET */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "GET|20|", 4, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "GET|09|", 4, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
+    uint methods_pos;
+    uint spacings_pos;
+    uint versions_pos;
+    int register_result;
+    int catsize;
+    char method_buffer[32] = "";
 
-    /* PUT */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PUT|20|", 4, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PUT|09|", 4, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
+    // Loop through all the methods ands spacings and register the patterns
+    for (methods_pos = 0; methods[methods_pos]; methods_pos++) {
+        for (spacings_pos = 0; spacings[spacings_pos]; spacings_pos++) {
 
-    /* POST */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "POST|20|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "POST|09|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
+            // Combine the method name and the spacing
+            catsize = strlen(methods[methods_pos]) + strlen(spacings[spacings_pos]) + 1;
+            snprintf(method_buffer, catsize, "%s%s", methods[methods_pos], spacings[spacings_pos]);
+
+            // Register the new method+spacing pattern
+            // 3 is subtracted from the length since the spacing is hex typed as |xx|
+            // but the pattern matching should only be one char.
+            register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
+                    ALPROTO_HTTP, method_buffer, strlen(method_buffer)-3, 0, STREAM_TOSERVER);
+            if (register_result < 0) {
+                return -1;
+            }
+        }
     }
 
-    /* HEAD */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "HEAD|20|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
+    // Loop through all the http verions patterns that are TO_CIENT
+    for (versions_pos = 0; versions[versions_pos]; versions_pos++) {
+        register_result = AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP,
+                ALPROTO_HTTP, versions[versions_pos], strlen(versions[versions_pos]),
+                0, STREAM_TOCLIENT);
+        if (register_result < 0) {
+            return -1;
+        }
     }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "HEAD|09|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* TRACE */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "TRACE|20|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "TRACE|09|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* OPTIONS */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "OPTIONS|20|", 8, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "OPTIONS|09|", 8, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* CONNECT */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "CONNECT|20|", 8, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "CONNECT|09|", 8, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* DELETE */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "DELETE|20|", 7, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "DELETE|09|", 7, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* PATCH */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PATCH|20|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PATCH|09|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* WEBDAV METHODS (rfc4918) */
-    /* PROPFIND */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PROPFIND|20|", 9, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PROPFIND|09|", 9, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* PROPPATCH */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PROPPATCH|20|", 10, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "PATCH|09|", 10, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* MKCOL */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "MKCOL|20|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "MKCOL|09|", 6, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* COPY */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "COPY|20|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "COPY|09|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* MOVE */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "MOVE|20|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "MOVE|09|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* LOCK */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "LOCK|20|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "LOCK|09|", 5, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* UNLOCK */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "UNLOCK|20|", 7, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "UNLOCK|09|", 7, 0, STREAM_TOSERVER) < 0)
-    {
-        return -1;
-    }
-
-    /* toclient */
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "HTTP/0.9", 8, 0, STREAM_TOCLIENT) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "HTTP/1.0", 8, 0, STREAM_TOCLIENT) < 0)
-    {
-        return -1;
-    }
-    if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_HTTP,
-                                               "HTTP/1.1", 8, 0, STREAM_TOCLIENT) < 0)
-    {
-        return -1;
-    }
-
+    
     return 0;
 }
 
