@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011-2012 ANSSI
+ * Copyright (C) 2011-2015 ANSSI
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -466,8 +466,11 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer, uint32_
             return NULL;
         }
     }
-    if (length > max_size)
+    if (length == UINT32_MAX || length > max_size) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
+    }
 
     a = Asn1GenericNew();
     if (a == NULL)
@@ -508,8 +511,11 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint3
             return NULL;
         }
     }
-    if (length > max_size)
+    if (length == UINT32_MAX || length > max_size) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
+    }
 
     a = Asn1GenericNew();
     if (a == NULL)
@@ -561,8 +567,11 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer, u
             return NULL;
         }
     }
-    if (length > max_size)
+    if (length == UINT32_MAX || length > max_size) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         return NULL;
+    }
 
     a = Asn1GenericNew();
     if (a == NULL)
@@ -612,7 +621,9 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
         }
     }
     node->length = d_length + (d_ptr - buffer);
-    if (node->length > max_size) {
+    if (node->length > max_size || node->length < d_length /* wrap */) {
+        if (errcode)
+            *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         SCFree(node);
         return NULL;
     }
@@ -626,6 +637,10 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
 
         Asn1Generic *child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth, seq_index, errcode);
         if (child == NULL) {
+            if (errcode && *errcode != 0) {
+                DerFree(node);
+                return NULL;
+            }
             break;
         }
 
@@ -676,7 +691,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
     }
     node->length = d_length + (d_ptr - buffer);
 
-    if (node->length > max_size) {
+    if (node->length > max_size || node->length < d_length /* wrap */) {
         if (errcode)
             *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
         SCFree(node);
@@ -687,6 +702,10 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
 
     el_max_size = max_size - (d_ptr-buffer);
     child = DecodeAsn1DerGeneric(d_ptr, el_max_size, depth, seq_index, errcode);
+    if (child == NULL) {
+        DerFree(node);
+        return NULL;
+    }
 
     node->data = child;
 
