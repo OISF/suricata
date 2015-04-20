@@ -4516,9 +4516,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                                        ~FLOW_TC_PP_ALPROTO_DETECT_DONE);
                     p->flow->flags &= ~ FLOW_NO_APPLAYER_INSPECTION;
                     if (p->flow->de_state != NULL) {
-                        SCMutexLock(&p->flow->de_state_m);
-                        DetectEngineStateReset(p->flow->de_state, (STREAM_TOSERVER | STREAM_TOCLIENT));
-                        SCMutexUnlock(&p->flow->de_state_m);
+                        /* flag the flow to reset this de_state in Detect().
+                         * Can't do it here as that would violate locking
+                         * order of flow and de_state. Observed dead locks. */
+                        p->flow->flags |= FLOW_DESTATE_RESET;
                     }
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {

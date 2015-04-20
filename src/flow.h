@@ -47,7 +47,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** At least on packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                  0x00000002
 
-// vacany 1x
+/** reset/clear destate next time we are in detect. Used by
+ *  TCP ssn reuse code as directly resetting from there would
+ *  violate locking order at the risk of dead locks */
+#define FLOW_DESTATE_RESET                0x00000004
 
 /** no magic on files in this flow */
 #define FLOW_FILE_NO_MAGIC_TS             0x00000008
