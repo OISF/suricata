@@ -342,7 +342,7 @@ void SCHInfoLoadFromConfig(void)
         ConfNode *host;
         TAILQ_FOREACH(host, &policy->head, next) {
             int is_ipv4 = 1;
-            if (index(host->val, ':') != NULL)
+            if (host->val != NULL && index(host->val, ':') != NULL)
                 is_ipv4 = 0;
             if (SCHInfoAddHostOSInfo(policy->name, host->val, is_ipv4) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
