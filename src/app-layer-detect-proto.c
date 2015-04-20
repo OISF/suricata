@@ -1630,16 +1630,19 @@ int AppLayerProtoDetectConfProtoDetectionEnabled(const char *ipproto,
         }
     }
 
-    if (strcasecmp(node->val, "yes") == 0) {
-        goto enabled;
-    } else if (strcasecmp(node->val, "no") == 0) {
-        goto disabled;
-    } else if (strcasecmp(node->val, "detection-only") == 0) {
-        goto enabled;
-    } else {
-        SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
-        exit(EXIT_FAILURE);
+    if (node->val) {
+        if (ConfValIsTrue(node->val)) {
+            goto enabled;
+        } else if (ConfValIsFalse(node->val)) {
+            goto disabled;
+        } else if (strcasecmp(node->val, "detection-only") == 0) {
+            goto enabled;
+        }
     }
+
+    /* Invalid or null value. */
+    SCLogError(SC_ERR_FATAL, "Invalid value found for %s.", param);
+    exit(EXIT_FAILURE);
 
  disabled:
     enabled = 0;
