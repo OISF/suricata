@@ -129,9 +129,13 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
 
-    snprintf(str, size, "%04d-%02d-%02dT%02d:%02d:%02d.%06u",
-             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
-             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    if (likely(t != NULL)) {
+        snprintf(str, size, "%04d-%02d-%02dT%02d:%02d:%02d.%06u",
+                t->tm_year + 1900, t->tm_mon + 1, t->tm_mday, t->tm_hour,
+                t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    } else {
+        snprintf(str, size, "ts-error");
+    }
 }
 
 /*
@@ -152,9 +156,13 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
     struct tm local_tm;
     struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
 
-    snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-             t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
-             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    if (likely(t != NULL)) {
+        snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
+                t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
+                t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+    } else {
+        snprintf(str, size, "ts-error");
+    }
 }
 
 #else
