@@ -2407,14 +2407,18 @@ int main(int argc, char **argv)
     UnixSocketKillSocketThread();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* First we need to kill the flow manager thread */
-        FlowKillFlowManagerThread();
+        /* First we need to disable the flow manager thread */
+        FlowDisableFlowManagerThread();
     }
+
 
     /* Disable packet acquisition first */
     TmThreadDisableReceiveThreads();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        /* we need a packet pool for FlowForceReassembly */
+        PacketPoolInit();
+
         FlowForceReassembly();
         /* kill receive threads when they have processed all
          * flow timeout packets */
@@ -2426,13 +2430,18 @@ int main(int argc, char **argv)
     /* before TmThreadKillThreads, as otherwise that kills it
      * but more slowly */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        FlowKillFlowRecyclerThread();
+        FlowDisableFlowRecyclerThread();
     }
 
     /* kill remaining threads */
     TmThreadKillThreads();
 
+
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        /* destroy the packet pool for flow reassembly after all
+         * the other threads are gone. */
+        PacketPoolDestroy();
+
         SCPerfReleaseResources();
         IPPairShutdown();
         FlowShutdown();

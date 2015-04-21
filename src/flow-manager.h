@@ -30,7 +30,7 @@ SCCtrlMutex flow_manager_ctrl_mutex;
 #define FlowWakeupFlowManagerThread() SCCtrlCondSignal(&flow_manager_ctrl_cond)
 
 void FlowManagerThreadSpawn(void);
-void FlowKillFlowManagerThread(void);
+void FlowDisableFlowManagerThread(void);
 void FlowMgrRegisterTests (void);
 
 /** flow recycler scheduling condition */
@@ -40,7 +40,7 @@ SCCtrlMutex flow_recycler_ctrl_mutex;
     SCCtrlCondSignal(&flow_recycler_ctrl_cond)
 
 void FlowRecyclerThreadSpawn(void);
-void FlowKillFlowRecyclerThread(void);
+void FlowDisableFlowRecyclerThread(void);
 
 void TmModuleFlowManagerRegister (void);
 void TmModuleFlowRecyclerRegister (void);

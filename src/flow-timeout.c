@@ -553,11 +553,8 @@ static inline void FlowForceReassemblyForHash(void)
  */
 void FlowForceReassembly(void)
 {
-    /* called by 'main()' which has no packet pool */
-    PacketPoolInit();
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
-    PacketPoolDestroy();
     return;
 }
 

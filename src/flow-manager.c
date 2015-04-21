@@ -98,12 +98,12 @@ typedef struct FlowTimeoutCounters_ {
 } FlowTimeoutCounters;
 
 /**
- * \brief Used to kill flow manager thread(s).
+ * \brief Used to disable flow manager thread(s).
  *
  * \todo Kinda hackish since it uses the tv name to identify flow manager
  *       thread.  We need an all weather identification scheme.
  */
-void FlowKillFlowManagerThread(void)
+void FlowDisableFlowManagerThread(void)
 {
     ThreadVars *tv = NULL;
     int cnt = 0;
@@ -121,8 +121,24 @@ void FlowKillFlowManagerThread(void)
     while (tv != NULL) {
         if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
-            TmThreadsSetFlag(tv, THV_DEINIT);
             cnt++;
+
+            /* value in seconds */
+#define THREAD_KILL_MAX_WAIT_TIME 60
+            /* value in microseconds */
+#define WAIT_TIME 100
+
+            double total_wait_time = 0;
+            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                usleep(WAIT_TIME);
+                total_wait_time += WAIT_TIME / 1000000.0;
+                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
+                    SCLogError(SC_ERR_FATAL, "Engine unable to "
+                            "disable detect thread - \"%s\".  "
+                            "Killing engine", tv->name);
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
         tv = tv->next;
     }
@@ -130,24 +146,6 @@ void FlowKillFlowManagerThread(void)
     /* wake up threads, another try */
     for (u = 0; u < flowmgr_number; u++)
         SCCtrlCondSignal(&flow_manager_ctrl_cond);
-
-    tv = tv_root[TVT_MGMT];
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
-            /* be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                usleep(100);
-            }
-        }
-        tv = tv->next;
-    }
-
-
-    /* not possible, unless someone decides to rename FlowManagerThread */
-    if (cnt == 0) {
-        SCMutexUnlock(&tv_root_lock);
-        abort();
-    }
 
     SCMutexUnlock(&tv_root_lock);
 
@@ -913,14 +911,14 @@ void FlowRecyclerThreadSpawn()
 }
 
 /**
- * \brief Used to kill flow recycler thread(s).
+ * \brief Used to disable flow recycler thread(s).
  *
  * \note this should only be called when the flow manager is already gone
  *
  * \todo Kinda hackish since it uses the tv name to identify flow recycler
  *       thread.  We need an all weather identification scheme.
  */
-void FlowKillFlowRecyclerThread(void)
+void FlowDisableFlowRecyclerThread(void)
 {
     ThreadVars *tv = NULL;
     int cnt = 0;
@@ -947,8 +945,24 @@ void FlowKillFlowRecyclerThread(void)
     while (tv != NULL) {
         if (strcasecmp(tv->name, "FlowRecyclerThread") == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
-            TmThreadsSetFlag(tv, THV_DEINIT);
             cnt++;
+
+            /* value in seconds */
+#define THREAD_KILL_MAX_WAIT_TIME 60
+            /* value in microseconds */
+#define WAIT_TIME 100
+
+            double total_wait_time = 0;
+            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                usleep(WAIT_TIME);
+                total_wait_time += WAIT_TIME / 1000000.0;
+                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
+                    SCLogError(SC_ERR_FATAL, "Engine unable to "
+                            "disable detect thread - \"%s\".  "
+                            "Killing engine", tv->name);
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
         tv = tv->next;
     }
@@ -956,24 +970,6 @@ void FlowKillFlowRecyclerThread(void)
     /* wake up threads, another try */
     for (u = 0; u < flowrec_number; u++)
         SCCtrlCondSignal(&flow_recycler_ctrl_cond);
-
-    tv = tv_root[TVT_MGMT];
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowRecyclerThread") == 0) {
-            /* be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                usleep(100);
-            }
-        }
-        tv = tv->next;
-    }
-
-
-    /* not possible, unless someone decides to rename FlowManagerThread */
-    if (cnt == 0) {
-        SCMutexUnlock(&tv_root_lock);
-        abort();
-    }
 
     SCMutexUnlock(&tv_root_lock);
 

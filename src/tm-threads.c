@@ -352,10 +352,10 @@ void *TmThreadsSlotPktAcqLoop(void *td)
     /* process all pseudo packets the flow timeout may throw at us */
     TmThreadTimeoutLoop(tv, s);
 
-    PacketPoolDestroy();
-
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
+
+    PacketPoolDestroy();
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {

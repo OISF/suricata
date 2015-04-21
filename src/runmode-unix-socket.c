@@ -283,13 +283,16 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         }
         this->currentfile = NULL;
 
+        /* needed by FlowForceReassembly */
+        PacketPoolInit();
+
         /* handle graceful shutdown of the flow engine, it's helper
          * threads and the packet threads */
-        FlowKillFlowManagerThread();
+        FlowDisableFlowManagerThread();
         TmThreadDisableReceiveThreads();
         FlowForceReassembly();
         TmThreadDisablePacketThreads();
-        FlowKillFlowRecyclerThread();
+        FlowDisableFlowRecyclerThread();
 
         /* kill the stats threads */
         TmThreadKillThreadsFamily(TVT_MGMT);
@@ -298,6 +301,8 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         /* kill packet threads -- already in 'disabled' state */
         TmThreadKillThreadsFamily(TVT_PPT);
         TmThreadClearThreadsFamily(TVT_PPT);
+
+        PacketPoolDestroy();
 
         /* mgt and ppt threads killed, we can run non thread-safe
          * shutdown functions */
