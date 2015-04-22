@@ -222,6 +222,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
 /* Create SMTP config structure */
 SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 }, 0, 0, 0};
 
+static SMTPString *SMTPStringAlloc(void);
+
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
  * config file
@@ -323,6 +325,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
         return NULL;
     }
 
+    TAILQ_INIT(&tx->rcpt_to_list);
     tx->mime_state = NULL;
     return tx;
 }
@@ -1001,6 +1004,26 @@ static int SMTPParseCommandMAILFROM(SMTPState *state)
                                      &state->curr_tx->mail_from_len);
 }
 
+static int SMTPParseCommandRCPTTO(SMTPState *state)
+{
+    uint8_t *rcptto;
+    uint16_t rcptto_len;
+
+    if (SMTPParseCommandWithParam(state, 7, &rcptto, &rcptto_len) == 0) {
+        SMTPString *rcptto_str = SMTPStringAlloc();
+        if (rcptto_str) {
+            rcptto_str->str = rcptto;
+            rcptto_str->len = rcptto_len;
+            TAILQ_INSERT_TAIL(&state->curr_tx->rcpt_to_list, rcptto_str, next);
+        } else {
+            return -1;
+        }
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
 /* consider 'rset' and 'quit' to be part of the existing state */
 static int NoNewTx(SMTPState *state)
 {
@@ -1084,6 +1107,13 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 9 &&
                    SCMemcmpLowercase("mail from", state->current_line, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 7 &&
+                   SCMemcmpLowercase("rcpt to", state->current_line, 7) == 0) {
+            r = SMTPParseCommandRCPTTO(state);
             if (r == -1) {
                 SCReturnInt(-1);
             }
@@ -1203,6 +1233,25 @@ void *SMTPStateAlloc(void)
     return smtp_state;
 }
 
+static SMTPString *SMTPStringAlloc(void)
+{
+    SMTPString *smtp_string = SCMalloc(sizeof(SMTPString));
+    if (unlikely(smtp_string == NULL))
+        return NULL;
+    memset(smtp_string, 0, sizeof(SMTPString));
+
+    return smtp_string;
+}
+
+
+static void SMTPStringFree(SMTPString *str)
+{
+    if (str->str) {
+        SCFree(str->str);
+    }
+    SCFree(str);
+}
+
 static void *SMTPLocalStorageAlloc(void)
 {
     /* needed by the mpm */
@@ -1243,6 +1292,11 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     if (tx->mail_from)
         SCFree(tx->mail_from);
 
+    SMTPString *str = NULL;
+    while ((str = TAILQ_FIRST(&tx->rcpt_to_list))) {
+        TAILQ_REMOVE(&tx->rcpt_to_list, str, next);
+        SMTPStringFree(str);
+    }
 #if 0
         if (tx->decoder_events->cnt <= smtp_state->events)
             smtp_state->events -= tx->decoder_events->cnt;
