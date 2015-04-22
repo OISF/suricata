@@ -58,6 +58,7 @@ static json_t *JsonSmtpDataLogger(ThreadVars *tv, void *thread_data, const Packe
 {
     json_t *sjs = json_object();
     SMTPTransaction *tx = vtx;
+    SMTPString *rcptto_str;
     if (sjs == NULL) {
         return NULL;
     }
@@ -68,6 +69,15 @@ static json_t *JsonSmtpDataLogger(ThreadVars *tv, void *thread_data, const Packe
     if (tx->mail_from) {
         json_object_set_new(sjs, "mail_from",
                             json_string((const char *)tx->mail_from));
+    }
+    if (!TAILQ_EMPTY(&tx->rcpt_to_list)) {
+        json_t *js_rcptto = json_array();
+        if (likely(js_rcptto != NULL)) {
+            TAILQ_FOREACH(rcptto_str, &tx->rcpt_to_list, next) {
+                json_array_append_new(js_rcptto, json_string((char *)rcptto_str->str));
+            }
+            json_object_set_new(sjs, "rcpt_to", js_rcptto);
+        }
     }
 
     return sjs;
