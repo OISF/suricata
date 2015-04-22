@@ -279,6 +279,19 @@ void PacketPoolReturnPacket(Packet *p)
     }
 }
 
+void PacketPoolInitEmpty(void)
+{
+#ifndef TLS
+    TmqhPacketPoolInit();
+#endif
+
+    PktPool *my_pool = GetThreadPacketPool();
+
+    SCMutexInit(&my_pool->return_stack.mutex, NULL);
+    SCCondInit(&my_pool->return_stack.cond, NULL);
+    SC_ATOMIC_INIT(my_pool->return_stack.sync_now);
+}
+
 void PacketPoolInit(void)
 {
     extern intmax_t max_pending_packets;

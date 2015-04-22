@@ -402,6 +402,8 @@ void *TmThreadsSlotVar(void *td)
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
+    PacketPoolInitEmpty();
+
     /* Set the thread name */
     if (SCSetThreadName(tv->name) < 0) {
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
@@ -523,6 +525,8 @@ void *TmThreadsSlotVar(void *td)
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
+
+    PacketPoolDestroy();
 
     s = (TmSlot *)tv->tm_slots;
 

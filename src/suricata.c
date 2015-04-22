@@ -2474,7 +2474,6 @@ int main(int argc, char **argv)
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         DefragDestroy();
     }
-    PacketPoolDestroy();
     MagicDeinit();
     TmqhCleanup();
     TmModuleRunDeInit();
