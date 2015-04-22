@@ -242,6 +242,9 @@ Packet *PacketPoolGetPacket(void)
 {
     PktPool *pool = GetThreadPacketPool();
 
+    BUG_ON(pool->initialized == 0);
+    BUG_ON(pool->destroyed == 1);
+
     if (pool->head) {
         /* Stack is not empty. */
         Packet *p = pool->head;
@@ -286,6 +289,11 @@ void PacketPoolReturnPacket(Packet *p)
         PacketFree(p);
         return;
     }
+
+    BUG_ON(pool->initialized == 0);
+    BUG_ON(pool->destroyed == 1);
+    BUG_ON(my_pool->initialized == 0);
+    BUG_ON(my_pool->destroyed == 1);
 
     if (pool == my_pool) {
         /* Push back onto this thread's own stack, so no locking. */
@@ -338,6 +346,10 @@ void PacketPoolInitEmpty(void)
 
     PktPool *my_pool = GetThreadPacketPool();
 
+    BUG_ON(my_pool->initialized);
+    my_pool->initialized = 1;
+    my_pool->destroyed = 0;
+
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
     SCCondInit(&my_pool->return_stack.cond, NULL);
     SC_ATOMIC_INIT(my_pool->return_stack.sync_now);
@@ -352,6 +364,10 @@ void PacketPoolInit(void)
 #endif
 
     PktPool *my_pool = GetThreadPacketPool();
+
+    BUG_ON(my_pool->initialized);
+    my_pool->initialized = 1;
+    my_pool->destroyed = 0;
 
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
     SCCondInit(&my_pool->return_stack.cond, NULL);
@@ -371,12 +387,16 @@ void PacketPoolInit(void)
     }
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
             max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
+
 }
 
 void PacketPoolDestroy(void)
 {
     Packet *p = NULL;
     PktPool *my_pool = GetThreadPacketPool();
+
+    BUG_ON(my_pool->destroyed);
+
     if (my_pool && my_pool->pending_pool != NULL) {
         p = my_pool->pending_head;
         while (p) {
@@ -396,6 +416,9 @@ void PacketPoolDestroy(void)
     }
 
     SC_ATOMIC_DESTROY(my_pool->return_stack.sync_now);
+
+    my_pool->initialized = 0;
+    my_pool->destroyed = 1;
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *tv)
