@@ -1420,6 +1420,7 @@ void TmThreadDisableReceiveThreads(void)
 
     ThreadVars *tv = NULL;
 
+again:
     SCMutexLock(&tv_root_lock);
 
     /* all receive threads are part of packet processing threads */
@@ -1453,8 +1454,11 @@ void TmThreadDisableReceiveThreads(void)
                 if (!(strlen(tv->inq->name) == strlen("packetpool") &&
                       strcasecmp(tv->inq->name, "packetpool") == 0)) {
                     PacketQueue *q = &trans_q[tv->inq->id];
-                    while (q->len != 0) {
+                    if (q->len != 0) {
+                        SCMutexUnlock(&tv_root_lock);
+                        /* don't sleep while holding a lock */
                         usleep(1000);
+                        goto again;
                     }
                 }
             }
@@ -1508,6 +1512,7 @@ void TmThreadDisablePacketThreads(void)
 
     ThreadVars *tv = NULL;
 
+again:
     SCMutexLock(&tv_root_lock);
 
     /* all receive threads are part of packet processing threads */
@@ -1525,8 +1530,11 @@ void TmThreadDisablePacketThreads(void)
             if (!(strlen(tv->inq->name) == strlen("packetpool") &&
                         strcasecmp(tv->inq->name, "packetpool") == 0)) {
                 PacketQueue *q = &trans_q[tv->inq->id];
-                while (q->len != 0) {
+                if (q->len != 0) {
+                    SCMutexUnlock(&tv_root_lock);
+                    /* don't sleep while holding a lock */
                     usleep(1000);
+                    goto again;
                 }
             }
         }
@@ -1655,6 +1663,7 @@ void TmThreadClearThreadsFamily(int family)
     if ((family < 0) || (family >= TVT_MAX))
         return;
 
+    SCMutexLock(&tv_root_lock);
     tv = tv_root[family];
 
     while (tv) {
@@ -1663,6 +1672,7 @@ void TmThreadClearThreadsFamily(int family)
         TmThreadFree(ptv);
     }
     tv_root[family] = NULL;
+    SCMutexUnlock(&tv_root_lock);
 }
 
 /**
@@ -1812,6 +1822,7 @@ void TmThreadContinueThreads()
     ThreadVars *tv = NULL;
     int i = 0;
 
+    SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
@@ -1819,6 +1830,7 @@ void TmThreadContinueThreads()
             tv = tv->next;
         }
     }
+    SCMutexUnlock(&tv_root_lock);
 
     return;
 }
@@ -1845,6 +1857,7 @@ void TmThreadPauseThreads()
 
     TmThreadsListThreads();
 
+    SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
@@ -1852,6 +1865,7 @@ void TmThreadPauseThreads()
             tv = tv->next;
         }
     }
+    SCMutexUnlock(&tv_root_lock);
 
     return;
 }
@@ -1895,6 +1909,7 @@ void TmThreadCheckThreadState(void)
     ThreadVars *tv = NULL;
     int i = 0;
 
+    SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
 
@@ -1904,13 +1919,13 @@ void TmThreadCheckThreadState(void)
                 pthread_join(tv->t, NULL);
                 if ((tv_aof & THV_ENGINE_EXIT) || (tv->aof & THV_ENGINE_EXIT)) {
                     EngineKill();
-                    return;
+                    goto end;
                 } else {
                     /* if the engine kill-stop has been received by now, chuck
                      * restarting and return to kill the engine */
                     if ((suricata_ctl_flags & SURICATA_KILL) ||
                         (suricata_ctl_flags & SURICATA_STOP)) {
-                        return;
+                        goto end;
                     }
                     TmThreadRestartThread(tv);
                 }
@@ -1918,7 +1933,8 @@ void TmThreadCheckThreadState(void)
             tv = tv->next;
         }
     }
-
+end:
+    SCMutexUnlock(&tv_root_lock);
     return;
 }
 
@@ -1937,6 +1953,7 @@ TmEcode TmThreadWaitOnThreadInit(void)
     uint16_t mgt_num = 0;
     uint16_t ppt_num = 0;
 
+    SCMutexLock(&tv_root_lock);
     for (i = 0; i < TVT_MAX; i++) {
         tv = tv_root[i];
         while (tv != NULL) {
@@ -1951,11 +1968,13 @@ TmEcode TmThreadWaitOnThreadInit(void)
                 }
 
                 if (TmThreadsCheckFlag(tv, THV_FAILED)) {
+                    SCMutexUnlock(&tv_root_lock);
                     SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" failed to "
                             "initialize.", tv->name);
                     return TM_ECODE_FAILED;
                 }
                 if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                    SCMutexUnlock(&tv_root_lock);
                     SCLogError(SC_ERR_THREAD_INIT, "thread \"%s\" closed on "
                             "initialization.", tv->name);
                     return TM_ECODE_FAILED;
@@ -1968,6 +1987,7 @@ TmEcode TmThreadWaitOnThreadInit(void)
             tv = tv->next;
         }
     }
+    SCMutexUnlock(&tv_root_lock);
 
     SCLogNotice("all %"PRIu16" packet processing threads, %"PRIu16" management "
               "threads initialized, engine started.", ppt_num, mgt_num);
