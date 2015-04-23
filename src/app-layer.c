@@ -2822,7 +2822,7 @@ static int AppLayerTest09(void)
 
     /* full request */
     uint8_t request2[] = {
-        0x44, 0x44, 0x45, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+        0x44, 0x44, 0x45, 0x20, 0x2f, 0x69, 0x6e, 0x64, 0xff };
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(9);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -2889,7 +2889,7 @@ static int AppLayerTest09(void)
         0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
         0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
         0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -2914,7 +2914,7 @@ static int AppLayerTest09(void)
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(17);
+    p->tcph->th_seq = htonl(18);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
@@ -3054,7 +3054,7 @@ static int AppLayerTest10(void)
     /* full request */
     uint8_t request1[] = {
         0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64,
-        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64, 0xff };
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -3079,7 +3079,7 @@ static int AppLayerTest10(void)
     }
 
     /* response - request ack */
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -3145,7 +3145,7 @@ static int AppLayerTest10(void)
         0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
         0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
         0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -3170,7 +3170,7 @@ static int AppLayerTest10(void)
 
     /* response ack */
     p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(17);
+    p->tcph->th_seq = htonl(18);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
@@ -3311,7 +3311,7 @@ static int AppLayerTest11(void)
     /* full request */
     uint8_t request1[] = {
         0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64,
-        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64 };
+        0x47, 0x47, 0x49, 0x20, 0x2f, 0x69, 0x6e, 0x64, 0xff };
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
@@ -3336,7 +3336,7 @@ static int AppLayerTest11(void)
     }
 
     /* response - request ack */
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -3362,7 +3362,7 @@ static int AppLayerTest11(void)
     /* full response - request ack */
     uint8_t response1[] = {
         0x55, 0x74, 0x54, 0x50, };
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -3387,7 +3387,7 @@ static int AppLayerTest11(void)
 
     /* response ack from request */
     p->tcph->th_ack = htonl(5);
-    p->tcph->th_seq = htonl(17);
+    p->tcph->th_seq = htonl(18);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
@@ -3451,7 +3451,7 @@ static int AppLayerTest11(void)
         0x72, 0x6b, 0x73, 0x21, 0x3c, 0x2f, 0x68, 0x31,
         0x3e, 0x3c, 0x2f, 0x62, 0x6f, 0x64, 0x79, 0x3e,
         0x3c, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3e };
-    p->tcph->th_ack = htonl(17);
+    p->tcph->th_ack = htonl(18);
     p->tcph->th_seq = htonl(5);
     p->tcph->th_flags = TH_PUSH | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
@@ -3476,7 +3476,7 @@ static int AppLayerTest11(void)
 
     /* response ack from request */
     p->tcph->th_ack = htonl(328);
-    p->tcph->th_seq = htonl(17);
+    p->tcph->th_seq = htonl(18);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = 0;
