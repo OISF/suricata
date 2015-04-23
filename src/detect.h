@@ -122,6 +122,7 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_DNSQUERY_MATCH,
     DETECT_SM_LIST_MODBUS_MATCH,
+    DETECT_SM_LIST_DNP3_DATA_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
@@ -305,6 +306,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
 #define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
+#define SIG_MASK_REQUIRE_DNP3_STATE         (1<<13)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
@@ -705,6 +707,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hrhhd;
     int32_t sgh_mpm_context_app_proto_detect;
     int32_t sgh_mpm_context_dnsquery;
+    int32_t sgh_mpm_context_dnp3_data;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -950,6 +953,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
+#define SIG_GROUP_HEAD_MPM_DNP3_DATA    (1 << 24)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -1012,6 +1016,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hhhd_ctx_ts;
     MpmCtx *mpm_hrhhd_ctx_ts;
     MpmCtx *mpm_dnsquery_ctx_ts;
+    MpmCtx *mpm_dnp3_data_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;
@@ -1022,6 +1027,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hcd_ctx_tc;
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
+    MpmCtx *mpm_dnp3_data_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 
@@ -1183,6 +1189,7 @@ enum {
 
     DETECT_AL_DNS_QUERY,
     DETECT_AL_MODBUS,
+    DETECT_AL_DNP3DATA,
 
     DETECT_XBITS,
 
