@@ -99,6 +99,7 @@ outputs:
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #cee-format: no # Prepend @cee: cookie for CEE/Lumberjack format compatibility
       types:
         - alert:
             # payload: yes           # enable dumping payload in Base64
