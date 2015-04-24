@@ -8,6 +8,9 @@
 #ifndef _UTIL_MD5_H_
 #define _UTIL_MD5_H_
 
+/* require NSS to utilize this */
+#ifdef HAVE_NSS
+
 #if 0
 #include "blapit.h"
 #include "hasht.h"
@@ -1595,5 +1598,7 @@ extern SECStatus EC_CopyParams(PLArenaPool *arena, ECParams *dstParams,
 SEC_END_PROTOS
 
 #endif
+
+#endif /* HAVE_NSS */
 
 #endif /* _UTIL_MD5_H_ */

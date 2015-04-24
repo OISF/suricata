@@ -9,6 +9,9 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+/* require NSS to utilize this */
+#ifdef HAVE_NSS 
+
 #include "prerr.h"
 #include "secerr.h"
 
@@ -606,3 +609,5 @@ MD5_TraceState(SCMD5Context *cx)
 	PORT_SetError(PR_NOT_IMPLEMENTED_ERROR);
 }
 #endif
+
+#endif /* HAVE_NSS */
