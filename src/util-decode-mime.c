@@ -1992,6 +1992,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
+
 static int ProcessBodyComplete(MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
@@ -2179,6 +2180,16 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     uint8_t *bstart;
     int body_found = 0;
     uint32_t tlen;
+
+#ifdef HAVE_NSS
+    if (state->body_begin == 1 && (state->md5_ctx == NULL)) {
+        state->md5_ctx = HASH_Create(HASH_AlgMD5);
+        if (state->md5_ctx != NULL) {
+            HASH_Begin(state->md5_ctx);
+            HASH_Update(state->md5_ctx, buf, len + 2); /* plus 2 to add CRLF */
+        }
+    }
+#endif
 
     /* Ignore empty lines */
     if (len == 0) {
@@ -2394,6 +2405,8 @@ void MimeDecDeInitParser(MimeDecParseState *state)
     SCFree(state->hname);
     FreeDataValue(state->hvalue);
     FreeMimeDecStack(state->stack);
+    if (state->md5_ctx)
+        HASH_Destroy(state->md5_ctx);
     SCFree(state);
 }
 
@@ -2426,6 +2439,13 @@ int MimeDecParseComplete(MimeDecParseState *state)
         SCLogDebug("Error: ProcessBodyComplete() function failed");
         return ret;
     }
+
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        unsigned int len = 0;
+        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
+    }
+#endif
 
     if (state->stack->top == NULL) {
         state->msg->anomaly_flags |= ANOM_MALFORMED_MSG;
@@ -2475,6 +2495,11 @@ int MimeDecParseLine(const uint8_t *line, const uint32_t len,
         SCLogDebug("SMTP LINE - EMPTY");
     }
 
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        HASH_Update(state->md5_ctx, line, len + 2);
+    }
+#endif
     /* Process the entity */
     ret = ProcessMimeEntity(line, len, state);
     if (ret != MIME_DEC_OK) {
