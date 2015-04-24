@@ -369,7 +369,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             if (smtp_state->files_ts == NULL) {
                 ret = MIME_DEC_ERR_MEM;
                 SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
-                goto end;
+                SCReturnInt(ret);
             }
         }
         files = smtp_state->files_ts;
@@ -451,7 +451,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     if (files != NULL) {
         FilePrune(files);
     }
-end:
+
     SCReturnInt(ret);
 }
 
