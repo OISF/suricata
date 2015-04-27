@@ -123,5 +123,10 @@ alert pkthdr any any -> any any (msg:"SURICATA MPLS bad implicit null label"; de
 alert pkthdr any any -> any any (msg:"SURICATA MPLS reserved label"; decode-event:mpls.bad_label_reserved; sid: 2200100; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA MPLS unknown payload type"; decode-event:mpls.unknown_payload_type; sid: 2200101; rev:1;)
 
-# next sid is 2200103
+# linktype null
+alert pkthdr any any -> any any (msg:"SURICATA NULL pkt too small"; decode-event:ltnull.pkt_too_small; sid: 2200103; rev:1;)
+# packet has type not supported by Suricata's decoders
+alert pkthdr any any -> any any (msg:"SURICATA NULL unsupported type"; decode-event:ltnull.unsupported_type; sid: 2200104; rev:1;)
+
+# next sid is 2200105
 
