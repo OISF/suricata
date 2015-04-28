@@ -90,6 +90,20 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
             SCReturnInt(TM_ECODE_FAILED);
         }
 
+#ifdef HAVE_NSS
+        if (mime_state->md5_ctx && (mime_state->state_flag == PARSE_DONE)) {
+            size_t x;
+            int i;
+            char s[256];
+            if (likely(s != NULL)) {
+                for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
+                    i += snprintf(s + i, 255-i, "%02x", mime_state->md5[x]);
+                }
+                json_object_set_new(sjs, "body_md5", json_string(s));
+            }
+        }
+#endif
+
         if ((entity->header_flags & HDR_IS_LOGGED) == 0) {
             MimeDecField *field;
             //printf("email LOG\n");
