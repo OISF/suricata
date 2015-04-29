@@ -104,6 +104,9 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
         }
 #endif
 
+        json_object_set_new(sjs, "status",
+                            json_string(MimeDecParseStateGetStatus(mime_state)));
+
         if ((entity->header_flags & HDR_IS_LOGGED) == 0) {
             MimeDecField *field;
             //printf("email LOG\n");
