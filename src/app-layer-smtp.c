@@ -1126,8 +1126,9 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
     /* Free list of MIME message recursively */
     MimeDecFreeEntity(tx->msg_head);
 
-    if (tx->decoder_events != NULL) {
+    if (tx->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
+
     if (tx->de_state != NULL)
         DetectEngineStateFree(tx->de_state);
 #if 0
@@ -1136,7 +1137,6 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
         else
             smtp_state->events = 0;
 #endif
-    }
     SCFree(tx);
 }
 
