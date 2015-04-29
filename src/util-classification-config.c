@@ -275,7 +275,7 @@ int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx
         SCLogInfo("pcre_copy_substring() failed");
         goto error;
     }
-    if (ct_priority_str == NULL) {
+    if (strlen(ct_priority_str) == 0) {
         goto error;
     }
 
