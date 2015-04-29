@@ -260,9 +260,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     sm->ctx = (SigMatchCtx *)cd;
 
     switch (fb_cmd) {
-        case DETECT_FLOWBITS_CMD_NOALERT:
-            /* nothing to do */
-            break;
+        /* case DETECT_FLOWBITS_CMD_NOALERT can't happen here */
 
         case DETECT_FLOWBITS_CMD_ISNOTSET:
         case DETECT_FLOWBITS_CMD_ISSET:

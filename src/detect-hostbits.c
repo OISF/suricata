@@ -403,9 +403,7 @@ int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     sm->ctx = (void *)cd;
 
     switch (fb_cmd) {
-        case DETECT_XBITS_CMD_NOALERT:
-            /* nothing to do */
-            break;
+        /* case DETECT_XBITS_CMD_NOALERT can't happen here */
 
         case DETECT_XBITS_CMD_ISNOTSET:
         case DETECT_XBITS_CMD_ISSET:
