@@ -149,6 +149,7 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
                         //printf("got another addr: \"%s\"\n", p);
                         json_array_append_new(js_cc, json_string(&p[strspn(p, " ")]));
                     }
+                    SCFree(cc_line);
                     json_object_set_new(sjs, "cc", js_cc);
                 }
             }
