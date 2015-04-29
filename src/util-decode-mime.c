@@ -81,7 +81,6 @@
 /* Globally hold configuration data */
 static MimeDecConfig mime_dec_config = { 1, 1, 1, 0, MAX_HEADER_VALUE };
 
-#ifdef DEBUG
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
         "HEADER_READY",
@@ -93,7 +92,6 @@ static const char *StateFlags[] = { "NONE",
         "PARSE_DONE",
         "PARSE_ERROR",
         NULL };
-#endif
 
 /* URL executable file extensions */
 static const char *UrlExeExts[] = { ".exe",
@@ -2263,6 +2261,11 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     }
 
     return ret;
+}
+
+const char *MimeDecParseStateGetStatus(MimeDecParseState *state)
+{
+    return StateFlags[state->state_flag];
 }
 
 /**

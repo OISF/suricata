@@ -238,6 +238,7 @@ int MimeDecParseComplete(MimeDecParseState *state);
 int MimeDecParseLine(const uint8_t *line, const uint32_t len, MimeDecParseState *state);
 MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
         int (*DataChunkProcessorFunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
+const char *MimeDecParseStateGetStatus(MimeDecParseState *state);
 
 /* Test functions */
 void MimeDecRegisterTests(void);
