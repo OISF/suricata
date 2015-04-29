@@ -194,7 +194,10 @@ SCProfileSummarySortByTicks(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->ticks - s0->ticks;
+    if (s1->ticks == s0->ticks)
+        return 0;
+    else
+        return s0->ticks > s1->ticks ? -1 : 1;
 }
 
 /**
@@ -205,7 +208,10 @@ SCProfileSummarySortByAvgTicksMatch(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->avgticks_match - s0->avgticks_match;
+    if (s1->avgticks_match == s0->avgticks_match)
+        return 0;
+    else
+        return s0->avgticks_match > s1->avgticks_match ? -1 : 1;
 }
 
 /**
@@ -216,7 +222,10 @@ SCProfileSummarySortByAvgTicksNoMatch(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->avgticks_no_match - s0->avgticks_no_match;
+    if (s1->avgticks_no_match == s0->avgticks_no_match)
+        return 0;
+    else
+        return s0->avgticks_no_match > s1->avgticks_no_match ? -1 : 1;
 }
 
 /**
@@ -227,7 +236,10 @@ SCProfileSummarySortByAvgTicks(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->avgticks - s0->avgticks;
+    if (s1->avgticks == s0->avgticks)
+        return 0;
+    else
+        return s0->avgticks > s1->avgticks ? -1 : 1;
 }
 
 /**
@@ -238,7 +250,10 @@ SCProfileSummarySortByChecks(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->checks - s0->checks;
+    if (s1->checks == s0->checks)
+        return 0;
+    else
+        return s0->checks > s1->checks ? -1 : 1;
 }
 
 /**
@@ -249,7 +264,10 @@ SCProfileSummarySortByMatches(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->matches - s0->matches;
+    if (s1->matches == s0->matches)
+        return 0;
+    else
+        return s0->matches > s1->matches ? -1 : 1;
 }
 
 /**
@@ -260,7 +278,10 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
 {
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
-    return s1->max - s0->max;
+    if (s1->max == s0->max)
+        return 0;
+    else
+        return s0->max > s1->max ? -1 : 1;
 }
 
 /**
