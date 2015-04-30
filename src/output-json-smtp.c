@@ -54,7 +54,7 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
-static json_t *JsonSmtpDataLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     json_t *sjs = json_object();
     SMTPTransaction *tx = vtx;
@@ -97,7 +97,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     /* reset */
     MemBufferReset(buffer);
 
-    sjs = JsonSmtpDataLogger(tv, thread_data, p, f, state, tx, tx_id);
+    sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
     if (sjs) {
         json_object_set_new(js, "smtp", sjs);
     }
@@ -115,6 +115,21 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     SCReturnInt(TM_ECODE_OK);
 
+}
+
+json_t *JsonSMTPAddMetadata(const Flow *f)
+{
+    SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
+    if (smtp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
+
+        if (tx) {
+            return JsonSmtpDataLogger(f, smtp_state, tx, tx_id);
+        }
+    }
+
+    return NULL;
 }
 
 static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
