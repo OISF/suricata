@@ -54,6 +54,7 @@
 #include "output.h"
 #include "output-json.h"
 #include "output-json-http.h"
+#include "output-json-smtp.h"
 
 #include "log-file.h"
 #include "util-logopenfile.h"
@@ -95,6 +96,11 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             hjs = JsonHttpAddMetadata(p->flow);
             if (hjs)
                 json_object_set_new(js, "http", hjs);
+            break;
+        case ALPROTO_SMTP:
+            hjs = JsonSMTPAddMetadata(p->flow);
+            if (hjs)
+                json_object_set_new(js, "smtp", hjs);
             break;
     }
 
@@ -151,7 +157,15 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_object_set_new(js, "fileinfo", fjs);
     OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, buffer);
     json_object_del(js, "fileinfo");
-    json_object_del(js, "http");
+
+    switch (p->flow->alproto) {
+        case ALPROTO_HTTP:
+            json_object_del(js, "http");
+            break;
+        case ALPROTO_SMTP:
+            json_object_del(js, "smtp");
+            break;
+    }
 
     json_object_clear(js);
     json_decref(js);
