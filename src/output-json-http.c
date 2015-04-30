@@ -396,6 +396,28 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCReturnInt(TM_ECODE_OK);
 }
 
+json_t *JsonHttpAddMetadata(const Flow *f)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return NULL;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            return hjs;
+        }
+    }
+
+    return NULL;
+}
+
 static void OutputHttpLogDeinit(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *http_ctx = output_ctx->data;
