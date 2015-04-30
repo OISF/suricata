@@ -37,6 +37,7 @@ typedef struct JsonEmailLogThread_ {
 
 #ifdef HAVE_LIBJANSSON
 TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id);
+json_t *JsonEmailAddMetadata(const Flow *f);
 #endif
 
 #endif /* __OUTPUT_JSON_EMAIL_COMMON_H__ */
