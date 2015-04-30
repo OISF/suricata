@@ -1175,18 +1175,19 @@ static int ModbusParseRequest(Flow                  *f,
     ModbusHeader        header;
 
     while (input_len > 0) {
-        uint16_t    adu_len, offset = 0;
+        uint32_t    adu_len;
+        uint16_t    offset = 0;
         uint8_t     *ptr = input;
 
         /* Modbus header is 7 bytes long */
-        if (input_len < sizeof(ModbusHeader))
+        if (input_len < (uint32_t) sizeof(ModbusHeader))
             SCReturnInt(0);
 
         /* Extract MODBUS Header */
         ModbusParseHeader(&header, ptr, &offset);
 
         /* Compute ADU length. */
-        adu_len = sizeof(ModbusHeader) + header.length - 1;
+        adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
             SCReturnInt(0);
 
@@ -1235,18 +1236,19 @@ static int ModbusParseResponse(Flow                 *f,
     ModbusTransaction   *tx;
 
     while (input_len > 0) {
-        uint16_t    adu_len, offset = 0;
+        uint32_t    adu_len;
+        uint16_t    offset = 0;
         uint8_t     *ptr = input;
 
         /* Modbus header is 7 bytes long */
-        if (input_len < sizeof(ModbusHeader))
+        if (input_len < (uint32_t) sizeof(ModbusHeader))
             SCReturnInt(0);
 
         /* Extract MODBUS Header */
         ModbusParseHeader(&header, ptr, &offset);
 
         /* Compute ADU length */
-        adu_len = sizeof(ModbusHeader) + header.length - 1;
+        adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
             SCReturnInt(0);
 
@@ -1552,6 +1554,16 @@ static uint8_t invalidLengthWriteMultipleRegistersReq[] = {
                                               /* Byte count */              0x04,
                                               /* Registers Value */         0x00, 0x0A,
                                                                             0x01, 0x02};
+
+static uint8_t exceededLengthWriteMultipleRegistersReq[] = {
+                                              /* Transaction ID */          0x00, 0x0A,
+                                              /* Protocol ID */             0x00, 0x00,
+                                              /* Length */                  0xff, 0xfa,
+                                              /* Unit ID */                 0x00,
+                                              /* Function code */           0x10,
+                                              /* Starting Address */        0x00, 0x01,
+                                              /* Quantity of Registers */   0x7f, 0xf9,
+                                              /* Byte count */              0xff};
 
 /** \test Send Modbus Read Coils request/response. */
 static int ModbusParserTest01(void) {
@@ -2401,6 +2413,93 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
+
+/** \test Send Modbus exceed Length request. */
+static int ModbusParserTest11(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    int result = 0;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Length\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_length; "
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                    exceededLengthWriteMultipleRegistersReq,
+                                    sizeof(exceededLengthWriteMultipleRegistersReq) + 65523 /* header.length - 7 */ * sizeof(uint8_t));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
@@ -2415,5 +2514,6 @@ void ModbusParserRegisterTests(void) {
     UtRegisterTest("ModbusParserTest08 - Modbus Exception code invalid", ModbusParserTest08, 1);
     UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets", ModbusParserTest09, 1);
     UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet", ModbusParserTest10, 1);
+    UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request", ModbusParserTest11, 1);
 #endif /* UNITTESTS */
 }
