@@ -51,13 +51,14 @@
 #include "util-buffer.h"
 #include "util-byte.h"
 
+#include "log-file.h"
+#include "util-logopenfile.h"
+
 #include "output.h"
 #include "output-json.h"
 #include "output-json-http.h"
 #include "output-json-smtp.h"
-
-#include "log-file.h"
-#include "util-logopenfile.h"
+#include "output-json-email-common.h"
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
@@ -101,6 +102,9 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             hjs = JsonSMTPAddMetadata(p->flow);
             if (hjs)
                 json_object_set_new(js, "smtp", hjs);
+            hjs = JsonEmailAddMetadata(p->flow);
+            if (hjs)
+                json_object_set_new(js, "email", hjs);
             break;
     }
 
@@ -164,6 +168,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             break;
         case ALPROTO_SMTP:
             json_object_del(js, "smtp");
+            json_object_del(js, "email");
             break;
     }
 
