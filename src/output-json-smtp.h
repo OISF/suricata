@@ -25,5 +25,8 @@
 #define __OUTPUT_JSON_SMTP_H__
 
 void TmModuleJsonSmtpLogRegister (void);
+#ifdef HAVE_LIBJANSSON
+json_t *JsonSMTPAddMetadata(const Flow *f);
+#endif
 
 #endif /* __OUTPUT_JSON_SMTP_H__ */
