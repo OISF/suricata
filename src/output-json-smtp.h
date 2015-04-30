@@ -25,5 +25,6 @@
 #define __OUTPUT_JSON_SMTP_H__
 
 void TmModuleJsonSmtpLogRegister (void);
+json_t *JsonSMTPAddMetadata(const Flow *f);
 
 #endif /* __OUTPUT_JSON_SMTP_H__ */
