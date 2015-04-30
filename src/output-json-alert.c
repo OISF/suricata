@@ -101,31 +101,6 @@ static int AlertJsonDumpStreamSegmentCallback(const Packet *p, void *data, uint8
     return 1;
 }
 
-/** Handle the case where no JSON support is compiled in.
- *
- */
-static void AlertJsonHttp(const Flow *f, json_t *js)
-{
-    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
-    if (htp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
-
-        if (tx) {
-            json_t *hjs = json_object();
-            if (unlikely(hjs == NULL))
-                return;
-
-            JsonHttpLogJSONBasic(hjs, tx);
-            JsonHttpLogJSONExtended(hjs, tx);
-
-            json_object_set_new(js, "http", hjs);
-        }
-    }
-
-    return;
-}
-
 static void AlertJsonTls(const Flow *f, json_t *js)
 {
     SSLState *ssl_state = (SSLState *)FlowGetAppState(f);
@@ -198,6 +173,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
+    json_t *hjs = NULL;
 
     int i;
 
@@ -225,8 +201,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
-                if (proto == ALPROTO_HTTP)
-                    AlertJsonHttp(p->flow, js);
+                if (proto == ALPROTO_HTTP) {
+                    hjs = JsonHttpAddMetadata(p->flow);
+                    if (hjs)
+                        json_object_set_new(js, "http", hjs);
+                }
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
