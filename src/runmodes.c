@@ -469,6 +469,7 @@ void RunModeShutDown(void)
     OutputFiledataShutdown();
     OutputStreamingShutdown();
     OutputStatsShutdown();
+    OutputFlowShutdown();
 
     /* Close any log files. */
     RunModeOutput *output;
