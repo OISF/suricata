@@ -227,6 +227,30 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
                     SCFree(s);
                 }
             }
+            if (ff->flags & FILE_SHA1) {
+                size_t x;
+                int i;
+                char *s = SCMalloc(256);
+                if (likely(s != NULL)) {
+                    for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
+                        i += snprintf(&s[i], 255-i, "%02x", ff->sha1[x]);
+                    }
+                    json_object_set_new(fjs, "sha1", json_string(s));
+                    SCFree(s);
+                }
+            }
+            if (ff->flags & FILE_SHA256) {
+                size_t x;
+                int i;
+                char *s = SCMalloc(256);
+                if (likely(s != NULL)) {
+                    for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
+                        i += snprintf(&s[i], 255-i, "%02x", ff->sha256[x]);
+                    }
+                    json_object_set_new(fjs, "sha256", json_string(s));
+                    SCFree(s);
+                }
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -352,6 +376,26 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             SCLogInfo("forcing md5 calculation for logged files");
 #else
             SCLogInfo("md5 calculation requires linking against libnss");
+#endif
+        }
+
+        const char *force_sha1 = ConfNodeLookupChildValue(conf, "force-sha1");
+        if (force_sha1 != NULL && ConfValIsTrue(force_sha1)) {
+#ifdef HAVE_NSS
+            FileForceSHA1Enable();
+            SCLogInfo("forcing SHA1 calculation for logged files");
+#else
+            SCLogInfo("SHA1 calculation requires linking against libnss");
+#endif
+        }
+
+        const char *force_sha256 = ConfNodeLookupChildValue(conf, "force-sha256");
+        if (force_sha256 != NULL && ConfValIsTrue(force_sha256)) {
+#ifdef HAVE_NSS
+            FileForceSHA256Enable();
+            SCLogInfo("forcing SHA256 calculation for logged files");
+#else
+            SCLogInfo("SHA256 calculation requires linking against libnss");
 #endif
         }
     }

@@ -97,12 +97,20 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_IPV6                         0x08000000
 
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               0x10000000
-#define FLOW_FILE_NO_MD5_TC               0x20000000
+#define FLOW_FILE_NO_MD5_TS             0x0010000000
+#define FLOW_FILE_NO_MD5_TC             0x0020000000
+
+/** no SHA1 on files in this flow */
+#define FLOW_FILE_NO_SHA1_TS            0x0040000000
+#define FLOW_FILE_NO_SHA1_TC            0x0080000000
+
+/** no SHA256 on files in this flow */
+#define FLOW_FILE_NO_SHA256_TS          0x0100000000
+#define FLOW_FILE_NO_SHA256_TC          0x0200000000
 
 /** no size tracking of files in this flow */
-#define FLOW_FILE_NO_SIZE_TS              0x40000000
-#define FLOW_FILE_NO_SIZE_TC              0x80000000
+#define FLOW_FILE_NO_SIZE_TS            0x0400000000
+#define FLOW_FILE_NO_SIZE_TC            0x0800000000
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
@@ -331,7 +339,7 @@ typedef struct Flow_
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
 
-    uint32_t flags;
+    uint64_t flags;
 
     /* time stamp of last update (last packet). Set/updated under the
      * flow and flow hash row locks, safe to read under either the

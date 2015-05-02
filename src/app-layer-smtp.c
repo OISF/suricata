@@ -312,9 +312,17 @@ static int ProcessDataChunk(const uint8_t *chunk, uint32_t len,
         flags |= FILE_NOMD5;
     }
 
+    if (flow->flags & FLOW_FILE_NO_SHA1_TS) {
+        flags |= FILE_NOSHA1;
+    }
+
+    if (flow->flags & FLOW_FILE_NO_SHA256_TS) {
+        flags |= FILE_NOSHA256;
+    }
+
     /* Determine whether to process files */
-    if ((flags & (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5)) ==
-            (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5)) {
+    if ((flags & (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5 | FILE_NOSHA1 | FILE_NOSHA256)) ==
+            (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5 | FILE_NOSHA1 | FILE_NOSHA256)) {
         SCLogDebug("File content ignored");
         return 0;
     }
@@ -4785,6 +4793,8 @@ int SMTPProcessDataChunkTest05(void){
     FileDisableStoring(&f, STREAM_TOSERVER);
     FileDisableMagic(&f, STREAM_TOSERVER);
     FileDisableMd5(&f, STREAM_TOSERVER);
+    FileDisableSHA1(&f, STREAM_TOSERVER);
+    FileDisableSHA256(&f, STREAM_TOSERVER);
     ret = ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     if(ret){goto end;}
     printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);

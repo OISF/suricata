@@ -87,6 +87,8 @@ void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *, SigGroupHead *);
+void SigGroupHeadSetFileSHA1Flag(DetectEngineCtx *, SigGroupHead *);
+void SigGroupHeadSetFileSHA256Flag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
 
 int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
