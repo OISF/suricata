@@ -536,7 +536,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 
     int sm_list;
     if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
+        if (s->list == DETECT_SM_LIST_FILEDATA) {
             if (data->flags & DETECT_BYTEJUMP_DCE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "dce bytejump specified "
                            "with file_data option set.");
@@ -580,7 +580,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -595,7 +595,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -610,7 +610,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -625,7 +625,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -640,7 +640,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -655,7 +655,7 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                             DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                              DETECT_ISDATAAT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -1179,15 +1179,15 @@ static int DetectBytejumpTestParse12(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA] == NULL) {
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_BYTEJUMP) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->type != DETECT_BYTEJUMP) {
         goto end;
     }
 
-    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    bd = (DetectBytejumpData *)s->sm_lists_tail[DETECT_SM_LIST_FILEDATA]->ctx;
     if ((bd->flags & DETECT_BYTEJUMP_DCE) &&
         (bd->flags & DETECT_BYTEJUMP_RELATIVE) &&
         (bd->flags & DETECT_BYTEJUMP_STRING) &&

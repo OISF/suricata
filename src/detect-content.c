@@ -390,7 +390,7 @@ int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr)
 
     int sm_list;
     if (s->list != DETECT_SM_LIST_NOTSET) {
-        if (s->list == DETECT_SM_LIST_HSBDMATCH) {
+        if (s->list == DETECT_SM_LIST_FILEDATA && s->alproto == ALPROTO_HTTP) {
             AppLayerHtpEnableResponseBodyCallback();
             s->alproto = ALPROTO_HTTP;
         }
@@ -1874,8 +1874,8 @@ static int DetectContentParseTest36(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
-        printf("content not in HSBDMATCH list: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+        printf("content not in FILEDATA list: ");
         goto end;
     }
 
@@ -1914,8 +1914,8 @@ static int DetectContentParseTest37(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
-        printf("content not in HSBDMATCH list: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+        printf("content not in FILEDATA list: ");
         goto end;
     }
 
@@ -1954,8 +1954,8 @@ static int DetectContentParseTest38(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
-        printf("content not in HSBDMATCH list: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+        printf("content not in FILEDATA list: ");
         goto end;
     }
 
@@ -2038,8 +2038,8 @@ static int DetectContentParseTest39(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
-        printf("content not in HSBDMATCH list: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+        printf("content not in FILEDATA list: ");
         goto end;
     }
 
@@ -2078,8 +2078,8 @@ static int DetectContentParseTest40(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
-        printf("content not in HSBDMATCH list: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+        printf("content not in FILEDATA list: ");
         goto end;
     }
 

@@ -90,7 +90,7 @@ void EngineAnalysisFP(Signature *s, char *line)
         fprintf(fp_engine_analysis_FD, "http cookie content\n");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(fp_engine_analysis_FD, "http client body content\n");
-    else if (list_type == DETECT_SM_LIST_HSBDMATCH)
+    else if (list_type == DETECT_SM_LIST_FILEDATA)
         fprintf(fp_engine_analysis_FD, "http server body content\n");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
         fprintf(fp_engine_analysis_FD, "http stat code content\n");
@@ -421,7 +421,7 @@ static void EngineAnalysisRulesPrintFP(Signature *s)
         fprintf(rule_engine_analysis_FD, "http cookie content");
     else if (list_type == DETECT_SM_LIST_HCBDMATCH)
         fprintf(rule_engine_analysis_FD, "http client body content");
-    else if (list_type == DETECT_SM_LIST_HSBDMATCH)
+    else if (list_type == DETECT_SM_LIST_FILEDATA)
         fprintf(rule_engine_analysis_FD, "http server body content");
     else if (list_type == DETECT_SM_LIST_HSCDMATCH)
         fprintf(rule_engine_analysis_FD, "http stat code content");
@@ -553,7 +553,7 @@ void EngineAnalysisRules(Signature *s, char *line)
                     norm_http_buf += 1;
                     http_cookie_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSBDMATCH) {
+                else if (list_id == DETECT_SM_LIST_FILEDATA) {
                     rule_pcre_http += 1;
                     http_server_body_buf += 1;
                     raw_http_buf += 1;
@@ -619,7 +619,7 @@ void EngineAnalysisRules(Signature *s, char *line)
                     raw_http_buf += 1;
                     http_client_body_buf += 1;
                 }
-                else if (list_id == DETECT_SM_LIST_HSBDMATCH) {
+                else if (list_id == DETECT_SM_LIST_FILEDATA) {
                     rule_content_http += 1;
                     raw_http_buf += 1;
                     http_server_body_buf += 1;
