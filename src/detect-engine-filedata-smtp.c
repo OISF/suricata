@@ -300,7 +300,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
 
-    if (ProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0)
+    if (SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state) != 0)
         goto end;
 
     p->flow = &f;
@@ -429,10 +429,10 @@ static int DetectEngineSMTPFiledataTest03(void)
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
     state->body_begin = 1;
 
-    if (ProcessDataChunk((uint8_t *)mimemsg1, sizeof(mimemsg1), state) != 0)
+    if (SMTPProcessDataChunk((uint8_t *)mimemsg1, sizeof(mimemsg1), state) != 0)
         goto end;
 
-    if (ProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0)
+    if (SMTPProcessDataChunk((uint8_t *)mimemsg2, sizeof(mimemsg2), state) != 0)
         goto end;
 
     p->flow = &f;
