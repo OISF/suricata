@@ -83,12 +83,14 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
         char *savep = NULL;
         char *p;
         char *to_line = BytesToString((uint8_t *)val, len);
-        p = strtok_r(to_line, ",", &savep);
-        json_array_append_new(ajs, json_string(p));
-        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-            json_array_append_new(ajs, json_string(&p[strspn(p, " ")]));
+        if (likely(to_line != NULL)) {
+            p = strtok_r(to_line, ",", &savep);
+            json_array_append_new(ajs, json_string(p));
+            while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                json_array_append_new(ajs, json_string(&p[strspn(p, " ")]));
+            }
+            SCFree(to_line);
         }
-        SCFree(to_line);
     }
 
     return ajs;
@@ -224,52 +226,20 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             }
 
             /* To: */
-            char *to_line = NULL;
             field = MimeDecFindField(entity, "to");
             if (field != NULL) {
-                json_t *js_to = json_array();
-                if (likely(js_to != NULL)) {
-                    to_line = BytesToString((uint8_t *)field->value,
-                                            (size_t)field->value_len);
-                    if (likely(to_line != NULL)) {
-                        char *savep = NULL;
-                        char *p;
-                        //printf("to_line:: TO: \"%s\" (%d)\n", to_line, strlen(to_line));
-                        p = strtok_r(to_line, ",", &savep);
-                        //printf("got another addr: \"%s\"\n", p);
-                        json_array_append_new(js_to, json_string(p));
-                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-                            //printf("got another addr: \"%s\"\n", p);
-                            json_array_append_new(js_to, json_string(&p[strspn(p, " ")]));
-                        }
-                        SCFree(to_line);
-                    }
-                    json_object_set_new(sjs, "to", js_to);
+                json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
+                if (ajs) {
+                    json_object_set_new(sjs, "to", ajs);
                 }
             }
 
             /* Cc: */
-            char *cc_line = NULL;
             field = MimeDecFindField(entity, "cc");
             if (field != NULL) {
-                json_t *js_cc = json_array();
-                if (likely(js_cc != NULL)) {
-                    cc_line = BytesToString((uint8_t *)field->value,
-                                            (size_t)field->value_len);
-                    if (likely(cc_line != NULL)) {
-                        char *savep = NULL;
-                        char *p;
-                        //printf("cc_line:: CC: \"%s\" (%d)\n", to_line, strlen(to_line));
-                        p = strtok_r(cc_line, ",", &savep);
-                        //printf("got another addr: \"%s\"\n", p);
-                        json_array_append_new(js_cc, json_string(p));
-                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-                            //printf("got another addr: \"%s\"\n", p);
-                            json_array_append_new(js_cc, json_string(&p[strspn(p, " ")]));
-                        }
-                        SCFree(cc_line);
-                    }
-                    json_object_set_new(sjs, "cc", js_cc);
+                json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
+                if (ajs) {
+                    json_object_set_new(sjs, "cc", ajs);
                 }
             }
 
