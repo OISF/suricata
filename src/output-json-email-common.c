@@ -76,21 +76,41 @@ struct {
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
 
+static inline char *SkipWhiteSpaceTill(char *p, char *savep)
+{
+    char *sp = p;
+    if (unlikely(p == NULL)) {
+        return NULL;
+    }
+    while (((*sp == '\t') || (*sp == ' ')) && (sp < savep)) {
+        sp++;
+    }
+    return sp;
+}
+
 static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
 {
     json_t *ajs = json_array();
     if (likely(ajs != NULL)) {
         char *savep = NULL;
         char *p;
+        char *sp;
         char *to_line = BytesToString((uint8_t *)val, len);
         if (likely(to_line != NULL)) {
             p = strtok_r(to_line, ",", &savep);
-            json_array_append_new(ajs, json_string(p));
-            while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
-                json_array_append_new(ajs, json_string(&p[strspn(p, " ")]));
+            if (p == NULL) {
+                json_decref(ajs);
+                SCFree(to_line);
+                return NULL;
             }
-            SCFree(to_line);
+            sp = SkipWhiteSpaceTill(p, savep);
+            json_array_append_new(ajs, json_string(sp));
+            while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                sp = SkipWhiteSpaceTill(p, savep);
+                json_array_append_new(ajs, json_string(sp));
+            }
         }
+        SCFree(to_line);
     }
 
     return ajs;
