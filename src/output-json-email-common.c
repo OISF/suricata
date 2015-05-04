@@ -240,7 +240,8 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                                         (size_t)field->value_len);
                 if (likely(s != NULL)) {
                     //printf("From: \"%s\"\n", s);
-                    json_object_set_new(sjs, "from", json_string(s));
+                    char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
+                    json_object_set_new(sjs, "from", json_string(sp));
                     SCFree(s);
                 }
             }
