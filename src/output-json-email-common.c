@@ -56,8 +56,9 @@
 #include <jansson.h>
 
 #define LOG_EMAIL_DEFAULT    0
-#define LOG_EMAIL_EXTENDED   1
-#define LOG_EMAIL_ARRAY      2 /* require array handling */
+#define LOG_EMAIL_EXTENDED   (1<<0)
+#define LOG_EMAIL_ARRAY      (1<<1) /* require array handling */
+#define LOG_EMAIL_COMMA      (1<<2) /* require array handling */
 
 struct {
     char *config_field;
@@ -65,7 +66,7 @@ struct {
     uint32_t flags;
 } email_fields[] =  {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
-    { "bcc", "bcc", LOG_EMAIL_DEFAULT },
+    { "bcc", "bcc", LOG_EMAIL_COMMA },
     { "message_id", "message-id", LOG_EMAIL_EXTENDED },
     { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
     { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
@@ -74,6 +75,24 @@ struct {
     { "relays", "relays", LOG_EMAIL_ARRAY },
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
+
+static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
+{
+    json_t *ajs = json_array();
+    if (likely(ajs != NULL)) {
+        char *savep = NULL;
+        char *p;
+        char *to_line = BytesToString((uint8_t *)val, len);
+        p = strtok_r(to_line, ",", &savep);
+        json_array_append_new(ajs, json_string(p));
+        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+            json_array_append_new(ajs, json_string(&p[strspn(p, " ")]));
+        }
+        SCFree(to_line);
+    }
+
+    return ajs;
+}
 
 static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
 {
@@ -109,6 +128,14 @@ static void JsonEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, json_t *js, SM
                         json_object_set_new(js, email_fields[f].config_field, ajs);
                     } else {
                         json_decref(ajs);
+                    }
+                }
+            } else if (email_fields[f].flags & LOG_EMAIL_COMMA) {
+                field = MimeDecFindField(entity, email_fields[f].email_field);
+                if (field) {
+                    json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
+                    if (ajs) {
+                        json_object_set_new(js, email_fields[f].config_field, ajs);
                     }
                 }
             } else {
