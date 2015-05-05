@@ -55,6 +55,79 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+#define LOG_EMAIL_DEFAULT    0
+#define LOG_EMAIL_EXTENDED   1
+#define LOG_EMAIL_ARRAY      2 /* require array handling */
+
+struct {
+    char *config_field;
+    char *email_field;
+    uint32_t flags;
+} email_fields[] =  {
+    { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
+    { "bcc", "bcc", LOG_EMAIL_DEFAULT },
+    { "message_id", "message-id", LOG_EMAIL_EXTENDED },
+    { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
+    { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
+    { "received", "received", LOG_EMAIL_ARRAY },
+    { "x_originating_ip", "x-originating-ip", LOG_EMAIL_DEFAULT },
+    { "relays", "relays", LOG_EMAIL_ARRAY },
+    { NULL, NULL, LOG_EMAIL_DEFAULT},
+};
+
+static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
+{
+    json_t *ajs = data;
+
+    if (ajs == NULL)
+        return 0;
+    char *value = BytesToString((uint8_t *)val, len);
+    json_array_append_new(ajs, json_string(value));
+    SCFree(value);
+    return 1;
+}
+
+static void JsonEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPTransaction *tx)
+{
+    int f = 0;
+    MimeDecField *field;
+    MimeDecEntity *entity = tx->msg_tail;
+    if (entity == NULL) {
+        return;
+    }
+
+    while(email_fields[f].config_field) {
+        if (((email_ctx->fields & (1ULL<<f)) != 0)
+              ||
+              ((email_ctx->flags & LOG_EMAIL_EXTENDED) && (email_fields[f].flags & LOG_EMAIL_EXTENDED))
+           ) {
+            if (email_fields[f].flags & LOG_EMAIL_ARRAY) {
+                json_t *ajs = json_array();
+                if (ajs) {
+                    int found = MimeDecFindFieldsForEach(entity, email_fields[f].email_field, JsonEmailAddToJsonArray, ajs);
+                    if (found > 0) {
+                        json_object_set_new(js, email_fields[f].config_field, ajs);
+                    } else {
+                        json_decref(ajs);
+                    }
+                }
+            } else {
+                field = MimeDecFindField(entity, email_fields[f].email_field);
+                if (field != NULL) {
+                    char *s = BytesToString((uint8_t *)field->value,
+                            (size_t)field->value_len);
+                    if (likely(s != NULL)) {
+                        json_object_set_new(js, email_fields[f].config_field, json_string(s));
+                        SCFree(s);
+                    }
+                }
+            }
+
+        }
+        f++;
+    }
+}
+
 /* JSON format logging */
 json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
@@ -258,6 +331,11 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
 TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     json_t *sjs = JsonEmailLogJsonData(f, state, vtx, tx_id);
+    OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
+    SMTPTransaction *tx = (SMTPTransaction *) vtx;
+
+    if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
+        JsonEmailLogJSONCustom(email_ctx, sjs, tx);
 
     if (sjs) {
         json_object_set_new(js, "email", sjs);
@@ -279,6 +357,42 @@ json_t *JsonEmailAddMetadata(const Flow *f)
     }
 
     return NULL;
+}
+
+
+void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
+{
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "extended");
+
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                email_ctx->flags = LOG_EMAIL_EXTENDED;
+            }
+        }
+
+        ConfNode *custom;
+        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
+            ConfNode *field;
+            TAILQ_FOREACH(field, &custom->head, next) {
+                if (field != NULL) {
+                    int f = 0;
+                    while(email_fields[f].config_field) {
+                        if ((strcmp(email_fields[f].config_field,
+                                   field->val) == 0) ||
+                            (strcasecmp(email_fields[f].email_field,
+                                        field->val) == 0))
+                        {
+                            email_ctx->fields |= (1ULL<<f);
+                            break;
+                        }
+                        f++;
+                    }
+                }
+            }
+        }
+    }
+    return;
 }
 
 
