@@ -68,6 +68,7 @@ struct {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
     { "bcc", "bcc", LOG_EMAIL_COMMA },
     { "message_id", "message-id", LOG_EMAIL_EXTENDED },
+    { "subject", "subject", LOG_EMAIL_EXTENDED },
     { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
     { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
     { "received", "received", LOG_EMAIL_ARRAY },
@@ -252,17 +253,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                 json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
                 if (ajs) {
                     json_object_set_new(sjs, "cc", ajs);
-                }
-            }
-
-            /* Subject: */
-            field = MimeDecFindField(entity, "subject");
-            if (field != NULL) {
-                char *s = BytesToString((uint8_t *)field->value, (size_t) field->value_len);
-                if (likely(s != NULL)) {
-                    //printf("Subject: \"%s\"\n", s);
-                    json_object_set_new(sjs, "subject", json_string(s));
-                    SCFree(s);
                 }
             }
 
