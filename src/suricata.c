@@ -2240,6 +2240,11 @@ int main(int argc, char **argv)
     NSS_NoDB_Init(NULL);
 #endif
 
+    if (suri.disabled_detect) {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+    }
+
     HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
@@ -2279,9 +2284,6 @@ int main(int argc, char **argv)
 
         DetectEngineAddToMaster(de_ctx);
     } else {
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-
         /* tell the app layer to consider only the log id */
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
