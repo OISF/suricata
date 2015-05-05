@@ -136,6 +136,21 @@ static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPT
             }
         }
     }
+
+    if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
+        MimeDecParseState *mime_state = tx->mime_state;
+        if (mime_state && mime_state->md5_ctx && (mime_state->state_flag == PARSE_DONE)) {
+            size_t x;
+            int i;
+            char s[256];
+            if (likely(s != NULL)) {
+                for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
+                    i += snprintf(s + i, 255-i, "%02x", mime_state->md5[x]);
+                }
+                json_object_set_new(js, "body_md5", json_string(s));
+            }
+        }
+    }
 }
 #endif
 
@@ -234,20 +249,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
         if (entity == NULL) {
             SCReturnPtr(NULL, "json_t");
         }
-
-#ifdef HAVE_NSS
-        if (mime_state->md5_ctx && (mime_state->state_flag == PARSE_DONE)) {
-            size_t x;
-            int i;
-            char s[256];
-            if (likely(s != NULL)) {
-                for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
-                    i += snprintf(s + i, 255-i, "%02x", mime_state->md5[x]);
-                }
-                json_object_set_new(sjs, "body_md5", json_string(s));
-            }
-        }
-#endif
 
         json_object_set_new(sjs, "status",
                             json_string(MimeDecParseStateGetStatus(mime_state)));
