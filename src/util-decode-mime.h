@@ -64,7 +64,7 @@
 #define ANOM_MALFORMED_MSG      64  /* Misc msg format errors found */
 #define ANOM_LONG_BOUNDARY     128  /* Boundary too long */
 
-/* Pubicly exposed size constants */
+/* Publicly exposed size constants */
 #define DATA_CHUNK_SIZE  3072  /* Should be divisible by 3 */
 #define LINEREM_SIZE      256
 
