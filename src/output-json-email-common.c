@@ -55,10 +55,12 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
-#define LOG_EMAIL_DEFAULT    0
-#define LOG_EMAIL_EXTENDED   (1<<0)
-#define LOG_EMAIL_ARRAY      (1<<1) /* require array handling */
-#define LOG_EMAIL_COMMA      (1<<2) /* require array handling */
+#define LOG_EMAIL_DEFAULT       0
+#define LOG_EMAIL_EXTENDED      (1<<0)
+#define LOG_EMAIL_ARRAY         (1<<1) /* require array handling */
+#define LOG_EMAIL_COMMA         (1<<2) /* require array handling */
+#define LOG_EMAIL_BODY_MD5      (1<<3)
+#define LOG_EMAIL_SUBJECT_MD5   (1<<4)
 
 struct {
     char *config_field;
@@ -107,6 +109,35 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
 
     return ajs;
 }
+
+
+#ifdef HAVE_NSS
+static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPTransaction *tx)
+{
+    if (email_ctx->flags & LOG_EMAIL_SUBJECT_MD5) {
+        MimeDecField *field;
+        MimeDecEntity *entity = tx->msg_tail;
+        if (entity == NULL) {
+            return;
+        }
+        field = MimeDecFindField(entity, "subject");
+        if (field != NULL) {
+            unsigned char md5[MD5_LENGTH];
+            char smd5[2 * MD5_LENGTH + 1];
+            char *value = BytesToString((uint8_t *)field->value , field->value_len);
+            if (value) {
+                size_t i,x;
+                HASH_HashBuf(HASH_AlgMD5, md5, (unsigned char *)value, strlen(value));
+                for (i = 0, x = 0; x < sizeof(md5); x++) {
+                    i += snprintf(smd5 + i, 255-i, "%02x", md5[x]);
+                }
+                json_object_set_new(js, "subject_md5", json_string(smd5));
+                SCFree(value);
+            }
+        }
+    }
+}
+#endif
 
 static int JsonEmailAddToJsonArray(const uint8_t *val, size_t len, void *data)
 {
@@ -336,6 +367,10 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
     if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
         JsonEmailLogJSONCustom(email_ctx, sjs, tx);
 
+#ifdef HAVE_NSS
+    JsonEmailLogJSONMd5(email_ctx, sjs, tx);
+#endif
+
     if (sjs) {
         json_object_set_new(js, "email", sjs);
         SCReturnInt(TM_ECODE_OK);
@@ -386,6 +421,23 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
                             break;
                         }
                         f++;
+                    }
+                }
+            }
+        }
+
+        ConfNode *md5_conf;
+        if ((md5_conf = ConfNodeLookupChild(conf, "md5")) != NULL) {
+            ConfNode *field;
+            TAILQ_FOREACH(field, &md5_conf->head, next) {
+                if (field != NULL) {
+                    if (strcmp("body", field->val) == 0) {
+                        SCLogInfo("Going to log email body md5");
+                        email_ctx->flags |= LOG_EMAIL_BODY_MD5;
+                    }
+                    if (strcmp("subject", field->val) == 0) {
+                        SCLogInfo("Going to log email subject md5");
+                        email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
                     }
                 }
             }
