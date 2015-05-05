@@ -206,6 +206,8 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     email_ctx->file_ctx = ojc->file_ctx;
 
+    OutputEmailInitConf(conf, email_ctx);
+
     output_ctx->data = email_ctx;
     output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
 
