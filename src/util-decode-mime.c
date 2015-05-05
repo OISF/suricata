@@ -297,6 +297,35 @@ MimeDecField * MimeDecAddField(MimeDecEntity *entity)
     return node;
 }
 
+
+/**
+ * \brief Searches for header fields with the specified name
+ *
+ * \param entity The entity to search
+ * \param name The header name (lowercase)
+ *
+ * \return number of items found
+ *
+ */
+int MimeDecFindFieldsForEach(const MimeDecEntity *entity, const char *name, int (*DataCallback)(const uint8_t *val, const size_t, void *data), void *data)
+{
+    MimeDecField *curr = entity->field_list;
+    int found = 0;
+
+    while (curr != NULL) {
+        /* name is stored lowercase */
+        if (strlen(name) == curr->name_len) {
+            if (SCMemcmp(curr->name, name, curr->name_len) == 0) {
+                if (DataCallback(curr->value, curr->value_len, data))
+                    found++;
+            }
+        }
+        curr = curr->next;
+    }
+
+    return found;
+}
+
 /**
  * \brief Searches for a header field with the specified name
  *
