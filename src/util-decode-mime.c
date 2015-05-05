@@ -79,7 +79,7 @@
 #define MAX_IP6_CHARS  39
 
 /* Globally hold configuration data */
-static MimeDecConfig mime_dec_config = { 1, 1, 1, MAX_HEADER_VALUE };
+static MimeDecConfig mime_dec_config = { 1, 1, 1, 0, MAX_HEADER_VALUE };
 
 #ifdef DEBUG
 /* Mime Parser String translation */
@@ -2182,7 +2182,7 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     uint32_t tlen;
 
 #ifdef HAVE_NSS
-    if (state->body_begin == 1 && (state->md5_ctx == NULL)) {
+    if (MimeDecGetConfig()->body_md5 && state->body_begin == 1 && (state->md5_ctx == NULL)) {
         state->md5_ctx = HASH_Create(HASH_AlgMD5);
         if (state->md5_ctx != NULL) {
             HASH_Begin(state->md5_ctx);
