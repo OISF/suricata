@@ -97,6 +97,7 @@ typedef struct MimeDecConfig {
     int decode_base64;  /**< Decode base64 bodies */
     int decode_quoted_printable;  /**< Decode quoted-printable bodies */
     int extract_urls;  /**< Extract and store URLs in data structure */
+    int body_md5;  /**< Compute md5 sum of body */
     uint32_t header_value_depth;  /**< Depth of which to store header values
                                        (Default is 2000) */
 } MimeDecConfig;

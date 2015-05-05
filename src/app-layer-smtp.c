@@ -220,7 +220,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 }, 0, 0, 0};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -265,6 +265,11 @@ static void SMTPConfigure(void) {
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
             smtp_config.mime_config.extract_urls = val;
+        }
+
+        ret = ConfGetChildValueBool(config, "body-md5", &val);
+        if (ret) {
+            smtp_config.mime_config.body_md5 = val;
         }
     }
 
