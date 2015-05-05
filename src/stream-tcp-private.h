@@ -142,6 +142,8 @@ enum
  *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
  *  event. */
 #define STREAMTCP_FLAG_3WHS_CONFIRMED               0x1000
+/** App Layer tracking/reassembly is disabled */
+#define STREAMTCP_FLAG_APP_LAYER_DISABLED           0x2000
 
 /*
  * Per STREAM flags
@@ -237,5 +239,8 @@ typedef struct TcpSession_ {
     ((stream)->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED)
 #define StreamTcpResetStreamFlagAppProtoDetectionCompleted(stream) \
     ((stream)->flags &= ~STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED);
+#define StreamTcpDisableAppLayerReassembly(ssn) do { \
+        ((ssn)->flags |= STREAMTCP_FLAG_APP_LAYER_DISABLED); \
+    } while (0);
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

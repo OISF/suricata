@@ -1870,6 +1870,12 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         }
     }
 
+    if ((ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) &&
+        (stream->flags & STREAMTCP_STREAM_FLAG_NEW_RAW_DISABLED)) {
+        SCLogDebug("ssn %p: both app and raw reassembly disabled, not reassembling", ssn);
+        SCReturnInt(0);
+    }
+
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
     uint32_t size = StreamTcpReassembleCheckDepth(stream, TCP_GET_SEQ(p), p->payload_len);
@@ -1906,6 +1912,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     memcpy(seg->payload, p->payload, size);
     seg->payload_len = size;
     seg->seq = TCP_GET_SEQ(p);
+
+    if (ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)
+        seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
 
     /* if raw reassembly is disabled for new segments, flag each
      * segment as complete for raw before insert */
@@ -2049,8 +2058,9 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
  *  \retval 1 app layer is done with this segment
  *  \retval 0 not done yet
  */
-#define StreamTcpAppLayerSegmentProcessed(stream, segment) \
-    (( ( (stream)->flags & STREAMTCP_STREAM_FLAG_GAP ) || \
+#define StreamTcpAppLayerSegmentProcessed(ssn, stream, segment) \
+    (( ( (ssn)->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED) || \
+       ( (stream)->flags & STREAMTCP_STREAM_FLAG_GAP ) || \
        ( (segment)->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ) ? 1 :0 ))
 
 /** \internal
@@ -2082,10 +2092,8 @@ static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, Tc
     }
 
     /* check app layer conditions */
-    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
-        if (!(StreamTcpAppLayerSegmentProcessed(stream, seg))) {
-            SCReturnInt(0);
-        }
+    if (!(StreamTcpAppLayerSegmentProcessed(ssn, stream, seg))) {
+        SCReturnInt(0);
     }
 
     /* check raw reassembly conditions */
@@ -2188,7 +2196,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                         seg->payload_len);
 
             /* only remove if app layer reassembly is ready too */
-            if (StreamTcpAppLayerSegmentProcessed(stream, seg)) {
+            if (StreamTcpAppLayerSegmentProcessed(ssn, stream, seg)) {
                 TcpSegment *next_seg = seg->next;
                 StreamTcpRemoveSegmentFromStream(stream, seg);
                 StreamTcpSegmentReturntoPool(seg);
@@ -2207,7 +2215,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
          * If the stream is in GAP state the app layer flag won't be set */
         if (StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                StreamTcpAppLayerSegmentProcessed(stream, seg))
+                StreamTcpAppLayerSegmentProcessed(ssn, stream, seg))
         {
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
                     " so return it to pool", seg, seg->payload_len);
@@ -2421,7 +2429,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
         SCLogDebug("seg %p seq %"PRIu32", len %"PRIu16", sum %"PRIu32, seg, seg->seq, seg->payload_len, seg->seq+seg->payload_len);
 
         /* only remove if app layer reassembly is ready too */
-        if (StreamTcpAppLayerSegmentProcessed(stream, seg)) {
+        if (StreamTcpAppLayerSegmentProcessed(ssn, stream, seg)) {
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
@@ -2909,7 +2917,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * next_seq, we know we are missing data that has been ack'd. That
      * won't get retransmitted, so it's a data gap.
      */
-    if (!(p->flow->flags & FLOW_NO_APPLAYER_INSPECTION)) {
+    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
         if (SEQ_GT(seg->seq, next_seq) && SEQ_LT(seg->seq, stream->last_ack)) {
             /* send gap signal */
             AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
@@ -2942,11 +2950,6 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
 
-        if (p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) {
-            SCLogDebug("FLOW_NO_APPLAYER_INSPECTION set, breaking out");
-            break;
-        }
-
         if (StreamTcpReturnSegmentCheck(p->flow, ssn, stream, seg) == 1) {
             SCLogDebug("removing segment");
             TcpSegment *next_seg = seg->next;
@@ -2954,7 +2957,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             StreamTcpSegmentReturntoPool(seg);
             seg = next_seg;
             continue;
-        } else if (StreamTcpAppLayerSegmentProcessed(stream, seg)) {
+        } else if (StreamTcpAppLayerSegmentProcessed(ssn, stream, seg)) {
             TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
