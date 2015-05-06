@@ -1024,7 +1024,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     } else if (luajit->alproto == ALPROTO_HTTP) {
         if (luajit->flags & DATATYPE_HTTP_RESPONSE_BODY)
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEDATA);
         else if (luajit->flags & DATATYPE_HTTP_REQUEST_BODY)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
         else if (luajit->flags & DATATYPE_HTTP_URI)

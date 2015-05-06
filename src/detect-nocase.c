@@ -88,7 +88,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_FILEDATA],
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                          DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
