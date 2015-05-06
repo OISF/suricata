@@ -319,8 +319,8 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
     }
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
-    (void)MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
-    fflush(aft->file_ctx->fp);
+    aft->file_ctx->Write((const char *)MEMBUFFER_BUFFER(aft->buffer),
+        MEMBUFFER_OFFSET(aft->buffer), aft->file_ctx);
     aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 

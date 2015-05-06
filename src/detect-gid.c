@@ -68,16 +68,18 @@ void DetectGidRegister (void) {
 static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     char *str = rawstr;
-    char dubbed = 0;
+    char duped = 0;
 
-    /* strip "'s */
-    if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
-        str = SCStrdup(rawstr+1);
-        if (unlikely(str == NULL))
+    /* Strip leading and trailing "s. */
+    if (rawstr[0] == '\"') {
+        str = SCStrdup(rawstr + 1);
+        if (unlikely(str == NULL)) {
             return -1;
-
-        str[strlen(rawstr)-2] = '\0';
-        dubbed = 1;
+        }
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\"';
+        }
+        duped = 1;
     }
 
     unsigned long gid = 0;
@@ -95,12 +97,12 @@ static int DetectGidSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 
     s->gid = (uint32_t)gid;
 
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return 0;
 
  error:
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return -1;
 }
@@ -157,6 +159,31 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
+/**
+ * \test Test a gid consisting of a single quote.
+ *
+ * \retval 1 on succces
+ * \retval 0 on failure
+ */
+static int GidTestParse03 (void)
+{
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"ABC\"; gid:\";)") != NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -166,5 +193,6 @@ void GidRegisterTests(void) {
 #ifdef UNITTESTS
     UtRegisterTest("GidTestParse01", GidTestParse01, 1);
     UtRegisterTest("GidTestParse02", GidTestParse02, 1);
+    UtRegisterTest("GidTestParse03", GidTestParse03, 1);
 #endif /* UNITTESTS */
 }

@@ -1161,6 +1161,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 pflow->de_ctx_id = de_ctx->id;
                 GenericVarFree(pflow->flowvar);
                 pflow->flowvar = NULL;
+            } else if (pflow->flags & FLOW_DESTATE_RESET) {
+                pflow->flags &= ~FLOW_DESTATE_RESET;
+                /* reset because of tcp ssn reuse */
+                reset_de_state = 1;
             }
 
             /* set the iponly stuff */

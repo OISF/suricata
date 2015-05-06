@@ -25,10 +25,14 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-unittest.h"
 
 static int DetectSidSetup (DetectEngineCtx *, Signature *, char *);
+static void DetectSidRegisterTests(void);
 
 void DetectSidRegister (void) {
     sigmatch_table[DETECT_SID].name = "sid";
@@ -37,22 +41,24 @@ void DetectSidRegister (void) {
     sigmatch_table[DETECT_SID].Match = NULL;
     sigmatch_table[DETECT_SID].Setup = DetectSidSetup;
     sigmatch_table[DETECT_SID].Free = NULL;
-    sigmatch_table[DETECT_SID].RegisterTests = NULL;
+    sigmatch_table[DETECT_SID].RegisterTests = DetectSidRegisterTests;
 }
 
 static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
 {
     char *str = sidstr;
-    char dubbed = 0;
+    char duped = 0;
 
-    /* strip "'s */
-    if (sidstr[0] == '\"' && sidstr[strlen(sidstr)-1] == '\"') {
-        str = SCStrdup(sidstr+1);
-        if (unlikely(str == NULL))
+    /* Strip leading and trailing "s. */
+    if (sidstr[0] == '\"') {
+        str = SCStrdup(sidstr + 1);
+        if (unlikely(str == NULL)) {
             return -1;
-
-        str[strlen(sidstr)-2] = '\0';
-        dubbed = 1;
+        }
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
+        duped = 1;
     }
 
     unsigned long id = 0;
@@ -70,13 +76,89 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
 
     s->id = (uint32_t)id;
 
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return 0;
 
  error:
-    if (dubbed)
+    if (duped)
         SCFree(str);
     return -1;
 }
 
+#ifdef UNITTESTS
+
+static int SidTestParse01(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    s = DetectEngineAppendSig(de_ctx,
+        "alert tcp 1.2.3.4 any -> any any (sid:1; gid:1;)");
+    if (s == NULL || s->id != 1)
+        goto end;
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SidTestParse02(void)
+{
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx,
+            "alert tcp 1.2.3.4 any -> any any (sid:a; gid:1;)") != NULL)
+        goto end;
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+static int SidTestParse03(void)
+{
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    if (DetectEngineAppendSig(de_ctx,
+            "alert tcp any any -> any any (content:\"ABC\"; sid:\";)") != NULL)
+        goto end;
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+#endif
+
+/**
+ * \brief Register DetectSid unit tests.
+ */
+static void DetectSidRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("SidTestParse01", SidTestParse01, 1);
+    UtRegisterTest("SidTestParse02", SidTestParse02, 1);
+    UtRegisterTest("SidTestParse03", SidTestParse03, 1);
+#endif /* UNITTESTS */
+}

@@ -123,8 +123,9 @@ static int ParseSizeString(const char *size, double *res)
         } else if (strcasecmp(str2, "gb") == 0) {
             *res *= 1024 * 1024 * 1024;
         } else {
-            /* not possible */
-            BUG_ON(1);
+            /* Bad unit. */
+            retval = -1;
+            goto end;
         }
     }
 
@@ -1113,6 +1114,11 @@ int UtilMiscParseSizeStringTest01(void)
         goto error;
     }
     if (result != 10.5 * 1024 * 1024 * 1024) {
+        goto error;
+    }
+
+    /* Should fail on unknown units. */
+    if (ParseSizeString("32eb", &result) > 0) {
         goto error;
     }
 
