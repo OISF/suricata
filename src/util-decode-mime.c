@@ -62,7 +62,7 @@
 #define CTNT_DISP_STR     "content-disposition"
 #define CTNT_TRAN_STR     "content-transfer-encoding"
 #define MSG_ID_STR        "message-id"
-#define BND_START_STR     "boundary=\""
+#define BND_START_STR     "boundary="
 #define TOK_END_STR       "\""
 #define MSG_STR           "message/"
 #define MULTIPART_STR     "multipart/"
@@ -1888,6 +1888,12 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
             if (bptr != NULL) {
                 state->found_child = 1;
                 entity->ctnt_flags |= CTNT_IS_MULTIPART;
+
+                if (*bptr == '"') {
+                    /* remove surrounding quotes */
+                    bptr++;
+                    blen -= 2;
+                }
 
                 /* Store boundary in parent node */
                 state->stack->top->bdef = SCMalloc(blen);
