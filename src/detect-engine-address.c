@@ -709,12 +709,16 @@ int DetectAddressParseString(DetectAddress *dd, char *str)
             ip[mask - ip] = '\0';
             mask++;
 
+            int cidr = atoi(mask);
+            if (cidr < 0 || cidr > 128)
+                    goto error;
+
             r = inet_pton(AF_INET6, ip, &in6);
             if (r <= 0)
                 goto error;
             memcpy(&ip6addr, &in6.s6_addr, sizeof(ip6addr));
 
-            DetectAddressParseIPv6CIDR(atoi(mask), &mask6);
+            DetectAddressParseIPv6CIDR(cidr, &mask6);
             memcpy(&netmask, &mask6.s6_addr, sizeof(netmask));
 
             dd->ip2.addr_data32[0] = dd->ip.addr_data32[0] = ip6addr[0] & netmask[0];
