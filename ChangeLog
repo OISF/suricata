@@ -1,3 +1,12 @@
+2.0.8 -- 2015-05-06
+
+Bug #1450: tls parsing issue
+Bug #1460: pcap parsing issue
+Bug #1461: potential deadlock
+Bug #1404: Alert-Debuglog not being rotated on SIGHUP
+Bug #1420: inverted matching on incomplete session
+Bug #1462: various issues in rule and yaml parsing
+
 2.0.7 -- 2015-02-25
 
 Bug #1385: DCERPC traffic parsing issue
