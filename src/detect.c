@@ -465,7 +465,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     /* now we should have signatures to work with */
-    if (goodsigs <= 0) {
+    if (goodtotal <= 0) {
         if (cntf > 0) {
            SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
         } else {
