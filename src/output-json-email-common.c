@@ -449,11 +449,11 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             TAILQ_FOREACH(field, &md5_conf->head, next) {
                 if (field != NULL) {
                     if (strcmp("body", field->val) == 0) {
-                        SCLogInfo("Going to log email body md5");
+                        SCLogInfo("Going to log the md5 sum of email body");
                         email_ctx->flags |= LOG_EMAIL_BODY_MD5;
                     }
                     if (strcmp("subject", field->val) == 0) {
-                        SCLogInfo("Going to log email subject md5");
+                        SCLogInfo("Going to log the md5 sum of email subject");
                         email_ctx->flags |= LOG_EMAIL_SUBJECT_MD5;
                     }
                 }
