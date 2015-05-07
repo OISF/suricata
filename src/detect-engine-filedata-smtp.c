@@ -53,9 +53,6 @@
 #include "conf-yaml-loader.h"
 
 #define BUFFER_STEP 50
-#define FILECONTENT_CONTENT_LIMIT 1000
-#define FILECONTENT_INSPECT_MIN_SIZE 1000
-#define FILECONTENT_INSPECT_WINDOW 1000
 
 static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
 {
@@ -137,9 +134,9 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         goto end;
     }
 
-    if ((FILECONTENT_CONTENT_LIMIT == 0 ||
-         curr_file->content_len_so_far < FILECONTENT_CONTENT_LIMIT) &&
-        curr_file->content_len_so_far < FILECONTENT_INSPECT_MIN_SIZE &&
+    if ((smtp_config.content_limit == 0 ||
+         curr_file->content_len_so_far < smtp_config.content_limit) &&
+        curr_file->content_len_so_far < smtp_config.content_inspect_min_size &&
         !(flags & STREAM_EOF)) {
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
@@ -154,7 +151,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
             /* see if we can filter out chunks */
             if (curr_file->content_inspected > 0) {
                 if (curr_chunk->stream_offset < curr_file->content_inspected) {
-                    if ((curr_file->content_inspected - curr_chunk->stream_offset) > FILECONTENT_INSPECT_WINDOW) {
+                    if ((curr_file->content_inspected - curr_chunk->stream_offset) > smtp_config.content_inspect_window) {
                         curr_chunk = curr_chunk->next;
                         continue;
                     } else {

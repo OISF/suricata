@@ -55,6 +55,14 @@
 #include "conf.h"
 
 #include "util-mem.h"
+#include "util-misc.h"
+
+/* content-limit default value */
+#define FILEDATA_CONTENT_LIMIT 1000
+/* content-inspect-min-size default value */
+#define FILEDATA_CONTENT_INSPECT_MIN_SIZE 1000
+/* content-inspect-window default value */
+#define FILEDATA_CONTENT_INSPECT_WINDOW 1000
 
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
@@ -211,15 +219,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
     {  NULL,  -1 },
 };
 
-typedef struct SMTPConfig {
-
-    int decode_mime;
-    MimeDecConfig mime_config;
-
-} SMTPConfig;
-
 /* Create SMTP config structure */
-static SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 } };
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 }, 0, 0, 0};
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -232,6 +233,9 @@ static void SMTPConfigure(void) {
     SCEnter();
     int ret = 0, val;
     intmax_t imval;
+    uint32_t content_limit = 0;
+    uint32_t content_inspect_min_size = 0;
+    uint32_t content_inspect_window = 0;
 
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
@@ -264,6 +268,38 @@ static void SMTPConfigure(void) {
 
     /* Pass mime config data to MimeDec API */
     MimeDecSetConfig(&smtp_config.mime_config);
+
+    ConfNode *t = ConfGetNode("app-layer.protocols.smtp.inspected-tracker");
+    ConfNode *p = NULL;
+
+    if (t == NULL)
+        return;
+
+    TAILQ_FOREACH(p, &t->head, next) {
+        if (strcasecmp("content-limit", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_limit) < 0) {
+                SCLogWarning(SC_ERR_SIZE_PARSE, "Error parsing content-limit "
+                             "from conf file - %s. Killing engine", p->val);
+                content_limit = FILEDATA_CONTENT_LIMIT;
+            }
+        }
+
+        if (strcasecmp("content-inspect-min-size", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_inspect_min_size) < 0) {
+                SCLogWarning(SC_ERR_SIZE_PARSE, "Error parsing content-inspect-min-size-limit "
+                             "from conf file - %s. Killing engine", p->val);
+                content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
+            }
+        }
+
+        if (strcasecmp("content-inspect-window", p->name) == 0) {
+            if (ParseSizeStringU32(p->val, &content_inspect_window) < 0) {
+                SCLogWarning(SC_ERR_SIZE_PARSE, "Error parsing content-inspect-window "
+                             "from conf file - %s. Killing engine", p->val);
+                content_inspect_window = FILEDATA_CONTENT_INSPECT_WINDOW;
+            }
+        }
+    }
 
     SCReturn;
 }
