@@ -60,6 +60,26 @@
 
 #define DNS_RECORD_TYPE_ANY     255
 
+#define DNS_RCODE_NOERROR       0
+#define DNS_RCODE_FORMERR       1
+#define DNS_RCODE_SERVFAIL      2
+#define DNS_RCODE_NXDOMAIN      3
+#define DNS_RCODE_NOTIMP        4
+#define DNS_RCODE_REFUSED       5
+#define DNS_RCODE_YXDOMAIN      6
+#define DNS_RCODE_YXRRSET       7
+#define DNS_RCODE_NXRRSET       8
+#define DNS_RCODE_NOTAUTH       9
+#define DNS_RCODE_NOTZONE       10
+#define DNS_RCODE_BADVERS       16
+#define DNS_RCODE_BADSIG        16
+#define DNS_RCODE_BADKEY        17
+#define DNS_RCODE_BADTIME       18
+#define DNS_RCODE_BADMODE       19
+#define DNS_RCODE_BADNAME       20
+#define DNS_RCODE_BADALG        21
+#define DNS_RCODE_BADTRUNC      22
+
 enum {
     DNS_DECODER_EVENT_UNSOLLICITED_RESPONSE,
     DNS_DECODER_EVENT_MALFORMED_DATA,
@@ -139,7 +159,7 @@ typedef struct DNSTransaction_ {
     uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */
     uint8_t reply_lost;
-    uint8_t no_such_name;                           /**< server said "no such name" */
+    uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
     uint8_t recursion_desired;                      /**< server said "recursion desired" */
 
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
@@ -228,5 +248,6 @@ uint16_t DNSUdpResponseGetNameByOffset(const uint8_t * const input, const uint32
         const uint16_t offset, uint8_t *fqdn, const size_t fqdn_size);
 
 void DNSCreateTypeString(uint16_t type, char *str, size_t str_size);
+void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size);
 
 #endif /* __APP_LAYER_DNS_COMMON_H__ */
