@@ -75,7 +75,13 @@ struct {
     { "user_agent", "user-agent", LOG_EMAIL_EXTENDED },
     { "received", "received", LOG_EMAIL_ARRAY },
     { "x_originating_ip", "x-originating-ip", LOG_EMAIL_DEFAULT },
-    { "relays", "relays", LOG_EMAIL_ARRAY },
+    { "in_reply_to",  "in-reply-to", LOG_EMAIL_DEFAULT },
+    { "references",  "references", LOG_EMAIL_DEFAULT },
+    { "importance",  "importance", LOG_EMAIL_DEFAULT },
+    { "priority",  "priority", LOG_EMAIL_DEFAULT },
+    { "sensitivity",  "sensitivity", LOG_EMAIL_DEFAULT },
+    { "organization",  "organization", LOG_EMAIL_DEFAULT },
+    { "content_md5",  "content-md5", LOG_EMAIL_DEFAULT },
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
 
