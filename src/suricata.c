@@ -98,6 +98,7 @@
 #include "log-filestore.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
+#include "output-json-dnp3.h"
 
 #include "output-json.h"
 
@@ -907,6 +908,8 @@ void RegisterAllModules()
     TmModuleReceiveNFLOGRegister();
     TmModuleDecodeNFLOGRegister();
 
+    /* dnp3 */
+    TmModuleJsonDNP3LogRegister();
 }
 
 TmEcode LoadYamlConfig(char *conf_filename)
