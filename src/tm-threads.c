@@ -1658,6 +1658,7 @@ void TmThreadFree(ThreadVars *tv)
     }
 
     TmThreadsUnregisterThread(tv->id);
+    SCFree(tv->name);
     SCFree(tv);
 }
 
