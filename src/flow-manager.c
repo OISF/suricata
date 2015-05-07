@@ -119,7 +119,7 @@ void FlowDisableFlowManagerThread(void)
     tv = tv_root[TVT_MGMT];
 
     while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
+        if (strncasecmp(tv->name, "FM-", 3) == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
             cnt++;
 
@@ -732,9 +732,9 @@ void FlowManagerThreadSpawn()
         ThreadVars *tv_flowmgr = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "FlowManagerThread%02u", u+1);
+        snprintf(name, sizeof(name), "FM-%02u", u+1);
 
-        tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowManagerThread",
+        tv_flowmgr = TmThreadCreateMgmtThreadByName(name,
                 "FlowManager", 0);
         BUG_ON(tv_flowmgr == NULL);
 
@@ -892,9 +892,9 @@ void FlowRecyclerThreadSpawn()
         ThreadVars *tv_flowmgr = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "FlowRecyclerThread%02u", u+1);
+        snprintf(name, sizeof(name), "FR-%02u", u+1);
 
-        tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowRecyclerThread",
+        tv_flowmgr = TmThreadCreateMgmtThreadByName(name,
                 "FlowRecycler", 0);
         BUG_ON(tv_flowmgr == NULL);
 
@@ -943,7 +943,7 @@ void FlowDisableFlowRecyclerThread(void)
     tv = tv_root[TVT_MGMT];
 
     while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowRecyclerThread") == 0) {
+        if (strncasecmp(tv->name, "FR-", 3) == 0) {
             TmThreadsSetFlag(tv, THV_KILL);
             cnt++;
 
