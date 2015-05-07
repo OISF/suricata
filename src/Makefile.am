@@ -253,6 +253,8 @@ output-filedata.c output-filedata.h \
 output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
 output-json-dns.c output-json-dns.h \
+output-json-dnp3.c output-json-dnp3.h \
+output-json-dnp3-objects.c output-json-dnp3-objects.h \
 output-json-drop.c output-json-drop.h \
 output-json-email-common.c output-json-email-common.h \
 output-json-file.c output-json-file.h \

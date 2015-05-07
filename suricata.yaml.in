@@ -179,6 +179,7 @@ outputs:
         #- flow
         # uni-directional flows
         #- netflow
+        - dnp3
 
   # alert output for use with Barnyard2
   - unified2-alert:
