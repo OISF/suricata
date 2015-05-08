@@ -1,3 +1,40 @@
+2.1beta4 -- 2015-05-08
+
+Bug #1314: http-events performance issues
+Bug #1340: null ptr dereference in Suricata v2.1beta2 (output-json.c:347)
+Bug #1352: file list is not cleaned up
+Bug #1358: Gradual memory leak using reload (kill -USR2 $pid)
+Bug #1366: Crash if default_packet_size is below 32 bytes
+Bug #1378: stats api doesn't call thread deinit funcs
+Bug #1384: tcp midstream window issue (master)
+Bug #1388: pcap-file hangs on systems w/o atomics support (master)
+Bug #1392: http uri parsing issue (master)
+Bug #1393: CentOS 5.11 build failures
+Bug #1398: DCERPC traffic parsing issue (master)
+Bug #1401: inverted matching on incomplete session
+Bug #1402: When re-opening files on HUP (rotation) always use the append flag.
+Bug #1417: no rules loaded - latest git - rev e250040
+Bug #1425: dead lock in de_state vs flowints/flowvars
+Bug #1426: Files prematurely truncated by detection engine even though force-md5 is enabled
+Bug #1429: stream: last_ack update issue leading to stream gaps
+Bug #1435: EVE-Log alert payload option loses data
+Bug #1441: Local timestamps in json events
+Bug #1446: Unit ID check in Modbus packet error
+Bug #1449: smtp parsing issue
+Bug #1451: Fix list-keywords regressions
+Bug #1463: modbus parsing issue
+Feature #336: Add support for NETMAP to Suricata.
+Feature #885: smtp file_data support
+Feature #1394: Improve TCP reuse support
+Feature #1410: add alerts to EVE's drop logs
+Feature #1445: Suricata does not work on pfSense/FreeBSD interfaces using PPPoE
+Feature #1447: Ability to reject ICMP traffic
+Feature #1448: xbits
+Optimization #1014: app layer reassembly fast-path
+Optimization #1377: flow manager: reduce (try)locking
+Optimization #1403: autofp packet pool performance problems
+Optimization #1409: http pipeline support for stateful detection
+
 2.1beta3 -- 2015-01-29
 
 Bug #977: WARNING on empty rules file is fatal (should not be)
