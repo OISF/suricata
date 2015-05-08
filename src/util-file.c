@@ -97,9 +97,11 @@ static int FileAppendFileDataFilePtr(File *ff, FileData *ffd)
     if (ff->chunks_tail == NULL) {
         ff->chunks_head = ffd;
         ff->chunks_tail = ffd;
+        ff->content_len_so_far = ffd->len;
     } else {
         ff->chunks_tail->next = ffd;
         ff->chunks_tail = ffd;
+        ff->content_len_so_far += ffd->len;
     }
 
 #ifdef DEBUG
@@ -491,6 +493,11 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
         ffc->tail->state = FILE_STATE_ERROR;
         SCReturnInt(-1);
     }
+
+    if (ffc->tail->chunks_head == NULL)
+        ffd->stream_offset = 0;
+    else
+        ffd->stream_offset = ffc->tail->size;
 
     /* append the data */
     if (FileAppendFileData(ffc, ffd) < 0) {

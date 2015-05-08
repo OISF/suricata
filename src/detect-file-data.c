@@ -44,7 +44,7 @@
 #include "util-unittest-helper.h"
 
 static int DetectFiledataSetup (DetectEngineCtx *, Signature *, char *);
-
+static void DetectFiledataRegisterTests(void);
 /**
  * \brief Registration function for keyword: file_data
  */
@@ -58,7 +58,7 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
     sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
-    sigmatch_table[DETECT_FILE_DATA].RegisterTests = NULL;
+    sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 }
 
@@ -76,12 +76,105 @@ void DetectFiledataRegister(void)
 static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    if ((s->init_flags & SIG_FLAG_INIT_FLOW) && (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http.");
+
+    if (!DetectProtoContainsProto(&s->proto, IPPROTO_TCP) &&
+        s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP &&
+        s->alproto != ALPROTO_SMTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         return -1;
     }
 
-    s->list = DETECT_SM_LIST_HSBDMATCH;
+    if ((s->init_flags & SIG_FLAG_INIT_FLOW) &&
+        (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http or smtp.");
+            return -1;
+    }
+
+    s->list = DETECT_SM_LIST_FILEDATA;
 
     return 0;
+}
+
+#ifdef UNITTESTS
+static int DetectFiledataParseTest01(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert smtp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content is still in FILEDATA list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+       printf("content not in FILEDATA list: ");
+       goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+static int DetectFiledataParseTest02(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content is still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+       printf("content not in FILEDATA list: ");
+       goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+#endif
+
+void DetectFiledataRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01, 1);
+    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02, 1);
+#endif
 }

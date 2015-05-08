@@ -1238,7 +1238,11 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
-
+      # Configure inspected-tracker for file_data keyword
+      inspected-tracker:
+        content-limit: 1000
+        content-inspect-min-size: 1000
+        content-inspect-window: 1000
     imap:
       enabled: detection-only
     msn:
