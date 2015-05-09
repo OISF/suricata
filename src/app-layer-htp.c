@@ -148,6 +148,8 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "METHOD_DELIM_NON_COMPLIANT",
         HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
+    { "REQUEST_LINE_LEADING_WHITESPACE",
+        HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
 
     /* suricata warnings/errors */
     { "MULTIPART_GENERIC_ERROR",
@@ -506,6 +508,7 @@ struct {
     { "Request server port=", HTTP_DECODER_EVENT_REQUEST_SERVER_PORT_TCP_PORT_MISMATCH},
     { "Request line: URI contains non-compliant delimiter", HTTP_DECODER_EVENT_URI_DELIM_NON_COMPLIANT},
     { "Request line: non-compliant delimiter between Method and URI", HTTP_DECODER_EVENT_METHOD_DELIM_NON_COMPLIANT},
+    { "Request line: leading whitespace", HTTP_DECODER_EVENT_REQUEST_LINE_LEADING_WHITESPACE},
 };
 
 #define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
@@ -2782,6 +2785,85 @@ int HTPParserTest01(void)
     int result = 1;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
+                         " Data is c0oL!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0)
+            flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1))
+            flags = STREAM_TOSERVER|STREAM_EOF;
+        else
+            flags = STREAM_TOSERVER;
+
+        SCMutexLock(&f->m);
+        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            SCMutexUnlock(&f->m);
+            goto end;
+        }
+        SCMutexUnlock(&f->m);
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = HTPStateGetTx(htp_state, 0);
+    htp_header_t *h =  htp_table_get_index(tx->request_headers, 0, NULL);
+    if (strcmp(bstr_util_strdup_to_c(h->value), "Victor/1.0")
+        || tx->request_method_number != HTP_M_POST ||
+        tx->request_protocol_number != HTP_PROTOCOL_1_0)
+    {
+        printf("expected header value: Victor/1.0 and got %s: and expected"
+                " method: POST and got %s, expected protocol number HTTP/1.0"
+                "  and got: %s \n", bstr_util_strdup_to_c(h->value),
+                bstr_util_strdup_to_c(tx->request_method),
+                bstr_util_strdup_to_c(tx->request_protocol));
+        result = 0;
+        goto end;
+    }
+
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
+/** \test Test case where chunks are sent in smaller chunks and check the
+ *        response of the parser from HTP library. */
+static int HTPParserTest01a(void)
+{
+    int result = 1;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = " POST  /  HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -6055,6 +6137,7 @@ void HTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("HTPParserTest01", HTPParserTest01, 1);
+    UtRegisterTest("HTPParserTest01a", HTPParserTest01a, 1);
     UtRegisterTest("HTPParserTest02", HTPParserTest02, 1);
     UtRegisterTest("HTPParserTest03", HTPParserTest03, 1);
     UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);

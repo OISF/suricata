@@ -749,7 +749,7 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
 
     lua_State *luastate = luaL_newstate();
     if (luastate == NULL)
-        goto error;
+        return -1;
     luaL_openlibs(luastate);
 
     /* hackish, needed to allow unittests to pass buffers as scripts instead of files */
