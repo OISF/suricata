@@ -103,14 +103,27 @@ static pcre_extra *regex_suppress_study = NULL;
  * \retval log_filename Pointer to a string containing the path for the
  *                      Threshold Config file.
  */
-char *SCThresholdConfGetConfFilename(void)
+static char *SCThresholdConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *log_filename = NULL;
+    char config_value[256] = "";
 
-    if (ConfGet("threshold-file", &log_filename) != 1) {
-        log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        snprintf(config_value, sizeof(config_value),
+                 "%s.threshold-file", de_ctx->config_prefix);
+
+        /* try loading prefix setting, fall back to global if that
+         * fails. */
+        if (ConfGet(config_value, &log_filename) != 1) {
+            if (ConfGet("threshold-file", &log_filename) != 1) {
+                log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
+            }
+        }
+    } else {
+        if (ConfGet("threshold-file", &log_filename) != 1) {
+            log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
+        }
     }
-
     return log_filename;
 }
 
@@ -138,7 +151,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
     int opts = 0;
 
     if (fd == NULL) {
-        filename = SCThresholdConfGetConfFilename();
+        filename = SCThresholdConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
             SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
@@ -212,7 +225,6 @@ error:
  */
 void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 {
-
     if (fd != NULL)
         fclose(fd);
 

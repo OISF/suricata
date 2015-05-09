@@ -54,7 +54,7 @@ char SCRConfReferenceHashCompareFunc(void *data1, uint16_t datalen1,
 void SCRConfReferenceHashFree(void *ch);
 
 /* used to get the reference.config file path */
-static char *SCRConfGetConfFilename(void);
+static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 /**
  * \brief Inits the context to be used by the Reference Config parsing API.
@@ -91,7 +91,7 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
      * instead use an input stream against a buffer containing the
      * reference strings */
     if (fd == NULL) {
-        filename = SCRConfGetConfFilename();
+        filename = SCRConfGetConfFilename(de_ctx);
         if ((fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
@@ -150,11 +150,26 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
  * \retval log_filename Pointer to a string containing the path for the
  *                      reference.config file.
  */
-static char *SCRConfGetConfFilename(void)
+static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *path = NULL;
-    if (ConfGet("reference-config-file", &path) != 1) {
-        return (char *)file_path;
+    char config_value[256] = "";
+
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        snprintf(config_value, sizeof(config_value),
+                 "%s.reference-config-file", de_ctx->config_prefix);
+
+        /* try loading prefix setting, fall back to global if that
+         * fails. */
+        if (ConfGet(config_value, &path) != 1) {
+            if (ConfGet("reference-config-file", &path) != 1) {
+                return (char *)file_path;
+            }
+        }
+    } else {
+        if (ConfGet("reference-config-file", &path) != 1) {
+            return (char *)file_path;
+        }
     }
     return path;
 }
