@@ -271,7 +271,7 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
 
     /* parse rcode, e.g. "noerror" or "nxdomain" */
     uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
-    if (rcode <= DNS_RCODE_NOTZONE || (rcode >= DNS_RCODE_BADSIG && rcode <= DNS_RCODE_BADTRUNC)) {
+    if (rcode <= DNS_RCODE_NOTZONE) {
         SCLogDebug("rcode %u", rcode);
         if (tx != NULL)
             tx->rcode = rcode;

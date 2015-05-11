@@ -71,6 +71,8 @@
 #define DNS_RCODE_NXRRSET       8
 #define DNS_RCODE_NOTAUTH       9
 #define DNS_RCODE_NOTZONE       10
+// Support for OPT RR from RFC6891 will be needed to
+// parse RCODE values over 15
 #define DNS_RCODE_BADVERS       16
 #define DNS_RCODE_BADSIG        16
 #define DNS_RCODE_BADKEY        17
