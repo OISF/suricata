@@ -244,9 +244,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 }
                 else if (state == CONF_KEY) {
 
-                    /* Top level include statements. */
-                    if ((strcmp(value, "include") == 0) &&
-                        (parent == ConfGetRootNode())) {
+                    if (strcmp(value, "include") == 0) {
                         state = CONF_INCLUDE;
                         goto next;
                     }
