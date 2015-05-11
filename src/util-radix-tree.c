@@ -570,7 +570,7 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
          * down along one of the paths, since either paths should end up with a
          * node that has a common prefix whose differ bit is greater than the
          * bitlen of the incoming prefix */
-        if (bitlen < node->bit) {
+        if (bitlen <= node->bit) {
             if (node->right == NULL)
                 break;
             node = node->right;
