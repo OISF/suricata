@@ -159,7 +159,7 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     return;
 }
 
-void AlertJsonHeader(const PacketAlert *pa, json_t *js)
+void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 {
     char *action = "allowed";
     if (pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) {
@@ -186,6 +186,9 @@ void AlertJsonHeader(const PacketAlert *pa, json_t *js)
 
     if (pa->flags & PACKET_ALERT_FLAG_TX)
         json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
+
+    if (p->tenant_id > 0)
+        json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
     /* alert */
     json_object_set_new(js, "alert", ajs);
@@ -214,7 +217,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
         MemBufferReset(aft->json_buffer);
 
         /* alert */
-        AlertJsonHeader(pa, js);
+        AlertJsonHeader(p, pa, js);
 
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {
@@ -422,6 +425,9 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
         json_object_set_new(ajs, "category",
                             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
         json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
+
+        if (p->tenant_id > 0)
+            json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
