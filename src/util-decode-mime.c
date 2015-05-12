@@ -2821,6 +2821,54 @@ static int MimeDecParseFullMsgTest01(void)
     return ret;
 }
 
+/* Test full message with linebreaks */
+static int MimeDecParseFullMsgTest02(void)
+{
+    int ret = MIME_DEC_OK;
+
+    uint32_t expected_count = 3;
+    uint32_t line_count = 0;
+
+    char msg[] = "From: Sender2\r\n"
+            "To: Recipient2\r\n"
+            "Subject: subject2\r\n"
+            "Content-Type: text/plain\r\n"
+            "\r\n"
+            "Line 1\r\n"
+            "Line 2\r\n"
+            "Line 3\r\n";
+
+    MimeDecEntity *entity = MimeDecParseFullMsg((uint8_t *)msg, strlen(msg), &line_count,
+            TestDataChunkCallback);
+
+    if (entity == NULL) {
+        SCLogInfo("Warning: Message failed to parse");
+        return -1;
+    }
+
+    MimeDecField *field = MimeDecFindField(entity, "subject");
+    if (field == NULL) {
+        SCLogInfo("Warning: Message failed to parse");
+        return -1;
+    }
+
+    if (memcmp(field->value, "subject2", sizeof("subject2")) != 0) {
+        SCLogInfo("Warning: failed to get subject");
+        return -1;
+    }
+
+
+    MimeDecFreeEntity(entity);
+
+    if (expected_count != line_count) {
+        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
+                expected_count, line_count);
+        return -1;
+    }
+
+    return ret;
+}
+
 static int MimeBase64DecodeTest01(void)
 {
     int ret = -1;
@@ -2938,6 +2986,7 @@ void MimeDecRegisterTests(void)
     UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01, 0);
     UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02, 0);
     UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01, 0);
+    UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02, 0);
     UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01, 0);
     UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01, 0);
     UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01, 0);
