@@ -821,7 +821,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     SCProfilingKeywordInitCounters(de_ctx);
 #endif
 
-    SCClassConfLoadClassficationConfigFile(de_ctx);
+    SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
     SCRConfLoadReferenceConfigFile(de_ctx);
 
     if (ActionInitConfig() < 0) {
