@@ -43,7 +43,6 @@
 
 /* Holds a pointer to the default path for the reference.config file */
 static const char *file_path = SC_RCONF_DEFAULT_FILE_PATH;
-static FILE *fd = NULL;
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
@@ -69,7 +68,7 @@ static char *SCRConfGetConfFilename(void);
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
+static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char *filename = NULL;
     const char *eb = NULL;
@@ -116,7 +115,7 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         goto error;
     }
 
-    return 0;
+    return fd;
 
  error:
     if (de_ctx->reference_conf_ht != NULL) {
@@ -137,7 +136,7 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         regex_study = NULL;
     }
 
-    return -1;
+    return NULL;
 }
 
 
@@ -162,12 +161,13 @@ static char *SCRConfGetConfFilename(void)
 /**
  * \brief Releases local resources used by the Reference Config API.
  */
-static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx)
+static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    if (fd != NULL)
+    if (fd != NULL) {
         fclose(fd);
+        fd = NULL;
+    }
     file_path = SC_RCONF_DEFAULT_FILE_PATH;
-    fd = NULL;
 
     if (regex != NULL) {
         pcre_free(regex);
@@ -319,7 +319,7 @@ static int SCRConfIsLineBlankOrComment(char *line)
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  */
-static void SCRConfParseFile(DetectEngineCtx *de_ctx)
+static void SCRConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char line[1024];
     uint8_t i = 1;
@@ -487,9 +487,10 @@ void SCRConfReferenceHashFree(void *data)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
+int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
-    if (SCRConfInitContextAndLocalResources(de_ctx) == -1) {
+    fd = SCRConfInitContextAndLocalResources(de_ctx, fd);
+    if (fd == NULL) {
 #ifdef UNITTESTS
         if (RunmodeIsUnittests() && fd == NULL) {
             return -1;
@@ -500,8 +501,8 @@ int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
         return -1;
     }
 
-    SCRConfParseFile(de_ctx);
-    SCRConfDeInitLocalResources(de_ctx);
+    SCRConfParseFile(de_ctx, fd);
+    SCRConfDeInitLocalResources(de_ctx, fd);
 
     return 0;
 }
@@ -539,7 +540,7 @@ SCRConfReference *SCRConfGetReference(const char *rconf_name,
  * \brief Creates a dummy reference config, with all valid references, for
  *        testing purposes.
  */
-void SCRConfGenerateValidDummyReferenceConfigFD01(void)
+FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void)
 {
     const char *buffer =
         "config reference: one http://www.one.com\n"
@@ -548,18 +549,18 @@ void SCRConfGenerateValidDummyReferenceConfigFD01(void)
         "config reference: one http://www.one.com\n"
         "config reference: three http://www.three.com\n";
 
-    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
         SCLogDebug("Error with SCFmemopen() called by Reference Config test code");
 
-    return;
+    return fd;
 }
 
 /**
  * \brief Creates a dummy reference config, with some valid references and a
  *        couple of invalid references, for testing purposes.
  */
-void SCRConfGenerateInValidDummyReferenceConfigFD02(void)
+FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void)
 {
     const char *buffer =
         "config reference: one http://www.one.com\n"
@@ -568,18 +569,18 @@ void SCRConfGenerateInValidDummyReferenceConfigFD02(void)
         "config reference: four\n"
         "config reference five http://www.five.com\n";
 
-    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
         SCLogDebug("Error with SCFmemopen() called by Reference Config test code");
 
-    return;
+    return fd;
 }
 
 /**
  * \brief Creates a dummy reference config, with all invalid references, for
  *        testing purposes.
  */
-void SCRConfGenerateInValidDummyReferenceConfigFD03(void)
+FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void)
 {
     const char *buffer =
         "config reference one http://www.one.com\n"
@@ -587,24 +588,11 @@ void SCRConfGenerateInValidDummyReferenceConfigFD03(void)
         "config reference_: three http://www.three.com\n"
         "config reference: four\n";
 
-    fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
+    FILE *fd = SCFmemopen((void *)buffer, strlen(buffer), "r");
     if (fd == NULL)
         SCLogDebug("Error with SCFmemopen() called by Reference Config test code");
 
-    return;
-}
-
-/**
- * \brief Deletes the FD, if set by the other testing functions.
- */
-void SCRConfDeleteDummyReferenceConfigFD(void)
-{
-    if (fd != NULL) {
-        fclose(fd);
-        fd = NULL;
-    }
-
-    return;
+    return fd;
 }
 
 /**
@@ -619,9 +607,8 @@ int SCRConfTest01(void)
     if (de_ctx == NULL)
         return result;
 
-    SCRConfGenerateValidDummyReferenceConfigFD01();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;
@@ -648,9 +635,8 @@ int SCRConfTest02(void)
     if (de_ctx == NULL)
         return result;
 
-    SCRConfGenerateInValidDummyReferenceConfigFD03();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD03();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;
@@ -676,9 +662,8 @@ int SCRConfTest03(void)
     if (de_ctx == NULL)
         return result;
 
-    SCRConfGenerateInValidDummyReferenceConfigFD02();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD02();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;
@@ -703,9 +688,8 @@ int SCRConfTest04(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCRConfGenerateValidDummyReferenceConfigFD01();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;
@@ -736,9 +720,8 @@ int SCRConfTest05(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCRConfGenerateInValidDummyReferenceConfigFD03();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD03();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;
@@ -769,9 +752,8 @@ int SCRConfTest06(void)
     if (de_ctx == NULL)
         return 0;
 
-    SCRConfGenerateInValidDummyReferenceConfigFD02();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateInValidDummyReferenceConfigFD02();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     if (de_ctx->reference_conf_ht == NULL)
         goto end;

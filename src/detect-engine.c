@@ -822,7 +822,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 #endif
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
-    SCRConfLoadReferenceConfigFile(de_ctx);
+    SCRConfLoadReferenceConfigFile(de_ctx, NULL);
 
     if (ActionInitConfig() < 0) {
         goto error;
