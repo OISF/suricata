@@ -83,6 +83,7 @@ struct {
     { "sensitivity",  "sensitivity", LOG_EMAIL_DEFAULT },
     { "organization",  "organization", LOG_EMAIL_DEFAULT },
     { "content_md5",  "content-md5", LOG_EMAIL_DEFAULT },
+    { "date", "date", LOG_EMAIL_DEFAULT },
     { NULL, NULL, LOG_EMAIL_DEFAULT},
 };
 

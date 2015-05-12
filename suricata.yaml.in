@@ -144,7 +144,7 @@ outputs:
             # custom fields logging from the list:
             #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
             #  x-originating-ip, in-reply-to, references, importance, priority,
-            #  sensitivity, organization, content-md5
+            #  sensitivity, organization, content-md5, date
             #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
             # output md5 of fields: body, subject
             # for the body you need to set app-layer.protocols.smtp.mime.body-md5
