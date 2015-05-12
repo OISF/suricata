@@ -277,6 +277,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     CudaBufferRegisterUnittests();
 #endif
     AppLayerUnittestsRegister();
+    MimeDecRegisterTests();
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {
