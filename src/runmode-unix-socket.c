@@ -636,7 +636,7 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
     SCLogDebug("add-tenant: %d %s", tenant_id, filename);
 
     /* 3 load into the system */
-    if (DetectEngineMultiTenantLoadTenant(tenant_id, filename) != 0) {
+    if (DetectEngineMultiTenantLoadTenant(tenant_id, filename, -1) != 0) {
         json_object_set_new(answer, "message", json_string("adding tenant failed"));
         return TM_ECODE_FAILED;
     }
