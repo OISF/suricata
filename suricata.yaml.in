@@ -140,7 +140,8 @@ outputs:
         #- drop:
         #    alerts: no       # log alerts that caused drops
         - smtp:
-            #extended: yes
+            #extended: yes # enable this for extended logging information
+            # this includes: message-id, subject, x_mailer, user-agent
             # custom fields logging from the list:
             #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
             #  x-originating-ip, in-reply-to, references, importance, priority,
