@@ -744,6 +744,10 @@ typedef struct DetectEngineCtx_ {
     uint32_t ref_cnt;
     /** list in master: either active or freelist */
     struct DetectEngineCtx_ *next;
+
+    /** id of loader thread 'owning' this de_ctx */
+    int loader_id;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
