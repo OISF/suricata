@@ -4537,6 +4537,16 @@ int SMTPParserTest14(void)
         SCMutexUnlock(&f.m);
         goto end;
     }
+
+    if ((smtp_state->curr_tx->mail_from_len != 14) ||
+        strncmp("asdff@asdf.com", (char *)smtp_state->curr_tx->mail_from, 14)) {
+        printf("incorrect parsing of MAIL FROM field '%s' (%d)\n",
+               smtp_state->curr_tx->mail_from,
+               smtp_state->curr_tx->mail_from_len);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+
     SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
