@@ -638,8 +638,18 @@ TmEcode UnixSocketRegisterTenant(json_t *cmd, json_t* answer, void *data)
 
     SCLogDebug("add-tenant: %d %s", tenant_id, filename);
 
+    /* setup the yaml in this loop so that it's not done by the loader
+     * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
+        json_object_set_new(answer, "message", json_string("failed to load yaml"));
+        return TM_ECODE_FAILED;
+    }
+
     /* 3 load into the system */
-    if (DetectEngineMultiTenantLoadTenant(tenant_id, filename, -1) != 0) {
+    if (DetectEngineLoadTenantBlocking(tenant_id, filename) != 0) {
         json_object_set_new(answer, "message", json_string("adding tenant failed"));
         return TM_ECODE_FAILED;
     }
@@ -704,15 +714,8 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
 
     SCLogDebug("reload-tenant: %d %s", tenant_id, filename);
 
-    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
-    if (old_de_ctx == NULL) {
-        json_object_set_new(answer, "message", json_string("tenant detect engine not found"));
-        return TM_ECODE_FAILED;
-    }
-
     char prefix[64];
     snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
-    reload_cnt++;
     SCLogInfo("prefix %s", prefix);
 
     if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
@@ -720,31 +723,13 @@ TmEcode UnixSocketReloadTenant(json_t *cmd, json_t* answer, void *data)
         return TM_ECODE_FAILED;
     }
 
-    ConfNode *node = ConfGetNode(prefix);
-    if (node == NULL) {
-        json_object_set_new(answer, "message", json_string("failed to properly setup yaml"));
+    /* 3 load into the system */
+    if (DetectEngineReloadTenantBlocking(tenant_id, filename, reload_cnt) != 0) {
+        json_object_set_new(answer, "message", json_string("reload tenant failed"));
         return TM_ECODE_FAILED;
     }
 
-    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
-    if (new_de_ctx == NULL) {
-        json_object_set_new(answer, "message", json_string("initializing detection engine failed"));
-        return TM_ECODE_FAILED;
-    }
-    SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
-
-    new_de_ctx->tenant_id = tenant_id;
-
-    if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
-        json_object_set_new(answer, "message", json_string("loading rules failed"));
-        return TM_ECODE_FAILED;
-    }
-
-    DetectEngineAddToMaster(new_de_ctx);
-
-    /* move to free list */
-    DetectEngineMoveToFreeList(old_de_ctx);
-    DetectEngineDeReference(&old_de_ctx);
+    reload_cnt++;
 
     /*  apply to the running system */
     if (DetectEngineMTApply() < 0) {
