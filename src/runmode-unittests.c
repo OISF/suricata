@@ -169,6 +169,8 @@ void RunUnittests(int list_unittests, char *regex_arg)
     SCProtoNameInit();
 
     TagInitCtx();
+    SCReferenceConfInit();
+    SCClassConfInit();
 
     RegisterAllModules();
 
