@@ -1078,6 +1078,14 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineCtx *free_list;
 } DetectEngineMasterCtx;
 
+/** \brief Signature loader statistics */
+typedef struct SigFileLoaderStat_ {
+    int bad_files;
+    int total_files;
+    int good_sigs_total;
+    int bad_sigs_total;
+} SigFileLoaderStat;
+
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
 enum {
