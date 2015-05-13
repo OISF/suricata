@@ -199,6 +199,10 @@
 
 #include "runmodes.h"
 
+#include <glob.h>
+
+extern int rule_reload;
+
 extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
 static int rule_engine_analysis_set = 0;
@@ -287,8 +291,9 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
  *  \brief Load a file with signatures
  *  \param de_ctx Pointer to the detection engine context
  *  \param sig_file Filename to load signatures from
- *  \param sigs_tot Will store number of signatures processed in the file
- *  \retval Number of rules loaded successfully, -1 on error
+ *  \param goodsigs_tot Will store number of valid signatures in the file
+ *  \param badsigs_tot Will store number of invalid signatures in the file
+ *  \retval 0 on success, -1 on error
  */
 static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
         int *goodsigs, int *badsigs)
@@ -301,11 +306,6 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
 
     (*goodsigs) = 0;
     (*badsigs) = 0;
-
-    if (sig_file == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule file null");
-        return -1;
-    }
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
@@ -373,15 +373,65 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
     }
     fclose(fp);
 
-    (*goodsigs) = good;
-    (*badsigs) = bad;
+    *goodsigs = good;
+    *badsigs = bad;
     return 0;
+}
+
+/**
+ *  \brief Expands wildcards and reads signatures from each matching file
+ *  \param de_ctx Pointer to the detection engine context
+ *  \param sig_file Filename (or pattern) holding signatures
+ *  \retval -1 on error
+ */
+static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
+        SigFileLoaderStat *st, int *good_sigs, int *bad_sigs)
+{
+    if (pattern == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule file null");
+        return -1;
+    }
+
+    glob_t files;
+    int r = glob(pattern, 0, NULL, &files);
+
+    if (r == GLOB_NOMATCH) {
+        SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
+        ++(st->bad_files);
+        return -1;
+    } else if (r != 0) {
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s",
+                 pattern, strerror(errno));
+        return -1;
+    }
+
+    for (size_t i = 0; i < files.gl_pathc; i++) {
+        char *fname = files.gl_pathv[i];
+        SCLogInfo("Loading rule file: %s", fname);
+        r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
+        if (r < 0) {
+            ++(st->bad_files);
+        }
+
+        ++(st->total_files);
+
+        if (*good_sigs == 0) {
+            SCLogWarning(SC_ERR_NO_RULES,
+                "No rules loaded from %s", fname);
+        }
+
+        st->good_sigs_total += *good_sigs;
+        st->bad_sigs_total += *bad_sigs;
+    }
+
+    globfree(&files);
+    return r;
 }
 
 /**
  *  \brief Load signatures
  *  \param de_ctx Pointer to the detection engine context
- *  \param sig_file Filename holding signatures
+ *  \param sig_file Filename (or pattern) holding signatures
  *  \param sig_file_exclusive File passed in 'sig_file' should be loaded exclusively.
  *  \retval -1 on error
  */
@@ -391,20 +441,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     ConfNode *rule_files;
     ConfNode *file = NULL;
+    SigFileLoaderStat sig_stat;
     int ret = 0;
-    int r = 0;
-    int cntf = 0;
     char *sfile = NULL;
-
-    int goodsigs = 0;
-    int badsigs = 0;
-
-    int badfiles = 0;
-
-    int goodtotal = 0;
-    int badtotal = 0;
-
     char varname[128] = "rule-files";
+    int good_sigs = 0;
+    int bad_sigs = 0;
+
+    memset(&sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.rule-files",
@@ -428,21 +472,9 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             else {
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
-                    SCLogDebug("Loading rule file: %s", sfile);
-
-                    cntf++;
-                    r = DetectLoadSigFile(de_ctx, sfile, &goodsigs, &badsigs);
-                    if (r < 0) {
-                        badfiles++;
-                    }
-                    if (goodsigs == 0) {
-                        SCLogWarning(SC_ERR_NO_RULES,
-                            "No rules loaded from %s", sfile);
-                    }
+                    good_sigs = bad_sigs = 0;
+                    ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
-
-                    goodtotal += goodsigs;
-                    badtotal += badsigs;
                 }
             }
         }
@@ -451,33 +483,35 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
         SCLogInfo("Loading rule file: %s", sig_file);
-        cntf++;
-        r = DetectLoadSigFile(de_ctx, sig_file, &goodsigs, &badsigs);
-        if (r < 0) {
-            badfiles++;
+        ++sig_stat.total_files;
+
+        if (ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs) != 0) {
+            ++sig_stat.bad_files;
         }
-        if (goodsigs == 0) {
+
+        if (good_sigs == 0) {
             SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
         }
 
-        goodtotal += goodsigs;
-        badtotal += badsigs;
+        sig_stat.good_sigs_total += good_sigs;
+        sig_stat.bad_sigs_total += bad_sigs;
     }
 
     /* now we should have signatures to work with */
-    if (goodsigs <= 0) {
-        if (cntf > 0) {
-           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
+    if (sig_stat.good_sigs_total <= 0) {
+        if (sig_stat.total_files > 0) {
+           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", sig_stat.total_files);
         } else {
             SCLogInfo("No signatures supplied.");
             goto end;
         }
     } else {
         /* we report the total of files and rules successfully loaded and failed */
-        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed", cntf, goodtotal, badtotal);
+        SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed",
+            sig_stat.total_files, sig_stat.good_sigs_total, sig_stat.bad_sigs_total);
     }
 
-    if ((badtotal || badfiles) && de_ctx->failure_fatal) {
+    if ((sig_stat.bad_sigs_total || sig_stat.bad_files) && de_ctx->failure_fatal) {
         ret = -1;
         goto end;
     }
