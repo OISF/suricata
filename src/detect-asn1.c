@@ -205,8 +205,9 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str)
     uint32_t abs_off = 0;
     int32_t rel_off = 0;
     uint8_t flags = 0;
+    char *saveptr = NULL;
 
-    tok = strtok(asn1str, ASN_DELIM);
+    tok = strtok_r(asn1str, ASN_DELIM, &saveptr);
     if (tok == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Malformed asn1 argument: %s",
                    asn1str);
@@ -223,7 +224,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str)
         } else if (strcasecmp("oversize_length", tok) == 0) {
             flags |= ASN1_OVERSIZE_LEN;
             /* get the param */
-            tok = strtok(NULL, ASN_DELIM);
+            tok = strtok_r(NULL, ASN_DELIM, &saveptr);
             if ( tok == NULL ||
                 ByteExtractStringUint32(&ov_len, 10, 0, tok) <= 0)
             {
@@ -234,7 +235,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str)
         } else if (strcasecmp("absolute_offset", tok) == 0) {
             flags |= ASN1_ABSOLUTE_OFFSET;
             /* get the param */
-            tok = strtok(NULL, ASN_DELIM);
+            tok = strtok_r(NULL, ASN_DELIM, &saveptr);
             if (tok == NULL ||
                 ByteExtractStringUint32(&abs_off, 10, 0, tok) <= 0)
             {
@@ -245,7 +246,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str)
         } else if (strcasecmp("relative_offset",tok) == 0) {
             flags |= ASN1_RELATIVE_OFFSET;
             /* get the param */
-            tok = strtok(NULL, ASN_DELIM);
+            tok = strtok_r(NULL, ASN_DELIM, &saveptr);
             if (tok == NULL ||
                 ByteExtractStringInt32(&rel_off, 10, 0, tok) <= 0)
             {
@@ -258,7 +259,7 @@ DetectAsn1Data *DetectAsn1Parse(char *asn1str)
                        asn1str);
             return NULL;
         }
-        tok = strtok(NULL, ASN_DELIM);
+        tok = strtok_r(NULL, ASN_DELIM, &saveptr);
     }
 
     fd = SCMalloc(sizeof(DetectAsn1Data));
