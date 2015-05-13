@@ -1682,7 +1682,8 @@ int DetectEngineMultiTenantEnabled(void)
     return (master->multi_tenant_enabled);
 }
 
-/** \brief load a tenant from a yaml file
+/** \internal
+ *  \brief load a tenant from a yaml file
  *
  *  \param tenant_id the tenant id by which the config is known
  *  \param filename full path of a yaml file
@@ -1691,7 +1692,7 @@ int DetectEngineMultiTenantEnabled(void)
  *  \retval 0 ok
  *  \retval -1 failed
  */
-int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, int loader_id)
+static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, int loader_id)
 {
     DetectEngineCtx *de_ctx = NULL;
     char prefix[64];
@@ -1717,11 +1718,6 @@ int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, 
         goto error;
     }
 
-    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
-        goto error;
-    }
-
     ConfNode *node = ConfGetNode(prefix);
     if (node == NULL) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
@@ -1737,6 +1733,7 @@ int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, 
     SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
 
     de_ctx->tenant_id = tenant_id;
+    de_ctx->loader_id = loader_id;
 
     if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
         SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
@@ -1753,6 +1750,59 @@ error:
     }
     return -1;
 }
+
+static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *filename, int reload_cnt)
+{
+    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (old_de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "tenant detect engine not found");
+        return -1;
+    }
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
+    reload_cnt++;
+    SCLogInfo("prefix %s", prefix);
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION,"failed to load yaml");
+        goto error;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        goto error;
+    }
+
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (new_de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                "context failed.");
+        goto error;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
+
+    new_de_ctx->tenant_id = tenant_id;
+    new_de_ctx->loader_id = old_de_ctx->loader_id;
+
+    if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        goto error;
+    }
+
+    DetectEngineAddToMaster(new_de_ctx);
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(old_de_ctx);
+    DetectEngineDeReference(&old_de_ctx);
+    return 0;
+
+error:
+    DetectEngineDeReference(&old_de_ctx);
+    return -1;
+}
+
 
 /**
  * \param ctx function specific data
@@ -1847,6 +1897,7 @@ void DetectLoadersInit(void)
 
 typedef struct TenantLoaderCtx_ {
     uint32_t tenant_id;
+    int reload_cnt; /**< used by reload */
     const char *yaml;
 } TenantLoaderCtx;
 
@@ -1854,7 +1905,7 @@ static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
 {
     TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
 
-/* TODO we need to somehow store the loader id for when we free */
+    SCLogInfo("loader %d", loader_id);
     if (DetectEngineMultiTenantLoadTenant(ctx->tenant_id, ctx->yaml, loader_id) != 0) {
         return -1;
     }
@@ -1871,6 +1922,67 @@ int DetectLoaderSetupLoadTenant(uint32_t tenant_id, const char *yaml)
     t->yaml = yaml;
 
     return DetectLoaderQueueTask(-1, DetectLoaderFuncLoadTenant, t);
+}
+
+static int DetectLoaderFuncReloadTenant(void *vctx, int loader_id)
+{
+    TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
+
+    SCLogDebug("loader_id %d", loader_id);
+
+    if (DetectEngineMultiTenantReloadTenant(ctx->tenant_id, ctx->yaml, ctx->reload_cnt) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, int reload_cnt)
+{
+    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (old_de_ctx == NULL)
+        return -ENOENT;
+    int loader_id = old_de_ctx->loader_id;
+    DetectEngineDeReference(&old_de_ctx);
+
+    TenantLoaderCtx *t = SCCalloc(1, sizeof(*t));
+    if (t == NULL)
+        return -ENOMEM;
+
+    t->tenant_id = tenant_id;
+    t->yaml = yaml;
+    t->reload_cnt = reload_cnt;
+
+    SCLogDebug("loader_id %d", loader_id);
+
+    return DetectLoaderQueueTask(loader_id, DetectLoaderFuncReloadTenant, t);
+}
+
+/** \brief Load a tenant and wait for loading to complete
+ */
+int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml)
+{
+    int r = DetectLoaderSetupLoadTenant(tenant_id, yaml);
+    if (r < 0)
+        return r;
+
+    if (DetectLoadersSync() != 0)
+        return -1;
+
+    return 0;
+}
+
+/** \brief Reload a tenant and wait for loading to complete
+ */
+int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt)
+{
+    int r = DetectLoaderSetupReloadTenant(tenant_id, yaml, reload_cnt);
+    if (r < 0)
+        return r;
+
+    if (DetectLoadersSync() != 0)
+        return -1;
+
+    return 0;
 }
 
 /**
@@ -1994,6 +2106,7 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 
         SCLogDebug("woke up...");
     }
+
     return TM_ECODE_OK;
 }
 
@@ -2154,6 +2267,15 @@ void DetectEngineMultiTenantSetup(void)
                     goto bad_tenant;
                 }
                 SCLogInfo("tenant id: %u, %s", tenant_id, yaml_node->val);
+
+                /* setup the yaml in this loop so that it's not done by the loader
+                 * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
+                char prefix[64];
+                snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+                if (ConfYamlLoadFileWithPrefix(yaml_node->val, prefix) != 0) {
+                    SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", yaml_node->val);
+                    goto bad_tenant;
+                }
 
                 if (DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val) != 0) {
                     /* error logged already */
