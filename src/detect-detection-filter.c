@@ -121,14 +121,17 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr)
     int seconds_pos = 0, count_pos = 0;
     uint16_t pos = 0;
     int i = 0;
+    char *saveptr = NULL;
 
     copy_str = SCStrdup(rawstr);
     if (unlikely(copy_str == NULL)) {
         goto error;
     }
 
-    for(pos = 0, df_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  df_opt != NULL;  pos++, df_opt = strtok(NULL,",")) {
-
+    for (pos = 0, df_opt = strtok_r(copy_str,",", &saveptr);
+         pos < strlen(copy_str) && df_opt != NULL;
+         pos++, df_opt = strtok_r(NULL,",", &saveptr))
+    {
         if(strstr(df_opt,"count"))
             count_found++;
         if(strstr(df_opt,"second"))
