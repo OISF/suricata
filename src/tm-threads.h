@@ -92,6 +92,8 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
 ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
                                      int mucond);
 ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
+                                     int mucond);
 TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);
 void TmThreadSetAOF(ThreadVars *, uint8_t);

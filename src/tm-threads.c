@@ -662,6 +662,8 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *))
         tv->tm_func = TmThreadsSlotPktAcqLoop;
     } else if (strcmp(name, "management") == 0) {
         tv->tm_func = TmThreadsManagement;
+    } else if (strcmp(name, "command") == 0) {
+        tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -1215,6 +1217,39 @@ ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
 
     if (tv != NULL) {
         tv->type = TVT_MGMT;
+        tv->id = TmThreadsRegisterThread(tv, tv->type);
+        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+
+        TmModule *m = TmModuleGetByName(module);
+        if (m) {
+            TmSlotSetFuncAppend(tv, m, NULL);
+        }
+    }
+
+    return tv;
+}
+
+/**
+ * \brief Creates and returns the TV instance for a Command thread (CMD).
+ *        This function supports only custom slot functions and hence a
+ *        function pointer should be sent as an argument.
+ *
+ * \param name       Name of this TV instance
+ * \param module     Name of TmModule with COMMAND flag set.
+ * \param mucond     Flag to indicate whether to initialize the condition
+ *                   and the mutex variables for this newly created TV.
+ *
+ * \retval the newly created TV instance, or NULL on error
+ */
+ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
+                                     int mucond)
+{
+    ThreadVars *tv = NULL;
+
+    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "command", NULL, mucond);
+
+    if (tv != NULL) {
+        tv->type = TVT_CMD;
         tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
 

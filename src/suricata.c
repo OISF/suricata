@@ -797,6 +797,8 @@ int g_ut_covered;
 
 void RegisterAllModules()
 {
+    /* commanders */
+    TmModuleUnixManagerRegister();
     /* managers */
     TmModuleFlowManagerRegister();
     TmModuleFlowRecyclerRegister();
