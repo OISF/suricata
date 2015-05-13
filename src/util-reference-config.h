@@ -47,4 +47,7 @@ FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void);
 FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void);
 FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void);
 
+void SCReferenceConfInit(void);
+void SCReferenceConfDeinit(void);
+
 #endif /* __UTIL_REFERENCE_CONFIG_H__ */

@@ -41,8 +41,6 @@
 /* Default path for the reference.conf file */
 #define SC_RCONF_DEFAULT_FILE_PATH CONFIG_DIR "/reference.config"
 
-/* Holds a pointer to the default path for the reference.config file */
-static const char *file_path = SC_RCONF_DEFAULT_FILE_PATH;
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
@@ -54,6 +52,43 @@ void SCRConfReferenceHashFree(void *ch);
 
 /* used to get the reference.config file path */
 static char *SCRConfGetConfFilename(void);
+
+void SCReferenceConfInit(void)
+{
+    const char *eb = NULL;
+    int eo;
+    int opts = 0;
+
+    regex = pcre_compile(SC_RCONF_REGEX, opts, &eb, &eo, NULL);
+    if (regex == NULL) {
+        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+                   SC_RCONF_REGEX, eo, eb);
+        return;
+    }
+
+    regex_study = pcre_study(regex, 0, &eb);
+    if (eb != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+        SCLogDebug("pcre study failed: %s", eb);
+        return;
+    }
+
+    return;
+}
+
+void SCReferenceConfDeinit(void)
+{
+    if (regex != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        pcre_free(regex_study);
+        regex_study = NULL;
+    }
+}
+
 
 /**
  * \brief Inits the context to be used by the Reference Config parsing API.
@@ -71,9 +106,6 @@ static char *SCRConfGetConfFilename(void);
 static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char *filename = NULL;
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
 
     /* init the hash table to be used by the reference config references */
     de_ctx->reference_conf_ht = HashTableInit(128, SCRConfReferenceHashFunc,
@@ -102,19 +134,6 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
         }
     }
 
-    regex = pcre_compile(SC_RCONF_REGEX, opts, &eb, &eo, NULL);
-    if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   SC_RCONF_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_study = pcre_study(regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
-        goto error;
-    }
-
     return fd;
 
  error:
@@ -125,15 +144,6 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
     if (fd != NULL) {
         fclose(fd);
         fd = NULL;
-    }
-
-    if (regex != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-    }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
     }
 
     return NULL;
@@ -153,7 +163,7 @@ static char *SCRConfGetConfFilename(void)
 {
     char *path = NULL;
     if (ConfGet("reference-config-file", &path) != 1) {
-        return (char *)file_path;
+        return (char *)SC_RCONF_DEFAULT_FILE_PATH;
     }
     return path;
 }
@@ -166,16 +176,6 @@ static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
     if (fd != NULL) {
         fclose(fd);
         fd = NULL;
-    }
-    file_path = SC_RCONF_DEFAULT_FILE_PATH;
-
-    if (regex != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-    }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
     }
 
     return;
