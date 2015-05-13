@@ -2257,6 +2257,7 @@ int main(int argc, char **argv)
 
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
+        SCClassConfInit();
         SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             de_ctx = DetectEngineCtxInit();
@@ -2484,6 +2485,9 @@ int main(int argc, char **argv)
     SCProtoNameDeInit();
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         DefragDestroy();
+    }
+    if (!suri.disabled_detect) {
+        SCClassConfDeinit();
     }
     MagicDeinit();
     TmqhCleanup();

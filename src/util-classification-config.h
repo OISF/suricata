@@ -56,4 +56,7 @@ FILE *SCClassConfGenerateValidDummyClassConfigFD01(void);
 FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void);
 FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void);
 
+void SCClassConfInit(void);
+void SCClassConfDeinit(void);
+
 #endif /* __UTIL_CLASSIFICATION_CONFIG_H__ */

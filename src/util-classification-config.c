@@ -47,8 +47,6 @@
 #define SC_CLASS_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/classification.config"
 #endif
 
-/* Holds a pointer to the default path for the classification.config file */
-static const char *default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
 
@@ -57,6 +55,42 @@ char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
 static char *SCClassConfGetConfFilename(void);
+
+void SCClassConfInit(void)
+{
+    const char *eb = NULL;
+    int eo;
+    int opts = 0;
+
+    regex = pcre_compile(DETECT_CLASSCONFIG_REGEX, opts, &eb, &eo, NULL);
+    if (regex == NULL) {
+        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
+                   DETECT_CLASSCONFIG_REGEX, eo, eb);
+        return;
+    }
+
+    regex_study = pcre_study(regex, 0, &eb);
+    if (eb != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+        SCLogDebug("pcre study failed: %s", eb);
+        return;
+    }
+    return;
+}
+
+void SCClassConfDeinit(void)
+{
+    if (regex != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        pcre_free(regex_study);
+        regex_study = NULL;
+    }
+}
+
 
 /**
  * \brief Inits the context to be used by the Classification Config parsing API.
@@ -74,9 +108,6 @@ static char *SCClassConfGetConfFilename(void);
 FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char *filename = NULL;
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
 
     /* init the hash table to be used by the classification config Classtypes */
     de_ctx->class_conf_ht = HashTableInit(128, SCClassConfClasstypeHashFunc,
@@ -104,19 +135,6 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
         }
     }
 
-    regex = pcre_compile(DETECT_CLASSCONFIG_REGEX, opts, &eb, &eo, NULL);
-    if (regex == NULL) {
-        SCLogDebug("Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_CLASSCONFIG_REGEX, eo, eb);
-        goto error;
-    }
-
-    regex_study = pcre_study(regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
-        goto error;
-    }
-
     return fd;
 
  error:
@@ -127,15 +145,6 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
     if (fd != NULL) {
         fclose(fd);
         fd = NULL;
-    }
-
-    if (regex != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-    }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
     }
 
     return NULL;
@@ -156,7 +165,7 @@ static char *SCClassConfGetConfFilename(void)
     char *log_filename = NULL;
 
     if (ConfGet("classification-file", &log_filename) != 1) {
-        log_filename = (char *)default_file_path;
+        log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
     }
 
     return log_filename;
@@ -171,18 +180,6 @@ static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
         fclose(fd);
         fd = NULL;
     }
-
-    default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
-    if (regex != NULL) {
-        pcre_free(regex);
-        regex = NULL;
-    }
-    if (regex_study != NULL) {
-        pcre_free(regex_study);
-        regex_study = NULL;
-    }
-
-    return;
 }
 
 /**
