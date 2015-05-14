@@ -148,9 +148,8 @@ static int DetectMsgParseTest01(void)
     if (de_ctx == NULL)
         goto end;
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
     if(sig == NULL)

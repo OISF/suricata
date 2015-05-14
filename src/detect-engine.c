@@ -821,8 +821,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     SCProfilingKeywordInitCounters(de_ctx);
 #endif
 
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCRConfLoadReferenceConfigFile(de_ctx);
+    SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
+    SCRConfLoadReferenceConfigFile(de_ctx, NULL);
 
     if (ActionInitConfig() < 0) {
         goto error;

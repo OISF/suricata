@@ -142,8 +142,11 @@ static DetectThresholdData *DetectThresholdParse(char *rawstr)
         goto error;
     }
 
-    for(pos = 0, threshold_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  threshold_opt != NULL;  pos++, threshold_opt = strtok(NULL,",")) {
-
+    char *saveptr = NULL;
+    for (pos = 0, threshold_opt = strtok_r(copy_str,",", &saveptr);
+         pos < strlen(copy_str) && threshold_opt != NULL;
+         pos++, threshold_opt = strtok_r(NULL,"," , &saveptr))
+    {
         if(strstr(threshold_opt,"count"))
             count_found++;
         if(strstr(threshold_opt,"second"))

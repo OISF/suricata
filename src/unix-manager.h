@@ -46,4 +46,6 @@ TmEcode UnixManagerRegisterBackgroundTask(
         void *data);
 #endif
 
+void TmModuleUnixManagerRegister(void);
+
 #endif /* UNIX_MANAGER_H */

@@ -242,9 +242,8 @@ static int DetectReferenceParseTest01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    SCRConfGenerateValidDummyReferenceConfigFD01();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
@@ -289,9 +288,8 @@ static int DetectReferenceParseTest02(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    SCRConfGenerateValidDummyReferenceConfigFD01();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"Two references\"; "
@@ -344,9 +342,8 @@ static int DetectReferenceParseTest03(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    SCRConfGenerateValidDummyReferenceConfigFD01();
-    SCRConfLoadReferenceConfigFile(de_ctx);
-    SCRConfDeleteDummyReferenceConfigFD();
+    FILE *fd =SCRConfGenerateValidDummyReferenceConfigFD01();
+    SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                    "(msg:\"invalid ref\"; "

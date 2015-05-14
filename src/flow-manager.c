@@ -142,12 +142,11 @@ void FlowDisableFlowManagerThread(void)
         }
         tv = tv->next;
     }
+    SCMutexUnlock(&tv_root_lock);
 
     /* wake up threads, another try */
     for (u = 0; u < flowmgr_number; u++)
         SCCtrlCondSignal(&flow_manager_ctrl_cond);
-
-    SCMutexUnlock(&tv_root_lock);
 
     /* reset count, so we can kill and respawn (unix socket) */
     SC_ATOMIC_SET(flowmgr_cnt, 0);

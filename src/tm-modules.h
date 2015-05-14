@@ -34,6 +34,7 @@
 #define TM_FLAG_DETECT_TM       0x08
 #define TM_FLAG_LOGAPI_TM       0x10 /**< TM is run by Log API */
 #define TM_FLAG_MANAGEMENT_TM   0x20
+#define TM_FLAG_COMMAND_TM      0x40
 
 typedef struct TmModule_ {
     char *name;

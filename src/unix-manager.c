@@ -841,13 +841,31 @@ TmEcode UnixManagerRegisterBackgroundTask(TmEcode (*Func)(void *),
     SCReturnInt(TM_ECODE_OK);
 }
 
-void *UnixManagerThread(void *td)
+typedef struct UnixManagerThreadData_ {
+    int padding;
+} UnixManagerThreadData;
+
+static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
 {
-    ThreadVars *th_v = (ThreadVars *)td;
+    UnixManagerThreadData *utd = SCCalloc(1, sizeof(*utd));
+    if (utd == NULL)
+        return TM_ECODE_FAILED;
+
+    *data = utd;
+    return TM_ECODE_OK;
+}
+
+static TmEcode UnixManagerThreadDeinit(ThreadVars *t, void *data)
+{
+    SCFree(data);
+    return TM_ECODE_OK;
+}
+
+static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
+{
     int ret;
 
     /* set the thread name */
-    (void) SCSetThreadName(th_v->name);
     SCLogDebug("%s started...", th_v->name);
 
     th_v->sc_perf_pca = SCPerfGetAllCountersArray(&th_v->sc_perf_pctx);
@@ -863,8 +881,7 @@ void *UnixManagerThread(void *td)
         if (failure_fatal) {
             exit(EXIT_FAILURE);
         } else {
-            TmThreadsSetFlag(th_v, THV_INIT_DONE|THV_RUNNING_DONE);
-            pthread_exit((void *) 0);
+            return TM_ECODE_FAILED;
         }
     }
 
@@ -904,10 +921,7 @@ void *UnixManagerThread(void *td)
 
         UnixCommandBackgroundTasks(&command);
     }
-    TmThreadWaitForFlag(th_v, THV_DEINIT);
-
-    TmThreadsSetFlag(th_v, THV_CLOSED);
-    pthread_exit((void *) 0);
+    return TM_ECODE_OK;
 }
 
 
@@ -922,8 +936,8 @@ void UnixManagerThreadSpawn(int mode)
     SCCtrlCondInit(&unix_manager_ctrl_cond, NULL);
     SCCtrlMutexInit(&unix_manager_ctrl_mutex, NULL);
 
-    tv_unixmgr = TmThreadCreateCmdThread("UnixManagerThread",
-                                          UnixManagerThread, 0);
+    tv_unixmgr = TmThreadCreateCmdThreadByName("UnixManagerThread",
+                                          "UnixManager", 0);
 
     if (tv_unixmgr == NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "TmThreadsCreate failed");
@@ -997,3 +1011,15 @@ void UnixSocketKillSocketThread(void)
 }
 
 #endif /* BUILD_UNIX_SOCKET */
+
+void TmModuleUnixManagerRegister (void)
+{
+#ifdef BUILD_UNIX_SOCKET
+    tmm_modules[TMM_UNIXMANAGER].name = "UnixManager";
+    tmm_modules[TMM_UNIXMANAGER].ThreadInit = UnixManagerThreadInit;
+    tmm_modules[TMM_UNIXMANAGER].ThreadDeinit = UnixManagerThreadDeinit;
+    tmm_modules[TMM_UNIXMANAGER].Management = UnixManager;
+    tmm_modules[TMM_UNIXMANAGER].cap_flags = 0;
+    tmm_modules[TMM_UNIXMANAGER].flags = TM_FLAG_COMMAND_TM;
+#endif /* BUILD_UNIX_SOCKET */
+}
