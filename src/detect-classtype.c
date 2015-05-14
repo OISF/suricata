@@ -182,9 +182,8 @@ int DetectClasstypeTest01()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Classtype test\"; "
@@ -214,9 +213,8 @@ int DetectClasstypeTest02()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:bad-unknown; sid:1;)");
@@ -281,9 +279,8 @@ int DetectClasstypeTest03()
         goto end;
     }
 
-    SCClassConfGenerateValidDummyClassConfigFD01();
-    SCClassConfLoadClassficationConfigFile(de_ctx);
-    SCClassConfDeleteDummyClassificationConfigFD();
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
     sig = SigInit(de_ctx, "alert tcp any any -> any any "
                   "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");

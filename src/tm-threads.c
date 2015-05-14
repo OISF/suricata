@@ -662,6 +662,8 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *))
         tv->tm_func = TmThreadsSlotPktAcqLoop;
     } else if (strcmp(name, "management") == 0) {
         tv->tm_func = TmThreadsManagement;
+    } else if (strcmp(name, "command") == 0) {
+        tv->tm_func = TmThreadsManagement;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -1228,28 +1230,33 @@ ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
 }
 
 /**
- * \brief Creates and returns the TV instance for a CMD thread.
+ * \brief Creates and returns the TV instance for a Command thread (CMD).
  *        This function supports only custom slot functions and hence a
  *        function pointer should be sent as an argument.
  *
  * \param name       Name of this TV instance
- * \param fn_p       Pointer to function when \"slots\" is of type \"custom\"
+ * \param module     Name of TmModule with COMMAND flag set.
  * \param mucond     Flag to indicate whether to initialize the condition
  *                   and the mutex variables for this newly created TV.
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *),
+ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
                                      int mucond)
 {
     ThreadVars *tv = NULL;
 
-    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
+    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "command", NULL, mucond);
 
     if (tv != NULL) {
         tv->type = TVT_CMD;
         tv->id = TmThreadsRegisterThread(tv, tv->type);
         TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
+
+        TmModule *m = TmModuleGetByName(module);
+        if (m) {
+            TmSlotSetFuncAppend(tv, m, NULL);
+        }
     }
 
     return tv;
@@ -1741,6 +1748,9 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
 /**
  * \brief Initializes the mutex and condition variables for this TV
  *
+ * It can be used by a thread to control a wait loop that can also be
+ * influenced by other threads.
+ *
  * \param tv Pointer to a TV instance
  */
 void TmThreadInitMC(ThreadVars *tv)
@@ -1753,19 +1763,19 @@ void TmThreadInitMC(ThreadVars *tv)
 
     if (SCCtrlMutexInit(tv->ctrl_mutex, NULL) != 0) {
         printf("Error initializing the tv->m mutex\n");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     if ( (tv->ctrl_cond = SCMalloc(sizeof(*tv->ctrl_cond))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     if (SCCtrlCondInit(tv->ctrl_cond, NULL) != 0) {
         SCLogError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
                    "variable");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     return;

@@ -43,27 +43,17 @@ void SCProtoNameInit()
     FILE *fp = fopen(PROTO_FILE,"r");
     if (fp != NULL) {
         char line[200];
-#if !defined(__WIN32) && !defined(_WIN32)
         char *ptr = NULL;
-#endif /* __WIN32 */
 
         while(fgets(line, sizeof(line), fp) != NULL) {
             if (line[0] == '#')
                 continue;
 
-#if defined(__WIN32) || defined(_WIN32)
-            char *name = strtok(line," \t");
-#else
             char *name = strtok_r(line," \t", &ptr);
-#endif /* __WIN32 */
             if (name == NULL)
                 continue;
 
-#if defined(__WIN32) || defined(_WIN32)
-            char *proto_ch = strtok(NULL," \t");
-#else
             char *proto_ch = strtok_r(NULL," \t", &ptr);
-#endif /* __WIN32 */
             if (proto_ch == NULL)
                 continue;
 
@@ -71,11 +61,7 @@ void SCProtoNameInit()
             if (proto >= 255)
                 continue;
 
-#if defined(__WIN32) || defined(_WIN32)
-            char *cname = strtok(NULL, " \t");
-#else
             char *cname = strtok_r(NULL, " \t", &ptr);
-#endif /* __WIN32 */
 
             if (known_proto[proto] != NULL) {
                 SCFree(known_proto[proto]);

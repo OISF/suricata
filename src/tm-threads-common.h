@@ -104,6 +104,8 @@ typedef enum {
     TMM_FLOWMANAGER,
     TMM_FLOWRECYCLER,
 
+    TMM_UNIXMANAGER,
+
     TMM_LUALOG,
     TMM_SIZE,
 } TmmId;

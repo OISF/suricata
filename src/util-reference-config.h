@@ -36,16 +36,18 @@ typedef struct SCRConfReference_ {
 
 SCRConfReference *SCRConfAllocSCRConfReference(const char *, const char *);
 void SCRConfDeAllocSCRConfReference(SCRConfReference *);
-int SCRConfLoadReferenceConfigFile(DetectEngineCtx *);
+int SCRConfLoadReferenceConfigFile(DetectEngineCtx *, FILE *);
 void SCRConfDeInitContext(DetectEngineCtx *);
 SCRConfReference *SCRConfGetReference(const char *,
                                       DetectEngineCtx *);
 void SCRConfRegisterTests(void);
 
 /* these below functions are only used by unittests */
-void SCRConfGenerateValidDummyReferenceConfigFD01(void);
-void SCRConfGenerateInValidDummyReferenceConfigFD02(void);
-void SCRConfGenerateInValidDummyReferenceConfigFD03(void);
-void SCRConfDeleteDummyReferenceConfigFD(void);
+FILE *SCRConfGenerateValidDummyReferenceConfigFD01(void);
+FILE *SCRConfGenerateInValidDummyReferenceConfigFD02(void);
+FILE *SCRConfGenerateInValidDummyReferenceConfigFD03(void);
+
+void SCReferenceConfInit(void);
+void SCReferenceConfDeinit(void);
 
 #endif /* __UTIL_REFERENCE_CONFIG_H__ */

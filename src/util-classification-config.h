@@ -45,16 +45,18 @@ typedef struct SCClassConfClasstype_ {
 SCClassConfClasstype *SCClassConfAllocClasstype(uint8_t, const char *,
                                                 const char *, int);
 void SCClassConfDeAllocClasstype(SCClassConfClasstype *);
-void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *);
+void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *, FILE *fd);
 SCClassConfClasstype *SCClassConfGetClasstype(const char *,
                                               DetectEngineCtx *);
 void SCClassConfDeInitContext(DetectEngineCtx *);
 void SCClassConfRegisterTests(void);
 
 /* for unittests */
-void SCClassConfGenerateValidDummyClassConfigFD01(void);
-void SCClassConfGenerateInValidDummyClassConfigFD02(void);
-void SCClassConfGenerateInValidDummyClassConfigFD03(void);
-void SCClassConfDeleteDummyClassificationConfigFD(void);
+FILE *SCClassConfGenerateValidDummyClassConfigFD01(void);
+FILE *SCClassConfGenerateInValidDummyClassConfigFD02(void);
+FILE *SCClassConfGenerateInValidDummyClassConfigFD03(void);
+
+void SCClassConfInit(void);
+void SCClassConfDeinit(void);
 
 #endif /* __UTIL_CLASSIFICATION_CONFIG_H__ */
