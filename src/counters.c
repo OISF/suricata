@@ -306,6 +306,8 @@ static void *SCPerfMgmtThread(void *arg)
         cond_time.tv_sec = time(NULL) + sc_counter_tts;
         cond_time.tv_nsec = 0;
 
+        /* wait for the set time, or until we are woken up by
+         * the shutdown procedure */
         SCCtrlMutexLock(tv_local->ctrl_mutex);
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
@@ -380,6 +382,8 @@ static void *SCPerfWakeupThread(void *arg)
         cond_time.tv_sec = time(NULL) + SC_PERF_WUT_TTS;
         cond_time.tv_nsec = 0;
 
+        /* wait for the set time, or until we are woken up by
+         * the shutdown procedure */
         SCCtrlMutexLock(tv_local->ctrl_mutex);
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
@@ -830,6 +834,9 @@ void SCPerfInitCounterApi(void)
 /**
  * \brief Spawns the wakeup, and the management thread used by the perf
  *        counter api
+ *
+ *  The threads use the condition variable in the thread vars to control
+ *  their wait loops to make sure the main thread can quickly kill them.
  */
 void SCPerfSpawnThreads(void)
 {
