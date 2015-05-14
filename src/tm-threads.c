@@ -1748,6 +1748,9 @@ void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
 /**
  * \brief Initializes the mutex and condition variables for this TV
  *
+ * It can be used by a thread to control a wait loop that can also be
+ * influenced by other threads.
+ *
  * \param tv Pointer to a TV instance
  */
 void TmThreadInitMC(ThreadVars *tv)
@@ -1760,19 +1763,19 @@ void TmThreadInitMC(ThreadVars *tv)
 
     if (SCCtrlMutexInit(tv->ctrl_mutex, NULL) != 0) {
         printf("Error initializing the tv->m mutex\n");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     if ( (tv->ctrl_cond = SCMalloc(sizeof(*tv->ctrl_cond))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in TmThreadInitMC.  "
                    "Exiting...");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     if (SCCtrlCondInit(tv->ctrl_cond, NULL) != 0) {
         SCLogError(SC_ERR_FATAL, "Error initializing the tv->cond condition "
                    "variable");
-        exit(0);
+        exit(EXIT_FAILURE);
     }
 
     return;
