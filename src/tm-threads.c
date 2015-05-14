@@ -1263,34 +1263,6 @@ ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
 }
 
 /**
- * \brief Creates and returns the TV instance for a CMD thread.
- *        This function supports only custom slot functions and hence a
- *        function pointer should be sent as an argument.
- *
- * \param name       Name of this TV instance
- * \param fn_p       Pointer to function when \"slots\" is of type \"custom\"
- * \param mucond     Flag to indicate whether to initialize the condition
- *                   and the mutex variables for this newly created TV.
- *
- * \retval the newly created TV instance, or NULL on error
- */
-ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *),
-                                     int mucond)
-{
-    ThreadVars *tv = NULL;
-
-    tv = TmThreadCreate(name, NULL, NULL, NULL, NULL, "custom", fn_p, mucond);
-
-    if (tv != NULL) {
-        tv->type = TVT_CMD;
-        tv->id = TmThreadsRegisterThread(tv, tv->type);
-        TmThreadSetCPU(tv, MANAGEMENT_CPU_SET);
-    }
-
-    return tv;
-}
-
-/**
  * \brief Appends this TV to tv_root based on its type
  *
  * \param type holds the type this TV belongs to.
