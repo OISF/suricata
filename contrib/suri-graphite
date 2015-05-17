@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (C) 2013 Eric Leblond <eric@regit.org>
+# Copyright (C) 2013, 2015 Eric Leblond <eric@regit.org>
 #
 # You can copy, redistribute or modify this Program under the terms of
 # the GNU General Public License version 3 as published by the Free
@@ -20,6 +20,13 @@ import socket
 import time
 import argparse
 
+have_daemon = True
+try:
+    import daemon
+except:
+    logging.warning("No daemon support available, install python-daemon if feature is needed")
+    have_daemon = False
+
 parser = argparse.ArgumentParser(prog='suri-graphite', description='Export suricata stats to Graphite')
 parser.add_argument('-H', '--host', default='localhost', help='Host running Graphite')
 parser.add_argument('-P', '--port', default=2003, help='Port of Graphite data socket')
@@ -29,23 +36,35 @@ parser.add_argument('-r', '--root', default='suricata.perf', help='Prefix of dat
 parser.add_argument('socket', help='suricata socket file to connect to',
                     default="/usr/local/var/run/suricata/suricata-command.socket", nargs='?')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
+if have_daemon:
+    parser.add_argument('-d', '--daemon', default=False, action="store_true", help="Run as unix daemon")
+
 
 args = parser.parse_args()
-sc = suricatasc.SuricataSC(args.socket)
-sc.connect()
 
-sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sck.connect((args.host, int(args.port)))
 
-while 1:
-    res = sc.send_command("dump-counters")
-    res = res['message']
-    tnow = int(time.time())
-    for thread in res:
-        for counter in res[thread]:
-            sck.send("%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow))
-            if args.verbose:
-                print "%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow)
-    if args.oneshot:
-        break
-    time.sleep(float(args.delay))
+def main_task(args):
+    sc = suricatasc.SuricataSC(args.socket)
+    sc.connect()
+
+    sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sck.connect((args.host, int(args.port)))
+
+    while 1:
+        res = sc.send_command("dump-counters")
+        res = res['message']
+        tnow = int(time.time())
+        for thread in res:
+            for counter in res[thread]:
+                sck.send("%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow))
+                if args.verbose:
+                    print "%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow)
+        if args.oneshot:
+            break
+        time.sleep(float(args.delay))
+
+if have_daemon and args.daemon:
+    with daemon.DaemonContext():
+        main_task(args)
+else:
+    main_task(args)
