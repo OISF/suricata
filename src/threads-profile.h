@@ -212,6 +212,7 @@ extern __thread uint64_t rwr_lock_cnt;
 #define SCCtrlCondInit pthread_cond_init
 #define SCCtrlCondSignal pthread_cond_signal
 #define SCCtrlCondTimedwait pthread_cond_timedwait
+#define SCCtrlCondWait pthread_cond_wait
 #define SCCtrlCondDestroy pthread_cond_destroy
 
 #endif

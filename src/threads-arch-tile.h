@@ -47,6 +47,7 @@
 #define SCCtrlCondInit pthread_cond_init
 #define SCCtrlCondSignal pthread_cond_signal
 #define SCCtrlCondTimedwait pthread_cond_timedwait
+#define SCCtrlCondWait pthread_cond_wait
 #define SCCtrlCondDestroy pthread_cond_destroy
 
 /* mutex */
