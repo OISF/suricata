@@ -267,10 +267,18 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
                 MemBufferReset(payload);
 
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flag = FLOW_PKT_TOCLIENT;
+                if (!EngineModeIsIPS()) {
+                    if (p->flowflags & FLOW_PKT_TOSERVER) {
+                        flag = FLOW_PKT_TOCLIENT;
+                    } else {
+                        flag = FLOW_PKT_TOSERVER;
+                    }
                 } else {
-                    flag = FLOW_PKT_TOSERVER;
+                    if (p->flowflags & FLOW_PKT_TOSERVER) {
+                        flag = FLOW_PKT_TOSERVER;
+                    } else {
+                        flag = FLOW_PKT_TOCLIENT;
+                    }
                 }
 
                 StreamSegmentForEach((const Packet *)p, flag,
