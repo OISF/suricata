@@ -2638,6 +2638,8 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
     uint32_t map_cnt = 0;
     int max_tenant_id = 0;
     DetectEngineCtx *list = master->list;
+    HashTable *mt_det_ctxs_hash = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
         SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
@@ -2654,8 +2656,10 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
         tcnt++;
     }
 
-    HashTable *mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
-    BUG_ON(mt_det_ctxs_hash == NULL);
+    mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
+    if (mt_det_ctxs_hash == NULL) {
+        goto error;
+    }
 
     if (max_tenant_id == 0) {
         SCLogInfo("no tenants left, or none registered yet");
@@ -2701,11 +2705,12 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
         }
     }
 
-    DetectEngineThreadCtx *det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
+    det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
     if (det_ctx == NULL) {
         goto error;
     }
     det_ctx->mt_det_ctxs_hash = mt_det_ctxs_hash;
+    mt_det_ctxs_hash = NULL;
 
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
@@ -2745,6 +2750,11 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
 
     return det_ctx;
 error:
+    if (map_array != NULL)
+        SCFree(map_array);
+    if (mt_det_ctxs_hash != NULL)
+        HashTableFree(mt_det_ctxs_hash);
+
     return NULL;
 }
 
