@@ -69,7 +69,7 @@ struct {
     uint32_t flags;
 } email_fields[] =  {
     { "reply_to", "reply-to", LOG_EMAIL_DEFAULT },
-    { "bcc", "bcc", LOG_EMAIL_COMMA },
+    { "bcc", "bcc", LOG_EMAIL_COMMA|LOG_EMAIL_EXTENDED },
     { "message_id", "message-id", LOG_EMAIL_EXTENDED },
     { "subject", "subject", LOG_EMAIL_EXTENDED },
     { "x_mailer", "x-mailer", LOG_EMAIL_EXTENDED },
