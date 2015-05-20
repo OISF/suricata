@@ -89,6 +89,119 @@ static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
     return 0;
 }
 
+static void HSBDGetBufferForTXInIDSMode(DetectEngineThreadCtx *det_ctx,
+                                        HtpState *htp_state, HtpBodyChunk *cur,
+                                        HtpTxUserData *htud, int index)
+{
+    int first = 1;
+    while (cur != NULL) {
+        /* see if we can filter out chunks */
+        if (htud->response_body.body_inspected > 0) {
+            if (cur->stream_offset < htud->response_body.body_inspected) {
+                if ((htud->response_body.body_inspected - cur->stream_offset) > htp_state->cfg->response_inspect_window) {
+                    cur = cur->next;
+                    continue;
+                } else {
+                    /* include this one */
+                }
+            } else {
+                /* include this one */
+            }
+        }
+
+        if (first) {
+            det_ctx->hsbd[index].offset = cur->stream_offset;
+            first = 0;
+        }
+
+        /* see if we need to grow the buffer */
+        if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
+            void *ptmp;
+            det_ctx->hsbd[index].buffer_size += cur->len * 2;
+
+            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size)) == NULL) {
+                SCFree(det_ctx->hsbd[index].buffer);
+                det_ctx->hsbd[index].buffer = NULL;
+                det_ctx->hsbd[index].buffer_size = 0;
+                det_ctx->hsbd[index].buffer_len = 0;
+                return;
+            }
+            det_ctx->hsbd[index].buffer = ptmp;
+        }
+        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
+        det_ctx->hsbd[index].buffer_len += cur->len;
+
+        cur = cur->next;
+    }
+
+    /* update inspected tracker */
+    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
+}
+
+static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
+                                        HtpState *htp_state, HtpBodyChunk *cur,
+                                        HtpTxUserData *htud, int index)
+{
+    SCEnter();
+    uint32_t left_edge = 0;
+    uint32_t window_size = 0;
+    void *ptmp;
+
+    if ((ptmp = SCMalloc(htp_state->cfg->response_inspect_window)) == NULL) {
+        SCFree(det_ctx->hsbd[index].buffer);
+        det_ctx->hsbd[index].buffer = NULL;
+        det_ctx->hsbd[index].buffer_size = 0;
+        det_ctx->hsbd[index].buffer_len = 0;
+        return;
+    }
+    det_ctx->hsbd[index].buffer = ptmp;
+    /* maybe it's not safe to change the htp_state->cfg->response_inspect_window
+       value since it can be used somewhere else. */
+    window_size = htp_state->cfg->response_inspect_window;
+
+    int first = 1;
+    while (cur != NULL) {
+        /* see if we need to grow the buffer */
+        if (det_ctx->hsbd[index].buffer == NULL || (htp_state->cfg->response_inspect_window + cur->len) > window_size) {
+            void *ptmp;
+            window_size += cur->len * 2;
+
+            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, window_size)) == NULL) {
+                SCFree(det_ctx->hsbd[index].buffer);
+                det_ctx->hsbd[index].buffer = NULL;
+                det_ctx->hsbd[index].buffer_size = 0;
+                det_ctx->hsbd[index].buffer_len = 0;
+                return;
+            }
+            det_ctx->hsbd[index].buffer = ptmp;
+        }
+
+        /* see if we can filter out chunks */
+        if (htud->response_body.content_len_so_far > window_size) {
+            left_edge = htud->response_body.content_len_so_far - window_size;
+
+            if (cur->len < left_edge) {
+                cur = cur->next;
+                continue;
+            } else {
+                /* include this one */
+            }
+        }
+
+        if (first) {
+            det_ctx->hsbd[index].offset = cur->stream_offset;
+            first = 0;
+        }
+
+        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
+        det_ctx->hsbd[index].buffer_len += cur->len;
+
+        cur = cur->next;
+    }
+
+    /* update inspected tracker */
+    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
+}
 
 static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                DetectEngineCtx *de_ctx,
@@ -98,6 +211,7 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {
+    EngineModeSetIPS();
     int index = 0;
     uint8_t *buffer = NULL;
     *buffer_len = 0;
@@ -158,62 +272,23 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) ? "true" : "false");
 
-    /* inspect the body if the transfer is complete or we have hit
-     * our body size limit */
-    if ((htp_state->cfg->response_body_limit == 0 ||
-         htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
-        htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
-        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
-        !(flags & STREAM_EOF)) {
-        SCLogDebug("we still haven't seen the entire response body.  "
-                   "Let's defer body inspection till we see the "
-                   "entire body.");
-        goto end;
+    if (EngineModeIsIDS()) {
+        /* inspect the body if the transfer is complete or we have hit
+        * our body size limit */
+        if ((htp_state->cfg->response_body_limit == 0 ||
+             htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
+            htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
+            !(flags & STREAM_EOF)) {
+            SCLogDebug("we still haven't seen the entire response body.  "
+                       "Let's defer body inspection till we see the "
+                       "entire body.");
+            goto end;
+        }
+        HSBDGetBufferForTXInIDSMode(det_ctx, htp_state, cur, htud, index);
+    } else {
+        HSBDGetBufferForTXInIPSMode(det_ctx, htp_state, cur, htud, index);
     }
-
-    int first = 1;
-    while (cur != NULL) {
-        /* see if we can filter out chunks */
-        if (htud->response_body.body_inspected > 0) {
-            if (cur->stream_offset < htud->response_body.body_inspected) {
-                if ((htud->response_body.body_inspected - cur->stream_offset) > htp_state->cfg->response_inspect_window) {
-                    cur = cur->next;
-                    continue;
-                } else {
-                    /* include this one */
-                }
-            } else {
-                /* include this one */
-            }
-        }
-
-        if (first) {
-            det_ctx->hsbd[index].offset = cur->stream_offset;
-            first = 0;
-        }
-
-        /* see if we need to grow the buffer */
-        if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
-            void *ptmp;
-            det_ctx->hsbd[index].buffer_size += cur->len * 2;
-
-            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size)) == NULL) {
-                SCFree(det_ctx->hsbd[index].buffer);
-                det_ctx->hsbd[index].buffer = NULL;
-                det_ctx->hsbd[index].buffer_size = 0;
-                det_ctx->hsbd[index].buffer_len = 0;
-                goto end;
-            }
-            det_ctx->hsbd[index].buffer = ptmp;
-        }
-        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
-        det_ctx->hsbd[index].buffer_len += cur->len;
-
-        cur = cur->next;
-    }
-
-    /* update inspected tracker */
-    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
 
     buffer = det_ctx->hsbd[index].buffer;
     *buffer_len = det_ctx->hsbd[index].buffer_len;
