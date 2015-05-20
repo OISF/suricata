@@ -33,6 +33,7 @@ parser.add_argument('-P', '--port', default=2003, help='Port of Graphite data so
 parser.add_argument('-O', '--oneshot', action='store_const', const=True, help='Send one update and exit', default=False)
 parser.add_argument('-D', '--delay', default=10, help='Delay between data dump')
 parser.add_argument('-r', '--root', default='suricata.perf', help='Prefix of data name in Graphite')
+parser.add_argument('-o', '--output', default=None, help='Output stats to a file instead of using Graphite')
 parser.add_argument('socket', help='suricata socket file to connect to',
                     default="/usr/local/var/run/suricata/suricata-command.socket", nargs='?')
 parser.add_argument('-v', '--verbose', action='store_const', const=True, help='verbose output', default=False)
@@ -42,13 +43,18 @@ if have_daemon:
 
 args = parser.parse_args()
 
+if args.output:
+    import json
 
 def main_task(args):
     sc = suricatasc.SuricataSC(args.socket)
     sc.connect()
 
-    sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sck.connect((args.host, int(args.port)))
+    if args.output:
+        logfile = open(args.output, 'a')
+    else:
+        sck = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sck.connect((args.host, int(args.port)))
 
     while 1:
         res = sc.send_command("dump-counters")
@@ -56,7 +62,11 @@ def main_task(args):
         tnow = int(time.time())
         for thread in res:
             for counter in res[thread]:
-                sck.send("%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow))
+                if args.output:
+                    data = {"key": "%s.%s" % (thread , counter), "value": res[thread][counter], "time": tnow}
+                    logfile.write(json.dumps(data) + '\n')
+                else:
+                    sck.send("%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow))
                 if args.verbose:
                     print "%s.%s.%s %s %d\n" % (args.root, thread , counter, res[thread][counter], tnow)
         if args.oneshot:
