@@ -240,6 +240,11 @@ enum {
     MPLS_BAD_LABEL_RESERVED,
     MPLS_UNKNOWN_PAYLOAD_TYPE,
 
+    /* ERSPAN events */
+    ERSPAN_HEADER_TOO_SMALL,
+    ERSPAN_UNSUPPORTED_VERSION,
+    ERSPAN_TOO_MANY_VLAN_LAYERS,
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

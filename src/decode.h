@@ -65,6 +65,7 @@ enum PktSrcEnum {
 
 #include "action-globals.h"
 
+#include "decode-erspan.h"
 #include "decode-ethernet.h"
 #include "decode-gre.h"
 #include "decode-ppp.h"
@@ -831,6 +832,7 @@ typedef struct DecodeThreadVars_
 
 enum DecodeTunnelProto {
     DECODE_TUNNEL_ETHERNET,
+    DECODE_TUNNEL_ERSPAN,
     DECODE_TUNNEL_VLAN,
     DECODE_TUNNEL_IPV4,
     DECODE_TUNNEL_IPV6,
@@ -875,6 +877,7 @@ int DecodeSCTP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 
 void AddressDebugPrint(Address *);
 
