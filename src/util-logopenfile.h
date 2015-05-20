@@ -31,6 +31,11 @@ typedef struct {
     uint16_t fileno;
 } PcieFile;
 
+enum LogFileType { ALERT_FILE,
+                  ALERT_SYSLOG,
+                  ALERT_UNIX_DGRAM,
+                  ALERT_UNIX_STREAM };
+
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
@@ -44,6 +49,9 @@ typedef struct LogFileCtx_ {
     /** It will be locked if the log/alert
      * record cannot be written to the file in one call */
     SCMutex fp_mutex;
+
+    /** the type of file */
+    enum LogFileType type;
 
     /** The name of the file */
     char *filename;
