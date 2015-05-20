@@ -64,7 +64,7 @@
 #define LOG_DROP_ALERTS 1
 
 typedef struct JsonDropOutputCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint8_t flags;
 } JsonDropOutputCtx;
 
@@ -164,7 +164,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->drop_ctx->json_ctx, buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -193,6 +193,14 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        MemBufferFree(aft->buffer);
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
+    /** FIXME setting log method or maybe getting on json_ctx */
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->drop_ctx = ((OutputCtx *)initdata)->data;
 
@@ -208,6 +216,8 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
     }
 
     MemBufferFree(aft->buffer);
+
+    SCFree(aft->drop_ctx);
 
     /* clear memory */
     memset(aft, 0, sizeof(*aft));
@@ -236,8 +246,8 @@ static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
 static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
 {
     if (drop_ctx != NULL) {
-        if (drop_ctx->file_ctx != NULL)
-            LogFileFreeCtx(drop_ctx->file_ctx);
+        if (drop_ctx->json_ctx != NULL)
+            LogFileFreeCtx(drop_ctx->json_ctx->file_ctx);
         SCFree(drop_ctx);
     }
 }
@@ -251,37 +261,23 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
-    if (drop_ctx == NULL)
-        return NULL;
-
-    drop_ctx->file_ctx = LogFileNewCtx();
-    if (drop_ctx->file_ctx == NULL) {
-        JsonDropOutputCtxFree(drop_ctx);
+    LogFileCtx *logfile_ctx = LogFileNewCtx();
+    if (logfile_ctx == NULL) {
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
-        JsonDropOutputCtxFree(drop_ctx);
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
-        JsonDropOutputCtxFree(drop_ctx);
+        LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
 
-    if (conf) {
-        const char *extended = ConfNodeLookupChildValue(conf, "alerts");
-        if (extended != NULL) {
-            if (ConfValIsTrue(extended)) {
-                drop_ctx->flags = LOG_DROP_ALERTS;
-            }
-        }
-    }
-
-    output_ctx->data = drop_ctx;
+    output_ctx->data = logfile_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtx;
     return output_ctx;
 }
@@ -294,11 +290,20 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     JsonDropOutputCtx *drop_ctx = SCCalloc(1, sizeof(*drop_ctx));
     if (drop_ctx == NULL)
         return NULL;
+
+    if (conf) {
+        const char *extended = ConfNodeLookupChildValue(conf, "alerts");
+        if (extended != NULL) {
+            if (ConfValIsTrue(extended)) {
+                drop_ctx->flags = LOG_DROP_ALERTS;
+            }
+        }
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -315,7 +320,7 @@ static OutputCtx *JsonDropLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         }
     }
 
-    drop_ctx->file_ctx = ajt->file_ctx;
+    drop_ctx->json_ctx = ojc;
 
     output_ctx->data = drop_ctx;
     output_ctx->DeInit = JsonDropLogDeInitCtxSub;

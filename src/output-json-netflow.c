@@ -52,7 +52,7 @@
 #include <jansson.h>
 
 typedef struct LogJsonFileCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
 } LogJsonFileCtx;
 
 typedef struct JsonNetFlowLogThread_ {
@@ -297,7 +297,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->json_ctx, buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
     json_decref(js);
@@ -308,7 +308,7 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToClient(jhl, js, f);
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->json_ctx, buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
     json_decref(js);
@@ -319,8 +319,9 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 static void OutputNetFlowLogDeinit(OutputCtx *output_ctx)
 {
     LogJsonFileCtx *flow_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = flow_ctx->file_ctx;
+    LogFileCtx *logfile_ctx = flow_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(flow_ctx->json_ctx);
     SCFree(flow_ctx);
     SCFree(output_ctx);
 }
@@ -353,7 +354,16 @@ OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
         return NULL;
     }
 
-    flow_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(output_ctx);
+        SCFree(flow_ctx);
+        return NULL;
+    }
+
+    flow_ctx->json_ctx = json_output_ctx;
+    flow_ctx->json_ctx->file_ctx = file_ctx;
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinit;
 
@@ -369,7 +379,7 @@ static void OutputNetFlowLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL))
@@ -381,7 +391,7 @@ OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    flow_ctx->file_ctx = ajt->file_ctx;
+    flow_ctx->json_ctx = ojc;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinitSub;

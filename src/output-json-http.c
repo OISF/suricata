@@ -53,7 +53,7 @@
 #include <jansson.h>
 
 typedef struct LogHttpFileCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
     uint64_t fields;/** Store fields */
 } LogHttpFileCtx;
@@ -387,7 +387,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
 
-    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->httplog_ctx->json_ctx, buffer);
     json_object_del(js, "http");
 
     json_object_clear(js);
@@ -399,8 +399,9 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 static void OutputHttpLogDeinit(OutputCtx *output_ctx)
 {
     LogHttpFileCtx *http_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = http_ctx->file_ctx;
+    LogFileCtx *logfile_ctx = http_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(http_ctx->json_ctx);
     SCFree(http_ctx);
     SCFree(output_ctx);
 }
@@ -432,7 +433,16 @@ OutputCtx *OutputHttpLogInit(ConfNode *conf)
         return NULL;
     }
 
-    http_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(output_ctx);
+        SCFree(http_ctx);
+        return NULL;
+    }
+
+    http_ctx->json_ctx = json_output_ctx;
+    http_ctx->json_ctx->file_ctx = file_ctx;
     http_ctx->flags = LOG_HTTP_DEFAULT;
 
     if (conf) {
@@ -462,7 +472,7 @@ static void OutputHttpLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogHttpFileCtx *http_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(http_ctx == NULL))
@@ -475,7 +485,7 @@ OutputCtx *OutputHttpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    http_ctx->file_ctx = ajt->file_ctx;
+    http_ctx->json_ctx = ojc;
     http_ctx->flags = LOG_HTTP_DEFAULT;
 
     if (conf) {

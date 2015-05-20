@@ -55,7 +55,7 @@
 #define MODULE_NAME "LogSshLog"
 
 typedef struct OutputSshCtx_ {
-    LogFileCtx *file_ctx;
+    OutputJsonCtx *json_ctx;
     uint32_t flags; /** Store mode */
 } OutputSshCtx;
 
@@ -131,7 +131,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     json_object_set_new(js, "ssh", tjs);
 
-    OutputJSONBuffer(js, ssh_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, ssh_ctx->json_ctx, buffer);
     json_object_clear(js);
     json_decref(js);
 
@@ -190,8 +190,9 @@ static void OutputSshLogDeinit(OutputCtx *output_ctx)
     OutputSshLoggerDisable();
 
     OutputSshCtx *ssh_ctx = output_ctx->data;
-    LogFileCtx *logfile_ctx = ssh_ctx->file_ctx;
+    LogFileCtx *logfile_ctx = ssh_ctx->json_ctx->file_ctx;
     LogFileFreeCtx(logfile_ctx);
+    SCFree(ssh_ctx->json_ctx);
     SCFree(ssh_ctx);
     SCFree(output_ctx);
 }
@@ -229,7 +230,16 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
         return NULL;
     }
 
-    ssh_ctx->file_ctx = file_ctx;
+    OutputJsonCtx *json_output_ctx = SCCalloc(1, sizeof(OutputJsonCtx));
+    if (unlikely(json_output_ctx == NULL)) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(ssh_ctx);
+        SCFree(output_ctx);
+        return NULL;
+    }
+
+    ssh_ctx->json_ctx = json_output_ctx;
+    ssh_ctx->json_ctx->file_ctx = file_ctx;
 
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinit;
@@ -248,7 +258,7 @@ static void OutputSshLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     if (OutputSshLoggerEnable() != 0) {
         SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'ssh' logger "
@@ -266,7 +276,7 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    ssh_ctx->file_ctx = ajt->file_ctx;
+    ssh_ctx->json_ctx = ojc;
 
     output_ctx->data = ssh_ctx;
     output_ctx->DeInit = OutputSshLogDeinitSub;
