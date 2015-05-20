@@ -62,6 +62,7 @@ int ConfGetBool(const char *name, int *val);
 int ConfGetDouble(const char *name, double *val);
 int ConfGetFloat(const char *name, float *val);
 int ConfSet(const char *name, char *val);
+int ConfSetFromString(const char *input, int final);
 int ConfSetFinal(const char *name, char *val);
 void ConfDump(void);
 void ConfNodeDump(const ConfNode *node, const char *prefix);
