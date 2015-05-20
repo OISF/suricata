@@ -60,7 +60,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     }
     if (IP_GET_RAW_VER(pkt) == 4) {
         if (pq != NULL) {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, IPPROTO_IP, pq);
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, DECODE_TUNNEL_IPV4, pq);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 /* add the tp to the packet queue. */
@@ -88,7 +88,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
     }
     if (IP_GET_RAW_VER(pkt) == 6) {
         if (unlikely(pq != NULL)) {
-            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, IPPROTO_IPV6, pq);
+            Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt, plen, DECODE_TUNNEL_IPV6, pq);
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 PacketEnqueue(pq,tp);
