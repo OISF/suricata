@@ -233,6 +233,56 @@ int ConfSet(const char *name, char *val)
 }
 
 /**
+ * \brief Set a configuration parameter from a string.
+ *
+ * Where the input string is something like:
+ *    stream.midstream=true
+ *
+ * \param input the input string to be parsed.
+ *
+ * \retval 1 if the value of set, otherwise 0.
+ */
+int ConfSetFromString(const char *input, int final)
+{
+    int retval = 0;
+    char *name = SCStrdup(input), *val = NULL;
+    if (unlikely(name == NULL)) {
+        goto done;
+    }
+    val = strchr(name, '=');
+    if (val == NULL) {
+        goto done;
+    }
+    *val++ = '\0';
+
+    while (isspace((int)name[strlen(name) - 1])) {
+        name[strlen(name) - 1] = '\0';
+    }
+
+    while (isspace((int)*val)) {
+        val++;
+    }
+
+    if (final) {
+        if (!ConfSetFinal(name, val)) {
+            goto done;
+        }
+    }
+    else {
+        if (!ConfSet(name, val)) {
+            goto done;
+        }
+    }
+
+    retval = 1;
+done:
+    if (name != NULL) {
+        SCFree(name);
+    }
+    return retval;
+}
+
+/**
  * \brief Set a final configuration value.
  *
  * A final configuration value is a value that cannot be overridden by
@@ -1399,6 +1449,65 @@ end:
     return retval;
 }
 
+static int ConfSetFromStringTest(void)
+{
+    int retval = 0;
+    ConfNode *n;
+
+    ConfCreateContextBackup();
+    ConfInit();
+
+    if (!ConfSetFromString("stream.midstream=true", 0)) {
+        goto end;
+    }
+    n = ConfGetNode("stream.midstream");
+    if (n == NULL) {
+        goto end;
+    }
+    if (n->val == NULL || strcmp("true", n->val)) {
+        goto end;
+    }
+
+    if (!ConfSetFromString("stream.midstream =false", 0)) {
+        goto end;
+    }
+    n = ConfGetNode("stream.midstream");
+    if (n == NULL) {
+        goto end;
+    }
+    if (n->val == NULL || strcmp("false", n->val)) {
+        goto end;
+    }
+
+    if (!ConfSetFromString("stream.midstream= true", 0)) {
+        goto end;
+    }
+    n = ConfGetNode("stream.midstream");
+    if (n == NULL) {
+        goto end;
+    }
+    if (n->val == NULL || strcmp("true", n->val)) {
+        goto end;
+    }
+
+    if (!ConfSetFromString("stream.midstream = false", 0)) {
+        goto end;
+    }
+    n = ConfGetNode("stream.midstream");
+    if (n == NULL) {
+        goto end;
+    }
+    if (n->val == NULL || strcmp("false", n->val)) {
+        goto end;
+    }
+
+    retval = 1;
+end:
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return retval;
+}
+
 void ConfRegisterTests(void)
 {
     UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
@@ -1417,6 +1526,7 @@ void ConfRegisterTests(void)
     UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
     UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest, 1);
     UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest, 1);
+    UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest, 1);
 }
 
 #endif /* UNITTESTS */
