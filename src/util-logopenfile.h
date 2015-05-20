@@ -45,6 +45,9 @@ typedef struct LogFileCtx_ {
      * record cannot be written to the file in one call */
     SCMutex fp_mutex;
 
+    /** the type of file */
+    uint8_t type;
+
     /** The name of the file */
     char *filename;
 
