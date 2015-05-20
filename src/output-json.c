@@ -146,10 +146,6 @@ void TmModuleOutputJsonRegister (void)
 /* Default Sensor ID value */
 static int64_t sensor_id = -1; /* -1 = not defined */
 
-static enum JsonOutput json_out = ALERT_FILE;
-
-static enum JsonFormat format = COMPACT;
-
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
@@ -345,9 +341,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
         return TM_ECODE_OK;
 
     SCMutexLock(&file_ctx->fp_mutex);
-    if (json_out == ALERT_SYSLOG) {
+    if (file_ctx->type == ALERT_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) {
+    } else if (file_ctx->type == ALERT_FILE || file_ctx->type == ALERT_UNIX_DGRAM || file_ctx->type == ALERT_UNIX_STREAM) {
         MemBufferWriteString(buffer, "%s\n", js_s);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
@@ -519,8 +515,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        format = json_ctx->format;
-        json_out = json_ctx->json_out;
+        json_ctx->file_ctx->type = json_ctx->json_out;
     }
 
     SCLogDebug("returning output_ctx %p", output_ctx);
