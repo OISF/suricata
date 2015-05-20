@@ -150,6 +150,9 @@ static enum JsonOutput json_out = ALERT_FILE;
 
 static enum JsonFormat format = COMPACT;
 
+/* Prepend @cee: cookie to eve JSON syslog output for CEE/Lumberjack compatibility */
+static int syslog_cee_format = FALSE; /* Default OFF */
+
 /** \brief jsonify tcp flags field
  *  Only add 'true' fields in an attempt to keep things reasonably compact.
  */
@@ -345,9 +348,19 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
         return TM_ECODE_OK;
 
     SCMutexLock(&file_ctx->fp_mutex);
-    if (json_out == ALERT_SYSLOG) {
-        syslog(alert_syslog_level, "%s", js_s);
-    } else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) {
+    if (json_out == ALERT_SYSLOG) 
+	{
+		if (syslog_cee_format == TRUE)
+		{
+        	syslog(alert_syslog_level, "%s%s", "@cee: ", js_s);
+		}
+		else
+		{
+        	syslog(alert_syslog_level, "%s", js_s);
+		}
+    } 
+	else if (json_out == ALERT_FILE || json_out == ALERT_UNIX_DGRAM || json_out == ALERT_UNIX_STREAM) 
+	{
         MemBufferWriteString(buffer, "%s\n", js_s);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
@@ -500,6 +513,20 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     alert_syslog_level = level;
                 }
             }
+
+			const char *cee_format = ConfNodeLookupChildValue(conf, "cee-format");
+			if (cee_format != NULL)
+			{
+				if (strcasecmp(cee_format, "yes") == 0)
+				{
+					syslog_cee_format = TRUE;
+				}
+				else if (strcasecmp(cee_format, "no") != 0)
+				{
+					SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid value for cee-format: \"%s\","
+						" CEE formatting has been disabled", cee_format);
+				}
+			}
 
             const char *ident = ConfNodeLookupChildValue(conf, "identity");
             /* if null we just pass that to openlog, which will then
