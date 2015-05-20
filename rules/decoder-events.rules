@@ -128,5 +128,11 @@ alert pkthdr any any -> any any (msg:"SURICATA NULL pkt too small"; decode-event
 # packet has type not supported by Suricata's decoders
 alert pkthdr any any -> any any (msg:"SURICATA NULL unsupported type"; decode-event:ltnull.unsupported_type; sid: 2200104; rev:1;)
 
-# next sid is 2200105
+# ERSPAN
+alert pkthdr any any -> any any (msg:"SURICATA ERSPAN pkt too small"; decode-event:erspan.header_too_small; sid: 2200105; rev:1;)
+# packet has type not supported by Suricata's decoders
+alert pkthdr any any -> any any (msg:"SURICATA ERSPAN unsupported version"; decode-event:erspan.unsupported_version; sid: 2200106; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; decode-event:erspan.too_many_vlan_layers; sid: 2200107; rev:1;)
+
+# next sid is 2200108
 
