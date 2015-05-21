@@ -188,6 +188,69 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
     return;
 }
 
+#ifdef HAVE_LIBJANSSON
+/**
+ */
+int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
+        SCLogLevel log_level, const char *file,
+        unsigned line, const char *function, SCError error_code,
+        const char *message)
+{
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        goto error;
+    json_t *ejs = json_object();
+    if (unlikely(ejs == NULL))
+        goto error;
+
+    char timebuf[64];
+    CreateIsoTimeString(tval, timebuf, sizeof(timebuf));
+    json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    json_object_set_new(js, "event_type", json_string("engine"));
+
+    if (error_code > 0) {
+        json_object_set_new(ejs, "error_code", json_integer(error_code));
+        json_object_set_new(ejs, "error", json_string(SCErrorToString(error_code)));
+    }
+
+    if (message)
+        json_object_set_new(ejs, "message", json_string(message));
+
+    if (log_level >= SC_LOG_DEBUG) {
+        if (function)
+            json_object_set_new(ejs, "function", json_string(function));
+
+        if (file)
+            json_object_set_new(ejs, "file", json_string(file));
+
+        if (line > 0)
+            json_object_set_new(ejs, "line", json_integer(line));
+    }
+
+    json_object_set_new(js, "engine", ejs);
+
+    char *js_s = json_dumps(js,
+            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+#ifdef JSON_ESCAPE_SLASH
+            JSON_ESCAPE_SLASH
+#else
+            0
+#endif
+            );
+    snprintf(buffer, buffer_size, "%s", js_s);
+    free(js_s);
+
+    json_object_del(js, "engine");
+    json_object_clear(js);
+    json_decref(js);
+
+    return 0;
+error:
+    return -1;
+}
+#endif /* HAVE_LIBJANSSON */
+
 /**
  * \brief Adds the global log_format to the outgoing buffer
  *
@@ -199,13 +262,20 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  *
  * \retval SC_OK on success; else an error code
  */
-static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, char *buffer, size_t buffer_size,
+static SCError SCLogMessageGetBuffer(
+        struct timeval *tval, int color, SCLogOPType type,
+                     char *buffer, size_t buffer_size,
                      const char *log_format,
 
                      const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
                      const SCError error_code, const char *message)
 {
+#ifdef HAVE_LIBJANSSON
+    if (type == SC_LOG_OP_TYPE_JSON)
+        return SCLogMessageJSON(tval, buffer, buffer_size, log_level, file, line, function, error_code, message);
+#endif
+
     char *temp = buffer;
     const char *s = NULL;
     struct tm *tms = NULL;
@@ -480,7 +550,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
 
         switch (op_iface_ctx->iface) {
             case SC_LOG_OP_IFACE_CONSOLE:
-                if (SCLogMessageGetBuffer(&tval, op_iface_ctx->use_color, buffer, sizeof(buffer),
+                if (SCLogMessageGetBuffer(&tval, op_iface_ctx->use_color, op_iface_ctx->type,
+                                          buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
@@ -490,7 +561,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 }
                 break;
             case SC_LOG_OP_IFACE_FILE:
-                if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
@@ -500,7 +571,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
-                if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                if (SCLogMessageGetBuffer(&tval, 0, op_iface_ctx->type, buffer, sizeof(buffer),
                                           op_iface_ctx->log_format ?
                                               op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
@@ -599,7 +670,8 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
  */
 static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
                                                     const char *log_format,
-                                                    int log_level)
+                                                    int log_level,
+                                                    SCLogOPType type)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -613,6 +685,7 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_FILE;
+    iface_ctx->type = type;
 
     if ( (iface_ctx->file_d = fopen(file, "w+")) == NULL) {
         printf("Error opening file %s\n", file);
@@ -659,7 +732,7 @@ error:
  * \initonly
  */
 static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
-                                                       SCLogLevel log_level)
+                                                       SCLogLevel log_level, SCLogOPType type)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -669,6 +742,7 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_CONSOLE;
+    iface_ctx->type = type;
 
     /* console log format is overridden by envvars */
     const char *tmp_log_format = log_format;
@@ -721,7 +795,8 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
  */
 static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
                                                       const char *log_format,
-                                                      SCLogLevel log_level)
+                                                      SCLogLevel log_level,
+                                                      SCLogOPType type)
 {
     SCLogOPIfaceCtx *iface_ctx = SCLogAllocLogOPIfaceCtx();
 
@@ -731,6 +806,7 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
     }
 
     iface_ctx->iface = SC_LOG_OP_IFACE_SYSLOG;
+    iface_ctx->type = type;
 
     if (facility == -1)
         facility = SC_LOG_DEF_SYSLOG_FACILITY;
@@ -906,18 +982,18 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
         switch (op_iface) {
             case SC_LOG_OP_IFACE_CONSOLE:
-                op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, SC_LOG_LEVEL_MAX);
+                op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, SC_LOG_LEVEL_MAX,0);
                 break;
             case SC_LOG_OP_IFACE_FILE:
                 s = getenv(SC_LOG_ENV_LOG_FILE);
                 if (s == NULL) {
                     char *str = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
                     if (str != NULL) {
-                        op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX);
+                        op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX,0);
                         SCFree(str);
                     }
                 } else {
-                    op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX);
+                    op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, SC_LOG_LEVEL_MAX,0);
                 }
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
@@ -925,13 +1001,12 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 if (s == NULL)
                     s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
-                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCSyslogGetFacilityMap()), NULL, -1);
+                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCSyslogGetFacilityMap()), NULL, -1,0);
                 break;
         }
         sc_lc->op_ifaces = op_ifaces_ctx;
         sc_lc->op_ifaces_cnt++;
     }
-
     return;
 }
 
@@ -1113,11 +1188,12 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
 
     switch (iface) {
         case SC_LOG_OP_IFACE_CONSOLE:
-            return SCLogInitConsoleOPIface(log_format, log_level);
+            return SCLogInitConsoleOPIface(log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
         case SC_LOG_OP_IFACE_FILE:
-            return SCLogInitFileOPIface(arg, log_format, log_level);
+            return SCLogInitFileOPIface(arg, log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
         case SC_LOG_OP_IFACE_SYSLOG:
-            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCSyslogGetFacilityMap()), log_format, log_level);
+            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCSyslogGetFacilityMap()),
+                    log_format, log_level, SC_LOG_OP_TYPE_REGULAR);
         default:
 #ifdef DEBUG
             printf("Output Interface \"%s\" not supported by the logging module",
@@ -1230,6 +1306,22 @@ void SCLogLoadConfig(int daemon, int verbose)
         if (enabled != NULL && ConfValIsFalse(enabled))
             continue;
 
+        SCLogOPType type = SC_LOG_OP_TYPE_REGULAR;
+        const char *type_s = ConfNodeLookupChildValue(output, "type");
+        if (type_s != NULL) {
+            if (strcmp(type_s, "regular") == 0)
+                type = SC_LOG_OP_TYPE_REGULAR;
+            else if (strcmp(type_s, "json") == 0) {
+#ifdef HAVE_LIBJANSSON
+                type = SC_LOG_OP_TYPE_JSON;
+#else
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "libjansson support not "
+                        "compiled in, can't use 'json' logging");
+                exit(EXIT_FAILURE);
+#endif /* HAVE_LIBJANSSON */
+            }
+        }
+
         /* if available use the log format setting for this output,
          * otherwise fall back to the global setting. */
         format = ConfNodeLookupChildValue(output, "format");
@@ -1247,7 +1339,7 @@ void SCLogLoadConfig(int daemon, int verbose)
         }
 
         if (strcmp(output->name, "console") == 0) {
-            op_iface_ctx = SCLogInitConsoleOPIface(format, level);
+            op_iface_ctx = SCLogInitConsoleOPIface(format, level, type);
         }
         else if (strcmp(output->name, "file") == 0) {
             const char *filename = ConfNodeLookupChildValue(output, "filename");
@@ -1257,7 +1349,7 @@ void SCLogLoadConfig(int daemon, int verbose)
                 exit(EXIT_FAILURE);
             }
             have_logging = 1;
-            op_iface_ctx = SCLogInitFileOPIface(filename, format, level);
+            op_iface_ctx = SCLogInitFileOPIface(filename, format, level, type);
         }
         else if (strcmp(output->name, "syslog") == 0) {
             int facility = SC_LOG_DEF_SYSLOG_FACILITY;
@@ -1275,7 +1367,7 @@ void SCLogLoadConfig(int daemon, int verbose)
             printf("Initialization syslog logging with format \"%s\".\n",
                 format);
             have_logging = 1;
-            op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level);
+            op_iface_ctx = SCLogInitSyslogOPIface(facility, format, level, type);
         }
         else {
             SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid logging method: %s, "
@@ -1299,142 +1391,8 @@ void SCLogLoadConfig(int daemon, int verbose)
     SCLogDebug("sc_lc->log_format: %s", sc_log_config->log_format);
     SCLogDebug("SCLogSetOPFilter: filter: %s", sc_log_config->op_filter);
 
-    //exit(1);
-    /* \todo Can we free sc_lid now? */
     if (sc_lid != NULL)
         SCFree(sc_lid);
-}
-
-/**
- * \brief Initializes the logging module if the environment variables are set.
- *        Used at the start of the engine, for cases, where there is an error
- *        in the yaml parsing code, and we want to enable the logging module.
- */
-void SCLogInitLogModuleIfEnvSet(void)
-{
-    SCLogConfig *sc_lc = NULL;
-    const char *s = NULL;
-    const char *filter = NULL;
-    int opts = 0;
-    const char *ep;
-    int eo = 0;
-    SCLogOPIfaceCtx *op_ifaces_ctx = NULL;
-    int op_iface = 0;
-    char *format = NULL;
-    SCLogLevel log_level = SC_LOG_NOTSET;
-
-    /* sc_log_config is a global variable */
-    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL)
-        return;
-    memset(sc_log_config, 0, sizeof(SCLogConfig));
-    sc_lc = sc_log_config;
-
-    /* Check if the user has set the op_iface env var.  Only if it is set,
-     * we proceed with the initialization */
-    s = getenv(SC_LOG_ENV_LOG_OP_IFACE);
-    if (s != NULL) {
-        op_iface = SCMapEnumNameToValue(s, sc_log_op_iface_map);
-
-        if(op_iface < 0 || op_iface >= SC_LOG_OP_IFACE_MAX) {
-            op_iface = SC_LOG_DEF_LOG_OP_IFACE;
-#ifndef UNITTESTS
-            printf("Warning: Invalid output interface supplied by user.  "
-                   "Falling back on default_output_interface \"%s\"\n",
-                   SCMapEnumValueToName(op_iface, sc_log_op_iface_map));
-#endif
-        }
-    } else {
-        SCLogFreeLogConfig(sc_lc);
-        sc_log_config = NULL;
-        return;
-    }
-
-    switch (op_iface) {
-        case SC_LOG_OP_IFACE_CONSOLE:
-            op_ifaces_ctx = SCLogInitConsoleOPIface(NULL, -1);
-            break;
-        case SC_LOG_OP_IFACE_FILE:
-            s = getenv(SC_LOG_ENV_LOG_FILE);
-            if (s == NULL) {
-                char *str = SCLogGetLogFilename(SC_LOG_DEF_LOG_FILE);
-                if (str != NULL) {
-                    op_ifaces_ctx = SCLogInitFileOPIface(str, NULL, SC_LOG_LEVEL_MAX);
-                    SCFree(str);
-                }
-            } else {
-                op_ifaces_ctx = SCLogInitFileOPIface(s, NULL, -1);
-            }
-            break;
-        case SC_LOG_OP_IFACE_SYSLOG:
-            s = getenv(SC_LOG_ENV_LOG_FACILITY);
-            if (s == NULL)
-                s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
-
-            op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCSyslogGetFacilityMap()), NULL, -1);
-            break;
-    }
-    sc_lc->op_ifaces = op_ifaces_ctx;
-
-
-    /* Set the filter */
-    filter = getenv(SC_LOG_ENV_LOG_OP_FILTER);
-    if (filter != NULL && strcmp(filter, "") != 0) {
-        sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
-        if (sc_lc->op_filter_regex == NULL) {
-            printf("pcre compile of \"%s\" failed at offset %d : %s\n", filter,
-                   eo, ep);
-            return;
-        }
-
-        sc_lc->op_filter_regex_study = pcre_study(sc_lc->op_filter_regex, 0,
-                                                  &ep);
-        if (ep != NULL) {
-            printf("pcre study failed: %s\n", ep);
-            return;
-        }
-    }
-
-    /* Set the log_format */
-    format = getenv(SC_LOG_ENV_LOG_FORMAT);
-    if (format == NULL || strlen(format) > SC_LOG_MAX_LOG_FORMAT_LEN) {
-        format = SC_LOG_DEF_LOG_FORMAT;
-#ifndef UNITTESTS
-        printf("Warning: Invalid global_log_format supplied by user or format "
-               "length exceeded limit of \"%d\" characters.  Falling back on "
-               "default log_format \"%s\"\n", SC_LOG_MAX_LOG_FORMAT_LEN,
-               format);
-#endif
-    }
-
-    if (format != NULL &&
-        (sc_lc->log_format = SCStrdup(format)) == NULL) {
-        printf("Error allocating memory\n");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Set the log_level */
-    s = getenv(SC_LOG_ENV_LOG_LEVEL);
-    if (s != NULL)
-        log_level = SCMapEnumNameToValue(s, sc_log_level_map);
-
-    if (log_level >= 0 && log_level < SC_LOG_LEVEL_MAX)
-        sc_lc->log_level = log_level;
-    else {
-        sc_lc->log_level = SC_LOG_DEF_LOG_LEVEL;
-#ifndef UNITTESTS
-        printf("Warning: Invalid global_log_level assigned by user.  Falling "
-               "back on default_log_level \"%s\"\n",
-               SCMapEnumValueToName(sc_lc->log_level, sc_log_level_map));
-#endif
-    }
-
-    /* we also set it to a global var, as it is easier to access it */
-    sc_log_global_log_level = sc_lc->log_level;
-
-    sc_log_module_initialized = 1;
-    sc_log_module_cleaned = 0;
-
-    return;
 }
 
 /**

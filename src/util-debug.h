@@ -70,6 +70,11 @@ typedef enum {
     SC_LOG_OP_IFACE_MAX,
 } SCLogOPIface;
 
+typedef enum {
+    SC_LOG_OP_TYPE_REGULAR = 0,
+    SC_LOG_OP_TYPE_JSON,
+} SCLogOPType;
+
 /* The default log_format, if it is not supplied by the user */
 #ifdef RELEASE
 #define SC_LOG_DEF_LOG_FORMAT "%t - <%d> - "
@@ -112,7 +117,8 @@ typedef struct SCLogOPBuffer_ {
 typedef struct SCLogOPIfaceCtx_ {
     SCLogOPIface iface;
 
-    int use_color;
+    int16_t use_color;
+    int16_t type;
 
     /* the output file to be used if the interface is SC_LOG_IFACE_FILE */
     const char *file;
@@ -510,8 +516,6 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *, const char *, int,
 void SCLogAppendOPIfaceCtx(SCLogOPIfaceCtx *, SCLogInitData *);
 
 void SCLogInitLogModule(SCLogInitData *);
-
-void SCLogInitLogModuleIfEnvSet(void);
 
 void SCLogDeInitLogModule(void);
 
