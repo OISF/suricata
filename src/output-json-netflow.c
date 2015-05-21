@@ -369,7 +369,7 @@ static void OutputNetFlowLogDeinitSub(OutputCtx *output_ctx)
 
 OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogJsonFileCtx *flow_ctx = SCMalloc(sizeof(LogJsonFileCtx));
     if (unlikely(flow_ctx == NULL))
@@ -381,7 +381,7 @@ OutputCtx *OutputNetFlowLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    flow_ctx->file_ctx = ajt->file_ctx;
+    flow_ctx->file_ctx = ojc->file_ctx;
 
     output_ctx->data = flow_ctx;
     output_ctx->DeInit = OutputNetFlowLogDeinitSub;

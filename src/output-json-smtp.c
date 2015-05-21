@@ -121,7 +121,7 @@ OutputCtx *OutputSmtpLogInit(ConfNode *conf)
 
 static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     OutputJsonEmailCtx *email_ctx = SCMalloc(sizeof(OutputJsonEmailCtx));
     if (unlikely(email_ctx == NULL))
@@ -133,7 +133,7 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         return NULL;
     }
 
-    email_ctx->file_ctx = ajt->file_ctx;
+    email_ctx->file_ctx = ojc->file_ctx;
 
     output_ctx->data = email_ctx;
     output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
