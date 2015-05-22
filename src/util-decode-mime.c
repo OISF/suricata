@@ -2437,8 +2437,10 @@ void MimeDecDeInitParser(MimeDecParseState *state)
     SCFree(state->hname);
     FreeDataValue(state->hvalue);
     FreeMimeDecStack(state->stack);
+#ifdef HAVE_NSS
     if (state->md5_ctx)
         HASH_Destroy(state->md5_ctx);
+#endif
     SCFree(state);
 }
 
