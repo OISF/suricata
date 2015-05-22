@@ -1476,14 +1476,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif
             else if (strcmp((long_opts[option_index]).name, "set") == 0) {
                 if (optarg != NULL) {
+                    /* Quick validation. */
                     char *val = strchr(optarg, '=');
                     if (val == NULL) {
                         SCLogError(SC_ERR_CMD_LINE,
                                 "Invalid argument for --set, must be key=val.");
                         exit(EXIT_FAILURE);
                     }
-                    *val++ = '\0';
-                    if (ConfSetFinal(optarg, val) != 1) {
+                    if (!ConfSetFromString(optarg, val)) {
                         fprintf(stderr, "Failed to set configuration value %s.",
                                 optarg);
                         exit(EXIT_FAILURE);
