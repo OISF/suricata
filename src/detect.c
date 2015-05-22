@@ -11263,9 +11263,9 @@ static int SigTestDetectAlertCounter(void)
     DetectEngineThreadCtxInit(&tv, de_ctx, (void *)&det_ctx);
 
     /* init counters */
-    tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
     SCPerfAddToClubbedTMTable((tv.thread_group_name != NULL) ?
-            tv.thread_group_name : tv.name, &tv.sc_perf_pctx);
+            tv.thread_group_name : tv.name, &tv.perf_public_ctx);
 
     p = UTHBuildPacket((uint8_t *)"boo", strlen("boo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);

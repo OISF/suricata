@@ -390,14 +390,14 @@ static void *SCPerfWakeupThread(void *arg)
 
         tv = tv_root[TVT_PPT];
         while (tv != NULL) {
-            if (tv->sc_perf_pctx.head == NULL) {
+            if (tv->perf_public_ctx.head == NULL) {
                 tv = tv->next;
                 continue;
             }
 
             /* assuming the assignment of an int to be atomic, and even if it's
              * not, it should be okay */
-            tv->sc_perf_pctx.perf_flag = 1;
+            tv->perf_public_ctx.perf_flag = 1;
 
             if (tv->inq != NULL) {
                 q = &trans_q[tv->inq->id];
@@ -410,14 +410,14 @@ static void *SCPerfWakeupThread(void *arg)
         /* mgt threads for flow manager */
         tv = tv_root[TVT_MGMT];
         while (tv != NULL) {
-            if (tv->sc_perf_pctx.head == NULL) {
+            if (tv->perf_public_ctx.head == NULL) {
                 tv = tv->next;
                 continue;
             }
 
             /* assuming the assignment of an int to be atomic, and even if it's
              * not, it should be okay */
-            tv->sc_perf_pctx.perf_flag = 1;
+            tv->perf_public_ctx.perf_flag = 1;
 
             tv = tv->next;
         }
@@ -898,7 +898,7 @@ uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type, desc,
-                                                 &tv->sc_perf_pctx,
+                                                 &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_NORMAL);
 
     return id;
@@ -923,7 +923,7 @@ uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type, desc,
-                                                 &tv->sc_perf_pctx,
+                                                 &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_AVERAGE);
 
     return id;
@@ -948,7 +948,7 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type, desc,
-                                                 &tv->sc_perf_pctx,
+                                                 &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_MAXIMUM);
 
     return id;
@@ -1386,7 +1386,7 @@ static int SCPerfTestGetCntArray05()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                               &tv.sc_perf_pctx);
+                               &tv.perf_public_ctx);
     if (id != 1) {
         printf("id %d: ", id);
         return 0;
@@ -1406,15 +1406,15 @@ static int SCPerfTestGetCntArray06()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                               &tv.sc_perf_pctx);
+                               &tv.perf_public_ctx);
     if (id != 1)
         return 0;
 
-    tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     result = (tv.sc_perf_pca)?1:0;
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(tv.sc_perf_pca);
 
     return result;
@@ -1431,18 +1431,18 @@ static int SCPerfTestCntArraySize07()
     //pca = (SCPerfPrivateContext *)&tv.sc_perf_pca;
 
     SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                          &tv.sc_perf_pctx);
+                          &tv.perf_public_ctx);
     SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
-                          &tv.sc_perf_pctx);
+                          &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     SCPerfCounterIncr(1, pca);
     SCPerfCounterIncr(2, pca);
 
     result = pca->size;
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1458,16 +1458,16 @@ static int SCPerfTestUpdateCounter08()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                               &tv.sc_perf_pctx);
+                               &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     SCPerfCounterIncr(id, pca);
     SCPerfCounterAddUI64(id, pca, 100);
 
     result = pca->head[id].ui64_cnt;
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1483,24 +1483,24 @@ static int SCPerfTestUpdateCounter09()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
-                          &tv.sc_perf_pctx);
+                          &tv.perf_public_ctx);
     SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
-                          &tv.sc_perf_pctx);
+                          &tv.perf_public_ctx);
     SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64, NULL,
-                          &tv.sc_perf_pctx);
+                          &tv.perf_public_ctx);
     id2 = SCPerfRegisterCounter("t5", "c5", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     SCPerfCounterIncr(id2, pca);
     SCPerfCounterAddUI64(id2, pca, 100);
 
     result = (pca->head[id1].ui64_cnt == 0) && (pca->head[id2].ui64_cnt == 101);
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1517,26 +1517,26 @@ static int SCPerfTestUpdateGlobalCounter10()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     SCPerfCounterIncr(id1, pca);
     SCPerfCounterAddUI64(id2, pca, 100);
     SCPerfCounterIncr(id3, pca);
     SCPerfCounterAddUI64(id3, pca, 100);
 
-    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
+    SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    result = (1 == tv.sc_perf_pctx.head->value);
-    result &= (100 == tv.sc_perf_pctx.head->next->value);
-    result &= (101 == tv.sc_perf_pctx.head->next->next->value);
+    result = (1 == tv.perf_public_ctx.head->value);
+    result &= (100 == tv.perf_public_ctx.head->next->value);
+    result &= (101 == tv.perf_public_ctx.head->next->next->value);
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(pca);
 
     return result;
@@ -1553,32 +1553,32 @@ static int SCPerfTestCounterValues11()
     memset(&tv, 0, sizeof(ThreadVars));
 
     id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
     id4 = SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64, NULL,
-                                &tv.sc_perf_pctx);
+                                &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
+    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
     SCPerfCounterIncr(id1, pca);
     SCPerfCounterAddUI64(id2, pca, 256);
     SCPerfCounterAddUI64(id3, pca, 257);
     SCPerfCounterAddUI64(id4, pca, 16843024);
 
-    SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx);
+    SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 
-    result &= (1 == tv.sc_perf_pctx.head->value);
+    result &= (1 == tv.perf_public_ctx.head->value);
 
-    result &= (256 == tv.sc_perf_pctx.head->next->value);
+    result &= (256 == tv.perf_public_ctx.head->next->value);
 
-    result &= (257 == tv.sc_perf_pctx.head->next->next->value);
+    result &= (257 == tv.perf_public_ctx.head->next->next->value);
 
-    result &= (16843024 == tv.sc_perf_pctx.head->next->next->next->value);
+    result &= (16843024 == tv.perf_public_ctx.head->next->next->next->value);
 
-    SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
+    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
     SCPerfReleasePCA(pca);
 
     return result;

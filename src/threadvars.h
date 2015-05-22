@@ -104,7 +104,7 @@ typedef struct ThreadVars_ {
     /* counters */
 
     /** public counter store: counter syncs update this */
-    SCPerfPublicContext sc_perf_pctx;
+    SCPerfPublicContext perf_public_ctx;
 
     /** private counter store: counter updates modify this */
     SCPerfPrivateContext *sc_perf_pca;

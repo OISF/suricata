@@ -180,12 +180,12 @@ void SCPerfRegisterTests(void);
 void SCPerfCounterAddUI64(uint16_t, SCPerfPrivateContext *, uint64_t);
 
 #define SCPerfSyncCounters(tv) \
-    SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx);           \
+    SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->perf_public_ctx);           \
 
 #define SCPerfSyncCountersIfSignalled(tv)                                       \
     do {                                                                        \
-        if ((tv)->sc_perf_pctx.perf_flag == 1) {                                \
-            SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx);   \
+        if ((tv)->perf_public_ctx.perf_flag == 1) {                                \
+            SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->perf_public_ctx);   \
         }                                                                       \
     } while (0)
 

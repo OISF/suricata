@@ -322,9 +322,9 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         }
     }
 
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
-            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+            tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -455,9 +455,9 @@ void *TmThreadsSlotVar(void *td)
         }
     }
 
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
-            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+            tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -597,9 +597,9 @@ static void *TmThreadsManagement(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
-    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);
+    tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
-            tv->thread_group_name : tv->name, &tv->sc_perf_pctx);
+            tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -1045,7 +1045,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     memset(tv, 0, sizeof(ThreadVars));
 
     SC_ATOMIC_INIT(tv->flags);
-    SCMutexInit(&tv->sc_perf_pctx.m, NULL);
+    SCMutexInit(&tv->perf_public_ctx.m, NULL);
 
     tv->name = name;
     /* default state for every newly created thread */
@@ -1653,7 +1653,7 @@ void TmThreadFree(ThreadVars *tv)
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
 
-    SCMutexDestroy(&tv->sc_perf_pctx.m);
+    SCMutexDestroy(&tv->perf_public_ctx.m);
 
     s = (TmSlot *)tv->tm_slots;
     while (s) {
