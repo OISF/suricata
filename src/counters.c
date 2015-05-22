@@ -334,7 +334,7 @@ static void *SCPerfMgmtThread(void *arg)
 
 /**
  * \brief Wake up thread.  This thread wakes up every TTS(time to sleep) seconds
- *        and sets the flag for every ThreadVars' SCPerfContext
+ *        and sets the flag for every ThreadVars' SCPerfPublicContext
  *
  * \param arg is NULL always
  *
@@ -465,7 +465,7 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
  * \param tm_name  Thread module to which this counter belongs
  * \param type     Datatype of this counter variable
  * \param desc     Description of this counter
- * \param pctx     SCPerfContext for this tm-tv instance
+ * \param pctx     SCPerfPublicContext for this tm-tv instance
  * \param type_q   Qualifier describing the type of counter to be registered
  *
  * \retval the counter id for the newly registered counter, or the already
@@ -474,7 +474,7 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
  */
 static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
                                                int type, char *desc,
-                                               SCPerfContext *pctx, int type_q)
+                                               SCPerfPublicContext *pctx, int type_q)
 {
     SCPerfCounter **head = &pctx->head;
     SCPerfCounter *temp = NULL;
@@ -482,7 +482,7 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     SCPerfCounter *pc = NULL;
 
     if (cname == NULL || tm_name == NULL || pctx == NULL) {
-        SCLogDebug("Counter name, tm name null or SCPerfContext NULL");
+        SCLogDebug("Counter name, tm name null or SCPerfPublicContext NULL");
         return 0;
     }
 
@@ -962,14 +962,14 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
  *                registered
  * \param type    Datatype of this counter variable
  * \param desc    Description of this counter
- * \param pctx    SCPerfContext corresponding to the tm_name key under which the
+ * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
  *                key has to be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
 uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
-                               SCPerfContext *pctx)
+                               SCPerfPublicContext *pctx)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                                  pctx, SC_PERF_TYPE_Q_NORMAL);
@@ -986,14 +986,14 @@ uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
  *                registered
  * \param type    Datatype of this counter variable
  * \param desc    Description of this counter
- * \param pctx    SCPerfContext corresponding to the tm_name key under which the
+ * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
  *                key has to be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
 uint16_t SCPerfRegisterAvgCounter(char *cname, char *tm_name, int type,
-                                  char *desc, SCPerfContext *pctx)
+                                  char *desc, SCPerfPublicContext *pctx)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                                  pctx, SC_PERF_TYPE_Q_AVERAGE);
@@ -1010,14 +1010,14 @@ uint16_t SCPerfRegisterAvgCounter(char *cname, char *tm_name, int type,
  *                registered
  * \param type    Datatype of this counter variable
  * \param desc    Description of this counter
- * \param pctx    SCPerfContext corresponding to the tm_name key under which the
+ * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
  *                key has to be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
 uint16_t SCPerfRegisterMaxCounter(char *cname, char *tm_name, int type,
-                                  char *desc, SCPerfContext *pctx)
+                                  char *desc, SCPerfPublicContext *pctx)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                                  pctx, SC_PERF_TYPE_Q_MAXIMUM);
@@ -1030,11 +1030,11 @@ uint16_t SCPerfRegisterMaxCounter(char *cname, char *tm_name, int type,
  *        are stacked together in a PCTMI container.
  *
  * \param tm_name Name of the tm to be added to the table
- * \param pctx    SCPerfContext associated with the TM tm_name
+ * \param pctx    SCPerfPublicContext associated with the TM tm_name
  *
  * \retval 1 on success, 0 on failure
  */
-int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
+int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfPublicContext *pctx)
 {
     void *ptmp;
     if (sc_perf_op_ctx == NULL) {
@@ -1045,7 +1045,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
     SCPerfClubTMInst *pctmi = NULL;
     SCPerfClubTMInst *prev = NULL;
     SCPerfClubTMInst *temp = NULL;
-    SCPerfContext **hpctx = NULL;
+    SCPerfPublicContext **hpctx = NULL;
     uint32_t u = 0;
 
     if (tm_name == NULL || pctx == NULL) {
@@ -1077,7 +1077,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         memset(temp, 0, sizeof(SCPerfClubTMInst));
 
         temp->size = 1;
-        temp->head = SCMalloc(sizeof(SCPerfContext **));
+        temp->head = SCMalloc(sizeof(SCPerfPublicContext **));
         if (temp->head == NULL) {
             SCFree(temp);
             SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
@@ -1112,7 +1112,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
     }
 
     ptmp = SCRealloc(pctmi->head,
-                     (pctmi->size + 1) * sizeof(SCPerfContext **));
+                     (pctmi->size + 1) * sizeof(SCPerfPublicContext **));
     if (ptmp == NULL) {
         SCFree(pctmi->head);
         pctmi->head = NULL;
@@ -1144,12 +1144,12 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
  *
  * \param s_id Counter id of the first counter to be added to the array
  * \param e_id Counter id of the last counter to be added to the array
- * \param pctx Pointer to the tv's SCPerfContext
+ * \param pctx Pointer to the tv's SCPerfPublicContext
  *
  * \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
 SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
-                                               SCPerfContext *pctx)
+                                               SCPerfPublicContext *pctx)
 {
     SCPerfCounter *pc = NULL;
     SCPerfPrivateContext *pca = NULL;
@@ -1200,12 +1200,12 @@ SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  * \brief Returns a counter array for all counters registered for this tm
  *        instance
  *
- * \param pctx Pointer to the tv's SCPerfContext
+ * \param pctx Pointer to the tv's SCPerfPublicContext
  *
  * \retval pca Pointer to a counter-array for all counter of this tm instance
  *             on success; NULL on failure
  */
-SCPerfPrivateContext *SCPerfGetAllCountersArray(SCPerfContext *pctx)
+SCPerfPrivateContext *SCPerfGetAllCountersArray(SCPerfPublicContext *pctx)
 {
     SCPerfPrivateContext *pca = ((pctx)?
                                SCPerfGetCounterArrayRange(1, pctx->curr_id, pctx):
@@ -1218,12 +1218,12 @@ SCPerfPrivateContext *SCPerfGetAllCountersArray(SCPerfContext *pctx)
  * \brief Syncs the counter array with the global counter variables
  *
  * \param pca      Pointer to the SCPerfPrivateContext
- * \param pctx     Pointer the the tv's SCPerfContext
+ * \param pctx     Pointer the the tv's SCPerfPublicContext
  *
  * \retval  0 on success
  * \retval -1 on error
  */
-int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, SCPerfContext *pctx)
+int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, SCPerfPublicContext *pctx)
 {
     SCPerfCounter *pc = NULL;
     SCPCAElem *pcae = NULL;
@@ -1330,28 +1330,28 @@ void SCPerfReleasePCA(SCPerfPrivateContext *pca)
 #ifdef UNITTESTS
 static int SCPerfTestCounterReg01()
 {
-    SCPerfContext pctx;
+    SCPerfPublicContext pctx;
 
-    memset(&pctx, 0, sizeof(SCPerfContext));
+    memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
     return SCPerfRegisterCounter("t1", "c1", 5, NULL, &pctx);
 }
 
 static int SCPerfTestCounterReg02()
 {
-    SCPerfContext pctx;
+    SCPerfPublicContext pctx;
 
-    memset(&pctx, 0, sizeof(SCPerfContext));
+    memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
     return SCPerfRegisterCounter(NULL, NULL, SC_PERF_TYPE_UINT64, NULL, &pctx);
 }
 
 static int SCPerfTestCounterReg03()
 {
-    SCPerfContext pctx;
+    SCPerfPublicContext pctx;
     int result;
 
-    memset(&pctx, 0, sizeof(SCPerfContext));
+    memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
     result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
 
@@ -1362,10 +1362,10 @@ static int SCPerfTestCounterReg03()
 
 static int SCPerfTestCounterReg04()
 {
-    SCPerfContext pctx;
+    SCPerfPublicContext pctx;
     int result;
 
-    memset(&pctx, 0, sizeof(SCPerfContext));
+    memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
     SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
     SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL, &pctx);

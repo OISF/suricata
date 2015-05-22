@@ -82,7 +82,7 @@ typedef struct SCPerfCounter_ {
 /**
  * \brief Holds the Perf Context for a ThreadVars instance
  */
-typedef struct SCPerfContext_ {
+typedef struct SCPerfPublicContext_ {
     /* flag set by the wakeup thread, to inform the client threads to sync */
     uint32_t perf_flag;
 
@@ -94,7 +94,7 @@ typedef struct SCPerfContext_ {
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     SCMutex m;
-} SCPerfContext;
+} SCPerfPublicContext;
 
 /**
  * \brief Node elements used by the SCPerfPrivateContext(PCA) Node
@@ -130,7 +130,7 @@ typedef struct SCPerfPrivateContext_ {
 typedef struct SCPerfClubTMInst_ {
     char *tm_name;
 
-    SCPerfContext **head;
+    SCPerfPublicContext **head;
     uint32_t size;
 
     struct SCPerfClubTMInst_ *next;
@@ -154,16 +154,16 @@ uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
 uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
 
 /* the non-ThreadVars counter registration functions */
-uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfContext *);
-uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfContext *);
-uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfContext *);
+uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfPublicContext *);
+uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfPublicContext *);
+uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfPublicContext *);
 
 /* utility functions */
-int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);
-SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfContext *);
-SCPerfPrivateContext * SCPerfGetAllCountersArray(SCPerfContext *);
+int SCPerfAddToClubbedTMTable(char *, SCPerfPublicContext *);
+SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfPublicContext *);
+SCPerfPrivateContext * SCPerfGetAllCountersArray(SCPerfPublicContext *);
 
-int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfContext *);
+int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
 double SCPerfGetLocalCounterValue(uint16_t, SCPerfPrivateContext *);
 
 /* functions used to free the resources alloted by the Perf counter API */
