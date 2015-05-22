@@ -107,7 +107,7 @@ typedef struct ThreadVars_ {
     SCPerfContext sc_perf_pctx;
 
     /** private counter store: counter updates modify this */
-    SCPerfCounterArray *sc_perf_pca;
+    SCPerfPrivateContext *sc_perf_pca;
 
     SCCtrlMutex *ctrl_mutex;
     SCCtrlCondT *ctrl_cond;

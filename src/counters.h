@@ -97,7 +97,7 @@ typedef struct SCPerfContext_ {
 } SCPerfContext;
 
 /**
- * \brief Node elements used by the SCPerfCounterArray(PCA) Node
+ * \brief Node elements used by the SCPerfPrivateContext(PCA) Node
  */
 typedef struct SCPCAElem_ {
     /* pointer to the PerfCounter that corresponds to this PCAElem */
@@ -113,16 +113,15 @@ typedef struct SCPCAElem_ {
 } SCPCAElem;
 
 /**
- * \brief The SCPerfCounterArray used to hold the local version of the counters
- *        registered
+ * \brief used to hold the private version of the counters registered
  */
-typedef struct SCPerfCounterArray_ {
+typedef struct SCPerfPrivateContext_ {
     /* points to the array holding PCAElems */
     SCPCAElem *head;
 
     /* no of PCAElems in head */
     uint32_t size;
-} SCPerfCounterArray;
+} SCPerfPrivateContext;
 
 /**
  * \brief Holds multiple instances of the same TM together, used when the stats
@@ -161,24 +160,24 @@ uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfContext *);
 
 /* utility functions */
 int SCPerfAddToClubbedTMTable(char *, SCPerfContext *);
-SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfContext *);
-SCPerfCounterArray * SCPerfGetAllCountersArray(SCPerfContext *);
+SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfContext *);
+SCPerfPrivateContext * SCPerfGetAllCountersArray(SCPerfContext *);
 
-int SCPerfUpdateCounterArray(SCPerfCounterArray *, SCPerfContext *);
-double SCPerfGetLocalCounterValue(uint16_t, SCPerfCounterArray *);
+int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfContext *);
+double SCPerfGetLocalCounterValue(uint16_t, SCPerfPrivateContext *);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);
 void SCPerfReleasePerfCounterS(SCPerfCounter *);
-void SCPerfReleasePCA(SCPerfCounterArray *);
+void SCPerfReleasePCA(SCPerfPrivateContext *);
 
-void SCPerfCounterSetUI64(uint16_t, SCPerfCounterArray *, uint64_t);
-void SCPerfCounterIncr(uint16_t, SCPerfCounterArray *);
+void SCPerfCounterSetUI64(uint16_t, SCPerfPrivateContext *, uint64_t);
+void SCPerfCounterIncr(uint16_t, SCPerfPrivateContext *);
 
 void SCPerfRegisterTests(void);
 
 /* functions used to update local counter values */
-void SCPerfCounterAddUI64(uint16_t, SCPerfCounterArray *, uint64_t);
+void SCPerfCounterAddUI64(uint16_t, SCPerfPrivateContext *, uint64_t);
 
 #define SCPerfSyncCounters(tv) \
     SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx);           \
