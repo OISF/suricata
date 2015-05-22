@@ -31,10 +31,10 @@ typedef struct {
     uint16_t fileno;
 } PcieFile;
 
-enum LogFileType { ALERT_FILE,
-                  ALERT_SYSLOG,
-                  ALERT_UNIX_DGRAM,
-                  ALERT_UNIX_STREAM };
+enum LogFileType { LOGFILE_TYPE_FILE,
+                   LOGFILE_TYPE_SYSLOG,
+                   LOGFILE_TYPE_UNIX_DGRAM,
+                   LOGFILE_TYPE_UNIX_STREAM };
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {

@@ -341,9 +341,12 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
         return TM_ECODE_OK;
 
     SCMutexLock(&file_ctx->fp_mutex);
-    if (file_ctx->type == ALERT_SYSLOG) {
+    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
         syslog(alert_syslog_level, "%s", js_s);
-    } else if (file_ctx->type == ALERT_FILE || file_ctx->type == ALERT_UNIX_DGRAM || file_ctx->type == ALERT_UNIX_STREAM) {
+    } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
+    {
         MemBufferWriteString(buffer, "%s\n", js_s);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
@@ -439,13 +442,13 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         if (output_s != NULL) {
             if (strcmp(output_s, "file") == 0 ||
                 strcmp(output_s, "regular") == 0) {
-                json_ctx->json_out = ALERT_FILE;
+                json_ctx->json_out = LOGFILE_TYPE_FILE;
             } else if (strcmp(output_s, "syslog") == 0) {
-                json_ctx->json_out = ALERT_SYSLOG;
+                json_ctx->json_out = LOGFILE_TYPE_SYSLOG;
             } else if (strcmp(output_s, "unix_dgram") == 0) {
-                json_ctx->json_out = ALERT_UNIX_DGRAM;
+                json_ctx->json_out = LOGFILE_TYPE_UNIX_DGRAM;
             } else if (strcmp(output_s, "unix_stream") == 0) {
-                json_ctx->json_out = ALERT_UNIX_STREAM;
+                json_ctx->json_out = LOGFILE_TYPE_UNIX_STREAM;
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                            "Invalid JSON output option: %s", output_s);
@@ -453,8 +456,10 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
         }
 
-        if (json_ctx->json_out == ALERT_FILE || json_ctx->json_out == ALERT_UNIX_DGRAM || json_ctx->json_out == ALERT_UNIX_STREAM) {
-
+        if (json_ctx->json_out == LOGFILE_TYPE_FILE ||
+            json_ctx->json_out == LOGFILE_TYPE_UNIX_DGRAM ||
+            json_ctx->json_out == LOGFILE_TYPE_UNIX_STREAM)
+        {
             if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
@@ -475,7 +480,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     exit(EXIT_FAILURE);
                 }
             }
-        } else if (json_ctx->json_out == ALERT_SYSLOG) {
+        } else if (json_ctx->json_out == LOGFILE_TYPE_SYSLOG) {
             const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
             if (facility_s == NULL) {
                 facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;
