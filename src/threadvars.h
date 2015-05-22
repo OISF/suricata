@@ -101,8 +101,12 @@ typedef struct ThreadVars_ {
     uint16_t rank;
     int thread_priority; /** priority (real time) for this thread. Look at threads.h */
 
-    /* the perf counter context and the perf counter array */
+    /* counters */
+
+    /** public counter store: counter syncs update this */
     SCPerfContext sc_perf_pctx;
+
+    /** private counter store: counter updates modify this */
     SCPerfCounterArray *sc_perf_pca;
 
     SCCtrlMutex *ctrl_mutex;

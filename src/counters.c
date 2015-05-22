@@ -1219,14 +1219,13 @@ SCPerfCounterArray *SCPerfGetAllCountersArray(SCPerfContext *pctx)
  *
  * \param pca      Pointer to the SCPerfCounterArray
  * \param pctx     Pointer the the tv's SCPerfContext
- * \param reset_lc Indicates whether the local counter has to be reset or not
  *
  * \retval  0 on success
  * \retval -1 on error
  */
 int SCPerfUpdateCounterArray(SCPerfCounterArray *pca, SCPerfContext *pctx)
 {
-    SCPerfCounter  *pc = NULL;
+    SCPerfCounter *pc = NULL;
     SCPCAElem *pcae = NULL;
     uint32_t i = 0;
 
