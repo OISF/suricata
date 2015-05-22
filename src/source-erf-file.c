@@ -284,18 +284,18 @@ DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueu
         return TM_ECODE_OK;
 
     /* Update counters. */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
-//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->perf_private_ctx);
+    SCPerfCounterIncr(tv, dtv->counter_pkts);
+//    SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
 #if 0
     SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
                            (GET_PKT_LEN(p) * 8)/1000000.0 );
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 

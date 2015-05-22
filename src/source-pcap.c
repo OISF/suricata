@@ -155,10 +155,10 @@ static inline void PcapDumpCounters(PcapThreadVars *ptv)
 {
     struct pcap_stat pcap_s;
     if (likely((pcap_stats(ptv->pcap_handle, &pcap_s) >= 0))) {
-        SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->perf_private_ctx, pcap_s.ps_recv);
-        SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->perf_private_ctx, pcap_s.ps_drop);
+        SCPerfCounterSetUI64(ptv->tv, ptv->capture_kernel_packets, pcap_s.ps_recv);
+        SCPerfCounterSetUI64(ptv->tv, ptv->capture_kernel_drops, pcap_s.ps_drop);
         (void) SC_ATOMIC_SET(ptv->livedev->drop, pcap_s.ps_drop);
-        SCPerfCounterSetUI64(ptv->capture_kernel_ifdrops, ptv->tv->perf_private_ctx, pcap_s.ps_ifdrop);
+        SCPerfCounterSetUI64(ptv->tv, ptv->capture_kernel_ifdrops, pcap_s.ps_ifdrop);
     }
 }
 
@@ -716,18 +716,18 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
-//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->perf_private_ctx);
+    SCPerfCounterIncr(tv, dtv->counter_pkts);
+//    SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
 #if 0
     SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
                            (GET_PKT_LEN(p) * 8)/1000000.0);
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* call the decoder */
     switch(p->datalink) {

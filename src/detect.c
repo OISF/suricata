@@ -1437,13 +1437,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 #ifdef PROFILING
     if (th_v) {
-        SCPerfCounterAddUI64(det_ctx->counter_mpm_list, th_v->perf_private_ctx,
+        SCPerfCounterAddUI64(th_v, det_ctx->counter_mpm_list,
                              (uint64_t)det_ctx->pmq.rule_id_array_cnt);
-        SCPerfCounterAddUI64(det_ctx->counter_nonmpm_list, th_v->perf_private_ctx,
+        SCPerfCounterAddUI64(th_v, det_ctx->counter_nonmpm_list,
                              (uint64_t)det_ctx->sgh->non_mpm_store_cnt);
         /* non mpm sigs after mask prefilter */
-        SCPerfCounterAddUI64(det_ctx->counter_fnonmpm_list,
-                th_v->perf_private_ctx, (uint64_t)det_ctx->non_mpm_id_cnt);
+        SCPerfCounterAddUI64(th_v, det_ctx->counter_fnonmpm_list,
+                             (uint64_t)det_ctx->non_mpm_id_cnt);
     }
 #endif
 
@@ -1457,7 +1457,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SigIntId match_cnt = det_ctx->match_array_cnt;
 #ifdef PROFILING
     if (th_v) {
-        SCPerfCounterAddUI64(det_ctx->counter_match_list, th_v->perf_private_ctx,
+        SCPerfCounterAddUI64(th_v, det_ctx->counter_match_list,
                              (uint64_t)match_cnt);
     }
 #endif
@@ -1790,7 +1790,7 @@ end:
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_ALERT);
     PacketAlertFinalize(de_ctx, det_ctx, p);
     if (p->alerts.cnt > 0) {
-        SCPerfCounterAddUI64(det_ctx->counter_alerts, det_ctx->tv->perf_private_ctx, (uint64_t)p->alerts.cnt);
+        SCPerfCounterAddUI64(th_v, det_ctx->counter_alerts, (uint64_t)p->alerts.cnt);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_ALERT);
 

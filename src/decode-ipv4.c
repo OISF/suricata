@@ -519,7 +519,7 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
 
 int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_ipv4, tv->perf_private_ctx);
+    SCPerfCounterIncr(tv, dtv->counter_ipv4);
 
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 

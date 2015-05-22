@@ -382,8 +382,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
                 __insn_prefetch(&idesc[i]);
             }
             if (unlikely(n > max_queued)) {
-                SCPerfCounterSetUI64(ptv->max_mpipe_depth,
-                                     tv->perf_private_ctx,
+                SCPerfCounterSetUI64(tv, ptv->max_mpipe_depth,
                                      (uint64_t)n);
                 max_queued = n;
             }
@@ -399,11 +398,10 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
                     if (idesc->be) {
                         /* Buffer Error - No buffer available, so mPipe
                          * dropped the packet. */
-                        SCPerfCounterIncr(XlateStack(ptv, idesc->stack_idx),
-                                          tv->perf_private_ctx);
+                        SCPerfCounterIncr(tv, XlateStack(ptv, idesc->stack_idx));
                     } else {
                         /* Bad packet. CRC error */
-                        SCPerfCounterIncr(ptv->mpipe_drop, tv->perf_private_ctx);
+                        SCPerfCounterIncr(tv, ptv->mpipe_drop);
                         gxio_mpipe_iqueue_drop(iqueue, idesc);
                     }
                     gxio_mpipe_iqueue_release(iqueue, idesc);
@@ -1063,13 +1061,13 @@ TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
-//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->perf_private_ctx);
+    SCPerfCounterIncr(tv, dtv->counter_pkts);
+//    SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* call the decoder */
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);

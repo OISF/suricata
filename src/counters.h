@@ -171,13 +171,13 @@ void SCPerfReleaseResources(void);
 void SCPerfReleasePerfCounterS(SCPerfCounter *);
 void SCPerfReleasePCA(SCPerfPrivateContext *);
 
-void SCPerfCounterSetUI64(uint16_t, SCPerfPrivateContext *, uint64_t);
-void SCPerfCounterIncr(uint16_t, SCPerfPrivateContext *);
+void SCPerfCounterSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
+void SCPerfCounterIncr(struct ThreadVars_ *, uint16_t);
 
 void SCPerfRegisterTests(void);
 
 /* functions used to update local counter values */
-void SCPerfCounterAddUI64(uint16_t, SCPerfPrivateContext *, uint64_t);
+void SCPerfCounterAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 
 #define SCPerfSyncCounters(tv) \
     SCPerfUpdateCounterArray((tv)->perf_private_ctx, &(tv)->perf_public_ctx);           \

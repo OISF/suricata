@@ -79,8 +79,10 @@ void SCPerfOutputCounters(ThreadVars *tv)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-void SCPerfCounterAddUI64(uint16_t id, SCPerfPrivateContext *pca, uint64_t x)
+void SCPerfCounterAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
+    SCPerfPrivateContext *pca = tv->perf_private_ctx;
+
     if (!pca) {
         SCLogDebug("counterarray is NULL");
         return;
@@ -99,8 +101,10 @@ void SCPerfCounterAddUI64(uint16_t id, SCPerfPrivateContext *pca, uint64_t x)
  * \param id  Index of the counter in the counter array
  * \param pca Counter array that holds the local counters for this TM
  */
-void SCPerfCounterIncr(uint16_t id, SCPerfPrivateContext *pca)
+void SCPerfCounterIncr(ThreadVars *tv, uint16_t id)
 {
+    SCPerfPrivateContext *pca = tv->perf_private_ctx;
+
     if (pca == NULL) {
         SCLogDebug("counterarray is NULL");
         return;
@@ -122,9 +126,10 @@ void SCPerfCounterIncr(uint16_t id, SCPerfPrivateContext *pca)
  * \param pca Pointer to the SCPerfPrivateContext
  * \param x   The value to set for the counter
  */
-void SCPerfCounterSetUI64(uint16_t id, SCPerfPrivateContext *pca,
-                                 uint64_t x)
+void SCPerfCounterSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
+    SCPerfPrivateContext *pca = tv->perf_private_ctx;
+
     if (!pca) {
         SCLogDebug("counterarray is NULL");
         return;
@@ -1435,10 +1440,10 @@ static int SCPerfTestCntArraySize07()
     SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
                           &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    pca = tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    SCPerfCounterIncr(1, pca);
-    SCPerfCounterIncr(2, pca);
+    SCPerfCounterIncr(&tv, 1);
+    SCPerfCounterIncr(&tv, 2);
 
     result = pca->size;
 
@@ -1460,10 +1465,10 @@ static int SCPerfTestUpdateCounter08()
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
                                &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    pca = tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    SCPerfCounterIncr(id, pca);
-    SCPerfCounterAddUI64(id, pca, 100);
+    SCPerfCounterIncr(&tv, id);
+    SCPerfCounterAddUI64(&tv, id, 100);
 
     result = pca->head[id].ui64_cnt;
 
@@ -1493,10 +1498,10 @@ static int SCPerfTestUpdateCounter09()
     id2 = SCPerfRegisterCounter("t5", "c5", SC_PERF_TYPE_UINT64, NULL,
                                 &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    pca = tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    SCPerfCounterIncr(id2, pca);
-    SCPerfCounterAddUI64(id2, pca, 100);
+    SCPerfCounterIncr(&tv, id2);
+    SCPerfCounterAddUI64(&tv, id2, 100);
 
     result = (pca->head[id1].ui64_cnt == 0) && (pca->head[id2].ui64_cnt == 101);
 
@@ -1523,12 +1528,12 @@ static int SCPerfTestUpdateGlobalCounter10()
     id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
                                 &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    pca = tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    SCPerfCounterIncr(id1, pca);
-    SCPerfCounterAddUI64(id2, pca, 100);
-    SCPerfCounterIncr(id3, pca);
-    SCPerfCounterAddUI64(id3, pca, 100);
+    SCPerfCounterIncr(&tv, id1);
+    SCPerfCounterAddUI64(&tv, id2, 100);
+    SCPerfCounterIncr(&tv, id3);
+    SCPerfCounterAddUI64(&tv, id3, 100);
 
     SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 
@@ -1561,12 +1566,12 @@ static int SCPerfTestCounterValues11()
     id4 = SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64, NULL,
                                 &tv.perf_public_ctx);
 
-    pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    pca = tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    SCPerfCounterIncr(id1, pca);
-    SCPerfCounterAddUI64(id2, pca, 256);
-    SCPerfCounterAddUI64(id3, pca, 257);
-    SCPerfCounterAddUI64(id4, pca, 16843024);
+    SCPerfCounterIncr(&tv, id1);
+    SCPerfCounterAddUI64(&tv, id2, 256);
+    SCPerfCounterAddUI64(&tv, id3, 257);
+    SCPerfCounterAddUI64(&tv, id4, 16843024);
 
     SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 

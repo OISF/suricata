@@ -605,7 +605,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
                 SCLogDebug("Flow emergency mode entered...");
 
-                SCPerfCounterIncr(ftd->flow_emerg_mode_enter, th_v->perf_private_ctx);
+                SCPerfCounterIncr(th_v, ftd->flow_emerg_mode_enter);
             }
         }
 
@@ -635,24 +635,24 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             IPPairTimeoutHash(&ts);
         }
 /*
-        SCPerfCounterAddUI64(flow_mgr_host_prune, th_v->perf_private_ctx, (uint64_t)hosts_pruned);
+        SCPerfCounterAddUI64(th_v, flow_mgr_host_prune, (uint64_t)hosts_pruned);
         uint32_t hosts_active = HostGetActiveCount();
-        SCPerfCounterSetUI64(flow_mgr_host_active, th_v->perf_private_ctx, (uint64_t)hosts_active);
+        SCPerfCounterSetUI64(th_v, flow_mgr_host_active, (uint64_t)hosts_active);
         uint32_t hosts_spare = HostGetSpareCount();
-        SCPerfCounterSetUI64(flow_mgr_host_spare, th_v->perf_private_ctx, (uint64_t)hosts_spare);
+        SCPerfCounterSetUI64(th_v, flow_mgr_host_spare, (uint64_t)hosts_spare);
 */
-        SCPerfCounterAddUI64(ftd->flow_mgr_cnt_clo, th_v->perf_private_ctx, (uint64_t)counters.clo);
-        SCPerfCounterAddUI64(ftd->flow_mgr_cnt_new, th_v->perf_private_ctx, (uint64_t)counters.new);
-        SCPerfCounterAddUI64(ftd->flow_mgr_cnt_est, th_v->perf_private_ctx, (uint64_t)counters.est);
+        SCPerfCounterAddUI64(th_v, ftd->flow_mgr_cnt_clo, (uint64_t)counters.clo);
+        SCPerfCounterAddUI64(th_v, ftd->flow_mgr_cnt_new, (uint64_t)counters.new);
+        SCPerfCounterAddUI64(th_v, ftd->flow_mgr_cnt_est, (uint64_t)counters.est);
         long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
-        SCPerfCounterSetUI64(ftd->flow_mgr_memuse, th_v->perf_private_ctx, (uint64_t)flow_memuse);
-        SCPerfCounterAddUI64(ftd->flow_tcp_reuse, th_v->perf_private_ctx, (uint64_t)counters.tcp_reuse);
+        SCPerfCounterSetUI64(th_v, ftd->flow_mgr_memuse, (uint64_t)flow_memuse);
+        SCPerfCounterAddUI64(th_v, ftd->flow_tcp_reuse, (uint64_t)counters.tcp_reuse);
 
         uint32_t len = 0;
         FQLOCK_LOCK(&flow_spare_q);
         len = flow_spare_q.len;
         FQLOCK_UNLOCK(&flow_spare_q);
-        SCPerfCounterSetUI64(ftd->flow_mgr_spare, th_v->perf_private_ctx, (uint64_t)len);
+        SCPerfCounterSetUI64(th_v, ftd->flow_mgr_spare, (uint64_t)len);
 
         /* Don't fear, FlowManagerThread is here...
          * clear emergency bit if we have at least xx flows pruned. */
@@ -676,7 +676,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                           "%% flows at the queue", (uintmax_t)ts.tv_sec,
                           (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
 
-                SCPerfCounterIncr(ftd->flow_emerg_mode_over, th_v->perf_private_ctx);
+                SCPerfCounterIncr(th_v, ftd->flow_emerg_mode_over);
             } else {
                 flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
                 flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;

@@ -61,9 +61,9 @@ int DecodeVLAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     uint32_t proto;
 
     if (p->vlan_idx == 0)
-        SCPerfCounterIncr(dtv->counter_vlan, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, dtv->counter_vlan);
     else if (p->vlan_idx == 1)
-        SCPerfCounterIncr(dtv->counter_vlan_qinq, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, dtv->counter_vlan_qinq);
 
     if(len < VLAN_HEADER_LEN)    {
         ENGINE_SET_INVALID_EVENT(p, VLAN_HEADER_TOO_SMALL);

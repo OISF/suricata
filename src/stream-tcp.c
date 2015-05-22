@@ -147,7 +147,7 @@ void StreamTcpDecrMemuse(uint64_t size)
 void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt)
 {
     uint64_t memusecopy = SC_ATOMIC_GET(st_memuse);
-    SCPerfCounterSetUI64(stt->counter_tcp_memuse, tv->perf_private_ctx, memusecopy);
+    SCPerfCounterSetUI64(tv, stt->counter_tcp_memuse, memusecopy);
     return;
 }
 
@@ -843,10 +843,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->perf_private_ctx);
+                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            SCPerfCounterIncr(stt->counter_tcp_sessions, tv->perf_private_ctx);
+            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
@@ -924,11 +924,11 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->perf_private_ctx);
+                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
 
-            SCPerfCounterIncr(stt->counter_tcp_sessions, tv->perf_private_ctx);
+            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
         }
 
         /* set the state */
@@ -977,10 +977,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(stt->counter_tcp_ssn_memcap, tv->perf_private_ctx);
+                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            SCPerfCounterIncr(stt->counter_tcp_sessions, tv->perf_private_ctx);
+            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
@@ -4460,12 +4460,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     /* update counters */
     if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        SCPerfCounterIncr(stt->counter_tcp_synack, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, stt->counter_tcp_synack);
     } else if (p->tcph->th_flags & (TH_SYN)) {
-        SCPerfCounterIncr(stt->counter_tcp_syn, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, stt->counter_tcp_syn);
     }
     if (p->tcph->th_flags & (TH_RST)) {
-        SCPerfCounterIncr(stt->counter_tcp_rst, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, stt->counter_tcp_rst);
     }
 
     /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
@@ -5019,13 +5019,13 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         return TM_ECODE_OK;
 
     if (p->flow == NULL) {
-        SCPerfCounterIncr(stt->counter_tcp_no_flow, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, stt->counter_tcp_no_flow);
         return TM_ECODE_OK;
     }
 
     if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
         if (StreamTcpValidateChecksum(p) == 0) {
-            SCPerfCounterIncr(stt->counter_tcp_invalid_checksum, tv->perf_private_ctx);
+            SCPerfCounterIncr(tv, stt->counter_tcp_invalid_checksum);
             return TM_ECODE_OK;
         }
     } else {
@@ -5896,7 +5896,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     if (np == NULL) {
         SCLogDebug("The packet received from packet allocation is NULL");
-        SCPerfCounterIncr(stt->counter_tcp_pseudo_failed, tv->perf_private_ctx);
+        SCPerfCounterIncr(tv, stt->counter_tcp_pseudo_failed);
         SCReturn;
     }
     PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO);
@@ -5931,7 +5931,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
 
     PacketEnqueue(pq, np);
 
-    SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->perf_private_ctx);
+    SCPerfCounterIncr(tv, stt->counter_tcp_pseudo);
     SCReturn;
 }
 
