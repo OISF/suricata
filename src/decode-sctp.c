@@ -61,7 +61,7 @@ static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
 
 int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_sctp, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_sctp, tv->perf_private_ctx);
 
     if (unlikely(DecodeSCTPPacket(tv, p,pkt,len) < 0)) {
         p->sctph = NULL;

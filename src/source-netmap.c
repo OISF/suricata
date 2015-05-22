@@ -483,8 +483,8 @@ static int NetmapClose(NetmapDevice *dev)
  */
 static inline void NetmapDumpCounters(NetmapThreadVars *ntv)
 {
-    SCPerfCounterAddUI64(ntv->capture_kernel_packets, ntv->tv->sc_perf_pca, ntv->pkts);
-    SCPerfCounterAddUI64(ntv->capture_kernel_drops, ntv->tv->sc_perf_pca, ntv->drops);
+    SCPerfCounterAddUI64(ntv->capture_kernel_packets, ntv->tv->perf_private_ctx, ntv->pkts);
+    SCPerfCounterAddUI64(ntv->capture_kernel_drops, ntv->tv->perf_private_ctx, ntv->drops);
     (void) SC_ATOMIC_ADD(ntv->livedev->drop, ntv->drops);
     (void) SC_ATOMIC_ADD(ntv->livedev->pkts, ntv->pkts);
     ntv->drops = 0;
@@ -851,8 +851,8 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapDumpCounters(ntv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
               tv->name,
-              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_packets, tv->sc_perf_pca),
-              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_drops, tv->sc_perf_pca),
+              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_packets, tv->perf_private_ctx),
+              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_drops, tv->perf_private_ctx),
               ntv->bytes);
 }
 
@@ -934,10 +934,10 @@ static TmEcode DecodeNetmap(ThreadVars *tv, Packet *p, void *data, PacketQueue *
         SCReturnInt(TM_ECODE_OK);
 
     /* update counters */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 

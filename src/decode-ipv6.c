@@ -65,7 +65,7 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 /* add the tp to the packet queue. */
                 PacketEnqueue(pq,tp);
-                SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->sc_perf_pca);
+                SCPerfCounterIncr(dtv->counter_ipv4inipv6, tv->perf_private_ctx);
                 return;
             }
         }
@@ -92,7 +92,7 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
             if (tp != NULL) {
                 PKT_SET_SRC(tp, PKT_SRC_DECODER_IPV6);
                 PacketEnqueue(pq,tp);
-                SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->sc_perf_pca);
+                SCPerfCounterIncr(dtv->counter_ipv6inipv6, tv->perf_private_ctx);
             }
         }
     } else {
@@ -601,7 +601,7 @@ int DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 {
     int ret;
 
-    SCPerfCounterIncr(dtv->counter_ipv6, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_ipv6, tv->perf_private_ctx);
 
     /* do the actual decoding */
     ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);

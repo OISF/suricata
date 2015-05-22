@@ -139,7 +139,7 @@ void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rt
 {
     uint64_t smemuse = SC_ATOMIC_GET(ra_memuse);
     if (tv != NULL && rtv != NULL)
-        SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->sc_perf_pca, smemuse);
+        SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->perf_private_ctx, smemuse);
     return;
 }
 
@@ -1905,7 +1905,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         /* increment stream depth counter */
-        SCPerfCounterIncr(ra_ctx->counter_tcp_stream_depth, tv->sc_perf_pca);
+        SCPerfCounterIncr(ra_ctx->counter_tcp_stream_depth, tv->perf_private_ctx);
 
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         SCLogDebug("ssn %p: reassembly depth reached, "
@@ -2606,7 +2606,7 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
 
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-        SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
+        SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->perf_private_ctx);
 #ifdef DEBUG
         dbg_app_layer_gap++;
 #endif
@@ -2952,7 +2952,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-            SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
+            SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->perf_private_ctx);
 #ifdef DEBUG
             dbg_app_layer_gap++;
 #endif
@@ -3596,7 +3596,7 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
                    segment_pool[idx]->allocated);
         /* Increment the counter to show that we are not able to serve the
            segment request due to memcap limit */
-        SCPerfCounterIncr(ra_ctx->counter_tcp_segment_memcap, tv->sc_perf_pca);
+        SCPerfCounterIncr(ra_ctx->counter_tcp_segment_memcap, tv->perf_private_ctx);
     } else {
         seg->flags = stream_config.segment_init_flags;
         seg->next = NULL;

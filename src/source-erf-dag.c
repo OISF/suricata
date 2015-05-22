@@ -444,7 +444,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             break;
         case TYPE_ETH:
             if (dr->lctr) {
-                SCPerfCounterAddUI64(ewtn->drops, ewtn->tv->sc_perf_pca,
+                SCPerfCounterAddUI64(ewtn->drops, ewtn->tv->perf_private_ctx,
                     ntohs(dr->lctr));
             }
             break;
@@ -538,7 +538,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         p->ts.tv_sec++;
     }
 
-    SCPerfCounterIncr(ewtn->packets, ewtn->tv->sc_perf_pca);
+    SCPerfCounterIncr(ewtn->packets, ewtn->tv->perf_private_ctx);
     ewtn->bytes += wlen;
 
     if (TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p) != TM_ECODE_OK) {
@@ -561,16 +561,16 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
     (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->sc_perf_pca));
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->perf_private_ctx));
     (void)SC_ATOMIC_SET(ewtn->livedev->drop,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->sc_perf_pca));
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->perf_private_ctx));
 
     SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
         "; Drops: %"PRIu64,
         ewtn->dagstream,
         ewtn->bytes,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->sc_perf_pca),
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->sc_perf_pca));
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->perf_private_ctx),
+        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->perf_private_ctx));
 }
 
 /**
@@ -624,19 +624,19 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
-//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
+//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->perf_private_ctx);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
 #if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
-    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
                            (GET_PKT_LEN(p) * 8)/1000000.0);
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca,
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx,
         GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca,
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx,
         GET_PKT_LEN(p));
 
         /* call the decoder */

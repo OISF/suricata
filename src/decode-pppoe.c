@@ -49,7 +49,7 @@
  */
 int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_pppoe, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_pppoe, tv->perf_private_ctx);
 
     if (len < PPPOE_DISCOVERY_HEADER_MIN_LEN) {
         ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);
@@ -128,7 +128,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
  */
 int DecodePPPOESession(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_pppoe, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_pppoe, tv->perf_private_ctx);
 
     if (len < PPPOE_SESSION_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, PPPOE_PKT_TOO_SMALL);

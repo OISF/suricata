@@ -199,13 +199,13 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * the newly seen packets and drops for this thread and add it
          * to the interface counter */
         uint64_t th_pkts = SCPerfGetLocalCounterValue(ptv->capture_kernel_packets,
-                                                      ptv->tv->sc_perf_pca);
+                                                      ptv->tv->perf_private_ctx);
         uint64_t th_drops = SCPerfGetLocalCounterValue(ptv->capture_kernel_drops,
-                                                       ptv->tv->sc_perf_pca);
+                                                       ptv->tv->perf_private_ctx);
         SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
-        SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, pfring_s.recv);
-        SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, pfring_s.drop);
+        SCPerfCounterSetUI64(ptv->capture_kernel_packets, ptv->tv->perf_private_ctx, pfring_s.recv);
+        SCPerfCounterSetUI64(ptv->capture_kernel_drops, ptv->tv->perf_private_ctx, pfring_s.drop);
     }
 }
 
@@ -554,8 +554,8 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
     PfringDumpCounters(ptv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
-            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_packets, tv->sc_perf_pca),
-            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_drops, tv->sc_perf_pca));
+            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_packets, tv->perf_private_ctx),
+            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_drops, tv->perf_private_ctx));
     SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 }
 
@@ -608,22 +608,22 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
-//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_pkts, tv->perf_private_ctx);
+//    SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->perf_private_ctx);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->perf_private_ctx, GET_PKT_LEN(p));
 #if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
-    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
                            (GET_PKT_LEN(p) * 8)/1000000.0 );
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->perf_private_ctx, GET_PKT_LEN(p));
 
     /* If suri has set vlan during reading, we increase vlan counter */
     if (p->vlan_idx) {
-        SCPerfCounterIncr(dtv->counter_vlan, tv->sc_perf_pca);
+        SCPerfCounterIncr(dtv->counter_vlan, tv->perf_private_ctx);
     }
 
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);

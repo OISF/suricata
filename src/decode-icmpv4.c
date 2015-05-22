@@ -153,7 +153,7 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
  */
 int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_icmpv4, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_icmpv4, tv->perf_private_ctx);
 
     if (len < ICMPV4_HEADER_LEN) {
         ENGINE_SET_INVALID_EVENT(p, ICMPV4_PKT_TOO_SMALL);

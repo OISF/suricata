@@ -168,7 +168,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
     int full_hdr = 0;
-    SCPerfCounterIncr(dtv->counter_icmpv6, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_icmpv6, tv->perf_private_ctx);
 
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");

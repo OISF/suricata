@@ -96,7 +96,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                     PKT_SET_SRC(tp, PKT_SRC_DECODER_TEREDO);
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
-                    SCPerfCounterIncr(dtv->counter_teredo, tv->sc_perf_pca);
+                    SCPerfCounterIncr(dtv->counter_teredo, tv->perf_private_ctx);
                     return TM_ECODE_OK;
                 }
             }

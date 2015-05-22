@@ -79,11 +79,11 @@ static void DNSUpdateCounters(ThreadVars *tv, AppLayerThreadCtx *app_tctx)
     DNSMemcapGetCounters(&memuse, &memcap_state, &memcap_global);
 
     SCPerfCounterSetUI64(app_tctx->counter_dns_memuse,
-                         tv->sc_perf_pca, memuse);
+                         tv->perf_private_ctx, memuse);
     SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_state,
-                         tv->sc_perf_pca, memcap_state);
+                         tv->perf_private_ctx, memcap_state);
     SCPerfCounterSetUI64(app_tctx->counter_dns_memcap_global,
-                         tv->sc_perf_pca, memcap_global);
+                         tv->perf_private_ctx, memcap_global);
 }
 
 /***** L7 layer dispatchers *****/

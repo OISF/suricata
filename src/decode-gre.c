@@ -48,7 +48,7 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
     uint16_t header_len = GRE_HDR_LEN;
     GRESreHdr *gsre = NULL;
 
-    SCPerfCounterIncr(dtv->counter_gre, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_gre, tv->perf_private_ctx);
 
     if(len < GRE_HDR_LEN)    {
         ENGINE_SET_INVALID_EVENT(p, GRE_PKT_TOO_SMALL);

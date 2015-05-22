@@ -1392,9 +1392,9 @@ static int SCPerfTestGetCntArray05()
         return 0;
     }
 
-    tv.sc_perf_pca = SCPerfGetAllCountersArray(NULL);
+    tv.perf_private_ctx = SCPerfGetAllCountersArray(NULL);
 
-    return (!tv.sc_perf_pca)?1:0;
+    return (!tv.perf_private_ctx)?1:0;
 }
 
 static int SCPerfTestGetCntArray06()
@@ -1410,12 +1410,12 @@ static int SCPerfTestGetCntArray06()
     if (id != 1)
         return 0;
 
-    tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
 
-    result = (tv.sc_perf_pca)?1:0;
+    result = (tv.perf_private_ctx)?1:0;
 
     SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(tv.sc_perf_pca);
+    SCPerfReleasePCA(tv.perf_private_ctx);
 
     return result;
 }
@@ -1428,7 +1428,7 @@ static int SCPerfTestCntArraySize07()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    //pca = (SCPerfPrivateContext *)&tv.sc_perf_pca;
+    //pca = (SCPerfPrivateContext *)&tv.perf_private_ctx;
 
     SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
                           &tv.perf_public_ctx);

@@ -47,7 +47,7 @@
 
 int DecodeNull(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(dtv->counter_null, tv->sc_perf_pca);
+    SCPerfCounterIncr(dtv->counter_null, tv->perf_private_ctx);
 
     if (unlikely(len < HDR_SIZE)) {
         ENGINE_SET_INVALID_EVENT(p, LTNULL_PKT_TOO_SMALL);

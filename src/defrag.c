@@ -772,7 +772,7 @@ insert:
             r = Defrag4Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 SCPerfCounterIncr(dtv->counter_defrag_ipv4_reassembled,
-                    tv->sc_perf_pca);
+                    tv->perf_private_ctx);
                 if (pq && DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
                                IPV4_GET_IPLEN(r), pq) != TM_ECODE_OK) {
                     TmqhOutputPacketpool(tv, r);
@@ -785,7 +785,7 @@ insert:
             r = Defrag6Reassemble(tv, tracker, p);
             if (r != NULL && tv != NULL && dtv != NULL) {
                 SCPerfCounterIncr(dtv->counter_defrag_ipv6_reassembled,
-                        tv->sc_perf_pca);
+                        tv->perf_private_ctx);
                 if (pq && DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
                                IPV6_GET_PLEN(r) + IPV6_HEADER_LEN,
                                pq) != TM_ECODE_OK) {
@@ -926,11 +926,11 @@ Defrag(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, PacketQueue *pq)
     if (tv != NULL && dtv != NULL) {
         if (af == AF_INET) {
             SCPerfCounterIncr(dtv->counter_defrag_ipv4_fragments,
-                tv->sc_perf_pca);
+                tv->perf_private_ctx);
         }
         else if (af == AF_INET6) {
             SCPerfCounterIncr(dtv->counter_defrag_ipv6_fragments,
-                tv->sc_perf_pca);
+                tv->perf_private_ctx);
         }
     }
 

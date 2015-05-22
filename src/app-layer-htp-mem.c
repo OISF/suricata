@@ -81,9 +81,9 @@ void HTPDecrMemuse(uint64_t size)
 void HTPMemuseCounter(ThreadVars *tv,  TcpReassemblyThreadCtx *trt)
 {
     uint64_t tmpval = SC_ATOMIC_GET(htp_memuse);
-    SCPerfCounterSetUI64(trt->counter_htp_memuse, tv->sc_perf_pca, tmpval);
+    SCPerfCounterSetUI64(trt->counter_htp_memuse, tv->perf_private_ctx, tmpval);
     tmpval = SC_ATOMIC_GET(htp_memcap);
-    SCPerfCounterSetUI64(trt->counter_htp_memcap, tv->sc_perf_pca, tmpval);
+    SCPerfCounterSetUI64(trt->counter_htp_memcap, tv->perf_private_ctx, tmpval);
     return;
 }
 /**
