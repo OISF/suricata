@@ -163,10 +163,9 @@ uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfPublicConte
 uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfPublicContext *);
 
 /* utility functions */
-int SCPerfAddToClubbedTMTable(char *, SCPerfPublicContext *);
-int SCPerfGetAllCountersArray(SCPerfPublicContext *, SCPerfPrivateContext *);
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
 uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
+int SCPerfSetupPrivate(struct ThreadVars_ *);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);
@@ -187,16 +186,6 @@ void SCPerfCounterIncr(struct ThreadVars_ *, uint16_t);
             SCPerfUpdateCounterArray(&(tv)->perf_private_ctx,                   \
                                      &(tv)->perf_public_ctx);                   \
         }                                                                       \
-    } while (0)
-
-#define SCPerfSetupPrivate(tv)                                                  \
-    do {                                                                        \
-        SCPerfGetAllCountersArray(&(tv)->perf_public_ctx,                       \
-                                  &(tv)->perf_private_ctx);                     \
-                                                                                \
-        SCPerfAddToClubbedTMTable(((tv)->thread_group_name != NULL) ?           \
-                                   (tv)->thread_group_name : (tv)->name,        \
-                                  &(tv)->perf_public_ctx);                      \
     } while (0)
 
 #ifdef BUILD_UNIX_SOCKET

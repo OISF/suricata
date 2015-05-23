@@ -1024,16 +1024,16 @@ uint16_t SCPerfRegisterMaxCounter(char *cname, char *tm_name, int type,
     return id;
 }
 
-/**
- * \brief Adds a TM to the clubbed TM table.  Multiple instances of the same TM
- *        are stacked together in a PCTMI container.
+/** \internal
+ *  \brief Adds a TM to the clubbed TM table.  Multiple instances of the same TM
+ *         are stacked together in a PCTMI container.
  *
- * \param tm_name Name of the tm to be added to the table
- * \param pctx    SCPerfPublicContext associated with the TM tm_name
+ *  \param tm_name Name of the tm to be added to the table
+ *  \param pctx    SCPerfPublicContext associated with the TM tm_name
  *
- * \retval 1 on success, 0 on failure
+ *  \retval 1 on success, 0 on failure
  */
-int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfPublicContext *pctx)
+static int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfPublicContext *pctx)
 {
     void *ptmp;
     if (sc_perf_op_ctx == NULL) {
@@ -1138,14 +1138,14 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfPublicContext *pctx)
     return 1;
 }
 
-/**
- * \brief Returns a counter array for counters in this id range(s_id - e_id)
+/** \internal
+ *  \brief Returns a counter array for counters in this id range(s_id - e_id)
  *
- * \param s_id Counter id of the first counter to be added to the array
- * \param e_id Counter id of the last counter to be added to the array
- * \param pctx Pointer to the tv's SCPerfPublicContext
+ *  \param s_id Counter id of the first counter to be added to the array
+ *  \param e_id Counter id of the last counter to be added to the array
+ *  \param pctx Pointer to the tv's SCPerfPublicContext
  *
- * \retval a counter-array in this(s_id-e_id) range for this TM instance
+ *  \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
 static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
                                       SCPerfPublicContext *pctx,
@@ -1191,21 +1191,32 @@ static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
     return 0;
 }
 
-/**
- * \brief Returns a counter array for all counters registered for this tm
- *        instance
+/** \internal
+ *  \brief Returns a counter array for all counters registered for this tm
+ *         instance
  *
- * \param pctx Pointer to the tv's SCPerfPublicContext
+ *  \param pctx Pointer to the tv's SCPerfPublicContext
  *
- * \retval pca Pointer to a counter-array for all counter of this tm instance
- *             on success; NULL on failure
+ *  \retval pca Pointer to a counter-array for all counter of this tm instance
+ *              on success; NULL on failure
  */
-int SCPerfGetAllCountersArray(SCPerfPublicContext *pctx, SCPerfPrivateContext *private)
+static int SCPerfGetAllCountersArray(SCPerfPublicContext *pctx, SCPerfPrivateContext *private)
 {
     if (pctx == NULL || private == NULL)
         return -1;
 
     return SCPerfGetCounterArrayRange(1, pctx->curr_id, pctx, private);
+}
+
+
+int SCPerfSetupPrivate(ThreadVars *tv)
+{
+    SCPerfGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
+
+    SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
+                               tv->thread_group_name : tv->name,
+                              &(tv)->perf_public_ctx);
+    return 0;
 }
 
 /**
