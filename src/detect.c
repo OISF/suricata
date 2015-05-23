@@ -11269,20 +11269,20 @@ static int SigTestDetectAlertCounter(void)
 
     p = UTHBuildPacket((uint8_t *)"boo", strlen("boo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result = (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.perf_private_ctx) == 1);
+    result = (SCPerfGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 1);
 
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.perf_private_ctx) == 2);
+    result &= (SCPerfGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"roo", strlen("roo"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.perf_private_ctx) == 2);
+    result &= (SCPerfGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 2);
     UTHFreePackets(&p, 1);
 
     p = UTHBuildPacket((uint8_t *)"laboosa", strlen("laboosa"), IPPROTO_TCP);
     Detect(&tv, p, det_ctx, NULL, NULL);
-    result &= (SCPerfGetLocalCounterValue(det_ctx->counter_alerts, tv.perf_private_ctx) == 3);
+    result &= (SCPerfGetLocalCounterValue(&tv, det_ctx->counter_alerts) == 3);
     UTHFreePackets(&p, 1);
 
 end:

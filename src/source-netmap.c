@@ -851,8 +851,8 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapDumpCounters(ntv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
               tv->name,
-              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_packets, tv->perf_private_ctx),
-              (uint64_t) SCPerfGetLocalCounterValue(ntv->capture_kernel_drops, tv->perf_private_ctx),
+              SCPerfGetLocalCounterValue(tv, ntv->capture_kernel_packets),
+              SCPerfGetLocalCounterValue(tv, ntv->capture_kernel_drops),
               ntv->bytes);
 }
 

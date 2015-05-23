@@ -1805,8 +1805,8 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data)
     AFPDumpCounters(ptv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
-            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_packets, tv->perf_private_ctx),
-            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_drops, tv->perf_private_ctx));
+            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_packets),
+            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_drops));
 #endif
 
     SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);

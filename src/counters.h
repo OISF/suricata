@@ -164,7 +164,7 @@ SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfPubli
 SCPerfPrivateContext * SCPerfGetAllCountersArray(SCPerfPublicContext *);
 
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
-double SCPerfGetLocalCounterValue(uint16_t, SCPerfPrivateContext *);
+uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);

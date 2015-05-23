@@ -560,16 +560,16 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
     (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->perf_private_ctx));
+        SCPerfGetLocalCounterValue(tv, ewtn->packets));
     (void)SC_ATOMIC_SET(ewtn->livedev->drop,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->perf_private_ctx));
+        SCPerfGetLocalCounterValue(tv, ewtn->drops));
 
     SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
         "; Drops: %"PRIu64,
         ewtn->dagstream,
         ewtn->bytes,
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->packets, tv->perf_private_ctx),
-        (uint64_t)SCPerfGetLocalCounterValue(ewtn->drops, tv->perf_private_ctx));
+        SCPerfGetLocalCounterValue(tv, ewtn->packets),
+        SCPerfGetLocalCounterValue(tv, ewtn->drops));
 }
 
 /**

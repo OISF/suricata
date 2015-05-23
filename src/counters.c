@@ -1265,17 +1265,18 @@ int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, SCPerfPublicContext *pct
     return 1;
 }
 
-/*
+/**
  * \brief Get the value of the local copy of the counter that hold this id.
  *
- * \param id  The counter id.
- * \param pca Pointer to the SCPerfPrivateContext.
+ * \param tv threadvars
+ * \param id The counter id.
  *
  * \retval  0 on success.
  * \retval -1 on error.
  */
-double SCPerfGetLocalCounterValue(uint16_t id, SCPerfPrivateContext *pca)
+uint64_t SCPerfGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 {
+    SCPerfPrivateContext *pca = tv->perf_private_ctx;
 #ifdef DEBUG
     BUG_ON (pca == NULL);
     BUG_ON ((id < 1) || (id > pca->size));
