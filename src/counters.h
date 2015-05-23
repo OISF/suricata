@@ -191,6 +191,16 @@ void SCPerfCounterAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
         }                                                                       \
     } while (0)
 
+#define SCPerfSetupPrivate(tv)                                                  \
+    do {                                                                        \
+        SCPerfGetAllCountersArray(&(tv)->perf_public_ctx,                       \
+                                  &(tv)->perf_private_ctx);                     \
+                                                                                \
+        SCPerfAddToClubbedTMTable(((tv)->thread_group_name != NULL) ?           \
+                                   (tv)->thread_group_name : (tv)->name,        \
+                                  &(tv)->perf_public_ctx);                      \
+    } while (0)
+
 #ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
 TmEcode SCPerfOutputCounterSocket(json_t *cmd,
