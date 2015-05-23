@@ -1227,11 +1227,6 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
-#if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
-    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
-                           (GET_PKT_LEN(p) * 8)/1000000.0);
-#endif
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");

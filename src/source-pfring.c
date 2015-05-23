@@ -609,15 +609,8 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
 
     /* update counters */
     SCPerfCounterIncr(tv, dtv->counter_pkts);
-//    SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
-
+    //SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
     SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-#if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->perf_private_ctx, GET_PKT_LEN(p));
-    SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->perf_private_ctx,
-                           (GET_PKT_LEN(p) * 8)/1000000.0 );
-#endif
-
     SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
