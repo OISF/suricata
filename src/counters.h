@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #ifndef __COUNTERS_H__
@@ -149,6 +150,7 @@ typedef struct SCPerfOPIfaceContext_ {
 /* the initialization functions */
 void SCPerfInitCounterApi(void);
 void SCPerfSpawnThreads(void);
+void SCPerfRegisterTests(void);
 
 /* the ThreadVars counter registration functions */
 uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
@@ -163,7 +165,6 @@ uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfPublicConte
 /* utility functions */
 int SCPerfAddToClubbedTMTable(char *, SCPerfPublicContext *);
 int SCPerfGetAllCountersArray(SCPerfPublicContext *, SCPerfPrivateContext *);
-
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
 uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 
@@ -172,13 +173,10 @@ void SCPerfReleaseResources(void);
 void SCPerfReleasePerfCounterS(SCPerfCounter *);
 void SCPerfReleasePCA(SCPerfPrivateContext *);
 
-void SCPerfCounterSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
-void SCPerfCounterIncr(struct ThreadVars_ *, uint16_t);
-
-void SCPerfRegisterTests(void);
-
 /* functions used to update local counter values */
 void SCPerfCounterAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
+void SCPerfCounterSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
+void SCPerfCounterIncr(struct ThreadVars_ *, uint16_t);
 
 #define SCPerfSyncCounters(tv) \
     SCPerfUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
