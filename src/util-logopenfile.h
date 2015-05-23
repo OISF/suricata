@@ -27,7 +27,9 @@
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
 
+#ifdef HAVE_LIBHIREDIS
 #include "hiredis/hiredis.h"
+#endif
 
 typedef struct {
     uint16_t fileno;
@@ -39,13 +41,16 @@ enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_UNIX_STREAM,
                    LOGFILE_TYPE_REDIS };
 
+#ifdef HAVE_LIBHIREDIS
 enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
 
 typedef struct RedisSetup_ {
     enum RedisMode mode;
     char *command;
     char *key;
+    char *sensor_name;
 } RedisSetup;
+#endif
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
