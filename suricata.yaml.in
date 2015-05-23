@@ -44,6 +44,10 @@ host-mode: auto
 #  user: suri
 #  group: suri
 
+# Some logging module will use that name in event as identifier. The default
+# value is the hostname
+#sensor-name: suricata
+
 # Default pid file.
 # Will use this file if no --pidfile in command options.
 #pid-file: /var/run/suricata.pid

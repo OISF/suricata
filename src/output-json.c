@@ -341,8 +341,17 @@ json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event
 
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
 {
-    char *js_s = json_dumps(js,
-                            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+    char *js_s = NULL;
+
+#ifdef HAVE_LIBHIREDIS
+    if (file_ctx->type == LOGFILE_TYPE_REDIS) {
+        json_object_set_new(js, "host",
+                            json_string(file_ctx->redis_setup.sensor_name));
+    }
+#endif
+
+    js_s = json_dumps(js,
+            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
 #ifdef JSON_ESCAPE_SLASH
                             JSON_ESCAPE_SLASH
 #else
@@ -582,10 +591,19 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 #ifdef HAVE_LIBHIREDIS
         else if (json_ctx->json_out == LOGFILE_TYPE_REDIS) {
             ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
+            const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
             const char *redis_server = NULL;
             const char *redis_port = NULL;
             const char *redis_mode = NULL;
             const char *redis_key = NULL;
+
+            if (!sensor_name) {
+                char hostname[1024];
+                gethostname(hostname, 1023);
+                sensor_name = hostname;
+            }
+            json_ctx->file_ctx->redis_setup.sensor_name = SCStrdup(sensor_name);
+
 
             if (redis_node) {
                 redis_server = ConfNodeLookupChildValue(redis_node, "server");
