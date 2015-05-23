@@ -37,27 +37,6 @@ enum {
 };
 
 /**
- * \brief Different kinds of qualifier that can be used to modify the behaviour
- *        of the Perf counter to be registered
- */
-enum {
-    SC_PERF_TYPE_Q_NORMAL = 1,
-    SC_PERF_TYPE_Q_AVERAGE = 2,
-    SC_PERF_TYPE_Q_MAXIMUM = 3,
-    SC_PERF_TYPE_Q_MAX = 4,
-};
-
-/**
- * \brief Different output interfaces made available by the Perf counter API
- */
-enum {
-    SC_PERF_IFACE_FILE,
-    SC_PERF_IFACE_CONSOLE,
-    SC_PERF_IFACE_SYSLOG,
-    SC_PERF_IFACE_MAX,
-};
-
-/**
  * \brief Container to hold the counter variable
  */
 typedef struct SCPerfCounter_ {
@@ -126,41 +105,15 @@ typedef struct SCPerfPrivateContext_ {
     int initialized;
 } SCPerfPrivateContext;
 
-/**
- * \brief Holds multiple instances of the same TM together, used when the stats
- *        have to be clubbed based on TM, before being sent out
- */
-typedef struct SCPerfClubTMInst_ {
-    char *tm_name;
-
-    SCPerfPublicContext **head;
-    uint32_t size;
-
-    struct SCPerfClubTMInst_ *next;
-} SCPerfClubTMInst;
-
-/**
- * \brief Holds the output interface context for the counter api
- */
-typedef struct SCPerfOPIfaceContext_ {
-    SCPerfClubTMInst *pctmi;
-    SCMutex pctmi_lock;
-} SCPerfOPIfaceContext;
-
 /* the initialization functions */
 void SCPerfInitCounterApi(void);
 void SCPerfSpawnThreads(void);
 void SCPerfRegisterTests(void);
 
-/* the ThreadVars counter registration functions */
+/* counter registration functions */
 uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
 uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
 uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
-
-/* the non-ThreadVars counter registration functions */
-uint16_t SCPerfRegisterCounter(char *, char *, int, char *, SCPerfPublicContext *);
-uint16_t SCPerfRegisterAvgCounter(char *, char *, int, char *, SCPerfPublicContext *);
-uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfPublicContext *);
 
 /* utility functions */
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
@@ -169,7 +122,6 @@ int SCPerfSetupPrivate(struct ThreadVars_ *);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);
-void SCPerfReleasePerfCounterS(SCPerfCounter *);
 void SCPerfReleasePCA(SCPerfPrivateContext *);
 
 /* functions used to update local counter values */

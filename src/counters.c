@@ -50,6 +50,48 @@
 /* Time interval at which the mgmt thread o/p the stats */
 #define SC_PERF_MGMTT_TTS 8
 
+/**
+ * \brief Different kinds of qualifier that can be used to modify the behaviour
+ *        of the Perf counter to be registered
+ */
+enum {
+    SC_PERF_TYPE_Q_NORMAL = 1,
+    SC_PERF_TYPE_Q_AVERAGE = 2,
+    SC_PERF_TYPE_Q_MAXIMUM = 3,
+    SC_PERF_TYPE_Q_MAX = 4,
+};
+
+/**
+ * \brief Different output interfaces made available by the Perf counter API
+ */
+enum {
+    SC_PERF_IFACE_FILE,
+    SC_PERF_IFACE_CONSOLE,
+    SC_PERF_IFACE_SYSLOG,
+    SC_PERF_IFACE_MAX,
+};
+
+/**
+ * \brief Holds multiple instances of the same TM together, used when the stats
+ *        have to be clubbed based on TM, before being sent out
+ */
+typedef struct SCPerfClubTMInst_ {
+    char *tm_name;
+
+    SCPerfPublicContext **head;
+    uint32_t size;
+
+    struct SCPerfClubTMInst_ *next;
+} SCPerfClubTMInst;
+
+/**
+ * \brief Holds the output interface context for the counter api
+ */
+typedef struct SCPerfOPIfaceContext_ {
+    SCPerfClubTMInst *pctmi;
+    SCMutex pctmi_lock;
+} SCPerfOPIfaceContext;
+
 static void *stats_thread_data = NULL;
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
@@ -967,59 +1009,11 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
+static uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
                                SCPerfPublicContext *pctx)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
                                                  pctx, SC_PERF_TYPE_Q_NORMAL);
-
-    return id;
-}
-
-/**
- * \brief Registers a counter, whose value holds the average of all the values
- *        assigned to it.
- *
- * \param cname   Name of the counter, to be registered
- * \param tm_name Name of the engine module under which the counter has to be
- *                registered
- * \param type    Datatype of this counter variable
- * \param desc    Description of this counter
- * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
- *                key has to be registered
- *
- * \retval id Counter id for the newly registered counter, or the already
- *            present counter
- */
-uint16_t SCPerfRegisterAvgCounter(char *cname, char *tm_name, int type,
-                                  char *desc, SCPerfPublicContext *pctx)
-{
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
-                                                 pctx, SC_PERF_TYPE_Q_AVERAGE);
-
-    return id;
-}
-
-/**
- * \brief Registers a counter, whose value holds the maximum of all the values
- *        assigned to it.
- *
- * \param cname   Name of the counter, to be registered
- * \param tm_name Name of the engine module under which the counter has to be
- *                registered
- * \param type    Datatype of this counter variable
- * \param desc    Description of this counter
- * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
- *                key has to be registered
- *
- * \retval id Counter id for the newly registered counter, or the already
- *            present counter
- */
-uint16_t SCPerfRegisterMaxCounter(char *cname, char *tm_name, int type,
-                                  char *desc, SCPerfPublicContext *pctx)
-{
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
-                                                 pctx, SC_PERF_TYPE_Q_MAXIMUM);
 
     return id;
 }
