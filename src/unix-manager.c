@@ -868,7 +868,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
-    th_v->perf_private_ctx = SCPerfGetAllCountersArray(&th_v->perf_public_ctx);
+    SCPerfGetAllCountersArray(&th_v->perf_public_ctx, &th_v->perf_private_ctx);
     SCPerfAddToClubbedTMTable(th_v->name, &th_v->perf_public_ctx);
 
     if (UnixNew(&command) == 0) {

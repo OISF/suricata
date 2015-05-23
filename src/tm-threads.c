@@ -322,7 +322,7 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         }
     }
 
-    tv->perf_private_ctx = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
+    SCPerfGetAllCountersArray(&tv->perf_public_ctx, &tv->perf_private_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
             tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 
@@ -455,7 +455,7 @@ void *TmThreadsSlotVar(void *td)
         }
     }
 
-    tv->perf_private_ctx = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
+    SCPerfGetAllCountersArray(&tv->perf_public_ctx, &tv->perf_private_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
             tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 
@@ -597,7 +597,7 @@ static void *TmThreadsManagement(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
-    tv->perf_private_ctx = SCPerfGetAllCountersArray(&tv->perf_public_ctx);
+    SCPerfGetAllCountersArray(&tv->perf_public_ctx, &tv->perf_private_ctx);
     SCPerfAddToClubbedTMTable((tv->thread_group_name != NULL) ?
             tv->thread_group_name : tv->name, &tv->perf_public_ctx);
 

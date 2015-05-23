@@ -121,6 +121,8 @@ typedef struct SCPerfPrivateContext_ {
 
     /* no of PCAElems in head */
     uint32_t size;
+
+    int initialized;
 } SCPerfPrivateContext;
 
 /**
@@ -160,8 +162,7 @@ uint16_t SCPerfRegisterMaxCounter(char *, char *, int, char *, SCPerfPublicConte
 
 /* utility functions */
 int SCPerfAddToClubbedTMTable(char *, SCPerfPublicContext *);
-SCPerfPrivateContext *SCPerfGetCounterArrayRange(uint16_t, uint16_t, SCPerfPublicContext *);
-SCPerfPrivateContext * SCPerfGetAllCountersArray(SCPerfPublicContext *);
+int SCPerfGetAllCountersArray(SCPerfPublicContext *, SCPerfPrivateContext *);
 
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
 uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
@@ -180,12 +181,13 @@ void SCPerfRegisterTests(void);
 void SCPerfCounterAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 
 #define SCPerfSyncCounters(tv) \
-    SCPerfUpdateCounterArray((tv)->perf_private_ctx, &(tv)->perf_public_ctx);           \
+    SCPerfUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
 
 #define SCPerfSyncCountersIfSignalled(tv)                                       \
     do {                                                                        \
-        if ((tv)->perf_public_ctx.perf_flag == 1) {                                \
-            SCPerfUpdateCounterArray((tv)->perf_private_ctx, &(tv)->perf_public_ctx);   \
+        if ((tv)->perf_public_ctx.perf_flag == 1) {                             \
+            SCPerfUpdateCounterArray(&(tv)->perf_private_ctx,                   \
+                                     &(tv)->perf_public_ctx);                   \
         }                                                                       \
     } while (0)
 

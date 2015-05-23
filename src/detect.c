@@ -11263,7 +11263,7 @@ static int SigTestDetectAlertCounter(void)
     DetectEngineThreadCtxInit(&tv, de_ctx, (void *)&det_ctx);
 
     /* init counters */
-    tv.perf_private_ctx = SCPerfGetAllCountersArray(&tv.perf_public_ctx);
+    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     SCPerfAddToClubbedTMTable((tv.thread_group_name != NULL) ?
             tv.thread_group_name : tv.name, &tv.perf_public_ctx);
 
