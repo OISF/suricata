@@ -45,7 +45,12 @@ typedef struct SCPerfCounter_ {
     /* local id for this counter in this tm */
     uint16_t id;
 
-    uint64_t value;
+    /* global id */
+    uint16_t gid;
+
+    /* counter value(s): copies from the 'private' counter */
+    uint64_t value;     /**< sum of updates/increments, or 'set' value */
+    uint64_t updates;   /**< number of updates (for avg) */
 
     /* name of the counter */
     char *cname;
@@ -86,10 +91,11 @@ typedef struct SCPCAElem_ {
     /* counter id of the above counter(pc) */
     uint16_t id;
 
-    uint64_t ui64_cnt;
+    /* total value of the adds/increments, or exact value in case of 'set' */
+    uint64_t value;
 
     /* no of times the local counter has been updated */
-    uint64_t syncs;
+    uint64_t updates;
 } SCPCAElem;
 
 /**
