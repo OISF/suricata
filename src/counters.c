@@ -1038,7 +1038,7 @@ void CountersIdHashFreeFunc(void *data)
  *
  *  \retval 1 on success, 0 on failure
  */
-static int SCPerfAddToClubbedTMTable(ThreadVars *tv, SCPerfPublicContext *pctx)
+static int SCPerfAddToClubbedTMTable(const char *thread_name, SCPerfPublicContext *pctx)
 {
     if (sc_perf_op_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
@@ -1047,7 +1047,7 @@ static int SCPerfAddToClubbedTMTable(ThreadVars *tv, SCPerfPublicContext *pctx)
 
     SCPerfClubTMInst *temp = NULL;
 
-    if (tv == NULL || pctx == NULL) {
+    if (thread_name == NULL || pctx == NULL) {
         SCLogDebug("supplied argument(s) to SCPerfAddToClubbedTMTable NULL");
         return 0;
     }
@@ -1083,7 +1083,7 @@ static int SCPerfAddToClubbedTMTable(ThreadVars *tv, SCPerfPublicContext *pctx)
 
     temp->ctx = pctx;
 
-    temp->name = SCStrdup(tv->name);
+    temp->name = SCStrdup(thread_name);
     if (unlikely(temp->name == NULL)) {
         SCFree(temp);
         SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
@@ -1173,7 +1173,7 @@ int SCPerfSetupPrivate(ThreadVars *tv)
 {
     SCPerfGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
 
-    SCPerfAddToClubbedTMTable(tv, &(tv)->perf_public_ctx);
+    SCPerfAddToClubbedTMTable(tv->name, &(tv)->perf_public_ctx);
     return 0;
 }
 
