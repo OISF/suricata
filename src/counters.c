@@ -21,7 +21,7 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  * \author Victor Julien <victor@inliniac.net>
  *
- * Performance counters
+ * Engine stats API
  */
 
 #include "suricata-common.h"
@@ -55,29 +55,18 @@
  *        of the Perf counter to be registered
  */
 enum {
-    SC_PERF_TYPE_Q_NORMAL = 1,
-    SC_PERF_TYPE_Q_AVERAGE = 2,
-    SC_PERF_TYPE_Q_MAXIMUM = 3,
-    SC_PERF_TYPE_Q_FUNC = 4,
+    STATS_TYPE_NORMAL = 1,
+    STATS_TYPE_AVERAGE = 2,
+    STATS_TYPE_MAXIMUM = 3,
+    STATS_TYPE_FUNC = 4,
 
-    SC_PERF_TYPE_Q_MAX = 5,
+    STATS_TYPE_MAX = 5,
 };
 
 /**
- * \brief Different output interfaces made available by the Perf counter API
+ * \brief per thread store of counters
  */
-enum {
-    SC_PERF_IFACE_FILE,
-    SC_PERF_IFACE_CONSOLE,
-    SC_PERF_IFACE_SYSLOG,
-    SC_PERF_IFACE_MAX,
-};
-
-/**
- * \brief Holds multiple instances of the same TM together, used when the stats
- *        have to be clubbed based on TM, before being sent out
- */
-typedef struct SCPerfClubTMInst_ {
+typedef struct StatsThreadStore_ {
     char *name;
 
     char *tm_name;
@@ -87,23 +76,22 @@ typedef struct SCPerfClubTMInst_ {
     SCPerfPublicContext **head;
     uint32_t size;
 
-    struct SCPerfClubTMInst_ *next;
-} SCPerfClubTMInst;
+    struct StatsThreadStore_ *next;
+} StatsThreadStore;
 
 /**
  * \brief Holds the output interface context for the counter api
  */
-typedef struct SCPerfOPIfaceContext_ {
-    SCPerfClubTMInst *pctmi;
+typedef struct StatsGlobalContext_ {
+    StatsThreadStore *pctmi;
     SCMutex pctmi_lock;
     HashTable *counters_id_hash;
 
-    //SCPerfCounter *global_counters;
     SCPerfPublicContext global_counter_ctx;
-} SCPerfOPIfaceContext;
+} StatsGlobalContext;
 
 static void *stats_thread_data = NULL;
-static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
+static StatsGlobalContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
 /** refresh interval in seconds */
 static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
@@ -187,10 +175,10 @@ void SCPerfCounterSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
 
-    if ((pca->head[id].pc->type == SC_PERF_TYPE_Q_MAXIMUM) &&
+    if ((pca->head[id].pc->type == STATS_TYPE_MAXIMUM) &&
             (x > pca->head[id].value)) {
         pca->head[id].value = x;
-    } else if (pca->head[id].pc->type == SC_PERF_TYPE_Q_NORMAL) {
+    } else if (pca->head[id].pc->type == STATS_TYPE_NORMAL) {
         pca->head[id].value = x;
     }
 
@@ -224,11 +212,11 @@ static ConfNode *GetConfig(void) {
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
-    if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
+    if ( (sc_perf_op_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
-    memset(sc_perf_op_ctx, 0, sizeof(SCPerfOPIfaceContext));
+    memset(sc_perf_op_ctx, 0, sizeof(StatsGlobalContext));
 
     ConfNode *stats = GetConfig();
     if (stats != NULL) {
@@ -252,7 +240,7 @@ static void SCPerfInitOPCtx(void)
     /* Store the engine start time */
     time(&sc_start_time);
 
-    /* init the lock used by SCPerfClubTMInst */
+    /* init the lock used by StatsThreadStore */
     if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
         SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
         exit(EXIT_FAILURE);
@@ -272,8 +260,8 @@ static void SCPerfReleaseOPCtx()
         return;
     }
 
-    SCPerfClubTMInst *pctmi = NULL;
-    SCPerfClubTMInst *temp = NULL;
+    StatsThreadStore *pctmi = NULL;
+    StatsThreadStore *temp = NULL;
     pctmi = sc_perf_op_ctx->pctmi;
 
     while (pctmi != NULL) {
@@ -618,7 +606,7 @@ static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
  */
 static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 {
-    const SCPerfClubTMInst *pctmi = NULL;
+    const StatsThreadStore *pctmi = NULL;
     const SCPerfCounter *pc = NULL;
     void *td = stats_thread_data;
 
@@ -661,7 +649,7 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 
             merge_table[pc->gid].type = pc->type;
             switch (pc->type) {
-                case SC_PERF_TYPE_Q_MAXIMUM:
+                case STATS_TYPE_MAXIMUM:
                     if (pc->value > merge_table[pc->gid].value)
                         merge_table[pc->gid].value = pc->value;
                     break;
@@ -688,11 +676,11 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 
         struct CountersMergeTable *m = &merge_table[x];
         switch (m->type) {
-            case SC_PERF_TYPE_Q_MAXIMUM:
+            case STATS_TYPE_MAXIMUM:
                 if (m->value > table[x].value)
                     table[x].value = m->value;
                 break;
-            case SC_PERF_TYPE_Q_AVERAGE:
+            case STATS_TYPE_AVERAGE:
                 if (m->value > 0 && m->updates > 0) {
                     table[x].value = (uint64_t)(m->value / m->updates);
                 }
@@ -715,7 +703,7 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    SCPerfClubTMInst *pctmi = NULL;
+    StatsThreadStore *pctmi = NULL;
     SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
 
@@ -884,7 +872,7 @@ uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type)
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_NORMAL, NULL);
+                                                 STATS_TYPE_NORMAL, NULL);
 
     return id;
 }
@@ -908,7 +896,7 @@ uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_AVERAGE, NULL);
+                                                 STATS_TYPE_AVERAGE, NULL);
 
     return id;
 }
@@ -932,7 +920,7 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_MAXIMUM, NULL);
+                                                 STATS_TYPE_MAXIMUM, NULL);
 
     return id;
 }
@@ -951,7 +939,7 @@ uint16_t SCPerfTVRegisterGlobalCounter(char *cname, uint64_t (*Func)(void))
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, NULL,
                                                  SC_PERF_TYPE_UINT64,
                                                  &(sc_perf_op_ctx->global_counter_ctx),
-                                                 SC_PERF_TYPE_Q_FUNC,
+                                                 STATS_TYPE_FUNC,
                                                  Func);
     return id;
 }
@@ -973,7 +961,7 @@ static uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type,
                                SCPerfPublicContext *pctx)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, pctx,
-                                                 SC_PERF_TYPE_Q_NORMAL, NULL);
+                                                 STATS_TYPE_NORMAL, NULL);
 
     return id;
 }
@@ -1038,17 +1026,17 @@ void CountersIdHashFreeFunc(void *data)
  *
  *  \retval 1 on success, 0 on failure
  */
-static int SCPerfAddToClubbedTMTable(const char *thread_name, SCPerfPublicContext *pctx)
+static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pctx)
 {
     if (sc_perf_op_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
         return 0;
     }
 
-    SCPerfClubTMInst *temp = NULL;
+    StatsThreadStore *temp = NULL;
 
     if (thread_name == NULL || pctx == NULL) {
-        SCLogDebug("supplied argument(s) to SCPerfAddToClubbedTMTable NULL");
+        SCLogDebug("supplied argument(s) to StatsThreadRegister NULL");
         return 0;
     }
 
@@ -1075,11 +1063,11 @@ static int SCPerfAddToClubbedTMTable(const char *thread_name, SCPerfPublicContex
     }
 
 
-    if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL) {
+    if ( (temp = SCMalloc(sizeof(StatsThreadStore))) == NULL) {
         SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
         return 0;
     }
-    memset(temp, 0, sizeof(SCPerfClubTMInst));
+    memset(temp, 0, sizeof(StatsThreadStore));
 
     temp->ctx = pctx;
 
@@ -1173,7 +1161,7 @@ int SCPerfSetupPrivate(ThreadVars *tv)
 {
     SCPerfGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
 
-    SCPerfAddToClubbedTMTable(tv->name, &(tv)->perf_public_ctx);
+    StatsThreadRegister(tv->name, &(tv)->perf_public_ctx);
     return 0;
 }
 
