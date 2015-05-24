@@ -109,6 +109,13 @@ outputs:
       #  port: 6379
       #  mode: list ## possible values: list (default), channel
       #  key: suricata ## key or channel to use (default to suricata)
+      # Redis pipelining set up. This will enable to only do a query every
+      # 'batch-size' events. This should lower the latency induced by network
+      # connection at the cost of some memory. There is no flushing implemented
+      # so this setting as to be reserved to high traffic suricata.
+      #  pipelining:
+      #    enabled: yes ## set enable to yes to enable query pipelining
+      #    batch-size: 10 ## number of entry to keep in buffer
       types:
         - alert:
             # payload: yes           # enable dumping payload in Base64
