@@ -330,6 +330,62 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     return 0;
 }
 
+
+#if HAVE_LIBHIREDIS
+int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
+{
+    const char *redis_server = NULL;
+    const char *redis_port = NULL;
+    const char *redis_mode = NULL;
+    const char *redis_key = NULL;
+
+    if (redis_node) {
+        redis_server = ConfNodeLookupChildValue(redis_node, "server");
+        redis_port =  ConfNodeLookupChildValue(redis_node, "port");
+        redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
+        redis_key =  ConfNodeLookupChildValue(redis_node, "key");
+    }
+    if (!redis_server) {
+        redis_server = "127.0.0.1";
+        SCLogInfo("Using default redis server (127.0.0.1)");
+    }
+    if (!redis_port)
+        redis_port = "6379";
+    if (!redis_mode)
+        redis_mode = "list";
+    if (!redis_key)
+        redis_key = "suricata";
+    log_ctx->redis_setup.key = SCStrdup(redis_key);
+
+    if (!log_ctx->redis_setup.key) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key name");
+        exit(EXIT_FAILURE);
+    }
+
+    if (!strcmp(redis_mode, "list")) {
+        log_ctx->redis_setup.command = SCStrdup("LPUSH");
+        if (!log_ctx->redis_setup.command) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        log_ctx->redis_setup.command = SCStrdup("PUBLISH");
+        if (!log_ctx->redis_setup.command) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
+            exit(EXIT_FAILURE);
+        }
+    }
+    redisContext *c = redisConnect(redis_server, atoi(redis_port));
+    if (c != NULL && c->err) {
+        SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: %s\n", c->errstr);
+        exit(EXIT_FAILURE);
+    }
+    log_ctx->redis = c;
+
+    return 0;
+}
+#endif
+
 /** \brief LogFileNewCtx() Get a new LogFileCtx
  *  \retval LogFileCtx * pointer if succesful, NULL if error
  *  */

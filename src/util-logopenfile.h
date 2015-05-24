@@ -126,6 +126,7 @@ int LogFileFreeCtx(LogFileCtx *);
 int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
+int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
