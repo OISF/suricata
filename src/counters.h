@@ -58,8 +58,6 @@ typedef struct SCPerfCounter_ {
 
     /* name of the counter */
     char *cname;
-    /* name of the thread module this counter is registered to */
-    char *tm_name;
 
     /* the next perfcounter for this tv's tm instance */
     struct SCPerfCounter_ *next;

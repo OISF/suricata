@@ -499,9 +499,6 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
         if (pc->cname != NULL)
             SCFree(pc->cname);
 
-        if (pc->tm_name != NULL)
-            SCFree(pc->tm_name);
-
         SCFree(pc);
     }
 
@@ -545,8 +542,7 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     while (temp != NULL) {
         prev = temp;
 
-        if (strcmp(cname, temp->cname) == 0 &&
-            strcmp(tm_name, temp->tm_name) == 0) {
+        if (strcmp(cname, temp->cname) == 0) {
             break;
         }
 
@@ -563,11 +559,6 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     memset(pc, 0, sizeof(SCPerfCounter));
 
     if ( (pc->cname = SCStrdup(cname)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-
-    if ( (pc->tm_name = SCStrdup(tm_name)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
@@ -1097,16 +1088,6 @@ static int SCPerfAddToClubbedTMTable(ThreadVars *tv, SCPerfPublicContext *pctx)
         SCFree(temp);
         SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
         return 0;
-    }
-
-    if (tv->thread_group_name != NULL) {
-        temp->tm_name = SCStrdup(tv->thread_group_name);
-        if (unlikely(temp->tm_name == NULL)) {
-            SCFree(temp->name);
-            SCFree(temp);
-            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
-            return 0;
-        }
     }
 
     temp->next = sc_perf_op_ctx->pctmi;
