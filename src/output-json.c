@@ -341,9 +341,18 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
         return TM_ECODE_OK;
 
     SCMutexLock(&file_ctx->fp_mutex);
-    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
-        syslog(alert_syslog_level, "%s", js_s);
-    } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
+    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) 
+    {
+        if (file_ctx->syslog_cee_format == TRUE)
+        {
+            syslog(alert_syslog_level, "%s%s", "@cee: ",  js_s);
+        }
+        else
+        {
+            syslog(alert_syslog_level, "%s", js_s);
+        }
+    } 
+    else if (file_ctx->type == LOGFILE_TYPE_FILE ||
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
     {
@@ -499,6 +508,16 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
                 if (level != -1) {
                     alert_syslog_level = level;
+                }
+            }
+            
+            const char *cee_format = ConfNodeLookupChildValue(conf, "cee-format");
+            if (cee_format != NULL)
+            {
+                json_ctx->file_ctx->syslog_cee_format = FALSE;
+                if (ConfValIsTrue(cee_format))
+                {
+                    json_ctx->file_ctx->syslog_cee_format = TRUE;
                 }
             }
 

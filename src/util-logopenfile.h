@@ -76,6 +76,9 @@ typedef struct LogFileCtx_ {
 
     /* Flag set when file rotation notification is received. */
     int rotation_flag;
+
+    /* Flag set to prepend @cee: cookie for CEE/Lumberjack compatibility */
+    int syslog_cee_format;
 } LogFileCtx;
 
 /* flags for LogFileCtx */
