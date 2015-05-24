@@ -387,3 +387,43 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
     SCReturnInt(1);
 }
+
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len)
+{
+    SCMutexLock(&file_ctx->fp_mutex);
+    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
+        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s", string);
+    } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
+    {
+        MemBufferWriteString(buffer, "%s\n", string);
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer), file_ctx);
+    }
+#if HAVE_LIBHIREDIS
+    else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
+        /* FIXME go async here */
+        redisReply *reply = redisCommand(file_ctx->redis, "%s %s %s",
+                                         file_ctx->redis_setup.command,
+                                         file_ctx->redis_setup.key,
+                                         string);
+        switch (reply->type) {
+            case REDIS_REPLY_ERROR:
+                SCLogWarning(SC_WARN_NO_UNITTESTS, "Redis error: %s", reply->str);
+                break;
+            case REDIS_REPLY_INTEGER:
+                SCLogDebug("Redis integer %lld", reply->integer);
+                break;
+            default:
+                SCLogError(SC_ERR_INVALID_VALUE,
+                           "Redis default triggered with %d", reply->type);
+                break;
+        }
+        freeReplyObject(reply);
+    }
+#endif
+    SCMutexUnlock(&file_ctx->fp_mutex);
+
+    return 0;
+}
