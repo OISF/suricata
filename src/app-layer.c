@@ -604,11 +604,11 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
     /* tv is allowed to be NULL in unittests */
     if (tv != NULL) {
         app_tctx->counter_dns_memuse = SCPerfTVRegisterCounter("dns.memuse", tv,
-                SC_PERF_TYPE_UINT64, "NULL");
+                SC_PERF_TYPE_UINT64);
         app_tctx->counter_dns_memcap_state = SCPerfTVRegisterCounter("dns.memcap_state", tv,
-                SC_PERF_TYPE_UINT64, "NULL");
+                SC_PERF_TYPE_UINT64);
         app_tctx->counter_dns_memcap_global = SCPerfTVRegisterCounter("dns.memcap_global", tv,
-                SC_PERF_TYPE_UINT64, "NULL");
+                SC_PERF_TYPE_UINT64);
     }
 
     goto done;

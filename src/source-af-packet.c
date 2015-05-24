@@ -1715,13 +1715,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
 
 #ifdef PACKET_STATISTICS
     ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
     ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
 #endif
 
     char *active_runmode = RunmodeGetActive();

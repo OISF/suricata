@@ -371,77 +371,77 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
     dtv->counter_pkts = SCPerfTVRegisterCounter("decoder.pkts", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
+                                                SC_PERF_TYPE_UINT64);
     dtv->counter_bytes = SCPerfTVRegisterCounter("decoder.bytes", tv,
-                                                 SC_PERF_TYPE_UINT64, "NULL");
+                                                 SC_PERF_TYPE_UINT64);
     dtv->counter_invalid = SCPerfTVRegisterCounter("decoder.invalid", tv,
-                                                 SC_PERF_TYPE_UINT64, "NULL");
+                                                 SC_PERF_TYPE_UINT64);
     dtv->counter_ipv4 = SCPerfTVRegisterCounter("decoder.ipv4", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
+                                                SC_PERF_TYPE_UINT64);
     dtv->counter_ipv6 = SCPerfTVRegisterCounter("decoder.ipv6", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
+                                                SC_PERF_TYPE_UINT64);
     dtv->counter_eth = SCPerfTVRegisterCounter("decoder.ethernet", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_raw = SCPerfTVRegisterCounter("decoder.raw", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_null = SCPerfTVRegisterCounter("decoder.null", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_sll = SCPerfTVRegisterCounter("decoder.sll", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_tcp = SCPerfTVRegisterCounter("decoder.tcp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_udp = SCPerfTVRegisterCounter("decoder.udp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_sctp = SCPerfTVRegisterCounter("decoder.sctp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_icmpv4 = SCPerfTVRegisterCounter("decoder.icmpv4", tv,
-                                                  SC_PERF_TYPE_UINT64, "NULL");
+                                                  SC_PERF_TYPE_UINT64);
     dtv->counter_icmpv6 = SCPerfTVRegisterCounter("decoder.icmpv6", tv,
-                                                  SC_PERF_TYPE_UINT64, "NULL");
+                                                  SC_PERF_TYPE_UINT64);
     dtv->counter_ppp = SCPerfTVRegisterCounter("decoder.ppp", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_pppoe = SCPerfTVRegisterCounter("decoder.pppoe", tv,
-                                                 SC_PERF_TYPE_UINT64, "NULL");
+                                                 SC_PERF_TYPE_UINT64);
     dtv->counter_gre = SCPerfTVRegisterCounter("decoder.gre", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_vlan = SCPerfTVRegisterCounter("decoder.vlan", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_vlan_qinq = SCPerfTVRegisterCounter("decoder.vlan_qinq", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_teredo = SCPerfTVRegisterCounter("decoder.teredo", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_ipv4inipv6 = SCPerfTVRegisterCounter("decoder.ipv4_in_ipv6", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_ipv6inipv6 = SCPerfTVRegisterCounter("decoder.ipv6_in_ipv6", tv,
-                                               SC_PERF_TYPE_UINT64, "NULL");
+                                               SC_PERF_TYPE_UINT64);
     dtv->counter_mpls = SCPerfTVRegisterCounter("decoder.mpls", tv,
-                                                SC_PERF_TYPE_UINT64, "NULL");
+                                                SC_PERF_TYPE_UINT64);
     dtv->counter_avg_pkt_size = SCPerfTVRegisterAvgCounter("decoder.avg_pkt_size", tv,
-                                                           SC_PERF_TYPE_UINT64, "NULL");
+                                                           SC_PERF_TYPE_UINT64);
     dtv->counter_max_pkt_size = SCPerfTVRegisterMaxCounter("decoder.max_pkt_size", tv,
-                                                           SC_PERF_TYPE_UINT64, "NULL");
+                                                           SC_PERF_TYPE_UINT64);
 
     dtv->counter_defrag_ipv4_fragments =
         SCPerfTVRegisterCounter("defrag.ipv4.fragments", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_ipv4_reassembled =
         SCPerfTVRegisterCounter("defrag.ipv4.reassembled", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_ipv4_timeouts =
         SCPerfTVRegisterCounter("defrag.ipv4.timeouts", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_ipv6_fragments =
         SCPerfTVRegisterCounter("defrag.ipv6.fragments", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_ipv6_reassembled =
         SCPerfTVRegisterCounter("defrag.ipv6.reassembled", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_ipv6_timeouts =
         SCPerfTVRegisterCounter("defrag.ipv6.timeouts", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     dtv->counter_defrag_max_hit =
         SCPerfTVRegisterCounter("defrag.max_frag_hits", tv,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
 
     return;
 }

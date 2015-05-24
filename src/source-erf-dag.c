@@ -305,9 +305,9 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     ewtn->packets = SCPerfTVRegisterCounter("capture.dag_packets",
-        tv, SC_PERF_TYPE_UINT64, "NULL");
+        tv, SC_PERF_TYPE_UINT64);
     ewtn->drops = SCPerfTVRegisterCounter("capture.dag_drops",
-        tv, SC_PERF_TYPE_UINT64, "NULL");
+        tv, SC_PERF_TYPE_UINT64);
 
     ewtn->tv = tv;
     *data = (void *)ewtn;

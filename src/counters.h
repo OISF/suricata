@@ -59,9 +59,6 @@ typedef struct SCPerfCounter_ {
 
     /* the next perfcounter for this tv's tm instance */
     struct SCPerfCounter_ *next;
-
-    /* description of this counter */
-    char *desc;
 } SCPerfCounter;
 
 /**
@@ -117,9 +114,9 @@ void SCPerfSpawnThreads(void);
 void SCPerfRegisterTests(void);
 
 /* counter registration functions */
-uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int, char *);
-uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int, char *);
-uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int, char *);
+uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int);
+uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int);
+uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int);
 
 /* utility functions */
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);

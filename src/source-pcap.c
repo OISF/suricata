@@ -522,17 +522,11 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     pcapconfig->DerefFunc(pcapconfig);
 
     ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
     ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
     ptv->capture_kernel_ifdrops = SCPerfTVRegisterCounter("capture.kernel_ifdrops",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
 
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);
@@ -627,17 +621,11 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
     ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
     ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
     ptv->capture_kernel_ifdrops = SCPerfTVRegisterCounter("capture.kernel_ifdrops",
-            ptv->tv,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            ptv->tv, SC_PERF_TYPE_UINT64);
 
     *data = (void *)ptv;
 

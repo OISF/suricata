@@ -525,21 +525,21 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     *data = ftd;
 
     ftd->flow_mgr_cnt_clo = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_mgr_cnt_new = SCPerfTVRegisterCounter("flow_mgr.new_pruned", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_mgr_cnt_est = SCPerfTVRegisterCounter("flow_mgr.est_pruned", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_mgr_memuse = SCPerfTVRegisterCounter("flow.memuse", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_mgr_spare = SCPerfTVRegisterCounter("flow.spare", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_emerg_mode_over = SCPerfTVRegisterCounter("flow.emerg_mode_over", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
     ftd->flow_tcp_reuse = SCPerfTVRegisterCounter("flow.tcp_reuse", t,
-            SC_PERF_TYPE_UINT64, "NULL");
+            SC_PERF_TYPE_UINT64);
 
     PacketPoolInit();
     return TM_ECODE_OK;
@@ -576,14 +576,11 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 /* VJ leaving disabled for now, as hosts are only used by tags and the numbers
  * are really low. Might confuse ppl
     uint16_t flow_mgr_host_prune = SCPerfTVRegisterCounter("hosts.pruned", th_v,
-            SC_PERF_TYPE_UINT64,
-            "NULL");
+            SC_PERF_TYPE_UINT64);
     uint16_t flow_mgr_host_active = SCPerfTVRegisterCounter("hosts.active", th_v,
-            SC_PERF_TYPE_Q_NORMAL,
-            "NULL");
+            SC_PERF_TYPE_UINT64);
     uint16_t flow_mgr_host_spare = SCPerfTVRegisterCounter("hosts.spare", th_v,
-            SC_PERF_TYPE_Q_NORMAL,
-            "NULL");
+            SC_PERF_TYPE_UINT64);
 */
     memset(&ts, 0, sizeof(ts));
 

@@ -497,9 +497,6 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
         if (pc->tm_name != NULL)
             SCFree(pc->tm_name);
 
-        if (pc->desc != NULL)
-            SCFree(pc->desc);
-
         SCFree(pc);
     }
 
@@ -512,7 +509,6 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
  * \param cname    Name of the counter, to be registered
  * \param tm_name  Thread module to which this counter belongs
  * \param type     Datatype of this counter variable
- * \param desc     Description of this counter
  * \param pctx     SCPerfPublicContext for this tm-tv instance
  * \param type_q   Qualifier describing the type of counter to be registered
  *
@@ -521,8 +517,8 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
  * \retval 0 on failure
  */
 static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
-                                               int type, char *desc,
-                                               SCPerfPublicContext *pctx, int type_q)
+                                               int type, SCPerfPublicContext *pctx,
+                                               int type_q)
 {
     SCPerfCounter **head = &pctx->head;
     SCPerfCounter *temp = NULL;
@@ -574,11 +570,6 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     /* assign a unique id to this SCPerfCounter.  The id is local to this
      * PerfContext.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
-
-    if (desc != NULL && (pc->desc = SCStrdup(desc)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
 
     pc->type = type_q;
 
@@ -887,17 +878,15 @@ void SCPerfSpawnThreads(void)
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  * \param type  Datatype of this counter variable
- * \param desc  Description of this counter
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
-                                 char *desc)
+uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 type, desc,
+                                                 type,
                                                  &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_NORMAL);
 
@@ -912,17 +901,16 @@ uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type,
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  * \param type  Datatype of this counter variable
- * \param desc  Description of this counter
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
 uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
-                                    int type, char *desc)
+                                    int type)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 type, desc,
+                                                 type,
                                                  &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_AVERAGE);
 
@@ -937,17 +925,16 @@ uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  * \param type  Datatype of this counter variable
- * \param desc  Description of this counter
  *
  * \retval the counter id for the newly registered counter, or the already
  *         present counter
  */
 uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
-                                    int type, char *desc)
+                                    int type)
 {
     uint16_t id = SCPerfRegisterQualifiedCounter(cname,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 type, desc,
+                                                 type,
                                                  &tv->perf_public_ctx,
                                                  SC_PERF_TYPE_Q_MAXIMUM);
 
@@ -961,17 +948,16 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
  * \param tm_name Name of the engine module under which the counter has to be
  *                registered
  * \param type    Datatype of this counter variable
- * \param desc    Description of this counter
  * \param pctx    SCPerfPublicContext corresponding to the tm_name key under which the
  *                key has to be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-static uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type, char *desc,
+static uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type,
                                SCPerfPublicContext *pctx)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, desc,
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type,
                                                  pctx, SC_PERF_TYPE_Q_NORMAL);
 
     return id;
@@ -1307,7 +1293,7 @@ static int SCPerfTestCounterReg01()
 
     memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
-    return SCPerfRegisterCounter("t1", "c1", 5, NULL, &pctx);
+    return SCPerfRegisterCounter("t1", "c1", 5, &pctx);
 }
 
 static int SCPerfTestCounterReg02()
@@ -1316,7 +1302,7 @@ static int SCPerfTestCounterReg02()
 
     memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
-    return SCPerfRegisterCounter(NULL, NULL, SC_PERF_TYPE_UINT64, NULL, &pctx);
+    return SCPerfRegisterCounter(NULL, NULL, SC_PERF_TYPE_UINT64, &pctx);
 }
 
 static int SCPerfTestCounterReg03()
@@ -1326,7 +1312,7 @@ static int SCPerfTestCounterReg03()
 
     memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
-    result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
+    result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, &pctx);
 
     SCPerfReleasePerfCounterS(pctx.head);
 
@@ -1340,11 +1326,11 @@ static int SCPerfTestCounterReg04()
 
     memset(&pctx, 0, sizeof(SCPerfPublicContext));
 
-    SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
-    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL, &pctx);
-    SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL, &pctx);
+    SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, &pctx);
+    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, &pctx);
+    SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, &pctx);
 
-    result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL, &pctx);
+    result = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, &pctx);
 
     SCPerfReleasePerfCounterS(pctx.head);
 
@@ -1358,7 +1344,7 @@ static int SCPerfTestGetCntArray05()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                &tv.perf_public_ctx);
     if (id != 1) {
         printf("id %d: ", id);
@@ -1377,7 +1363,7 @@ static int SCPerfTestGetCntArray06()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                &tv.perf_public_ctx);
     if (id != 1)
         return 0;
@@ -1402,9 +1388,9 @@ static int SCPerfTestCntArraySize07()
 
     //pca = (SCPerfPrivateContext *)&tv.perf_private_ctx;
 
-    SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                           &tv.perf_public_ctx);
-    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
+    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64,
                           &tv.perf_public_ctx);
 
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
@@ -1430,7 +1416,7 @@ static int SCPerfTestUpdateCounter08()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                &tv.perf_public_ctx);
 
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
@@ -1456,15 +1442,15 @@ static int SCPerfTestUpdateCounter09()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
+    SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64,
                           &tv.perf_public_ctx);
-    SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
+    SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64,
                           &tv.perf_public_ctx);
-    SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64, NULL,
+    SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64,
                           &tv.perf_public_ctx);
-    id2 = SCPerfRegisterCounter("t5", "c5", SC_PERF_TYPE_UINT64, NULL,
+    id2 = SCPerfRegisterCounter("t5", "c5", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
 
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
@@ -1491,11 +1477,11 @@ static int SCPerfTestUpdateGlobalCounter10()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
+    id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
+    id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
 
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
@@ -1528,13 +1514,13 @@ static int SCPerfTestCounterValues11()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
+    id1 = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64, NULL,
+    id2 = SCPerfRegisterCounter("t2", "c2", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64, NULL,
+    id3 = SCPerfRegisterCounter("t3", "c3", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
-    id4 = SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64, NULL,
+    id4 = SCPerfRegisterCounter("t4", "c4", SC_PERF_TYPE_UINT64,
                                 &tv.perf_public_ctx);
 
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);

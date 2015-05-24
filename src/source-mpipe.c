@@ -438,36 +438,26 @@ static void MpipeRegisterPerfCounters(MpipeThreadVars *ptv, ThreadVars *tv)
     /* register counters */
     ptv->max_mpipe_depth = SCPerfTVRegisterCounter("mpipe.max_mpipe_depth",
                                                     tv,
-                                                    SC_PERF_TYPE_UINT64,
-                                                    "NULL");
+                                                    SC_PERF_TYPE_UINT64);
     ptv->mpipe_drop = SCPerfTVRegisterCounter("mpipe.drop",
                                               tv,
-                                              SC_PERF_TYPE_UINT64,
-                                              "NULL");
+                                              SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_0 = SCPerfTVRegisterCounter("mpipe.no_buf0", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_1 = SCPerfTVRegisterCounter("mpipe.no_buf1", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_2 = SCPerfTVRegisterCounter("mpipe.no_buf2", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_3 = SCPerfTVRegisterCounter("mpipe.no_buf3", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_4 = SCPerfTVRegisterCounter("mpipe.no_buf4", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_5 = SCPerfTVRegisterCounter("mpipe.no_buf5", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_6 = SCPerfTVRegisterCounter("mpipe.no_buf6", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
     ptv->counter_no_buffers_7 = SCPerfTVRegisterCounter("mpipe.no_buf7", tv,
-                                                        SC_PERF_TYPE_UINT64,
-                                                        "NULL");
+                                                        SC_PERF_TYPE_UINT64);
 }
 
 static const gxio_mpipe_buffer_size_enum_t gxio_buffer_sizes[] = {
