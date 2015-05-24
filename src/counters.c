@@ -1188,7 +1188,6 @@ int SCPerfSetupPrivate(ThreadVars *tv)
  */
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, SCPerfPublicContext *pctx)
 {
-    SCPerfCounter *pc = NULL;
     SCPCAElem *pcae = NULL;
     uint32_t i = 0;
 
@@ -1200,22 +1199,9 @@ int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, SCPerfPublicContext *pct
     pcae = pca->head;
 
     SCMutexLock(&pctx->m);
-    pc = pctx->head;
-
     for (i = 1; i <= pca->size; i++) {
-        while (pc != NULL) {
-            if (pc->id != pcae[i].id) {
-                pc = pc->next;
-                continue;
-            }
-
-            SCPerfCopyCounterValue(&pcae[i]);
-
-            pc = pc->next;
-            break;
-        }
+        SCPerfCopyCounterValue(&pcae[i]);
     }
-
     SCMutexUnlock(&pctx->m);
 
     pctx->perf_flag = 0;
