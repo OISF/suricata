@@ -119,10 +119,6 @@ void OutputJsonRegisterTests (void)
 
 #define OUTPUT_BUFFER_SIZE 65535
 
-#ifndef OS_WIN32
-static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
-#endif /* OS_WIN32 */
-
 TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
 TmEcode OutputJsonThreadDeinit(ThreadVars *, void *);
@@ -361,56 +357,8 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
     if (unlikely(js_s == NULL))
         return TM_ECODE_OK;
 
-    SCMutexLock(&file_ctx->fp_mutex);
-    if (file_ctx->type == LOGFILE_TYPE_SYSLOG)
-    {
-        if (file_ctx->prefix != NULL)
-        {
-            syslog(alert_syslog_level, "%s%s", file_ctx->prefix, js_s);
-        }
-        else
-        {
-            syslog(alert_syslog_level, "%s", js_s);
-        }
-    }
-    else if (file_ctx->type == LOGFILE_TYPE_FILE ||
-               file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
-               file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
-    {
-        if (file_ctx->prefix != NULL)
-        {
-            MemBufferWriteString(buffer, "%s%s\n", file_ctx->prefix, js_s);
-        }
-        else
-        {
-            MemBufferWriteString(buffer, "%s\n", js_s);
-        }
-        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
-            MEMBUFFER_OFFSET(buffer), file_ctx);
-    }
-#if HAVE_LIBHIREDIS
-    else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
-        /* FIXME go async here */
-        redisReply *reply = redisCommand(file_ctx->redis, "%s %s %s",
-                                         file_ctx->redis_setup.command,
-                                         file_ctx->redis_setup.key,
-                                         js_s);
-        switch (reply->type) {
-            case REDIS_REPLY_ERROR:
-                SCLogWarning(SC_WARN_NO_UNITTESTS, "Redis error: %s", reply->str);
-                break;
-            case REDIS_REPLY_INTEGER:
-                SCLogDebug("Redis integer %lld", reply->integer);
-                break;
-            default:
-                SCLogError(SC_ERR_INVALID_VALUE,
-                           "Redis default triggered with %d", reply->type);
-                break;
-        }
-        freeReplyObject(reply);
-    }
-#endif
-    SCMutexUnlock(&file_ctx->fp_mutex);
+    LogFileWrite(file_ctx, buffer, js_s, strlen(js_s));
+
     free(js_s);
     return 0;
 }
@@ -577,7 +525,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             if (level_s != NULL) {
                 int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
                 if (level != -1) {
-                    alert_syslog_level = level;
+                    json_ctx->file_ctx->syslog_setup.alert_syslog_level = level;
                 }
             }
 
