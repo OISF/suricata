@@ -540,11 +540,6 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         else if (json_ctx->json_out == LOGFILE_TYPE_REDIS) {
             ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
             const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
-            const char *redis_server = NULL;
-            const char *redis_port = NULL;
-            const char *redis_mode = NULL;
-            const char *redis_key = NULL;
-
             if (!sensor_name) {
                 char hostname[1024];
                 gethostname(hostname, 1023);
@@ -552,49 +547,12 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             }
             json_ctx->file_ctx->redis_setup.sensor_name = SCStrdup(sensor_name);
 
-
-            if (redis_node) {
-                redis_server = ConfNodeLookupChildValue(redis_node, "server");
-                redis_port =  ConfNodeLookupChildValue(redis_node, "port");
-                redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
-                redis_key =  ConfNodeLookupChildValue(redis_node, "key");
+            if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return NULL;
             }
-            if (!redis_server) {
-                redis_server = "127.0.0.1";
-                SCLogInfo("Using default redis server (127.0.0.1)");
-            }
-            if (!redis_port)
-                redis_port = "6379";
-            if (!redis_mode)
-                redis_mode = "list";
-            if (!redis_key)
-                redis_key = "suricata";
-            json_ctx->file_ctx->redis_setup.key = SCStrdup(redis_key);
-
-            if (!json_ctx->file_ctx->redis_setup.key) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key name");
-                exit(EXIT_FAILURE);
-            }
-
-            if (!strcmp(redis_mode, "list")) {
-                json_ctx->file_ctx->redis_setup.command = SCStrdup("LPUSH");
-                if (!json_ctx->file_ctx->redis_setup.command) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
-                    exit(EXIT_FAILURE);
-                }
-            } else {
-                json_ctx->file_ctx->redis_setup.command = SCStrdup("PUBLISH");
-                if (!json_ctx->file_ctx->redis_setup.command) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
-                    exit(EXIT_FAILURE);
-                }
-            }
-            redisContext *c = redisConnect(redis_server, atoi(redis_port));
-            if (c != NULL && c->err) {
-                SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: %s\n", c->errstr);
-                exit(EXIT_FAILURE);
-            }
-            json_ctx->file_ctx->redis = c;
         }
 #endif
 
