@@ -52,6 +52,10 @@ typedef struct SCPerfCounter_ {
     uint64_t value;     /**< sum of updates/increments, or 'set' value */
     uint64_t updates;   /**< number of updates (for avg) */
 
+    /* when using type SC_PERF_TYPE_Q_FUNC this function is called once
+     * to get the counter value, regardless of how many threads there are. */
+    uint64_t (*Func)(void);
+
     /* name of the counter */
     char *cname;
     /* name of the thread module this counter is registered to */
@@ -117,6 +121,7 @@ void SCPerfRegisterTests(void);
 uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int);
 uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int);
 uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int);
+uint16_t SCPerfTVRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
 /* utility functions */
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);

@@ -58,7 +58,9 @@ enum {
     SC_PERF_TYPE_Q_NORMAL = 1,
     SC_PERF_TYPE_Q_AVERAGE = 2,
     SC_PERF_TYPE_Q_MAXIMUM = 3,
-    SC_PERF_TYPE_Q_MAX = 4,
+    SC_PERF_TYPE_Q_FUNC = 4,
+
+    SC_PERF_TYPE_Q_MAX = 5,
 };
 
 /**
@@ -95,6 +97,9 @@ typedef struct SCPerfOPIfaceContext_ {
     SCPerfClubTMInst *pctmi;
     SCMutex pctmi_lock;
     HashTable *counters_id_hash;
+
+    //SCPerfCounter *global_counters;
+    SCPerfPublicContext global_counter_ctx;
 } SCPerfOPIfaceContext;
 
 static void *stats_thread_data = NULL;
@@ -518,7 +523,7 @@ static void SCPerfReleaseCounter(SCPerfCounter *pc)
  */
 static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
                                                int type, SCPerfPublicContext *pctx,
-                                               int type_q)
+                                               int type_q, uint64_t (*Func)(void))
 {
     SCPerfCounter **head = &pctx->head;
     SCPerfCounter *temp = NULL;
@@ -888,7 +893,7 @@ uint16_t SCPerfTVRegisterCounter(char *cname, struct ThreadVars_ *tv, int type)
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_NORMAL);
+                                                 SC_PERF_TYPE_Q_NORMAL, NULL);
 
     return id;
 }
@@ -912,7 +917,7 @@ uint16_t SCPerfTVRegisterAvgCounter(char *cname, struct ThreadVars_ *tv,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_AVERAGE);
+                                                 SC_PERF_TYPE_Q_AVERAGE, NULL);
 
     return id;
 }
@@ -936,8 +941,27 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  type,
                                                  &tv->perf_public_ctx,
-                                                 SC_PERF_TYPE_Q_MAXIMUM);
+                                                 SC_PERF_TYPE_Q_MAXIMUM, NULL);
 
+    return id;
+}
+
+/**
+ * \brief Registers a counter, which represents a global value
+ *
+ * \param cname Name of the counter, to be registered
+ * \param Func  Function Pointer returning a uint64_t
+ *
+ * \retval id Counter id for the newly registered counter, or the already
+ *            present counter
+ */
+uint16_t SCPerfTVRegisterGlobalCounter(char *cname, uint64_t (*Func)(void))
+{
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname, NULL,
+                                                 SC_PERF_TYPE_UINT64,
+                                                 &(sc_perf_op_ctx->global_counter_ctx),
+                                                 SC_PERF_TYPE_Q_FUNC,
+                                                 Func);
     return id;
 }
 
@@ -957,8 +981,8 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
 static uint16_t SCPerfRegisterCounter(char *cname, char *tm_name, int type,
                                SCPerfPublicContext *pctx)
 {
-    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type,
-                                                 pctx, SC_PERF_TYPE_Q_NORMAL);
+    uint16_t id = SCPerfRegisterQualifiedCounter(cname, tm_name, type, pctx,
+                                                 SC_PERF_TYPE_Q_NORMAL, NULL);
 
     return id;
 }
