@@ -57,6 +57,9 @@ typedef struct RedisSetup_ {
     int  batch_size;
     int  batch_timeout;
     SC_ATOMIC_DECLARE(int, batch_count);
+    char *server;
+    int  port;
+    int  tried;
 } RedisSetup;
 #endif
 
