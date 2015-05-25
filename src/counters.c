@@ -83,8 +83,9 @@ typedef struct StatsThreadStore_ {
  * \brief Holds the output interface context for the counter api
  */
 typedef struct StatsGlobalContext_ {
-    StatsThreadStore *pctmi;
-    SCMutex pctmi_lock;
+    /** list of thread stores: one per thread plus one global */
+    StatsThreadStore *sts;
+    SCMutex sts_lock;
     HashTable *counters_id_hash;
 
     SCPerfPublicContext global_counter_ctx;
@@ -236,8 +237,8 @@ static void SCPerfInitOPCtx(void)
     time(&sc_start_time);
 
     /* init the lock used by StatsThreadStore */
-    if (SCMutexInit(&sc_perf_op_ctx->pctmi_lock, NULL) != 0) {
-        SCLogError(SC_ERR_INITIALIZATION, "error initializing pctmi mutex");
+    if (SCMutexInit(&sc_perf_op_ctx->sts_lock, NULL) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION, "error initializing sts mutex");
         exit(EXIT_FAILURE);
     }
 
@@ -255,20 +256,20 @@ static void SCPerfReleaseOPCtx()
         return;
     }
 
-    StatsThreadStore *pctmi = NULL;
+    StatsThreadStore *sts = NULL;
     StatsThreadStore *temp = NULL;
-    pctmi = sc_perf_op_ctx->pctmi;
+    sts = sc_perf_op_ctx->sts;
 
-    while (pctmi != NULL) {
-        if (pctmi->tm_name != NULL)
-            SCFree(pctmi->tm_name);
+    while (sts != NULL) {
+        if (sts->tm_name != NULL)
+            SCFree(sts->tm_name);
 
-        if (pctmi->head != NULL)
-            SCFree(pctmi->head);
+        if (sts->head != NULL)
+            SCFree(sts->head);
 
-        temp = pctmi->next;
-        SCFree(pctmi);
-        pctmi = temp;
+        temp = sts->next;
+        SCFree(sts);
+        sts = temp;
     }
 
     SCFree(sc_perf_op_ctx);
@@ -602,7 +603,7 @@ static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
  */
 static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 {
-    const StatsThreadStore *pctmi = NULL;
+    const StatsThreadStore *sts = NULL;
     const SCPerfCounter *pc = NULL;
     void *td = stats_thread_data;
 
@@ -636,14 +637,14 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 
     /* Loop through the thread counter stores. The global counters
      * are in a separate store inside this list. */
-    pctmi = sc_perf_op_ctx->pctmi;
-    SCLogDebug("pctmi %p", pctmi);
-    while (pctmi != NULL) {
-        SCLogDebug("Thread %s (%s) ctx %p", pctmi->name,
-                pctmi->tm_name ? pctmi->tm_name : "none", pctmi->ctx);
+    sts = sc_perf_op_ctx->sts;
+    SCLogDebug("sts %p", sts);
+    while (sts != NULL) {
+        SCLogDebug("Thread %s (%s) ctx %p", sts->name,
+                sts->tm_name ? sts->tm_name : "none", sts->ctx);
 
-        SCMutexLock(&pctmi->ctx->m);
-        pc = pctmi->ctx->head;
+        SCMutexLock(&sts->ctx->m);
+        pc = sts->ctx->head;
         while (pc != NULL) {
             SCLogDebug("Counter %s (%u:%u) value %"PRIu64,
                     pc->cname, pc->id, pc->gid, pc->value);
@@ -671,8 +672,8 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 
             pc = pc->next;
         }
-        SCMutexUnlock(&pctmi->ctx->m);
-        pctmi = pctmi->next;
+        SCMutexUnlock(&sts->ctx->m);
+        sts = sts->next;
     }
 
     uint16_t x;
@@ -710,7 +711,7 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
 TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    StatsThreadStore *pctmi = NULL;
+    StatsThreadStore *sts = NULL;
     SCPerfCounter *pc = NULL;
     SCPerfCounter **pc_heads = NULL;
 
@@ -735,8 +736,8 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
         return TM_ECODE_FAILED;
     }
 
-    pctmi = sc_perf_op_ctx->pctmi;
-    while (pctmi != NULL) {
+    sts = sc_perf_op_ctx->sts;
+    while (sts != NULL) {
         json_t *jdata;
         int filled = 0;
         jdata = json_object();
@@ -746,18 +747,18 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                     json_string("internal error at json object creation"));
             return TM_ECODE_FAILED;
         }
-        if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL) {
+        if ((pc_heads = SCMalloc(sts->size * sizeof(SCPerfCounter *))) == NULL) {
             json_decref(tm_array);
             json_object_set_new(answer, "message",
                     json_string("internal memory error"));
             return TM_ECODE_FAILED;
         }
-        memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
+        memset(pc_heads, 0, sts->size * sizeof(SCPerfCounter *));
 
-        for (u = 0; u < pctmi->size; u++) {
-            pc_heads[u] = pctmi->head[u]->head;
+        for (u = 0; u < sts->size; u++) {
+            pc_heads[u] = sts->head[u]->head;
 
-            SCMutexLock(&pctmi->head[u]->m);
+            SCMutexLock(&sts->head[u]->m);
         }
 
         flag = 1;
@@ -767,7 +768,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                 break;
             pc = pc_heads[0];
 
-            for (u = 0; u < pctmi->size; u++) {
+            for (u = 0; u < sts->size; u++) {
                 ui64_temp = SCPerfOutputCalculateCounterValue(pc_heads[u]);
                 ui64_result += ui64_temp;
 
@@ -781,13 +782,13 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
             json_object_set_new(jdata, pc->cname, json_integer(ui64_result));
         }
 
-        for (u = 0; u < pctmi->size; u++)
-            SCMutexUnlock(&pctmi->head[u]->m);
+        for (u = 0; u < sts->size; u++)
+            SCMutexUnlock(&sts->head[u]->m);
 
         if (filled == 1) {
-            json_object_set_new(tm_array, pctmi->tm_name, jdata);
+            json_object_set_new(tm_array, sts->tm_name, jdata);
         }
-        pctmi = pctmi->next;
+        sts = sts->next;
 
         SCFree(pc_heads);
 
@@ -1061,7 +1062,7 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pct
         return 0;
     }
 
-    SCMutexLock(&sc_perf_op_ctx->pctmi_lock);
+    SCMutexLock(&sc_perf_op_ctx->sts_lock);
     if (sc_perf_op_ctx->counters_id_hash == NULL) {
         sc_perf_op_ctx->counters_id_hash = HashTableInit(256, CountersIdHashFunc,
                                                               CountersIdHashCompareFunc,
@@ -1085,7 +1086,7 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pct
 
 
     if ( (temp = SCMalloc(sizeof(StatsThreadStore))) == NULL) {
-        SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
+        SCMutexUnlock(&sc_perf_op_ctx->sts_lock);
         return 0;
     }
     memset(temp, 0, sizeof(StatsThreadStore));
@@ -1095,15 +1096,15 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pct
     temp->name = SCStrdup(thread_name);
     if (unlikely(temp->name == NULL)) {
         SCFree(temp);
-        SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
+        SCMutexUnlock(&sc_perf_op_ctx->sts_lock);
         return 0;
     }
 
-    temp->next = sc_perf_op_ctx->pctmi;
-    sc_perf_op_ctx->pctmi = temp;
-    SCLogDebug("sc_perf_op_ctx->pctmi %p", sc_perf_op_ctx->pctmi);
+    temp->next = sc_perf_op_ctx->sts;
+    sc_perf_op_ctx->sts = temp;
+    SCLogDebug("sc_perf_op_ctx->sts %p", sc_perf_op_ctx->sts);
 
-    SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
+    SCMutexUnlock(&sc_perf_op_ctx->sts_lock);
     return 1;
 }
 
