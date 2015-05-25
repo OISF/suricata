@@ -344,6 +344,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             return TM_ECODE_FAILED;
         }
         PcapFilesFree(cfile);
+        StatsInit();
 #ifdef PROFILING
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
@@ -354,7 +355,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         IPPairInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
         RunModeInitializeOutputs();
-        SCPerfInitCounterApi();
+        StatsSetupPostConfig();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();

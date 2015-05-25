@@ -212,12 +212,6 @@ static ConfNode *GetConfig(void) {
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
-    if ( (sc_perf_op_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-    memset(sc_perf_op_ctx, 0, sizeof(StatsGlobalContext));
-
     ConfNode *stats = GetConfig();
     if (stats != NULL) {
         const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
@@ -797,11 +791,19 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
  * \brief Initializes the perf counter api.  Things are hard coded currently.
  *        More work to be done when we implement multiple interfaces
  */
-void SCPerfInitCounterApi(void)
+void StatsInit(void)
+{
+    BUG_ON(sc_perf_op_ctx != NULL);
+    if ( (sc_perf_op_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+    memset(sc_perf_op_ctx, 0, sizeof(StatsGlobalContext));
+}
+
+void StatsSetupPostConfig(void)
 {
     SCPerfInitOPCtx();
-
-    return;
 }
 
 /**

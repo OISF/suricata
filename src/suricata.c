@@ -2203,6 +2203,7 @@ int main(int argc, char **argv)
     GlobalInits();
     TimeInit();
     SupportFastPatternForSigMatchTypes();
+    StatsInit();
 
     if (conf_filename == NULL)
         conf_filename = DEFAULT_CONF_FILE;
@@ -2302,7 +2303,7 @@ int main(int argc, char **argv)
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
-        SCPerfInitCounterApi();
+        StatsSetupPostConfig();
     }
 
     if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {

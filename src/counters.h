@@ -111,7 +111,8 @@ typedef struct SCPerfPrivateContext_ {
 } SCPerfPrivateContext;
 
 /* the initialization functions */
-void SCPerfInitCounterApi(void);
+void StatsInit(void);
+void StatsSetupPostConfig(void);
 void SCPerfSpawnThreads(void);
 void SCPerfRegisterTests(void);
 
