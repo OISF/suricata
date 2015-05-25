@@ -99,6 +99,7 @@ static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
 static char sc_counter_enabled = TRUE;
 
 static int SCPerfOutputCounterFileIface(ThreadVars *tv);
+static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *);
 
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
@@ -509,8 +510,8 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     SCPerfCounter *prev = NULL;
     SCPerfCounter *pc = NULL;
 
-    if (cname == NULL || tm_name == NULL || pctx == NULL) {
-        SCLogDebug("Counter name, tm name null or SCPerfPublicContext NULL");
+    if (cname == NULL || pctx == NULL) {
+        SCLogDebug("Counter name, SCPerfPublicContext NULL");
         return 0;
     }
 
@@ -550,6 +551,7 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
     pc->id = ++(pctx->curr_id);
 
     pc->type = type_q;
+    pc->Func = Func;
 
     /* we now add the counter to the list */
     if (prev == NULL)
@@ -605,6 +607,8 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
     void *td = stats_thread_data;
 
     if (stats_table.nstats == 0) {
+        StatsThreadRegister("Globals", &sc_perf_op_ctx->global_counter_ctx);
+
         uint32_t nstats = counters_global_id;
 
         stats_table.nstats = nstats;
@@ -629,6 +633,9 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
            counters_global_id * sizeof(struct CountersMergeTable));
 
     StatsRecord *table = stats_table.stats;
+
+    /* Loop through the thread counter stores. The global counters
+     * are in a separate store inside this list. */
     pctmi = sc_perf_op_ctx->pctmi;
     SCLogDebug("pctmi %p", pctmi);
     while (pctmi != NULL) {
@@ -646,15 +653,21 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
                 case STATS_TYPE_MAXIMUM:
                     if (pc->value > merge_table[pc->gid].value)
                         merge_table[pc->gid].value = pc->value;
+                    table[pc->gid].tm_name = "Total";
+                    break;
+                case STATS_TYPE_FUNC:
+                    if (pc->Func != NULL)
+                        merge_table[pc->gid].value = pc->Func();
+                    table[pc->gid].tm_name = "Global";
                     break;
                 default:
                     merge_table[pc->gid].value += pc->value;
+                    table[pc->gid].tm_name = "Total";
                     break;
             }
             merge_table[pc->gid].updates += pc->updates;
 
             table[pc->gid].name = pc->cname;
-            table[pc->gid].tm_name = pctmi->tm_name;
 
             pc = pc->next;
         }
@@ -938,6 +951,12 @@ uint16_t SCPerfTVRegisterMaxCounter(char *cname, struct ThreadVars_ *tv,
  */
 uint16_t SCPerfTVRegisterGlobalCounter(char *cname, uint64_t (*Func)(void))
 {
+#ifdef UNITTESTS
+    if (sc_perf_op_ctx == NULL)
+        return 0;
+#else
+    BUG_ON(sc_perf_op_ctx == NULL);
+#endif
     uint16_t id = SCPerfRegisterQualifiedCounter(cname, NULL,
                                                  SC_PERF_TYPE_UINT64,
                                                  &(sc_perf_op_ctx->global_counter_ctx),
@@ -1082,7 +1101,7 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pct
 
     temp->next = sc_perf_op_ctx->pctmi;
     sc_perf_op_ctx->pctmi = temp;
-    SCLogInfo("sc_perf_op_ctx->pctmi %p", sc_perf_op_ctx->pctmi);
+    SCLogDebug("sc_perf_op_ctx->pctmi %p", sc_perf_op_ctx->pctmi);
 
     SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
     return 1;
