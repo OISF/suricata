@@ -86,6 +86,8 @@ typedef struct StatsGlobalContext_ {
     /** list of thread stores: one per thread plus one global */
     StatsThreadStore *sts;
     SCMutex sts_lock;
+    int sts_cnt;
+
     HashTable *counters_id_hash;
 
     SCPerfPublicContext global_counter_ctx;
@@ -104,7 +106,7 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *);
 
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
-static StatsTable stats_table = { NULL, 0, 0, {0 , 0}};
+static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
 
 static uint16_t counters_global_id = 0;
 
@@ -608,7 +610,7 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
     void *td = stats_thread_data;
 
     if (stats_table.nstats == 0) {
-        StatsThreadRegister("Globals", &sc_perf_op_ctx->global_counter_ctx);
+        StatsThreadRegister("Global", &sc_perf_op_ctx->global_counter_ctx);
 
         uint32_t nstats = counters_global_id;
 
@@ -616,6 +618,15 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
         stats_table.stats = SCCalloc(stats_table.nstats, sizeof(StatsRecord));
         if (stats_table.stats == NULL) {
             stats_table.nstats = 0;
+            SCLogError(SC_ERR_MEM_ALLOC, "could not alloc memory for stats");
+            return -1;
+        }
+
+        stats_table.ntstats = sc_perf_op_ctx->sts_cnt;
+        uint32_t array_size = stats_table.nstats * sizeof(StatsRecord);
+        stats_table.tstats = SCCalloc(stats_table.ntstats, array_size);
+        if (stats_table.tstats == NULL) {
+            stats_table.ntstats = 0;
             SCLogError(SC_ERR_MEM_ALLOC, "could not alloc memory for stats");
             return -1;
         }
@@ -633,6 +644,7 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
     memset(&merge_table, 0x00,
            counters_global_id * sizeof(struct CountersMergeTable));
 
+    int thread = sc_perf_op_ctx->sts_cnt - 1;
     StatsRecord *table = stats_table.stats;
 
     /* Loop through the thread counter stores. The global counters
@@ -640,8 +652,17 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
     sts = sc_perf_op_ctx->sts;
     SCLogDebug("sts %p", sts);
     while (sts != NULL) {
-        SCLogDebug("Thread %s (%s) ctx %p", sts->name,
+        BUG_ON(thread < 0);
+
+        SCLogDebug("Thread %d %s (%s) ctx %p", thread, sts->name,
                 sts->tm_name ? sts->tm_name : "none", sts->ctx);
+
+        /* temporay table for quickly storing the counters for this
+         * thread store, so that we can post process them outside
+         * of the thread store lock */
+        struct CountersMergeTable thread_table[counters_global_id];
+        memset(&thread_table, 0x00,
+                counters_global_id * sizeof(struct CountersMergeTable));
 
         SCMutexLock(&sts->ctx->m);
         pc = sts->ctx->head;
@@ -649,38 +670,86 @@ static int SCPerfOutputCounterFileIface(ThreadVars *tv)
             SCLogDebug("Counter %s (%u:%u) value %"PRIu64,
                     pc->cname, pc->id, pc->gid, pc->value);
 
-            merge_table[pc->gid].type = pc->type;
+            thread_table[pc->gid].type = pc->type;
             switch (pc->type) {
-                case STATS_TYPE_MAXIMUM:
-                    if (pc->value > merge_table[pc->gid].value)
-                        merge_table[pc->gid].value = pc->value;
-                    table[pc->gid].tm_name = "Total";
-                    break;
                 case STATS_TYPE_FUNC:
                     if (pc->Func != NULL)
-                        merge_table[pc->gid].value = pc->Func();
-                    table[pc->gid].tm_name = "Global";
+                        thread_table[pc->gid].value = pc->Func();
                     break;
+                case STATS_TYPE_AVERAGE:
                 default:
-                    merge_table[pc->gid].value += pc->value;
-                    table[pc->gid].tm_name = "Total";
+                    thread_table[pc->gid].value = pc->value;
                     break;
             }
-            merge_table[pc->gid].updates += pc->updates;
-
+            thread_table[pc->gid].updates = pc->updates;
             table[pc->gid].name = pc->cname;
 
             pc = pc->next;
         }
         SCMutexUnlock(&sts->ctx->m);
+
+        /* update merge table */
+        uint16_t c;
+        for (c = 0; c < counters_global_id; c++) {
+            struct CountersMergeTable *e = &thread_table[c];
+            /* thread only sets type if it has a counter
+             * of this type. */
+            if (e->type == 0)
+                continue;
+
+            switch (e->type) {
+                case STATS_TYPE_MAXIMUM:
+                    if (e->value > merge_table[c].value)
+                        merge_table[c].value = e->value;
+                    break;
+                case STATS_TYPE_FUNC:
+                    merge_table[c].value = e->value;
+                    break;
+                case STATS_TYPE_AVERAGE:
+                default:
+                    merge_table[c].value += e->value;
+                    break;
+            }
+            merge_table[c].updates += e->updates;
+            merge_table[c].type = e->type;
+        }
+
+        /* update per thread stats table */
+        for (c = 0; c < counters_global_id; c++) {
+            struct CountersMergeTable *e = &thread_table[c];
+            /* thread only sets type if it has a counter
+             * of this type. */
+            if (e->type == 0)
+                continue;
+
+            uint32_t offset = (thread * stats_table.nstats) + c;
+            StatsRecord *r = &stats_table.tstats[offset];
+            r->name = table[c].name;
+            r->tm_name = sts->name;
+
+            switch (e->type) {
+                case STATS_TYPE_AVERAGE:
+                    if (e->value > 0 && e->updates > 0) {
+                        r->value = (uint64_t)(e->value / e->updates);
+                    }
+                    break;
+                default:
+                    r->value = e->value;
+                    break;
+            }
+        }
+
         sts = sts->next;
+        thread--;
     }
 
+    /* transfer 'merge table' to final stats table */
     uint16_t x;
     for (x = 0; x < counters_global_id; x++) {
         /* xfer previous value to pvalue and reset value */
         table[x].pvalue = table[x].value;
         table[x].value = 0;
+        table[x].tm_name = "Total";
 
         struct CountersMergeTable *m = &merge_table[x];
         switch (m->type) {
@@ -1102,6 +1171,7 @@ static int StatsThreadRegister(const char *thread_name, SCPerfPublicContext *pct
 
     temp->next = sc_perf_op_ctx->sts;
     sc_perf_op_ctx->sts = temp;
+    sc_perf_op_ctx->sts_cnt++;
     SCLogDebug("sc_perf_op_ctx->sts %p", sc_perf_op_ctx->sts);
 
     SCMutexUnlock(&sc_perf_op_ctx->sts_lock);

@@ -34,8 +34,10 @@ typedef struct StatsRecord_ {
 } StatsRecord;
 
 typedef struct StatsTable_ {
-    StatsRecord *stats;
-    uint32_t nstats;
+    StatsRecord *stats;     /**< array of global stats, indexed by counters gid */
+    StatsRecord *tstats;    /**< array of arrays with per thread stats */
+    uint32_t nstats;        /**< size in records of 'stats' */
+    uint32_t ntstats;       /**< number of threads for which tstats stores stats */
     time_t start_time;
     struct timeval ts;
 } StatsTable;

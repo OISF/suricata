@@ -98,10 +98,11 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
             "---------------------\n");
 
+    /* global stats */
     uint32_t u = 0;
     for (u = 0; u < st->nstats; u++) {
         if (st->stats[u].name == NULL)
-            break;
+            continue;
 
         char line[1024];
         size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
@@ -114,6 +115,33 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
         }
 
         MemBufferWriteString(aft->buffer, "%s", line);
+    }
+
+    /* per thread stats */
+    if (st->tstats != NULL) {
+        /* for each thread (store) */
+        uint32_t x;
+        for (x = 0; x < st->ntstats; x++) {
+            uint32_t offset = x * st->nstats;
+
+            /* for each counter */
+            for (u = offset; u < (offset + st->nstats); u++) {
+                if (st->tstats[u].name == NULL)
+                    continue;
+
+                char line[1024];
+                size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
+                        st->tstats[u].name, st->tstats[u].tm_name, st->tstats[u].value);
+
+                /* since we can have many threads, the buffer might not be big enough.
+                 * Expand if necessary. */
+                if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
+                    MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
+                }
+
+                MemBufferWriteString(aft->buffer, "%s", line);
+            }
+        }
     }
 
     SCMutexLock(&aft->statslog_ctx->file_ctx->fp_mutex);
