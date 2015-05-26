@@ -110,9 +110,6 @@ void OutputJsonRegisterTests (void)
 #else /* implied we do have JSON support */
 
 #include <jansson.h>
-#if HAVE_LIBHIREDIS
-#include <hiredis/hiredis.h>
-#endif
 
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
@@ -503,7 +500,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             } else if (strcmp(output_s, "unix_stream") == 0) {
                 json_ctx->json_out = LOGFILE_TYPE_UNIX_STREAM;
             } else if (strcmp(output_s, "redis") == 0) {
-#if HAVE_LIBHIREDIS
+#ifdef HAVE_LIBHIREDIS
                 json_ctx->json_out = LOGFILE_TYPE_REDIS;
 #else
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -582,7 +579,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             openlog(ident, LOG_PID|LOG_NDELAY, facility);
 
         }
-#if HAVE_LIBHIREDIS
+#ifdef HAVE_LIBHIREDIS
         else if (json_ctx->json_out == LOGFILE_TYPE_REDIS) {
             ConfNode *redis_node = ConfNodeLookupChild(conf, "redis");
             const char *redis_server = NULL;
