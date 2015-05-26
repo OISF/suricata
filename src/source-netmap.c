@@ -554,10 +554,10 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     }
 
     /* basic counters */
-    ntv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-            ntv->tv, SC_PERF_TYPE_UINT64);
-    ntv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-            ntv->tv, SC_PERF_TYPE_UINT64);
+    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
+            ntv->tv);
+    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
+            ntv->tv);
 
     char const *active_runmode = RunmodeGetActive();
     if (active_runmode && !strcmp("workers", active_runmode)) {

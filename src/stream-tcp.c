@@ -5073,43 +5073,28 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     *data = (void *)stt;
 
-    stt->counter_tcp_sessions = SCPerfTVRegisterCounter("tcp.sessions", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_ssn_memcap = SCPerfTVRegisterCounter("tcp.ssn_memcap_drop", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_pseudo = SCPerfTVRegisterCounter("tcp.pseudo", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_pseudo_failed = SCPerfTVRegisterCounter("tcp.pseudo_failed", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_invalid_checksum = SCPerfTVRegisterCounter("tcp.invalid_checksum", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_no_flow = SCPerfTVRegisterCounter("tcp.no_flow", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_syn = SCPerfTVRegisterCounter("tcp.syn", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_synack = SCPerfTVRegisterCounter("tcp.synack", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->counter_tcp_rst = SCPerfTVRegisterCounter("tcp.rst", tv,
-                                                        SC_PERF_TYPE_UINT64);
+    stt->counter_tcp_sessions = StatsRegisterCounter("tcp.sessions", tv);
+    stt->counter_tcp_ssn_memcap = StatsRegisterCounter("tcp.ssn_memcap_drop", tv);
+    stt->counter_tcp_pseudo = StatsRegisterCounter("tcp.pseudo", tv);
+    stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
+    stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
+    stt->counter_tcp_no_flow = StatsRegisterCounter("tcp.no_flow", tv);
+    stt->counter_tcp_memuse = StatsRegisterCounter("tcp.memuse", tv);
+    stt->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
+    stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
+    stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);
     if (stt->ra_ctx == NULL)
         SCReturnInt(TM_ECODE_FAILED);
 
-    stt->ra_ctx->counter_tcp_segment_memcap = SCPerfTVRegisterCounter("tcp.segment_memcap_drop", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->ra_ctx->counter_tcp_stream_depth = SCPerfTVRegisterCounter("tcp.stream_depth_reached", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->ra_ctx->counter_tcp_reass_gap = SCPerfTVRegisterCounter("tcp.reassembly_gap", tv,
-                                                        SC_PERF_TYPE_UINT64);
+    stt->ra_ctx->counter_tcp_segment_memcap = StatsRegisterCounter("tcp.segment_memcap_drop", tv);
+    stt->ra_ctx->counter_tcp_stream_depth = StatsRegisterCounter("tcp.stream_depth_reached", tv);
+    stt->ra_ctx->counter_tcp_reass_gap = StatsRegisterCounter("tcp.reassembly_gap", tv);
     /** \fixme Find a better place in 2.1 as it is linked with app layer */
-    stt->ra_ctx->counter_htp_memuse = SCPerfTVRegisterCounter("http.memuse", tv,
-                                                        SC_PERF_TYPE_UINT64);
-    stt->ra_ctx->counter_htp_memcap = SCPerfTVRegisterCounter("http.memcap", tv,
-                                                        SC_PERF_TYPE_UINT64);
+    stt->ra_ctx->counter_htp_memuse = StatsRegisterCounter("http.memuse", tv);
+    stt->ra_ctx->counter_htp_memcap = StatsRegisterCounter("http.memcap", tv);
 
     SCLogDebug("StreamTcp thread specific ctx online at %p, reassembly ctx %p",
                 stt, stt->ra_ctx);

@@ -1347,17 +1347,12 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
-    uint16_t counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
-                                                      SC_PERF_TYPE_UINT64);
+    uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
 #ifdef PROFILING
-    uint16_t counter_mpm_list = SCPerfTVRegisterAvgCounter("detect.mpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_nonmpm_list = SCPerfTVRegisterAvgCounter("detect.nonmpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_fnonmpm_list = SCPerfTVRegisterAvgCounter("detect.fnonmpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_match_list = SCPerfTVRegisterAvgCounter("detect.match_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
+    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
+    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
+    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
+    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
 #endif
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
@@ -1431,17 +1426,12 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     }
 
     /** alert counter setup */
-    det_ctx->counter_alerts = SCPerfTVRegisterCounter("detect.alert", tv,
-                                                      SC_PERF_TYPE_UINT64);
+    det_ctx->counter_alerts = StatsRegisterCounter("detect.alert", tv);
 #ifdef PROFILING
-    uint16_t counter_mpm_list = SCPerfTVRegisterAvgCounter("detect.mpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_nonmpm_list = SCPerfTVRegisterAvgCounter("detect.nonmpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_fnonmpm_list = SCPerfTVRegisterAvgCounter("detect.fnonmpm_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
-    uint16_t counter_match_list = SCPerfTVRegisterAvgCounter("detect.match_list", tv,
-                                                      SC_PERF_TYPE_UINT64);
+    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
+    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
+    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
+    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
     det_ctx->counter_mpm_list = counter_mpm_list;
     det_ctx->counter_nonmpm_list = counter_nonmpm_list;
     det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;

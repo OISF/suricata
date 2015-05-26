@@ -524,22 +524,14 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     /* pass thread data back to caller */
     *data = ftd;
 
-    ftd->flow_mgr_cnt_clo = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_mgr_cnt_new = SCPerfTVRegisterCounter("flow_mgr.new_pruned", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_mgr_cnt_est = SCPerfTVRegisterCounter("flow_mgr.est_pruned", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_mgr_memuse = SCPerfTVRegisterCounter("flow.memuse", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_mgr_spare = SCPerfTVRegisterCounter("flow.spare", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_emerg_mode_over = SCPerfTVRegisterCounter("flow.emerg_mode_over", t,
-            SC_PERF_TYPE_UINT64);
-    ftd->flow_tcp_reuse = SCPerfTVRegisterCounter("flow.tcp_reuse", t,
-            SC_PERF_TYPE_UINT64);
+    ftd->flow_mgr_cnt_clo = StatsRegisterCounter("flow_mgr.closed_pruned", t);
+    ftd->flow_mgr_cnt_new = StatsRegisterCounter("flow_mgr.new_pruned", t);
+    ftd->flow_mgr_cnt_est = StatsRegisterCounter("flow_mgr.est_pruned", t);
+    ftd->flow_mgr_memuse = StatsRegisterCounter("flow.memuse", t);
+    ftd->flow_mgr_spare = StatsRegisterCounter("flow.spare", t);
+    ftd->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
+    ftd->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
+    ftd->flow_tcp_reuse = StatsRegisterCounter("flow.tcp_reuse", t);
 
     PacketPoolInit();
     return TM_ECODE_OK;
@@ -575,12 +567,9 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
 /* VJ leaving disabled for now, as hosts are only used by tags and the numbers
  * are really low. Might confuse ppl
-    uint16_t flow_mgr_host_prune = SCPerfTVRegisterCounter("hosts.pruned", th_v,
-            SC_PERF_TYPE_UINT64);
-    uint16_t flow_mgr_host_active = SCPerfTVRegisterCounter("hosts.active", th_v,
-            SC_PERF_TYPE_UINT64);
-    uint16_t flow_mgr_host_spare = SCPerfTVRegisterCounter("hosts.spare", th_v,
-            SC_PERF_TYPE_UINT64);
+    uint16_t flow_mgr_host_prune = StatsRegisterCounter("hosts.pruned", th_v);
+    uint16_t flow_mgr_host_active = StatsRegisterCounter("hosts.active", th_v);
+    uint16_t flow_mgr_host_spare = StatsRegisterCounter("hosts.spare", th_v);
 */
     memset(&ts, 0, sizeof(ts));
 

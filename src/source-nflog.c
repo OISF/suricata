@@ -307,12 +307,10 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
 #ifdef PACKET_STATISTICS
-    ntv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-                                                           ntv->tv,
-                                                           SC_PERF_TYPE_UINT64);
-    ntv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-                                                        ntv->tv,
-                                                        SC_PERF_TYPE_UINT64);
+    ntv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
+                                                       ntv->tv);
+    ntv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
+                                                     ntv->tv);
 #endif
 
     char *active_runmode = RunmodeGetActive();

@@ -304,10 +304,8 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ewtn->packets = SCPerfTVRegisterCounter("capture.dag_packets",
-        tv, SC_PERF_TYPE_UINT64);
-    ewtn->drops = SCPerfTVRegisterCounter("capture.dag_drops",
-        tv, SC_PERF_TYPE_UINT64);
+    ewtn->packets = StatsRegisterCounter("capture.dag_packets", tv);
+    ewtn->drops = StatsRegisterCounter("capture.dag_drops", tv);
 
     ewtn->tv = tv;
     *data = (void *)ewtn;

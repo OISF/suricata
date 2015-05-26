@@ -497,10 +497,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         }
     }
 
-    ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
-            ptv->tv, SC_PERF_TYPE_UINT64);
-    ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
-            ptv->tv, SC_PERF_TYPE_UINT64);
+    ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",
+            ptv->tv);
+    ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
+            ptv->tv);
 
     /* A bit strange to have this here but we only have vlan information
      * during reading so we need to know if we want to keep vlan during

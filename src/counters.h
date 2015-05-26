@@ -29,14 +29,6 @@
 struct ThreadVars_;
 
 /**
- * \brief Data type for different kind of Perf counters that can be registered
- */
-enum {
-    SC_PERF_TYPE_UINT64,
-    SC_PERF_TYPE_MAX,
-};
-
-/**
  * \brief Container to hold the counter variable
  */
 typedef struct SCPerfCounter_ {
@@ -117,10 +109,10 @@ void SCPerfSpawnThreads(void);
 void SCPerfRegisterTests(void);
 
 /* counter registration functions */
-uint16_t SCPerfTVRegisterCounter(char *, struct ThreadVars_ *, int);
-uint16_t SCPerfTVRegisterAvgCounter(char *, struct ThreadVars_ *, int);
-uint16_t SCPerfTVRegisterMaxCounter(char *, struct ThreadVars_ *, int);
-uint16_t SCPerfTVRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
+uint16_t StatsRegisterCounter(char *, struct ThreadVars_ *);
+uint16_t StatsRegisterAvgCounter(char *, struct ThreadVars_ *);
+uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
+uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
 /* utility functions */
 int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);

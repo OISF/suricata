@@ -514,7 +514,7 @@ int StreamTcpReassembleInit(char quiet)
     SCMutexInit(&segment_pool_cnt_mutex, NULL);
 #endif
 
-    SCPerfTVRegisterGlobalCounter("tcp.reassembly_memuse",
+    StatsRegisterGlobalCounter("tcp.reassembly_memuse",
             StreamTcpReassembleMemuseGlobalCounter);
     return 0;
 }
