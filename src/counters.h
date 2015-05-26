@@ -109,7 +109,7 @@ void StatsSetupPostConfig(void);
 void StatsSpawnThreads(void);
 void StatsRegisterTests(void);
 
-/* functions used to free the resources alloted by the Perf counter API */
+/* functions used to free the resources alloted by the Stats API */
 void StatsReleaseResources(void);
 
 /* counter registration functions */

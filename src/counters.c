@@ -46,7 +46,7 @@
 
 /**
  * \brief Different kinds of qualifier that can be used to modify the behaviour
- *        of the Perf counter to be registered
+ *        of the counter to be registered
  */
 enum {
     STATS_TYPE_NORMAL = 1,
@@ -231,8 +231,8 @@ static void StatsInitCtx(void)
 }
 
 /**
- * \brief Releases the resources alloted to the output context of the Perf
- *        Counter API
+ * \brief Releases the resources alloted to the output context of the
+ *        Stats API
  */
 static void StatsReleaseCtx()
 {
@@ -267,10 +267,9 @@ static void StatsReleaseCtx()
 }
 
 /**
- * \brief The management thread. This thread is responsible for writing the
- *        performance stats information.
+ * \brief management thread. This thread is responsible for writing the stats
  *
- * \param arg is NULL always
+ * \param arg thread var
  *
  * \retval NULL This is the value that is always returned
  */
@@ -297,7 +296,7 @@ static void *StatsMgmtThread(void *arg)
     SCDropCaps(tv_local);
 
     if (stats_ctx == NULL) {
-        SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
+        SCLogError(SC_ERR_STATS_NOT_INIT, "Stats API not init"
                    "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -307,7 +306,7 @@ static void *StatsMgmtThread(void *arg)
     BUG_ON(tm->ThreadInit == NULL);
     int r = tm->ThreadInit(tv_local, NULL, &stats_thread_data);
     if (r != 0 || stats_thread_data == NULL) {
-        SCLogError(SC_ERR_THREAD_INIT, "Perf Counter API "
+        SCLogError(SC_ERR_THREAD_INIT, "Stats API "
                    "ThreadInit failed");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -343,7 +342,7 @@ static void *StatsMgmtThread(void *arg)
 
     r = tm->ThreadDeinit(tv_local, stats_thread_data);
     if (r != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_DEINIT, "Perf Counter API "
+        SCLogError(SC_ERR_THREAD_DEINIT, "Stats Counter API "
                    "ThreadDeinit failed");
     }
 
@@ -384,7 +383,7 @@ static void *StatsWakeupThread(void *arg)
     SCDropCaps(tv_local);
 
     if (stats_ctx == NULL) {
-        SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
+        SCLogError(SC_ERR_STATS_NOT_INIT, "Stats API not init"
                    "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
@@ -454,8 +453,7 @@ static void *StatsWakeupThread(void *arg)
 }
 
 /**
- * \brief Releases a perf counter.  Used internally by
- *        StatsReleasePerfCounters()
+ * \brief Releases a counter
  *
  * \param pc Pointer to the StatsCounter to be freed
  */
@@ -472,7 +470,7 @@ static void StatsReleaseCounter(StatsCounter *pc)
 }
 
 /**
- * \brief Registers a counter.  Used internally by the Perf Counter API
+ * \brief Registers a counter.
  *
  * \param cname    Name of the counter, to be registered
  * \param tm_name  Thread module to which this counter belongs
@@ -523,7 +521,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
     }
 
     /* assign a unique id to this StatsCounter.  The id is local to this
-     * PerfContext.  Please note that the id start from 1, and not 0 */
+     * thread context.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
 
     pc->type = type_q;
@@ -760,8 +758,7 @@ void StatsSetupPostConfig(void)
 }
 
 /**
- * \brief Spawns the wakeup, and the management thread used by the perf
- *        counter api
+ * \brief Spawns the wakeup, and the management thread used by the stats api
  *
  *  The threads use the condition variable in the thread vars to control
  *  their wait loops to make sure the main thread can quickly kill them.
@@ -1147,7 +1144,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 }
 
 /**
- * \brief Releases the resources alloted by the Perf Counter API
+ * \brief Releases the resources alloted by the Stats API
  */
 void StatsReleaseResources()
 {
@@ -1157,12 +1154,12 @@ void StatsReleaseResources()
 }
 
 /**
- * \brief Releases a list of perf counters
+ * \brief Releases counters
  *
  * \param head Pointer to the head of the list of perf counters that have to
  *             be freed
  */
-void StatsReleasePerfCounters(StatsCounter *head)
+void StatsReleaseCounters(StatsCounter *head)
 {
     StatsCounter *pc = NULL;
 
@@ -1236,7 +1233,7 @@ static int StatsTestCounterReg03()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    StatsReleasePerfCounters(pctx.head);
+    StatsReleaseCounters(pctx.head);
 
     return result;
 }
@@ -1254,7 +1251,7 @@ static int StatsTestCounterReg04()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    StatsReleasePerfCounters(pctx.head);
+    StatsReleaseCounters(pctx.head);
 
     return result;
 }
@@ -1292,7 +1289,7 @@ static int StatsTestGetCntArray06()
 
     result = (r == 0) ? 1  : 0;
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(&tv.perf_private_ctx);
 
     return result;
@@ -1319,7 +1316,7 @@ static int StatsTestCntArraySize07()
 
     result = pca->size;
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
     return result;
@@ -1344,7 +1341,7 @@ static int StatsTestUpdateCounter08()
 
     result = pca->head[id].value;
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
     return result;
@@ -1373,7 +1370,7 @@ static int StatsTestUpdateCounter09()
 
     result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
     return result;
@@ -1407,7 +1404,7 @@ static int StatsTestUpdateGlobalCounter10()
     result &= (100 == tv.perf_public_ctx.head->next->value);
     result &= (101 == tv.perf_public_ctx.head->next->next->value);
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
     return result;
@@ -1446,7 +1443,7 @@ static int StatsTestCounterValues11()
 
     result &= (16843024 == tv.perf_public_ctx.head->next->next->next->value);
 
-    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
     return result;
