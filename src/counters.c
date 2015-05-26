@@ -552,7 +552,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
  * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
  *                 versions of the counters
  */
-static void StatsCopyCounterValue(SCPCAElem *pcae)
+static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 {
     StatsCounter *pc = pcae->pc;
 
@@ -1157,10 +1157,10 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         return -1;
     }
 
-    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL) {
+    if ( (pca->head = SCMalloc(sizeof(StatsLocalCounter) * (e_id - s_id  + 2))) == NULL) {
         return -1;
     }
-    memset(pca->head, 0, sizeof(SCPCAElem) * (e_id - s_id  + 2));
+    memset(pca->head, 0, sizeof(StatsLocalCounter) * (e_id - s_id  + 2));
 
     pc = pctx->head;
     while (pc->id != s_id)
@@ -1216,7 +1216,7 @@ int StatsSetupPrivate(ThreadVars *tv)
  */
 int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
 {
-    SCPCAElem *pcae = NULL;
+    StatsLocalCounter *pcae = NULL;
     uint32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {

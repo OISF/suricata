@@ -34,10 +34,10 @@ struct ThreadVars_;
 typedef struct StatsCounter_ {
     int type;
 
-    /* local id for this counter in this tm */
+    /* local id for this counter in this thread */
     uint16_t id;
 
-    /* global id */
+    /* global id, used in output */
     uint16_t gid;
 
     /* counter value(s): copies from the 'private' counter */
@@ -56,7 +56,7 @@ typedef struct StatsCounter_ {
 } StatsCounter;
 
 /**
- * \brief Holds the Perf Context for a ThreadVars instance
+ * \brief Stats Context for a ThreadVars instance
  */
 typedef struct StatsPublicThreadContext_ {
     /* flag set by the wakeup thread, to inform the client threads to sync */
@@ -73,13 +73,14 @@ typedef struct StatsPublicThreadContext_ {
 } StatsPublicThreadContext;
 
 /**
- * \brief Node elements used by the StatsPrivateThreadContext(PCA) Node
+ * \brief Storage for local counters, with a link to the public counter used
+ *        for syncs
  */
-typedef struct SCPCAElem_ {
-    /* pointer to the PerfCounter that corresponds to this PCAElem */
+typedef struct StatsLocalCounter_ {
+    /* pointer to the counter that corresponds to this local counter */
     StatsCounter *pc;
 
-    /* counter id of the above counter(pc) */
+    /* local counter id of the above counter */
     uint16_t id;
 
     /* total value of the adds/increments, or exact value in case of 'set' */
@@ -87,16 +88,16 @@ typedef struct SCPCAElem_ {
 
     /* no of times the local counter has been updated */
     uint64_t updates;
-} SCPCAElem;
+} StatsLocalCounter;
 
 /**
  * \brief used to hold the private version of the counters registered
  */
 typedef struct StatsPrivateThreadContext_ {
-    /* points to the array holding PCAElems */
-    SCPCAElem *head;
+    /* points to the array holding local counters */
+    StatsLocalCounter *head;
 
-    /* no of PCAElems in head */
+    /* size of head array in elements */
     uint32_t size;
 
     int initialized;
@@ -110,7 +111,6 @@ void StatsRegisterTests(void);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void StatsReleaseResources(void);
-void StatsReleasePCA(StatsPrivateThreadContext *);
 
 /* counter registration functions */
 uint16_t StatsRegisterCounter(char *, struct ThreadVars_ *);
