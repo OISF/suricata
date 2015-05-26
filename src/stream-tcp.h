@@ -100,8 +100,6 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_no_flow;
     /** sessions reused */
     uint16_t counter_tcp_reused_ssn;
-    /** sessions reused */
-    uint16_t counter_tcp_memuse;
     /** syn pkts */
     uint16_t counter_tcp_syn;
     /** syn/ack pkts */

@@ -146,11 +146,10 @@ void StreamTcpDecrMemuse(uint64_t size)
     return;
 }
 
-void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt)
+uint64_t StreamTcpMemuseCounter(void)
 {
     uint64_t memusecopy = SC_ATOMIC_GET(st_memuse);
-    StatsSetUI64(tv, stt->counter_tcp_memuse, memusecopy);
-    return;
+    return memusecopy;
 }
 
 /**
@@ -593,6 +592,7 @@ void StreamTcpInitConfig(char quiet)
 
     /* init the memcap/use tracking */
     SC_ATOMIC_INIT(st_memuse);
+    StatsRegisterGlobalCounter("tcp.memuse", StreamTcpMemuseCounter);
 
     StreamTcpReassembleInit(quiet);
 
@@ -4654,7 +4654,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
     }
 
-    StreamTcpMemuseCounter(tv, stt);
     SCReturnInt(0);
 
 error:
@@ -5080,7 +5079,6 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_pseudo_failed = StatsRegisterCounter("tcp.pseudo_failed", tv);
     stt->counter_tcp_invalid_checksum = StatsRegisterCounter("tcp.invalid_checksum", tv);
     stt->counter_tcp_no_flow = StatsRegisterCounter("tcp.no_flow", tv);
-    stt->counter_tcp_memuse = StatsRegisterCounter("tcp.memuse", tv);
     stt->counter_tcp_syn = StatsRegisterCounter("tcp.syn", tv);
     stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
