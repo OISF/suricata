@@ -495,12 +495,17 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     }
 
 #ifdef HAVE_LIBHIREDIS
-    if (lf_ctx->type == LOGFILE_TYPE_REDIS && lf_ctx->redis) {
-        redisFree(lf_ctx->redis);
-        SCFree(lf_ctx->redis_setup.server);
-        SCFree(lf_ctx->redis_setup.command);
-        SCFree(lf_ctx->redis_setup.key);
-        SCFree(lf_ctx->redis_setup.sensor_name);
+    if (lf_ctx->type == LOGFILE_TYPE_REDIS) {
+        if (lf_ctx->redis)
+            redisFree(lf_ctx->redis);
+        if (lf_ctx->redis_setup.server)
+            SCFree(lf_ctx->redis_setup.server);
+        if (lf_ctx->redis_setup.command)
+            SCFree(lf_ctx->redis_setup.command);
+        if (lf_ctx->redis_setup.key)
+            SCFree(lf_ctx->redis_setup.key);
+        if (lf_ctx->redis_setup.sensor_name)
+            SCFree(lf_ctx->redis_setup.sensor_name);
     }
 #endif
 
