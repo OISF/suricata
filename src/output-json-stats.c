@@ -51,6 +51,9 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+#define JSON_STATS_TOTALS  (1<<0)
+#define JSON_STATS_THREADS (1<<1)
+
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -127,17 +130,43 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     json_object_set_new(js_stats, "uptime", json_string(uptime));
 
     uint32_t u = 0;
-    for (u = 0; u < st->nstats; u++) {
-        if (st->stats[u].name == NULL)
-            break;
-        char str[256];
-        snprintf(str, sizeof(str), "%s.%s", st->stats[u].tm_name, st->stats[u].name);
-        json_t *js_type = OutputStats2Json(js_stats, str);
-
-        if (js_type != NULL) {
-            json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(st->stats[u].value));
+    if (aft->statslog_ctx->flags & JSON_STATS_TOTALS) {
+        for (u = 0; u < st->nstats; u++) {
+            if (st->stats[u].name == NULL)
+                continue;
+            char str[256];
+            snprintf(str, sizeof(str), "%s.%s", st->stats[u].tm_name, st->stats[u].name);
+            json_t *js_type = OutputStats2Json(js_stats, str);
+            if (js_type != NULL) {
+                json_object_set_new(js_type, &str[rindex(str, '.')-str+1],
+                                    json_integer(st->stats[u].value));
+            }
         }
     }
+
+    /* per thread stats */
+    if (st->tstats != NULL && (aft->statslog_ctx->flags & JSON_STATS_THREADS)) {
+        /* for each thread (store) */
+        uint32_t x;
+        for (x = 0; x < st->ntstats; x++) {
+            uint32_t offset = x * st->nstats;
+
+            /* for each counter */
+            for (u = offset; u < (offset + st->nstats); u++) {
+                if (st->tstats[u].name == NULL)
+                    continue;
+
+                char str[256];
+                snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
+                json_t *js_type = OutputStats2Json(js_stats, str);
+
+                if (js_type != NULL) {
+                    json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(st->tstats[u].value));
+                }
+            }
+        }
+    }
+
     json_object_set_new(js, "stats", js_stats);
 
     OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, buffer);
@@ -224,6 +253,21 @@ OutputCtx *OutputStatsLogInit(ConfNode *conf)
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
+    stats_ctx->flags = JSON_STATS_TOTALS;
+
+    if (conf != NULL) {
+        const char *totals = ConfNodeLookupChildValue(conf, "totals");
+        const char *threads = ConfNodeLookupChildValue(conf, "threads");
+        SCLogDebug("totals %s threads %s", totals, threads);
+
+        if (totals != NULL && ConfValIsFalse(totals)) {
+            stats_ctx->flags &= ~JSON_STATS_TOTALS;
+        }
+        if (threads != NULL && ConfValIsTrue(threads)) {
+            stats_ctx->flags |= JSON_STATS_THREADS;
+        }
+        SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -254,6 +298,22 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     OutputStatsCtx *stats_ctx = SCMalloc(sizeof(OutputStatsCtx));
     if (unlikely(stats_ctx == NULL))
         return NULL;
+
+    stats_ctx->flags = JSON_STATS_TOTALS;
+
+    if (conf != NULL) {
+        const char *totals = ConfNodeLookupChildValue(conf, "totals");
+        const char *threads = ConfNodeLookupChildValue(conf, "threads");
+        SCLogDebug("totals %s threads %s", totals, threads);
+
+        if (totals != NULL && ConfValIsFalse(totals)) {
+            stats_ctx->flags &= ~JSON_STATS_TOTALS;
+        }
+        if (threads != NULL && ConfValIsTrue(threads)) {
+            stats_ctx->flags |= JSON_STATS_THREADS;
+        }
+        SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);
+    }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
