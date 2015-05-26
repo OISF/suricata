@@ -202,8 +202,8 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
         uint64_t th_drops = SCPerfGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
         SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
-        SCPerfCounterSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
-        SCPerfCounterSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
+        StatsSetUI64(ptv->tv, ptv->capture_kernel_drops, pfring_s.drop);
     }
 }
 
@@ -606,7 +606,7 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
     //StatsIncr(tv, dtv->counter_pkts_per_sec);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* If suri has set vlan during reading, we increase vlan counter */
     if (p->vlan_idx) {

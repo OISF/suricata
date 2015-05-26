@@ -455,7 +455,7 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     StatsIncr(tv, dtv->counter_pkts);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* Process IP packets */
     if (IPV4_GET_RAW_VER(ip4h) == 4) {

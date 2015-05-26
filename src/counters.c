@@ -162,7 +162,7 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
  * \param pca Pointer to the SCPerfPrivateContext
  * \param x   The value to set for the counter
  */
-void SCPerfCounterSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
+void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
     SCPerfPrivateContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS

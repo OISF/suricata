@@ -125,7 +125,7 @@ void SCPerfReleasePCA(SCPerfPrivateContext *);
 
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
-void SCPerfCounterSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
+void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
 
 #define SCPerfSyncCounters(tv) \

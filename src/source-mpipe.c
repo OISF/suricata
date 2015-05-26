@@ -382,7 +382,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
                 __insn_prefetch(&idesc[i]);
             }
             if (unlikely(n > max_queued)) {
-                SCPerfCounterSetUI64(tv, ptv->max_mpipe_depth,
+                StatsSetUI64(tv, ptv->max_mpipe_depth,
                                      (uint64_t)n);
                 max_queued = n;
             }
@@ -1045,7 +1045,7 @@ TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
 
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* call the decoder */
     DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);

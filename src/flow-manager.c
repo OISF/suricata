@@ -623,22 +623,22 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 /*
         StatsAddUI64(th_v, flow_mgr_host_prune, (uint64_t)hosts_pruned);
         uint32_t hosts_active = HostGetActiveCount();
-        SCPerfCounterSetUI64(th_v, flow_mgr_host_active, (uint64_t)hosts_active);
+        StatsSetUI64(th_v, flow_mgr_host_active, (uint64_t)hosts_active);
         uint32_t hosts_spare = HostGetSpareCount();
-        SCPerfCounterSetUI64(th_v, flow_mgr_host_spare, (uint64_t)hosts_spare);
+        StatsSetUI64(th_v, flow_mgr_host_spare, (uint64_t)hosts_spare);
 */
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_clo, (uint64_t)counters.clo);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_new, (uint64_t)counters.new);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_est, (uint64_t)counters.est);
         long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
-        SCPerfCounterSetUI64(th_v, ftd->flow_mgr_memuse, (uint64_t)flow_memuse);
+        StatsSetUI64(th_v, ftd->flow_mgr_memuse, (uint64_t)flow_memuse);
         StatsAddUI64(th_v, ftd->flow_tcp_reuse, (uint64_t)counters.tcp_reuse);
 
         uint32_t len = 0;
         FQLOCK_LOCK(&flow_spare_q);
         len = flow_spare_q.len;
         FQLOCK_UNLOCK(&flow_spare_q);
-        SCPerfCounterSetUI64(th_v, ftd->flow_mgr_spare, (uint64_t)len);
+        StatsSetUI64(th_v, ftd->flow_mgr_spare, (uint64_t)len);
 
         /* Don't fear, FlowManagerThread is here...
          * clear emergency bit if we have at least xx flows pruned. */

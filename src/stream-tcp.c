@@ -148,7 +148,7 @@ void StreamTcpDecrMemuse(uint64_t size)
 void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt)
 {
     uint64_t memusecopy = SC_ATOMIC_GET(st_memuse);
-    SCPerfCounterSetUI64(tv, stt->counter_tcp_memuse, memusecopy);
+    StatsSetUI64(tv, stt->counter_tcp_memuse, memusecopy);
     return;
 }
 
