@@ -206,8 +206,9 @@ void DNSConfigSetGlobalMemcap(uint64_t value);
 void DNSIncrMemcap(uint32_t size, DNSState *state);
 void DNSDecrMemcap(uint32_t size, DNSState *state);
 int DNSCheckMemcap(uint32_t want, DNSState *state);
-void DNSMemcapGetCounters(uint64_t *memuse, uint64_t *memcap_state,
-                          uint64_t *memcap_global);
+uint64_t DNSMemcapGetMemuseCounter(void);
+uint64_t DNSMemcapGetMemcapStateCounter(void);
+uint64_t DNSMemcapGetMemcapGlobalCounter(void);
 
 void RegisterDNSParsers(void);
 void DNSParserTests(void);

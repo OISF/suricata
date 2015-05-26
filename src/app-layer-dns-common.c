@@ -103,12 +103,22 @@ int DNSCheckMemcap(uint32_t want, DNSState *state)
     return 0;
 }
 
-void DNSMemcapGetCounters(uint64_t *memuse, uint64_t *memcap_state,
-                          uint64_t *memcap_global)
+uint64_t DNSMemcapGetMemuseCounter(void)
 {
-    *memuse = SC_ATOMIC_GET(dns_memuse);
-    *memcap_state = SC_ATOMIC_GET(dns_memcap_state);
-    *memcap_global = SC_ATOMIC_GET(dns_memcap_global);
+    uint64_t x = SC_ATOMIC_GET(dns_memuse);
+    return x;
+}
+
+uint64_t DNSMemcapGetMemcapStateCounter(void)
+{
+    uint64_t x = SC_ATOMIC_GET(dns_memcap_state);
+    return x;
+}
+
+uint64_t DNSMemcapGetMemcapGlobalCounter(void)
+{
+    uint64_t x = SC_ATOMIC_GET(dns_memcap_global);
+    return x;
 }
 
 SCEnumCharMap dns_decoder_event_table[ ] = {
