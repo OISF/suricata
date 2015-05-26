@@ -38,17 +38,11 @@
 #include "unix-manager.h"
 #include "output.h"
 
-/** \todo Get the default log directory from some global resource. */
-#define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
-
-/* Used to parse the interval for Timebased counters */
-#define SC_PERF_PCRE_TIMEBASED_INTERVAL "^(?:(\\d+)([shm]))(?:(\\d+)([shm]))?(?:(\\d+)([shm]))?$"
-
 /* Time interval for syncing the local counters with the global ones */
-#define SC_PERF_WUT_TTS 3
+#define STATS_WUT_TTS 3
 
 /* Time interval at which the mgmt thread o/p the stats */
-#define SC_PERF_MGMTT_TTS 8
+#define STATS_MGMTT_TTS 8
 
 /**
  * \brief Different kinds of qualifier that can be used to modify the behaviour
@@ -97,7 +91,7 @@ static void *stats_thread_data = NULL;
 static StatsGlobalContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
 /** refresh interval in seconds */
-static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
+static uint32_t sc_counter_tts = STATS_MGMTT_TTS;
 /** is the stats counter enabled? */
 static char sc_counter_enabled = TRUE;
 
@@ -418,7 +412,7 @@ static void *SCPerfWakeupThread(void *arg)
             TmThreadsUnsetFlag(tv_local, THV_PAUSED);
         }
 
-        cond_time.tv_sec = time(NULL) + SC_PERF_WUT_TTS;
+        cond_time.tv_sec = time(NULL) + STATS_WUT_TTS;
         cond_time.tv_nsec = 0;
 
         /* wait for the set time, or until we are woken up by
