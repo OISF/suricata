@@ -303,7 +303,6 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
         exit(EXIT_FAILURE);
     }
 
-    log_ctx->redis_setup.batch_timeout = 0;
     log_ctx->redis_setup.batch_size = 0;
 
     ConfNode *pipelining = ConfNodeLookupChild(redis_node, "pipelining");
@@ -318,12 +317,6 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
                 log_ctx->redis_setup.batch_size = val;
             } else {
                 log_ctx->redis_setup.batch_size = 10;
-            }
-            ret = ConfGetChildValueInt(pipelining, "batch-timeout", &val);
-            if (ret) {
-                log_ctx->redis_setup.batch_timeout = val;
-            } else {
-                log_ctx->redis_setup.batch_timeout = 1;
             }
         }
     }
