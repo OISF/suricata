@@ -195,11 +195,9 @@ static ConfNode *GetConfig(void) {
 }
 
 /**
- * \brief Initializes the output interface context
- *
- * \todo Support multiple interfaces
+ * \brief Initializes stats context
  */
-static void StatsInitOPCtx(void)
+static void StatsInitCtx(void)
 {
     SCEnter();
     ConfNode *stats = GetConfig();
@@ -237,7 +235,7 @@ static void StatsInitOPCtx(void)
  * \brief Releases the resources alloted to the output context of the Perf
  *        Counter API
  */
-static void StatsReleaseOPCtx()
+static void StatsReleaseCtx()
 {
     if (stats_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
@@ -461,7 +459,7 @@ static void *StatsWakeupThread(void *arg)
 
 /**
  * \brief Releases a perf counter.  Used internally by
- *        StatsReleasePerfCounterS()
+ *        StatsReleasePerfCounters()
  *
  * \param pc Pointer to the StatsCounter to be freed
  */
@@ -857,7 +855,7 @@ void StatsInit(void)
 {
     BUG_ON(stats_ctx != NULL);
     if ( (stats_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in StatsInitOPCtx. Exiting...");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in StatsInitCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
@@ -865,7 +863,7 @@ void StatsInit(void)
 
 void StatsSetupPostConfig(void)
 {
-    StatsInitOPCtx();
+    StatsInitCtx();
 }
 
 /**
@@ -1260,7 +1258,7 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
  */
 void StatsReleaseResources()
 {
-    StatsReleaseOPCtx();
+    StatsReleaseCtx();
 
     return;
 }
@@ -1271,7 +1269,7 @@ void StatsReleaseResources()
  * \param head Pointer to the head of the list of perf counters that have to
  *             be freed
  */
-void StatsReleasePerfCounterS(StatsCounter *head)
+void StatsReleasePerfCounters(StatsCounter *head)
 {
     StatsCounter *pc = NULL;
 
@@ -1290,7 +1288,7 @@ void StatsReleasePerfCounterS(StatsCounter *head)
  *
  * \param pca Pointer to the StatsPrivateThreadContext
  */
-void StatsReleasePCA(StatsPrivateThreadContext *pca)
+void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
 {
     if (pca != NULL) {
         if (pca->head != NULL) {
@@ -1345,7 +1343,7 @@ static int StatsTestCounterReg03()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    StatsReleasePerfCounterS(pctx.head);
+    StatsReleasePerfCounters(pctx.head);
 
     return result;
 }
@@ -1363,7 +1361,7 @@ static int StatsTestCounterReg04()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    StatsReleasePerfCounterS(pctx.head);
+    StatsReleasePerfCounters(pctx.head);
 
     return result;
 }
@@ -1401,8 +1399,8 @@ static int StatsTestGetCntArray06()
 
     result = (r == 0) ? 1  : 0;
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(&tv.perf_private_ctx);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(&tv.perf_private_ctx);
 
     return result;
 }
@@ -1428,8 +1426,8 @@ static int StatsTestCntArraySize07()
 
     result = pca->size;
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(pca);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
 
     return result;
 }
@@ -1453,8 +1451,8 @@ static int StatsTestUpdateCounter08()
 
     result = pca->head[id].value;
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(pca);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
 
     return result;
 }
@@ -1482,8 +1480,8 @@ static int StatsTestUpdateCounter09()
 
     result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(pca);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
 
     return result;
 }
@@ -1516,8 +1514,8 @@ static int StatsTestUpdateGlobalCounter10()
     result &= (100 == tv.perf_public_ctx.head->next->value);
     result &= (101 == tv.perf_public_ctx.head->next->next->value);
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(pca);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
 
     return result;
 }
@@ -1555,8 +1553,8 @@ static int StatsTestCounterValues11()
 
     result &= (16843024 == tv.perf_public_ctx.head->next->next->next->value);
 
-    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
-    StatsReleasePCA(pca);
+    StatsReleasePerfCounters(tv.perf_public_ctx.head);
+    StatsReleasePrivateThreadContext(pca);
 
     return result;
 }
