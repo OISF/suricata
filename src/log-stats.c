@@ -49,6 +49,9 @@
 #define MODULE_NAME "LogStatsLog"
 #define OUTPUT_BUFFER_SIZE 16384
 
+#define LOG_STATS_TOTALS  (1<<0)
+#define LOG_STATS_THREADS (1<<1)
+
 TmEcode LogStatsLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
 void LogStatsLogExitPrintStats(ThreadVars *, void *);
@@ -100,25 +103,27 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 
     /* global stats */
     uint32_t u = 0;
-    for (u = 0; u < st->nstats; u++) {
-        if (st->stats[u].name == NULL)
-            continue;
+    if (aft->statslog_ctx->flags & LOG_STATS_TOTALS) {
+        for (u = 0; u < st->nstats; u++) {
+            if (st->stats[u].name == NULL)
+                continue;
 
-        char line[1024];
-        size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
-                  st->stats[u].name, st->stats[u].tm_name, st->stats[u].value);
+            char line[1024];
+            size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
+                    st->stats[u].name, st->stats[u].tm_name, st->stats[u].value);
 
-        /* since we can have many threads, the buffer might not be big enough.
-         * Expand if necessary. */
-        if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
-            MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
+            /* since we can have many threads, the buffer might not be big enough.
+             * Expand if necessary. */
+            if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
+                MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
+            }
+
+            MemBufferWriteString(aft->buffer, "%s", line);
         }
-
-        MemBufferWriteString(aft->buffer, "%s", line);
     }
 
     /* per thread stats */
-    if (st->tstats != NULL) {
+    if (st->tstats != NULL && aft->statslog_ctx->flags & LOG_STATS_THREADS) {
         /* for each thread (store) */
         uint32_t x;
         for (x = 0; x < st->ntstats; x++) {
@@ -227,6 +232,22 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
         return NULL;
     }
     memset(statslog_ctx, 0x00, sizeof(LogStatsFileCtx));
+
+    statslog_ctx->flags = LOG_STATS_TOTALS;
+
+    if (conf != NULL) {
+        const char *totals = ConfNodeLookupChildValue(conf, "totals");
+        const char *threads = ConfNodeLookupChildValue(conf, "threads");
+        SCLogDebug("totals %s threads %s", totals, threads);
+
+        if (totals != NULL && ConfValIsFalse(totals)) {
+            statslog_ctx->flags &= ~LOG_STATS_TOTALS;
+        }
+        if (threads != NULL && ConfValIsTrue(threads)) {
+            statslog_ctx->flags |= LOG_STATS_THREADS;
+        }
+        SCLogDebug("statslog_ctx->flags %08x", statslog_ctx->flags);
+    }
 
     statslog_ctx->file_ctx = file_ctx;
 
