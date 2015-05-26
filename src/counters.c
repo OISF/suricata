@@ -752,99 +752,15 @@ static int StatsOutput(ThreadVars *tv)
 
 #ifdef BUILD_UNIX_SOCKET
 /**
- * \brief The file output interface for the Perf Counter api
+ *  \todo reimplement this, probably based on stats-json
  */
 TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    StatsThreadStore *sts = NULL;
-    StatsCounter *pc = NULL;
-    StatsCounter **pc_heads = NULL;
-
-    uint64_t ui64_temp = 0;
-    uint64_t ui64_result = 0;
-
-    uint32_t u = 0;
-    int flag = 0;
-
-    if (stats_ctx == NULL) {
-        json_object_set_new(answer, "message",
-                json_string("No performance counter context"));
-        return TM_ECODE_FAILED;
-    }
-
-    json_t *tm_array;
-
-    tm_array = json_object();
-    if (tm_array == NULL) {
-        json_object_set_new(answer, "message",
-                json_string("internal error at json object creation"));
-        return TM_ECODE_FAILED;
-    }
-
-    sts = stats_ctx->sts;
-    while (sts != NULL) {
-        json_t *jdata;
-        int filled = 0;
-        jdata = json_object();
-        if (jdata == NULL) {
-            json_decref(tm_array);
-            json_object_set_new(answer, "message",
-                    json_string("internal error at json object creation"));
-            return TM_ECODE_FAILED;
-        }
-        if ((pc_heads = SCMalloc(sts->size * sizeof(StatsCounter *))) == NULL) {
-            json_decref(tm_array);
-            json_object_set_new(answer, "message",
-                    json_string("internal memory error"));
-            return TM_ECODE_FAILED;
-        }
-        memset(pc_heads, 0, sts->size * sizeof(StatsCounter *));
-
-        for (u = 0; u < sts->size; u++) {
-            pc_heads[u] = sts->head[u]->head;
-
-            SCMutexLock(&sts->head[u]->m);
-        }
-
-        flag = 1;
-        while(flag) {
-            ui64_result = 0;
-            if (pc_heads[0] == NULL)
-                break;
-            pc = pc_heads[0];
-
-            for (u = 0; u < sts->size; u++) {
-                ui64_temp = StatsOutputCalculateCounterValue(pc_heads[u]);
-                ui64_result += ui64_temp;
-
-                if (pc_heads[u] != NULL)
-                    pc_heads[u] = pc_heads[u]->next;
-                if (pc_heads[u] == NULL)
-                    flag = 0;
-            }
-
-            filled = 1;
-            json_object_set_new(jdata, pc->cname, json_integer(ui64_result));
-        }
-
-        for (u = 0; u < sts->size; u++)
-            SCMutexUnlock(&sts->head[u]->m);
-
-        if (filled == 1) {
-            json_object_set_new(tm_array, sts->tm_name, jdata);
-        }
-        sts = sts->next;
-
-        SCFree(pc_heads);
-
-    }
-
-    json_object_set_new(answer, "message", tm_array);
-
-    return TM_ECODE_OK;
+    json_object_set_new(answer, "message",
+            json_string("not implemented"));
+    return TM_ECODE_FAILED;
 }
-
 #endif /* BUILD_UNIX_SOCKET */
 
 /**
