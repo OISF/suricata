@@ -489,7 +489,6 @@ typedef struct FlowManagerThreadData_ {
     uint16_t flow_mgr_cnt_clo;
     uint16_t flow_mgr_cnt_new;
     uint16_t flow_mgr_cnt_est;
-    uint16_t flow_mgr_memuse;
     uint16_t flow_mgr_spare;
     uint16_t flow_emerg_mode_enter;
     uint16_t flow_emerg_mode_over;
@@ -527,7 +526,6 @@ static TmEcode FlowManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     ftd->flow_mgr_cnt_clo = StatsRegisterCounter("flow_mgr.closed_pruned", t);
     ftd->flow_mgr_cnt_new = StatsRegisterCounter("flow_mgr.new_pruned", t);
     ftd->flow_mgr_cnt_est = StatsRegisterCounter("flow_mgr.est_pruned", t);
-    ftd->flow_mgr_memuse = StatsRegisterCounter("flow.memuse", t);
     ftd->flow_mgr_spare = StatsRegisterCounter("flow.spare", t);
     ftd->flow_emerg_mode_enter = StatsRegisterCounter("flow.emerg_mode_entered", t);
     ftd->flow_emerg_mode_over = StatsRegisterCounter("flow.emerg_mode_over", t);
@@ -630,8 +628,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_clo, (uint64_t)counters.clo);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_new, (uint64_t)counters.new);
         StatsAddUI64(th_v, ftd->flow_mgr_cnt_est, (uint64_t)counters.est);
-        long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
-        StatsSetUI64(th_v, ftd->flow_mgr_memuse, (uint64_t)flow_memuse);
         StatsAddUI64(th_v, ftd->flow_tcp_reuse, (uint64_t)counters.tcp_reuse);
 
         uint32_t len = 0;
@@ -695,6 +691,12 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     return TM_ECODE_OK;
 }
 
+static uint64_t FlowGetMemuse(void)
+{
+    uint64_t flow_memuse = SC_ATOMIC_GET(flow_memuse);
+    return flow_memuse;
+}
+
 /** \brief spawn the flow manager thread */
 void FlowManagerThreadSpawn()
 {
@@ -711,6 +713,8 @@ void FlowManagerThreadSpawn()
     SCLogInfo("using %u flow manager threads", flowmgr_number);
     SCCtrlCondInit(&flow_manager_ctrl_cond, NULL);
     SCCtrlMutexInit(&flow_manager_ctrl_mutex, NULL);
+
+    StatsRegisterGlobalCounter("flow.memuse", FlowGetMemuse);
 
     uint32_t u;
     for (u = 0; u < flowmgr_number; u++) {
