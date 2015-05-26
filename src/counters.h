@@ -58,7 +58,7 @@ typedef struct SCPerfCounter_ {
 /**
  * \brief Holds the Perf Context for a ThreadVars instance
  */
-typedef struct SCPerfPublicContext_ {
+typedef struct StatsPublicThreadContext_ {
     /* flag set by the wakeup thread, to inform the client threads to sync */
     uint32_t perf_flag;
 
@@ -70,7 +70,7 @@ typedef struct SCPerfPublicContext_ {
 
     /* mutex to prevent simultaneous access during update_counter/output_stat */
     SCMutex m;
-} SCPerfPublicContext;
+} StatsPublicThreadContext;
 
 /**
  * \brief Node elements used by the SCPerfPrivateContext(PCA) Node
@@ -115,7 +115,7 @@ uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
 /* utility functions */
-int SCPerfUpdateCounterArray(SCPerfPrivateContext *, SCPerfPublicContext *);
+int SCPerfUpdateCounterArray(SCPerfPrivateContext *, StatsPublicThreadContext *);
 uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 int SCPerfSetupPrivate(struct ThreadVars_ *);
 
