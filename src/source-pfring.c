@@ -198,8 +198,8 @@ static inline void PfringDumpCounters(PfringThreadVars *ptv)
          * So to get the number of packet on the interface we can add
          * the newly seen packets and drops for this thread and add it
          * to the interface counter */
-        uint64_t th_pkts = SCPerfGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
-        uint64_t th_drops = SCPerfGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
+        uint64_t th_pkts = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_packets);
+        uint64_t th_drops = StatsGetLocalCounterValue(ptv->tv, ptv->capture_kernel_drops);
         SC_ATOMIC_ADD(ptv->livedev->pkts, pfring_s.recv - th_pkts);
         SC_ATOMIC_ADD(ptv->livedev->drop, pfring_s.drop - th_drops);
         StatsSetUI64(ptv->tv, ptv->capture_kernel_packets, pfring_s.recv);
@@ -360,7 +360,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(TM_ECODE_FAILED);
         }
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
     }
 
     return TM_ECODE_OK;
@@ -548,8 +548,8 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
     PfringDumpCounters(ptv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
-            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_packets),
-            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_drops));
+            StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
+            StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
     SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 }
 

@@ -294,7 +294,7 @@ TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         NT_NetRxRelease(ntv->rx_stream, packet_buffer);
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
     }
 
     SCReturnInt(TM_ECODE_OK);

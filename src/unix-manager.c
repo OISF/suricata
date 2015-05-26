@@ -868,7 +868,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
-    SCPerfSetupPrivate(th_v);
+    StatsSetupPrivate(th_v);
 
     if (UnixNew(&command) == 0) {
         int failure_fatal = 0;
@@ -897,7 +897,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
-    UnixManagerRegisterCommand("dump-counters", SCPerfOutputCounterSocket, NULL, 0);
+    UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
@@ -914,7 +914,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
                 close(item->fd);
                 SCFree(item);
             }
-            SCPerfSyncCounters(th_v);
+            StatsSyncCounters(th_v);
             break;
         }
 

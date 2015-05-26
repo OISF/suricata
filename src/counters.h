@@ -31,7 +31,7 @@ struct ThreadVars_;
 /**
  * \brief Container to hold the counter variable
  */
-typedef struct SCPerfCounter_ {
+typedef struct StatsCounter_ {
     int type;
 
     /* local id for this counter in this tm */
@@ -52,8 +52,8 @@ typedef struct SCPerfCounter_ {
     char *cname;
 
     /* the next perfcounter for this tv's tm instance */
-    struct SCPerfCounter_ *next;
-} SCPerfCounter;
+    struct StatsCounter_ *next;
+} StatsCounter;
 
 /**
  * \brief Holds the Perf Context for a ThreadVars instance
@@ -63,7 +63,7 @@ typedef struct StatsPublicThreadContext_ {
     uint32_t perf_flag;
 
     /* pointer to the head of a list of counters assigned under this context */
-    SCPerfCounter *head;
+    StatsCounter *head;
 
     /* holds the total no of counters already assigned for this perf context */
     uint16_t curr_id;
@@ -77,7 +77,7 @@ typedef struct StatsPublicThreadContext_ {
  */
 typedef struct SCPCAElem_ {
     /* pointer to the PerfCounter that corresponds to this PCAElem */
-    SCPerfCounter *pc;
+    StatsCounter *pc;
 
     /* counter id of the above counter(pc) */
     uint16_t id;
@@ -105,8 +105,8 @@ typedef struct StatsPrivateThreadContext_ {
 /* the initialization functions */
 void StatsInit(void);
 void StatsSetupPostConfig(void);
-void SCPerfSpawnThreads(void);
-void SCPerfRegisterTests(void);
+void StatsSpawnThreads(void);
+void StatsRegisterTests(void);
 
 /* counter registration functions */
 uint16_t StatsRegisterCounter(char *, struct ThreadVars_ *);
@@ -115,33 +115,33 @@ uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
 /* utility functions */
-int SCPerfUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
-uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
-int SCPerfSetupPrivate(struct ThreadVars_ *);
+int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
+uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
+int StatsSetupPrivate(struct ThreadVars_ *);
 
 /* functions used to free the resources alloted by the Perf counter API */
-void SCPerfReleaseResources(void);
-void SCPerfReleasePCA(StatsPrivateThreadContext *);
+void StatsReleaseResources(void);
+void StatsReleasePCA(StatsPrivateThreadContext *);
 
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
 
-#define SCPerfSyncCounters(tv) \
-    SCPerfUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
+#define StatsSyncCounters(tv) \
+    StatsUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
 
-#define SCPerfSyncCountersIfSignalled(tv)                                       \
+#define StatsSyncCountersIfSignalled(tv)                                       \
     do {                                                                        \
         if ((tv)->perf_public_ctx.perf_flag == 1) {                             \
-            SCPerfUpdateCounterArray(&(tv)->perf_private_ctx,                   \
+            StatsUpdateCounterArray(&(tv)->perf_private_ctx,                   \
                                      &(tv)->perf_public_ctx);                   \
         }                                                                       \
     } while (0)
 
 #ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
-TmEcode SCPerfOutputCounterSocket(json_t *cmd,
+TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data);
 #endif
 

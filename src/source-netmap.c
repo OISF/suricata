@@ -826,11 +826,11 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         NetmapDumpCounters(ntv);
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
     }
 
     SCFree(fds);
-    SCPerfSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(tv);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -847,8 +847,8 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapDumpCounters(ntv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
               tv->name,
-              SCPerfGetLocalCounterValue(tv, ntv->capture_kernel_packets),
-              SCPerfGetLocalCounterValue(tv, ntv->capture_kernel_drops),
+              StatsGetLocalCounterValue(tv, ntv->capture_kernel_packets),
+              StatsGetLocalCounterValue(tv, ntv->capture_kernel_drops),
               ntv->bytes);
 }
 

@@ -340,11 +340,11 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
     }
 
     PcapDumpCounters(ptv);
-    SCPerfSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(tv);
     SCReturnInt(TM_ECODE_OK);
 }
 

@@ -414,7 +414,7 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
         }
         if (update_counter-- <= 0) {
             /* Only periodically update and check for termination. */
-            SCPerfSyncCountersIfSignalled(tv);
+            StatsSyncCountersIfSignalled(tv);
             update_counter = 10000;
 
             if (suricata_ctl_flags != 0) {

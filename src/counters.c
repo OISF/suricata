@@ -199,7 +199,7 @@ static ConfNode *GetConfig(void) {
  *
  * \todo Support multiple interfaces
  */
-static void SCPerfInitOPCtx(void)
+static void StatsInitOPCtx(void)
 {
     SCEnter();
     ConfNode *stats = GetConfig();
@@ -237,7 +237,7 @@ static void SCPerfInitOPCtx(void)
  * \brief Releases the resources alloted to the output context of the Perf
  *        Counter API
  */
-static void SCPerfReleaseOPCtx()
+static void StatsReleaseOPCtx()
 {
     if (stats_ctx == NULL) {
         SCLogDebug("Counter module has been disabled");
@@ -280,7 +280,7 @@ static void SCPerfReleaseOPCtx()
  *
  * \retval NULL This is the value that is always returned
  */
-static void *SCPerfMgmtThread(void *arg)
+static void *StatsMgmtThread(void *arg)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
@@ -304,7 +304,7 @@ static void *SCPerfMgmtThread(void *arg)
 
     if (stats_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
-                   "SCPerfInitCounterApi() has to be called first");
+                   "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
@@ -365,7 +365,7 @@ static void *SCPerfMgmtThread(void *arg)
  *
  * \retval NULL This is the value that is always returned
  */
-static void *SCPerfWakeupThread(void *arg)
+static void *StatsWakeupThread(void *arg)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
@@ -391,7 +391,7 @@ static void *SCPerfWakeupThread(void *arg)
 
     if (stats_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
-                   "SCPerfInitCounterApi() has to be called first");
+                   "StatsInitCounterApi() has to be called first");
         TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
@@ -461,11 +461,11 @@ static void *SCPerfWakeupThread(void *arg)
 
 /**
  * \brief Releases a perf counter.  Used internally by
- *        SCPerfReleasePerfCounterS()
+ *        StatsReleasePerfCounterS()
  *
- * \param pc Pointer to the SCPerfCounter to be freed
+ * \param pc Pointer to the StatsCounter to be freed
  */
-static void SCPerfReleaseCounter(SCPerfCounter *pc)
+static void StatsReleaseCounter(StatsCounter *pc)
 {
     if (pc != NULL) {
         if (pc->cname != NULL)
@@ -493,10 +493,10 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
                                               StatsPublicThreadContext *pctx,
                                               int type_q, uint64_t (*Func)(void))
 {
-    SCPerfCounter **head = &pctx->head;
-    SCPerfCounter *temp = NULL;
-    SCPerfCounter *prev = NULL;
-    SCPerfCounter *pc = NULL;
+    StatsCounter **head = &pctx->head;
+    StatsCounter *temp = NULL;
+    StatsCounter *prev = NULL;
+    StatsCounter *pc = NULL;
 
     if (cname == NULL || pctx == NULL) {
         SCLogDebug("Counter name, StatsPublicThreadContext NULL");
@@ -519,16 +519,16 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
         return(temp->id);
 
     /* if we reach this point we don't have a counter registered by this cname */
-    if ( (pc = SCMalloc(sizeof(SCPerfCounter))) == NULL)
+    if ( (pc = SCMalloc(sizeof(StatsCounter))) == NULL)
         return 0;
-    memset(pc, 0, sizeof(SCPerfCounter));
+    memset(pc, 0, sizeof(StatsCounter));
 
     if ( (pc->cname = SCStrdup(cname)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
-    /* assign a unique id to this SCPerfCounter.  The id is local to this
+    /* assign a unique id to this StatsCounter.  The id is local to this
      * PerfContext.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
 
@@ -545,16 +545,16 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
 }
 
 /**
- * \brief Copies the SCPerfCounter value from the local counter present in the
+ * \brief Copies the StatsCounter value from the local counter present in the
  *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
- *        internally by SCPerfUpdateCounterArray()
+ *        internally by StatsUpdateCounterArray()
  *
  * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
  *                 versions of the counters
  */
-static void SCPerfCopyCounterValue(SCPCAElem *pcae)
+static void StatsCopyCounterValue(SCPCAElem *pcae)
 {
-    SCPerfCounter *pc = pcae->pc;
+    StatsCounter *pc = pcae->pc;
 
     pc->value = pcae->value;
     pc->updates = pcae->updates;
@@ -574,7 +574,7 @@ static void SCPerfCopyCounterValue(SCPCAElem *pcae)
  * \param pc Pointer to the PerfCounter for which the timebased counter has to
  *           be calculated
  */
-static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
+static uint64_t StatsOutputCalculateCounterValue(StatsCounter *pc)
 {
     return pc->value;
 }
@@ -585,7 +585,7 @@ static uint64_t SCPerfOutputCalculateCounterValue(SCPerfCounter *pc)
 static int StatsOutput(ThreadVars *tv)
 {
     const StatsThreadStore *sts = NULL;
-    const SCPerfCounter *pc = NULL;
+    const StatsCounter *pc = NULL;
     void *td = stats_thread_data;
 
     if (stats_table.nstats == 0) {
@@ -756,12 +756,12 @@ static int StatsOutput(ThreadVars *tv)
 /**
  * \brief The file output interface for the Perf Counter api
  */
-TmEcode SCPerfOutputCounterSocket(json_t *cmd,
+TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
     StatsThreadStore *sts = NULL;
-    SCPerfCounter *pc = NULL;
-    SCPerfCounter **pc_heads = NULL;
+    StatsCounter *pc = NULL;
+    StatsCounter **pc_heads = NULL;
 
     uint64_t ui64_temp = 0;
     uint64_t ui64_result = 0;
@@ -795,13 +795,13 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
                     json_string("internal error at json object creation"));
             return TM_ECODE_FAILED;
         }
-        if ((pc_heads = SCMalloc(sts->size * sizeof(SCPerfCounter *))) == NULL) {
+        if ((pc_heads = SCMalloc(sts->size * sizeof(StatsCounter *))) == NULL) {
             json_decref(tm_array);
             json_object_set_new(answer, "message",
                     json_string("internal memory error"));
             return TM_ECODE_FAILED;
         }
-        memset(pc_heads, 0, sts->size * sizeof(SCPerfCounter *));
+        memset(pc_heads, 0, sts->size * sizeof(StatsCounter *));
 
         for (u = 0; u < sts->size; u++) {
             pc_heads[u] = sts->head[u]->head;
@@ -817,7 +817,7 @@ TmEcode SCPerfOutputCounterSocket(json_t *cmd,
             pc = pc_heads[0];
 
             for (u = 0; u < sts->size; u++) {
-                ui64_temp = SCPerfOutputCalculateCounterValue(pc_heads[u]);
+                ui64_temp = StatsOutputCalculateCounterValue(pc_heads[u]);
                 ui64_result += ui64_temp;
 
                 if (pc_heads[u] != NULL)
@@ -857,7 +857,7 @@ void StatsInit(void)
 {
     BUG_ON(stats_ctx != NULL);
     if ( (stats_ctx = SCMalloc(sizeof(StatsGlobalContext))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in StatsInitOPCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
@@ -865,7 +865,7 @@ void StatsInit(void)
 
 void StatsSetupPostConfig(void)
 {
-    SCPerfInitOPCtx();
+    StatsInitOPCtx();
 }
 
 /**
@@ -875,7 +875,7 @@ void StatsSetupPostConfig(void)
  *  The threads use the condition variable in the thread vars to control
  *  their wait loops to make sure the main thread can quickly kill them.
  */
-void SCPerfSpawnThreads(void)
+void StatsSpawnThreads(void)
 {
     SCEnter();
 
@@ -887,8 +887,8 @@ void SCPerfSpawnThreads(void)
     ThreadVars *tv_mgmt = NULL;
 
     /* spawn the stats wakeup thread */
-    tv_wakeup = TmThreadCreateMgmtThread("SCPerfWakeupThread",
-                                         SCPerfWakeupThread, 1);
+    tv_wakeup = TmThreadCreateMgmtThread("StatsWakeupThread",
+                                         StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE, "TmThreadCreateMgmtThread "
                    "failed");
@@ -897,13 +897,13 @@ void SCPerfSpawnThreads(void)
 
     if (TmThreadSpawn(tv_wakeup) != 0) {
         SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
-                   "SCPerfWakeupThread");
+                   "StatsWakeupThread");
         exit(EXIT_FAILURE);
     }
 
     /* spawn the stats mgmt thread */
-    tv_mgmt = TmThreadCreateMgmtThread("SCPerfMgmtThread",
-                                       SCPerfMgmtThread, 1);
+    tv_mgmt = TmThreadCreateMgmtThread("StatsMgmtThread",
+                                       StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE,
                    "TmThreadCreateMgmtThread failed");
@@ -912,7 +912,7 @@ void SCPerfSpawnThreads(void)
 
     if (TmThreadSpawn(tv_mgmt) != 0) {
         SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed for "
-                   "SCPerfWakeupThread");
+                   "StatsWakeupThread");
         exit(EXIT_FAILURE);
     }
 
@@ -1086,7 +1086,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
                                                               CountersIdHashFreeFunc);
         BUG_ON(stats_ctx->counters_id_hash == NULL);
     }
-    SCPerfCounter *pc = pctx->head;
+    StatsCounter *pc = pctx->head;
     while (pc != NULL) {
         CountersIdType t = { 0, pc->cname }, *id = NULL;
         id = HashTableLookup(stats_ctx->counters_id_hash, &t, sizeof(t));
@@ -1135,11 +1135,11 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
  *
  *  \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
-static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
+static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
                                       StatsPublicThreadContext *pctx,
                                       StatsPrivateThreadContext *pca)
 {
-    SCPerfCounter *pc = NULL;
+    StatsCounter *pc = NULL;
     uint32_t i = 0;
 
     if (pctx == NULL || pca == NULL) {
@@ -1188,18 +1188,18 @@ static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  *  \retval pca Pointer to a counter-array for all counter of this tm instance
  *              on success; NULL on failure
  */
-static int SCPerfGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
+static int StatsGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
 {
     if (pctx == NULL || private == NULL)
         return -1;
 
-    return SCPerfGetCounterArrayRange(1, pctx->curr_id, pctx, private);
+    return StatsGetCounterArrayRange(1, pctx->curr_id, pctx, private);
 }
 
 
-int SCPerfSetupPrivate(ThreadVars *tv)
+int StatsSetupPrivate(ThreadVars *tv)
 {
-    SCPerfGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
+    StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
 
     StatsThreadRegister(tv->name, &(tv)->perf_public_ctx);
     return 0;
@@ -1214,13 +1214,13 @@ int SCPerfSetupPrivate(ThreadVars *tv)
  * \retval  0 on success
  * \retval -1 on error
  */
-int SCPerfUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
+int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
 {
     SCPCAElem *pcae = NULL;
     uint32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
-        SCLogDebug("pca or pctx is NULL inside SCPerfUpdateCounterArray");
+        SCLogDebug("pca or pctx is NULL inside StatsUpdateCounterArray");
         return -1;
     }
 
@@ -1228,7 +1228,7 @@ int SCPerfUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadCo
 
     SCMutexLock(&pctx->m);
     for (i = 1; i <= pca->size; i++) {
-        SCPerfCopyCounterValue(&pcae[i]);
+        StatsCopyCounterValue(&pcae[i]);
     }
     SCMutexUnlock(&pctx->m);
 
@@ -1246,7 +1246,7 @@ int SCPerfUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadCo
  * \retval  0 on success.
  * \retval -1 on error.
  */
-uint64_t SCPerfGetLocalCounterValue(ThreadVars *tv, uint16_t id)
+uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 {
     StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
 #ifdef DEBUG
@@ -1258,9 +1258,9 @@ uint64_t SCPerfGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 /**
  * \brief Releases the resources alloted by the Perf Counter API
  */
-void SCPerfReleaseResources()
+void StatsReleaseResources()
 {
-    SCPerfReleaseOPCtx();
+    StatsReleaseOPCtx();
 
     return;
 }
@@ -1271,14 +1271,14 @@ void SCPerfReleaseResources()
  * \param head Pointer to the head of the list of perf counters that have to
  *             be freed
  */
-void SCPerfReleasePerfCounterS(SCPerfCounter *head)
+void StatsReleasePerfCounterS(StatsCounter *head)
 {
-    SCPerfCounter *pc = NULL;
+    StatsCounter *pc = NULL;
 
     while (head != NULL) {
         pc = head;
         head = head->next;
-        SCPerfReleaseCounter(pc);
+        StatsReleaseCounter(pc);
     }
 
     return;
@@ -1290,7 +1290,7 @@ void SCPerfReleasePerfCounterS(SCPerfCounter *head)
  *
  * \param pca Pointer to the StatsPrivateThreadContext
  */
-void SCPerfReleasePCA(StatsPrivateThreadContext *pca)
+void StatsReleasePCA(StatsPrivateThreadContext *pca)
 {
     if (pca != NULL) {
         if (pca->head != NULL) {
@@ -1327,7 +1327,7 @@ static uint16_t RegisterCounter(char *cname, char *tm_name,
     return id;
 }
 
-static int SCPerfTestCounterReg02()
+static int StatsTestCounterReg02()
 {
     StatsPublicThreadContext pctx;
 
@@ -1336,7 +1336,7 @@ static int SCPerfTestCounterReg02()
     return RegisterCounter(NULL, NULL, &pctx);
 }
 
-static int SCPerfTestCounterReg03()
+static int StatsTestCounterReg03()
 {
     StatsPublicThreadContext pctx;
     int result;
@@ -1345,12 +1345,12 @@ static int SCPerfTestCounterReg03()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    SCPerfReleasePerfCounterS(pctx.head);
+    StatsReleasePerfCounterS(pctx.head);
 
     return result;
 }
 
-static int SCPerfTestCounterReg04()
+static int StatsTestCounterReg04()
 {
     StatsPublicThreadContext pctx;
     int result;
@@ -1363,12 +1363,12 @@ static int SCPerfTestCounterReg04()
 
     result = RegisterCounter("t1", "c1", &pctx);
 
-    SCPerfReleasePerfCounterS(pctx.head);
+    StatsReleasePerfCounterS(pctx.head);
 
     return result;
 }
 
-static int SCPerfTestGetCntArray05()
+static int StatsTestGetCntArray05()
 {
     ThreadVars tv;
     int id;
@@ -1381,11 +1381,11 @@ static int SCPerfTestGetCntArray05()
         return 0;
     }
 
-    int r = SCPerfGetAllCountersArray(NULL, &tv.perf_private_ctx);
+    int r = StatsGetAllCountersArray(NULL, &tv.perf_private_ctx);
     return (r == -1) ? 1 : 0;
 }
 
-static int SCPerfTestGetCntArray06()
+static int StatsTestGetCntArray06()
 {
     ThreadVars tv;
     int id;
@@ -1397,17 +1397,17 @@ static int SCPerfTestGetCntArray06()
     if (id != 1)
         return 0;
 
-    int r = SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    int r = StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
 
     result = (r == 0) ? 1  : 0;
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(&tv.perf_private_ctx);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(&tv.perf_private_ctx);
 
     return result;
 }
 
-static int SCPerfTestCntArraySize07()
+static int StatsTestCntArraySize07()
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1420,7 +1420,7 @@ static int SCPerfTestCntArraySize07()
     RegisterCounter("t1", "c1", &tv.perf_public_ctx);
     RegisterCounter("t2", "c2", &tv.perf_public_ctx);
 
-    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
     StatsIncr(&tv, 1);
@@ -1428,13 +1428,13 @@ static int SCPerfTestCntArraySize07()
 
     result = pca->size;
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(pca);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(pca);
 
     return result;
 }
 
-static int SCPerfTestUpdateCounter08()
+static int StatsTestUpdateCounter08()
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1445,7 +1445,7 @@ static int SCPerfTestUpdateCounter08()
 
     id = RegisterCounter("t1", "c1", &tv.perf_public_ctx);
 
-    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
     StatsIncr(&tv, id);
@@ -1453,13 +1453,13 @@ static int SCPerfTestUpdateCounter08()
 
     result = pca->head[id].value;
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(pca);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(pca);
 
     return result;
 }
 
-static int SCPerfTestUpdateCounter09()
+static int StatsTestUpdateCounter09()
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1474,7 +1474,7 @@ static int SCPerfTestUpdateCounter09()
     RegisterCounter("t4", "c4", &tv.perf_public_ctx);
     id2 = RegisterCounter("t5", "c5", &tv.perf_public_ctx);
 
-    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
     StatsIncr(&tv, id2);
@@ -1482,13 +1482,13 @@ static int SCPerfTestUpdateCounter09()
 
     result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(pca);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(pca);
 
     return result;
 }
 
-static int SCPerfTestUpdateGlobalCounter10()
+static int StatsTestUpdateGlobalCounter10()
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1502,7 +1502,7 @@ static int SCPerfTestUpdateGlobalCounter10()
     id2 = RegisterCounter("t2", "c2", &tv.perf_public_ctx);
     id3 = RegisterCounter("t3", "c3", &tv.perf_public_ctx);
 
-    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
     StatsIncr(&tv, id1);
@@ -1510,19 +1510,19 @@ static int SCPerfTestUpdateGlobalCounter10()
     StatsIncr(&tv, id3);
     StatsAddUI64(&tv, id3, 100);
 
-    SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
+    StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
     result = (1 == tv.perf_public_ctx.head->value);
     result &= (100 == tv.perf_public_ctx.head->next->value);
     result &= (101 == tv.perf_public_ctx.head->next->next->value);
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(pca);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(pca);
 
     return result;
 }
 
-static int SCPerfTestCounterValues11()
+static int StatsTestCounterValues11()
 {
     ThreadVars tv;
     StatsPrivateThreadContext *pca = NULL;
@@ -1537,7 +1537,7 @@ static int SCPerfTestCounterValues11()
     id3 = RegisterCounter("t3", "c3", &tv.perf_public_ctx);
     id4 = RegisterCounter("t4", "c4", &tv.perf_public_ctx);
 
-    SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
+    StatsGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
     StatsIncr(&tv, id1);
@@ -1545,7 +1545,7 @@ static int SCPerfTestCounterValues11()
     StatsAddUI64(&tv, id3, 257);
     StatsAddUI64(&tv, id4, 16843024);
 
-    SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
+    StatsUpdateCounterArray(pca, &tv.perf_public_ctx);
 
     result &= (1 == tv.perf_public_ctx.head->value);
 
@@ -1555,27 +1555,27 @@ static int SCPerfTestCounterValues11()
 
     result &= (16843024 == tv.perf_public_ctx.head->next->next->next->value);
 
-    SCPerfReleasePerfCounterS(tv.perf_public_ctx.head);
-    SCPerfReleasePCA(pca);
+    StatsReleasePerfCounterS(tv.perf_public_ctx.head);
+    StatsReleasePCA(pca);
 
     return result;
 }
 
 #endif
 
-void SCPerfRegisterTests()
+void StatsRegisterTests()
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SCPerfTestCounterReg02", SCPerfTestCounterReg02, 0);
-    UtRegisterTest("SCPerfTestCounterReg03", SCPerfTestCounterReg03, 1);
-    UtRegisterTest("SCPerfTestCounterReg04", SCPerfTestCounterReg04, 1);
-    UtRegisterTest("SCPerfTestGetCntArray05", SCPerfTestGetCntArray05, 1);
-    UtRegisterTest("SCPerfTestGetCntArray06", SCPerfTestGetCntArray06, 1);
-    UtRegisterTest("SCPerfTestCntArraySize07", SCPerfTestCntArraySize07, 2);
-    UtRegisterTest("SCPerfTestUpdateCounter08", SCPerfTestUpdateCounter08, 101);
-    UtRegisterTest("SCPerfTestUpdateCounter09", SCPerfTestUpdateCounter09, 1);
-    UtRegisterTest("SCPerfTestUpdateGlobalCounter10",
-                   SCPerfTestUpdateGlobalCounter10, 1);
-    UtRegisterTest("SCPerfTestCounterValues11", SCPerfTestCounterValues11, 1);
+    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02, 0);
+    UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03, 1);
+    UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04, 1);
+    UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05, 1);
+    UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06, 1);
+    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07, 2);
+    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08, 101);
+    UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09, 1);
+    UtRegisterTest("StatsTestUpdateGlobalCounter10",
+                   StatsTestUpdateGlobalCounter10, 1);
+    UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11, 1);
 #endif
 }

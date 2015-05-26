@@ -322,7 +322,7 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         }
     }
 
-    SCPerfSetupPrivate(tv);
+    StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -343,7 +343,7 @@ void *TmThreadsSlotPktAcqLoop(void *td)
             run = 0;
         }
     }
-    SCPerfSyncCounters(tv);
+    StatsSyncCounters(tv);
 
     TmThreadsSetFlag(tv, THV_FLOW_LOOP);
 
@@ -453,7 +453,7 @@ void *TmThreadsSlotVar(void *td)
         }
     }
 
-    SCPerfSetupPrivate(tv);
+    StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -517,7 +517,7 @@ void *TmThreadsSlotVar(void *td)
             run = 0;
         }
     } /* while (run) */
-    SCPerfSyncCounters(tv);
+    StatsSyncCounters(tv);
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
@@ -593,7 +593,7 @@ static void *TmThreadsManagement(void *td)
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
-    SCPerfSetupPrivate(tv);
+    StatsSetupPrivate(tv);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
@@ -604,7 +604,7 @@ static void *TmThreadsManagement(void *td)
     }
 
     if (TmThreadsCheckFlag(tv, THV_KILL)) {
-        SCPerfSyncCounters(tv);
+        StatsSyncCounters(tv);
     }
 
     TmThreadsSetFlag(tv, THV_RUNNING_DONE);

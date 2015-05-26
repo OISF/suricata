@@ -2337,7 +2337,7 @@ int main(int argc, char **argv)
         /* Spawn the flow manager thread */
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
-        SCPerfSpawnThreads();
+        StatsSpawnThreads();
     }
 
 #ifdef __SC_CUDA_SUPPORT__
@@ -2452,7 +2452,7 @@ int main(int argc, char **argv)
          * the other threads are gone. */
         PacketPoolDestroy();
 
-        SCPerfReleaseResources();
+        StatsReleaseResources();
         IPPairShutdown();
         FlowShutdown();
         StreamTcpFreeConfig(STREAM_VERBOSE);

@@ -203,7 +203,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     FlowBitRegisterTests();
     HostBitRegisterTests();
     IPPairBitRegisterTests();
-    SCPerfRegisterTests();
+    StatsRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
     HTPParserRegisterTests();

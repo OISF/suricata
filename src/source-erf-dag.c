@@ -379,7 +379,7 @@ ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
 
         SCLogDebug("Read %d records from stream: %d, DAG: %s",
             pkts_read, dtv->dagstream, dtv->dagname);
@@ -558,16 +558,16 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
     (void)SC_ATOMIC_SET(ewtn->livedev->pkts,
-        SCPerfGetLocalCounterValue(tv, ewtn->packets));
+        StatsGetLocalCounterValue(tv, ewtn->packets));
     (void)SC_ATOMIC_SET(ewtn->livedev->drop,
-        SCPerfGetLocalCounterValue(tv, ewtn->drops));
+        StatsGetLocalCounterValue(tv, ewtn->drops));
 
     SCLogInfo("Stream: %d; Bytes: %"PRIu64"; Packets: %"PRIu64
         "; Drops: %"PRIu64,
         ewtn->dagstream,
         ewtn->bytes,
-        SCPerfGetLocalCounterValue(tv, ewtn->packets),
-        SCPerfGetLocalCounterValue(tv, ewtn->drops));
+        StatsGetLocalCounterValue(tv, ewtn->packets),
+        StatsGetLocalCounterValue(tv, ewtn->drops));
 }
 
 /**

@@ -306,7 +306,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
 
         /* mgt and ppt threads killed, we can run non thread-safe
          * shutdown functions */
-        SCPerfReleaseResources();
+        StatsReleaseResources();
         RunModeShutDown();
         FlowShutdown();
         IPPairShutdown();
@@ -359,7 +359,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL);
         FlowManagerThreadSpawn();
         FlowRecyclerThreadSpawn();
-        SCPerfSpawnThreads();
+        StatsSpawnThreads();
         /* Un-pause all the paused threads */
         TmThreadContinueThreads();
     }

@@ -1247,11 +1247,11 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             AFPSwitchState(ptv, AFP_STATE_DOWN);
             continue;
         }
-        SCPerfSyncCountersIfSignalled(tv);
+        StatsSyncCountersIfSignalled(tv);
     }
 
     AFPDumpCounters(ptv);
-    SCPerfSyncCountersIfSignalled(tv);
+    StatsSyncCountersIfSignalled(tv);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -1801,8 +1801,8 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data)
     AFPDumpCounters(ptv);
     SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
-            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_packets),
-            SCPerfGetLocalCounterValue(tv, ptv->capture_kernel_drops));
+            StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
+            StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
 #endif
 
     SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
