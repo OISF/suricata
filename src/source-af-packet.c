@@ -511,8 +511,8 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv)
         SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
                 ptv->tv->name,
                 kstats.tp_packets, kstats.tp_drops);
-        SCPerfCounterAddUI64(ptv->tv, ptv->capture_kernel_packets, kstats.tp_packets);
-        SCPerfCounterAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
+        StatsAddUI64(ptv->tv, ptv->capture_kernel_packets, kstats.tp_packets);
+        StatsAddUI64(ptv->tv, ptv->capture_kernel_drops, kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->drop, (uint64_t) kstats.tp_drops);
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, (uint64_t) kstats.tp_packets);
     }
@@ -1854,8 +1854,8 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     /* update counters */
     SCPerfCounterIncr(tv, dtv->counter_pkts);
     //SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
-    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* If suri has set vlan during reading, we increase vlan counter */

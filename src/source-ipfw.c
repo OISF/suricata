@@ -453,8 +453,8 @@ TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     /* update counters */
     SCPerfCounterIncr(tv, dtv->counter_pkts);
-    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
     /* Process IP packets */

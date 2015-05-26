@@ -119,7 +119,7 @@ void SCPerfOutputCounters(ThreadVars *tv)
  * \param pca Counter array that holds the local counter for this TM
  * \param x   Value to add to this local counter
  */
-void SCPerfCounterAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
+void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
     SCPerfPrivateContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS
@@ -1458,7 +1458,7 @@ static int SCPerfTestUpdateCounter08()
     pca = &tv.perf_private_ctx;
 
     SCPerfCounterIncr(&tv, id);
-    SCPerfCounterAddUI64(&tv, id, 100);
+    StatsAddUI64(&tv, id, 100);
 
     result = pca->head[id].value;
 
@@ -1487,7 +1487,7 @@ static int SCPerfTestUpdateCounter09()
     pca = &tv.perf_private_ctx;
 
     SCPerfCounterIncr(&tv, id2);
-    SCPerfCounterAddUI64(&tv, id2, 100);
+    StatsAddUI64(&tv, id2, 100);
 
     result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
 
@@ -1515,9 +1515,9 @@ static int SCPerfTestUpdateGlobalCounter10()
     pca = &tv.perf_private_ctx;
 
     SCPerfCounterIncr(&tv, id1);
-    SCPerfCounterAddUI64(&tv, id2, 100);
+    StatsAddUI64(&tv, id2, 100);
     SCPerfCounterIncr(&tv, id3);
-    SCPerfCounterAddUI64(&tv, id3, 100);
+    StatsAddUI64(&tv, id3, 100);
 
     SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 
@@ -1550,9 +1550,9 @@ static int SCPerfTestCounterValues11()
     pca = &tv.perf_private_ctx;
 
     SCPerfCounterIncr(&tv, id1);
-    SCPerfCounterAddUI64(&tv, id2, 256);
-    SCPerfCounterAddUI64(&tv, id3, 257);
-    SCPerfCounterAddUI64(&tv, id4, 16843024);
+    StatsAddUI64(&tv, id2, 256);
+    StatsAddUI64(&tv, id3, 257);
+    StatsAddUI64(&tv, id4, 16843024);
 
     SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
 

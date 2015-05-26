@@ -442,7 +442,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             break;
         case TYPE_ETH:
             if (dr->lctr) {
-                SCPerfCounterAddUI64(tv, ewtn->drops, ntohs(dr->lctr));
+                StatsAddUI64(tv, ewtn->drops, ntohs(dr->lctr));
             }
             break;
         default:
@@ -623,8 +623,8 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     /* update counters */
     SCPerfCounterIncr(tv, dtv->counter_pkts);
     //SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
-    SCPerfCounterAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    SCPerfCounterAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
 
         /* call the decoder */
