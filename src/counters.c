@@ -61,9 +61,8 @@ enum {
  * \brief per thread store of counters
  */
 typedef struct StatsThreadStore_ {
-    char *name;
-
-    char *tm_name;
+    /** thread name used in output */
+    const char *name;
 
     StatsPublicThreadContext *ctx;
 
@@ -247,9 +246,6 @@ static void StatsReleaseCtx()
     sts = stats_ctx->sts;
 
     while (sts != NULL) {
-        if (sts->tm_name != NULL)
-            SCFree(sts->tm_name);
-
         if (sts->head != NULL)
             SCFree(sts->head);
 
@@ -560,24 +556,6 @@ static void StatsCopyCounterValue(StatsLocalCounter *pcae)
 }
 
 /**
- * \brief Calculates counter value that should be sent as output
- *
- *        If we aren't dealing with timebased counters, we just return the
- *        the counter value.  In case of Timebased counters, if we haven't
- *        crossed the interval, we display the current value without any
- *        modifications.  If we have crossed the limit, we calculate the counter
- *        value for the time period and also return 1, to indicate that the
- *        counter value can be reset after use
- *
- * \param pc Pointer to the PerfCounter for which the timebased counter has to
- *           be calculated
- */
-static uint64_t StatsOutputCalculateCounterValue(StatsCounter *pc)
-{
-    return pc->value;
-}
-
-/**
  * \brief The output interface for the Stats API
  */
 static int StatsOutput(ThreadVars *tv)
@@ -631,8 +609,7 @@ static int StatsOutput(ThreadVars *tv)
     while (sts != NULL) {
         BUG_ON(thread < 0);
 
-        SCLogDebug("Thread %d %s (%s) ctx %p", thread, sts->name,
-                sts->tm_name ? sts->tm_name : "none", sts->ctx);
+        SCLogDebug("Thread %d %s ctx %p", thread, sts->name, sts->ctx);
 
         /* temporay table for quickly storing the counters for this
          * thread store, so that we can post process them outside
