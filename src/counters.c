@@ -113,7 +113,7 @@ static uint16_t counters_global_id = 0;
  */
 void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
-    SCPerfPrivateContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS
     if (pca->initialized == 0)
         return;
@@ -134,7 +134,7 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
  */
 void StatsIncr(ThreadVars *tv, uint16_t id)
 {
-    SCPerfPrivateContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS
     if (pca->initialized == 0)
         return;
@@ -151,12 +151,12 @@ void StatsIncr(ThreadVars *tv, uint16_t id)
  * \brief Sets a value of type double to the local counter
  *
  * \param id  Index of the local counter in the counter array
- * \param pca Pointer to the SCPerfPrivateContext
+ * \param pca Pointer to the StatsPrivateThreadContext
  * \param x   The value to set for the counter
  */
 void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
 {
-    SCPerfPrivateContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS
     if (pca->initialized == 0)
         return;
@@ -546,10 +546,10 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
 
 /**
  * \brief Copies the SCPerfCounter value from the local counter present in the
- *        SCPerfPrivateContext to its corresponding global counterpart.  Used
+ *        StatsPrivateThreadContext to its corresponding global counterpart.  Used
  *        internally by SCPerfUpdateCounterArray()
  *
- * \param pcae     Pointer to the SCPerfPrivateContext which holds the local
+ * \param pcae     Pointer to the StatsPrivateThreadContext which holds the local
  *                 versions of the counters
  */
 static void SCPerfCopyCounterValue(SCPCAElem *pcae)
@@ -1137,7 +1137,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
  */
 static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
                                       StatsPublicThreadContext *pctx,
-                                      SCPerfPrivateContext *pca)
+                                      StatsPrivateThreadContext *pca)
 {
     SCPerfCounter *pc = NULL;
     uint32_t i = 0;
@@ -1188,7 +1188,7 @@ static int SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  *  \retval pca Pointer to a counter-array for all counter of this tm instance
  *              on success; NULL on failure
  */
-static int SCPerfGetAllCountersArray(StatsPublicThreadContext *pctx, SCPerfPrivateContext *private)
+static int SCPerfGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
 {
     if (pctx == NULL || private == NULL)
         return -1;
@@ -1208,13 +1208,13 @@ int SCPerfSetupPrivate(ThreadVars *tv)
 /**
  * \brief Syncs the counter array with the global counter variables
  *
- * \param pca      Pointer to the SCPerfPrivateContext
+ * \param pca      Pointer to the StatsPrivateThreadContext
  * \param pctx     Pointer the the tv's StatsPublicThreadContext
  *
  * \retval  0 on success
  * \retval -1 on error
  */
-int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, StatsPublicThreadContext *pctx)
+int SCPerfUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
 {
     SCPCAElem *pcae = NULL;
     uint32_t i = 0;
@@ -1248,7 +1248,7 @@ int SCPerfUpdateCounterArray(SCPerfPrivateContext *pca, StatsPublicThreadContext
  */
 uint64_t SCPerfGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 {
-    SCPerfPrivateContext *pca = &tv->perf_private_ctx;
+    StatsPrivateThreadContext *pca = &tv->perf_private_ctx;
 #ifdef DEBUG
     BUG_ON ((id < 1) || (id > pca->size));
 #endif
@@ -1285,12 +1285,12 @@ void SCPerfReleasePerfCounterS(SCPerfCounter *head)
 }
 
 /**
- * \brief Releases the SCPerfPrivateContext allocated by the user, for storing and
+ * \brief Releases the StatsPrivateThreadContext allocated by the user, for storing and
  *        updating local counter values
  *
- * \param pca Pointer to the SCPerfPrivateContext
+ * \param pca Pointer to the StatsPrivateThreadContext
  */
-void SCPerfReleasePCA(SCPerfPrivateContext *pca)
+void SCPerfReleasePCA(StatsPrivateThreadContext *pca)
 {
     if (pca != NULL) {
         if (pca->head != NULL) {
@@ -1410,12 +1410,12 @@ static int SCPerfTestGetCntArray06()
 static int SCPerfTestCntArraySize07()
 {
     ThreadVars tv;
-    SCPerfPrivateContext *pca = NULL;
+    StatsPrivateThreadContext *pca = NULL;
     int result;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    //pca = (SCPerfPrivateContext *)&tv.perf_private_ctx;
+    //pca = (StatsPrivateThreadContext *)&tv.perf_private_ctx;
 
     RegisterCounter("t1", "c1", &tv.perf_public_ctx);
     RegisterCounter("t2", "c2", &tv.perf_public_ctx);
@@ -1437,7 +1437,7 @@ static int SCPerfTestCntArraySize07()
 static int SCPerfTestUpdateCounter08()
 {
     ThreadVars tv;
-    SCPerfPrivateContext *pca = NULL;
+    StatsPrivateThreadContext *pca = NULL;
     int id;
     int result;
 
@@ -1462,7 +1462,7 @@ static int SCPerfTestUpdateCounter08()
 static int SCPerfTestUpdateCounter09()
 {
     ThreadVars tv;
-    SCPerfPrivateContext *pca = NULL;
+    StatsPrivateThreadContext *pca = NULL;
     uint16_t id1, id2;
     int result;
 
@@ -1491,7 +1491,7 @@ static int SCPerfTestUpdateCounter09()
 static int SCPerfTestUpdateGlobalCounter10()
 {
     ThreadVars tv;
-    SCPerfPrivateContext *pca = NULL;
+    StatsPrivateThreadContext *pca = NULL;
 
     int result = 1;
     uint16_t id1, id2, id3;
@@ -1525,7 +1525,7 @@ static int SCPerfTestUpdateGlobalCounter10()
 static int SCPerfTestCounterValues11()
 {
     ThreadVars tv;
-    SCPerfPrivateContext *pca = NULL;
+    StatsPrivateThreadContext *pca = NULL;
 
     int result = 1;
     uint16_t id1, id2, id3, id4;

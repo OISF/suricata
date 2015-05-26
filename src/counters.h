@@ -73,7 +73,7 @@ typedef struct StatsPublicThreadContext_ {
 } StatsPublicThreadContext;
 
 /**
- * \brief Node elements used by the SCPerfPrivateContext(PCA) Node
+ * \brief Node elements used by the StatsPrivateThreadContext(PCA) Node
  */
 typedef struct SCPCAElem_ {
     /* pointer to the PerfCounter that corresponds to this PCAElem */
@@ -92,7 +92,7 @@ typedef struct SCPCAElem_ {
 /**
  * \brief used to hold the private version of the counters registered
  */
-typedef struct SCPerfPrivateContext_ {
+typedef struct StatsPrivateThreadContext_ {
     /* points to the array holding PCAElems */
     SCPCAElem *head;
 
@@ -100,7 +100,7 @@ typedef struct SCPerfPrivateContext_ {
     uint32_t size;
 
     int initialized;
-} SCPerfPrivateContext;
+} StatsPrivateThreadContext;
 
 /* the initialization functions */
 void StatsInit(void);
@@ -115,13 +115,13 @@ uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
 /* utility functions */
-int SCPerfUpdateCounterArray(SCPerfPrivateContext *, StatsPublicThreadContext *);
+int SCPerfUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
 uint64_t SCPerfGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 int SCPerfSetupPrivate(struct ThreadVars_ *);
 
 /* functions used to free the resources alloted by the Perf counter API */
 void SCPerfReleaseResources(void);
-void SCPerfReleasePCA(SCPerfPrivateContext *);
+void SCPerfReleasePCA(StatsPrivateThreadContext *);
 
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
