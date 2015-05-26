@@ -44,7 +44,7 @@ typedef struct StatsCounter_ {
     uint64_t value;     /**< sum of updates/increments, or 'set' value */
     uint64_t updates;   /**< number of updates (for avg) */
 
-    /* when using type SC_PERF_TYPE_Q_FUNC this function is called once
+    /* when using type STATS_TYPE_Q_FUNC this function is called once
      * to get the counter value, regardless of how many threads there are. */
     uint64_t (*Func)(void);
 
@@ -108,25 +108,25 @@ void StatsSetupPostConfig(void);
 void StatsSpawnThreads(void);
 void StatsRegisterTests(void);
 
+/* functions used to free the resources alloted by the Perf counter API */
+void StatsReleaseResources(void);
+void StatsReleasePCA(StatsPrivateThreadContext *);
+
 /* counter registration functions */
 uint16_t StatsRegisterCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterAvgCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterMaxCounter(char *, struct ThreadVars_ *);
 uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void));
 
-/* utility functions */
-int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
-uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
-int StatsSetupPrivate(struct ThreadVars_ *);
-
-/* functions used to free the resources alloted by the Perf counter API */
-void StatsReleaseResources(void);
-void StatsReleasePCA(StatsPrivateThreadContext *);
-
 /* functions used to update local counter values */
 void StatsAddUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsSetUI64(struct ThreadVars_ *, uint16_t, uint64_t);
 void StatsIncr(struct ThreadVars_ *, uint16_t);
+
+/* utility functions */
+int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
+uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
+int StatsSetupPrivate(struct ThreadVars_ *);
 
 #define StatsSyncCounters(tv) \
     StatsUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \
