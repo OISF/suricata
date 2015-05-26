@@ -435,6 +435,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCFree(lf_ctx->redis_setup.server);
         SCFree(lf_ctx->redis_setup.command);
         SCFree(lf_ctx->redis_setup.key);
+        SCFree(lf_ctx->redis_setup.sensor_name);
     }
 #endif
 
