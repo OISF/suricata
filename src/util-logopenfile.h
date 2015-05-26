@@ -26,6 +26,11 @@
 
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
+#include "util-buffer.h"
+
+#ifdef HAVE_LIBHIREDIS
+#include "hiredis/hiredis.h"
+#endif
 
 typedef struct {
     uint16_t fileno;
@@ -34,13 +39,45 @@ typedef struct {
 enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
-                   LOGFILE_TYPE_UNIX_STREAM };
+                   LOGFILE_TYPE_UNIX_STREAM,
+                   LOGFILE_TYPE_REDIS };
+
+typedef struct SyslogSetup_ {
+    int alert_syslog_level;
+} SyslogSetup;
+
+#ifdef HAVE_LIBHIREDIS
+enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
+
+typedef struct RedisSetup_ {
+    enum RedisMode mode;
+    char *command;
+    char *key;
+    char *sensor_name;
+    int  batch_size;
+    int  batch_timeout;
+    SC_ATOMIC_DECLARE(int, batch_count);
+    char *server;
+    int  port;
+    int  tried;
+} RedisSetup;
+#endif
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+#ifdef HAVE_LIBHIREDIS
+        redisContext *redis;
+#endif
+    };
+
+    union {
+    SyslogSetup syslog_setup;
+#ifdef HAVE_LIBHIREDIS
+    RedisSetup redis_setup;
+#endif
     };
 
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
@@ -84,8 +121,10 @@ typedef struct LogFileCtx_ {
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
+int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

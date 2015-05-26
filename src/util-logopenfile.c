@@ -262,6 +262,132 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
     return 0;
 }
 
+
+#if HAVE_LIBHIREDIS
+
+static void SCLogFileCloseRedis(LogFileCtx *log_ctx)
+{
+    if (log_ctx->redis)
+        redisFree(log_ctx->redis);
+    log_ctx->redis_setup.tried = 0;
+    SC_ATOMIC_SET(log_ctx->redis_setup.batch_count, 0);
+}
+
+int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
+{
+    const char *redis_server = NULL;
+    const char *redis_port = NULL;
+    const char *redis_mode = NULL;
+    const char *redis_key = NULL;
+
+    if (redis_node) {
+        redis_server = ConfNodeLookupChildValue(redis_node, "server");
+        redis_port =  ConfNodeLookupChildValue(redis_node, "port");
+        redis_mode =  ConfNodeLookupChildValue(redis_node, "mode");
+        redis_key =  ConfNodeLookupChildValue(redis_node, "key");
+    }
+    if (!redis_server) {
+        redis_server = "127.0.0.1";
+        SCLogInfo("Using default redis server (127.0.0.1)");
+    }
+    if (!redis_port)
+        redis_port = "6379";
+    if (!redis_mode)
+        redis_mode = "list";
+    if (!redis_key)
+        redis_key = "suricata";
+    log_ctx->redis_setup.key = SCStrdup(redis_key);
+
+    if (!log_ctx->redis_setup.key) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key name");
+        exit(EXIT_FAILURE);
+    }
+
+    log_ctx->redis_setup.batch_timeout = 0;
+    log_ctx->redis_setup.batch_size = 0;
+
+    ConfNode *pipelining = ConfNodeLookupChild(redis_node, "pipelining");
+    if (pipelining) {
+        int enabled = 0;
+        int ret;
+        intmax_t val;
+        ret = ConfGetChildValueBool(pipelining, "enabled", &enabled);
+        if (ret && enabled) {
+            ret = ConfGetChildValueInt(pipelining, "batch-size", &val);
+            if (ret) {
+                log_ctx->redis_setup.batch_size = val;
+            } else {
+                log_ctx->redis_setup.batch_size = 10;
+            }
+            ret = ConfGetChildValueInt(pipelining, "batch-timeout", &val);
+            if (ret) {
+                log_ctx->redis_setup.batch_timeout = val;
+            } else {
+                log_ctx->redis_setup.batch_timeout = 1;
+            }
+        }
+    }
+
+    if (!strcmp(redis_mode, "list")) {
+        log_ctx->redis_setup.command = SCStrdup("LPUSH");
+        if (!log_ctx->redis_setup.command) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        log_ctx->redis_setup.command = SCStrdup("PUBLISH");
+        if (!log_ctx->redis_setup.command) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
+            exit(EXIT_FAILURE);
+        }
+    }
+    redisContext *c = redisConnect(redis_server, atoi(redis_port));
+    if (c != NULL && c->err) {
+        SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: %s\n", c->errstr);
+        exit(EXIT_FAILURE);
+    }
+
+    /* store server params for reconnection */
+    log_ctx->redis_setup.server = SCStrdup(redis_server);
+    log_ctx->redis_setup.port = atoi(redis_port);
+    log_ctx->redis_setup.tried = 0;
+    
+    log_ctx->redis = c;
+
+    log_ctx->Close = SCLogFileCloseRedis;
+
+    return 0;
+}
+
+int SCConfLogReopenRedis(LogFileCtx *log_ctx)
+{
+    if (log_ctx->redis != NULL) {
+        redisFree(log_ctx->redis);
+        log_ctx->redis = NULL;
+    }
+
+    /* only try to reconnect once per second */
+    if (log_ctx->redis_setup.tried >= time(NULL)) {
+        return -1;
+    }
+
+    redisContext *c = redisConnect(log_ctx->redis_setup.server, log_ctx->redis_setup.port);
+    if (c != NULL && c->err) {
+        if (log_ctx->redis_setup.tried == 0) {
+            SCLogError(SC_ERR_SOCKET, "Error connecting to redis server: %s\n", c->errstr);
+        }
+        redisFree(c);
+        log_ctx->redis_setup.tried = time(NULL);
+        return -1;
+    }
+    log_ctx->redis = c;
+    log_ctx->redis_setup.tried = 0;
+    SC_ATOMIC_SET(log_ctx->redis_setup.batch_count, 0);
+    return 0;
+}
+
+#endif
+
 /** \brief LogFileNewCtx() Get a new LogFileCtx
  *  \retval LogFileCtx * pointer if succesful, NULL if error
  *  */
@@ -279,6 +405,10 @@ LogFileCtx *LogFileNewCtx(void)
     // Default Write and Close functions
     lf_ctx->Write = SCLogFileWrite;
     lf_ctx->Close = SCLogFileClose;
+
+#ifdef HAVE_LIBHIREDIS
+    SC_ATOMIC_INIT(lf_ctx->redis_setup.batch_count);
+#endif
 
     return lf_ctx;
 }
@@ -299,6 +429,15 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCMutexUnlock(&lf_ctx->fp_mutex);
     }
 
+#ifdef HAVE_LIBHIREDIS
+    if (lf_ctx->type == LOGFILE_TYPE_REDIS && lf_ctx->redis) {
+        redisFree(lf_ctx->redis);
+        SCFree(lf_ctx->redis_setup.server);
+        SCFree(lf_ctx->redis_setup.command);
+        SCFree(lf_ctx->redis_setup.key);
+    }
+#endif
+
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
     if (lf_ctx->prefix != NULL)
@@ -310,4 +449,101 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCFree(lf_ctx);
 
     SCReturnInt(1);
+}
+
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len)
+{
+    SCMutexLock(&file_ctx->fp_mutex);
+    if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
+        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s", string);
+    } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
+               file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
+    {
+        MemBufferWriteString(buffer, "%s\n", string);
+        file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
+            MEMBUFFER_OFFSET(buffer), file_ctx);
+    }
+#if HAVE_LIBHIREDIS
+    else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
+        if (file_ctx->redis == NULL) {
+            /* FIXME temporisation */
+            SCConfLogReopenRedis(file_ctx);
+            if (file_ctx->redis == NULL) {
+                SCMutexUnlock(&file_ctx->fp_mutex);
+                return -1;
+            } else {
+                SCLogInfo("Reconnected to redis server");
+            }
+        }
+        /* FIXME go async here ? */
+        if (file_ctx->redis_setup.batch_size) {
+            redisAppendCommand(file_ctx->redis, "%s %s %s",
+                    file_ctx->redis_setup.command,
+                    file_ctx->redis_setup.key,
+                    string);
+            if (SC_ATOMIC_CAS(&file_ctx->redis_setup.batch_count, file_ctx->redis_setup.batch_size, 0)) {
+                redisReply *reply;
+                int i;
+                for(i = 0; i <= file_ctx->redis_setup.batch_size; i++) {
+                    if (redisGetReply(file_ctx->redis, (void **)&reply) == REDIS_OK) {
+                        freeReplyObject(reply);
+                    } else {
+                        /* FIXME treat error */
+                        if (file_ctx->redis->err) {
+                            SCLogInfo("Error when fetching reply: %s (%d)",
+                                      file_ctx->redis->errstr,
+                                      file_ctx->redis->err);
+                        }
+                        switch (file_ctx->redis->err) {
+                            case REDIS_ERR_EOF:
+                            case REDIS_ERR_IO:
+                                SCLogInfo("Reopening connection to redis server");
+                                SCConfLogReopenRedis(file_ctx);
+                                if (file_ctx->redis) {
+                                    SCLogInfo("Reconnected to redis server");
+                                    SCMutexUnlock(&file_ctx->fp_mutex);
+                                    return 0;
+                                } else {
+                                    SCLogInfo("Unable to reconnect to redis server");
+                                    SCMutexUnlock(&file_ctx->fp_mutex);
+                                    return 0;
+                                }
+                                break;
+                            default:
+                                SCLogInfo("Unsupported error code %d",
+                                          file_ctx->redis->err);
+                        }
+                    }
+                }
+            } else {
+                SC_ATOMIC_ADD(file_ctx->redis_setup.batch_count, 1);
+            }
+        } else {
+            redisReply *reply = redisCommand(file_ctx->redis, "%s %s %s",
+                    file_ctx->redis_setup.command,
+                    file_ctx->redis_setup.key,
+                    string);
+
+            switch (reply->type) {
+                case REDIS_REPLY_ERROR:
+                    SCLogWarning(SC_WARN_NO_UNITTESTS, "Redis error: %s", reply->str);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+                case REDIS_REPLY_INTEGER:
+                    SCLogDebug("Redis integer %lld", reply->integer);
+                    break;
+                default:
+                    SCLogError(SC_ERR_INVALID_VALUE,
+                            "Redis default triggered with %d", reply->type);
+                    SCConfLogReopenRedis(file_ctx);
+                    break;
+            }
+            freeReplyObject(reply);
+        }
+    }
+#endif
+    SCMutexUnlock(&file_ctx->fp_mutex);
+
+    return 0;
 }
