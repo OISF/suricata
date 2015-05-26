@@ -72,7 +72,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 
 int DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(tv, dtv->counter_udp);
+    StatsIncr(tv, dtv->counter_udp);
 
     if (unlikely(DecodeUDPPacket(tv, p,pkt,len) < 0)) {
         p->udph = NULL;

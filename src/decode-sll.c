@@ -38,7 +38,7 @@
 
 int DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(tv, dtv->counter_sll);
+    StatsIncr(tv, dtv->counter_sll);
 
     if (unlikely(len < SLL_HEADER_LEN)) {
         ENGINE_SET_INVALID_EVENT(p, SLL_PKT_TOO_SMALL);

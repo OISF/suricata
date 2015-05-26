@@ -398,10 +398,10 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
                     if (idesc->be) {
                         /* Buffer Error - No buffer available, so mPipe
                          * dropped the packet. */
-                        SCPerfCounterIncr(tv, XlateStack(ptv, idesc->stack_idx));
+                        StatsIncr(tv, XlateStack(ptv, idesc->stack_idx));
                     } else {
                         /* Bad packet. CRC error */
-                        SCPerfCounterIncr(tv, ptv->mpipe_drop);
+                        StatsIncr(tv, ptv->mpipe_drop);
                         gxio_mpipe_iqueue_drop(iqueue, idesc);
                     }
                     gxio_mpipe_iqueue_release(iqueue, idesc);
@@ -1039,8 +1039,8 @@ TmEcode DecodeMpipe(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(tv, dtv->counter_pkts);
-//    SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
+    StatsIncr(tv, dtv->counter_pkts);
+//    StatsIncr(tv, dtv->counter_pkts_per_sec);
 
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
 

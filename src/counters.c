@@ -140,7 +140,7 @@ void StatsAddUI64(ThreadVars *tv, uint16_t id, uint64_t x)
  * \param id  Index of the counter in the counter array
  * \param pca Counter array that holds the local counters for this TM
  */
-void SCPerfCounterIncr(ThreadVars *tv, uint16_t id)
+void StatsIncr(ThreadVars *tv, uint16_t id)
 {
     SCPerfPrivateContext *pca = &tv->perf_private_ctx;
 #ifdef UNITTESTS
@@ -1432,8 +1432,8 @@ static int SCPerfTestCntArraySize07()
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
-    SCPerfCounterIncr(&tv, 1);
-    SCPerfCounterIncr(&tv, 2);
+    StatsIncr(&tv, 1);
+    StatsIncr(&tv, 2);
 
     result = pca->size;
 
@@ -1457,7 +1457,7 @@ static int SCPerfTestUpdateCounter08()
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
-    SCPerfCounterIncr(&tv, id);
+    StatsIncr(&tv, id);
     StatsAddUI64(&tv, id, 100);
 
     result = pca->head[id].value;
@@ -1486,7 +1486,7 @@ static int SCPerfTestUpdateCounter09()
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
-    SCPerfCounterIncr(&tv, id2);
+    StatsIncr(&tv, id2);
     StatsAddUI64(&tv, id2, 100);
 
     result = (pca->head[id1].value == 0) && (pca->head[id2].value == 101);
@@ -1514,9 +1514,9 @@ static int SCPerfTestUpdateGlobalCounter10()
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
-    SCPerfCounterIncr(&tv, id1);
+    StatsIncr(&tv, id1);
     StatsAddUI64(&tv, id2, 100);
-    SCPerfCounterIncr(&tv, id3);
+    StatsIncr(&tv, id3);
     StatsAddUI64(&tv, id3, 100);
 
     SCPerfUpdateCounterArray(pca, &tv.perf_public_ctx);
@@ -1549,7 +1549,7 @@ static int SCPerfTestCounterValues11()
     SCPerfGetAllCountersArray(&tv.perf_public_ctx, &tv.perf_private_ctx);
     pca = &tv.perf_private_ctx;
 
-    SCPerfCounterIncr(&tv, id1);
+    StatsIncr(&tv, id1);
     StatsAddUI64(&tv, id2, 256);
     StatsAddUI64(&tv, id3, 257);
     StatsAddUI64(&tv, id4, 16843024);

@@ -844,10 +844,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_sessions);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
@@ -925,11 +925,11 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
 
-            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_sessions);
         }
 
         /* set the state */
@@ -978,10 +978,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         if (ssn == NULL) {
             ssn = StreamTcpNewSession(p, stt->ssn_pool_id);
             if (ssn == NULL) {
-                SCPerfCounterIncr(tv, stt->counter_tcp_ssn_memcap);
+                StatsIncr(tv, stt->counter_tcp_ssn_memcap);
                 return -1;
             }
-            SCPerfCounterIncr(tv, stt->counter_tcp_sessions);
+            StatsIncr(tv, stt->counter_tcp_sessions);
         }
         /* set the state */
         StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
@@ -4461,12 +4461,12 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     /* update counters */
     if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
-        SCPerfCounterIncr(tv, stt->counter_tcp_synack);
+        StatsIncr(tv, stt->counter_tcp_synack);
     } else if (p->tcph->th_flags & (TH_SYN)) {
-        SCPerfCounterIncr(tv, stt->counter_tcp_syn);
+        StatsIncr(tv, stt->counter_tcp_syn);
     }
     if (p->tcph->th_flags & (TH_RST)) {
-        SCPerfCounterIncr(tv, stt->counter_tcp_rst);
+        StatsIncr(tv, stt->counter_tcp_rst);
     }
 
     /* broken TCP http://ask.wireshark.org/questions/3183/acknowledgment-number-broken-tcp-the-acknowledge-field-is-nonzero-while-the-ack-flag-is-not-set */
@@ -5020,13 +5020,13 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         return TM_ECODE_OK;
 
     if (p->flow == NULL) {
-        SCPerfCounterIncr(tv, stt->counter_tcp_no_flow);
+        StatsIncr(tv, stt->counter_tcp_no_flow);
         return TM_ECODE_OK;
     }
 
     if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
         if (StreamTcpValidateChecksum(p) == 0) {
-            SCPerfCounterIncr(tv, stt->counter_tcp_invalid_checksum);
+            StatsIncr(tv, stt->counter_tcp_invalid_checksum);
             return TM_ECODE_OK;
         }
     } else {
@@ -5864,7 +5864,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     if (np == NULL) {
         SCLogDebug("The packet received from packet allocation is NULL");
-        SCPerfCounterIncr(tv, stt->counter_tcp_pseudo_failed);
+        StatsIncr(tv, stt->counter_tcp_pseudo_failed);
         SCReturn;
     }
     PKT_SET_SRC(np, PKT_SRC_STREAM_TCP_STREAM_END_PSEUDO);
@@ -5899,7 +5899,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
 
     PacketEnqueue(pq, np);
 
-    SCPerfCounterIncr(tv, stt->counter_tcp_pseudo);
+    StatsIncr(tv, stt->counter_tcp_pseudo);
     SCReturn;
 }
 

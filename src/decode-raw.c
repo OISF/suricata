@@ -45,7 +45,7 @@
 
 int DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(tv, dtv->counter_raw);
+    StatsIncr(tv, dtv->counter_raw);
 
     /* If it is ipv4 or ipv6 it should at least be the size of ipv4 */
     if (unlikely(len < IPV4_HEADER_LEN)) {

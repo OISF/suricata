@@ -51,7 +51,7 @@ int DecodeMPLS(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
     int label;
     int event = 0;
 
-    SCPerfCounterIncr(tv, dtv->counter_mpls);
+    StatsIncr(tv, dtv->counter_mpls);
 
     do {
         if (len < MPLS_HEADER_LEN) {

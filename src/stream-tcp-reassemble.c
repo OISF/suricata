@@ -1906,7 +1906,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
         /* increment stream depth counter */
-        SCPerfCounterIncr(tv, ra_ctx->counter_tcp_stream_depth);
+        StatsIncr(tv, ra_ctx->counter_tcp_stream_depth);
 
         stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         SCLogDebug("ssn %p: reassembly depth reached, "
@@ -2607,7 +2607,7 @@ int DoHandleGap(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
 
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-        SCPerfCounterIncr(tv, ra_ctx->counter_tcp_reass_gap);
+        StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
 #ifdef DEBUG
         dbg_app_layer_gap++;
 #endif
@@ -2953,7 +2953,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
 
             StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-            SCPerfCounterIncr(tv, ra_ctx->counter_tcp_reass_gap);
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
 #ifdef DEBUG
             dbg_app_layer_gap++;
 #endif
@@ -3596,7 +3596,7 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
                    segment_pool[idx]->allocated);
         /* Increment the counter to show that we are not able to serve the
            segment request due to memcap limit */
-        SCPerfCounterIncr(tv, ra_ctx->counter_tcp_segment_memcap);
+        StatsIncr(tv, ra_ctx->counter_tcp_segment_memcap);
     } else {
         seg->flags = stream_config.segment_init_flags;
         seg->next = NULL;

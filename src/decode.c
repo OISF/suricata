@@ -106,7 +106,7 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
 
     if (p->flags & PKT_IS_INVALID)
-        SCPerfCounterIncr(tv, dtv->counter_invalid);
+        StatsIncr(tv, dtv->counter_invalid);
 
 #ifdef __SC_CUDA_SUPPORT__
     if (dtv->cuda_vars.mpm_is_cuda)

@@ -591,7 +591,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
                 SCLogDebug("Flow emergency mode entered...");
 
-                SCPerfCounterIncr(th_v, ftd->flow_emerg_mode_enter);
+                StatsIncr(th_v, ftd->flow_emerg_mode_enter);
             }
         }
 
@@ -662,7 +662,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
                           "%% flows at the queue", (uintmax_t)ts.tv_sec,
                           (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
 
-                SCPerfCounterIncr(th_v, ftd->flow_emerg_mode_over);
+                StatsIncr(th_v, ftd->flow_emerg_mode_over);
             } else {
                 flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
                 flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;

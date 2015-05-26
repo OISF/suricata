@@ -186,7 +186,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
 
 int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
-    SCPerfCounterIncr(tv, dtv->counter_tcp);
+    StatsIncr(tv, dtv->counter_tcp);
 
     if (unlikely(DecodeTCPPacket(tv, p,pkt,len) < 0)) {
         SCLogDebug("invalid TCP packet");

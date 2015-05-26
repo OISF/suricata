@@ -704,8 +704,8 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         return TM_ECODE_OK;
 
     /* update counters */
-    SCPerfCounterIncr(tv, dtv->counter_pkts);
-    //SCPerfCounterIncr(tv, dtv->counter_pkts_per_sec);
+    StatsIncr(tv, dtv->counter_pkts);
+    //StatsIncr(tv, dtv->counter_pkts_per_sec);
     StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
     StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
     SCPerfCounterSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
