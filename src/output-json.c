@@ -546,6 +546,12 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                 sensor_name = hostname;
             }
             json_ctx->file_ctx->redis_setup.sensor_name = SCStrdup(sensor_name);
+            if (json_ctx->file_ctx->redis_setup.sensor_name  == NULL) {
+                LogFileFreeCtx(json_ctx->file_ctx);
+                SCFree(json_ctx);
+                SCFree(output_ctx);
+                return NULL;
+            }
 
             if (SCConfLogOpenRedis(redis_node, json_ctx->file_ctx) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
