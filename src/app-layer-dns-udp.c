@@ -358,10 +358,6 @@ void RegisterDNSUDPParsers(void)
 {
     char *proto_name = "dns";
 
-    StatsRegisterGlobalCounter("dns.memuse", DNSMemcapGetMemuseCounter);
-    StatsRegisterGlobalCounter("dns.memcap_state", DNSMemcapGetMemcapStateCounter);
-    StatsRegisterGlobalCounter("dns.memcap_global", DNSMemcapGetMemcapGlobalCounter);
-
     /** DNS */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("udp", proto_name)) {
         AppLayerProtoDetectRegisterProtocol(ALPROTO_DNS, proto_name);

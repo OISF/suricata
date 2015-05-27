@@ -130,6 +130,7 @@ static inline void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p
 #endif
 }
 
+void AppLayerRegisterGlobalCounters(void);
 
 /***** Unittests *****/
 

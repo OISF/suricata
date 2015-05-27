@@ -2206,7 +2206,9 @@ int main(int argc, char **argv)
     GlobalInits();
     TimeInit();
     SupportFastPatternForSigMatchTypes();
-    StatsInit();
+    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+        StatsInit();
+    }
 
     if (conf_filename == NULL)
         conf_filename = DEFAULT_CONF_FILE;
@@ -2256,6 +2258,7 @@ int main(int argc, char **argv)
         FlowInitConfig(FLOW_VERBOSE);
         StreamTcpInitConfig(STREAM_VERBOSE);
         IPPairInitConfig(IPPAIR_VERBOSE);
+        AppLayerRegisterGlobalCounters();
     }
 
     if (MagicInit() != 0)

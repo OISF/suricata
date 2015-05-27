@@ -2547,9 +2547,6 @@ void HTPConfigure(void)
         HTPConfigSetDefaultsPhase2(s->name, htprec);
     }
 
-    StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
-    StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
-
     SCReturn;
 }
 

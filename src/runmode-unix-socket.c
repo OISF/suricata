@@ -37,6 +37,7 @@
 #include "host.h"
 #include "defrag.h"
 #include "ippair.h"
+#include "app-layer.h"
 
 #include "util-profiling.h"
 
@@ -354,6 +355,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         FlowInitConfig(FLOW_QUIET);
         IPPairInitConfig(FLOW_QUIET);
         StreamTcpInitConfig(STREAM_VERBOSE);
+        AppLayerRegisterGlobalCounters();
         RunModeInitializeOutputs();
         StatsSetupPostConfig();
         RunModeDispatch(RUNMODE_PCAP_FILE, NULL);

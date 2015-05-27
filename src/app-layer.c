@@ -609,6 +609,17 @@ void AppLayerProfilingStoreInternal(AppLayerThreadCtx *app_tctx, Packet *p)
     PACKET_PROFILING_APP_STORE(app_tctx, p);
 }
 
+/** \brief HACK to work around our broken unix manager (re)init loop
+ */
+void AppLayerRegisterGlobalCounters(void)
+{
+    StatsRegisterGlobalCounter("dns.memuse", DNSMemcapGetMemuseCounter);
+    StatsRegisterGlobalCounter("dns.memcap_state", DNSMemcapGetMemcapStateCounter);
+    StatsRegisterGlobalCounter("dns.memcap_global", DNSMemcapGetMemcapGlobalCounter);
+    StatsRegisterGlobalCounter("http.memuse", HTPMemuseGlobalCounter);
+    StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
+}
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
