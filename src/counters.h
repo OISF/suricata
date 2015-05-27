@@ -127,6 +127,7 @@ void StatsIncr(struct ThreadVars_ *, uint16_t);
 int StatsUpdateCounterArray(StatsPrivateThreadContext *, StatsPublicThreadContext *);
 uint64_t StatsGetLocalCounterValue(struct ThreadVars_ *, uint16_t);
 int StatsSetupPrivate(struct ThreadVars_ *);
+void StatsThreadCleanup(struct ThreadVars_ *);
 
 #define StatsSyncCounters(tv) \
     StatsUpdateCounterArray(&(tv)->perf_private_ctx, &(tv)->perf_public_ctx);  \

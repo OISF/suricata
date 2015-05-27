@@ -1647,7 +1647,7 @@ void TmThreadFree(ThreadVars *tv)
 
     SCLogDebug("Freeing thread '%s'.", tv->name);
 
-    SCMutexDestroy(&tv->perf_public_ctx.m);
+    StatsThreadCleanup(tv);
 
     s = (TmSlot *)tv->tm_slots;
     while (s) {

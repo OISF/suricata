@@ -104,17 +104,19 @@ static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
 
 static uint16_t counters_global_id = 0;
 
-void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
+static void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
 {
     SCMutexInit(&t->m, NULL);
 }
 
-void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
+static void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
 {
     SCMutexLock(&t->m);
     StatsReleaseCounters(t->head);
+    t->head = NULL;
+    t->perf_flag = 0;
+    t->curr_id = 0;
     SCMutexUnlock(&t->m);
-
     SCMutexDestroy(&t->m);
 }
 
@@ -1026,13 +1028,7 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     memset(temp, 0, sizeof(StatsThreadStore));
 
     temp->ctx = pctx;
-
-    temp->name = SCStrdup(thread_name);
-    if (unlikely(temp->name == NULL)) {
-        SCFree(temp);
-        SCMutexUnlock(&stats_ctx->sts_lock);
-        return 0;
-    }
+    temp->name = thread_name;
 
     temp->next = stats_ctx->sts;
     stats_ctx->sts = temp;
@@ -1213,11 +1209,18 @@ void StatsReleasePrivateThreadContext(StatsPrivateThreadContext *pca)
         if (pca->head != NULL) {
             SCFree(pca->head);
             pca->head = NULL;
+            pca->size = 0;
         }
         pca->initialized = 0;
     }
 
     return;
+}
+
+void StatsThreadCleanup(ThreadVars *tv)
+{
+    StatsPublicThreadContextCleanup(&tv->perf_public_ctx);
+    StatsReleasePrivateThreadContext(&tv->perf_private_ctx);
 }
 
 /*----------------------------------Unit_Tests--------------------------------*/
