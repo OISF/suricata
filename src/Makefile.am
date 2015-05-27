@@ -243,6 +243,7 @@ output-json-netflow.c output-json-netflow.h \
 output-json-http.c output-json-http.h \
 output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
+output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \

@@ -140,6 +140,7 @@ outputs:
         #    alerts: no       # log alerts that caused drops
         - smtp
         - ssh
+        - stats
         # bi-directional flows
         #- flow
         # uni-directional flows
