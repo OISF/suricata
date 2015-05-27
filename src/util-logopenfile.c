@@ -342,9 +342,13 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
 
     /* store server params for reconnection */
     log_ctx->redis_setup.server = SCStrdup(redis_server);
+    if (!log_ctx->redis_setup.server) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis server command");
+        exit(EXIT_FAILURE);
+    }
     log_ctx->redis_setup.port = atoi(redis_port);
     log_ctx->redis_setup.tried = 0;
-    
+
     log_ctx->redis = c;
 
     log_ctx->Close = SCLogFileCloseRedis;
