@@ -96,12 +96,27 @@ static char stats_enabled = TRUE;
 
 static int StatsOutput(ThreadVars *tv);
 static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext *);
+void StatsReleaseCounters(StatsCounter *head);
 
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
 static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
 
 static uint16_t counters_global_id = 0;
+
+void StatsPublicThreadContextInit(StatsPublicThreadContext *t)
+{
+    SCMutexInit(&t->m, NULL);
+}
+
+void StatsPublicThreadContextCleanup(StatsPublicThreadContext *t)
+{
+    SCMutexLock(&t->m);
+    StatsReleaseCounters(t->head);
+    SCMutexUnlock(&t->m);
+
+    SCMutexDestroy(&t->m);
+}
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -254,14 +269,26 @@ static void StatsReleaseCtx()
         sts = temp;
     }
 
+    if (stats_ctx->counters_id_hash != NULL) {
+        HashTableFree(stats_ctx->counters_id_hash);
+        stats_ctx->counters_id_hash = NULL;
+    }
+
+    StatsPublicThreadContextCleanup(&stats_ctx->global_counter_ctx);
     SCFree(stats_ctx);
     stats_ctx = NULL;
 
     /* free stats table */
+    if (stats_table.tstats != NULL) {
+        SCFree(stats_table.tstats);
+        stats_table.tstats = NULL;
+    }
+
     if (stats_table.stats != NULL) {
         SCFree(stats_table.stats);
-        memset(&stats_table, 0, sizeof(stats_table));
+        stats_table.stats = NULL;
     }
+    memset(&stats_table, 0, sizeof(stats_table));
 
     return;
 }
@@ -750,6 +777,8 @@ void StatsInit(void)
         exit(EXIT_FAILURE);
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
+
+    StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
 }
 
 void StatsSetupPostConfig(void)
