@@ -499,10 +499,7 @@ TmEcode DecodeNFLOG(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
-    StatsIncr(tv, dtv->counter_pkts);
-    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    DecodeUpdatePacketCounters(tv, dtv, p);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");

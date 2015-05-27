@@ -862,6 +862,8 @@ const char *PktSrcToString(enum PktSrcEnum pkt_src);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
+void DecodeUpdatePacketCounters(ThreadVars *tv,
+                                const DecodeThreadVars *dtv, const Packet *p);
 
 /* decoder functions */
 int DecodeEthernet(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);

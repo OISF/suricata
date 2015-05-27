@@ -401,11 +401,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         return TM_ECODE_OK;
 
     /* update counters */
-    StatsIncr(tv, dtv->counter_pkts);
-    //StatsIncr(tv, dtv->counter_pkts_per_sec);
-    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    DecodeUpdatePacketCounters(tv, dtv, p);
 
     double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
     if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {

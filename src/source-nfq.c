@@ -1223,10 +1223,7 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     if (p->flags & PKT_PSEUDO_STREAM_END)
         return TM_ECODE_OK;
 
-    StatsIncr(tv, dtv->counter_pkts);
-    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
-    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
-    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+    DecodeUpdatePacketCounters(tv, dtv, p);
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");

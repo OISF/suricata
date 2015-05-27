@@ -420,6 +420,16 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     return;
 }
 
+void DecodeUpdatePacketCounters(ThreadVars *tv,
+                                const DecodeThreadVars *dtv, const Packet *p)
+{
+    StatsIncr(tv, dtv->counter_pkts);
+    //StatsIncr(tv, dtv->counter_pkts_per_sec);
+    StatsAddUI64(tv, dtv->counter_bytes, GET_PKT_LEN(p));
+    StatsAddUI64(tv, dtv->counter_avg_pkt_size, GET_PKT_LEN(p));
+    StatsSetUI64(tv, dtv->counter_max_pkt_size, GET_PKT_LEN(p));
+}
+
 /**
  *  \brief Debug print function for printing addresses
  *
