@@ -383,33 +383,49 @@ void ModbusStateTxFree(void *state, uint64_t tx_id) {
 /** \internal
  *  \brief Extract 8bits data from pointer the received input data
  *
- *  \param  res		Pointer to the result
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  res		    Pointer to the result
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
-static void ModbusExtractUint8(uint8_t  *res,
-                               uint8_t  *input,
-                               uint16_t *offset) {
+static int ModbusExtractUint8(ModbusState   *modbus,
+                              uint8_t       *res,
+                              uint8_t       *input,
+                              uint32_t      input_len,
+                              uint16_t      *offset) {
     SCEnter();
+    if (input_len < (uint32_t) (*offset + sizeof(uint8_t))) {
+        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_LENGTH);
+        SCReturnInt(-1);
+    }
+
     *res     = *(input + *offset);
     *offset += sizeof(uint8_t);
-    SCReturn;
+    SCReturnInt(0);
 }
 
 /** \internal
  *  \brief Extract 16bits data from pointer the received input data
  *
- *  \param  res		Pointer to the result
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  res		    Pointer to the result
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
-static void ModbusExtractUint16(uint16_t    *res,
-                                uint8_t     *input,
-                                uint16_t    *offset) {
+static int ModbusExtractUint16(ModbusState  *modbus,
+                               uint16_t     *res,
+                               uint8_t      *input,
+                               uint32_t     input_len,
+                               uint16_t     *offset) {
     SCEnter();
+    if (input_len < (uint32_t) (*offset + sizeof(uint16_t))) {
+        ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_LENGTH);
+        SCReturnInt(-1);
+    }
+
     ByteExtractUint16(res, BYTE_BIG_ENDIAN, sizeof(uint16_t), (const uint8_t *) (input + *offset));
     *offset += sizeof(uint16_t);
-    SCReturn;
+    SCReturnInt(0);
 }
 
 /** \internal
@@ -461,21 +477,24 @@ static void ModbusCheckHeader(ModbusState       *modbus,
 /** \internal
  *  \brief Parse Exception Response and verify protocol compliance.
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
 static void ModbusExceptionResponse(ModbusTransaction   *tx,
                                     ModbusState         *modbus,
                                     uint8_t             *input,
+                                    uint32_t            input_len,
                                     uint16_t            *offset)
 {
     SCEnter();
     uint8_t exception;
 
     /* Exception code (1 byte) */
-    ModbusExtractUint8(&exception, input, offset);
+    if (ModbusExtractUint8(modbus, &exception, input, input_len, offset))
+        SCReturn;
 
     switch (exception) {
         case MODBUS_ERROR_CODE_ILLEGAL_FUNCTION:
@@ -511,14 +530,16 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
  *  \brief Parse Read data Request, complete Transaction structure
  *          and verify protocol compliance.
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
 static void ModbusParseReadRequest(ModbusTransaction   *tx,
                                    ModbusState         *modbus,
                                    uint8_t             *input,
+                                   uint32_t            input_len,
                                    uint16_t            *offset)
 {
     SCEnter();
@@ -526,10 +547,12 @@ static void ModbusParseReadRequest(ModbusTransaction   *tx,
     uint8_t     type = tx->type;
 
     /* Starting Address (2 bytes) */
-    ModbusExtractUint16(&(tx->read.address), input, offset);
+    if (ModbusExtractUint16(modbus, &(tx->read.address), input, input_len, offset))
+        goto end;
 
     /* Quantity (2 bytes) */
-    ModbusExtractUint16(&(tx->read.quantity), input, offset);
+    if (ModbusExtractUint16(modbus, &(tx->read.quantity), input, input_len, offset))
+        goto end;
     quantity = tx->read.quantity;
 
     /* Check Quantity range */
@@ -560,21 +583,24 @@ end:
 /** \internal
  *  \brief Parse Read data Response and verify protocol compliance
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
 static void ModbusParseReadResponse(ModbusTransaction   *tx,
                                     ModbusState         *modbus,
                                     uint8_t             *input,
+                                    uint32_t            input_len,
                                     uint16_t            *offset)
 {
     SCEnter();
     uint8_t count;
 
     /* Count (1 bytes) */
-    ModbusExtractUint8(&count, input, offset);
+    if (ModbusExtractUint8(modbus, &count, input, input_len, offset))
+        goto end;
 
     /* Check Count range and value according to the request */
     if ((tx->type) & MODBUS_TYP_BIT_ACCESS_MASK) {
@@ -605,16 +631,18 @@ end:
  *  \brief Parse Write data Request, complete Transaction structure
  *          and verify protocol compliance.
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  *
  *  \retval On success returns 0 or on failure returns -1.
  */
 static int ModbusParseWriteRequest(ModbusTransaction   *tx,
                                    ModbusState         *modbus,
                                    uint8_t             *input,
+                                   uint32_t            input_len,
                                    uint16_t            *offset)
 {
     SCEnter();
@@ -624,7 +652,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
     int i = 0;
 
     /* Starting/Output/Register Address (2 bytes) */
-    ModbusExtractUint16(&(tx->write.address), input, offset);
+    if (ModbusExtractUint16(modbus, &(tx->write.address), input, input_len, offset))
+        goto end;
 
     if (type & MODBUS_TYP_SINGLE) {
         /* The length of Write Single Coil (code 5) and                 */
@@ -634,11 +663,13 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
             goto end;
     } else if (type & MODBUS_TYP_MULTIPLE) {
         /* Quantity (2 bytes) */
-        ModbusExtractUint16(&quantity, input, offset);
+        if (ModbusExtractUint16(modbus, &quantity, input, input_len, offset))
+            goto end;
         tx->write.quantity = quantity;
 
         /* Count (1 bytes) */
-        ModbusExtractUint8(&count, input, offset);
+        if (ModbusExtractUint8(modbus, &count, input, input_len, offset))
+            goto end;
         tx->write.count = count;
 
         if (type & MODBUS_TYP_BIT_ACCESS_MASK) {
@@ -691,7 +722,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
 
         if (type & MODBUS_TYP_SINGLE) {
             /* Outputs value (2 bytes) */
-            ModbusExtractUint16(&word, input, offset);
+            if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+                goto end;
             tx->data[i] = word;
 
             if ((word != 0x00) && (word != 0xFF00))
@@ -699,7 +731,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
         } else {
             for (i = 0; i < count; i++) {
                 /* Outputs value (1 byte) */
-                ModbusExtractUint8(&byte, input, offset);
+                if (ModbusExtractUint8(modbus, &byte, input, input_len, offset))
+                    goto end;
                 tx->data[i] = (uint16_t) byte;
             }
         }
@@ -711,7 +744,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
 
         for (i = 0; i < quantity; i++) {
             /* Outputs/Registers value (2 bytes) */
-            ModbusExtractUint16(&word, input, offset);
+            if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+                goto end;
             tx->data[i] = word;
         }
     }
@@ -726,14 +760,16 @@ end:
 /** \internal
  *  \brief Parse Write data Response and verify protocol compliance
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
 static void ModbusParseWriteResponse(ModbusTransaction   *tx,
                                      ModbusState         *modbus,
                                      uint8_t             *input,
+                                     uint32_t            input_len,
                                      uint16_t            *offset)
 {
     SCEnter();
@@ -741,21 +777,24 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
     uint8_t     type = tx->type;
 
     /* Starting Address (2 bytes) */
-    ModbusExtractUint16(&address, input, offset);
+    if (ModbusExtractUint16(modbus, &address, input, input_len, offset))
+        goto end;
 
     if (address != tx->write.address)
         goto error;
 
     if (type & MODBUS_TYP_SINGLE) {
         /* Outputs/Registers value (2 bytes) */
-        ModbusExtractUint16(&word, input, offset);
+        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+            goto end;
 
         /* Check with Outputs/Registers from request */
         if (word != tx->data[0])
             goto error;
     } else if (type & MODBUS_TYP_MULTIPLE) {
         /* Quantity (2 bytes) */
-        ModbusExtractUint16(&quantity, input, offset);
+        if (ModbusExtractUint16(modbus, &quantity, input, input_len, offset))
+            goto end;
 
         /* Check Quantity range */
         if (type & MODBUS_TYP_BIT_ACCESS_MASK) {
@@ -773,14 +812,15 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
             goto error;
     } else {
         /* And_Mask value (2 bytes) */
-        ModbusExtractUint16(&word, input, offset);
+        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+            goto end;
 
         /* Check And_Mask value according to the request */
         if (word != tx->data[0])
             goto error;
 
         /* And_Or_Mask value (2 bytes) */
-        ModbusExtractUint16(&word, input, offset);
+        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
 
         /* Check Or_Mask value according to the request */
         if (word != tx->data[1])
@@ -808,26 +848,30 @@ end:
  *  \brief Parse Diagnostic Request, complete Transaction
  *          structure (Category) and verify protocol compliance.
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer to Modbus state structure
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer to Modbus state structure
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  *
  *  \retval Reserved category function returns 1 otherwise returns 0.
  */
 static int ModbusParseDiagnosticRequest(ModbusTransaction   *tx,
                                         ModbusState         *modbus,
                                         uint8_t             *input,
+                                        uint32_t            input_len,
                                         uint16_t            *offset)
 {
     SCEnter();
     uint16_t data;
 
     /* Sub-function (2 bytes) */
-    ModbusExtractUint16(&(tx->subFunction), input, offset);
+    if (ModbusExtractUint16(modbus, &(tx->subFunction), input, input_len, offset))
+        goto end;
 
     /* Data (2 bytes) */
-    ModbusExtractUint16(&data, input, offset);
+    if (ModbusExtractUint16(modbus, &data, input, input_len, offset))
+        goto end;
 
     if (tx->subFunction != MODBUS_SUBFUNC_QUERY_DATA) {
         switch (tx->subFunction) {
@@ -908,20 +952,22 @@ static ModbusFunctionCodeRange modbusFunctionCodeRanges[] = {
  *  \param  tx          Pointer to Modbus Transaction structure
  *  \param  ModbusPdu   Pointer the Modbus PDU state in which the value to be stored
  *  \param  input       Pointer the received input data
- *  \param  offset      Offset of the received input data pointer
+ *  \param  input_len   Length of the received input data
  */
 static void ModbusParseRequestPDU(ModbusTransaction *tx,
                                   ModbusState       *modbus,
                                   uint8_t           *input,
-                                  uint16_t          *offset)
+                                  uint32_t          input_len)
 {
     SCEnter();
-    uint8_t count;
+    uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
+    uint8_t     count;
 
     int i = 0;
 
     /* Standard function codes used on MODBUS application layer protocol (1 byte) */
-    ModbusExtractUint8(&(tx->function), input, offset);
+    if (ModbusExtractUint8(modbus, &(tx->function), input, input_len, &offset))
+        goto end;
 
     /* Set default function code category */
     tx->category = MODBUS_CAT_NONE;
@@ -987,14 +1033,15 @@ static void ModbusParseRequestPDU(ModbusTransaction *tx,
         case MODBUS_FUNC_READFILERECORD:
         case MODBUS_FUNC_WRITEFILERECORD:
             /* Count/length (1 bytes) */
-            ModbusExtractUint8(&count, input, offset);
+            if (ModbusExtractUint8(modbus, &count, input, input_len, &offset))
+                goto end;
 
             /* Modbus Application Protocol Specification V1.1b3 6.14 and 6.15   */
             ModbusCheckHeaderLength(modbus, tx->length, 2 + count);
             break;
 
         case MODBUS_FUNC_DIAGNOSTIC:
-            if(ModbusParseDiagnosticRequest(tx, modbus, input, offset))
+            if(ModbusParseDiagnosticRequest(tx, modbus, input, input_len, &offset))
                 goto end;
             break;
 
@@ -1013,7 +1060,8 @@ static void ModbusParseRequestPDU(ModbusTransaction *tx,
 
         case MODBUS_FUNC_ENCAPINTTRANS:
             /* MEI type (1 byte) */
-            ModbusExtractUint8(&(tx->mei), input, offset);
+           if (ModbusExtractUint8(modbus, &(tx->mei), input, input_len, &offset))
+               goto end;
 
             if (tx->mei == MODBUS_MEI_ENCAPINTTRANS_READ) {
                 /* Modbus Application Protocol Specification V1.1b3 6.21 */
@@ -1045,10 +1093,10 @@ static void ModbusParseRequestPDU(ModbusTransaction *tx,
     tx->category = MODBUS_CAT_PUBLIC_ASSIGNED;
 
     if (tx->type & MODBUS_TYP_READ)
-        ModbusParseReadRequest(tx, modbus, input, offset);
+        ModbusParseReadRequest(tx, modbus, input, input_len, &offset);
 
     if (tx->type & MODBUS_TYP_WRITE)
-        ModbusParseWriteRequest(tx, modbus, input, offset);
+        ModbusParseWriteRequest(tx, modbus, input, input_len, &offset);
 
 end:
     SCReturn;
@@ -1057,21 +1105,24 @@ end:
 /** \internal
  *  \brief Parse the Modbus Protocol Data Unit (PDU) Response
  *
- *  \param  tx      Pointer to Modbus Transaction structure
- *  \param  modbus  Pointer the Modbus PDU state in which the value to be stored
- *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
+ *  \param  tx          Pointer to Modbus Transaction structure
+ *  \param  modbus      Pointer the Modbus PDU state in which the value to be stored
+ *  \param  input       Pointer the received input data
+ *  \param  input_len   Length of the received input data
+ *  \param  offset      Offset of the received input data pointer
  */
 static void ModbusParseResponsePDU(ModbusTransaction    *tx,
                                    ModbusState          *modbus,
                                    uint8_t              *input,
-                                   uint16_t             *offset)
+                                   uint32_t             input_len)
 {
     SCEnter();
-    uint8_t count, error = FALSE, function, mei;
+    uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
+    uint8_t     count, error = FALSE, function, mei;
 
     /* Standard function codes used on MODBUS application layer protocol (1 byte) */
-    ModbusExtractUint8(&function, input, offset);
+    if (ModbusExtractUint8(modbus, &function, input, input_len, &offset))
+        goto end;
 
     /* Check if response is error */
     if(function & MODBUS_FUNC_ERRORMASK) {
@@ -1082,7 +1133,7 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
     if (tx->category == MODBUS_CAT_PUBLIC_ASSIGNED) {
         /* Check if response is error. */
         if (error) {
-            ModbusExceptionResponse(tx, modbus, input, offset);
+            ModbusExceptionResponse(tx, modbus, input, input_len, &offset);
         } else {
             switch(function) {
                 case MODBUS_FUNC_READEXCSTATUS:
@@ -1098,7 +1149,8 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
                 case MODBUS_FUNC_READFILERECORD:
                 case MODBUS_FUNC_WRITEFILERECORD:
                     /* Count/length (1 bytes) */
-                    ModbusExtractUint8(&count, input, offset);
+                    if (ModbusExtractUint8(modbus, &count, input, input_len, &offset))
+                        goto end;
 
                     /* Modbus Application Protocol Specification V1.1b3 6.14 and 6.15 */
                     ModbusCheckHeaderLength(modbus, tx->length, 2 + count);
@@ -1106,7 +1158,8 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
 
                 case MODBUS_FUNC_ENCAPINTTRANS:
                     /* MEI type (1 byte) */
-                    ModbusExtractUint8(&mei, input, offset);
+                    if (ModbusExtractUint8(modbus, &mei, input, input_len, &offset))
+                        goto end;
 
                     if (mei != tx->mei)
                         ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_VALUE_MISMATCH);
@@ -1114,10 +1167,10 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
             }
 
             if (tx->type & MODBUS_TYP_READ)
-                ModbusParseReadResponse(tx, modbus, input, offset);
+                ModbusParseReadResponse(tx, modbus, input, input_len, &offset);
             /* Read/Write response contents none write response part */
             else if (tx->type & MODBUS_TYP_WRITE)
-                ModbusParseWriteResponse(tx, modbus, input, offset);
+                ModbusParseWriteResponse(tx, modbus, input, input_len, &offset);
         }
     }
 
@@ -1130,26 +1183,26 @@ end:
  *
  *  \param  header  Pointer the Modbus header state in which the value to be stored
  *  \param  input   Pointer the received input data
- *  \param  offset  Offset of the received input data pointer
  */
-static void ModbusParseHeader(ModbusHeader  *header,
-                              uint8_t       *input,
-                              uint16_t      *offset)
+static int ModbusParseHeader(ModbusState   *modbus,
+                             ModbusHeader  *header,
+                             uint8_t       *input,
+                             uint32_t      input_len)
 {
     SCEnter();
+    uint16_t offset = 0;
+
     /* Transaction Identifier (2 bytes) */
-    ModbusExtractUint16(&(header->transactionId), input, offset);
-
+    if (ModbusExtractUint16(modbus, &(header->transactionId), input, input_len, &offset)    ||
     /* Protocol Identifier (2 bytes) */
-    ModbusExtractUint16(&(header->protocolId), input, offset);
-
+        ModbusExtractUint16(modbus, &(header->protocolId), input, input_len, &offset)       ||
     /* Length (2 bytes) */
-    ModbusExtractUint16(&(header->length), input, offset);
-
+        ModbusExtractUint16(modbus, &(header->length), input, input_len, &offset)           ||
     /* Unit Identifier (1 byte) */
-    ModbusExtractUint8(&(header->unitId), input, offset);
+        ModbusExtractUint8(modbus, &(header->unitId), input, input_len, &offset))
+        SCReturnInt(-1);
 
-    SCReturn;
+    SCReturnInt(0);
 }
 
 /** \internal
@@ -1175,18 +1228,14 @@ static int ModbusParseRequest(Flow                  *f,
     ModbusHeader        header;
 
     while (input_len > 0) {
-        uint32_t    adu_len;
-        uint16_t    offset = 0;
-        uint8_t     *ptr = input;
-
-        /* Modbus header is 7 bytes long */
-        if (input_len < (uint32_t) sizeof(ModbusHeader))
-            SCReturnInt(0);
+        uint32_t    adu_len = input_len;
+        uint8_t     *adu = input;
 
         /* Extract MODBUS Header */
-        ModbusParseHeader(&header, ptr, &offset);
+        if (ModbusParseHeader(modbus, &header, adu, adu_len))
+            SCReturnInt(0);
 
-        /* Compute ADU length. */
+        /* Update ADU length with length in Modbus header. */
         adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
             SCReturnInt(0);
@@ -1204,7 +1253,7 @@ static int ModbusParseRequest(Flow                  *f,
         tx->length          = header.length;
 
         /* Extract MODBUS PDU and fill Transaction Context */
-        ModbusParseRequestPDU(tx, modbus, ptr, &offset);
+        ModbusParseRequestPDU(tx, modbus, adu, adu_len);
 
         /* Update input line and remaining input length of the command */
         input       += adu_len;
@@ -1236,18 +1285,14 @@ static int ModbusParseResponse(Flow                 *f,
     ModbusTransaction   *tx;
 
     while (input_len > 0) {
-        uint32_t    adu_len;
-        uint16_t    offset = 0;
-        uint8_t     *ptr = input;
-
-        /* Modbus header is 7 bytes long */
-        if (input_len < (uint32_t) sizeof(ModbusHeader))
-            SCReturnInt(0);
+        uint32_t    adu_len = input_len;
+        uint8_t     *adu = input;
 
         /* Extract MODBUS Header */
-        ModbusParseHeader(&header, ptr, &offset);
+        if (ModbusParseHeader(modbus, &header, adu, adu_len))
+            SCReturnInt(0);
 
-        /* Compute ADU length */
+        /* Update ADU length with length in Modbus header. */
         adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
         if (adu_len > input_len)
             SCReturnInt(0);
@@ -1268,7 +1313,7 @@ static int ModbusParseResponse(Flow                 *f,
             tx->length = header.length;
 
             /* Extract MODBUS PDU and fill Transaction Context */
-            ModbusParseResponsePDU(tx, modbus, ptr, &offset);
+            ModbusParseResponsePDU(tx, modbus, adu, adu_len);
         }
 
         /* Check and store MODBUS Header */
@@ -1564,6 +1609,13 @@ static uint8_t exceededLengthWriteMultipleRegistersReq[] = {
                                               /* Starting Address */        0x00, 0x01,
                                               /* Quantity of Registers */   0x7f, 0xf9,
                                               /* Byte count */              0xff};
+
+static uint8_t invalidLengthPDUWriteMultipleRegistersReq[] = {
+                                              /* Transaction ID */          0x00, 0x0A,
+                                              /* Protocol ID */             0x00, 0x00,
+                                              /* Length */                  0x00, 0x02,
+                                              /* Unit ID */                 0x00,
+                                              /* Function code */           0x10};
 
 /** \test Send Modbus Read Coils request/response. */
 static int ModbusParserTest01(void) {
@@ -2500,6 +2552,93 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
+
+/** \test Send Modbus invalid PDU Length. */
+static int ModbusParserTest12(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    int result = 0;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Length\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_length; "
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                    invalidLengthPDUWriteMultipleRegistersReq,
+                                    sizeof(invalidLengthPDUWriteMultipleRegistersReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
@@ -2515,5 +2654,6 @@ void ModbusParserRegisterTests(void) {
     UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets", ModbusParserTest09, 1);
     UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet", ModbusParserTest10, 1);
     UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request", ModbusParserTest11, 1);
+    UtRegisterTest("ModbusParserTest12 - Modbus invalid PDU Length", ModbusParserTest12, 1);
 #endif /* UNITTESTS */
 }
