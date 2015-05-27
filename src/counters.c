@@ -489,9 +489,6 @@ static void *StatsWakeupThread(void *arg)
 static void StatsReleaseCounter(StatsCounter *pc)
 {
     if (pc != NULL) {
-        if (pc->cname != NULL)
-            SCFree(pc->cname);
-
         SCFree(pc);
     }
 
@@ -501,7 +498,7 @@ static void StatsReleaseCounter(StatsCounter *pc)
 /**
  * \brief Registers a counter.
  *
- * \param cname    Name of the counter, to be registered
+ * \param name    Name of the counter, to be registered
  * \param tm_name  Thread module to which this counter belongs
  * \param pctx     StatsPublicThreadContext for this tm-tv instance
  * \param type_q   Qualifier describing the type of counter to be registered
@@ -510,7 +507,7 @@ static void StatsReleaseCounter(StatsCounter *pc)
  *         present counter on success
  * \retval 0 on failure
  */
-static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
+static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
                                               StatsPublicThreadContext *pctx,
                                               int type_q, uint64_t (*Func)(void))
 {
@@ -519,7 +516,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
     StatsCounter *prev = NULL;
     StatsCounter *pc = NULL;
 
-    if (cname == NULL || pctx == NULL) {
+    if (name == NULL || pctx == NULL) {
         SCLogDebug("Counter name, StatsPublicThreadContext NULL");
         return 0;
     }
@@ -528,7 +525,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
     while (temp != NULL) {
         prev = temp;
 
-        if (strcmp(cname, temp->cname) == 0) {
+        if (strcmp(name, temp->name) == 0) {
             break;
         }
 
@@ -539,20 +536,15 @@ static uint16_t StatsRegisterQualifiedCounter(char *cname, char *tm_name,
     if (temp != NULL)
         return(temp->id);
 
-    /* if we reach this point we don't have a counter registered by this cname */
+    /* if we reach this point we don't have a counter registered by this name */
     if ( (pc = SCMalloc(sizeof(StatsCounter))) == NULL)
         return 0;
     memset(pc, 0, sizeof(StatsCounter));
 
-    if ( (pc->cname = SCStrdup(cname)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-
     /* assign a unique id to this StatsCounter.  The id is local to this
      * thread context.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
-
+    pc->name = name;
     pc->type = type_q;
     pc->Func = Func;
 
@@ -652,7 +644,7 @@ static int StatsOutput(ThreadVars *tv)
         pc = sts->ctx->head;
         while (pc != NULL) {
             SCLogDebug("Counter %s (%u:%u) value %"PRIu64,
-                    pc->cname, pc->id, pc->gid, pc->value);
+                    pc->name, pc->id, pc->gid, pc->value);
 
             thread_table[pc->gid].type = pc->type;
             switch (pc->type) {
@@ -666,7 +658,7 @@ static int StatsOutput(ThreadVars *tv)
                     break;
             }
             thread_table[pc->gid].updates = pc->updates;
-            table[pc->gid].name = pc->cname;
+            table[pc->gid].name = pc->name;
 
             pc = pc->next;
         }
@@ -844,16 +836,16 @@ void StatsSpawnThreads(void)
 /**
  * \brief Registers a normal, unqualified counter
  *
- * \param cname Name of the counter, to be registered
+ * \param name Name of the counter, to be registered
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterCounter(char *cname, struct ThreadVars_ *tv)
+uint16_t StatsRegisterCounter(char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(cname,
+    uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_NORMAL, NULL);
@@ -865,16 +857,16 @@ uint16_t StatsRegisterCounter(char *cname, struct ThreadVars_ *tv)
  * \brief Registers a counter, whose value holds the average of all the values
  *        assigned to it.
  *
- * \param cname Name of the counter, to be registered
+ * \param name Name of the counter, to be registered
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterAvgCounter(char *cname, struct ThreadVars_ *tv)
+uint16_t StatsRegisterAvgCounter(char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(cname,
+    uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_AVERAGE, NULL);
@@ -886,16 +878,16 @@ uint16_t StatsRegisterAvgCounter(char *cname, struct ThreadVars_ *tv)
  * \brief Registers a counter, whose value holds the maximum of all the values
  *        assigned to it.
  *
- * \param cname Name of the counter, to be registered
+ * \param name Name of the counter, to be registered
  * \param tv    Pointer to the ThreadVars instance for which the counter would
  *              be registered
  *
  * \retval the counter id for the newly registered counter, or the already
  *         present counter
  */
-uint16_t StatsRegisterMaxCounter(char *cname, struct ThreadVars_ *tv)
+uint16_t StatsRegisterMaxCounter(char *name, struct ThreadVars_ *tv)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(cname,
+    uint16_t id = StatsRegisterQualifiedCounter(name,
                                                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
                                                  &tv->perf_public_ctx,
                                                  STATS_TYPE_MAXIMUM, NULL);
@@ -906,13 +898,13 @@ uint16_t StatsRegisterMaxCounter(char *cname, struct ThreadVars_ *tv)
 /**
  * \brief Registers a counter, which represents a global value
  *
- * \param cname Name of the counter, to be registered
+ * \param name Name of the counter, to be registered
  * \param Func  Function Pointer returning a uint64_t
  *
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void))
+uint16_t StatsRegisterGlobalCounter(char *name, uint64_t (*Func)(void))
 {
 #ifdef UNITTESTS
     if (stats_ctx == NULL)
@@ -920,7 +912,7 @@ uint16_t StatsRegisterGlobalCounter(char *cname, uint64_t (*Func)(void))
 #else
     BUG_ON(stats_ctx == NULL);
 #endif
-    uint16_t id = StatsRegisterQualifiedCounter(cname, NULL,
+    uint16_t id = StatsRegisterQualifiedCounter(name, NULL,
                                                  &(stats_ctx->global_counter_ctx),
                                                  STATS_TYPE_FUNC,
                                                  Func);
@@ -1010,13 +1002,13 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     }
     StatsCounter *pc = pctx->head;
     while (pc != NULL) {
-        CountersIdType t = { 0, pc->cname }, *id = NULL;
+        CountersIdType t = { 0, pc->name }, *id = NULL;
         id = HashTableLookup(stats_ctx->counters_id_hash, &t, sizeof(t));
         if (id == NULL) {
             id = SCCalloc(1, sizeof(*id));
             BUG_ON(id == NULL);
             id->id = counters_global_id++;
-            id->string = pc->cname;
+            id->string = pc->name;
             BUG_ON(HashTableAdd(stats_ctx->counters_id_hash, id, sizeof(*id)) < 0);
         }
         pc->gid = id->id;
@@ -1232,7 +1224,7 @@ void StatsThreadCleanup(ThreadVars *tv)
 /** \internal
  * \brief Registers a normal, unqualified counter
  *
- * \param cname   Name of the counter, to be registered
+ * \param name   Name of the counter, to be registered
  * \param tm_name Name of the engine module under which the counter has to be
  *                registered
  * \param type    Datatype of this counter variable
@@ -1242,10 +1234,10 @@ void StatsThreadCleanup(ThreadVars *tv)
  * \retval id Counter id for the newly registered counter, or the already
  *            present counter
  */
-static uint16_t RegisterCounter(char *cname, char *tm_name,
+static uint16_t RegisterCounter(char *name, char *tm_name,
                                StatsPublicThreadContext *pctx)
 {
-    uint16_t id = StatsRegisterQualifiedCounter(cname, tm_name, pctx,
+    uint16_t id = StatsRegisterQualifiedCounter(name, tm_name, pctx,
                                                 STATS_TYPE_NORMAL, NULL);
     return id;
 }
