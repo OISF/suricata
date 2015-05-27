@@ -591,6 +591,9 @@ static int StatsOutput(ThreadVars *tv)
     const StatsCounter *pc = NULL;
     void *td = stats_thread_data;
 
+    if (counters_global_id == 0)
+        return -1;
+
     if (stats_table.nstats == 0) {
         StatsThreadRegister("Global", &stats_ctx->global_counter_ctx);
 
