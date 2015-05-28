@@ -110,6 +110,10 @@ void EngineModeSetIDS(void);
 int EngineModeIsIPS(void);
 int EngineModeIsIDS(void);
 
+void InlineModeSetIDS(void);
+void InlineModeSetIPS(void);
+int InlineMode(void);
+
 /* Box is acting as router */
 enum {
     SURI_HOST_IS_SNIFFER_ONLY,

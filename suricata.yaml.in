@@ -39,6 +39,10 @@
 # This feature is currently only used by the reject* keywords.
 host-mode: auto
 
+# Set suricata in 'ips' or 'ids' mode,
+# if auto is set, suricata detects automatically the logic to follow.
+inline: auto
+
 # Run suricata as user and group.
 #run-as:
 #  user: suri
