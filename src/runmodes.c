@@ -72,6 +72,7 @@ typedef struct RunModes_ {
  * A list of output modules that will be active for the run mode.
  */
 typedef struct RunModeOutput_ {
+    const char *name;
     TmModule *tm_module;
     OutputCtx *output_ctx;
 
@@ -506,6 +507,32 @@ static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
     TAILQ_INSERT_TAIL(&output_free_list, fl_output, entries);
 }
 
+
+static int GetRunModeOutputPriority(RunModeOutput *module)
+{
+    TmModule *tm = TmModuleGetByName(module->name);
+    if (tm == NULL)
+        return 0;
+
+    return tm->priority;
+}
+
+static void InsertInRunModeOutputs(RunModeOutput *runmode_output)
+{
+    RunModeOutput *r_output = NULL;
+    int output_priority = GetRunModeOutputPriority(runmode_output);
+
+    TAILQ_FOREACH(r_output, &RunModeOutputs, entries) {
+        if (GetRunModeOutputPriority(r_output) < output_priority)
+            break;
+    }
+    if (r_output) {
+        TAILQ_INSERT_BEFORE(r_output, runmode_output, entries);
+    } else {
+        TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+    }
+}
+
 /** \brief Turn output into thread module */
 static void SetupOutput(const char *name, OutputModule *module, OutputCtx *output_ctx)
 {
@@ -546,9 +573,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (unlikely(runmode_output == NULL))
                 return;
+            runmode_output->name = module->name;
             runmode_output->tm_module = pkt_logger_module;
             runmode_output->output_ctx = NULL;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__packet_logger__ added");
         }
     } else if (module->TxLogFunc) {
@@ -568,9 +596,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (unlikely(runmode_output == NULL))
                 return;
+            runmode_output->name = module->name;
             runmode_output->tm_module = tx_logger_module;
             runmode_output->output_ctx = NULL;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__tx_logger__ added");
         }
     } else if (module->FiledataLogFunc) {
@@ -589,9 +618,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (unlikely(runmode_output == NULL))
                 return;
+            runmode_output->name = module->name;
             runmode_output->tm_module = filedata_logger_module;
             runmode_output->output_ctx = NULL;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__filedata_logger__ added");
         }
     } else if (module->FileLogFunc) {
@@ -610,9 +640,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (unlikely(runmode_output == NULL))
                 return;
+            runmode_output->name = module->name;
             runmode_output->tm_module = file_logger_module;
             runmode_output->output_ctx = NULL;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__file_logger__ added");
         }
     } else if (module->StreamingLogFunc) {
@@ -632,9 +663,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
             if (unlikely(runmode_output == NULL))
                 return;
+            runmode_output->name = module->name;
             runmode_output->tm_module = streaming_logger_module;
             runmode_output->output_ctx = NULL;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+            InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__streaming_logger__ added");
         }
     } else {
@@ -643,9 +675,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
         if (unlikely(runmode_output == NULL))
             return;
+        runmode_output->name = module->name;
         runmode_output->tm_module = tm_module;
         runmode_output->output_ctx = output_ctx;
-        TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+        InsertInRunModeOutputs(runmode_output);
     }
 }
 

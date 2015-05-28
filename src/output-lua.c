@@ -692,7 +692,7 @@ static void LogLuaMasterFree(OutputCtx *oc) {
  */
 static OutputCtx *OutputLuaLogInit(ConfNode *conf)
 {
-    const char *dir = ConfNodeLookupChildValue(conf, "script-dir");
+    const char *dir = ConfNodeLookupChildValue(conf, "scripts-dir");
     if (dir == NULL)
         dir = "";
 

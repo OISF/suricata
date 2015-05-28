@@ -283,7 +283,7 @@ static uint8_t readCoilsReq[] = {/* Transaction ID */    0x00, 0x00,
 /* Example of a request to read input register 9 */
 static uint8_t readInputsRegistersReq[] = {/* Transaction ID */          0x00, 0x0A,
                                            /* Protocol ID */             0x00, 0x00,
-                                           /* Length */                  0x00, 0x05,
+                                           /* Length */                  0x00, 0x06,
                                            /* Unit ID */                 0x00,
                                            /* Function code */           0x04,
                                            /* Starting Address */        0x00, 0x08,
