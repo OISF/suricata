@@ -630,6 +630,18 @@ typedef struct DecodeThreadVars_
 #endif
 } DecodeThreadVars;
 
+typedef struct CaptureStats_ {
+
+    uint16_t counter_ips_accepted;
+    uint16_t counter_ips_blocked;
+    uint16_t counter_ips_rejected;
+    uint16_t counter_ips_replaced;
+
+} CaptureStats;
+
+void CaptureStatsUpdate(ThreadVars *tv, CaptureStats *s, const Packet *p);
+void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
+
 /**
  *  \brief reset these to -1(indicates that the packet is fresh from the queue)
  */

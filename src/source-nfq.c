@@ -131,9 +131,7 @@ typedef struct NFQThreadVars_
     char *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
 
-    uint16_t counter_ips_accepted;
-    uint16_t counter_ips_blocked;
-    uint16_t counter_ips_rejected;
+    CaptureStats stats;
 
 } NFQThreadVars;
 /* shared vars for all for nfq queues and threads */
@@ -761,9 +759,7 @@ TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *) initdata;
 
-    ntv->counter_ips_accepted = StatsRegisterCounter("ips.accepted", tv);
-    ntv->counter_ips_blocked = StatsRegisterCounter("ips.blocked", tv);
-    ntv->counter_ips_rejected = StatsRegisterCounter("ips.rejected", tv);
+    CaptureStatsSetup(tv, &ntv->stats);
 
     *data = (void *)ntv;
     return TM_ECODE_OK;
@@ -1179,13 +1175,7 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     /* update counters */
-    if (unlikely(PACKET_TEST_ACTION(p, (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)))) {
-        StatsIncr(tv, ntv->counter_ips_rejected);
-    } else if (unlikely(PACKET_TEST_ACTION(p, ACTION_DROP))) {
-        StatsIncr(tv, ntv->counter_ips_blocked);
-    } else {
-        StatsIncr(tv, ntv->counter_ips_accepted);
-    }
+    CaptureStatsUpdate(tv, &ntv->stats, p);
 
     int ret;
     /* if this is a tunnel packet we check if we are ready to verdict
