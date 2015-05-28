@@ -226,6 +226,9 @@ static enum EngineMode g_engine_mode = ENGINE_MODE_IDS;
  * or is a router */
 uint8_t host_mode = SURI_HOST_IS_SNIFFER_ONLY;
 
+/** like stream.inline, enable IPS or IDS logic */
+uint8_t inline_mode = ENGINE_MODE_IDS;
+
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
 
@@ -255,6 +258,27 @@ void EngineModeSetIPS(void)
 void EngineModeSetIDS(void)
 {
     g_engine_mode = ENGINE_MODE_IDS;
+}
+
+void InlineModeSetIDS(void)
+{
+    inline_mode = ENGINE_MODE_IDS;
+}
+
+void InlineModeSetIPS(void)
+{
+    inline_mode = ENGINE_MODE_IPS;
+}
+
+int InlineMode(void)
+{
+    if (inline_mode == ENGINE_MODE_IDS) {
+        return 0;
+    } else if (inline_mode == ENGINE_MODE_IPS) {
+        return 1;
+    } else {
+        return (inline_mode && EngineModeIsIPS());
+    }
 }
 
 int RunmodeIsUnittests(void)
@@ -2004,6 +2028,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 static int PostConfLoadedSetup(SCInstance *suri)
 {
     char *hostmode = NULL;
+    char *inlinemode = NULL;
 
     /* load the pattern matchers */
     MpmTableSetup();
@@ -2061,6 +2086,23 @@ static int PostConfLoadedSetup(SCInstance *suri)
             host_mode = SURI_HOST_IS_SNIFFER_ONLY;
             SCLogInfo("No 'host-mode': suricata is in IDS mode, using "
                       "default setting 'sniffer-only'");
+        }
+    }
+
+    if (ConfGet("inline", &inlinemode) == 1) {
+        if (!strcmp(inlinemode, "ips")) {
+            inline_mode = ENGINE_MODE_IPS;
+        } else if (!strcmp(inlinemode, "ids")) {
+            inline_mode = ENGINE_MODE_IDS;
+        } else {
+            if (strcmp(inlinemode, "auto") != 0) {
+                WarnInvalidConfEntry("inline", "%s", "auto");
+            }
+            if (EngineModeIsIPS()) {
+                inline_mode = ENGINE_MODE_IPS;
+            } else {
+                inline_mode = ENGINE_MODE_IDS;
+            }
         }
     }
 
