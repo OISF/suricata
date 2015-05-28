@@ -2468,6 +2468,21 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 exit(EXIT_FAILURE);
             }
             cfg_prec->randomize_range = range;
+        } else if (strcasecmp("http-body-inline", p->name) == 0) {
+            if (ConfValIsTrue(p->val)) {
+                cfg_prec->http_body_inline = 1;
+            } else if (ConfValIsFalse(p->val)) {
+                cfg_prec->http_body_inline = 0;
+            } else {
+                if (strcmp("auto", p->val) != 0) {
+                    WarnInvalidConfEntry("http_body_inline", "%s", "auto");
+                }
+                if (EngineModeIsIPS()) {
+                    cfg_prec->http_body_inline = 1;
+                } else {
+                    cfg_prec->http_body_inline = 0;
+                }
+            }
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
                          "default config: %s", p->name);
