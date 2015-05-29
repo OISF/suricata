@@ -267,8 +267,18 @@ int SCConfLogReopen(LogFileCtx *log_ctx)
 
 static void SCLogFileCloseRedis(LogFileCtx *log_ctx)
 {
-    if (log_ctx->redis)
+    if (log_ctx->redis) {
+        redisReply *reply;
+        int i, count;
+        count = SC_ATOMIC_GET(log_ctx->redis_setup.batch_count);
+        for (i = 0; i < count; i++) {
+            redisGetReply(log_ctx->redis, (void **)&reply);
+            if (reply)
+                freeReplyObject(reply);
+        }
         redisFree(log_ctx->redis);
+        log_ctx->redis = NULL;
+    }
     log_ctx->redis_setup.tried = 0;
     SC_ATOMIC_SET(log_ctx->redis_setup.batch_count, 0);
 }
