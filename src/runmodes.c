@@ -51,6 +51,11 @@
 
 #include "tmqh-flow.h"
 
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-cuda-buffer.h"
+#include "util-mpm-ac.h"
+#endif
+
 int debuglog_enabled = 0;
 
 /**
@@ -379,6 +384,15 @@ void RunModeDispatch(int runmode, const char *custom_mode)
 
     if (local_custom_mode != NULL)
         SCFree(local_custom_mode);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        SCACCudaStartDispatcher();
+#endif
+
+    /* Check if the alloted queues have at least 1 reader and writer */
+    TmValidateQueueState();
+
     return;
 }
 

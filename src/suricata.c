@@ -920,12 +920,12 @@ void RegisterAllModules()
 
 }
 
-TmEcode LoadYamlConfig(char *conf_filename)
+static TmEcode LoadYamlConfig(void)
 {
     SCEnter();
 
     if (conf_filename == NULL)
-        SCReturnInt(TM_ECODE_OK);
+        conf_filename = DEFAULT_CONF_FILE;
 
     if (ConfYamlLoadFile(conf_filename) != 0) {
         /* Error already displayed. */
@@ -1974,6 +1974,9 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     /* Set the global run mode */
     run_mode = suri->run_mode;
 
+    if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
+        return TM_ECODE_FAILED;
+    }
 
     return TM_ECODE_OK;
 }
@@ -2202,6 +2205,33 @@ static int PostConfLoadedSetup(SCInstance *suri)
     TmModuleRunInit();
 
     PcapLogProfileSetup();
+
+    if (MayDaemonize(suri) != TM_ECODE_OK)
+        SCReturnInt(TM_ECODE_FAILED);
+
+    if (InitSignalHandler(suri) != TM_ECODE_OK)
+        SCReturnInt(TM_ECODE_FAILED);
+
+#ifdef HAVE_NSS
+    /* init NSS for md5 */
+    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    NSS_NoDB_Init(NULL);
+#endif
+
+    if (suri->disabled_detect) {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+    }
+
+    HostInitConfig(HOST_VERBOSE);
+
+    if (MagicInit() != 0)
+        SCReturnInt(TM_ECODE_FAILED);
+
+    SCAsn1LoadConfig();
+
+    CoredumpLoadConfig();
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2262,10 +2292,6 @@ int main(int argc, char **argv)
     CudaBufferInit();
 #endif
 
-    if (!CheckValidDaemonModes(suri.daemon, suri.run_mode)) {
-        exit(EXIT_FAILURE);
-    }
-
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalInits();
     TimeInit();
@@ -2274,12 +2300,8 @@ int main(int argc, char **argv)
         StatsInit();
     }
 
-    if (conf_filename == NULL)
-        conf_filename = DEFAULT_CONF_FILE;
-
-    /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig(conf_filename) != TM_ECODE_OK) {
+    if (LoadYamlConfig() != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -2304,33 +2326,12 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (MayDaemonize(&suri) != TM_ECODE_OK)
-        exit(EXIT_FAILURE);
-
-    if (InitSignalHandler(&suri) != TM_ECODE_OK)
-        exit(EXIT_FAILURE);
-
-#ifdef HAVE_NSS
-    /* init NSS for md5 */
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-    NSS_NoDB_Init(NULL);
-#endif
-
-    if (suri.disabled_detect) {
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-    }
-
-    HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
         StreamTcpInitConfig(STREAM_VERBOSE);
         IPPairInitConfig(IPPAIR_VERBOSE);
         AppLayerRegisterGlobalCounters();
     }
-
-    if (MagicInit() != 0)
-        exit(EXIT_FAILURE);
 
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
@@ -2378,10 +2379,6 @@ int main(int argc, char **argv)
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
-    SCAsn1LoadConfig();
-
-    CoredumpLoadConfig();
-
     SCSetStartTime(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
@@ -2391,7 +2388,11 @@ int main(int argc, char **argv)
         StatsSetupPostConfig();
     }
 
-    if(suri.run_mode == RUNMODE_CONF_TEST){
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
@@ -2417,14 +2418,6 @@ int main(int argc, char **argv)
         FlowRecyclerThreadSpawn();
         StatsSpawnThreads();
     }
-
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        SCACCudaStartDispatcher();
-#endif
-
-    /* Check if the alloted queues have at least 1 reader and writer */
-    TmValidateQueueState();
 
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
