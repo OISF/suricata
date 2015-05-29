@@ -1648,6 +1648,46 @@
         fi
     fi
 
+# libhiredis
+    AC_ARG_ENABLE(hiredis,
+	        AS_HELP_STRING([--enable-hiredis],[Enable Redis support]),
+	        [ enable_hiredis="yes"],
+	        [ enable_hiredis="no"])
+    AC_ARG_WITH(libhiredis_includes,
+            [  --with-libhiredis-includes=DIR  libhiredis include directory],
+            [with_libhiredis_includes="$withval"],[with_libhiredis_includes="no"])
+    AC_ARG_WITH(libhiredis_libraries,
+            [  --with-libhiredis-libraries=DIR    libhiredis library directory],
+            [with_libhiredis_libraries="$withval"],[with_libhiredis_libraries="no"])
+
+    if test "$enable_hiredis" = "yes"; then
+        if test "$with_libhiredis_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_libhiredis_includes}"
+        fi
+
+        AC_CHECK_HEADER("hiredis/hiredis.h",HIREDIS="yes",HIREDIS="no")
+        if test "$HIREDIS" = "yes"; then
+            if test "$with_libhiredis_libraries" != "no"; then
+                LDFLAGS="${LDFLAGS}  -L${with_libhiredis_libraries}"
+            fi
+            AC_CHECK_LIB(hiredis, redisConnect,, HIREDIS="no")
+        fi
+        if test "$HIREDIS" = "no"; then
+            echo
+            echo "   ERROR!  libhiredis library not found, go get it"
+            echo "   from https://github.com/redis/hiredis or your distribution:"
+            echo
+            echo "   Ubuntu: apt-get install libhiredis-dev"
+            echo "   Fedora: yum install libhiredis-devel"
+            echo
+            exit 1
+        fi
+        if test "$HIREDIS" = "yes"; then
+            AC_DEFINE([HAVE_LIBHIREDIS],[1],[libhiredis available])
+            enable_hiredis="yes"
+        fi
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1747,6 +1787,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnss support:                          ${enable_nss}
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
+  hiredis support:                         ${enable_hiredis}
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
