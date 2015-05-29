@@ -157,6 +157,7 @@ typedef struct HTPCfgRec_ {
     uint32_t            response_inspect_window;
     int                 randomize;
     int                 randomize_range;
+    int                 http_body_inline;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
