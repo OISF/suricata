@@ -581,24 +581,26 @@ typedef struct DecodeThreadVars_
 
     int vlan_disabled;
 
-    /* thread data for flow logging api */
-    void *output_flow_thread_data;
-
     /** stats/counters */
     uint16_t counter_pkts;
     uint16_t counter_bytes;
+    uint16_t counter_avg_pkt_size;
+    uint16_t counter_max_pkt_size;
+
     uint16_t counter_invalid;
+
+    uint16_t counter_eth;
     uint16_t counter_ipv4;
     uint16_t counter_ipv6;
-    uint16_t counter_eth;
+    uint16_t counter_tcp;
+    uint16_t counter_udp;
+    uint16_t counter_icmpv4;
+    uint16_t counter_icmpv6;
+
     uint16_t counter_sll;
     uint16_t counter_raw;
     uint16_t counter_null;
-    uint16_t counter_tcp;
-    uint16_t counter_udp;
     uint16_t counter_sctp;
-    uint16_t counter_icmpv4;
-    uint16_t counter_icmpv6;
     uint16_t counter_ppp;
     uint16_t counter_gre;
     uint16_t counter_vlan;
@@ -608,8 +610,6 @@ typedef struct DecodeThreadVars_
     uint16_t counter_mpls;
     uint16_t counter_ipv4inipv6;
     uint16_t counter_ipv6inipv6;
-    uint16_t counter_avg_pkt_size;
-    uint16_t counter_max_pkt_size;
     uint16_t counter_erspan;
 
     /** frag stats - defrag runs in the context of the decoder. */
@@ -620,6 +620,10 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_ipv6_timeouts;
     uint16_t counter_defrag_max_hit;
+
+    /* thread data for flow logging api: only used at forced
+     * flow recycle during lookups */
+    void *output_flow_thread_data;
 
 #ifdef __SC_CUDA_SUPPORT__
     CudaThreadVars cuda_vars;
