@@ -45,6 +45,8 @@
 
 int DecodeERSPAN(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    StatsIncr(tv, dtv->counter_erspan);
+
     if (len < sizeof(ErspanHdr)) {
         ENGINE_SET_EVENT(p,ERSPAN_HEADER_TOO_SMALL);
         return TM_ECODE_FAILED;
