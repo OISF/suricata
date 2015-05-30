@@ -610,6 +610,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_ipv6inipv6;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
+    uint16_t counter_erspan;
 
     /** frag stats - defrag runs in the context of the decoder. */
     uint16_t counter_defrag_ipv4_fragments;
