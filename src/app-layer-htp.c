@@ -1730,6 +1730,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
     }
 
+    htud->response_body.body_parsed += data_len;
     return 0;
 end:
     return -1;
