@@ -143,68 +143,78 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
                                         HtpTxUserData *htud, int index)
 {
     uint32_t window_size = 0;
-    uint32_t extra_size = 0;
     int resize = 0;
 
-    if (htud->response_body.content_len_so_far <= htp_state->cfg->response_inspect_min_size) {
-        resize = 1;
-        window_size = htp_state->cfg->response_inspect_min_size;
-    } else {
-        resize = 1;
-        window_size = htp_state->cfg->response_inspect_window;
+    /* how much from before body_inspected will we consider? */
+    uint32_t cfg_win =
+        htud->response_body.body_inspected >= htp_state->cfg->response_inspect_min_size ?
+            htp_state->cfg->response_inspect_window :
+            htp_state->cfg->response_inspect_min_size;
+
+    /* but less if we don't have that much before body_inspected */
+    if ((htud->response_body.body_inspected - htud->response_body.first->stream_offset) < cfg_win) {
+        cfg_win = htud->response_body.body_inspected - htud->response_body.first->stream_offset;
     }
+    window_size = (htud->response_body.content_len_so_far - htud->response_body.body_inspected) + cfg_win;
+    if (window_size > 100*1024) {
+        SCLogInfo("WEIRD: body size is %uk", window_size/1024);
+    }
+    if (window_size > det_ctx->hsbd[index].buffer_size)
+        resize = 1;
+
+    if (det_ctx->hsbd[index].buffer == NULL || resize) {
+        void *ptmp;
+
+        if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, window_size)) == NULL) {
+            SCFree(det_ctx->hsbd[index].buffer);
+            det_ctx->hsbd[index].buffer = NULL;
+            det_ctx->hsbd[index].buffer_size = 0;
+            det_ctx->hsbd[index].buffer_len = 0;
+            return;
+        }
+        det_ctx->hsbd[index].buffer = ptmp;
+        det_ctx->hsbd[index].buffer_size = window_size;
+        resize = 0;
+    }
+
+    uint32_t left_edge = htud->response_body.body_inspected - cfg_win;
 
     int first = 1;
     while (cur != NULL) {
-        /* see if we need to grow the buffer */
-        if (cur->len > window_size) {
-            extra_size =  window_size * 0.25;
-            window_size = cur->len;
-            resize = 1;
-        } else if (cur->len == window_size) {
-            window_size = window_size * 1.25;
-            resize = 1;
-        }
-
-        if (det_ctx->hsbd[index].buffer == NULL || resize) {
-            void *ptmp;
-
-            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, window_size + extra_size)) == NULL) {
-                SCFree(det_ctx->hsbd[index].buffer);
-                det_ctx->hsbd[index].buffer = NULL;
-                det_ctx->hsbd[index].buffer_size = 0;
-                det_ctx->hsbd[index].buffer_len = 0;
-                return;
-            }
-            det_ctx->hsbd[index].buffer = ptmp;
-            resize = 0;
-        }
-
         if (first) {
             det_ctx->hsbd[index].offset = cur->stream_offset;
             first = 0;
         }
 
-        /*
-         * Copy a part of the previous buffer before the current chunk on.
-         * For example, let's have the chunks [123], [456].
-         * When the current chunk is [456], this copy [3] before.
-         */
-        if (det_ctx->hsbd[index].buffer_len + cur->len > window_size + extra_size) {
-            uint32_t offset = (det_ctx->hsbd[index].buffer_len + cur->len) - (window_size + extra_size);
-            /* we use memmove to avoid memory overlap */
-            memmove(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer + offset, det_ctx->hsbd[index].buffer_len - offset);
-            det_ctx->hsbd[index].buffer_len -= offset;
-            det_ctx->hsbd[index].offset += offset;
+        /* entirely before our window */
+        if ((cur->stream_offset + cur->len) <= left_edge) {
+            cur = cur->next;
+            continue;
+        } else {
+            uint32_t offset = 0;
+            if (cur->stream_offset < left_edge && (cur->stream_offset + cur->len) > left_edge) {
+                offset = left_edge - cur->stream_offset;
+                BUG_ON(offset > cur->len);
+            }
+
+            /* unusual: if window isn't big enough, we just give up */
+            if (det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size) {
+                htud->response_body.body_inspected = cur->stream_offset;
+                SCReturn;
+            }
+
+            BUG_ON(det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size);
+
+            memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data + offset, cur->len - offset);
+            det_ctx->hsbd[index].buffer_len += (cur->len - offset);
+            det_ctx->hsbd[index].offset -= offset;
         }
-        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
-        det_ctx->hsbd[index].buffer_len += cur->len;
 
         cur = cur->next;
     }
 
-    /* update inspected tracker */
-    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
+    /* update inspected tracker to point before the current window */
+    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
 }
 
 static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
@@ -3729,7 +3739,7 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 1\n\
+    response-body-minimal-inspect-size: 4\n\
     response-body-inspect-window: 4\n\
 ";
 
