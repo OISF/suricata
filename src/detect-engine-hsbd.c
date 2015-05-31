@@ -203,8 +203,9 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
         cur = cur->next;
     }
 
-    /* update inspected tracker */
-    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
+    /* update inspected tracker to point before the current window */
+    htud->response_body.body_inspected = (window_size < htud->response_body.content_len_so_far) ?
+                                          htud->response_body.content_len_so_far - window_size : 0;
 }
 
 static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
