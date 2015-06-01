@@ -199,7 +199,7 @@ void HtpBodyFree(HtpBody *body)
  *
  * \retval none
  */
-void HtpBodyPrune(HtpBody *body)
+void HtpBodyPrune(HtpState *state, HtpBody *body)
 {
     SCEnter();
 
@@ -208,6 +208,10 @@ void HtpBodyPrune(HtpBody *body)
     }
 
     if (body->body_parsed == 0) {
+        SCReturn;
+    }
+
+    if (body->body_inspected < state->cfg->response_inspect_min_size) {
         SCReturn;
     }
 
@@ -222,7 +226,12 @@ void HtpBodyPrune(HtpBody *body)
                 "body->body_parsed %"PRIu64, cur->stream_offset, cur->len,
                 cur->stream_offset + cur->len, body->body_parsed);
 
-        if (cur->stream_offset >= body->body_inspected) {
+        uint64_t left_edge = 0;
+        if (state->cfg->response_inspect_window < body->body_inspected) {
+            left_edge = body->body_inspected - state->cfg->response_inspect_window;
+        }
+
+        if (cur->stream_offset >= left_edge) {
             break;
         }
 
