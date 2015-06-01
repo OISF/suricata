@@ -338,7 +338,7 @@ static void SCLogFileCloseRedis(LogFileCtx *log_ctx)
     if (log_ctx->redis)
         redisFree(log_ctx->redis);
     log_ctx->redis_setup.tried = 0;
-    SC_ATOMIC_SET(log_ctx->redis_setup.batch_count, 0);
+    log_ctx->redis_setup.batch_count = 0;
 }
 
 int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
@@ -447,7 +447,7 @@ int SCConfLogReopenRedis(LogFileCtx *log_ctx)
     }
     log_ctx->redis = c;
     log_ctx->redis_setup.tried = 0;
-    SC_ATOMIC_SET(log_ctx->redis_setup.batch_count, 0);
+    log_ctx->redis_setup.batch_count = 0;
     return 0;
 }
 
@@ -472,7 +472,7 @@ LogFileCtx *LogFileNewCtx(void)
     lf_ctx->Close = SCLogFileClose;
 
 #ifdef HAVE_LIBHIREDIS
-    SC_ATOMIC_INIT(lf_ctx->redis_setup.batch_count);
+    lf_ctx->redis_setup.batch_count = 0;
 #endif
 
     return lf_ctx;
@@ -536,9 +536,10 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_
                 file_ctx->redis_setup.command,
                 file_ctx->redis_setup.key,
                 string);
-        if (SC_ATOMIC_CAS(&file_ctx->redis_setup.batch_count, file_ctx->redis_setup.batch_size, 0)) {
+        if (file_ctx->redis_setup.batch_count == file_ctx->redis_setup.batch_size) {
             redisReply *reply;
             int i;
+            file_ctx->redis_setup.batch_count = 0;
             for (i = 0; i <= file_ctx->redis_setup.batch_size; i++) {
                 if (redisGetReply(file_ctx->redis, (void **)&reply) == REDIS_OK) {
                     freeReplyObject(reply);
@@ -570,7 +571,7 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_
                 }
             }
         } else {
-            SC_ATOMIC_ADD(file_ctx->redis_setup.batch_count, 1);
+            file_ctx->redis_setup.batch_count++;
         }
     } else {
         redisReply *reply = redisCommand(file_ctx->redis, "%s %s %s",
