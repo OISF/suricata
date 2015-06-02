@@ -1848,7 +1848,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
 end:
     /* see if we can get rid of htp body chunks */
-    HtpBodyPrune(hstate, &tx_ud->request_body);
+    HtpBodyPrune(hstate, &tx_ud->request_body, STREAM_TOSERVER);
 
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
@@ -1917,7 +1917,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     }
 
     /* see if we can get rid of htp body chunks */
-    HtpBodyPrune(hstate, &tx_ud->response_body);
+    HtpBodyPrune(hstate, &tx_ud->response_body, STREAM_TOCLIENT);
 
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
