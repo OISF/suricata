@@ -61,7 +61,7 @@ static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
         ptmp = SCRealloc(det_ctx->smtp,
                          (det_ctx->smtp_buffers_size + BUFFER_STEP) * sizeof(FiledataReassembledBody));
         if (ptmp == NULL) {
-            SCFree(det_ctx->hsbd);
+            SCFree(det_ctx->smtp);
             det_ctx->smtp = NULL;
             det_ctx->smtp_buffers_size = 0;
             det_ctx->smtp_buffers_list_len = 0;
