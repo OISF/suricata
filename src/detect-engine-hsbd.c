@@ -56,6 +56,7 @@
 #include "util-unittest-helper.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-mem.h"
 #include "app-layer-protos.h"
 
 #include "conf.h"
@@ -117,16 +118,17 @@ static void HSBDGetBufferForTXInIDSMode(DetectEngineThreadCtx *det_ctx,
         /* see if we need to grow the buffer */
         if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
             void *ptmp;
-            det_ctx->hsbd[index].buffer_size += cur->len * 2;
+            uint32_t newsize = det_ctx->hsbd[index].buffer_size + (cur->len * 2);
 
-            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size)) == NULL) {
-                SCFree(det_ctx->hsbd[index].buffer);
+            if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, newsize)) == NULL) {
+                HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
                 det_ctx->hsbd[index].buffer = NULL;
                 det_ctx->hsbd[index].buffer_size = 0;
                 det_ctx->hsbd[index].buffer_len = 0;
                 return;
             }
             det_ctx->hsbd[index].buffer = ptmp;
+            det_ctx->hsbd[index].buffer_size = newsize;
         }
         memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
         det_ctx->hsbd[index].buffer_len += cur->len;
@@ -138,6 +140,7 @@ static void HSBDGetBufferForTXInIDSMode(DetectEngineThreadCtx *det_ctx,
     htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
 }
 
+#define MAX_WINDOW 10*1024*1024
 static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
                                         HtpState *htp_state, HtpBodyChunk *cur,
                                         HtpTxUserData *htud, int index)
@@ -156,8 +159,9 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
         cfg_win = htud->response_body.body_inspected - htud->response_body.first->stream_offset;
     }
     window_size = (htud->response_body.content_len_so_far - htud->response_body.body_inspected) + cfg_win;
-    if (window_size > 100*1024) {
-        SCLogInfo("WEIRD: body size is %uk", window_size/1024);
+    if (window_size > MAX_WINDOW) {
+        SCLogDebug("weird: body size is %uk", window_size/1024);
+        window_size = MAX_WINDOW;
     }
     if (window_size > det_ctx->hsbd[index].buffer_size)
         resize = 1;
@@ -165,8 +169,8 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
     if (det_ctx->hsbd[index].buffer == NULL || resize) {
         void *ptmp;
 
-        if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, window_size)) == NULL) {
-            SCFree(det_ctx->hsbd[index].buffer);
+        if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, window_size)) == NULL) {
+            HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
             det_ctx->hsbd[index].buffer = NULL;
             det_ctx->hsbd[index].buffer_size = 0;
             det_ctx->hsbd[index].buffer_len = 0;
