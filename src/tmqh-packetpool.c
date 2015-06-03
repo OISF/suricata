@@ -157,6 +157,57 @@ void PacketPoolWait(void)
         cc_barrier();
 }
 
+/** \brief Wait until we have the requested ammount of packets in the pool
+ *
+ *  In some cases waiting for packets is undesirable. Especially when
+ *  a wait would happen under a lock of some kind, other parts of the
+ *  engine could have to wait.
+ *
+ *  This function only returns when at least N packets are in our pool.
+ *
+ *  \param n number of packets needed
+ */
+void PacketPoolWaitForN(int n)
+{
+    PktPool *my_pool = GetThreadPacketPool();
+    Packet *p = NULL;
+
+    while (1) {
+        int i = 0;
+        PacketPoolWait();
+
+        /* count packets in our stack */
+        p = my_pool->head;
+        while (p != NULL) {
+            if (++i == n)
+                return;
+
+            p = p->next;
+        }
+
+        /* continue counting in the return stack */
+        if (my_pool->return_stack.head != NULL) {
+            SCMutexLock(&my_pool->return_stack.mutex);
+            p = my_pool->return_stack.head;
+            while (p != NULL) {
+                if (++i == n) {
+                    SCMutexUnlock(&my_pool->return_stack.mutex);
+                    return;
+                }
+                p = p->next;
+            }
+            SCMutexUnlock(&my_pool->return_stack.mutex);
+
+        /* or signal that we need packets and wait */
+        } else {
+            SCMutexLock(&my_pool->return_stack.mutex);
+            SC_ATOMIC_ADD(my_pool->return_stack.sync_now, 1);
+            SCCondWait(&my_pool->return_stack.cond, &my_pool->return_stack.mutex);
+            SCMutexUnlock(&my_pool->return_stack.mutex);
+        }
+    }
+}
+
 /** \brief a initialized packet
  *
  *  \warning Use *only* at init, not at packet runtime
