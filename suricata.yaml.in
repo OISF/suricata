@@ -94,6 +94,7 @@ outputs:
       enabled: yes
       filetype: regular #regular|syslog|unix_dgram|unix_stream
       filename: eve.json
+      #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"
       #facility: local5
