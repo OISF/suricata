@@ -285,6 +285,10 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             continue;
         }
 
+        /* before grabbing the flow lock, make sure we have at least
+         * 3 packets in the pool */
+        PacketPoolWaitForN(3);
+
         FLOWLOCK_WRLOCK(f);
 
         Flow *next_flow = f->hprev;
@@ -376,6 +380,10 @@ static uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt,
 
     for (idx = hash_min; idx < hash_max; idx++) {
         FlowBucket *fb = &flow_hash[idx];
+
+        /* before grabbing the row lock, make sure we have at least
+         * 9 packets in the pool */
+        PacketPoolWaitForN(9);
 
         if (FBLOCK_TRYLOCK(fb) != 0)
             continue;
@@ -1220,7 +1228,10 @@ static int FlowMgrTest04 (void)
 static int FlowMgrTest05 (void)
 {
     int result = 0;
+    extern intmax_t max_pending_packets;
+    max_pending_packets = 128;
 
+    PacketPoolInit();
     FlowInitConfig(FLOW_QUIET);
     FlowConfig backup;
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
@@ -1258,7 +1269,7 @@ static int FlowMgrTest05 (void)
 
     memcpy(&flow_config, &backup, sizeof(FlowConfig));
     FlowShutdown();
-
+    PacketPoolDestroy();
     return result;
 }
 #endif /* UNITTESTS */
