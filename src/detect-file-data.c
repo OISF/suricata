@@ -84,7 +84,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
         return -1;
     }
 
-    if ((s->init_flags & SIG_FLAG_INIT_FLOW) &&
+    if (s->alproto == ALPROTO_HTTP && (s->init_flags & SIG_FLAG_INIT_FLOW) &&
         (s->flags & SIG_FLAG_TOSERVER) && !(s->flags & SIG_FLAG_TOCLIENT)) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http or smtp.");
             return -1;
@@ -169,6 +169,43 @@ end:
 
     return result;
 }
+
+static int DetectFiledataParseTest03(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any 25 "
+                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content is still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_FILEDATA] == NULL) {
+       printf("content not in FILEDATA list: ");
+       goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
 #endif
 
 void DetectFiledataRegisterTests(void)
@@ -176,5 +213,6 @@ void DetectFiledataRegisterTests(void)
 #ifdef UNITTESTS
     UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01, 1);
     UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02, 1);
+    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03, 1);
 #endif
 }
