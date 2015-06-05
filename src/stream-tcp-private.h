@@ -157,8 +157,7 @@ enum
 #define STREAMTCP_STREAM_FLAG_KEEPALIVE         0x0004
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x0008
-/** Stream has sent a FIN/RST */
-#define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x0010
+// vacancy
 /** Stream supports TIMESTAMP -- used to set ssn STREAMTCP_FLAG_TIMESTAMP
  *  flag. */
 #define STREAMTCP_STREAM_FLAG_TIMESTAMP         0x0020

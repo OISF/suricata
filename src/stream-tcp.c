@@ -1288,15 +1288,11 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                     SEQ_EQ(TCP_GET_ACK(p), (ssn->client.isn + 1)))
             {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-                ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: Reset received and state changed to "
                         "TCP_CLOSED", ssn);
             }
         } else {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-            ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-            ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
             SCLogDebug("ssn %p: Reset received and state changed to "
                     "TCP_CLOSED", ssn);
         }
@@ -1615,8 +1611,6 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
         if (reset == TRUE) {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-            ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-            ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
             SCLogDebug("ssn %p: Reset received and state changed to "
                     "TCP_CLOSED", ssn);
 
@@ -2281,8 +2275,6 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 
         if (PKT_IS_TOSERVER(p)) {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-            ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-            ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
             SCLogDebug("ssn %p: Reset received and state changed to "
                     "TCP_CLOSED", ssn);
 
@@ -2313,8 +2305,6 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
              * cleanup. */
         } else {
             StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-            ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-            ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
             SCLogDebug("ssn %p: Reset received and state changed to "
                     "TCP_CLOSED", ssn);
 
@@ -2512,7 +2502,6 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         }
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSE_WAIT);
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: state changed to TCP_CLOSE_WAIT", ssn);
 
         if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))
@@ -2560,7 +2549,6 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         }
 
         StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT1);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT1", ssn);
 
         if (SEQ_EQ(TCP_GET_SEQ(p), ssn->server.next_seq))
@@ -2617,8 +2605,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -2684,7 +2670,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
@@ -2741,7 +2726,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -2806,7 +2790,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSING);
-                ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_CLOSING", ssn);
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
@@ -2864,7 +2847,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSING);
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_CLOSING", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -3077,8 +3059,6 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -3148,7 +3128,6 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
@@ -3203,7 +3182,6 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -3387,8 +3365,6 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -3569,8 +3545,6 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -3689,7 +3663,6 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 
             if (!retransmission) {
                 StreamTcpPacketSetState(p, ssn, TCP_LAST_ACK);
-                ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
                 SCLogDebug("ssn %p: state changed to TCP_LAST_ACK", ssn);
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
@@ -3863,8 +3836,6 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -3990,8 +3961,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
         StreamTcpPseudoPacketCreateStreamEndPacket(tv, stt, p, ssn, pq);
 
         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_CLOSE_INITIATED;
         SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                 ssn);
 
@@ -4594,14 +4563,6 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         if (ssn->state >= TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EST;
-        }
-
-        if (PKT_IS_TOSERVER(p)) {
-            if (ssn->client.flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED)
-                p->flags |= PKT_STREAM_EOF;
-        } else {
-            if (ssn->server.flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED)
-                p->flags |= PKT_STREAM_EOF;
         }
     }
 
