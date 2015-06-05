@@ -30,11 +30,8 @@
 #define STREAM_EOF              0x02
 #define STREAM_TOSERVER         0x04
 #define STREAM_TOCLIENT         0x08
-#define STREAM_GAP              0x10    /* data gap encountered */
-#define STREAM_DEPTH            0x20    /* depth reached */
-
-/** size of the data chunks sent to the app layer parser. */
-#define MSG_DATA_SIZE       4072    /* 4096 - 24 (size of rest of the struct) */
+#define STREAM_GAP              0x10    /**< data gap encountered */
+#define STREAM_DEPTH            0x20    /**< depth reached */
 
 typedef struct StreamMsg_ {
     struct StreamMsg_ *next;
@@ -42,14 +39,15 @@ typedef struct StreamMsg_ {
 
     uint32_t seq;                   /**< sequence number */
     uint32_t data_len;              /**< length of the data */
-    uint8_t data[MSG_DATA_SIZE];    /**< reassembled data */
+    uint32_t data_size;
+    uint8_t *data;                  /**< reassembled data: ptr to after this
+                                     *   struct */
 } StreamMsg;
 
 typedef struct StreamMsgQueue_ {
     StreamMsg *top;
     StreamMsg *bot;
     uint16_t len;
-    //uint8_t flags;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
@@ -66,7 +64,6 @@ void StreamMsgPutInQueue(StreamMsgQueue *, StreamMsg *);
 
 StreamMsgQueue *StreamMsgQueueGetNew(void);
 void StreamMsgQueueFree(StreamMsgQueue *);
-StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t);
 
 void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len);
 uint16_t StreamMsgQueueGetMinChunkLen(uint8_t);
@@ -75,8 +72,8 @@ void StreamMsgReturnListToPool(void *);
 
 typedef int (*StreamSegmentCallback)(const Packet *, void *, uint8_t *, uint32_t);
 int StreamSegmentForEach(const Packet *p, uint8_t flag,
-                      StreamSegmentCallback CallbackFunc,
-                      void *data);
+                         StreamSegmentCallback CallbackFunc,
+                         void *data);
 
 #endif /* __STREAM_H__ */
 

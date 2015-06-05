@@ -133,25 +133,31 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
     SCLogDebug("q->len %" PRIu32 "", q->len);
 }
 
+#define SIZE 4072
 void *StreamMsgPoolAlloc(void)
 {
-    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(StreamMsg)) == 0)
+    if (StreamTcpReassembleCheckMemcap((uint32_t)(sizeof(StreamMsg)+SIZE)) == 0)
         return NULL;
 
-    StreamMsg *m = SCMalloc(sizeof(StreamMsg));
-    if (m != NULL)
-        StreamTcpReassembleIncrMemuse((uint32_t)sizeof(StreamMsg));
+    StreamMsg *m = SCCalloc(1, (sizeof(StreamMsg) + SIZE));
+    if (m != NULL) {
+        m->data = (uint8_t *)m + sizeof(StreamMsg);
+        m->data_size = SIZE;
+
+        StreamTcpReassembleIncrMemuse((uint32_t)(sizeof(StreamMsg)+SIZE));
+    }
 
     return m;
 }
 
 int StreamMsgInit(void *data, void *initdata)
 {
-    memset(data, 0, sizeof(StreamMsg));
+    StreamMsg *s = data;
+    memset(s->data, 0, s->data_size);
 
 #ifdef DEBUG
     SCMutexLock(&stream_pool_memuse_mutex);
-    stream_pool_memuse += sizeof(StreamMsg);
+    stream_pool_memuse += (sizeof(StreamMsg) + SIZE);
     stream_pool_memcnt ++;
     SCMutexUnlock(&stream_pool_memuse_mutex);
 #endif
@@ -162,7 +168,7 @@ void StreamMsgPoolFree(void *ptr)
 {
     if (ptr) {
         SCFree(ptr);
-        StreamTcpReassembleDecrMemuse((uint32_t)sizeof(StreamMsg));
+        StreamTcpReassembleDecrMemuse((uint32_t)(sizeof(StreamMsg)+SIZE));
     }
 }
 
@@ -226,12 +232,6 @@ void StreamMsgQueueFree(StreamMsgQueue *q)
 {
     SCFree(q);
     StreamTcpReassembleDecrMemuse((uint32_t)sizeof(StreamMsgQueue));
-}
-
-StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port)
-{
-    /* XXX implement this */
-    return NULL;//&stream_q;
 }
 
 void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len)
