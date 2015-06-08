@@ -1497,8 +1497,9 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
     if (det_ctx->hsbd != NULL) {
         SCLogDebug("det_ctx hsbd %u", det_ctx->hsbd_buffers_size);
         for (i = 0; i < det_ctx->hsbd_buffers_size; i++) {
-            if (det_ctx->hsbd[i].buffer != NULL)
-                SCFree(det_ctx->hsbd[i].buffer);
+            if (det_ctx->hsbd[i].buffer != NULL) {
+                HTPFree(det_ctx->hsbd[i].buffer, det_ctx->hsbd[i].buffer_size);
+            }
         }
         SCFree(det_ctx->hsbd);
     }
