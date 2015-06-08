@@ -393,6 +393,122 @@ void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx)
 
 #ifdef UNITTESTS
 
+struct TestSteps {
+    const uint8_t *input;
+    size_t input_size;      /**< if 0 strlen will be used */
+    int direction;          /**< STREAM_TOSERVER, STREAM_TOCLIENT */
+    int expect;
+};
+
+static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
+{
+    TcpSession ssn;
+    Flow f;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    if (yaml) {
+        ConfCreateContextBackup();
+        ConfInit();
+        HtpConfigCreateBackup();
+
+        ConfYamlLoadString(yaml, strlen(yaml));
+        HTPConfigure();
+        EngineModeSetIPS();
+    }
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    SCLogDebug("sig %s", sig);
+    DetectEngineAppendSig(de_ctx, (char *)sig);
+
+    de_ctx->flags |= DE_QUIET;
+
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    struct TestSteps *b = steps;
+    int i = 0;
+    while (b->input != NULL) {
+        SCLogDebug("chunk %p %d", b, i);
+        p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+        if (p == NULL)
+            goto end;
+        p->flow = &f;
+        p->flowflags = (b->direction == STREAM_TOSERVER) ? FLOW_PKT_TOSERVER : FLOW_PKT_TOCLIENT;
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+        p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+        SCMutexLock(&f.m);
+        int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, b->direction,
+                (uint8_t *)b->input,
+                b->input_size ? b->input_size : strlen((const char *)b->input));
+        if (r != 0) {
+            printf("toserver chunk %d returned %" PRId32 ", expected 0: ", i+1, r);
+            result = 0;
+            SCMutexUnlock(&f.m);
+            goto end;
+        }
+        SCMutexUnlock(&f.m);
+
+        /* do detect */
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+        int match = PacketAlertCheck(p, 1);
+        if (b->expect != match) {
+            printf("rule matching mismatch: ");
+            goto end;
+        }
+
+        UTHFreePackets(&p, 1);
+        p = NULL;
+        b++;
+        i++;
+    }
+    result = 1;
+
+ end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+
+    if (yaml) {
+        HtpConfigRestoreBackup();
+        ConfRestoreContextBackup();
+        EngineModeSetIDS();
+    }
+    return result;
+}
+
 static int DetectEngineHttpServerBodyTest01(void)
 {
     TcpSession ssn;
@@ -3735,7 +3851,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest04(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -3743,199 +3859,44 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 4\n\
-    response-body-inspect-window: 4\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 6\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"cd",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"ef",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "ab";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "cd";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] = "ef";
-    uint32_t http_len4 = sizeof(http_buf4) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"ab\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"bc\"; file_data; sid:2;)",
+        "alert http any any -> any any (content:\"cdef\"; file_data; sid:3;)",
+        "alert http any any -> any any (content:\"ef\"; file_data; sid:4;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"ab\"; sid:1;)")))
-        goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                              "(msg:\"http server body test\"; "
-                              "file_data; content:\"bc\"; sid:2;)")))
-        goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                              "(msg:\"http server body test\"; "
-                              "file_data; content:\"cdef\"; sid:3;)")))
-        goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                              "(msg:\"http server body test\"; "
-                              "file_data; content:\"ef\"; sid:4;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf4, http_len4);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 3)) {
-        printf("sid 3 did not match but should have: ");
-        goto end;
-    }
-
-    if (!PacketAlertCheck(p2, 4)) {
-        printf("sid 4 did not match but should have: ");
-        goto end;
-    }
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    return result;
+    return 1;
 }
 
 /*
@@ -3950,7 +3911,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest05(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -3958,195 +3919,43 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 1\n\
-    response-body-inspect-window: 4\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 12\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"cd",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"12345678",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 12\r\n"
-        "\r\n"
-        "ab";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "cd";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] = "12345678";
-    uint32_t http_len4 = sizeof(http_buf4) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"ab\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"abcd\"; file_data; sid:2;)",
+        "alert http any any -> any any (content:\"d123456789\"; file_data; sid:3;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"ab\"; sid:1;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"abcd\"; sid:2;)")))
-        goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                              "(msg:\"http server body test\"; "
-                              "file_data; content:\"d12345678\"; sid:3;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf4, http_len4);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 3)) {
-        printf("sid 3 did not match but should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-    return result;
+    return 1;
 }
 
 /**
@@ -4157,7 +3966,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest06(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -4165,171 +3974,40 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 1\n\
-    response-body-inspect-window: 4\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 6\r\n"
+            "\r\n"
+            "123",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"456",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 6\r\n"
-        "\r\n"
-        "123";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "456";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"123\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"3456\"; file_data; sid:2;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"123\"; sid:1;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"3456\"; sid:2;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-    return result;
+    return 1;
 }
 
 /**
@@ -4341,7 +4019,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest07(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -4349,196 +4027,43 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 1\n\
-    response-body-inspect-window: 4\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 5\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"c",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"de",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 5\r\n"
-        "\r\n"
-        "ab";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "c";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] = "de";
-    uint32_t http_len4 = sizeof(http_buf4) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"ab\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"abc\"; file_data; sid:2;)",
+        "alert http any any -> any any (content:\"bcde\"; file_data; sid:3;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"ab\"; sid:1;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"abc\"; sid:2;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"bcde\"; sid:3;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf4, http_len4);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 3)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-    return result;
+    return 1;
 }
 
 /**
@@ -4549,7 +4074,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest08(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -4557,171 +4082,40 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 1\n\
-    response-body-inspect-window: 4\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 8\r\n"
+            "\r\n"
+            "abcd",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"efgh",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 8\r\n"
-        "\r\n"
-        "abcd";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "efgh";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"abcd\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"dfegh\"; file_data; sid:2;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"abcd\"; sid:1;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"defgh\"; sid:2;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 2 did not match but should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-    return result;
+    return 1;
 }
 
 /**
@@ -4735,7 +4129,7 @@ end:
 static int DetectEngineHttpServerBodyFileDataTest09(void)
 {
 
-    char input[] = "\
+    const char yaml[] = "\
 %YAML 1.1\n\
 ---\n\
 libhtp:\n\
@@ -4747,202 +4141,42 @@ libhtp:\n\
     response-body-inspect-window: 4\n\
 ";
 
-    ConfCreateContextBackup();
-    ConfInit();
-    HtpConfigCreateBackup();
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n"
+            "HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 13\r\n"
+            "\r\n"
+            "a",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"b",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"c",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"d",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"efghijklm",
+            0, STREAM_TOSERVER, 0 },
+        {   NULL, 0, 0, 0},
+    };
 
-    ConfYamlLoadString(input, strlen(input));
-    HTPConfigure();
-    EngineModeSetIPS();
-    TcpSession ssn;
-    Packet *p1 = NULL;
-    Packet *p2 = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    HtpState *http_state = NULL;
-    Flow f;
-    uint8_t http_buf1[] =
-        "GET /index.html HTTP/1.0\r\n"
-        "Host: www.openinfosecfoundation.org\r\n"
-        "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
-        "\r\n";
-    uint32_t http_len1 = sizeof(http_buf1) - 1;
-    uint8_t http_buf2[] =
-        "HTTP/1.0 200 ok\r\n"
-        "Content-Type: text/html\r\n"
-        "Content-Length: 13\r\n"
-        "\r\n"
-        "a";
-    uint32_t http_len2 = sizeof(http_buf2) - 1;
-    uint8_t http_buf3[] = "b";
-    uint32_t http_len3 = sizeof(http_buf3) - 1;
-    uint8_t http_buf4[] = "c";
-    uint32_t http_len4 = sizeof(http_buf4) - 1;
-    uint8_t http_buf5[] = "d";
-    uint32_t http_len5 = sizeof(http_buf5) - 1;
-    uint8_t http_buf6[] = "efghijklm";
-    uint32_t http_len6 = sizeof(http_buf6) - 1;
+    const char *sigs[] = {
+        "alert http any any -> any any (content:\"abcd\"; file_data; sid:1;)",
+        "alert http any any -> any any (content:\"defghijklm\"; file_data; sid:2;)",
+        NULL,
+    };
 
-    int result = 0;
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    int i;
 
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-
-    p1->flow = &f;
-    p1->flowflags |= FLOW_PKT_TOSERVER;
-    p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p2->flow = &f;
-    p2->flowflags |= FLOW_PKT_TOCLIENT;
-    p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"abcd\"; sid:1;)")))
-        goto end;
-
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"defghijklm\"; sid:2;)")))
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    http_state = f.alstate;
-    if (http_state == NULL) {
-        printf("no http state: \n");
-        result = 0;
-        goto end;
+    for (i = 0; sigs[i] != NULL; i++) {
+        if (!RunTest(steps, sigs[i], yaml))
+            return 0;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-
-    if (PacketAlertCheck(p1, 1)) {
-        printf("sid 1 matched but shouldn't have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf4, http_len4);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf5, http_len5);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 1)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf6, http_len6);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-
-    if (!PacketAlertCheck(p2, 2)) {
-        printf("sid 1 did not match but should have: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p1, 1);
-    UTHFreePackets(&p2, 1);
-    EngineModeSetIDS();
-    HTPFreeConfig();
-    ConfDeInit();
-    ConfRestoreContextBackup();
-    HtpConfigRestoreBackup();
-    return result;
+    return 1;
 }
 #endif /* UNITTESTS */
 
