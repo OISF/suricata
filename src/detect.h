@@ -366,30 +366,19 @@ typedef struct SigMatchData_ {
 
 /** \brief Signature container */
 typedef struct Signature_ {
-    union {
-        struct {
-            /* coccinelle: Signature:flags:SIG_FLAG */
-            uint32_t flags;
-            AppProto alproto;
-            uint16_t dsize_low;
-        };
-        uint64_t hdr_copy1;
-    };
-    union {
-        struct {
-            uint16_t dsize_high;
-            uint16_t mpm_pattern_id_div_8;
-        };
-        uint32_t hdr_copy2;
-    };
-    union {
-        struct {
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
-            SigIntId num; /**< signature number, internal id */
-        };
-        uint32_t hdr_copy3;
-    };
+    /* coccinelle: Signature:flags:SIG_FLAG */
+    uint32_t flags;
+
+    AppProto alproto;
+
+    uint16_t dsize_low;
+    uint16_t dsize_high;
+
+    uint16_t mpm_pattern_id_div_8;
+    uint8_t mpm_pattern_id_mod_8;
+
+    SignatureMask mask;
+    SigIntId num; /**< signature number, internal id */
 
     /** inline -- action */
     uint8_t action;
