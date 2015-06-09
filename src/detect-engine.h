@@ -35,7 +35,6 @@ typedef struct DetectEngineAppInspectionEngine_ {
 
     int32_t sm_list;
     uint32_t inspect_flags;
-    uint32_t match_flags;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
      *         1 Match.
@@ -101,7 +100,6 @@ void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
                                              uint16_t direction,
                                              int32_t sm_list,
                                              uint32_t inspect_flags,
-                                             uint32_t match_flags,
                                              int (*Callback)(ThreadVars *tv,
                                                              DetectEngineCtx *de_ctx,
                                                              DetectEngineThreadCtx *det_ctx,

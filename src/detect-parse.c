@@ -1504,7 +1504,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                                         0,
                                                         DETECT_SM_LIST_APP_EVENT,
                                                         DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DetectEngineAptEventInspect,
                                                         app_inspection_engine);
             }
@@ -1513,7 +1512,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                                         sig->alproto,
                                                         1,
                                                         DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DetectEngineAptEventInspect,
                                                         app_inspection_engine);
@@ -1526,7 +1524,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                                         0,
                                                         DETECT_SM_LIST_APP_EVENT,
                                                         DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DetectEngineAptEventInspect,
                                                         app_inspection_engine);
             }
@@ -1535,7 +1532,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                                         sig->alproto,
                                                         1,
                                                         DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DE_STATE_FLAG_APP_EVENT_INSPECT,
                                                         DetectEngineAptEventInspect,
                                                         app_inspection_engine);
