@@ -120,7 +120,7 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_FILEMATCH,
 
-    DETECT_SM_LIST_DNSQUERY_MATCH,
+    DETECT_SM_LIST_DNSQUERYNAME_MATCH,
     DETECT_SM_LIST_MODBUS_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */

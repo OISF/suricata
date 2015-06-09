@@ -1478,7 +1478,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH])
+    if (sig->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_MODBUS_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
