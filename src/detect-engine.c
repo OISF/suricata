@@ -1861,6 +1861,10 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
             return "dns query name";
+        case DETECT_SM_LIST_DNSREQUEST_MATCH:
+            return "dns request";
+        case DETECT_SM_LIST_DNSRESPONSE_MATCH:
+            return "dns response";
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
