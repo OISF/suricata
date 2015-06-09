@@ -1044,7 +1044,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRLMATCH);
     } else if (luajit->alproto == ALPROTO_DNS) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERY_MATCH);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));

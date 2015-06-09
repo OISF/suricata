@@ -232,8 +232,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
         /* DNS */
         { IPPROTO_TCP,
           ALPROTO_DNS,
-          DETECT_SM_LIST_DNSQUERY_MATCH,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+          DE_STATE_FLAG_DNSQUERYNAME_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
         /* specifically for UDP, register again
@@ -241,8 +241,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
          * in the detection engine */
         { IPPROTO_UDP,
           ALPROTO_DNS,
-          DETECT_SM_LIST_DNSQUERY_MATCH,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+          DE_STATE_FLAG_DNSQUERYNAME_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
         { IPPROTO_TCP,
@@ -1859,8 +1859,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_FILEMATCH:
             return "file";
 
-        case DETECT_SM_LIST_DNSQUERY_MATCH:
-            return "dns query";
+        case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
+            return "dns query name";
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
