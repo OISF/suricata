@@ -165,9 +165,6 @@ typedef struct DetectAddress_ {
     /** address data for this group */
     Address ip;
     Address ip2;
-//    uint8_t family; /**< address family, AF_INET (IPv4) or AF_INET6 (IPv6) */
-//    uint32_t ip[4]; /**< the address, or lower end of a range */
-//    uint32_t ip2[4]; /**< higher end of a range */
 
     /** ptr to the next address (dst addr in that case) or to the src port */
     union {
@@ -344,7 +341,7 @@ typedef struct IPOnlyCIDRItem_ {
  * Should never be dereferenced without casting to something else.
  */
 typedef struct SigMatchCtx_ {
-  int foo;
+    int foo;
 } SigMatchCtx;
 
 /** \brief a single match condition for a signature */
@@ -489,8 +486,7 @@ typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint32_t sig_match_size;  /* size in bytes of the array */
 } DetectEngineIPOnlyThreadCtx;
 
-/** \brief IP only rules matching ctx.
- *  \todo a radix tree would be great here */
+/** \brief IP only rules matching ctx. */
 typedef struct DetectEngineIPOnlyCtx_ {
     /* lookup hashes */
     HashListTable *ht16_src, *ht16_dst;
@@ -639,17 +635,6 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_toserver_dst_groups;
     uint16_t max_uniq_toserver_sp_groups;
     uint16_t max_uniq_toserver_dp_groups;
-/*
-    uint16_t max_uniq_small_toclient_src_groups;
-    uint16_t max_uniq_small_toclient_dst_groups;
-    uint16_t max_uniq_small_toclient_sp_groups;
-    uint16_t max_uniq_small_toclient_dp_groups;
-
-    uint16_t max_uniq_small_toserver_src_groups;
-    uint16_t max_uniq_small_toserver_dst_groups;
-    uint16_t max_uniq_small_toserver_sp_groups;
-    uint16_t max_uniq_small_toserver_dp_groups;
-*/
 
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_context;
@@ -955,11 +940,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
 
 typedef struct SigGroupHeadInitData_ {
-    /* list of content containers
-     * XXX move into a separate data struct
-     * with only a ptr to it. Saves some memory
-     * after initialization
-     */
+    /* list of content containers */
     uint8_t *content_array;
     uint32_t content_size;
     uint8_t *uri_content_array;
@@ -967,8 +948,6 @@ typedef struct SigGroupHeadInitData_ {
     uint8_t *stream_content_array;
     uint32_t stream_content_size;
 
-    /* "Normal" detection uses these only at init, but ip-only
-     * uses it during runtime as well, thus not in init... */
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
 
