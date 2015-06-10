@@ -111,6 +111,10 @@ static int DetectLuaMatch (ThreadVars *, DetectEngineThreadCtx *,
         Packet *, Signature *, const SigMatchCtx *);
 static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                                Flow *f, uint8_t flags,
+                                void *state, void *txv, const Signature *s,
+                                const SigMatchCtx *ctx);
 static int DetectLuaSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectLuaRegisterTests(void);
 static void DetectLuaFree(void *);
@@ -126,6 +130,7 @@ void DetectLuaRegister(void)
     sigmatch_table[DETECT_LUA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_scripting";
     sigmatch_table[DETECT_LUA].Match = DetectLuaMatch;
     sigmatch_table[DETECT_LUA].AppLayerMatch = DetectLuaAppMatch;
+    sigmatch_table[DETECT_LUA].AppLayerTxMatch = DetectLuaAppTxMatch;
     sigmatch_table[DETECT_LUA].Setup = DetectLuaSetup;
     sigmatch_table[DETECT_LUA].Free  = DetectLuaFree;
     sigmatch_table[DETECT_LUA].RegisterTests = DetectLuaRegisterTests;
@@ -156,6 +161,8 @@ void DetectLuaRegister(void)
 #define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
 
 #define DATATYPE_DNS_RRNAME                 (1<<15)
+#define DATATYPE_DNS_REQUEST                (1<<16)
+#define DATATYPE_DNS_RESPONSE               (1<<17)
 
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
@@ -510,23 +517,13 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     SCReturnInt(ret);
 }
 
-/**
- * \brief match the specified lua script in AMATCH
- *
- * \param t thread local vars
- * \param det_ctx pattern matcher thread local data
- * \param s signature being inspected
- * \param m sigmatch that we will cast into DetectLuaData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state,
+        const Signature *s, const SigMatchCtx *ctx)
 {
     SCEnter();
     int ret = 0;
-    DetectLuaData *luajit = (DetectLuaData *)m->ctx;
+    DetectLuaData *luajit = (DetectLuaData *)ctx;
     if (luajit == NULL)
         SCReturnInt(0);
 
@@ -620,6 +617,42 @@ static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCReturnInt(ret);
+}
+
+/**
+ * \brief match the specified lua script in AMATCH
+ *
+ * \param t thread local vars
+ * \param det_ctx pattern matcher thread local data
+ * \param s signature being inspected
+ * \param m sigmatch that we will cast into DetectLuaData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, m->ctx);
+}
+
+/**
+ * \brief match the specified lua script in a list with a tx
+ *
+ * \param t thread local vars
+ * \param det_ctx pattern matcher thread local data
+ * \param s signature being inspected
+ * \param m sigmatch that we will cast into DetectLuaData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+static int DetectLuaAppTxMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+                                Flow *f, uint8_t flags,
+                                void *state, void *txv, const Signature *s,
+                                const SigMatchCtx *ctx)
+{
+    return DetectLuaAppMatchCommon(t, det_ctx, f, flags, state, s, ctx);
 }
 
 #ifdef UNITTESTS
@@ -946,6 +979,10 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
 
             if (strcmp(k, "dns.rrname") == 0)
                 ld->flags |= DATATYPE_DNS_RRNAME;
+            else if (strcmp(k, "dns.request") == 0)
+                ld->flags |= DATATYPE_DNS_REQUEST;
+            else if (strcmp(k, "dns.response") == 0)
+                ld->flags |= DATATYPE_DNS_RESPONSE;
 
             else {
                 SCLogError(SC_ERR_LUA_ERROR, "unsupported dns data type %s", k);
@@ -1044,7 +1081,13 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRLMATCH);
     } else if (luajit->alproto == ALPROTO_DNS) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
+        if (luajit->flags & DATATYPE_DNS_RRNAME) {
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
+        } else if (luajit->flags & DATATYPE_DNS_REQUEST) {
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSREQUEST_MATCH);
+        } else if (luajit->flags & DATATYPE_DNS_RESPONSE) {
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
+        }
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
