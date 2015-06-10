@@ -73,7 +73,7 @@ typedef enum ThresholdRuleType {
  *  suppress gen_id 1, sig_id 2000328
  *  suppress gen_id 1, sig_id 2000328, track by_src, ip fe80::/10
 */
-#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src)\\s*,\\s*ip\\s*([\\[\\],\\$\\da-zA-Z.:/_]+)*\\s*$"
+#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src|by_either)\\s*,\\s*ip\\s*([\\[\\],\\$\\da-zA-Z.:/_]+)*\\s*$"
 
 /* Default path for the threshold.config file */
 #if defined OS_WIN32 || defined __CYGWIN__
@@ -935,6 +935,9 @@ static int ParseThresholdRule(DetectEngineCtx *de_ctx, char *rawstr,
                     parsed_track = TRACK_DST;
                 else if (strcasecmp(th_track,"by_src") == 0)
                     parsed_track = TRACK_SRC;
+                else if (strcasecmp(th_track,"by_either") == 0) {
+                    parsed_track = TRACK_EITHER;
+                }
                 else {
                     SCLogError(SC_ERR_INVALID_VALUE, "Invalid track parameter %s in %s", th_track, rule_extend);
                     goto error;
