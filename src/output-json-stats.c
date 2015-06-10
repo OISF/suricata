@@ -53,6 +53,7 @@
 
 #define JSON_STATS_TOTALS  (1<<0)
 #define JSON_STATS_THREADS (1<<1)
+#define JSON_STATS_DELTAS  (1<<2)
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
@@ -95,6 +96,7 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     SCEnter();
     JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
+    const char delta_suffix[] = "_delta";
 
     struct timeval tval;
     gettimeofday(&tval, NULL);
@@ -132,6 +134,13 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
             if (js_type != NULL) {
                 json_object_set_new(js_type, shortname,
                     json_integer(st->stats[u].value));
+                if (aft->statslog_ctx->flags & JSON_STATS_DELTAS) {
+                    char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
+                    snprintf(deltaname, sizeof(deltaname), "%s%s", shortname,
+                        delta_suffix);
+                    json_object_set_new(js_type, deltaname,
+                        json_integer(st->stats[u].value - st->stats[u].pvalue));
+                }
             }
         }
     }
@@ -155,10 +164,19 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
 
                 char str[256];
                 snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
+                char *shortname = &str[rindex(str, '.') - str + 1];
                 json_t *js_type = OutputStats2Json(threads, str);
 
                 if (js_type != NULL) {
-                    json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(st->tstats[u].value));
+                    json_object_set_new(js_type, shortname, json_integer(st->tstats[u].value));
+
+                    if (aft->statslog_ctx->flags & JSON_STATS_DELTAS) {
+                        char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
+                        snprintf(deltaname, sizeof(deltaname), "%s%s",
+                            shortname, delta_suffix);
+                        json_object_set_new(js_type, deltaname,
+                            json_integer(st->tstats[u].value - st->tstats[u].pvalue));
+                    }
                 }
             }
         }
@@ -256,13 +274,17 @@ OutputCtx *OutputStatsLogInit(ConfNode *conf)
     if (conf != NULL) {
         const char *totals = ConfNodeLookupChildValue(conf, "totals");
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
-        SCLogDebug("totals %s threads %s", totals, threads);
+        const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
+        SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
         if (totals != NULL && ConfValIsFalse(totals)) {
             stats_ctx->flags &= ~JSON_STATS_TOTALS;
         }
         if (threads != NULL && ConfValIsTrue(threads)) {
             stats_ctx->flags |= JSON_STATS_THREADS;
+        }
+        if (deltas != NULL && ConfValIsTrue(deltas)) {
+            stats_ctx->flags |= JSON_STATS_DELTAS;
         }
         SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);
     }
@@ -302,13 +324,17 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     if (conf != NULL) {
         const char *totals = ConfNodeLookupChildValue(conf, "totals");
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
-        SCLogDebug("totals %s threads %s", totals, threads);
+        const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
+        SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
         if (totals != NULL && ConfValIsFalse(totals)) {
             stats_ctx->flags &= ~JSON_STATS_TOTALS;
         }
         if (threads != NULL && ConfValIsTrue(threads)) {
             stats_ctx->flags |= JSON_STATS_THREADS;
+        }
+        if (deltas != NULL && ConfValIsTrue(deltas)) {
+            stats_ctx->flags |= JSON_STATS_DELTAS;
         }
         SCLogDebug("stats_ctx->flags %08x", stats_ctx->flags);
     }
