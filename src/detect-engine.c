@@ -246,6 +246,22 @@ void DetectEngineRegisterAppInspectionEngines(void)
           0,
           DetectEngineInspectDnsQueryName },
         { IPPROTO_TCP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSREQUEST_MATCH,
+          DE_STATE_FLAG_DNSREQUEST_INSPECT,
+          0,
+          DetectEngineInspectDnsRequest },
+        /* specifically for UDP, register again
+         * allows us to use the alproto w/o translation
+         * in the detection engine */
+        { IPPROTO_UDP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSREQUEST_MATCH,
+          DE_STATE_FLAG_DNSREQUEST_INSPECT,
+          0,
+          DetectEngineInspectDnsRequest },
+        /* SMTP */
+        { IPPROTO_TCP,
           ALPROTO_SMTP,
           DETECT_SM_LIST_FILEMATCH,
           DE_STATE_FLAG_FILE_TS_INSPECT,
@@ -316,7 +332,22 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DETECT_SM_LIST_MODBUS_MATCH,
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
-          DetectEngineInspectModbus }
+          DetectEngineInspectModbus },
+        { IPPROTO_TCP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSRESPONSE_MATCH,
+          DE_STATE_FLAG_DNSRESPONSE_INSPECT,
+          1,
+          DetectEngineInspectDnsResponse },
+        /* specifically for UDP, register again
+         * allows us to use the alproto w/o translation
+         * in the detection engine */
+        { IPPROTO_UDP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSRESPONSE_MATCH,
+          DE_STATE_FLAG_DNSRESPONSE_INSPECT,
+          1,
+          DetectEngineInspectDnsResponse },
     };
 
     size_t i;
