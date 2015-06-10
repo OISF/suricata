@@ -38,6 +38,7 @@
 #define TRACK_DST      1
 #define TRACK_SRC      2
 #define TRACK_RULE     3
+#define TRACK_EITHER   4 /**< either src or dst: only used by suppress */
 
 /* Get the new action to take */
 #define TH_ACTION_ALERT     0x01

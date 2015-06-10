@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -207,6 +207,41 @@ static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uin
     }
 
     return e;
+}
+
+int ThresholdHandlePacketSuppress(Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid)
+{
+    int ret = 0;
+    DetectAddress *m = NULL;
+    switch (td->track) {
+        case TRACK_DST:
+            m = DetectAddressLookupInHead(&td->addrs, &p->dst);
+            SCLogInfo("TRACK_DST");
+            break;
+        case TRACK_SRC:
+            m = DetectAddressLookupInHead(&td->addrs, &p->src);
+            SCLogInfo("TRACK_SRC");
+            break;
+        /* suppress if either src or dst is a match on the suppress
+         * address list */
+        case TRACK_EITHER:
+            m = DetectAddressLookupInHead(&td->addrs, &p->src);
+            if (m == NULL) {
+                m = DetectAddressLookupInHead(&td->addrs, &p->dst);
+            }
+            break;
+        case TRACK_RULE:
+        default:
+            SCLogError(SC_ERR_INVALID_VALUE,
+                    "track mode %d is not supported", td->track);
+            break;
+    }
+    if (m == NULL)
+        ret = 1;
+    else
+        ret = 2; /* suppressed but still need actions */
+
+    return ret;
 }
 
 /**
@@ -463,28 +498,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             }
             break;
         }
-        case TYPE_SUPPRESS:
-        {
-            DetectAddress *m = NULL;
-            switch (td->track) {
-                case TRACK_DST:
-                    m = DetectAddressLookupInHead(&td->addrs, &p->dst);
-                    break;
-                case TRACK_SRC:
-                    m = DetectAddressLookupInHead(&td->addrs, &p->src);
-                    break;
-                case TRACK_RULE:
-                default:
-                    SCLogError(SC_ERR_INVALID_VALUE,
-                               "track mode %d is not supported", td->track);
-                    break;
-            }
-            if (m == NULL)
-                ret = 1;
-            else
-                ret = 2; /* suppressed but still need actions */
-            break;
-        }
+        /* case TYPE_SUPPRESS: is not handled here */
         default:
             SCLogError(SC_ERR_INVALID_VALUE, "type %d is not supported", td->type);
     }
@@ -600,7 +614,9 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         SCReturnInt(0);
     }
 
-    if (td->track == TRACK_SRC) {
+    if (td->type == TYPE_SUPPRESS) {
+        ret = ThresholdHandlePacketSuppress(p,td,s->id,s->gid);
+    } else if (td->track == TRACK_SRC) {
         Host *src = HostGetHostFromHash(&p->src);
         if (src) {
             ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid);
