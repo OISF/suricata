@@ -286,7 +286,7 @@ static void DetectThresholdFree(void *de_ptr)
 {
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
     if (de) {
-        DetectAddressFree(de->addr);
+        DetectAddressHeadCleanup(&de->addrs);
         SCFree(de);
     }
 }

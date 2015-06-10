@@ -465,13 +465,13 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
         }
         case TYPE_SUPPRESS:
         {
-            int res = 0;
+            DetectAddress *m = NULL;
             switch (td->track) {
                 case TRACK_DST:
-                    res = DetectAddressMatch(td->addr, &p->dst);
+                    m = DetectAddressLookupInHead(&td->addrs, &p->dst);
                     break;
                 case TRACK_SRC:
-                    res = DetectAddressMatch(td->addr, &p->src);
+                    m = DetectAddressLookupInHead(&td->addrs, &p->src);
                     break;
                 case TRACK_RULE:
                 default:
@@ -479,7 +479,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                                "track mode %d is not supported", td->track);
                     break;
             }
-            if (res == 0)
+            if (m == NULL)
                 ret = 1;
             else
                 ret = 2; /* suppressed but still need actions */
