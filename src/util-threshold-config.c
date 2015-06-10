@@ -73,7 +73,7 @@ typedef enum ThresholdRuleType {
  *  suppress gen_id 1, sig_id 2000328
  *  suppress gen_id 1, sig_id 2000328, track by_src, ip fe80::/10
 */
-#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src)\\s*,\\s*ip\\s*([\\da-fA-F.:/]+)*\\s*$"
+#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src)\\s*,\\s*ip\\s*([\\[\\],\\$\\da-zA-Z.:/_]+)*\\s*$"
 
 /* Default path for the threshold.config file */
 #if defined OS_WIN32 || defined __CYGWIN__
@@ -296,16 +296,10 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
-            de->addr = NULL;
 
             if (parsed_track != TRACK_RULE) {
-                de->addr = DetectAddressInit();
-                if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                    goto error;
-                }
-                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+                if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) != 0) {
+                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
                     goto error;
                 }
             }
@@ -347,16 +341,10 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
-            de->addr = NULL;
 
             if (parsed_track != TRACK_RULE) {
-                de->addr = DetectAddressInit();
-                if (de->addr == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                    goto error;
-                }
-                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+                if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) != 0) {
+                    SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
                     goto error;
                 }
             }
@@ -400,13 +388,8 @@ static int SetupSuppressRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid,
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
 
-            de->addr = DetectAddressInit();
-            if (de->addr == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
-                goto error;
-            }
-            if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
-                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
+            if (DetectAddressParse((const DetectEngineCtx *)de_ctx, &de->addrs, (char *)th_ip) != 0) {
+                SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "failed to parse %s", th_ip);
                 goto error;
             }
 
@@ -427,8 +410,7 @@ end:
     return 0;
 error:
     if (de != NULL) {
-        if (de->addr != NULL)
-            DetectAddressFree(de->addr);
+        DetectAddressHeadCleanup(&de->addrs);
         SCFree(de);
     }
     return -1;
@@ -485,7 +467,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
-            de->addr = NULL;
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
@@ -549,7 +530,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
                 de->seconds = parsed_seconds;
                 de->new_action = parsed_new_action;
                 de->timeout = parsed_timeout;
-                de->addr = NULL;
 
                 sm = SigMatchAlloc();
                 if (sm == NULL) {
@@ -640,7 +620,6 @@ static int SetupThresholdRule(DetectEngineCtx *de_ctx, uint32_t id, uint32_t gid
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
-            de->addr = NULL;
 
             sm = SigMatchAlloc();
             if (sm == NULL) {
@@ -675,8 +654,7 @@ end:
     return 0;
 error:
     if (de != NULL) {
-        if (de->addr != NULL)
-            DetectAddressFree(de->addr);
+        DetectAddressHeadCleanup(&de->addrs);
         SCFree(de);
     }
     return -1;
