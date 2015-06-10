@@ -123,19 +123,27 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
                 continue;
-            char str[256];
-            snprintf(str, sizeof(str), "%s.%s", st->stats[u].tm_name, st->stats[u].name);
-            json_t *js_type = OutputStats2Json(js_stats, str);
+            const char *name = st->stats[u].name;
+            const char *shortname = name;
+            if (rindex(name, '.') != NULL) {
+                shortname = &name[rindex(name, '.') - name + 1];
+            }
+            json_t *js_type = OutputStats2Json(js_stats, name);
             if (js_type != NULL) {
-                json_object_set_new(js_type, &str[rindex(str, '.')-str+1],
-                                    json_integer(st->stats[u].value));
+                json_object_set_new(js_type, shortname,
+                    json_integer(st->stats[u].value));
             }
         }
     }
 
-    /* per thread stats */
+    /* per thread stats - stored in a "threads" object. */
     if (st->tstats != NULL && (aft->statslog_ctx->flags & JSON_STATS_THREADS)) {
         /* for each thread (store) */
+        json_t *threads = json_object();
+        if (unlikely(threads == NULL)) {
+            json_decref(js);
+            return 0;
+        }
         uint32_t x;
         for (x = 0; x < st->ntstats; x++) {
             uint32_t offset = x * st->nstats;
@@ -147,13 +155,14 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
 
                 char str[256];
                 snprintf(str, sizeof(str), "%s.%s", st->tstats[u].tm_name, st->tstats[u].name);
-                json_t *js_type = OutputStats2Json(js_stats, str);
+                json_t *js_type = OutputStats2Json(threads, str);
 
                 if (js_type != NULL) {
                     json_object_set_new(js_type, &str[rindex(str, '.')-str+1], json_integer(st->tstats[u].value));
                 }
             }
         }
+        json_object_set_new(js_stats, "threads", threads);
     }
 
     json_object_set_new(js, "stats", js_stats);
