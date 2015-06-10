@@ -99,15 +99,6 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     struct timeval tval;
     gettimeofday(&tval, NULL);
 
-    /* Calculate the Engine uptime */
-    int up_time = (int)difftime(tval.tv_sec, st->start_time);
-    int sec = up_time % 60;     // Seconds in a minute
-    int in_min = up_time / 60;
-    int min = in_min % 60;      // Minutes in a hour
-    int in_hours = in_min / 60;
-    int hours = in_hours % 24;  // Hours in a day
-    int days = in_hours / 24;
-
     json_t *js = json_object();
     if (unlikely(js == NULL))
         return 0;
@@ -123,11 +114,9 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
         return 0;
     }
 
-    char uptime[128];
-    snprintf(uptime, sizeof(uptime),
-             "%"PRId32"d, %02dh %02dm %02ds", days, hours, min, sec);
-
-    json_object_set_new(js_stats, "uptime", json_string(uptime));
+    /* Uptime, in seconds. */
+    json_object_set_new(js_stats, "uptime",
+        json_integer((int)difftime(tval.tv_sec, st->start_time)));
 
     uint32_t u = 0;
     if (aft->statslog_ctx->flags & JSON_STATS_TOTALS) {
