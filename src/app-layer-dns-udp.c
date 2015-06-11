@@ -62,11 +62,15 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
     SCLogDebug("starting %u", input_len);
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_UDP)
         SCReturnInt(-1);
 
-    if (input_len == 0 || input_len < sizeof(DNSHeader)) {
+    if (input == NULL || input_len == 0 || input_len < sizeof(DNSHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSHeader));
         goto insufficient_data;
     }
@@ -168,11 +172,15 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
 
     SCLogDebug("starting %u", input_len);
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_UDP)
         SCReturnInt(-1);
 
-    if (input_len == 0 || input_len < sizeof(DNSHeader)) {
+    if (input == NULL || input_len == 0 || input_len < sizeof(DNSHeader)) {
         SCLogDebug("ilen too small, hoped for at least %"PRIuMAX, (uintmax_t)sizeof(DNSHeader));
         goto insufficient_data;
     }

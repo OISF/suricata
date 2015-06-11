@@ -219,6 +219,10 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
     FtpState *state = (FtpState *)ftp_state;
     void *ptmp;
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     state->input = input;
     state->input_len = input_len;
     /* toserver stream */

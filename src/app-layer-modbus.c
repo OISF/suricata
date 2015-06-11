@@ -1227,6 +1227,10 @@ static int ModbusParseRequest(Flow                  *f,
     ModbusTransaction   *tx;
     ModbusHeader        header;
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     while (input_len > 0) {
         uint32_t    adu_len = input_len;
         uint8_t     *adu = input;
@@ -1283,6 +1287,10 @@ static int ModbusParseResponse(Flow                 *f,
     ModbusHeader        header;
     ModbusState         *modbus = (ModbusState *) state;
     ModbusTransaction   *tx;
+
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
 
     while (input_len > 0) {
         uint32_t    adu_len = input_len;

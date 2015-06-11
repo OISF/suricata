@@ -532,6 +532,10 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
     if (pstate == NULL)
         return -1;
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     while (sstate->bytesprocessed <  NBSS_HDR_LEN && input_len) {
         retval = NBSSParseHeader(smb2_state, pstate, input, input_len);
         if (retval <= input_len) {
