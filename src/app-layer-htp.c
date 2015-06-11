@@ -739,28 +739,30 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     /* pass the new data to the htp parser */
-    r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
+    if (input_len > 0) {
+        r = htp_connp_req_data(hstate->connp, &ts, input, input_len);
 
-    switch(r) {
-        case HTP_STREAM_ERROR:
+        switch(r) {
+            case HTP_STREAM_ERROR:
 
-            hstate->flags |= HTP_FLAG_STATE_ERROR;
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-            ret = -1;
-            break;
-        case HTP_STREAM_DATA:
-        case HTP_STREAM_DATA_OTHER:
+                hstate->flags |= HTP_FLAG_STATE_ERROR;
+                hstate->flags &= ~HTP_FLAG_STATE_DATA;
+                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+                ret = -1;
+                break;
+            case HTP_STREAM_DATA:
+            case HTP_STREAM_DATA_OTHER:
 
-            hstate->flags |= HTP_FLAG_STATE_DATA;
-            break;
-        case HTP_STREAM_TUNNEL:
-            break;
-        default:
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+                hstate->flags |= HTP_FLAG_STATE_DATA;
+                break;
+            case HTP_STREAM_TUNNEL:
+                break;
+            default:
+                hstate->flags &= ~HTP_FLAG_STATE_DATA;
+                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+        }
+        HTPHandleError(hstate);
     }
-    HTPHandleError(hstate);
 
     /* if the TCP connection is closed, then close the HTTP connection */
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
@@ -815,25 +817,27 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
-    r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
-    switch(r) {
-        case HTP_STREAM_ERROR:
-            hstate->flags = HTP_FLAG_STATE_ERROR;
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-            ret = -1;
-            break;
-        case HTP_STREAM_DATA:
-        case HTP_STREAM_DATA_OTHER:
-            hstate->flags |= HTP_FLAG_STATE_DATA;
-            break;
-        case HTP_STREAM_TUNNEL:
-            break;
-        default:
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-     }
-    HTPHandleError(hstate);
+    if (input_len > 0) {
+        r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
+        switch(r) {
+            case HTP_STREAM_ERROR:
+                hstate->flags = HTP_FLAG_STATE_ERROR;
+                hstate->flags &= ~HTP_FLAG_STATE_DATA;
+                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+                ret = -1;
+                break;
+            case HTP_STREAM_DATA:
+            case HTP_STREAM_DATA_OTHER:
+                hstate->flags |= HTP_FLAG_STATE_DATA;
+                break;
+            case HTP_STREAM_TUNNEL:
+                break;
+            default:
+                hstate->flags &= ~HTP_FLAG_STATE_DATA;
+                hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
+        }
+        HTPHandleError(hstate);
+    }
 
     /* if we the TCP connection is closed, then close the HTTP connection */
     if (AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF) &&
