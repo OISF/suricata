@@ -61,7 +61,7 @@ TODO:
     hostbits:set,bitname,both,120;
  */
 
-#define PARSE_REGEX         "([a-z]+)(?:,([^,]+))?(?:,([^,]+))?"
+#define PARSE_REGEX "([a-z]+)(?:\\s*,\\s*([^\\s,]+))?(?:\\s*,\\s*([^,\\s]+))?"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -292,57 +292,74 @@ int DetectHostbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     return DetectXbitMatchHost(p, xd);
 }
 
+static int DetectHostbitParse(const char *str, char *cmd, int cmd_len,
+    char *name, int name_len, char *dir, int dir_len)
+{
+    const int max_substrings = 30;
+    int count, rc;
+    int ov[max_substrings];
+
+    count = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
+        ov, max_substrings);
+    if (count != 2 && count != 3 && count != 4) {
+        SCLogError(SC_ERR_PCRE_MATCH,
+            "\"%s\" is not a valid setting for hostbits.", str);
+        return 0;
+    }
+
+    rc = pcre_copy_substring((char *)str, ov, max_substrings, 1, cmd, cmd_len);
+    if (rc < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+        return 0;
+    }
+
+    if (count >= 3) {
+        rc = pcre_copy_substring((char *)str, ov, max_substrings, 2, name,
+            name_len);
+        if (rc < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+            return 0;
+        }
+        if (count >= 4) {
+            rc = pcre_copy_substring((char *)str, ov, max_substrings, 3, dir,
+                dir_len);
+            if (rc < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,
+                    "pcre_copy_substring failed");
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
+
 int DetectHostbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
     DetectXbitsData *cd = NULL;
     SigMatch *sm = NULL;
     uint8_t fb_cmd = 0;
     uint8_t hb_dir = 0;
-#define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
     char fb_cmd_str[16] = "", fb_name[256] = "";
     char hb_dir_str[16] = "";
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
-    if (ret != 2 && ret != 3 && ret != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "\"%s\" is not a valid setting for hostbits.", rawstr);
-        return -1;
-    }
-    SCLogInfo("ret %d, %s", ret, rawstr);
-    res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, fb_cmd_str, sizeof(fb_cmd_str));
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+    if (!DetectHostbitParse(rawstr, fb_cmd_str, sizeof(fb_cmd_str),
+            fb_name, sizeof(fb_name), hb_dir_str, sizeof(hb_dir_str))) {
         return -1;
     }
 
-    if (ret >= 3) {
-        res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, fb_name, sizeof(fb_name));
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
+    if (strlen(hb_dir_str) > 0) {
+        if (strcmp(hb_dir_str, "src") == 0)
+            hb_dir = DETECT_XBITS_TRACK_IPSRC;
+        else if (strcmp(hb_dir_str, "dst") == 0)
+            hb_dir = DETECT_XBITS_TRACK_IPDST;
+        else if (strcmp(hb_dir_str, "both") == 0) {
+            //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
+            SCLogError(SC_ERR_UNIMPLEMENTED, "'both' not implemented");
             goto error;
-        }
-        if (ret >= 4) {
-            res = pcre_copy_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, hb_dir_str, sizeof(hb_dir_str));
-            if (res < 0) {
-                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
-                goto error;
-            }
-            SCLogInfo("hb_dir_str %s", hb_dir_str);
-            if (strlen(hb_dir_str) > 0) {
-                if (strcmp(hb_dir_str, "src") == 0)
-                    hb_dir = DETECT_XBITS_TRACK_IPSRC;
-                else if (strcmp(hb_dir_str, "dst") == 0)
-                    hb_dir = DETECT_XBITS_TRACK_IPDST;
-                else if (strcmp(hb_dir_str, "both") == 0) {
-                    //hb_dir = DETECT_XBITS_TRACK_IPBOTH;
-                    SCLogError(SC_ERR_UNIMPLEMENTED, "'both' not implemented");
-                    goto error;
-                } else {
-                    // TODO
-                    goto error;
-                }
-            }
+        } else {
+            // TODO
+            goto error;
         }
     }
 
@@ -453,6 +470,130 @@ static void HostBitsTestShutdown(void)
 {
     HostCleanup();
     StorageCleanup();
+}
+
+static int HostBitsTestParse01(void)
+{
+    int ret = 0;
+    char cmd[16] = "", name[256] = "", dir[16] = "";
+
+    /* No direction. */
+    if (!DetectHostbitParse("isset,name", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+    if (strlen(dir)) {
+        goto end;
+    }
+
+    /* No direction, leading space. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset, name", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+
+    /* No direction, trailing space. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset,name ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+
+    /* No direction, leading and trailing space. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset, name ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+
+    /* With direction. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset,name,src", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+    if (strcmp(dir, "src") != 0) {
+        goto end;
+    }
+
+    /* With direction - leading and trailing spaces on name. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset, name ,src", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+    if (strcmp(dir, "src") != 0) {
+        goto end;
+    }
+
+    /* With direction - space around direction. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    if (!DetectHostbitParse("isset, name , src ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir))) {
+        goto end;
+    }
+    if (strcmp(cmd, "isset") != 0) {
+        goto end;
+    }
+    if (strcmp(name, "name") != 0) {
+        goto end;
+    }
+    if (strcmp(dir, "src") != 0) {
+        goto end;
+    }
+
+    ret = 1;
+end:
+    return ret;
 }
 
 /**
@@ -1315,6 +1456,7 @@ end:
 void HostBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
+    UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01, 1);
     UtRegisterTest("HostBitsTestSig01", HostBitsTestSig01, 1);
     UtRegisterTest("HostBitsTestSig02", HostBitsTestSig02, 1);
 #if 0
