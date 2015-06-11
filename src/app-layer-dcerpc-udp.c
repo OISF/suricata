@@ -714,6 +714,10 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 	int hdrretval = 0;
 	SCEnter();
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
 	DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpc_state;
 	while (sstate->bytesprocessed < DCERPC_UDP_HDR_LEN && input_len) {
 		hdrretval = DCERPCUDPParseHeader(f, dcerpc_state, pstate, input,

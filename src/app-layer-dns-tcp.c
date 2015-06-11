@@ -280,6 +280,10 @@ static int DNSTCPRequestParse(Flow *f, void *dstate,
     DNSState *dns_state = (DNSState *)dstate;
     SCLogDebug("starting %u", input_len);
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_TCP)
         SCReturnInt(-1);
@@ -489,6 +493,10 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
                                void *local_data)
 {
     DNSState *dns_state = (DNSState *)dstate;
+
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
 
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_TCP)

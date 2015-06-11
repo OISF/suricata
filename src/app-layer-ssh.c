@@ -422,6 +422,10 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->cli_hdr;
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
 
     if (ssh_state->cli_hdr.flags & SSH_FLAG_PARSER_DONE &&
@@ -439,6 +443,10 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->srv_hdr;
+
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
 

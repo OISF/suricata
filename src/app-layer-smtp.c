@@ -1065,6 +1065,10 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
 {
     SCEnter();
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     state->input = input;
     state->input_len = input_len;
     state->direction = direction;
