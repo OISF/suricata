@@ -974,6 +974,10 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 
     ssl_state->f = f;
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     if (direction == 0)
         ssl_state->curr_connp = &ssl_state->client_connp;
     else

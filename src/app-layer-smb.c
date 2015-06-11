@@ -1172,6 +1172,10 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
         SCReturnInt(0);
     }
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     if (sstate->bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {
         SCReturnInt(-1);
     }

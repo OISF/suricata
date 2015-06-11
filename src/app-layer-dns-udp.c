@@ -62,6 +62,10 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
 
     SCLogDebug("starting %u", input_len);
 
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
+
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_UDP)
         SCReturnInt(-1);
@@ -167,6 +171,10 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
     DNSState *dns_state = (DNSState *)dstate;
 
     SCLogDebug("starting %u", input_len);
+
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
+        SCReturnInt(1);
+    }
 
     /** \todo remove this when PP is fixed to enforce ipproto */
     if (f != NULL && f->proto != IPPROTO_UDP)
