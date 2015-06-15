@@ -526,7 +526,7 @@ DefragTracker *DefragGetTrackerFromHash (Packet *p)
     dt = hb->head;
 
     /* see if this is the tracker we are looking for */
-    if (DefragTrackerCompare(dt, p) == 0) {
+    if (dt->remove || DefragTrackerCompare(dt, p) == 0) {
         DefragTracker *pdt = NULL; /* previous tracker */
 
         while (dt) {
