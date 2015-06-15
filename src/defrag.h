@@ -71,20 +71,6 @@ typedef struct Frag_ {
     TAILQ_ENTRY(Frag_) next;    /**< Pointer to next fragment for tailq. */
 } Frag;
 
-/** \brief Reset tracker fields except "lock" */
-#define DEFRAG_TRACKER_RESET(t) { \
-    (t)->timeout = 0; \
-    (t)->id = 0; \
-    (t)->policy = 0; \
-    (t)->af = 0; \
-    (t)->seen_last = 0; \
-    (t)->remove = 0; \
-    CLEAR_ADDR(&(t)->src_addr); \
-    CLEAR_ADDR(&(t)->dst_addr); \
-    (t)->frags.tqh_first = NULL; \
-    (t)->frags.tqh_last = NULL; \
-}
-
 /**
  * A defragmentation tracker.  Used to track fragments that make up a
  * single packet.
