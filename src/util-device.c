@@ -150,6 +150,18 @@ int LiveBuildDeviceListCustom(char * runmode, char * itemname)
     if (base == NULL)
         return 0;
 
+    /* First check if there in an "interfaces" mapping. */
+    ConfNode *interfaces = ConfNodeLookupChild(base, "interfaces");
+    if (interfaces != NULL) {
+        TAILQ_FOREACH(child, &interfaces->head, next) {
+            SCLogInfo("Adding %s %s from config file", itemname, child->name);
+            LiveRegisterDevice(child->name);
+            i++;
+        }
+        return i;
+    }
+
+    /* Fall back to a list of interfaces. */
     TAILQ_FOREACH(child, &base->head, next) {
         ConfNode *subchild;
         TAILQ_FOREACH(subchild, &child->head, next) {
