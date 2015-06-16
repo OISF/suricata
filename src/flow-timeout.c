@@ -515,6 +515,7 @@ static inline void FlowForceReassemblyForHash(void)
     for (idx = 0; idx < flow_config.hash_size; idx++) {
         FlowBucket *fb = &flow_hash[idx];
 
+        PacketPoolWaitForN(9);
         FBLOCK_LOCK(fb);
 
         /* get the topmost flow from the QUEUE */
@@ -522,6 +523,8 @@ static inline void FlowForceReassemblyForHash(void)
 
         /* we need to loop through all the flows in the queue */
         while (f != NULL) {
+            PacketPoolWaitForN(3);
+
             FLOWLOCK_WRLOCK(f);
 
             /* Get the tcp session for the flow */
