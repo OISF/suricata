@@ -42,7 +42,7 @@ except SuricataReturnException as err:
 if args.command:
     (command, arguments) = sc.parse_command(args.command)
     res = sc.send_command(command, arguments)
-    print(res)
+    print(json.dumps(res))
     sc.close()
     if res['return'] == 'OK':
         sys.exit(0)
