@@ -433,7 +433,6 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
                 return;
             if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
-                BUG_ON(1);
                 return;
             }
             SCLogDebug("destate created for %"PRIu64, tx_id);
@@ -459,7 +458,6 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
                 return;
             if (AppLayerParserSetTxDetectState(f->proto, f->alproto, f->alstate, tx, destate) < 0) {
                 DetectEngineStateFree(destate);
-                BUG_ON(1);
                 return;
             }
             SCLogDebug("destate created for %"PRIu64, tx_id);
@@ -746,7 +744,9 @@ static int DoInspectItem(ThreadVars *tv,
                 if (offset > MAX_STORED_TXID_OFFSET)
                     offset = MAX_STORED_TXID_OFFSET;
                 det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+#ifdef DEBUG_VALIDATION
                 BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
+#endif
                 SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
             }
             return 0;
@@ -782,7 +782,9 @@ static int DoInspectItem(ThreadVars *tv,
                 if (offset > MAX_STORED_TXID_OFFSET)
                     offset = MAX_STORED_TXID_OFFSET;
                 det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+#ifdef DEBUG_VALIDATION
                 BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
+#endif
                 SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
             }
             return 0;
@@ -856,8 +858,9 @@ static int DoInspectItem(ThreadVars *tv,
         if (offset > MAX_STORED_TXID_OFFSET)
             offset = MAX_STORED_TXID_OFFSET;
         det_ctx->de_state_sig_array[item->sid] = (uint8_t)offset;
+#ifdef DEBUG_VALIDATION
         BUG_ON(det_ctx->de_state_sig_array[item->sid] & DE_STATE_MATCH_NO_NEW_STATE); // check that we don't set the bit
-
+#endif
         SCLogDebug("storing tx_id %u for this sid", (uint)inspect_tx_id + 1);
     }
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
