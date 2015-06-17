@@ -56,6 +56,7 @@
 #include "util-unittest-helper.h"
 #include "app-layer.h"
 #include "app-layer-htp.h"
+#include "app-layer-htp-mem.h"
 #include "app-layer-protos.h"
 
 #include "conf.h"
@@ -89,6 +90,136 @@ static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
     return 0;
 }
 
+static void HSBDGetBufferForTXInIDSMode(DetectEngineThreadCtx *det_ctx,
+                                        HtpState *htp_state, HtpBodyChunk *cur,
+                                        HtpTxUserData *htud, int index)
+{
+    int first = 1;
+    while (cur != NULL) {
+        /* see if we can filter out chunks */
+        if (htud->response_body.body_inspected > 0) {
+            if (cur->stream_offset < htud->response_body.body_inspected) {
+                if ((htud->response_body.body_inspected - cur->stream_offset) > htp_state->cfg->response_inspect_window) {
+                    cur = cur->next;
+                    continue;
+                } else {
+                    /* include this one */
+                }
+            } else {
+                /* include this one */
+            }
+        }
+
+        if (first) {
+            det_ctx->hsbd[index].offset = cur->stream_offset;
+            first = 0;
+        }
+
+        /* see if we need to grow the buffer */
+        if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
+            void *ptmp;
+            uint32_t newsize = det_ctx->hsbd[index].buffer_size + (cur->len * 2);
+
+            if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, newsize)) == NULL) {
+                HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
+                det_ctx->hsbd[index].buffer = NULL;
+                det_ctx->hsbd[index].buffer_size = 0;
+                det_ctx->hsbd[index].buffer_len = 0;
+                return;
+            }
+            det_ctx->hsbd[index].buffer = ptmp;
+            det_ctx->hsbd[index].buffer_size = newsize;
+        }
+        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
+        det_ctx->hsbd[index].buffer_len += cur->len;
+
+        cur = cur->next;
+    }
+
+    /* update inspected tracker */
+    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
+}
+
+#define MAX_WINDOW 10*1024*1024
+static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
+                                        HtpState *htp_state, HtpBodyChunk *cur,
+                                        HtpTxUserData *htud, int index)
+{
+    uint32_t window_size = 0;
+    int resize = 0;
+
+    /* how much from before body_inspected will we consider? */
+    uint32_t cfg_win =
+        htud->response_body.body_inspected >= htp_state->cfg->response_inspect_min_size ?
+            htp_state->cfg->response_inspect_window :
+            htp_state->cfg->response_inspect_min_size;
+
+    /* but less if we don't have that much before body_inspected */
+    if ((htud->response_body.body_inspected - htud->response_body.first->stream_offset) < cfg_win) {
+        cfg_win = htud->response_body.body_inspected - htud->response_body.first->stream_offset;
+    }
+    window_size = (htud->response_body.content_len_so_far - htud->response_body.body_inspected) + cfg_win;
+    if (window_size > MAX_WINDOW) {
+        SCLogDebug("weird: body size is %uk", window_size/1024);
+        window_size = MAX_WINDOW;
+    }
+    if (window_size > det_ctx->hsbd[index].buffer_size)
+        resize = 1;
+
+    if (det_ctx->hsbd[index].buffer == NULL || resize) {
+        void *ptmp;
+
+        if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, window_size)) == NULL) {
+            HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
+            det_ctx->hsbd[index].buffer = NULL;
+            det_ctx->hsbd[index].buffer_size = 0;
+            det_ctx->hsbd[index].buffer_len = 0;
+            return;
+        }
+        det_ctx->hsbd[index].buffer = ptmp;
+        det_ctx->hsbd[index].buffer_size = window_size;
+        resize = 0;
+    }
+
+    uint32_t left_edge = htud->response_body.body_inspected - cfg_win;
+
+    int first = 1;
+    while (cur != NULL) {
+        if (first) {
+            det_ctx->hsbd[index].offset = cur->stream_offset;
+            first = 0;
+        }
+
+        /* entirely before our window */
+        if ((cur->stream_offset + cur->len) <= left_edge) {
+            cur = cur->next;
+            continue;
+        } else {
+            uint32_t offset = 0;
+            if (cur->stream_offset < left_edge && (cur->stream_offset + cur->len) > left_edge) {
+                offset = left_edge - cur->stream_offset;
+                BUG_ON(offset > cur->len);
+            }
+
+            /* unusual: if window isn't big enough, we just give up */
+            if (det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size) {
+                htud->response_body.body_inspected = cur->stream_offset;
+                SCReturn;
+            }
+
+            BUG_ON(det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size);
+
+            memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data + offset, cur->len - offset);
+            det_ctx->hsbd[index].buffer_len += (cur->len - offset);
+            det_ctx->hsbd[index].offset -= offset;
+        }
+
+        cur = cur->next;
+    }
+
+    /* update inspected tracker to point before the current window */
+    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
+}
 
 static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                DetectEngineCtx *de_ctx,
@@ -158,62 +289,23 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) ? "true" : "false");
 
-    /* inspect the body if the transfer is complete or we have hit
-     * our body size limit */
-    if ((htp_state->cfg->response_body_limit == 0 ||
-         htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
-        htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
-        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
-        !(flags & STREAM_EOF)) {
-        SCLogDebug("we still haven't seen the entire response body.  "
-                   "Let's defer body inspection till we see the "
-                   "entire body.");
-        goto end;
+    if (!htp_state->cfg->http_body_inline) {
+        /* inspect the body if the transfer is complete or we have hit
+        * our body size limit */
+        if ((htp_state->cfg->response_body_limit == 0 ||
+             htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
+            htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
+            !(flags & STREAM_EOF)) {
+            SCLogDebug("we still haven't seen the entire response body.  "
+                       "Let's defer body inspection till we see the "
+                       "entire body.");
+            goto end;
+        }
+        HSBDGetBufferForTXInIDSMode(det_ctx, htp_state, cur, htud, index);
+    } else {
+        HSBDGetBufferForTXInIPSMode(det_ctx, htp_state, cur, htud, index);
     }
-
-    int first = 1;
-    while (cur != NULL) {
-        /* see if we can filter out chunks */
-        if (htud->response_body.body_inspected > 0) {
-            if (cur->stream_offset < htud->response_body.body_inspected) {
-                if ((htud->response_body.body_inspected - cur->stream_offset) > htp_state->cfg->response_inspect_window) {
-                    cur = cur->next;
-                    continue;
-                } else {
-                    /* include this one */
-                }
-            } else {
-                /* include this one */
-            }
-        }
-
-        if (first) {
-            det_ctx->hsbd[index].offset = cur->stream_offset;
-            first = 0;
-        }
-
-        /* see if we need to grow the buffer */
-        if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
-            void *ptmp;
-            det_ctx->hsbd[index].buffer_size += cur->len * 2;
-
-            if ((ptmp = SCRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size)) == NULL) {
-                SCFree(det_ctx->hsbd[index].buffer);
-                det_ctx->hsbd[index].buffer = NULL;
-                det_ctx->hsbd[index].buffer_size = 0;
-                det_ctx->hsbd[index].buffer_len = 0;
-                goto end;
-            }
-            det_ctx->hsbd[index].buffer = ptmp;
-        }
-        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
-        det_ctx->hsbd[index].buffer_len += cur->len;
-
-        cur = cur->next;
-    }
-
-    /* update inspected tracker */
-    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
 
     buffer = det_ctx->hsbd[index].buffer;
     *buffer_len = det_ctx->hsbd[index].buffer_len;
@@ -300,6 +392,151 @@ void DetectEngineCleanHSBDBuffers(DetectEngineThreadCtx *det_ctx)
 /***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
+
+struct TestSteps {
+    const uint8_t *input;
+    size_t input_size;      /**< if 0 strlen will be used */
+    int direction;          /**< STREAM_TOSERVER, STREAM_TOCLIENT */
+    int sid;
+};
+
+struct TestSigs {
+    const char *sig;
+    int sid;
+    int expect;
+};
+
+static int TestValidateMatchExpected(struct TestSigs *sigs, int sid, int match)
+{
+    struct TestSigs *s = sigs;
+
+    while (s->sig != NULL) {
+        if (s->sid == sid && s->expect == match)
+            return 1;
+
+        s++;
+    }
+
+    return 0;
+}
+
+static int RunTest(struct TestSteps *steps, struct TestSigs *sigs, const char *yaml)
+{
+    TcpSession ssn;
+    Flow f;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    int result = 0;
+    int i = 0;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    if (yaml) {
+        ConfCreateContextBackup();
+        ConfInit();
+        HtpConfigCreateBackup();
+
+        ConfYamlLoadString(yaml, strlen(yaml));
+        HTPConfigure();
+        EngineModeSetIPS();
+    }
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+    f.alproto = ALPROTO_HTTP;
+
+    struct TestSigs *s = sigs;
+    while (s->sig != NULL) {
+        SCLogDebug("sig %s", s->sig);
+        DetectEngineAppendSig(de_ctx, (char *)s->sig);
+        s++;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    struct TestSteps *b = steps;
+    i = 0;
+    while (b->input != NULL) {
+        SCLogDebug("chunk %p %d", b, i);
+        p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+        if (p == NULL)
+            goto end;
+        p->flow = &f;
+        p->flowflags = (b->direction == STREAM_TOSERVER) ? FLOW_PKT_TOSERVER : FLOW_PKT_TOCLIENT;
+        p->flowflags |= FLOW_PKT_ESTABLISHED;
+        p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+
+        SCMutexLock(&f.m);
+        int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, b->direction,
+                (uint8_t *)b->input,
+                b->input_size ? b->input_size : strlen((const char *)b->input));
+        if (r != 0) {
+            printf("toserver chunk %d returned %" PRId32 ", expected 0: ", i+1, r);
+            result = 0;
+            SCMutexUnlock(&f.m);
+            goto end;
+        }
+        SCMutexUnlock(&f.m);
+
+        /* do detect */
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+        if (b->sid == 0)
+            goto next;
+
+        int match = PacketAlertCheck(p, b->sid);
+        if (!TestValidateMatchExpected(sigs, b->sid, match)) {
+            printf("rule %d matching mismatch: ", b->sid);
+            goto end;
+        }
+
+next:
+        UTHFreePackets(&p, 1);
+        p = NULL;
+        b++;
+        i++;
+    }
+    result = 1;
+
+ end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+
+    if (yaml) {
+        HtpConfigRestoreBackup();
+        ConfRestoreContextBackup();
+        EngineModeSetIDS();
+    }
+    return result;
+}
 
 static int DetectEngineHttpServerBodyTest01(void)
 {
@@ -3631,6 +3868,281 @@ end:
     return result;
 }
 
+static int DetectEngineHttpServerBodyFileDataTest04(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 6\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"cd",
+            0, STREAM_TOCLIENT, 2 },
+        {   (const uint8_t *)"ef",
+            0, STREAM_TOCLIENT, 3 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"ab\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"abcd\"; sid:2;)",
+            2, 1 },
+        {   "alert http any any -> any any (file_data; content:\"abcdef\"; sid:3;)",
+            3, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
+
+static int DetectEngineHttpServerBodyFileDataTest05(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 13\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"cd",
+            0, STREAM_TOCLIENT, 2 },
+        {   (const uint8_t *)"123456789",
+            0, STREAM_TOCLIENT, 3 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"ab\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"bc\"; sid:2;)",
+            2, 1 },
+        {   "alert http any any -> any any (file_data; content:\"d123456789\"; sid:3;)",
+            3, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
+
+static int DetectEngineHttpServerBodyFileDataTest06(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 6\r\n"
+            "\r\n"
+            "123",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"456",
+            0, STREAM_TOCLIENT, 2 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"123\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"123456\"; sid:2;)",
+            2, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
+
+static int DetectEngineHttpServerBodyFileDataTest07(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 5\r\n"
+            "\r\n"
+            "ab",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"c",
+            0, STREAM_TOCLIENT, 2 },
+        {   (const uint8_t *)"de",
+            0, STREAM_TOCLIENT, 3 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"ab\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"abc\"; sid:2;)",
+            2, 1 },
+        {   "alert http any any -> any any (file_data; content:\"bcde\"; sid:3;)",
+            3, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
+
+static int DetectEngineHttpServerBodyFileDataTest08(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 8\r\n"
+            "\r\n"
+            "abcd",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"efgh",
+            0, STREAM_TOCLIENT, 2 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"abcd\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"abcdefgh\"; sid:2;)",
+            2, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
+
+static int DetectEngineHttpServerBodyFileDataTest09(void)
+{
+
+    const char yaml[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+\n\
+    http-body-inline: yes\n\
+    response-body-minimal-inspect-size: 6\n\
+    response-body-inspect-window: 3\n\
+";
+
+    struct TestSteps steps[] = {
+        {   (const uint8_t *)"GET /index.html HTTP/1.0\r\n"
+            "Host: www.openinfosecfoundation.org\r\n"
+            "User-Agent: Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.1.7) Gecko/20091221 Firefox/3.5.7\r\n"
+            "\r\n",
+            0, STREAM_TOSERVER, 0 },
+        {   (const uint8_t *)"HTTP/1.0 200 ok\r\n"
+            "Content-Type: text/html\r\n"
+            "Content-Length: 13\r\n"
+            "\r\n"
+            "a",
+            0, STREAM_TOCLIENT, 0 },
+        {   (const uint8_t *)"b",
+            0, STREAM_TOCLIENT, 0 },
+        {   (const uint8_t *)"c",
+            0, STREAM_TOCLIENT, 0 },
+        {   (const uint8_t *)"d",
+            0, STREAM_TOCLIENT, 1 },
+        {   (const uint8_t *)"efghijklm",
+            0, STREAM_TOCLIENT, 2 },
+        {   NULL, 0, 0, 0 },
+    };
+
+    struct TestSigs sigs[] = {
+        {   "alert http any any -> any any (file_data; content:\"abcd\"; sid:1;)",
+            1, 1 },
+        {   "alert http any any -> any any (file_data; content:\"abcdefghijklm\"; sid:2;)",
+            2, 1 },
+        {   NULL, 0, 0 },
+    };
+
+    return RunTest(steps, sigs, yaml);
+}
 #endif /* UNITTESTS */
 
 void DetectEngineHttpServerBodyRegisterTests(void)
@@ -3688,6 +4200,18 @@ void DetectEngineHttpServerBodyRegisterTests(void)
                    DetectEngineHttpServerBodyFileDataTest02, 1);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest03",
                    DetectEngineHttpServerBodyFileDataTest03, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest04",
+                   DetectEngineHttpServerBodyFileDataTest04, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest05",
+                  DetectEngineHttpServerBodyFileDataTest05, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest06",
+                  DetectEngineHttpServerBodyFileDataTest06, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest07",
+                  DetectEngineHttpServerBodyFileDataTest07, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest08",
+                  DetectEngineHttpServerBodyFileDataTest08, 1);
+    UtRegisterTest("DetectEngineHttpServerBodyFileDataTest09",
+                  DetectEngineHttpServerBodyFileDataTest09, 1);
 #endif /* UNITTESTS */
 
     return;
