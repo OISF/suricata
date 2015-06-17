@@ -187,6 +187,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
         return;
     }
 
+    json_object_set_new(hjs, "app_proto", json_string(AppProtoToString(p->flow->alproto)));
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
             json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));

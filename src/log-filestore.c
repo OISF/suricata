@@ -207,6 +207,9 @@ static void LogFilestoreLogCreateMetaFile(const Packet *p, const File *ff, char 
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
 
+        fprintf(fp, "APP PROTO:         %s\n",
+                AppProtoToString(p->flow->alproto));
+
         /* Only applicable to HTTP traffic */
         if (p->flow->alproto == ALPROTO_HTTP) {
             fprintf(fp, "HTTP URI:          ");
