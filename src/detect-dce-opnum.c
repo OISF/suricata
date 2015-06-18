@@ -182,6 +182,13 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         dor = DetectDceOpnumAllocDetectDceOpnumRange();
         if (dor == NULL)
             goto error;
+        if (prev_dor == NULL) {
+            prev_dor = dor;
+            dod->range = dor;
+        } else {
+            prev_dor->next = dor;
+            prev_dor = dor;
+        }
 
         if ((hyphen_token = index(dup_str_temp, '-')) != NULL) {
             hyphen_token[0] = '\0';
@@ -199,20 +206,17 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         if (dor->range1 > DCE_OPNUM_RANGE_MAX)
             goto error;
 
-        if (prev_dor == NULL) {
-            prev_dor = dor;
-            dod->range = dor;
-        } else {
-            prev_dor->next = dor;
-            prev_dor = dor;
-        }
-
         dup_str_temp = dup_str;
     }
 
     dor = DetectDceOpnumAllocDetectDceOpnumRange();
     if (dor == NULL)
         goto error;
+    if (prev_dor == NULL) {
+        dod->range = dor;
+    } else {
+        prev_dor->next = dor;
+    }
 
     if ( (hyphen_token = index(dup_str, '-')) != NULL) {
         hyphen_token[0] = '\0';
@@ -229,12 +233,6 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
     dor->range1 = atoi(dup_str);
     if (dor->range1 > DCE_OPNUM_RANGE_MAX)
         goto error;
-
-    if (prev_dor == NULL) {
-        dod->range = dor;
-    } else {
-        prev_dor->next = dor;
-    }
 
     if (dup_str_head != NULL)
         SCFree(dup_str_head);
