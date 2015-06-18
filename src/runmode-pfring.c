@@ -233,8 +233,6 @@ void *ParsePfringConfig(const char *iface)
     if_default = ConfNodeLookupKeyValue(pf_ring_node, "interface", "default");
 
     if (if_root == NULL && if_default == NULL) {
-        /* Switch to old mode */
-        if_root = pf_ring_node;
         SCLogInfo("Unable to find pfring config for "
                   "interface %s, using default value or 1.0 "
                   "configuration system. ",
