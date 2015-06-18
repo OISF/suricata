@@ -611,15 +611,19 @@ static int StatsOutput(ThreadVars *tv)
         stats_table.start_time = stats_start_time;
     }
 
+    const uint16_t max_id = counters_global_id;
+    if (max_id == 0)
+        return -1;
+
     /** temporary local table to merge the per thread counters,
      *  especially needed for the average counters */
     struct CountersMergeTable {
         int type;
         uint64_t value;
         uint64_t updates;
-    } merge_table[counters_global_id];
+    } merge_table[max_id];
     memset(&merge_table, 0x00,
-           counters_global_id * sizeof(struct CountersMergeTable));
+           max_id * sizeof(struct CountersMergeTable));
 
     int thread = stats_ctx->sts_cnt - 1;
     StatsRecord *table = stats_table.stats;
@@ -636,9 +640,9 @@ static int StatsOutput(ThreadVars *tv)
         /* temporay table for quickly storing the counters for this
          * thread store, so that we can post process them outside
          * of the thread store lock */
-        struct CountersMergeTable thread_table[counters_global_id];
+        struct CountersMergeTable thread_table[max_id];
         memset(&thread_table, 0x00,
-                counters_global_id * sizeof(struct CountersMergeTable));
+                max_id * sizeof(struct CountersMergeTable));
 
         SCMutexLock(&sts->ctx->m);
         pc = sts->ctx->head;
@@ -666,7 +670,7 @@ static int StatsOutput(ThreadVars *tv)
 
         /* update merge table */
         uint16_t c;
-        for (c = 0; c < counters_global_id; c++) {
+        for (c = 0; c < max_id; c++) {
             struct CountersMergeTable *e = &thread_table[c];
             /* thread only sets type if it has a counter
              * of this type. */
@@ -691,7 +695,7 @@ static int StatsOutput(ThreadVars *tv)
         }
 
         /* update per thread stats table */
-        for (c = 0; c < counters_global_id; c++) {
+        for (c = 0; c < max_id; c++) {
             struct CountersMergeTable *e = &thread_table[c];
             /* thread only sets type if it has a counter
              * of this type. */
@@ -721,7 +725,7 @@ static int StatsOutput(ThreadVars *tv)
 
     /* transfer 'merge table' to final stats table */
     uint16_t x;
-    for (x = 0; x < counters_global_id; x++) {
+    for (x = 0; x < max_id; x++) {
         /* xfer previous value to pvalue and reset value */
         table[x].pvalue = table[x].value;
         table[x].value = 0;
