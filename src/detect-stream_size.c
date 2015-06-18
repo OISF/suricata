@@ -241,19 +241,19 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     if (strlen(mode) == 0)
         goto error;
 
-    if (mode[0] == '<')
-        sd->mode = DETECTSSIZE_LT;
-    else if (strcmp("<=", mode) == 0)
-        sd->mode = DETECTSSIZE_LEQ;
-    else if (mode[0] == '>')
-        sd->mode = DETECTSSIZE_GT;
-    else if (strcmp(">=", mode) == 0)
-        sd->mode = DETECTSSIZE_GEQ;
-    else if (strcmp("!=", mode) == 0)
-        sd->mode = DETECTSSIZE_NEQ;
-    else if (mode[0] == '=')
+    if (mode[0] == '=') {
         sd->mode = DETECTSSIZE_EQ;
-    else {
+    } else if (mode[0] == '<') {
+        sd->mode = DETECTSSIZE_LT;
+        if (strcmp("<=", mode) == 0)
+            sd->mode = DETECTSSIZE_LEQ;
+    } else if (mode[0] == '>') {
+        sd->mode = DETECTSSIZE_GT;
+        if (strcmp(">=", mode) == 0)
+            sd->mode = DETECTSSIZE_GEQ;
+    } else if (strcmp("!=", mode) == 0) {
+        sd->mode = DETECTSSIZE_NEQ;
+    } else {
         SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
         goto error;
     }
