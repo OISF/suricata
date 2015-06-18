@@ -146,7 +146,6 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
                                         HtpTxUserData *htud, int index)
 {
     uint32_t window_size = 0;
-    int resize = 0;
 
     /* how much from before body_inspected will we consider? */
     uint32_t cfg_win =
@@ -163,10 +162,8 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
         SCLogDebug("weird: body size is %uk", window_size/1024);
         window_size = MAX_WINDOW;
     }
-    if (window_size > det_ctx->hsbd[index].buffer_size)
-        resize = 1;
 
-    if (det_ctx->hsbd[index].buffer == NULL || resize) {
+    if (det_ctx->hsbd[index].buffer == NULL || window_size > det_ctx->hsbd[index].buffer_size) {
         void *ptmp;
 
         if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, window_size)) == NULL) {
@@ -178,7 +175,6 @@ static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
         }
         det_ctx->hsbd[index].buffer = ptmp;
         det_ctx->hsbd[index].buffer_size = window_size;
-        resize = 0;
     }
 
     uint32_t left_edge = htud->response_body.body_inspected - cfg_win;
