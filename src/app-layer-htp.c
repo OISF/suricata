@@ -6123,8 +6123,8 @@ int HTPParserTest16(void)
     if (tx == NULL || tx->request_method_number != HTP_M_GET || tx->request_protocol_number != HTP_PROTOCOL_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
-                bstr_util_strdup_to_c(tx->request_protocol));
+                "HTTP/1.1 and got %s \n", tx ? bstr_util_strdup_to_c(tx->request_method) : "tx null",
+                tx ? bstr_util_strdup_to_c(tx->request_protocol) : "tx null");
         goto end;
     }
 
