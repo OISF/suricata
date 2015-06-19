@@ -186,7 +186,10 @@ typedef struct AlertUnified2Packet_ {
 typedef struct Unified2AlertFileCtx_ {
     LogFileCtx *file_ctx;
     HttpXFFCfg *xff_cfg;
+    uint32_t flags; /**< flags for all alerts */
 } Unified2AlertFileCtx;
+
+#define UNIFIED2_ALERT_FLAGS_EMIT_PACKET (1 << 0)
 
 /**
  * Unified2 thread vars
@@ -697,6 +700,9 @@ error:
 static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, uint32_t event_id, int stream)
 {
     int ret = 0;
+
+    if (!(aun->unified2alert_ctx->flags & UNIFIED2_ALERT_FLAGS_EMIT_PACKET))
+        return 1;
 
     /* try stream logging first */
     if (stream) {
@@ -1299,6 +1305,20 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
         }
     }
 
+    uint32_t flags = UNIFIED2_ALERT_FLAGS_EMIT_PACKET;
+    if (conf != NULL) {
+        const char *payload = NULL;
+        payload = ConfNodeLookupChildValue(conf, "payload");
+        if (payload) {
+            if (ConfValIsFalse(payload)) {
+                flags &= ~UNIFIED2_ALERT_FLAGS_EMIT_PACKET;
+            } else if (!ConfValIsTrue(payload)) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to initialize unified2 output, invalid payload: %s", payload);
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+
     ret = Unified2AlertOpenFileCtx(file_ctx, filename);
     if (ret < 0)
         goto error;
@@ -1325,6 +1345,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     unified2alert_ctx->file_ctx = file_ctx;
     unified2alert_ctx->xff_cfg = xff_cfg;
+    unified2alert_ctx->flags = flags;
     output_ctx->data = unified2alert_ctx;
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
