@@ -144,52 +144,50 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         goto end;
     }
 
-    if (curr_file != NULL) {
-        int first = 1;
-        curr_chunk = curr_file->chunks_head;
-        while (curr_chunk != NULL) {
-            /* see if we can filter out chunks */
-            if (curr_file->content_inspected > 0) {
-                if (curr_chunk->stream_offset < curr_file->content_inspected) {
-                    if ((curr_file->content_inspected - curr_chunk->stream_offset) > smtp_config.content_inspect_window) {
-                        curr_chunk = curr_chunk->next;
-                        continue;
-                    } else {
-                        /* include this one */
-                    }
+    int first = 1;
+    curr_chunk = curr_file->chunks_head;
+    while (curr_chunk != NULL) {
+        /* see if we can filter out chunks */
+        if (curr_file->content_inspected > 0) {
+            if (curr_chunk->stream_offset < curr_file->content_inspected) {
+                if ((curr_file->content_inspected - curr_chunk->stream_offset) > smtp_config.content_inspect_window) {
+                    curr_chunk = curr_chunk->next;
+                    continue;
                 } else {
                     /* include this one */
                 }
+            } else {
+                /* include this one */
             }
-
-            if (first) {
-                det_ctx->smtp[index].offset = curr_chunk->stream_offset;
-                first = 0;
-            }
-
-            /* see if we need to grow the buffer */
-            if (det_ctx->smtp[index].buffer == NULL || (det_ctx->smtp[index].buffer_len + curr_chunk->len) > det_ctx->smtp[index].buffer_size) {
-                void *ptmp;
-                det_ctx->smtp[index].buffer_size += curr_chunk->len * 2;
-
-                if ((ptmp = SCRealloc(det_ctx->smtp[index].buffer, det_ctx->smtp[index].buffer_size)) == NULL) {
-                    SCFree(det_ctx->smtp[index].buffer);
-                    det_ctx->smtp[index].buffer = NULL;
-                    det_ctx->smtp[index].buffer_size = 0;
-                    det_ctx->smtp[index].buffer_len = 0;
-                    goto end;
-                }
-                det_ctx->smtp[index].buffer = ptmp;
-            }
-            memcpy(det_ctx->smtp[index].buffer + det_ctx->smtp[index].buffer_len, curr_chunk->data, curr_chunk->len);
-            det_ctx->smtp[index].buffer_len += curr_chunk->len;
-
-            curr_chunk = curr_chunk->next;
         }
 
-        /* updat inspected tracker */
-        curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
+        if (first) {
+            det_ctx->smtp[index].offset = curr_chunk->stream_offset;
+            first = 0;
+        }
+
+        /* see if we need to grow the buffer */
+        if (det_ctx->smtp[index].buffer == NULL || (det_ctx->smtp[index].buffer_len + curr_chunk->len) > det_ctx->smtp[index].buffer_size) {
+            void *ptmp;
+            det_ctx->smtp[index].buffer_size += curr_chunk->len * 2;
+
+            if ((ptmp = SCRealloc(det_ctx->smtp[index].buffer, det_ctx->smtp[index].buffer_size)) == NULL) {
+                SCFree(det_ctx->smtp[index].buffer);
+                det_ctx->smtp[index].buffer = NULL;
+                det_ctx->smtp[index].buffer_size = 0;
+                det_ctx->smtp[index].buffer_len = 0;
+                goto end;
+            }
+            det_ctx->smtp[index].buffer = ptmp;
+        }
+        memcpy(det_ctx->smtp[index].buffer + det_ctx->smtp[index].buffer_len, curr_chunk->data, curr_chunk->len);
+        det_ctx->smtp[index].buffer_len += curr_chunk->len;
+
+        curr_chunk = curr_chunk->next;
     }
+
+    /* updat inspected tracker */
+    curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
 
     buffer = det_ctx->smtp[index].buffer;
     *buffer_len = det_ctx->smtp[index].buffer_len;
