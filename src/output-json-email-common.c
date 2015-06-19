@@ -114,19 +114,21 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             if (field != NULL) {
                 json_t *js_to = json_array();
                 if (likely(js_to != NULL)) {
-                    char *savep = NULL;
-                    char *p;
                     to_line = BytesToString((uint8_t *)field->value,
                                             (size_t)field->value_len);
-                    //printf("to_line:: TO: \"%s\" (%d)\n", to_line, strlen(to_line));
-                    p = strtok_r(to_line, ",", &savep);
-                    //printf("got another addr: \"%s\"\n", p);
-                    json_array_append_new(js_to, json_string(p));
-                    while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                    if (likely(to_line != NULL)) {
+                        char *savep = NULL;
+                        char *p;
+                        //printf("to_line:: TO: \"%s\" (%d)\n", to_line, strlen(to_line));
+                        p = strtok_r(to_line, ",", &savep);
                         //printf("got another addr: \"%s\"\n", p);
-                        json_array_append_new(js_to, json_string(&p[strspn(p, " ")]));
+                        json_array_append_new(js_to, json_string(p));
+                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                            //printf("got another addr: \"%s\"\n", p);
+                            json_array_append_new(js_to, json_string(&p[strspn(p, " ")]));
+                        }
+                        SCFree(to_line);
                     }
-                    SCFree(to_line);
                     json_object_set_new(sjs, "to", js_to);
                 }
             }
@@ -137,19 +139,21 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
             if (field != NULL) {
                 json_t *js_cc = json_array();
                 if (likely(js_cc != NULL)) {
-                    char *savep = NULL;
-                    char *p;
                     cc_line = BytesToString((uint8_t *)field->value,
                                             (size_t)field->value_len);
-                    //printf("cc_line:: CC: \"%s\" (%d)\n", to_line, strlen(to_line));
-                    p = strtok_r(cc_line, ",", &savep);
-                    //printf("got another addr: \"%s\"\n", p);
-                    json_array_append_new(js_cc, json_string(p));
-                    while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                    if (likely(cc_line != NULL)) {
+                        char *savep = NULL;
+                        char *p;
+                        //printf("cc_line:: CC: \"%s\" (%d)\n", to_line, strlen(to_line));
+                        p = strtok_r(cc_line, ",", &savep);
                         //printf("got another addr: \"%s\"\n", p);
-                        json_array_append_new(js_cc, json_string(&p[strspn(p, " ")]));
+                        json_array_append_new(js_cc, json_string(p));
+                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                            //printf("got another addr: \"%s\"\n", p);
+                            json_array_append_new(js_cc, json_string(&p[strspn(p, " ")]));
+                        }
+                        SCFree(cc_line);
                     }
-                    SCFree(cc_line);
                     json_object_set_new(sjs, "cc", js_cc);
                 }
             }
