@@ -702,7 +702,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         }
 
         if (NULL == htp) {
+#ifdef DEBUG_VALIDATION
             BUG_ON(htp == NULL);
+#endif
             /* should never happen if HTPConfigure is properly invoked */
             goto error;
         }
@@ -721,7 +723,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     }
 
     /* the code block above should make sure connp is never NULL here */
+#ifdef DEBUG_VALIDATION
     BUG_ON(hstate->connp == NULL);
+#endif
 
     /* Unset the body inspection (the callback should
      * reactivate it if necessary) */
