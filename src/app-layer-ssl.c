@@ -976,6 +976,8 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0) {
+        SCReturnInt(-1);
     }
 
     if (direction == 0)

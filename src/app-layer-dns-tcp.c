@@ -503,7 +503,7 @@ static int DNSTCPResponseParse(Flow *f, void *dstate,
         SCReturnInt(-1);
 
     /* probably a rst/fin sending an eof */
-    if (input_len == 0) {
+    if (input == NULL || input_len == 0) {
         goto insufficient_data;
     }
 

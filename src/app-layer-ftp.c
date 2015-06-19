@@ -221,6 +221,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state,
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0) {
+        SCReturnInt(-1);
     }
 
     state->input = input;

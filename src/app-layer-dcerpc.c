@@ -1913,6 +1913,8 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0) {
+        SCReturnInt(-1);
     }
 
     if (sstate->dcerpc.bytesprocessed != 0 && sstate->data_needed_for_dir != dir) {

@@ -424,6 +424,8 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0) {
+        SCReturnInt(-1);
     }
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
@@ -446,6 +448,8 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0) {
+        SCReturnInt(-1);
     }
 
     int r = SSHParseData(ssh_state, ssh_header, input, input_len);
