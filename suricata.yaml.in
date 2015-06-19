@@ -424,6 +424,10 @@ af-packet:
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
+    # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
+    # full then kernel will send the packet on the next socket with room available. This option
+    # can minimize packet drop and increase the treated bandwith on single intensive flow.
+    #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
     # Ring size will be computed with respect to max_pending_packets and number
@@ -470,6 +474,7 @@ af-packet:
   - interface: default
     #threads: auto
     #use-mmap: yes
+    rollover: yes
 
 # netmap support
 netmap:
