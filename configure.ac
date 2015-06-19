@@ -1054,8 +1054,8 @@
             [enable_af_packet="no"],
             [[#include <sys/socket.h>
               #include <linux/if_packet.h>]])
-        AC_CHECK_DECL([PACKET_FANOUT],
-            AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
+        AC_CHECK_DECL([PACKET_FANOUT_RND],
+            AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
     ])
