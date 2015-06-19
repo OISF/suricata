@@ -483,7 +483,6 @@ static int IPPairBitTest11 (void)
     IPPairFree(h);
 end:
     IPPairCleanup();
-    ret = 1;
     return ret;
 }
 

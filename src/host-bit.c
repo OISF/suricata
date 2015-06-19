@@ -480,7 +480,6 @@ static int HostBitTest11 (void)
     HostFree(h);
 end:
     HostCleanup();
-    ret = 1;
     return ret;
 }
 
