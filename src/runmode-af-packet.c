@@ -282,6 +282,19 @@ void *ParseAFPConfig(const char *iface)
         SCLogInfo("Using cpu cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_CPU;
+    } else if (strcmp(tmpctype, "cluster_qm") == 0) {
+        SCLogInfo("Using queue based cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_QM;
+    } else if (strcmp(tmpctype, "cluster_random") == 0) {
+        SCLogInfo("Using random based cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_RND;
+    } else if (strcmp(tmpctype, "cluster_rollover") == 0) {
+        SCLogInfo("Using rollover based cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
+
     } else {
         SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
         SCFree(aconf);

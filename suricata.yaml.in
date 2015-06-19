@@ -412,6 +412,14 @@ af-packet:
     #  * cluster_round_robin: round robin load balancing
     #  * cluster_flow: all packets of a given flow are send to the same socket
     #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
+    #  * cluster_qm: all packets linked by network card to a RSS queue are sent to the same
+    #  socket. Requires at least Linux 3.14.
+    #  * cluster_random: packets are sent randomly to sockets but with an equipartition.
+    #  Requires at least Linux 3.14.
+    #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
+    #  to the next. Requires at least Linux 3.10.
+    # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
+    # with capture card using RSS (require cpu affinity tuning and system irq tuning)
     cluster-type: cluster_flow
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
