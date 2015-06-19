@@ -301,6 +301,14 @@ void *ParseAFPConfig(const char *iface)
         return NULL;
     }
 
+    int conf_val = 0;
+    ConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
+    if (conf_val) {
+        SCLogInfo("Using rollover kernel functionality for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type |= PACKET_FANOUT_FLAG_ROLLOVER;
+    }
+
     /*load af_packet bpf filter*/
     /* command line value has precedence */
     if (ConfGet("bpf-filter", &bpf_filter) != 1) {
