@@ -1488,7 +1488,7 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen, uint32_t *offset
             case NBSS_RETARGET_SESSION_RESPONSE:
             case NBSS_SESSION_KEEP_ALIVE:
                 len = (input[1] & 0x01) << 16;
-                len = input[2] << 8;
+                len |= input[2] << 8;
                 len |= input[3];
                 break;
             default:
