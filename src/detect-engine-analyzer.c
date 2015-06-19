@@ -54,6 +54,9 @@ static FpPatternStats fp_pattern_stats[DETECT_SM_LIST_MAX];
 
 static void FpPatternStatsAdd(int list, uint16_t patlen)
 {
+    if (list < 0 || list >= DETECT_SM_LIST_MAX)
+        return;
+
     FpPatternStats *f = &fp_pattern_stats[list];
 
     if (f->min == 0)
