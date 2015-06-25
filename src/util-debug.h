@@ -120,11 +120,11 @@ typedef struct SCLogOPIfaceCtx_ {
     /* the facility code if the interface is SC_LOG_IFACE_SYSLOG */
     int facility;
 
-    /* override for the global_log_format(currently not used) */
-    const char *log_format;
-
     /* override for the global_log_level */
     SCLogLevel log_level;
+
+    /* override for the global_log_format(currently not used) */
+    const char *log_format;
 
     struct SCLogOPIfaceCtx_ *next;
 } SCLogOPIfaceCtx;
