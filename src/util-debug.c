@@ -652,6 +652,10 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     }
     iface_ctx->log_level = tmp_log_level;
 
+    if (isatty(fileno(stdout))) {
+
+    }
+
     return iface_ctx;
 }
 
