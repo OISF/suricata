@@ -189,60 +189,6 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
 }
 
 /**
- * \brief Outputs the message sent as the argument
- *
- * \param msg       Pointer to the message that has to be logged
- * \param log_level The log_level of the message that has to be logged
- */
-static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
-{
-    SCLogOPIfaceCtx *op_iface_ctx = NULL;
-
-#define MAX_SUBSTRINGS 30
-    int ov[MAX_SUBSTRINGS];
-
-    if (sc_log_module_initialized != 1) {
-        printf("Logging module not initialized.  Call SCLogInitLogModule() "
-               "first before using the debug API\n");
-        return;
-    }
-
-    if (sc_log_config->op_filter_regex != NULL) {
-        if (pcre_exec(sc_log_config->op_filter_regex,
-                      sc_log_config->op_filter_regex_study,
-                      msg, strlen(msg), 0, 0, ov, MAX_SUBSTRINGS) < 0)
-            return;
-    }
-
-    op_iface_ctx = sc_log_config->op_ifaces;
-    while (op_iface_ctx != NULL) {
-        if (log_level != SC_LOG_NOTSET && log_level > op_iface_ctx->log_level) {
-            op_iface_ctx = op_iface_ctx->next;
-            continue;
-        }
-
-        switch (op_iface_ctx->iface) {
-            case SC_LOG_OP_IFACE_CONSOLE:
-                SCLogPrintToStream((log_level == SC_LOG_ERROR)? stderr: stdout,
-                                   msg);
-                break;
-            case SC_LOG_OP_IFACE_FILE:
-                SCLogPrintToStream(op_iface_ctx->file_d, msg);
-                break;
-            case SC_LOG_OP_IFACE_SYSLOG:
-                SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level),
-                                   msg);
-                break;
-            default:
-                break;
-        }
-        op_iface_ctx = op_iface_ctx->next;
-    }
-
-    return;
-}
-
-/**
  * \brief Adds the global log_format to the outgoing buffer
  *
  * \param log_level log_level of the message that has to be logged
@@ -253,16 +199,32 @@ static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
  *
  * \retval SC_OK on success; else an error code
  */
-SCError SCLogMessage(const SCLogLevel log_level, const char *file,
+static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, char *buffer, size_t buffer_size,
+
+                     const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
                      const SCError error_code, const char *message)
 {
-    char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
     char *temp = buffer;
     const char *s = NULL;
-
-    struct timeval tval;
     struct tm *tms = NULL;
+
+    char *redb = "";
+    char *red = "";
+    char *yellowb = "";
+    char *yellow = "";
+    char *green = "";
+    char *blue = "";
+    char *reset = "";
+    if (color) {
+        redb = "\x1b[1;31m";
+        red = "\x1b[31m";
+        yellowb = "\x1b[1;33m";
+        yellow = "\x1b[33m";
+        green = "\x1b[32m";
+        blue = "\x1b[34m";
+        reset = "\x1b[0m";
+    }
 
     /* no of characters_written(cw) by snprintf */
     int cw = 0;
@@ -292,15 +254,14 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_TIME:
                 temp_fmt[0] = '\0';
 
-                gettimeofday(&tval, NULL);
                 struct tm local_tm;
-                tms = SCLocalTime(tval.tv_sec, &local_tm);
+                tms = SCLocalTime(tval->tv_sec, &local_tm);
 
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%d/%d/%04d -- %02d:%02d:%02d",
-                              substr, tms->tm_mday, tms->tm_mon + 1,
+                              "%s%s%d/%d/%04d -- %02d:%02d:%02d%s",
+                              substr, green, tms->tm_mday, tms->tm_mon + 1,
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
-                              tms->tm_sec);
+                              tms->tm_sec, reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -312,7 +273,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_PID:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%u", substr, getpid());
+                              "%s%s%u%s", substr, yellow, getpid(), reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -324,7 +285,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_TID:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%lu", substr, SCGetThreadIdLong());
+                              "%s%s%lu%s", substr, yellow, SCGetThreadIdLong(), reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -355,12 +316,23 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_LOG_LEVEL:
                 temp_fmt[0] = '\0';
                 s = SCMapEnumValueToName(log_level, sc_log_level_map);
-                if (s != NULL)
-                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                                  "%s%s", substr, s);
-                else
+                if (s != NULL) {
+                    if (log_level <= SC_LOG_ERROR)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                  "%s%s%s%s", substr, redb, s, reset);
+                    else if (log_level == SC_LOG_WARNING)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                  "%s%s%s%s", substr, red, s, reset);
+                    else if (log_level == SC_LOG_NOTICE)
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                  "%s%s%s%s", substr, yellowb, s, reset);
+                    else
+                        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                                  "%s%s%s%s", substr, yellow, s, reset);
+                } else {
                     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                                   "%s%s", substr, "INVALID");
+                }
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -372,7 +344,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_FILE_NAME:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%s", substr, file);
+                              "%s%s%s%s", substr, blue, file, reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -384,7 +356,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_LINE:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%u", substr, line);
+                              "%s%s%u%s", substr, green, line, reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -396,7 +368,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                              "%s%s", substr, function);
+                              "%s%s%s%s", substr, green, function, reset);
                 if (cw < 0)
                     goto error;
                 temp += cw;
@@ -425,7 +397,7 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
 
     if (error_code != SC_OK) {
         cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
-                "[ERRCODE: %s(%d)] - ", SCErrorToString(error_code), error_code);
+                "[%sERRCODE%s: %s%s%s(%s%d%s)] - ", yellow, reset, red, SCErrorToString(error_code), reset, yellow, error_code, reset);
         if (cw < 0)
             goto error;
         temp += cw;
@@ -436,7 +408,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
         }
     }
 
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", message);
+    char *xyellow = error_code > SC_OK ? yellow : "";
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", xyellow, message, reset);
     if (cw < 0)
         goto error;
     temp += cw;
@@ -448,13 +421,93 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
 
     SCFree(temp_fmt_h);
 
-    SCLogOutputBuffer(log_level, buffer);
+    if (sc_log_config->op_filter_regex != NULL) {
+#define MAX_SUBSTRINGS 30
+        int ov[MAX_SUBSTRINGS];
+
+        if (pcre_exec(sc_log_config->op_filter_regex,
+                      sc_log_config->op_filter_regex_study,
+                      buffer, strlen(buffer), 0, 0, ov, MAX_SUBSTRINGS) < 0)
+        {
+            return SC_ERR_LOG_FG_FILTER_MATCH; // bit hacky, but just return !0
+        }
+#undef MAX_SUBSTRINGS
+    }
+
     return SC_OK;
 
  error:
     if (temp_fmt_h != NULL)
         SCFree(temp_fmt_h);
     return SC_ERR_SPRINTF;
+}
+
+/**
+ * \brief Adds the global log_format to the outgoing buffer
+ *
+ * \param log_level log_level of the message that has to be logged
+ * \param msg       Buffer containing the outgoing message
+ * \param file      File_name from where the message originated
+ * \param function  Function_name from where the message originated
+ * \param line      Line_no from where the messaged originated
+ *
+ * \retval SC_OK on success; else an error code
+ */
+SCError SCLogMessage(const SCLogLevel log_level, const char *file,
+                     const unsigned int line, const char *function,
+                     const SCError error_code, const char *message)
+{
+    char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
+    SCLogOPIfaceCtx *op_iface_ctx = NULL;
+
+    if (sc_log_module_initialized != 1) {
+        printf("Logging module not initialized.  Call SCLogInitLogModule() "
+               "first before using the debug API\n");
+        return SC_OK;
+    }
+
+    /* get ts here so we log the same ts to each output */
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+
+    op_iface_ctx = sc_log_config->op_ifaces;
+    while (op_iface_ctx != NULL) {
+        if (log_level != SC_LOG_NOTSET && log_level > op_iface_ctx->log_level) {
+            op_iface_ctx = op_iface_ctx->next;
+            continue;
+        }
+
+        switch (op_iface_ctx->iface) {
+            case SC_LOG_OP_IFACE_CONSOLE:
+                if (SCLogMessageGetBuffer(&tval, op_iface_ctx->use_color, buffer, sizeof(buffer),
+                                          log_level, file, line, function,
+                                          error_code, message) == 0)
+                {
+                    SCLogPrintToStream((log_level == SC_LOG_ERROR)? stderr: stdout, buffer);
+                }
+                break;
+            case SC_LOG_OP_IFACE_FILE:
+                if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                                          log_level, file, line, function,
+                                          error_code, message) == 0)
+                {
+                    SCLogPrintToStream(op_iface_ctx->file_d, buffer);
+                }
+                break;
+            case SC_LOG_OP_IFACE_SYSLOG:
+                if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                                          log_level, file, line, function,
+                                          error_code, message) == 0)
+                {
+                    SCLogPrintToSyslog(SCLogMapLogLevelToSyslogLevel(log_level), buffer);
+                }
+                break;
+            default:
+                break;
+        }
+        op_iface_ctx = op_iface_ctx->next;
+    }
+    return SC_OK;
 }
 
 /**
@@ -643,7 +696,7 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     iface_ctx->log_level = tmp_log_level;
 
     if (isatty(fileno(stdout))) {
-
+        iface_ctx->use_color = TRUE;
     }
 
     return iface_ctx;
