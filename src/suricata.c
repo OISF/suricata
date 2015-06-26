@@ -2317,7 +2317,7 @@ int main(int argc, char **argv)
     }
 
     if(suri.run_mode == RUNMODE_CONF_TEST){
-        SCLogInfo("Configuration provided was successfully loaded. Exiting.");
+        SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
 
