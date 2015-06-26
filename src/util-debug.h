@@ -191,59 +191,45 @@ extern int sc_log_module_initialized;
 extern int sc_log_module_cleaned;
 
 
-#define SCLog(x, ...)         do {                                       \
-                                  char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = ""; \
-                                  char *_sc_log_temp = _sc_log_msg;      \
-                                  if ( !(                                \
-                                      (sc_log_global_log_level >= x) &&  \
-                                       SCLogMessage(x, &_sc_log_temp,    \
-                                                    __FILE__,            \
-                                                    __LINE__,            \
-                                                    __FUNCTION__)        \
-                                       == SC_OK) )                       \
-                                  { } else {                             \
-                                      snprintf(_sc_log_temp,             \
-                                               (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_temp - _sc_log_msg)), \
-                                               __VA_ARGS__);             \
-                                      SCLogOutputBuffer(x, _sc_log_msg); \
-                                  }                                      \
-                              } while(0)
+#define SCLog(x, ...)                                                           \
+    do {                                                                        \
+        if (sc_log_global_log_level >= x &&                                     \
+               (sc_log_fg_filters_present == 0 ||                               \
+                SCLogMatchFGFilterWL(__FILE__, __FUNCTION__, __LINE__) == 1 ||  \
+                SCLogMatchFGFilterBL(__FILE__, __FUNCTION__, __LINE__) == 1) && \
+               (sc_log_fd_filters_present == 0 ||                               \
+                SCLogMatchFDFilter(__FUNCTION__) == 1))                         \
+        {                                                                       \
+            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = "";                      \
+                                                                                \
+            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+                                                                                \
+            SCLogMessage(x,                                                     \
+                    __FILE__,                                                   \
+                    __LINE__,                                                   \
+                    __FUNCTION__, SC_OK, _sc_log_msg);                          \
+        }                                                                       \
+    } while(0)
 
-#define SCLogErr(x, err, ...) do {                                       \
-                                  char _sc_log_err_msg[SC_LOG_MAX_LOG_MSG_LEN] = ""; \
-                                  char *_sc_log_err_temp = _sc_log_err_msg; \
-                                  if ( !(                                \
-                                      (sc_log_global_log_level >= x) &&  \
-                                       SCLogMessage(x, &_sc_log_err_temp,\
-                                                    __FILE__,            \
-                                                    __LINE__,            \
-                                                    __FUNCTION__)        \
-                                       == SC_OK) )                       \
-                                  { } else {                             \
-                                      _sc_log_err_temp =                 \
-                                                _sc_log_err_temp +       \
-                                                snprintf(_sc_log_err_temp, \
-                                               (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_err_temp - _sc_log_err_msg)), \
-                                               "[ERRCODE: %s(%d)] - ",   \
-                                               SCErrorToString(err),     \
-                                               err);                     \
-                                      if ((_sc_log_err_temp - _sc_log_err_msg) > \
-                                          SC_LOG_MAX_LOG_MSG_LEN) {      \
-                                          printf("Warning: Log message exceeded message length limit of %d\n",\
-                                                 SC_LOG_MAX_LOG_MSG_LEN); \
-                                          _sc_log_err_temp = _sc_log_err_msg + \
-                                              SC_LOG_MAX_LOG_MSG_LEN;    \
-                                      } else {                          \
-                                          snprintf(_sc_log_err_temp,    \
-                                                   (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                    (_sc_log_err_temp - _sc_log_err_msg)), \
-                                                   __VA_ARGS__);        \
-                                      }                                 \
-                                      SCLogOutputBuffer(x, _sc_log_err_msg); \
-                                  }                                      \
-                              } while(0)
+#define SCLogErr(x, err, ...)                                                   \
+    do {                                                                        \
+        if (sc_log_global_log_level >= x &&                                     \
+               (sc_log_fg_filters_present == 0 ||                               \
+                SCLogMatchFGFilterWL(__FILE__, __FUNCTION__, __LINE__) == 1 ||  \
+                SCLogMatchFGFilterBL(__FILE__, __FUNCTION__, __LINE__) == 1) && \
+               (sc_log_fd_filters_present == 0 ||                               \
+                SCLogMatchFDFilter(__FUNCTION__) == 1))                         \
+        {                                                                       \
+            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = "";                      \
+                                                                                \
+            snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
+                                                                                \
+            SCLogMessage(x,                                                     \
+                    __FILE__,                                                   \
+                    __LINE__,                                                   \
+                    __FUNCTION__, err, _sc_log_msg);                            \
+        }                                                                       \
+    } while(0)
 
 /**
  * \brief Macro used to log INFORMATIONAL messages.
@@ -350,19 +336,10 @@ extern int sc_log_module_cleaned;
  * \retval f An argument can be supplied, although it is not used
  */
 #define SCEnter(f)            do {                                              \
-                                  char _sc_enter_msg[SC_LOG_MAX_LOG_MSG_LEN];   \
-                                  char *_sc_enter_temp = _sc_enter_msg;         \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG &&\
-                                      SCLogCheckFDFilterEntry(__FUNCTION__) &&  \
-                                      SCLogMessage(SC_LOG_DEBUG, &_sc_enter_temp, \
-                                                   __FILE__,                    \
-                                                   __LINE__,                    \
-                                                   __FUNCTION__) == SC_OK) {    \
-                                      snprintf(_sc_enter_temp, (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                      (_sc_enter_msg - _sc_enter_temp)), \
-                                               "Entering ... >>");        \
-                                      SCLogOutputBuffer(SC_LOG_DEBUG,           \
-                                                        _sc_enter_msg);         \
+                                      SCLogCheckFDFilterEntry(__FUNCTION__))    \
+                                  {                                             \
+                                     SCLogDebug("Entering ... >>");             \
                                   }                                             \
                               } while(0)
 
@@ -536,9 +513,7 @@ void SCLogInitLogModuleIfEnvSet(void);
 
 void SCLogDeInitLogModule(void);
 
-SCError SCLogMessage(SCLogLevel, char **, const char *, unsigned, const char *);
-
-void SCLogOutputBuffer(SCLogLevel, char *);
+SCError SCLogMessage(SCLogLevel, const char *, unsigned, const char *, SCError, const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 

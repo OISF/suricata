@@ -194,7 +194,7 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  * \param msg       Pointer to the message that has to be logged
  * \param log_level The log_level of the message that has to be logged
  */
-void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
+static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
 {
     char *temp = msg;
     int len = strlen(msg);
@@ -264,10 +264,12 @@ void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
  *
  * \retval SC_OK on success; else an error code
  */
-SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
-                     unsigned line, const char *function)
+SCError SCLogMessage(SCLogLevel log_level, const char *file,
+                     unsigned line, const char *function,
+                     SCError error_code, const char *message)
 {
-    char *temp = *msg;
+    char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
+    char *temp = buffer;
     const char *s = NULL;
 
     struct timeval tval;
@@ -284,20 +286,6 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         return SC_ERR_LOG_MODULE_NOT_INIT;
     }
 
-    if (sc_log_fg_filters_present == 1) {
-        if (SCLogMatchFGFilterWL(file, function, line) != 1) {
-            return SC_ERR_LOG_FG_FILTER_MATCH;
-        }
-
-        if (SCLogMatchFGFilterBL(file, function, line) != 1) {
-            return SC_ERR_LOG_FG_FILTER_MATCH;
-        }
-    }
-
-    if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1) {
-        return SC_ERR_LOG_FG_FILTER_MATCH;
-    }
-
     char *temp_fmt = strdup(sc_log_config->log_format);
     if (unlikely(temp_fmt == NULL)) {
         return SC_ERR_MEM_ALLOC;
@@ -306,10 +294,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     char *substr = temp_fmt;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
-        if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
-            printf("Warning: Log message exceeded message length limit of %d\n",
-                   SC_LOG_MAX_LOG_MSG_LEN);
-            *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+        if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
             if (temp_fmt_h != NULL)
                 SCFree(temp_fmt_h);
             return SC_OK;
@@ -322,7 +307,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 struct tm local_tm;
                 tms = SCLocalTime(tval.tv_sec, &local_tm);
 
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%d/%d/%04d -- %02d:%02d:%02d",
                               substr, tms->tm_mday, tms->tm_mon + 1,
                               tms->tm_year + 1900, tms->tm_hour, tms->tm_min,
@@ -337,7 +322,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_PID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%u", substr, getpid());
                 if (cw < 0)
                     goto error;
@@ -349,7 +334,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_TID:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%lu", substr, SCGetThreadIdLong());
                 if (cw < 0)
                     goto error;
@@ -369,7 +354,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
                               "%s%s", substr, ((tv != NULL)? tv->name: "UNKNOWN TM"));
 #endif
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s", substr, "N/A");
                 if (cw < 0)
                     goto error;
@@ -382,10 +367,10 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                 temp_fmt[0] = '\0';
                 s = SCMapEnumValueToName(log_level, sc_log_level_map);
                 if (s != NULL)
-                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                                   "%s%s", substr, s);
                 else
-                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                                   "%s%s", substr, "INVALID");
                 if (cw < 0)
                     goto error;
@@ -397,7 +382,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FILE_NAME:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s", substr, file);
                 if (cw < 0)
                     goto error;
@@ -409,7 +394,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_LINE:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%u", substr, line);
                 if (cw < 0)
                     goto error;
@@ -421,7 +406,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_FUNCTION:
                 temp_fmt[0] = '\0';
-                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
+                cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
                               "%s%s", substr, function);
                 if (cw < 0)
                     goto error;
@@ -434,31 +419,47 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         }
         temp_fmt++;
 	}
-    if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
-        printf("Warning: Log message exceeded message length limit of %d\n",
-               SC_LOG_MAX_LOG_MSG_LEN);
-        *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+    if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
         if (temp_fmt_h != NULL)
             SCFree(temp_fmt_h);
         return SC_OK;
     }
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg), "%s", substr);
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", substr);
     if (cw < 0)
         goto error;
     temp += cw;
-    if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
-        printf("Warning: Log message exceeded message length limit of %d\n",
-               SC_LOG_MAX_LOG_MSG_LEN);
-        *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+    if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
         if (temp_fmt_h != NULL)
             SCFree(temp_fmt_h);
         return SC_OK;
     }
 
-    *msg = temp;
+    if (error_code != SC_OK) {
+        cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer),
+                "[ERRCODE: %s(%d)] - ", SCErrorToString(error_code), error_code);
+        if (cw < 0)
+            goto error;
+        temp += cw;
+        if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
+            if (temp_fmt_h != NULL)
+                SCFree(temp_fmt_h);
+            return SC_OK;
+        }
+    }
+
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s", message);
+    if (cw < 0)
+        goto error;
+    temp += cw;
+    if ((temp - buffer) > SC_LOG_MAX_LOG_MSG_LEN) {
+        if (temp_fmt_h != NULL)
+            SCFree(temp_fmt_h);
+        return SC_OK;
+    }
 
     SCFree(temp_fmt_h);
 
+    SCLogOutputBuffer(log_level, buffer);
     return SC_OK;
 
  error:
