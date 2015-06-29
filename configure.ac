@@ -961,7 +961,7 @@
     AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
         AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
-        if test "$HAVE_PCAP_CONFIG" = "no"; then
+        if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
             CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=1"
         else
             CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
