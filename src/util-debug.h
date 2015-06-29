@@ -513,7 +513,8 @@ void SCLogInitLogModuleIfEnvSet(void);
 
 void SCLogDeInitLogModule(void);
 
-SCError SCLogMessage(SCLogLevel, const char *, unsigned, const char *, SCError, const char *message);
+SCError SCLogMessage(const SCLogLevel, const char *, const unsigned int,
+                     const char *, const SCError, const char *message);
 
 SCLogOPBuffer *SCLogAllocLogOPBuffer(void);
 
