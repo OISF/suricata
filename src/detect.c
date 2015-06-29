@@ -398,6 +398,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     if (r == GLOB_NOMATCH) {
         SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
         ++(st->bad_files);
+        ++(st->total_files);
         return -1;
     } else if (r != 0) {
         SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s",
@@ -473,8 +474,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = 0;
-                    ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
+                    ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
+
+                    if (ret != 0 || good_sigs == 0) {
+                        if (de_ctx->failure_fatal == 1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    }
                 }
             }
         }
@@ -482,19 +489,21 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
-        SCLogInfo("Loading rule file: %s", sig_file);
-        ++sig_stat.total_files;
+        ret = ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs);
 
-        if (ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs) != 0) {
-            ++sig_stat.bad_files;
+        if (ret != 0) {
+            if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+            }
         }
 
         if (good_sigs == 0) {
-            SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
-        }
+            SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
 
-        sig_stat.good_sigs_total += good_sigs;
-        sig_stat.bad_sigs_total += bad_sigs;
+            if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     /* now we should have signatures to work with */
