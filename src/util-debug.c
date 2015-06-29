@@ -264,9 +264,9 @@ static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
  *
  * \retval SC_OK on success; else an error code
  */
-SCError SCLogMessage(SCLogLevel log_level, const char *file,
-                     unsigned line, const char *function,
-                     SCError error_code, const char *message)
+SCError SCLogMessage(const SCLogLevel log_level, const char *file,
+                     const unsigned int line, const char *function,
+                     const SCError error_code, const char *message)
 {
     char buffer[SC_LOG_MAX_LOG_MSG_LEN] = "";
     char *temp = buffer;
