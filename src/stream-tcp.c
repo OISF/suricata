@@ -120,7 +120,7 @@ uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
 /* stream engine running in "inline" mode. */
-int stream_inline = 0;
+enum PktMode stream_inline;
 
 void TmModuleStreamTcpRegister (void)
 {
@@ -424,19 +424,14 @@ void StreamTcpInitConfig(char quiet)
 
     int inl = 0;
 
-
     char *temp_stream_inline_str;
     if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
         /* checking for "auto" and falling back to boolean to provide
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
-            if (EngineModeIsIPS()) {
-                stream_inline = 1;
-            } else {
-                stream_inline = 0;
-            }
+            stream_inline = PKT_MODE_AUTO;
         } else if (ConfGetBool("stream.inline", &inl) == 1) {
-            stream_inline = inl;
+            stream_inline = PKT_MODE_IPS;
         }
     }
 
@@ -4679,7 +4674,7 @@ error:
         ReCalculateChecksum(p);
     }
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         PACKET_DROP(p);
     }
     SCReturnInt(-1);
