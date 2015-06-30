@@ -506,6 +506,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
 
+    p->pkt_mode = PKT_MODE_IPS;
     p->nfq_v.nfq_index = ntv->nfq_index;
     ret = NFQSetupPkt(p, qh, (void *)nfa);
     if (ret == -1) {

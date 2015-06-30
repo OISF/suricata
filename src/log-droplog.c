@@ -281,8 +281,8 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
  */
 static int LogDropCondition(ThreadVars *tv, const Packet *p)
 {
-    if (!EngineModeIsIPS()) {
-        SCLogDebug("engine is not running in inline mode, so returning");
+    if (!PacketModeIsIPS(p)) {
+        SCLogDebug("packet is not running in inline mode, so returning");
         return FALSE;
     }
     if (PKT_IS_PSEUDOPKT(p)) {
@@ -377,6 +377,7 @@ int LogDropLogTest01()
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    p->pkt_mode = PKT_MODE_IPS;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

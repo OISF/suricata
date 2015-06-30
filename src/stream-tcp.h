@@ -140,7 +140,7 @@ static inline int StreamTcpCheckFlowDrops(Packet *p)
      * the IP only module, or from a reassembled msg and/or from an
      * applayer detection, then drop the rest of the packets of the
      * same stream and avoid inspecting it any further */
-    if (EngineModeIsIPS() && (p->flow->flags & FLOW_ACTION_DROP))
+    if (PacketModeIsIPS(p) && (p->flow->flags & FLOW_ACTION_DROP))
         return 1;
 
     return 0;

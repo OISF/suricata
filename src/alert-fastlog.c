@@ -146,7 +146,7 @@ int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p)
         }
 
         char *action = "";
-        if ((pa->action & ACTION_DROP) && EngineModeIsIPS()) {
+        if ((pa->action & ACTION_DROP) && PacketModeIsIPS(p)) {
             action = "[Drop] ";
         } else if (pa->action & ACTION_DROP) {
             action = "[wDrop] ";
