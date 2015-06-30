@@ -41,9 +41,17 @@ extern int stream_inline;
  *  \retval 0 no
  *  \retval 1 yes
  */
-int StreamTcpInlineMode(void)
+int StreamTcpInlineMode(const Packet *p)
 {
-    return stream_inline;
+    switch (stream_inline) {
+        case PKT_MODE_IDS:
+            return 0;
+        case PKT_MODE_IPS:
+            return 1;
+        default:
+            /* implied PKT_MODE_AUTO */
+            return PacketModeIsIPS(p);
+    }
 }
 
 /**

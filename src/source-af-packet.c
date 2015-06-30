@@ -812,7 +812,12 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
-
+        if (ptv->copy_mode == AFP_COPY_MODE_IPS) {
+            p->pkt_mode = PKT_MODE_IPS;
+        }
+        if (ptv->copy_mode == AFP_COPY_MODE_TAP) {
+            p->pkt_mode = PKT_MODE_IDS;
+        }
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
          * function. */
