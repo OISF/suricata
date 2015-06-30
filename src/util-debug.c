@@ -200,6 +200,7 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  * \retval SC_OK on success; else an error code
  */
 static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, char *buffer, size_t buffer_size,
+                     const char *log_format,
 
                      const SCLogLevel log_level, const char *file,
                      const unsigned int line, const char *function,
@@ -237,7 +238,7 @@ static SCError SCLogMessageGetBuffer(struct timeval *tval, int color, char *buff
         return SC_ERR_LOG_MODULE_NOT_INIT;
     }
 
-    char *temp_fmt = strdup(sc_log_config->log_format);
+    char *temp_fmt = strdup(log_format);
     if (unlikely(temp_fmt == NULL)) {
         return SC_ERR_MEM_ALLOC;
     }
@@ -480,6 +481,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
         switch (op_iface_ctx->iface) {
             case SC_LOG_OP_IFACE_CONSOLE:
                 if (SCLogMessageGetBuffer(&tval, op_iface_ctx->use_color, buffer, sizeof(buffer),
+                                          op_iface_ctx->log_format ?
+                                              op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
@@ -488,6 +491,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 break;
             case SC_LOG_OP_IFACE_FILE:
                 if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                                          op_iface_ctx->log_format ?
+                                              op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
@@ -496,6 +501,8 @@ SCError SCLogMessage(const SCLogLevel log_level, const char *file,
                 break;
             case SC_LOG_OP_IFACE_SYSLOG:
                 if (SCLogMessageGetBuffer(&tval, 0, buffer, sizeof(buffer),
+                                          op_iface_ctx->log_format ?
+                                              op_iface_ctx->log_format : sc_log_config->log_format,
                                           log_level, file, line, function,
                                           error_code, message) == 0)
                 {
