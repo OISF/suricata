@@ -41,9 +41,14 @@ extern int stream_inline;
  *  \retval 0 no
  *  \retval 1 yes
  */
-int StreamTcpInlineMode(void)
+int StreamTcpInlineMode(Packet *p)
 {
-    return stream_inline;
+    if (stream_inline == IDS)
+        return 0;
+    else if (stream_inline == IPS)
+        return 1;
+    else /* implied AUTO */
+        return (stream_inline && PacketModeIsIPS(p));
 }
 
 /**
