@@ -155,6 +155,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
         return -1;
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    p->pkt_mode = IDS;
 
     ph = nflog_get_msg_packet_hdr(nfa);
     if (ph != NULL) {
