@@ -782,6 +782,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+        p->pkt_mode = PKT_MODE_AUTO;
 
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
