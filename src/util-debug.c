@@ -156,7 +156,7 @@ static inline void SCLogPrintToStream(FILE *fd, char *msg)
 	SCMutexLock(&sc_log_stream_lock);
 #endif /* OS_WIN32 */
 
-    if (fprintf(fd, "%s", msg) < 0)
+    if (fprintf(fd, "%s\n", msg) < 0)
         printf("Error writing to stream using fprintf\n");
 
     fflush(fd);
@@ -196,8 +196,6 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
  */
 static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
 {
-    char *temp = msg;
-    int len = strlen(msg);
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
 
 #define MAX_SUBSTRINGS 30
@@ -208,15 +206,6 @@ static void SCLogOutputBuffer(SCLogLevel log_level, char *msg)
                "first before using the debug API\n");
         return;
     }
-
-    /* We need to add a \n for our messages, before logging them.  If the
-     * messages have hit the 1023 length limit, strip the message to
-     * accomodate the \n */
-    if (len == SC_LOG_MAX_LOG_MSG_LEN - 1)
-        len = SC_LOG_MAX_LOG_MSG_LEN - 2;
-
-    temp[len] = '\n';
-    temp[len + 1] = '\0';
 
     if (sc_log_config->op_filter_regex != NULL) {
         if (pcre_exec(sc_log_config->op_filter_regex,
