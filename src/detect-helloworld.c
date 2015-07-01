@@ -134,37 +134,36 @@ int DetectHelloWorldMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval NULL on failure
  */
 
-DetectHelloWorldData *DetectHelloWorldParse (char *helloworldstr)
+DetectHelloWorldData *DetectHelloWorldParse (const char *helloworldstr)
 {
     DetectHelloWorldData *helloworldd = NULL;
-    char *arg1 = NULL;
-    char *arg2 = NULL;
+    char arg1[4] = "";
+    char arg2[4] = "";
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, helloworldstr, strlen(helloworldstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study,
+                    helloworldstr, strlen(helloworldstr),
+                    0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 "", ret);
         goto error;
     }
-    const char *str_ptr;
 
-    res = pcre_get_substring((char *) helloworldstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    res = pcre_copy_substring((char *) helloworldstr, ov, MAX_SUBSTRINGS, 1, arg1, sizeof(arg1));
     if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
         goto error;
     }
-    arg1 = (char *) str_ptr;
     SCLogDebug("Arg1 \"%s\"", arg1);
 
     if (ret >= 3) {
-        res = pcre_get_substring((char *) helloworldstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+        res = pcre_copy_substring((char *) helloworldstr, ov, MAX_SUBSTRINGS, 2, arg2, sizeof(arg2));
         if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             goto error;
         }
-        arg2 = (char *) str_ptr;
         SCLogDebug("Arg2 \"%s\"", arg2);
 
     }
@@ -175,17 +174,11 @@ DetectHelloWorldData *DetectHelloWorldParse (char *helloworldstr)
     helloworldd->helloworld1 = (uint8_t)atoi(arg1);
     helloworldd->helloworld2 = (uint8_t)atoi(arg2);
 
-    SCFree(arg1);
-    SCFree(arg2);
     return helloworldd;
 
 error:
     if (helloworldd)
         SCFree(helloworldd);
-    if (arg1)
-        SCFree(arg1);
-    if (arg2)
-        SCFree(arg2);
     return NULL;
 }
 
