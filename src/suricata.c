@@ -1010,7 +1010,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
         }
 #endif
 #ifdef HAVE_NFLOG
-    } else if (run_mode == RUNMODE_NFLOG) {
+    } else if (run_mode == RUNMODE_NFLOG || run_mode == RUNMODE_NETFILTER) {
         int ret = LiveBuildDeviceListCustom("nflog", "group");
         if (ret == 0) {
             SCLogError(SC_ERR_INITIALIZATION, "No group found in config for nflog");
@@ -1160,6 +1160,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
 #endif
+        {"mixed-mode", optional_argument, 0, 0},
         {NULL, 0, NULL, 0}
     };
 
@@ -1274,10 +1275,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogError(SC_ERR_NO_NETMAP, "NETMAP not enabled.");
                     return TM_ECODE_FAILED;
 #endif
+            } else if (strcmp((long_opts[option_index]).name, "mixed-mode") == 0) {
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_NETFILTER;
+                }
             } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
 #ifdef HAVE_NFLOG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NFLOG;
+                    LiveBuildDeviceListCustom("nflog", "group");
+                } else if (suri->run_mode == RUNMODE_NETFILTER) {
                     LiveBuildDeviceListCustom("nflog", "group");
                 }
 #else
@@ -1588,7 +1595,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 EngineModeSetIPS();
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_NFQ) {
+            } else if (suri->run_mode == RUNMODE_NETFILTER) {
+                EngineModeSetIPS();
+                if (NFQRegisterQueue(optarg) == -1)
+                    return TM_ECODE_FAILED;
+            } else if (suri->run_mode == RUNMODE_NFQ || suri->run_mode == RUNMODE_NETFILTER) {
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
