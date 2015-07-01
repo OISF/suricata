@@ -55,6 +55,35 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+char *emailaddrtok_r(char *str, char **saveptr)
+{
+    char *p = str;;
+
+    if (p != NULL) {
+        if (*p == '\"') {
+            /* scan to closing quote */
+            p = strtok_r(p, "\"", saveptr);
+            p = *saveptr;
+            if (p != NULL) {
+                p[-1] = '\"';
+            }
+            p = NULL;
+        }
+        p = strtok_r(p, ",", saveptr);
+        return str;
+    } else {
+        if (**saveptr == '\"') {
+            /* scan to closing quote */
+            p = strtok_r(NULL, "\"", saveptr);
+            p = *saveptr;
+            if (p != NULL) {
+                p[-1] = '\"';
+            }
+        }
+        return strtok_r(NULL, ",", saveptr);
+    }
+}
+
 /* JSON format logging */
 static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
@@ -120,10 +149,10 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
                         char *savep = NULL;
                         char *p;
                         //printf("to_line:: TO: \"%s\" (%d)\n", to_line, strlen(to_line));
-                        p = strtok_r(to_line, ",", &savep);
+                        p = emailaddrtok_r(to_line, &savep);
                         //printf("got another addr: \"%s\"\n", p);
                         json_array_append_new(js_to, json_string(p));
-                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                        while ((p = emailaddrtok_r(NULL, &savep)) != NULL) {
                             //printf("got another addr: \"%s\"\n", p);
                             json_array_append_new(js_to, json_string(&p[strspn(p, " ")]));
                         }
@@ -145,10 +174,10 @@ static TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packe
                         char *savep = NULL;
                         char *p;
                         //printf("cc_line:: CC: \"%s\" (%d)\n", to_line, strlen(to_line));
-                        p = strtok_r(cc_line, ",", &savep);
+                        p = emailaddrtok_r(cc_line, &savep);
                         //printf("got another addr: \"%s\"\n", p);
                         json_array_append_new(js_cc, json_string(p));
-                        while ((p = strtok_r(NULL, ",", &savep)) != NULL) {
+                        while ((p = emailaddrtok_r(NULL, &savep)) != NULL) {
                             //printf("got another addr: \"%s\"\n", p);
                             json_array_append_new(js_cc, json_string(&p[strspn(p, " ")]));
                         }
