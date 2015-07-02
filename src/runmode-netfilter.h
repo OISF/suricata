@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,18 +18,15 @@
 /**
  * \file
  *
- * \author Giuseppe Longo <giuseppelng@gmail.com>
+ * \author Giuseppe Longo <giuseppe@glongo.it>
  */
-#ifndef __RUNMODE_NFLOG_H__
-#define __RUNMODE_NFLOG_H__
+#ifndef __RUNMODE_NETFILTER_H__
+#define __RUNMODE_NETFILTER_H__
 
-void *ParseNflogConfig(const char *group);
-int NflogConfigGeThreadsCount(void *conf);
+int RunModeNetfilterAutoFp(void);
+int RunModeNetfilterSingle(void);
+int RunModeNetfilterWorkers(void);
+void RunModeNetfilterRegister(void);
+const char *RunModeNetfilterGetDefaultMode(void);
 
-int RunModeIdsNflogAutoFp(void);
-int RunModeIdsNflogSingle(void);
-int RunModeIdsNflogWorkers(void);
-void RunModeIdsNflogRegister(void);
-const char *RunModeIdsNflogGetDefaultMode(void);
-
-#endif /* __RUNMODE_NFLOG_H__ */
+#endif /* __RUNMODE_NETFILTER_H__ */

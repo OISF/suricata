@@ -273,6 +273,7 @@ runmode-napatech.c runmode-napatech.h \
 runmode-netmap.c runmode-netmap.h \
 runmode-nfq.c runmode-nfq.h \
 runmode-nflog.c runmode-nflog.h \
+runmode-netfilter.c runmode-netfilter.h \
 runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
