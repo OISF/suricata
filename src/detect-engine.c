@@ -1747,19 +1747,12 @@ int DetectEngineReload(const char *filename)
     char prefix[128] = "";
     if (filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
-
-        ConfNode *node = ConfGetNode(prefix);
-        if (node != NULL) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR, "reload %d already loaded", reloads-1);
-            return -1;
-        }
-
         if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
             SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
             return -1;
         }
 
-        node = ConfGetNode(prefix);
+        ConfNode *node = ConfGetNode(prefix);
         if (node == NULL) {
             SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
             return -1;
