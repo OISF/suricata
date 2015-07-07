@@ -1144,6 +1144,9 @@ enum {
 
     DETECT_AL_DNS_QUERY,
 
+    DETECT_CIPSERVICE,
+    DETECT_ENIPCOMMAND,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
