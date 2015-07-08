@@ -3345,7 +3345,7 @@ static int DetectEngineHttpServerBodyTest22(void)
 
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
         goto end;
     }
