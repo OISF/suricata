@@ -36,11 +36,12 @@
 
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
+ *  \param log_err, non-zero if connect failure should be logged.
  *  \retval FILE* on success (fdopen'd wrapper of underlying socket)
  *  \retval NULL on error
  */
 static FILE *
-SCLogOpenUnixSocketFp(const char *path, int sock_type)
+SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
 {
     struct sockaddr_un sun;
     int s = -1;
@@ -64,13 +65,58 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type)
     return ret;
 
 err:
-    SCLogError(SC_ERR_SOCKET, "Error connecting to socket \"%s\": %s",
-               path, strerror(errno));
+    if (log_err)
+        SCLogError(SC_ERR_SOCKET,
+            "Error connecting to socket \"%s\": %s (will keep trying)",
+            path, strerror(errno));
 
     if (s >= 0)
         close(s);
 
     return NULL;
+}
+
+/*
+ * Attempt to reconnect a disconnected (or never-connected) Unix domain socket.
+ *  \retval 1 if it is now connected; otherwise 0
+ */
+static int SCLogUnixSocketReconnect(LogFileCtx *log_ctx)
+{
+    int disconnected = 0;
+    if (log_ctx->fp) {
+        SCLogError(SC_ERR_SOCKET,
+            "Write error on Unix socket \"%s\": %s; reconnecting...",
+            log_ctx->filename, strerror(errno));
+        fclose(log_ctx->fp);
+        log_ctx->fp = NULL;
+        log_ctx->reconn_timer = 0;
+        disconnected = 1;
+    }
+
+#if defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0 && _POSIX_MONOTONIC_CLOCK
+    struct timespec ts;
+    uint64_t now;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    now = (uint64_t)ts.tv_sec * 1000;
+    now += ts.tv_nsec / 1000000;        /* msec resolution */
+    if (log_ctx->reconn_timer != 0 &&
+            (now - log_ctx->reconn_timer) < LOGFILE_RECONN_MIN_TIME) {
+        /* Don't bother to try reconnecting too often. */
+        return 0;
+    }
+    log_ctx->reconn_timer = now;
+#endif
+
+    log_ctx->fp = SCLogOpenUnixSocketFp(log_ctx->filename, log_ctx->sock_type, 0);
+    if (log_ctx->fp) {
+        /* Connected at last (or reconnected) */
+        SCLogNotice("Reconnected socket \"%s\"", log_ctx->filename);
+    } else if (disconnected) {
+        SCLogError(SC_ERR_SOCKET, "Reconnect failed: %s (will keep trying)",
+            strerror(errno));
+    }
+
+    return log_ctx->fp ? 1 : 0;
 }
 
 static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ctx)
@@ -83,9 +129,21 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
 
     int ret = 0;
 
+    if (log_ctx->fp == NULL && log_ctx->is_sock)
+        ret = SCLogUnixSocketReconnect(log_ctx);
+
     if (log_ctx->fp) {
+        clearerr(log_ctx->fp);
         ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
         fflush(log_ctx->fp);
+
+        if (ferror(log_ctx->fp) && log_ctx->is_sock) {
+            /* Error on Unix socket, maybe needs reconnect */
+            if (SCLogUnixSocketReconnect(log_ctx)) {
+                ret = fwrite(buffer, buffer_len, 1, log_ctx->fp);
+                fflush(log_ctx->fp);
+            }
+        }
     }
 
     return ret;
@@ -192,25 +250,21 @@ SCConfLogOpenGeneric(ConfNode *conf,
 
     // Now, what have we been asked to open?
     if (strcasecmp(filetype, "unix_stream") == 0) {
-        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_STREAM);
-        if (log_ctx->fp == NULL)
-            return -1; // Error already logged by Open...Fp routine
+        /* Don't bail. May be able to connect later. */
+        log_ctx->is_sock = 1;
+        log_ctx->sock_type = SOCK_STREAM;
+        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_STREAM, 1);
     } else if (strcasecmp(filetype, "unix_dgram") == 0) {
-        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM);
-        if (log_ctx->fp == NULL)
-            return -1; // Error already logged by Open...Fp routine
+        /* Don't bail. May be able to connect later. */
+        log_ctx->is_sock = 1;
+        log_ctx->sock_type = SOCK_DGRAM;
+        log_ctx->fp = SCLogOpenUnixSocketFp(log_path, SOCK_DGRAM, 1);
     } else if (strcasecmp(filetype, DEFAULT_LOG_FILETYPE) == 0 ||
                strcasecmp(filetype, "file") == 0) {
         log_ctx->fp = SCLogOpenFileFp(log_path, append);
         if (log_ctx->fp == NULL)
             return -1; // Error already logged by Open...Fp routine
         log_ctx->is_regular = 1;
-        log_ctx->filename = SCStrdup(log_path);
-        if (unlikely(log_ctx->filename == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for "
-                "filename");
-            return -1;
-        }
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
         if (log_ctx->pcie_fp == NULL)
@@ -221,6 +275,12 @@ SCConfLogOpenGeneric(ConfNode *conf,
                    "\"pcie\" "
                    "or \"unix_dgram\"",
                    conf->name);
+    }
+    log_ctx->filename = SCStrdup(log_path);
+    if (unlikely(log_ctx->filename == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate memory for filename");
+        return -1;
     }
 
     SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
