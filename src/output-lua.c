@@ -56,6 +56,7 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 #include "util-lua-http.h"
+#include "util-lua-dns.h"
 
 #define MODULE_NAME "LuaLog"
 
@@ -514,6 +515,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
 
         if (strcmp(k,"protocol") == 0 && strcmp(v, "http") == 0)
             options->alproto = ALPROTO_HTTP;
+        else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
+            options->alproto = ALPROTO_DNS;
         else if (strcmp(k, "type") == 0 && strcmp(v, "packet") == 0)
             options->packet = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "alerts") == 0)
@@ -532,7 +535,7 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             SCLogInfo("unknown key and/or value: k='%s', v='%s'", k, v);
     }
 
-    if (options->alproto + options->packet + options->file > 1) {
+    if (((options->alproto != ALPROTO_UNKNOWN)) + options->packet + options->file > 1) {
         SCLogError(SC_ERR_LUA_ERROR, "invalid combination of 'needs' in the script");
         goto error;
     }
@@ -613,6 +616,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     /* unconditionally register http function. They will only work
      * if the tx is registered in the state at runtime though. */
     LuaRegisterHttpFunctions(luastate);
+    LuaRegisterDnsFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
@@ -756,6 +760,11 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+        } else if (opts.alproto == ALPROTO_DNS) {
+            om->TxLogFunc = LuaTxLogger;
+            om->alproto = ALPROTO_DNS;
+            AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
+            AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;
