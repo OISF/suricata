@@ -901,13 +901,16 @@ logging:
   outputs:
   - console:
       enabled: yes
+      # type: json
   - file:
       enabled: no
       filename: /var/log/suricata.log
+      # type: json
   - syslog:
       enabled: no
       facility: local5
       format: "[%i] <%d> -- "
+      # type: json
 
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:
