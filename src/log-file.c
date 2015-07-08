@@ -349,7 +349,6 @@ void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
 static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
     LogFileFreeCtx(logfile_ctx);
     free(output_ctx);
 }
@@ -366,11 +365,10 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
-    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))

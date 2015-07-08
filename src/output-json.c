@@ -405,7 +405,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 
         if (json_ctx->json_out == ALERT_FILE || json_ctx->json_out == ALERT_UNIX_DGRAM || json_ctx->json_out == ALERT_UNIX_STREAM) {
 
-            if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+            if (SCConfLogOpenGeneric(conf, json_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
                 LogFileFreeCtx(json_ctx->file_ctx);
                 SCFree(json_ctx);
                 SCFree(output_ctx);
@@ -477,7 +477,6 @@ static void OutputJsonDeInitCtx(OutputCtx *output_ctx)
 {
     OutputJsonCtx *json_ctx = (OutputJsonCtx *)output_ctx->data;
     LogFileCtx *logfile_ctx = json_ctx->file_ctx;
-    OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
     LogFileFreeCtx(logfile_ctx);
     SCFree(json_ctx);
     SCFree(output_ctx);

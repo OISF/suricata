@@ -77,7 +77,7 @@ typedef struct LogFileCtx_ {
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 
-int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
+int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */
