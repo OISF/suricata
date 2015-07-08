@@ -138,13 +138,15 @@ static PcieFile *SCLogOpenPcieFp(LogFileCtx *log_ctx, const char *path,
  *  \param conf ConfNode structure for the output section in question
  *  \param log_ctx Log file context allocated by caller
  *  \param default_filename Default name of file to open, if not specified in ConfNode
+ *  \param rotate Register the file for rotation in HUP.
  *  \retval 0 on success
  *  \retval -1 on error
  */
 int
 SCConfLogOpenGeneric(ConfNode *conf,
                      LogFileCtx *log_ctx,
-                     const char *default_filename)
+                     const char *default_filename,
+                     int rotate)
 {
     char log_path[PATH_MAX];
     char *log_dir;
@@ -205,6 +207,9 @@ SCConfLogOpenGeneric(ConfNode *conf,
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for "
                 "filename");
             return -1;
+        }
+        if (rotate) {
+            OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
@@ -301,6 +306,8 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
     if(lf_ctx->filename != NULL)
         SCFree(lf_ctx->filename);
+
+    OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
 
     SCFree(lf_ctx);
 

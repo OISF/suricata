@@ -445,7 +445,6 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-        OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
@@ -470,10 +469,9 @@ static OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
         goto error;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         goto error;
     }
-    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))

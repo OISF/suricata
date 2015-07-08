@@ -596,11 +596,10 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
-    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
     if (unlikely(httplog_ctx == NULL)) {
@@ -730,7 +729,6 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
     for (i = 0; i < httplog_ctx->cf_n; i++) {
         SCFree(httplog_ctx->cf_nodes[i]);
     }
-    OutputUnregisterFileRotationFlag(&httplog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(httplog_ctx->file_ctx);
     SCFree(httplog_ctx);
     SCFree(output_ctx);

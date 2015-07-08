@@ -288,7 +288,6 @@ static void LogDnsLogExitPrintStats(ThreadVars *tv, void *data) {
 static void LogDnsLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogDnsFileCtx *dnslog_ctx = (LogDnsFileCtx *)output_ctx->data;
-    OutputUnregisterFileRotationFlag(&dnslog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(dnslog_ctx->file_ctx);
     SCFree(dnslog_ctx);
     SCFree(output_ctx);
@@ -307,11 +306,10 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
-    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
