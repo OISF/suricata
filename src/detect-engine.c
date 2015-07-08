@@ -103,7 +103,9 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
-static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, NULL, NULL, };
+static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
+
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv);
 
 /* 2 - for each direction */
 DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
@@ -573,7 +575,10 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
             detect_tvs[i] = tv;
-            new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            if (new_de_ctx != NULL)
+                new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
+            else
+                new_det_ctx[i] = DetectEngineThreadCtxInitForMT(tv);
             if (new_det_ctx[i] == NULL) {
                 SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
@@ -1314,6 +1319,12 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
+    if (DetectEngineMultiTenantEnabled()) {
+        DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForMT(tv);
+        *data = (void *)mt_det_ctx;
+        return (mt_det_ctx == NULL) ? TM_ECODE_FAILED : TM_ECODE_OK;
+    }
+
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
     uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
@@ -1380,6 +1391,7 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
         return NULL;
     memset(det_ctx, 0, sizeof(DetectEngineThreadCtx));
 
+    det_ctx->tenant_id = new_de_ctx->tenant_id;
     det_ctx->tv = tv;
     det_ctx->de_ctx = DetectEngineReference(new_de_ctx);
     if (det_ctx->de_ctx == NULL) {
@@ -1410,13 +1422,11 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     return det_ctx;
 }
 
-TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
+void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
-    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
-
-    if (det_ctx == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
-        return TM_ECODE_OK;
+    if (det_ctx->tenant_array != NULL) {
+        SCFree(det_ctx->tenant_array);
+        det_ctx->tenant_array = NULL;
     }
 
 #ifdef PROFILING
@@ -1494,6 +1504,22 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
 #endif
     }
     SCFree(det_ctx);
+}
+
+TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data)
+{
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+
+    if (det_ctx == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "argument \"data\" NULL");
+        return TM_ECODE_OK;
+    }
+
+    if (det_ctx->mt_det_ctxs_hash != NULL) {
+        HashTableFree(det_ctx->mt_det_ctxs_hash);
+        det_ctx->mt_det_ctxs_hash = NULL;
+    }
+    DetectEngineThreadCtxFree(det_ctx);
 
     return TM_ECODE_OK;
 }
@@ -1606,6 +1632,788 @@ DetectEngineCtx *DetectEngineReference(DetectEngineCtx *de_ctx)
     if (de_ctx == NULL)
         return NULL;
     de_ctx->ref_cnt++;
+    return de_ctx;
+}
+
+/** TODO locking? Not needed if this is a one time setting at startup */
+int DetectEngineMultiTenantEnabled(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    return (master->multi_tenant_enabled);
+}
+
+/** \internal
+ *  \brief load a tenant from a yaml file
+ *
+ *  \param tenant_id the tenant id by which the config is known
+ *  \param filename full path of a yaml file
+ *  \param loader_id id of loader thread or -1
+ *
+ *  \retval 0 ok
+ *  \retval -1 failed
+ */
+static int DetectEngineMultiTenantLoadTenant(uint32_t tenant_id, const char *filename, int loader_id)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    char prefix[64];
+
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+
+#ifdef OS_WIN32
+    struct _stat st;
+    if(_stat(filename, &st) != 0) {
+#else
+    struct stat st;
+    if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
+        SCLogError(SC_ERR_FOPEN, "failed to stat file %s", filename);
+        goto error;
+    }
+
+    de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (de_ctx != NULL) {
+        SCLogError(SC_ERR_MT_DUPLICATE_TENANT, "tenant %u already registered",
+                tenant_id);
+        DetectEngineDeReference(&de_ctx);
+        goto error;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        goto error;
+    }
+
+    de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                "context failed.");
+        goto error;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", de_ctx, de_ctx->config_prefix);
+
+    de_ctx->tenant_id = tenant_id;
+    de_ctx->loader_id = loader_id;
+
+    if (SigLoadSignatures(de_ctx, NULL, 0) < 0) {
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        goto error;
+    }
+
+    DetectEngineAddToMaster(de_ctx);
+
+    return 0;
+
+error:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
+    return -1;
+}
+
+static int DetectEngineMultiTenantReloadTenant(uint32_t tenant_id, const char *filename, int reload_cnt)
+{
+    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (old_de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "tenant detect engine not found");
+        return -1;
+    }
+
+    char prefix[64];
+    snprintf(prefix, sizeof(prefix), "multi-detect.%d.reload.%d", tenant_id, reload_cnt);
+    reload_cnt++;
+    SCLogInfo("prefix %s", prefix);
+
+    if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
+        SCLogError(SC_ERR_INITIALIZATION,"failed to load yaml");
+        goto error;
+    }
+
+    ConfNode *node = ConfGetNode(prefix);
+    if (node == NULL) {
+        SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+        goto error;
+    }
+
+    DetectEngineCtx *new_de_ctx = DetectEngineCtxInitWithPrefix(prefix);
+    if (new_de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+                "context failed.");
+        goto error;
+    }
+    SCLogDebug("de_ctx %p with prefix %s", new_de_ctx, new_de_ctx->config_prefix);
+
+    new_de_ctx->tenant_id = tenant_id;
+    new_de_ctx->loader_id = old_de_ctx->loader_id;
+
+    if (SigLoadSignatures(new_de_ctx, NULL, 0) < 0) {
+        SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+        goto error;
+    }
+
+    DetectEngineAddToMaster(new_de_ctx);
+
+    /* move to free list */
+    DetectEngineMoveToFreeList(old_de_ctx);
+    DetectEngineDeReference(&old_de_ctx);
+    return 0;
+
+error:
+    DetectEngineDeReference(&old_de_ctx);
+    return -1;
+}
+
+
+/**
+ * \param ctx function specific data
+ * \param loader_id id of the loader that executed the task
+ */
+typedef int (*LoaderFunc)(void *ctx, int loader_id);
+
+typedef struct DetectLoaderTask_ {
+    LoaderFunc Func;
+    void *ctx;
+    TAILQ_ENTRY(DetectLoaderTask_) next;
+} DetectLoaderTask;
+
+typedef struct DetectLoaderControl_ {
+    int id;
+    SCMutex m;
+    TAILQ_HEAD(, DetectLoaderTask_) task_list;
+} DetectLoaderControl;
+
+#define NLOADERS 4
+static DetectLoaderControl loaders[NLOADERS];
+static int cur_loader = 0;
+void TmThreadWakeupDetectLoaderThreads(void);
+
+/** \param loader -1 for auto select
+ *  \retval loader_id or negative in case of error */
+int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx)
+{
+    if (loader_id == -1) {
+        loader_id = cur_loader;
+        cur_loader++;
+        if (cur_loader >= NLOADERS)
+            cur_loader = 0;
+    }
+    if (loader_id >= NLOADERS || loader_id < 0) {
+        return -ERANGE;
+    }
+
+    DetectLoaderControl *loader = &loaders[loader_id];
+
+    DetectLoaderTask *t = SCCalloc(1, sizeof(*t));
+    if (t == NULL)
+        return -ENOMEM;
+
+    t->Func = Func;
+    t->ctx = func_ctx;
+
+    SCMutexLock(&loader->m);
+    TAILQ_INSERT_TAIL(&loader->task_list, t, next);
+    SCMutexUnlock(&loader->m);
+
+    TmThreadWakeupDetectLoaderThreads();
+
+    SCLogDebug("%d %p %p", loader_id, Func, func_ctx);
+    return loader_id;
+}
+
+int DetectLoadersSync(void)
+{
+    SCLogDebug("waiting");
+    int i;
+    for (i = 0; i < NLOADERS; i++) {
+        int done = 0;
+        DetectLoaderControl *loader = &loaders[i];
+        while (!done) {
+            SCMutexLock(&loader->m);
+            if (TAILQ_EMPTY(&loader->task_list)) {
+                done = 1;
+            }
+            /* TODO record result */
+            SCMutexUnlock(&loader->m);
+        }
+    }
+    SCLogDebug("done");
+    return 0;
+}
+
+void DetectLoaderInit(DetectLoaderControl *loader)
+{
+    memset(loader, 0x00, sizeof(*loader));
+    SCMutexInit(&loader->m, NULL);
+    TAILQ_INIT(&loader->task_list);
+}
+
+void DetectLoadersInit(void)
+{
+    int i;
+    for (i = 0; i < NLOADERS; i++) {
+        DetectLoaderInit(&loaders[i]);
+    }
+}
+
+typedef struct TenantLoaderCtx_ {
+    uint32_t tenant_id;
+    int reload_cnt; /**< used by reload */
+    const char *yaml;
+} TenantLoaderCtx;
+
+static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
+{
+    TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
+
+    SCLogInfo("loader %d", loader_id);
+    if (DetectEngineMultiTenantLoadTenant(ctx->tenant_id, ctx->yaml, loader_id) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int DetectLoaderSetupLoadTenant(uint32_t tenant_id, const char *yaml)
+{
+    TenantLoaderCtx *t = SCCalloc(1, sizeof(*t));
+    if (t == NULL)
+        return -ENOMEM;
+
+    t->tenant_id = tenant_id;
+    t->yaml = yaml;
+
+    return DetectLoaderQueueTask(-1, DetectLoaderFuncLoadTenant, t);
+}
+
+static int DetectLoaderFuncReloadTenant(void *vctx, int loader_id)
+{
+    TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
+
+    SCLogDebug("loader_id %d", loader_id);
+
+    if (DetectEngineMultiTenantReloadTenant(ctx->tenant_id, ctx->yaml, ctx->reload_cnt) != 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int DetectLoaderSetupReloadTenant(uint32_t tenant_id, const char *yaml, int reload_cnt)
+{
+    DetectEngineCtx *old_de_ctx = DetectEngineGetByTenantId(tenant_id);
+    if (old_de_ctx == NULL)
+        return -ENOENT;
+    int loader_id = old_de_ctx->loader_id;
+    DetectEngineDeReference(&old_de_ctx);
+
+    TenantLoaderCtx *t = SCCalloc(1, sizeof(*t));
+    if (t == NULL)
+        return -ENOMEM;
+
+    t->tenant_id = tenant_id;
+    t->yaml = yaml;
+    t->reload_cnt = reload_cnt;
+
+    SCLogDebug("loader_id %d", loader_id);
+
+    return DetectLoaderQueueTask(loader_id, DetectLoaderFuncReloadTenant, t);
+}
+
+/** \brief Load a tenant and wait for loading to complete
+ */
+int DetectEngineLoadTenantBlocking(uint32_t tenant_id, const char *yaml)
+{
+    int r = DetectLoaderSetupLoadTenant(tenant_id, yaml);
+    if (r < 0)
+        return r;
+
+    if (DetectLoadersSync() != 0)
+        return -1;
+
+    return 0;
+}
+
+/** \brief Reload a tenant and wait for loading to complete
+ */
+int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int reload_cnt)
+{
+    int r = DetectLoaderSetupReloadTenant(tenant_id, yaml, reload_cnt);
+    if (r < 0)
+        return r;
+
+    if (DetectLoadersSync() != 0)
+        return -1;
+
+    return 0;
+}
+
+/**
+ * \brief Unpauses all threads present in tv_root
+ */
+void TmThreadWakeupDetectLoaderThreads()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    SCMutexLock(&tv_root_lock);
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            if (strcmp(tv->name,"DetectLoader") == 0) {
+                BUG_ON(tv->ctrl_cond == NULL);
+                pthread_cond_broadcast(tv->ctrl_cond);
+            }
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+/**
+ * \brief Unpauses all threads present in tv_root
+ */
+void TmThreadContinueDetectLoaderThreads()
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+
+    SCMutexLock(&tv_root_lock);
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            if (strcmp(tv->name,"DetectLoader") == 0)
+                TmThreadContinue(tv);
+
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
+
+SC_ATOMIC_DECLARE(int, detect_loader_cnt);
+
+typedef struct DetectLoaderThreadData_ {
+    uint32_t instance;
+} DetectLoaderThreadData;
+
+static TmEcode DetectLoaderThreadInit(ThreadVars *t, void *initdata, void **data)
+{
+    DetectLoaderThreadData *ftd = SCCalloc(1, sizeof(DetectLoaderThreadData));
+    if (ftd == NULL)
+        return TM_ECODE_FAILED;
+
+    ftd->instance = SC_ATOMIC_ADD(detect_loader_cnt, 1) - 1; /* id's start at 0 */
+    SCLogDebug("detect loader instance %u", ftd->instance);
+
+    /* pass thread data back to caller */
+    *data = ftd;
+
+    return TM_ECODE_OK;
+}
+
+static TmEcode DetectLoaderThreadDeinit(ThreadVars *t, void *data)
+{
+    SCFree(data);
+    return TM_ECODE_OK;
+}
+
+
+static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
+{
+    /* block usr2. usr2 to be handled by the main thread only */
+    UtilSignalBlock(SIGUSR2);
+
+    DetectLoaderThreadData *ftd = (DetectLoaderThreadData *)thread_data;
+    BUG_ON(ftd == NULL);
+
+    SCLogDebug("loader thread started");
+    while (1)
+    {
+        if (TmThreadsCheckFlag(th_v, THV_PAUSE)) {
+            TmThreadsSetFlag(th_v, THV_PAUSED);
+            TmThreadTestThreadUnPaused(th_v);
+            TmThreadsUnsetFlag(th_v, THV_PAUSED);
+        }
+
+        /* see if we have tasks */
+
+        DetectLoaderControl *loader = &loaders[ftd->instance];
+        SCMutexLock(&loader->m);
+
+        DetectLoaderTask *task = NULL, *tmptask = NULL;
+        TAILQ_FOREACH_SAFE(task, &loader->task_list, next, tmptask) {
+            int r = task->Func(task->ctx, ftd->instance);
+            // TODO error handling
+            SCLogInfo("r %d", r);
+
+            TAILQ_REMOVE(&loader->task_list, task, next);
+            SCFree(task);
+        }
+
+        SCMutexUnlock(&loader->m);
+
+        if (TmThreadsCheckFlag(th_v, THV_KILL)) {
+            break;
+        }
+
+        /* just wait until someone wakes us up */
+        SCCtrlMutexLock(th_v->ctrl_mutex);
+        SCCtrlCondWait(th_v->ctrl_cond, th_v->ctrl_mutex);
+        SCCtrlMutexUnlock(th_v->ctrl_mutex);
+
+        SCLogDebug("woke up...");
+    }
+
+    return TM_ECODE_OK;
+}
+
+/** \brief spawn the detect loader manager thread */
+void DetectLoaderThreadSpawn()
+{
+    uint32_t u;
+    for (u = 0; u < NLOADERS; u++) {
+        ThreadVars *tv_loader = NULL;
+
+        char name[32] = "";
+        snprintf(name, sizeof(name), "DetectLoader%02u", u+1);
+
+        tv_loader = TmThreadCreateCmdThreadByName("DetectLoader",
+                "DetectLoader", 1);
+        BUG_ON(tv_loader == NULL);
+
+        if (tv_loader == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(1);
+        }
+        if (TmThreadSpawn(tv_loader) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(1);
+        }
+    }
+    return;
+}
+
+void TmModuleDetectLoaderRegister (void)
+{
+    tmm_modules[TMM_DETECTLOADER].name = "DetectLoader";
+    tmm_modules[TMM_DETECTLOADER].ThreadInit = DetectLoaderThreadInit;
+    tmm_modules[TMM_DETECTLOADER].ThreadDeinit = DetectLoaderThreadDeinit;
+    tmm_modules[TMM_DETECTLOADER].Management = DetectLoader;
+    tmm_modules[TMM_DETECTLOADER].cap_flags = 0;
+    tmm_modules[TMM_DETECTLOADER].flags = TM_FLAG_MANAGEMENT_TM;
+    SCLogDebug("%s registered", tmm_modules[TMM_DETECTLOADER].name);
+
+    SC_ATOMIC_INIT(detect_loader_cnt);
+}
+
+/**
+ *  \brief setup multi-detect / multi-tenancy
+ *
+ *  See if MT is enabled. If so, setup the selector, tenants and mappings.
+ *  Tenants and mappings are optional, and can also dynamically be added
+ *  and removed from the unix socket.
+ */
+void DetectEngineMultiTenantSetup(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+
+    int failure_fatal = 0;
+    (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
+
+    int enabled = 0;
+    (void)ConfGetBool("multi-detect.enabled", &enabled);
+    if (enabled == 1) {
+        DetectLoadersInit();
+        TmModuleDetectLoaderRegister();
+        DetectLoaderThreadSpawn();
+        TmThreadContinueDetectLoaderThreads();
+
+        SCMutexLock(&master->lock);
+        master->multi_tenant_enabled = 1;
+
+        char *handler = NULL;
+        if (ConfGet("multi-detect.selector", &handler) == 1) {
+            SCLogInfo("selector %s", handler);
+
+            if (strcmp(handler, "vlan") == 0) {
+                master->tenant_selector = TENANT_SELECTOR_VLAN;
+            } else if (strcmp(handler, "direct") == 0) {
+                master->tenant_selector = TENANT_SELECTOR_DIRECT;
+            } else {
+                SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
+                                                 "multi-detect.selector", handler);
+                SCMutexUnlock(&master->lock);
+                goto error;
+            }
+        }
+        SCMutexUnlock(&master->lock);
+        SCLogInfo("multi-detect is enabled (multi tenancy). Selector: %s", handler);
+
+        /* traffic -- tenant mappings */
+        ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
+        ConfNode *mapping_node = NULL;
+
+        if (mappings_root_node != NULL) {
+            TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
+                if (strcmp(mapping_node->val, "vlan") == 0) {
+                    ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+                    if (tenant_id_node == NULL)
+                        goto bad_mapping;
+                    ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+                    if (vlan_id_node == NULL)
+                        goto bad_mapping;
+
+                    SCLogInfo("vlan %s %s", tenant_id_node->val, vlan_id_node->val);
+
+                    uint32_t tenant_id = 0;
+                    if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                                tenant_id_node->val) == -1)
+                    {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                                "of %s is invalid", tenant_id_node->val);
+                        goto bad_mapping;
+                    }
+
+                    uint16_t vlan_id = 0;
+                    if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+                                vlan_id_node->val) == -1)
+                    {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                                "of %s is invalid", vlan_id_node->val);
+                        goto bad_mapping;
+                    }
+
+                    if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+                        goto error;
+                    }
+                } else {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
+                    goto bad_mapping;
+                }
+                continue;
+
+            bad_mapping:
+                if (failure_fatal)
+                    goto error;
+            }
+        }
+
+        /* tenants */
+        ConfNode *tenants_root_node = ConfGetNode("multi-detect.tenants");
+        ConfNode *tenant_node = NULL;
+
+        if (tenants_root_node != NULL) {
+            TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
+                if (strcmp(tenant_node->val, "tenant") != 0) {
+                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.tenants expects a list of 'tenant's. Not %s", tenant_node->val);
+                    goto bad_tenant;
+                }
+                ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
+                if (id_node == NULL)
+                    goto bad_tenant;
+                ConfNode *yaml_node = ConfNodeLookupChild(tenant_node, "yaml");
+                if (yaml_node == NULL)
+                    goto bad_tenant;
+
+                uint32_t tenant_id = 0;
+                if (ByteExtractStringUint32(&tenant_id, 10, strlen(id_node->val),
+                            id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant_id  "
+                            "of %s is invalid", id_node->val);
+                    goto bad_tenant;
+                }
+                SCLogInfo("tenant id: %u, %s", tenant_id, yaml_node->val);
+
+                /* setup the yaml in this loop so that it's not done by the loader
+                 * threads. ConfYamlLoadFileWithPrefix is not thread safe. */
+                char prefix[64];
+                snprintf(prefix, sizeof(prefix), "multi-detect.%d", tenant_id);
+                if (ConfYamlLoadFileWithPrefix(yaml_node->val, prefix) != 0) {
+                    SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", yaml_node->val);
+                    goto bad_tenant;
+                }
+
+                if (DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val) != 0) {
+                    /* error logged already */
+                    goto bad_tenant;
+                }
+                continue;
+
+            bad_tenant:
+                if (failure_fatal)
+                    goto error;
+            }
+        }
+
+        /* wait for our loaders to complete their tasks */
+        if (DetectLoadersSync() != 0)
+            goto error;
+
+        if (DetectEngineMTApply() < 0) {
+            SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+            goto error;
+        }
+
+    } else {
+        SCLogDebug("multi-detect not enabled (multi tenancy)");
+    }
+error:
+    return;
+}
+
+uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
+{
+    const DetectEngineThreadCtx *det_ctx = ctx;
+    uint32_t x = 0;
+    uint32_t vlan_id = 0;
+
+    if (p->vlan_idx == 0)
+        return 0;
+
+    vlan_id = p->vlan_id[0];
+
+    if (det_ctx == NULL || det_ctx->tenant_array == NULL || det_ctx->tenant_array_size == 0)
+        return 0;
+
+    /* not very efficient, but for now we're targeting only limited amounts.
+     * Can use hash/tree approach later. */
+    for (x = 0; x < det_ctx->tenant_array_size; x++) {
+        if (det_ctx->tenant_array[x].traffic_id == vlan_id)
+            return det_ctx->tenant_array[x].tenant_id;
+    }
+
+    return 0;
+}
+
+static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors selector,
+                                           uint32_t tenant_id, uint32_t traffic_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (!(master->tenant_selector == TENANT_SELECTOR_UNKNOWN || master->tenant_selector == selector)) {
+        SCLogInfo("conflicting selector already set");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    DetectEngineTenantMapping *m = master->tenant_mapping_list;
+    while (m) {
+        if (m->traffic_id == traffic_id) {
+            SCLogInfo("traffic id already registered");
+            SCMutexUnlock(&master->lock);
+            return -1;
+        }
+        m = m->next;
+    }
+
+    DetectEngineTenantMapping *map = SCCalloc(1, sizeof(*map));
+    if (map == NULL) {
+        SCLogInfo("memory fail");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+    map->traffic_id = traffic_id;
+    map->tenant_id = tenant_id;
+
+    map->next = master->tenant_mapping_list;
+    master->tenant_mapping_list = map;
+
+    master->tenant_selector = selector;
+
+    SCLogInfo("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
+    SCMutexUnlock(&master->lock);
+    return 0;
+}
+
+static int DetectEngineTentantUnregisterSelector(enum DetectEngineTenantSelectors selector,
+                                           uint32_t tenant_id, uint32_t traffic_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->tenant_mapping_list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    DetectEngineTenantMapping *prev = NULL;
+    DetectEngineTenantMapping *map = master->tenant_mapping_list;
+    while (map) {
+        if (map->traffic_id == traffic_id &&
+            map->tenant_id == tenant_id)
+        {
+            if (prev != NULL)
+                prev->next = map->next;
+            else
+                master->tenant_mapping_list = map->next;
+
+            map->next = NULL;
+            SCFree(map);
+            SCLogInfo("tenant handler %u %u %u unregistered", selector, tenant_id, traffic_id);
+            SCMutexUnlock(&master->lock);
+            return 0;
+        }
+        prev = map;
+        map = map->next;
+    }
+
+    SCMutexUnlock(&master->lock);
+    return -1;
+}
+
+int DetectEngineTentantRegisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+{
+    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+}
+
+int DetectEngineTentantUnregisterVlanId(uint32_t tenant_id, uint16_t vlan_id)
+{
+    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_VLAN, tenant_id, (uint32_t)vlan_id);
+}
+
+int DetectEngineTentantRegisterPcapFile(uint32_t tenant_id)
+{
+    SCLogInfo("registering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
+    return DetectEngineTentantRegisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+}
+
+int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id)
+{
+    SCLogInfo("unregistering %u %d 0", TENANT_SELECTOR_DIRECT, tenant_id);
+    return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
+}
+
+uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
+{
+    return p->pcap_v.tenant_id;
+}
+
+DetectEngineCtx *DetectEngineGetByTenantId(int tenant_id)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->list == NULL) {
+        SCMutexUnlock(&master->lock);
+        return NULL;
+    }
+
+    DetectEngineCtx *de_ctx = master->list;
+    while (de_ctx) {
+        if (de_ctx->tenant_id == tenant_id) {
+            de_ctx->ref_cnt++;
+            break;
+        }
+
+        de_ctx = de_ctx->next;
+    }
+
+    SCMutexUnlock(&master->lock);
     return de_ctx;
 }
 
@@ -1795,6 +2603,188 @@ int DetectEngineReload(const char *filename)
     /* update the threads */
     DetectEngineReloadThreads(new_de_ctx);
     SCLogDebug("threads now run new_de_ctx %p", new_de_ctx);
+
+    /* walk free list, freeing the old_de_ctx */
+    DetectEnginePruneFreeList();
+
+    SCLogDebug("old_de_ctx should have been freed");
+    return 0;
+}
+
+static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len)
+{
+    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    return det_ctx->tenant_id % h->array_size;
+}
+
+static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len)
+{
+    DetectEngineThreadCtx *det1 = (DetectEngineThreadCtx *)d1;
+    DetectEngineThreadCtx *det2 = (DetectEngineThreadCtx *)d2;
+    return (det1->tenant_id == det2->tenant_id);
+}
+
+static void TenantIdFree(void *d)
+{
+    DetectEngineThreadCtxFree(d);
+}
+
+/** NOTE: master MUST be locked before calling this */
+static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    DetectEngineTenantMapping *map_array = NULL;
+    uint32_t map_array_size = 0;
+    uint32_t map_cnt = 0;
+    int max_tenant_id = 0;
+    DetectEngineCtx *list = master->list;
+    HashTable *mt_det_ctxs_hash = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
+        SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
+                                          "set using multi-detect.selector");
+        return NULL;
+    }
+
+    uint32_t tcnt = 0;
+    while (list) {
+        if (list->tenant_id > max_tenant_id)
+            max_tenant_id = list->tenant_id;
+
+        list = list->next;
+        tcnt++;
+    }
+
+    mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
+    if (mt_det_ctxs_hash == NULL) {
+        goto error;
+    }
+
+    if (max_tenant_id == 0) {
+        SCLogInfo("no tenants left, or none registered yet");
+    } else {
+        max_tenant_id++;
+
+        DetectEngineTenantMapping *map = master->tenant_mapping_list;
+        while (map) {
+            map_cnt++;
+            map = map->next;
+        }
+
+        if (map_cnt > 0) {
+            map_array_size = map_cnt + 1;
+
+            map_array = SCCalloc(map_array_size, sizeof(*map_array));
+            if (map_array == NULL)
+                goto error;
+
+            /* fill the array */
+            map_cnt = 0;
+            map = master->tenant_mapping_list;
+            while (map) {
+                BUG_ON(map_cnt > map_array_size);
+                map_array[map_cnt].traffic_id = map->traffic_id;
+                map_array[map_cnt].tenant_id = map->tenant_id;
+                map_cnt++;
+                map = map->next;
+            }
+
+        }
+
+        /* set up hash for tenant lookup */
+        list = master->list;
+        while (list) {
+            if (list->tenant_id != 0) {
+                DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list);
+                if (mt_det_ctx == NULL)
+                    goto error;
+                BUG_ON(HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0);
+            }
+            list = list->next;
+        }
+    }
+
+    det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
+    if (det_ctx == NULL) {
+        goto error;
+    }
+    det_ctx->mt_det_ctxs_hash = mt_det_ctxs_hash;
+    mt_det_ctxs_hash = NULL;
+
+    /* first register the counter. In delayed detect mode we exit right after if the
+     * rules haven't been loaded yet. */
+    uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
+#ifdef PROFILING
+    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
+    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
+    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
+    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
+#endif
+    /** alert counter setup */
+    det_ctx->counter_alerts = counter_alerts;
+#ifdef PROFILING
+    det_ctx->counter_mpm_list = counter_mpm_list;
+    det_ctx->counter_nonmpm_list = counter_nonmpm_list;
+    det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
+    det_ctx->counter_match_list = counter_match_list;
+#endif
+    det_ctx->mt_det_ctxs_cnt = max_tenant_id;
+
+    det_ctx->tenant_array = map_array;
+    det_ctx->tenant_array_size = map_array_size;
+
+    switch (master->tenant_selector) {
+        case TENANT_SELECTOR_UNKNOWN:
+            SCLogDebug("TENANT_SELECTOR_UNKNOWN");
+            break;
+        case TENANT_SELECTOR_VLAN:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
+            SCLogDebug("TENANT_SELECTOR_VLAN");
+            break;
+        case TENANT_SELECTOR_DIRECT:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
+            SCLogDebug("TENANT_SELECTOR_DIRECT");
+            break;
+    }
+
+    return det_ctx;
+error:
+    if (map_array != NULL)
+        SCFree(map_array);
+    if (mt_det_ctxs_hash != NULL)
+        HashTableFree(mt_det_ctxs_hash);
+
+    return NULL;
+}
+
+int DetectEngineMTApply(void)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    SCMutexLock(&master->lock);
+
+    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
+        SCLogInfo("error, no tenant selector");
+        SCMutexUnlock(&master->lock);
+        return -1;
+    }
+
+    DetectEngineCtx *minimal_de_ctx = NULL;
+    /* if we have no tenants, we need a minimal on */
+    if (master->list == NULL) {
+        minimal_de_ctx = master->list = DetectEngineCtxInitMinimal();
+        SCLogDebug("no tenants, using minimal %p", minimal_de_ctx);
+    } else if (master->list->next == NULL && master->list->tenant_id == 0) {
+        minimal_de_ctx = master->list;
+        SCLogDebug("no tenants, using original %p", minimal_de_ctx);
+    }
+
+    /* update the threads */
+    SCLogDebug("MT reload starting");
+    DetectEngineReloadThreads(minimal_de_ctx);
+    SCLogDebug("MT reload done");
+
+    SCMutexUnlock(&master->lock);
 
     /* walk free list, freeing the old_de_ctx */
     DetectEnginePruneFreeList();
