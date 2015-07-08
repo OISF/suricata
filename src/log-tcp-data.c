@@ -293,7 +293,7 @@ OutputCtx *LogTcpDataLogInitCtx(ConfNode *conf)
 
     if (tcpdatalog_ctx->file == 1) {
         SCLogInfo("opening logfile");
-        if (SCConfLogOpenGeneric(conf, file_ctx, filename) < 0) {
+        if (SCConfLogOpenGeneric(conf, file_ctx, filename, 1) < 0) {
             LogFileFreeCtx(file_ctx);
             SCFree(tcpdatalog_ctx);
             return NULL;

@@ -382,7 +382,6 @@ static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
     OutputTlsLoggerDisable();
 
     LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
-    OutputUnregisterFileRotationFlag(&tlslog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(tlslog_ctx->file_ctx);
     SCFree(tlslog_ctx);
     SCFree(output_ctx);
@@ -436,10 +435,9 @@ static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
         }
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         goto filectx_error;
     }
-    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
 
     LogTlsFileCtx *tlslog_ctx = SCCalloc(1, sizeof(LogTlsFileCtx));
     if (unlikely(tlslog_ctx == NULL))
