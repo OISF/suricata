@@ -156,6 +156,7 @@ void DetectLuaRegister(void)
 #define DATATYPE_HTTP_RESPONSE_HEADERS_RAW  (1<<14)
 
 #define DATATYPE_DNS_RRNAME                 (1<<15)
+#define DATATYPE_TLS                        (1<<16)
 
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
@@ -294,7 +295,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, flow_lock, /* no packet in the ctx */NULL);
+            f, flow_lock, /* no packet in the ctx */NULL, 0);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -395,8 +396,14 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
+    uint8_t flags = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER)
+        flags = STREAM_TOSERVER;
+    else if (p->flowflags & FLOW_PKT_TOCLIENT)
+        flags = STREAM_TOCLIENT;
+
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p);
+            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -536,7 +543,8 @@ static int DetectLuaAppMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT, NULL);
+            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT,
+            NULL, flags);
 
     if (tluajit->alproto != ALPROTO_UNKNOWN) {
         int alproto = f->alproto;
@@ -956,6 +964,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                 SCLogError(SC_ERR_LUA_ERROR, "alloc error");
                 goto error;
             }
+        } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_TLS;
+
+            ld->flags |= DATATYPE_TLS;
+
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1045,6 +1059,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRLMATCH);
     } else if (luajit->alproto == ALPROTO_DNS) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERY_MATCH);
+    } else if (luajit->alproto == ALPROTO_TLS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
