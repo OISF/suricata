@@ -1397,6 +1397,9 @@ app-layer:
       #                           by file_data, http_server_body & pcre /Q option.
       #   double-decode-path:     Double decode path section of the URI
       #   double-decode-query:    Double decode query section of the URI
+      #   response-body-decompress-layer-limit:
+      #                           Limit to how many layers of compression will be
+      #                           decompressed. Defaults to 2.
       #
       # server-config:            List of server configurations to use if address matches
       #   address:                List of ip addresses or networks for this block
@@ -1451,6 +1454,9 @@ app-layer:
            request-body-inspect-window: 4kb
            response-body-minimal-inspect-size: 40kb
            response-body-inspect-window: 16kb
+
+           # response body decompression (0 disables)
+           response-body-decompress-layer-limit: 2
 
            # auto will use http-body-inline mode in IPS mode, yes or no set it statically
            http-body-inline: auto

@@ -2359,6 +2359,19 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 exit(EXIT_FAILURE);
             }
 
+        } else if (strcasecmp("response-body-decompress-layer-limit", p->name) == 0) {
+            uint32_t value = 2;
+            if (ParseSizeStringU32(p->val, &value) < 0) {
+                SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-inspect-window "
+                           "from conf file - %s.  Killing engine", p->val);
+                exit(EXIT_FAILURE);
+            }
+#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+            htp_config_set_response_decompression_layer_limit(cfg_prec->cfg, value);
+#else
+            SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "can't set response-body-decompress-layer-limit "
+                    "to %u, libhtp version too old", value);
+#endif
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
             htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
                                                      HTP_DECODER_URL_PATH,
