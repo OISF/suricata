@@ -301,7 +301,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, flow_lock, /* no packet in the ctx */NULL);
+            f, flow_lock, /* no packet in the ctx */NULL, 0);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -402,8 +402,14 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
+    uint8_t flags = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER)
+        flags = STREAM_TOSERVER;
+    else if (p->flowflags & FLOW_PKT_TOCLIENT)
+        flags = STREAM_TOCLIENT;
+
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p);
+            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -533,7 +539,8 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT, NULL);
+            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT,
+            NULL, flags);
 
     if (tluajit->alproto != ALPROTO_UNKNOWN) {
         int alproto = f->alproto;
