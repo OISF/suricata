@@ -164,6 +164,8 @@ void DetectLuaRegister(void)
 #define DATATYPE_DNS_REQUEST                (1<<16)
 #define DATATYPE_DNS_RESPONSE               (1<<17)
 
+#define DATATYPE_TLS                        (1<<18)
+
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
 {
@@ -1000,6 +1002,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                 SCLogError(SC_ERR_LUA_ERROR, "alloc error");
                 goto error;
             }
+        } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_TLS;
+
+            ld->flags |= DATATYPE_TLS;
+
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1095,6 +1103,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         } else if (luajit->flags & DATATYPE_DNS_RESPONSE) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
         }
+    } else if (luajit->alproto == ALPROTO_TLS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
