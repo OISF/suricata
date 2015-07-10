@@ -736,7 +736,7 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         int r = LuaScriptInit(path, &opts);
         if (r != 0) {
             SCLogError(SC_ERR_LUA_ERROR, "couldn't initialize scipt");
-            continue;
+            goto error;
         }
 
         /* create an OutputModule for this script, based
@@ -744,7 +744,7 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         OutputModule *om = SCCalloc(1, sizeof(*om));
         if (om == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "calloc() failed");
-            continue;
+            goto error;
         }
 
         om->name = MODULE_NAME;
@@ -783,13 +783,22 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "failed to setup thread module");
             SCFree(om);
-            continue;
+            goto error;
         }
 
         TAILQ_INSERT_TAIL(&output_ctx->submodules, om, entries);
     }
 
     return output_ctx;
+
+error:
+
+    if (output_ctx != NULL) {
+        if (output_ctx->DeInit && output_ctx->data)
+            output_ctx->DeInit(output_ctx->data);
+        SCFree(output_ctx);
+    }
+    return NULL;
 }
 
 /** \internal

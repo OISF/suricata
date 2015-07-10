@@ -703,9 +703,8 @@ void RunModeInitializeOutputs(void)
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
             /* Shouldn't happen. */
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Failed to lookup configuration child node: fast");
-            exit(1);
+            FatalError(SC_ERR_INVALID_ARGUMENT,
+                "Failed to lookup configuration child node: %s", output->val);
         }
 
         if (strcmp(output->val, "tls-store") == 0) {
@@ -754,8 +753,8 @@ void RunModeInitializeOutputs(void)
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
         if (module == NULL) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "No output module named %s, ignoring", output->val);
+            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                "No output module named %s", output->val);
             continue;
         }
 
@@ -763,8 +762,7 @@ void RunModeInitializeOutputs(void)
         if (module->InitFunc != NULL) {
             output_ctx = module->InitFunc(output_config);
             if (output_ctx == NULL) {
-                /* In most cases the init function will have logged the
-                 * error. Maybe we should exit on init errors? */
+                FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT, "output module setup failed");
                 continue;
             }
         } else if (module->InitSubFunc != NULL) {
@@ -786,20 +784,18 @@ void RunModeInitializeOutputs(void)
 
                     OutputModule *sub_module = OutputGetModuleByConfName(subname);
                     if (sub_module == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "No output module named %s, ignoring", subname);
+                        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                                "No output module named %s", subname);
                         continue;
                     }
                     if (sub_module->parent_name == NULL ||
                             strcmp(sub_module->parent_name,output->val) != 0) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad parent for %s, ignoring", subname);
-                        continue;
+                        FatalError(SC_ERR_INVALID_ARGUMENT,
+                                "bad parent for %s", subname);
                     }
                     if (sub_module->InitSubFunc == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad sub-module for %s, ignoring", subname);
-                        continue;
+                        FatalError(SC_ERR_INVALID_ARGUMENT,
+                                "bad sub-module for %s", subname);
                     }
                     ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
                     // sub_output_config may be NULL if no config
