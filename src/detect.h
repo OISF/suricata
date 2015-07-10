@@ -120,7 +120,10 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_FILEMATCH,
 
-    DETECT_SM_LIST_DNSQUERY_MATCH,
+    DETECT_SM_LIST_DNSREQUEST_MATCH,    /**< per DNS query tx match list */
+    DETECT_SM_LIST_DNSRESPONSE_MATCH,   /**< per DNS response tx match list */
+    DETECT_SM_LIST_DNSQUERYNAME_MATCH,  /**< per query in a tx list */
+
     DETECT_SM_LIST_MODBUS_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
@@ -888,6 +891,11 @@ typedef struct SigTableElmt_ {
 
     /** AppLayer match function  pointer */
     int (*AppLayerMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t flags, void *alstate, Signature *, SigMatch *);
+
+    /** AppLayer TX match function pointer */
+    int (*AppLayerTxMatch)(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+            uint8_t flags, void *alstate, void *txv,
+            const Signature *, const SigMatchCtx *);
 
     /** File match function  pointer */
     int (*FileMatch)(ThreadVars *,  /**< thread local vars */
