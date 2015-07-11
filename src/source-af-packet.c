@@ -1587,7 +1587,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     ptv->req.tp_block_nr = ptv->req.tp_frame_nr / frames_per_block + 1;
     /* exact division */
     ptv->req.tp_frame_nr = ptv->req.tp_block_nr * frames_per_block;
-    SCLogInfo("AF_PACKET RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
+    SCLogPerf("AF_PACKET RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
               ptv->req.tp_block_size, ptv->req.tp_block_nr,
               ptv->req.tp_frame_size, ptv->req.tp_frame_nr);
     return 1;
@@ -1625,7 +1625,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     ptv->req3.tp_frame_nr = ptv->req3.tp_block_nr * frames_per_block;
     ptv->req3.tp_retire_blk_tov = ptv->block_timeout;
     ptv->req3.tp_feature_req_word = TP_FT_REQ_FILL_RXHASH;
-    SCLogInfo("AF_PACKET V3 RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d (mem: %d)",
+    SCLogPerf("AF_PACKET V3 RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d (mem: %d)",
               ptv->req3.tp_block_size, ptv->req3.tp_block_nr,
               ptv->req3.tp_frame_size, ptv->req3.tp_frame_nr,
               ptv->req3.tp_block_size * ptv->req3.tp_block_nr
@@ -1865,7 +1865,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         /*
          * Set the socket buffer size to the specified value.
          */
-        SCLogInfo("Setting AF_PACKET socket buffer to %d", ptv->buffer_size);
+        SCLogPerf("Setting AF_PACKET socket buffer to %d", ptv->buffer_size);
         if (setsockopt(ptv->socket, SOL_SOCKET, SO_RCVBUF,
                        &ptv->buffer_size,
                        sizeof(ptv->buffer_size)) == -1) {
@@ -2151,13 +2151,11 @@ void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data)
 
 #ifdef PACKET_STATISTICS
     AFPDumpCounters(ptv);
-    SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
+    SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
 #endif
-
-    SCLogInfo("(%s) Packets %" PRIu64, tv->name, ptv->pkts);
 }
 
 /**

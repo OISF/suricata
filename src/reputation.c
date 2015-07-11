@@ -617,7 +617,7 @@ int SRepInit(DetectEngineCtx *de_ctx)
     (void)ConfGet("reputation-categories-file", &filename);
     files = ConfGetNode("reputation-files");
     if (filename == NULL && files == NULL) {
-        SCLogInfo("IP reputation disabled");
+        SCLogConfig("IP reputation disabled");
         return 0;
     }
 

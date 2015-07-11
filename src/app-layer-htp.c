@@ -2184,7 +2184,7 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
         cfg_prec->request.inspect_window +=
             (int) (cfg_prec->request.inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
-        SCLogInfo("'%s' server has 'request-body-minimal-inspect-size' set to"
+        SCLogConfig("'%s' server has 'request-body-minimal-inspect-size' set to"
                   " %d and 'request-body-inspect-window' set to %d after"
                   " randomization.",
                   name,
@@ -2199,7 +2199,7 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
             (int) (cfg_prec->response.inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
 
-        SCLogInfo("'%s' server has 'response-body-minimal-inspect-size' set to"
+        SCLogConfig("'%s' server has 'response-body-minimal-inspect-size' set to"
                   " %d and 'response-body-inspect-window' set to %d after"
                   " randomization.",
                   name,
@@ -2546,7 +2546,7 @@ void AppLayerHtpPrintStats(void)
 {
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
-    SCLogInfo("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
+    SCLogPerf("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
 }

@@ -335,7 +335,7 @@ void StreamTcpInitConfig(char quiet)
         }
     }
     if (!quiet) {
-        SCLogInfo("stream \"prealloc-sessions\": %"PRIu32" (per thread)",
+        SCLogConfig("stream \"prealloc-sessions\": %"PRIu32" (per thread)",
                 stream_config.prealloc_sessions);
     }
 
@@ -352,19 +352,19 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream \"memcap\": %"PRIu64, stream_config.memcap);
+        SCLogConfig("stream \"memcap\": %"PRIu64, stream_config.memcap);
     }
 
     ConfGetBool("stream.midstream", &stream_config.midstream);
 
     if (!quiet) {
-        SCLogInfo("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
+        SCLogConfig("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
     }
 
     ConfGetBool("stream.async-oneside", &stream_config.async_oneside);
 
     if (!quiet) {
-        SCLogInfo("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
+        SCLogConfig("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
     }
 
     int csum = 0;
@@ -379,7 +379,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream \"checksum-validation\": %s",
+        SCLogConfig("stream \"checksum-validation\": %s",
                 stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION ?
                 "enabled" : "disabled");
     }
@@ -409,7 +409,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
+        SCLogConfig("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
@@ -422,7 +422,7 @@ void StreamTcpInitConfig(char quiet)
         stream_config.max_synack_queued = (uint8_t)STREAMTCP_DEFAULT_MAX_SYNACK_QUEUED;
     }
     if (!quiet) {
-        SCLogInfo("stream \"max-synack-queued\": %"PRIu8, stream_config.max_synack_queued);
+        SCLogConfig("stream \"max-synack-queued\": %"PRIu8, stream_config.max_synack_queued);
     }
 
     char *temp_stream_reassembly_memcap_str;
@@ -440,7 +440,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
+        SCLogConfig("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
     }
 
     char *temp_stream_reassembly_depth_str;
@@ -458,7 +458,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
+        SCLogConfig("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }
 
     int randomize = 0;
@@ -540,9 +540,9 @@ void StreamTcpInitConfig(char quiet)
             stream_config.reassembly_toclient_chunk_size);
 
     if (!quiet) {
-        SCLogInfo("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
+        SCLogConfig("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
             stream_config.reassembly_toserver_chunk_size);
-        SCLogInfo("stream.reassembly \"toclient-chunk-size\": %"PRIu16,
+        SCLogConfig("stream.reassembly \"toclient-chunk-size\": %"PRIu16,
             stream_config.reassembly_toclient_chunk_size);
     }
 
@@ -556,7 +556,7 @@ void StreamTcpInitConfig(char quiet)
         enable_raw = 1;
     }
     if (!quiet)
-        SCLogInfo("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
+        SCLogConfig("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
 
     /* init the memcap/use tracking */
     SC_ATOMIC_INIT(st_memuse);

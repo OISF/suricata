@@ -83,7 +83,7 @@ void TmqhFlowPrintAutofpHandler(void)
 {
 #define PRINT_IF_FUNC(f, msg)                       \
     if (tmqh_table[TMQH_FLOW].OutHandler == (f))    \
-        SCLogInfo("AutoFP mode using \"%s\" flow load balancer", (msg))
+        SCLogConfig("AutoFP mode using \"%s\" flow load balancer", (msg))
 
     PRINT_IF_FUNC(TmqhOutputFlowHash, "Hash");
     PRINT_IF_FUNC(TmqhOutputFlowIPPair, "IPPair");
@@ -212,7 +212,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
 {
     TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
 
-    SCLogInfo("AutoFP - Total flow handler queues - %" PRIu16,
+    SCLogPerf("AutoFP - Total flow handler queues - %" PRIu16,
               fctx->size);
     SCFree(fctx->queues);
     SCFree(fctx);

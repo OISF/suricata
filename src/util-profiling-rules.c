@@ -447,7 +447,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     uint32_t count = rules_ctx->size;
     uint64_t total_ticks = 0;
 
-    SCLogInfo("Dumping profiling data for %u rules.", count);
+    SCLogPerf("Dumping profiling data for %u rules.", count);
 
     memset(summary, 0, summary_size);
     for (i = 0; i < count; i++) {
@@ -520,7 +520,7 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     if (fp != stdout)
         fclose(fp);
     SCFree(summary);
-    SCLogInfo("Done dumping profiling data.");
+    SCLogPerf("Done dumping profiling data.");
 }
 
 /**
@@ -667,7 +667,7 @@ SCProfilingRuleInitCounters(DetectEngineCtx *de_ctx)
         }
     }
 
-    SCLogInfo("Registered %"PRIu32" rule profiling counters.", count);
+    SCLogPerf("Registered %"PRIu32" rule profiling counters.", count);
 }
 
 #endif /* PROFILING */

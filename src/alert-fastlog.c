@@ -233,7 +233,7 @@ void AlertFastLogExitPrintStats(ThreadVars *tv, void *data)
         return;
     }
 
-    SCLogInfo("Fast log output wrote %" PRIu64 " alerts", aft->file_ctx->alerts);
+    //SCLogInfo("Fast log output wrote %" PRIu64 " alerts", aft->file_ctx->alerts);
 }
 
 /**

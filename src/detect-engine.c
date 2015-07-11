@@ -840,7 +840,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
-    SCLogInfo("pattern matchers: MPM: %s, SPM: %s",
+    SCLogConfig("pattern matchers: MPM: %s, SPM: %s",
         mpm_table[de_ctx->mpm_matcher].name,
         spm_table[de_ctx->spm_matcher].name);
 
@@ -1211,10 +1211,10 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     char *ports = NULL;
     (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
     if (ports) {
-        SCLogInfo("grouping: tcp-whitelist %s", ports);
+        SCLogConfig("grouping: tcp-whitelist %s", ports);
     } else {
         ports = "53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080";
-        SCLogInfo("grouping: tcp-whitelist (default) %s", ports);
+        SCLogConfig("grouping: tcp-whitelist (default) %s", ports);
 
     }
     if (DetectPortParse(de_ctx, &de_ctx->tcp_whitelist, ports) != 0) {
@@ -1235,10 +1235,10 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     ports = NULL;
     (void)ConfGet("detect.grouping.udp-whitelist", &ports);
     if (ports) {
-        SCLogInfo("grouping: udp-whitelist %s", ports);
+        SCLogConfig("grouping: udp-whitelist %s", ports);
     } else {
         ports = "53, 135, 5060";
-        SCLogInfo("grouping: udp-whitelist (default) %s", ports);
+        SCLogConfig("grouping: udp-whitelist (default) %s", ports);
 
     }
     if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {

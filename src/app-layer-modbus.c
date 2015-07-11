@@ -1472,10 +1472,10 @@ void RegisterModbusParsers(void)
                 request_flood = value;
             }
         }
-        SCLogInfo("Modbus request flood protection level: %u", request_flood);
+        SCLogConfig("Modbus request flood protection level: %u", request_flood);
     } else {
 #ifndef AFLFUZZ_APPLAYER
-        SCLogInfo("Protocol detection and parser disabled for %s protocol.", proto_name);
+        SCLogConfig("Protocol detection and parser disabled for %s protocol.", proto_name);
         return;
 #endif
     }
@@ -1507,7 +1507,7 @@ void RegisterModbusParsers(void)
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection" "still on.", proto_name);
+        SCLogConfig("Parsed disabled for %s protocol. Protocol detection" "still on.", proto_name);
     }
 #ifdef UNITTESTS
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_MODBUS, ModbusParserRegisterTests);

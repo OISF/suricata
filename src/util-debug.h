@@ -56,6 +56,8 @@ typedef enum {
     SC_LOG_WARNING,
     SC_LOG_NOTICE,
     SC_LOG_INFO,
+    SC_LOG_PERF,
+    SC_LOG_CONFIG,
     SC_LOG_DEBUG,
     SC_LOG_LEVEL_MAX,
 } SCLogLevel;
@@ -241,6 +243,11 @@ extern int sc_log_module_cleaned;
         __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 #define SCLogInfoRaw(file, func, line, ...) SCLog(SC_LOG_INFO, \
         (file), (func), (line), __VA_ARGS__)
+
+#define SCLogConfig(...) SCLog(SC_LOG_CONFIG, \
+        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
+#define SCLogPerf(...) SCLog(SC_LOG_PERF, \
+        __FILE__, __FUNCTION__, __LINE__, __VA_ARGS__)
 
 /**
  * \brief Macro used to log NOTICE messages.

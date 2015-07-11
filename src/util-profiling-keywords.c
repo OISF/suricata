@@ -206,7 +206,7 @@ SCProfilingKeywordDump(DetectEngineCtx *de_ctx)
     if (fp != stdout)
         fclose(fp);
 
-    SCLogInfo("Done dumping keyword profiling data.");
+    SCLogPerf("Done dumping keyword profiling data.");
 }
 
 /**
@@ -384,7 +384,7 @@ SCProfilingKeywordInitCounters(DetectEngineCtx *de_ctx)
         memset(de_ctx->profile_keyword_ctx_per_list[i]->data, 0x00, sizeof(SCProfileKeywordData) * DETECT_TBLSIZE);
     }
 
-    SCLogInfo("Registered %"PRIu32" keyword profiling counters.", DETECT_TBLSIZE);
+    SCLogPerf("Registered %"PRIu32" keyword profiling counters.", DETECT_TBLSIZE);
 }
 
 #endif /* PROFILING */

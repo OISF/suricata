@@ -3236,7 +3236,8 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
             ref++;
         }
     }
-    SCLogInfo("OTHER %s: %u proto groups, %u unique SGH's, %u copies", "toserver", cnt, own, ref);
+    SCLogPerf("OTHER %s: %u proto groups, %u unique SGH's, %u copies",
+            "toserver", cnt, own, ref);
 
     cnt = 0;
     own = 0;
@@ -3272,7 +3273,8 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
             ref++;
         }
     }
-    SCLogInfo("OTHER %s: %u proto groups, %u unique SGH's, %u copies", "toclient", cnt, own, ref);
+    SCLogPerf("OTHER %s: %u proto groups, %u unique SGH's, %u copies",
+            "toclient", cnt, own, ref);
 
     for (p = 0; p < 256; p++) {
         if (p == IPPROTO_TCP || p == IPPROTO_UDP)
@@ -3486,7 +3488,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
                 iter->sh->init->whitelist);
     }
 #endif
-    SCLogInfo("%s %s: %u port groups, %u unique SGH's, %u copies",
+    SCLogPerf("%s %s: %u port groups, %u unique SGH's, %u copies",
             ipproto == 6 ? "TCP" : "UDP",
             direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
             cnt, own, ref);
@@ -3614,7 +3616,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
                 de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
                 cnt_deonly);
 
-        SCLogInfo("building signature grouping structure, stage 1: "
+        SCLogConfig("building signature grouping structure, stage 1: "
                "preprocessing rules... complete");
     }
     return 0;
@@ -4002,7 +4004,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         sgh->id = idx;
         cnt++;
     }
-    SCLogInfo("Unique rule groups: %u", cnt);
+    SCLogPerf("Unique rule groups: %u", cnt);
 
     MpmStoreReportStats(de_ctx);
 
