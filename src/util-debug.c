@@ -475,8 +475,12 @@ static SCError SCLogMessageGetBuffer(
         }
     }
 
-    char *xyellow = error_code > SC_OK ? yellow : "";
-    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", xyellow, message, reset);
+    char *hi = "";
+    if (error_code > SC_OK)
+        hi = red;
+    else if (log_level <= SC_LOG_NOTICE)
+        hi = yellow;
+    cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - buffer), "%s%s%s", hi, message, reset);
     if (cw < 0)
         goto error;
     temp += cw;
