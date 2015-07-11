@@ -813,7 +813,7 @@ void RunModeInitializeOutputs(void)
             if (types != NULL) {
                 ConfNode *type = NULL;
                 TAILQ_FOREACH(type, &types->head, next) {
-                    SCLogInfo("enabling 'eve-log' module '%s'", type->val);
+                    SCLogConfig("enabling 'eve-log' module '%s'", type->val);
 
                     char subname[256];
                     snprintf(subname, sizeof(subname), "%s.%s", output->val, type->val);

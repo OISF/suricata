@@ -55,6 +55,8 @@ SCEnumCharMap sc_log_level_map[ ] = {
     { "Warning",        SC_LOG_WARNING },
     { "Notice",         SC_LOG_NOTICE },
     { "Info",           SC_LOG_INFO },
+    { "Perf",           SC_LOG_PERF },
+    { "Config",         SC_LOG_CONFIG },
     { "Debug",          SC_LOG_DEBUG },
     { NULL,             -1 }
 };

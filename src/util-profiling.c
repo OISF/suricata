@@ -308,7 +308,7 @@ void
 SCProfilingDump(void)
 {
     SCProfilingDumpPacketStats();
-    SCLogInfo("Done dumping profiling data.");
+    SCLogPerf("Done dumping profiling data.");
 }
 
 static void DumpFlowWorkerIP(FILE *fp, int ipv, uint64_t total)

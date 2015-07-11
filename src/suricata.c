@@ -2142,7 +2142,7 @@ static void SetupDelayedDetect(SCInstance *suri)
         }
     }
 
-    SCLogInfo("Delayed detect %s", suri->delayed_detect ? "enabled" : "disabled");
+    SCLogConfig("Delayed detect %s", suri->delayed_detect ? "enabled" : "disabled");
     if (suri->delayed_detect) {
         SCLogInfo("Packets will start being processed before signatures are active.");
     }

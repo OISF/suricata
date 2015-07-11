@@ -582,7 +582,7 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data)
         return;
     }
 
-    SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
+    //SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
 }
 
 /** \brief Create a new http log LogFileCtx.

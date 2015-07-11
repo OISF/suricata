@@ -336,7 +336,7 @@ static void DNSUDPConfigure(void)
             request_flood = value;
         }
     }
-    SCLogInfo("DNS request flood protection level: %u", request_flood);
+    SCLogConfig("DNS request flood protection level: %u", request_flood);
     DNSConfigSetRequestFlood(request_flood);
 
     p = ConfGetNode("app-layer.protocols.dns.state-memcap");
@@ -348,7 +348,7 @@ static void DNSUDPConfigure(void)
             state_memcap = value;
         }
     }
-    SCLogInfo("DNS per flow memcap (state-memcap): %u", state_memcap);
+    SCLogConfig("DNS per flow memcap (state-memcap): %u", state_memcap);
     DNSConfigSetStateMemcap(state_memcap);
 
     p = ConfGetNode("app-layer.protocols.dns.global-memcap");
@@ -360,7 +360,7 @@ static void DNSUDPConfigure(void)
             global_memcap = value;
         }
     }
-    SCLogInfo("DNS global memcap: %"PRIu64, global_memcap);
+    SCLogConfig("DNS global memcap: %"PRIu64, global_memcap);
     DNSConfigSetGlobalMemcap(global_memcap);
 }
 

@@ -375,7 +375,7 @@ int StreamTcpReassemblyConfig(char quiet)
             sizes[npools].pktsize = 0xffff;
             sizes[npools].prealloc = 8;
             npools++;
-            SCLogInfo("appended a segment pool for pktsize 65536");
+            SCLogConfig("appended a segment pool for pktsize 65536");
         }
     } else if (npools == 0) {
         /* defaults */
@@ -447,7 +447,7 @@ int StreamTcpReassemblyConfig(char quiet)
         SCLogDebug("my_segment_pktsizes[i] %u, my_segment_poolsizes[i] %u",
                 my_segment_pktsizes[i], my_segment_poolsizes[i]);
         if (!quiet)
-            SCLogInfo("segment pool: pktsize %u, prealloc %u",
+            SCLogConfig("segment pool: pktsize %u, prealloc %u",
                     my_segment_pktsizes[i], my_segment_poolsizes[i]);
     }
 
@@ -484,7 +484,7 @@ int StreamTcpReassemblyConfig(char quiet)
         stream_chunk_prealloc = prealloc;
     }
     if (!quiet)
-        SCLogInfo("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
+        SCLogConfig("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
     StreamMsgQueuesInit(stream_chunk_prealloc);
 
     intmax_t zero_copy_size = 128;
@@ -497,7 +497,7 @@ int StreamTcpReassemblyConfig(char quiet)
     }
     stream_config.zero_copy_size = (uint16_t)zero_copy_size;
     if (!quiet)
-        SCLogInfo("stream.reassembly \"zero-copy-size\": %u", stream_config.zero_copy_size);
+        SCLogConfig("stream.reassembly \"zero-copy-size\": %u", stream_config.zero_copy_size);
 
     return 0;
 }
@@ -539,7 +539,7 @@ void StreamTcpReassembleFree(char quiet)
                        segment_pool[u16]->allocated);
 
             if (segment_pool[u16]->max_outstanding > segment_pool[u16]->allocated) {
-                SCLogInfo("TCP segment pool of size %u had a peak use of %u segments, "
+                SCLogPerf("TCP segment pool of size %u had a peak use of %u segments, "
                         "more than the prealloc setting of %u", segment_pool_pktsizes[u16],
                         segment_pool[u16]->max_outstanding, segment_pool[u16]->allocated);
             }
@@ -564,8 +564,8 @@ void StreamTcpReassembleFree(char quiet)
     SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
     SCMutexDestroy(&segment_pool_memuse_mutex);
     SCMutexDestroy(&segment_pool_cnt_mutex);
-    SCLogInfo("dbg_app_layer_gap %u", dbg_app_layer_gap);
-    SCLogInfo("dbg_app_layer_gap_candidate %u", dbg_app_layer_gap_candidate);
+    SCLogPerf("dbg_app_layer_gap %u", dbg_app_layer_gap);
+    SCLogPerf("dbg_app_layer_gap_candidate %u", dbg_app_layer_gap_candidate);
 #endif
 }
 

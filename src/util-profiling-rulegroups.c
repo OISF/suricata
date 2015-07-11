@@ -269,7 +269,7 @@ SCProfilingSghDump(DetectEngineCtx *de_ctx)
     if (fp != stdout)
         fclose(fp);
 
-    SCLogInfo("Done dumping rulegroup profiling data.");
+    SCLogPerf("Done dumping rulegroup profiling data.");
 }
 
 /**
@@ -403,7 +403,7 @@ SCProfilingSghInitCounters(DetectEngineCtx *de_ctx)
 
     de_ctx->profile_sgh_ctx->cnt = de_ctx->sgh_array_cnt;
 
-    SCLogInfo("Registered %"PRIu32" rulegroup profiling counters.", de_ctx->sgh_array_cnt);
+    SCLogPerf("Registered %"PRIu32" rulegroup profiling counters.", de_ctx->sgh_array_cnt);
 }
 
 #endif /* PROFILING */

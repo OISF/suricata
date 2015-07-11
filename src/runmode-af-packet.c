@@ -152,7 +152,7 @@ void *ParseAFPConfig(const char *iface)
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
             aconf->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
+            SCLogConfig("Going to use command-line provided bpf filter '%s'",
                        aconf->bpf_filter);
         }
     }
@@ -202,7 +202,7 @@ void *ParseAFPConfig(const char *iface)
         if (boolval) {
             aconf->flags |= AFP_RING_MODE;
         } else {
-            SCLogInfo("Disabling mmaped capture on iface %s",
+            SCLogConfig("Disabling mmaped capture on iface %s",
                     aconf->iface);
             aconf->flags &= ~AFP_RING_MODE;
         }
@@ -214,7 +214,7 @@ void *ParseAFPConfig(const char *iface)
         (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
                                                "mmap-locked", (int *)&boolval);
         if (boolval) {
-            SCLogInfo("Enabling locked memory for mmap on iface %s",
+            SCLogConfig("Enabling locked memory for mmap on iface %s",
                     aconf->iface);
             aconf->flags |= AFP_MMAP_LOCKED;
         }
@@ -223,7 +223,7 @@ void *ParseAFPConfig(const char *iface)
         if (boolval) {
             if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
 #ifdef HAVE_TPACKET_V3
-                SCLogInfo("Enabling tpacket v3 capture on iface %s",
+                SCLogConfig("Enabling tpacket v3 capture on iface %s",
                         aconf->iface);
                 aconf->flags |= AFP_TPACKET_V3;
 #else
@@ -240,7 +240,7 @@ void *ParseAFPConfig(const char *iface)
         (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
                                                "use-emergency-flush", (int *)&boolval);
         if (boolval) {
-            SCLogInfo("Enabling ring emergency flush on iface %s",
+            SCLogConfig("Enabling ring emergency flush on iface %s",
                     aconf->iface);
             aconf->flags |= AFP_EMERGENCY_MODE;
         }
@@ -282,7 +282,7 @@ void *ParseAFPConfig(const char *iface)
         /* default to our safest choice: flow hashing + defrag enabled */
         aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-        SCLogInfo("Using round-robin cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using round-robin cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_LB;
     } else if (strcmp(tmpctype, "cluster_flow") == 0) {
@@ -290,29 +290,29 @@ void *ParseAFPConfig(const char *iface)
          * compute the hash */
         uint16_t defrag = 0;
         int conf_val = 0;
-        SCLogInfo("Using flow cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using flow cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         ConfGetChildValueBoolWithDefault(if_root, if_default, "defrag", &conf_val);
         if (conf_val) {
-            SCLogInfo("Using defrag kernel functionality for AF_PACKET (iface %s)",
+            SCLogConfig("Using defrag kernel functionality for AF_PACKET (iface %s)",
                     aconf->iface);
             defrag = PACKET_FANOUT_FLAG_DEFRAG;
         }
         aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
     } else if (strcmp(tmpctype, "cluster_cpu") == 0) {
-        SCLogInfo("Using cpu cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using cpu cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_CPU;
     } else if (strcmp(tmpctype, "cluster_qm") == 0) {
-        SCLogInfo("Using queue based cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using queue based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_QM;
     } else if (strcmp(tmpctype, "cluster_random") == 0) {
-        SCLogInfo("Using random based cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using random based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_RND;
     } else if (strcmp(tmpctype, "cluster_rollover") == 0) {
-        SCLogInfo("Using rollover based cluster mode for AF_PACKET (iface %s)",
+        SCLogConfig("Using rollover based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
 
@@ -323,7 +323,7 @@ void *ParseAFPConfig(const char *iface)
     int conf_val = 0;
     ConfGetChildValueBoolWithDefault(if_root, if_default, "rollover", &conf_val);
     if (conf_val) {
-        SCLogInfo("Using rollover kernel functionality for AF_PACKET (iface %s)",
+        SCLogConfig("Using rollover kernel functionality for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type |= PACKET_FANOUT_FLAG_ROLLOVER;
     }
@@ -334,7 +334,7 @@ void *ParseAFPConfig(const char *iface)
         if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
             if (strlen(bpf_filter) > 0) {
                 aconf->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", aconf->bpf_filter);
+                SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
             }
         }
     }
@@ -364,7 +364,7 @@ void *ParseAFPConfig(const char *iface)
 
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
-        SCLogInfo("Disabling promiscuous mode on iface %s",
+        SCLogConfig("Disabling promiscuous mode on iface %s",
                 aconf->iface);
         aconf->promisc = 0;
     }
@@ -398,7 +398,7 @@ finalize:
             }
         }
         if (aconf->threads)
-            SCLogInfo("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
+            SCLogPerf("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
     }
     if (aconf->threads <= 0) {
         aconf->threads = 1;
@@ -448,7 +448,7 @@ finalize:
     }
 
     if (aconf->flags & AFP_ZERO_COPY) {
-        SCLogInfo("%s: enabling zero copy mode by using data release call", iface);
+        SCLogConfig("%s: enabling zero copy mode by using data release call", iface);
     }
 
     return aconf;

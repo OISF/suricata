@@ -688,7 +688,7 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         StatsSyncCountersIfSignalled(th_v);
     }
 
-    SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
+    SCLogPerf("%" PRIu32 " new flows, %" PRIu32 " established flows were "
               "timed out, %"PRIu32" flows in closed state", new_cnt,
               established_cnt, closing_cnt);
 
@@ -717,7 +717,7 @@ void FlowManagerThreadSpawn()
     }
     flowmgr_number = (uint32_t)setting;
 
-    SCLogInfo("using %u flow manager threads", flowmgr_number);
+    SCLogConfig("using %u flow manager threads", flowmgr_number);
     SCCtrlCondInit(&flow_manager_ctrl_cond, NULL);
     SCCtrlMutexInit(&flow_manager_ctrl_mutex, NULL);
 
@@ -850,7 +850,7 @@ static TmEcode FlowRecycler(ThreadVars *th_v, void *thread_data)
         StatsSyncCountersIfSignalled(th_v);
     }
 
-    SCLogInfo("%"PRIu64" flows processed", recycled_cnt);
+    SCLogPerf("%"PRIu64" flows processed", recycled_cnt);
 
     return TM_ECODE_OK;
 }
@@ -881,7 +881,7 @@ void FlowRecyclerThreadSpawn()
     }
     flowrec_number = (uint32_t)setting;
 
-    SCLogInfo("using %u flow recycler threads", flowrec_number);
+    SCLogConfig("using %u flow recycler threads", flowrec_number);
 
     SCCtrlCondInit(&flow_recycler_ctrl_cond, NULL);
     SCCtrlMutexInit(&flow_recycler_ctrl_mutex, NULL);

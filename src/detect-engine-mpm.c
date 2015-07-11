@@ -130,12 +130,12 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
 
         if (shared == 0) {
             if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogInfo("using unique mpm ctx' for %s", am->name);
+                SCLogPerf("using unique mpm ctx' for %s", am->name);
             }
             am->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
         } else {
             if (!(de_ctx->flags & DE_QUIET)) {
-                SCLogInfo("using shared mpm ctx' for %s", am->name);
+                SCLogPerf("using shared mpm ctx' for %s", am->name);
             }
             am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
         }
@@ -184,10 +184,10 @@ static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
     int32_t ctx;
     if (shared == 0) {
         ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-        SCLogInfo("using unique mpm ctx' for %s", name);
+        SCLogPerf("using unique mpm ctx' for %s", name);
     } else {
         ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name);
-        SCLogInfo("using shared mpm ctx' for %s", name);
+        SCLogPerf("using shared mpm ctx' for %s", name);
     }
     return ctx;
 }
@@ -839,14 +839,14 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
     if (!(de_ctx->flags & DE_QUIET)) {
         uint32_t x;
         for (x = 0; x < MPMB_MAX; x++) {
-            SCLogInfo("Builtin MPM \"%s\": %u", builtin_mpms[x], stats[x]);
+            SCLogPerf("Builtin MPM \"%s\": %u", builtin_mpms[x], stats[x]);
         }
         for (x = 0; x < APP_MPMS_MAX; x++) {
             if (appstats[x] == 0)
                 continue;
             const char *name = app_mpms[x].name;
             char *direction = app_mpms[x].direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
-            SCLogInfo("AppLayer MPM \"%s %s\": %u", direction, name, appstats[x]);
+            SCLogPerf("AppLayer MPM \"%s %s\": %u", direction, name, appstats[x]);
         }
     }
 }

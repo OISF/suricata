@@ -1211,8 +1211,8 @@ TmEcode Unified2AlertThreadDeinit(ThreadVars *t, void *data)
     }
 
     if (!(aun->unified2alert_ctx->file_ctx->flags & LOGFILE_ALERTS_PRINTED)) {
-        SCLogInfo("Alert unified2 module wrote %"PRIu64" alerts",
-                aun->unified2alert_ctx->file_ctx->alerts);
+        //SCLogInfo("Alert unified2 module wrote %"PRIu64" alerts",
+        //        aun->unified2alert_ctx->file_ctx->alerts);
 
         /* Do not print it for each thread */
         aun->unified2alert_ctx->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
