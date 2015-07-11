@@ -2824,7 +2824,7 @@ void HtpConfigRestoreBackup(void)
  *        response of the parser from HTP library. */
 int HTPParserTest01(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
@@ -2860,7 +2860,6 @@ int HTPParserTest01(void)
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -2870,7 +2869,6 @@ int HTPParserTest01(void)
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -2885,10 +2883,10 @@ int HTPParserTest01(void)
                 "  and got: %s \n", bstr_util_strdup_to_c(h->value),
                 bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -2903,7 +2901,7 @@ end:
  *        response of the parser from HTP library. */
 static int HTPParserTest01a(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = " POST  /  HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
@@ -2939,7 +2937,6 @@ static int HTPParserTest01a(void)
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -2949,7 +2946,6 @@ static int HTPParserTest01a(void)
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -2964,10 +2960,9 @@ static int HTPParserTest01a(void)
                 "  and got: %s \n", bstr_util_strdup_to_c(h->value),
                 bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
-
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -2981,7 +2976,7 @@ end:
 /** \test See how it deals with an incomplete request. */
 int HTPParserTest02(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "POST";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -3004,7 +2999,6 @@ int HTPParserTest02(void)
                                 STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3013,7 +3007,6 @@ int HTPParserTest02(void)
     http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -3022,10 +3015,9 @@ int HTPParserTest02(void)
     if ((tx->request_method) != NULL || h != NULL)
     {
         printf("expected method NULL, got %s \n", bstr_util_strdup_to_c(tx->request_method));
-        result = 0;
         goto end;
     }
-
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -3040,12 +3032,11 @@ end:
  *        and check the response of the parser from HTP library. */
 int HTPParserTest03(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "HELLO / HTTP/1.0\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-
     HtpState *htp_state =  NULL;
     int r = 0;
     AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
@@ -3073,7 +3064,6 @@ int HTPParserTest03(void)
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -3082,7 +3072,6 @@ int HTPParserTest03(void)
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -3095,10 +3084,9 @@ int HTPParserTest03(void)
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
                 "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
-
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -3113,7 +3101,7 @@ end:
  *        parser from HTP library. */
 int HTPParserTest04(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "World!\r\n";
@@ -3144,7 +3132,6 @@ int HTPParserTest04(void)
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -3156,10 +3143,9 @@ int HTPParserTest04(void)
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
                 "NULL and got %s \n", bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
-
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -3174,7 +3160,7 @@ end:
  *        properly parsed them and also keeps them separated. */
 int HTPParserTest05(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     HtpState *http_state = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
@@ -3208,7 +3194,6 @@ int HTPParserTest05(void)
                                 httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3217,7 +3202,6 @@ int HTPParserTest05(void)
                             httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3225,7 +3209,6 @@ int HTPParserTest05(void)
     r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3233,7 +3216,6 @@ int HTPParserTest05(void)
     r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3242,7 +3224,6 @@ int HTPParserTest05(void)
                             httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3251,7 +3232,6 @@ int HTPParserTest05(void)
                             httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3260,7 +3240,6 @@ int HTPParserTest05(void)
     http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -3272,7 +3251,6 @@ int HTPParserTest05(void)
         printf("expected method M_POST and got %s: , expected protocol "
                 "HTTP/1.0 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
@@ -3281,9 +3259,9 @@ int HTPParserTest05(void)
                 "HTTP/1.0 and got %s \n", tx->response_status_number,
                bstr_util_strdup_to_c(tx->response_message),
                 bstr_util_strdup_to_c(tx->response_protocol));
-        result = 0;
         goto end;
     }
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -3298,7 +3276,7 @@ end:
  */
 int HTPParserTest06(void)
 {
-    int result = 1;
+    int result = 0;
     Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
                          "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
@@ -3361,7 +3339,6 @@ int HTPParserTest06(void)
                                 httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3370,7 +3347,6 @@ int HTPParserTest06(void)
                             httplen2);
     if (r != 0) {
         printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3379,7 +3355,6 @@ int HTPParserTest06(void)
     http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -3391,7 +3366,6 @@ int HTPParserTest06(void)
         printf("expected method M_GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", bstr_util_strdup_to_c(tx->request_method),
                 bstr_util_strdup_to_c(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
@@ -3402,9 +3376,9 @@ int HTPParserTest06(void)
                 "col HTTP/1.1 and got %s \n", tx->response_status_number,
                 bstr_util_strdup_to_c(tx->response_message),
                 bstr_util_strdup_to_c(tx->response_protocol));
-        result = 0;
         goto end;
     }
+    result = 1;
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -3640,7 +3614,6 @@ libhtp:\n\
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -3649,7 +3622,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -4577,7 +4549,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -4587,7 +4558,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -4748,7 +4718,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -4758,7 +4727,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -4917,7 +4885,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -4927,7 +4894,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5056,7 +5022,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5066,7 +5031,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5168,7 +5132,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5178,7 +5141,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5280,7 +5242,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5290,7 +5251,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5393,7 +5353,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5403,7 +5362,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5503,7 +5461,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5513,7 +5470,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5614,7 +5570,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -5624,7 +5579,6 @@ libhtp:\n\
     htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5770,7 +5724,6 @@ libhtp:\n\
     int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -5780,7 +5733,6 @@ libhtp:\n\
     r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
@@ -5789,7 +5741,6 @@ libhtp:\n\
     http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -5893,7 +5844,6 @@ libhtp:\n\
             if (r != 0) {
                 printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                         " 0: ", u, r);
-                result = 0;
                 SCMutexUnlock(&f->m);
                 goto end;
             }
@@ -5901,7 +5851,6 @@ libhtp:\n\
             if (r != -1) {
                 printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                         " -1: ", u, r);
-                result = 0;
                 SCMutexUnlock(&f->m);
                 goto end;
             }
@@ -6036,7 +5985,6 @@ libhtp:\n\
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             SCMutexUnlock(&f->m);
             goto end;
         }
@@ -6119,7 +6067,6 @@ int HTPParserTest16(void)
     r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, (uint8_t *)httpbuf, len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         SCMutexUnlock(&f->m);
         goto end;
     }
