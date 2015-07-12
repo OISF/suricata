@@ -798,6 +798,7 @@ int g_ut_covered;
 
 void RegisterAllModules()
 {
+
     /* commanders */
     TmModuleUnixManagerRegister();
     /* managers */
@@ -2424,7 +2425,6 @@ int main(int argc, char **argv)
         FlowDisableFlowManagerThread();
     }
 
-
     /* Disable packet acquisition first */
     TmThreadDisableReceiveThreads();
 
@@ -2511,6 +2511,10 @@ int main(int argc, char **argv)
 
 #ifdef HAVE_AF_PACKET
     AFPPeersListClean();
+#endif
+
+#ifdef HAVE_PFRING
+    PfringPeersListClean();
 #endif
 
 #ifdef PROFILING
