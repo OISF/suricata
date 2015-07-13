@@ -56,6 +56,8 @@
 
 #include "source-af-packet.h"
 
+#define AF_PACKET_NODE_NAME "af-packet"
+
 extern int max_pending_packets;
 
 static const char *default_mode_workers = NULL;
@@ -63,6 +65,49 @@ static const char *default_mode_workers = NULL;
 const char *RunModeAFPGetDefaultMode(void)
 {
     return default_mode_workers;
+}
+
+/**
+ * \brief Get the af-packet configuration node for a device.
+ *
+ * Basically hunts through the list of maps for the first one with a
+ * key of "interface", and a value of the provided interface.
+ */
+static ConfNode *AFPFindDeviceConfig(ConfNode *root, const char *iface)
+{
+    ConfNode *if_root, *item;
+    const char key[] = "interface";
+
+    ConfNode *interfaces = ConfNodeLookupChild(root, "interfaces");
+    if (interfaces != NULL) {
+        return ConfNodeLookupChild(interfaces, iface);
+    }
+
+    SCLogWarning(SC_WARN_DEPRECATED,
+        "Found deprecated af-packet interface configuration. "
+        "Please switch to map based interface configuration.");
+
+    TAILQ_FOREACH(if_root, &root->head, next) {
+        TAILQ_FOREACH(item, &if_root->head, next) {
+            if (!(strcmp(item->name, key) && strcmp(item->val, iface))) {
+                return if_root;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * \brief Return The default configuration node.
+ */
+static ConfNode *AFPGetDefaultConfig(ConfNode *root)
+{
+    ConfNode *defaults = ConfNodeLookupChild(root, "defaults");
+    if (defaults == NULL) {
+        return AFPFindDeviceConfig(root, "default");
+    }
+    return defaults;
 }
 
 void RunModeIdsAFPRegister(void)
@@ -150,15 +195,15 @@ void *ParseAFPConfig(const char *iface)
     }
 
     /* Find initial node */
-    af_packet_node = ConfGetNode("af-packet");
+    af_packet_node = ConfGetNode(AF_PACKET_NODE_NAME);
     if (af_packet_node == NULL) {
         SCLogInfo("Unable to find af-packet config using default value");
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
+    if_root = AFPFindDeviceConfig(af_packet_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    if_default = AFPGetDefaultConfig(af_packet_node);
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find af-packet config for "
@@ -366,12 +411,12 @@ int AFPRunModeIsIPS()
     int has_ids = 0;
 
     /* Find initial node */
-    af_packet_node = ConfGetNode("af-packet");
+    af_packet_node = ConfGetNode(AF_PACKET_NODE_NAME);
     if (af_packet_node == NULL) {
         return 0;
     }
 
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    if_default = AFPGetDefaultConfig(af_packet_node);
 
     for (ldev = 0; ldev < nlive; ldev++) {
         char *live_dev = LiveGetDeviceName(ldev);
@@ -380,7 +425,7 @@ int AFPRunModeIsIPS()
             return 0;
         }
         char *copymodestr = NULL;
-        if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+        if_root = AFPFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
@@ -446,7 +491,7 @@ int RunModeIdsAFPAutoFp(void)
 
     TimeModeSetLive();
 
-    (void)ConfGet("af-packet.live-interface", &live_dev);
+    (void)ConfGet(AF_PACKET_NODE_NAME "live-interface", &live_dev);
 
     SCLogDebug("live_dev %s", live_dev);
 
