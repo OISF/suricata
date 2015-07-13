@@ -90,7 +90,7 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
         if (strlen(queues) > 0)
             strlcat(queues, ",", queues_size);
 
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
         strlcat(queues, qname, queues_size);
     }
 
@@ -147,7 +147,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         /* create the threads */
         for (thread = 0; thread < threads_count; thread++) {
-            snprintf(tname, sizeof(tname), "%s%"PRIu16, thread_name, thread+1);
+            snprintf(tname, sizeof(tname), "%s%d", thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
             if (unlikely(thread_name == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -209,7 +209,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
-                snprintf(tname, sizeof(tname), "%s%s%"PRIu16, thread_name,
+                snprintf(tname, sizeof(tname), "%s%s%d", thread_name,
                          live_dev, thread+1);
                 char *thread_name = SCStrdup(tname);
                 if (unlikely(thread_name == NULL)) {
@@ -249,8 +249,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
@@ -341,7 +341,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s", thread_name);
         } else {
-            snprintf(tname, sizeof(tname), "%s%s%"PRIu16,
+            snprintf(tname, sizeof(tname), "%s%s%d",
                      thread_name, live_dev, thread+1);
         }
         n_thread_name = SCStrdup(tname);
@@ -420,7 +420,7 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
 
     for (ldev = 0; ldev < nlive; ldev++) {
         char *live_dev_c = NULL;
-        if (live_dev != NULL) {
+        if ((nlive <= 1) && (live_dev != NULL)) {
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
             if (unlikely(live_dev_c == NULL)) {
@@ -557,8 +557,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     }
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
@@ -612,7 +612,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     /* create the threads */
     for (int i = 0; i < nqueue; i++) {
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Verdict%"PRIu16, i);
+        snprintf(tname, sizeof(tname), "Verdict%d", i);
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {

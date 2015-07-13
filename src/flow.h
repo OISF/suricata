@@ -329,6 +329,10 @@ typedef struct Flow_
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int16_t, autofp_tmqh_flow_qid);
 
+    /** flow tenant id, used to setup flow timeout and stream pseudo
+     *  packets with the correct tenant id set */
+    uint32_t tenant_id;
+
     uint32_t probing_parser_toserver_alproto_masks;
     uint32_t probing_parser_toclient_alproto_masks;
 
@@ -568,6 +572,7 @@ int FlowClearMemory(Flow *,uint8_t );
 
 AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
+uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
 void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);

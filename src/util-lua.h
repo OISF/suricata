@@ -60,6 +60,8 @@ File *LuaStateGetFile(lua_State *luastate);
 
 LuaStreamingBuffer *LuaStateGetStreamingBuffer(lua_State *luastate);
 
+int LuaStateGetDirection(lua_State *luastate);
+
 /* sets */
 
 void LuaStateSetPacket(lua_State *luastate, Packet *p);
@@ -81,6 +83,8 @@ void LuaStateSetFile(lua_State *luastate, File *file);
 void LuaStateSetThreadVars(lua_State *luastate, ThreadVars *tv);
 
 void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b);
+
+void LuaStateSetDirection(lua_State *luastate, int direction);
 
 void LuaPrintStack(lua_State *state);
 

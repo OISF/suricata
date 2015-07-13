@@ -271,6 +271,7 @@ typedef enum {
     SC_ERR_THRESHOLD_SETUP,
     SC_ERR_DNS_CONFIG,
     SC_ERR_MODBUS_CONFIG,
+    SC_ERR_ENIP_CONFIG,
     SC_ERR_CONF_YAML_ERROR,
     SC_ERR_CONF_NAME_TOO_LONG,
     SC_ERR_APP_LAYER_PROTOCOL_DETECTION,
@@ -296,6 +297,12 @@ typedef enum {
     SC_ERR_NETMAP_READ,
     SC_ERR_THREAD_DEINIT, /**< thread's deinit function failed */
     SC_ERR_IPPAIR_INIT,
+    SC_ERR_MT_NO_SELECTOR,
+    SC_ERR_MT_DUPLICATE_TENANT,
+    SC_ERR_NO_JSON_SUPPORT,
+    SC_ERR_INVALID_RULE_ARGUMENT, /**< Generic error code for invalid
+                                   * rule argument. */
+    SC_ERR_MT_NO_MAPPING,
 } SCError;
 
 const char *SCErrorToString(SCError);

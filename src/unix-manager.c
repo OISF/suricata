@@ -356,7 +356,7 @@ int UnixCommandAccept(UnixCommand *this)
     json_decref(server_msg);
 
     /* client connected */
-    SCLogInfo("Unix socket: client connected");
+    SCLogDebug("Unix socket: client connected");
 
     uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
@@ -478,9 +478,9 @@ void UnixCommandRun(UnixCommand * this, UnixClient *client)
     ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
     if (ret <= 0) {
         if (ret == 0) {
-            SCLogInfo("Unix socket: lost connection with client");
+            SCLogDebug("Unix socket: lost connection with client");
         } else {
-            SCLogInfo("Unix socket: error on recv() from client: %s",
+            SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
                       strerror(errno));
         }
         UnixCommandClose(this, client->fd);
@@ -525,7 +525,7 @@ int UnixMain(UnixCommand * this)
         if (errno == EINTR) {
             return 1;
         }
-        SCLogInfo("Command server: select() fatal error: %s", strerror(errno));
+        SCLogError(SC_ERR_SOCKET, "Command server: select() fatal error: %s", strerror(errno));
         return 0;
     }
 
@@ -851,6 +851,37 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     if (utd == NULL)
         return TM_ECODE_FAILED;
 
+    if (UnixNew(&command) == 0) {
+        int failure_fatal = 0;
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Unable to create unix command socket");
+        if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
+            SCLogDebug("ConfGetBool could not load the value.");
+        }
+        if (failure_fatal) {
+            exit(EXIT_FAILURE);
+        } else {
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    /* Init Unix socket */
+    UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
+    UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("help", UnixManagerListCommand, &command, 0);
+    UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
+    UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
+    UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
+    UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
+    UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
+    UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("reload-tenant", UnixSocketReloadTenant, &command, UNIX_CMD_TAKE_ARGS);
+    UnixManagerRegisterCommand("unregister-tenant", UnixSocketUnregisterTenant, &command, UNIX_CMD_TAKE_ARGS);
+
     *data = utd;
     return TM_ECODE_OK;
 }
@@ -870,35 +901,9 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
 
     StatsSetupPrivate(th_v);
 
-    if (UnixNew(&command) == 0) {
-        int failure_fatal = 0;
-        SCLogError(SC_ERR_INITIALIZATION,
-                   "Unable to create unix command socket");
-        if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
-            SCLogDebug("ConfGetBool could not load the value.");
-        }
-        if (failure_fatal) {
-            exit(EXIT_FAILURE);
-        } else {
-            return TM_ECODE_FAILED;
-        }
-    }
-
     /* Set the threads capability */
     th_v->cap_flags = 0;
     SCDropCaps(th_v);
-
-    /* Init Unix socket */
-    UnixManagerRegisterCommand("shutdown", UnixManagerShutdownCommand, NULL, 0);
-    UnixManagerRegisterCommand("command-list", UnixManagerListCommand, &command, 0);
-    UnixManagerRegisterCommand("help", UnixManagerListCommand, &command, 0);
-    UnixManagerRegisterCommand("version", UnixManagerVersionCommand, &command, 0);
-    UnixManagerRegisterCommand("uptime", UnixManagerUptimeCommand, &command, 0);
-    UnixManagerRegisterCommand("running-mode", UnixManagerRunningModeCommand, &command, 0);
-    UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
-    UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
-    UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
-    UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {

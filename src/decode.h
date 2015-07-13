@@ -538,6 +538,9 @@ typedef struct Packet_
     /* tunnel packet ref count */
     uint16_t tunnel_tpr_cnt;
 
+    /** tenant id for this packet, if any. If 0 then no tenant was assigned. */
+    uint32_t tenant_id;
+
     /* The Packet pool from which this packet was allocated. Used when returning
      * the packet to its owner's stack. If NULL, then allocated with malloc.
      */
@@ -620,6 +623,8 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_reassembled;
     uint16_t counter_defrag_ipv6_timeouts;
     uint16_t counter_defrag_max_hit;
+
+    uint16_t counter_flow_memcap;
 
     /* thread data for flow logging api: only used at forced
      * flow recycle during lookups */
@@ -758,6 +763,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->livedev = NULL;                    \
         PACKET_RESET_CHECKSUMS((p));            \
         PACKET_PROFILING_RESET((p));            \
+        p->tenant_id = 0;                       \
     } while (0)
 
 #define PACKET_RECYCLE(p) do { \

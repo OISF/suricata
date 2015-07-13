@@ -39,6 +39,7 @@ char *PcapLiveGetDevice(int);
 /* per packet Pcap vars */
 typedef struct PcapPacketVars_
 {
+    uint32_t tenant_id;
 } PcapPacketVars;
 
 /** needs to be able to contain Windows adapter id's, so

@@ -115,6 +115,7 @@ typedef struct AlertPreludeCtx_ {
 typedef struct AlertPreludeThread_ {
     /** Pointer to the global context */
     AlertPreludeCtx *ctx;
+    idmef_analyzer_t *analyzer;
 } AlertPreludeThread;
 
 
@@ -131,24 +132,56 @@ static int SetupAnalyzer(idmef_analyzer_t *analyzer)
     SCEnter();
 
     ret = idmef_analyzer_new_model(analyzer, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer model: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_MODEL);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_MODEL);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer model: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_class(analyzer, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer class: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_CLASS);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_CLASS);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer class: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_manufacturer(analyzer, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer manufacturer: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_MANUFACTURER);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_MANUFACTURER);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer manufacturer: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_version(analyzer, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer version: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, VERSION);
+    }
+    ret = prelude_string_set_constant(string, VERSION);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer version: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     SCReturnInt(0);
 }
@@ -174,11 +207,11 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
     SCEnter();
 
     ret = idmef_alert_new_assessment(alert, &assessment);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_assessment_new_impact(assessment, &impact);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     if ( (unsigned int)pa->s->prio < mid_priority )
@@ -199,7 +232,7 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
         idmef_action_t *action;
 
         ret = idmef_action_new(&action);
-        if (ret < 0)
+        if (unlikely(ret < 0))
             SCReturnInt(ret);
 
         idmef_action_set_category(action, IDMEF_ACTION_CATEGORY_BLOCK_INSTALLED);
@@ -208,7 +241,7 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
 
     if (pa->s->class_msg) {
         ret = idmef_impact_new_description(impact, &str);
-        if (ret < 0)
+        if (unlikely(ret < 0))
             SCReturnInt(ret);
 
         prelude_string_set_ref(str, pa->s->class_msg);
@@ -259,11 +292,11 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
         SCReturnInt(0);
 
     ret = idmef_alert_new_source(alert, &source, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_source_new_service(source, &service);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
@@ -273,25 +306,25 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
     idmef_service_set_iana_protocol_number(service, ip_proto);
 
     ret = idmef_source_new_node(source, &node);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_node_new_address(node, &address, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_address_new_address(address, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     prelude_string_set_ref(string, saddr);
 
     ret = idmef_alert_new_target(alert, &target, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_target_new_service(target, &service);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
@@ -301,15 +334,15 @@ static int EventToSourceTarget(const Packet *p, idmef_alert_t *alert)
     idmef_service_set_iana_protocol_number(service, ip_proto);
 
     ret = idmef_target_new_node(target, &node);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_node_new_address(node, &address, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_address_new_address(address, &string);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     prelude_string_set_ref(string, daddr);
@@ -335,25 +368,25 @@ static int AddByteData(idmef_alert_t *alert, const char *meaning, const unsigned
         SCReturnInt(0);
 
     ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(0);
 
     ret = idmef_additional_data_set_byte_string_ref(ad, data, size);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("%s: error setting byte string data: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = idmef_additional_data_new_meaning(ad, &str);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("%s: error creating additional-data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = prelude_string_set_ref(str, meaning);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("%s: error setting byte string data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
@@ -377,20 +410,20 @@ static int AddIntData(idmef_alert_t *alert, const char *meaning, uint32_t data)
     SCEnter();
 
     ret = idmef_alert_new_additional_data(alert, &ad, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     idmef_additional_data_set_integer(ad, data);
 
     ret = idmef_additional_data_new_meaning(ad, &str);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("%s: error creating additional-data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
     }
 
     ret = prelude_string_set_ref(str, meaning);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("%s: error setting integer data meaning: %s.",
                 prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(-1);
@@ -449,7 +482,7 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
 {
     SCEnter();
 
-    if ( ! p )
+    if (unlikely(p == NULL))
         SCReturnInt(0);
 
     AddIntData(alert, "snort_rule_sid", pa->s->id);
@@ -513,11 +546,11 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
         SCReturnInt(0);
 
     ret = idmef_classification_new_reference(class, &ref, IDMEF_LIST_APPEND);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_reference_new_name(ref, &str);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     idmef_reference_set_origin(ref, IDMEF_REFERENCE_ORIGIN_VENDOR_SPECIFIC);
@@ -527,19 +560,19 @@ static int AddSnortReference(idmef_classification_t *class, int gen_id, int sig_
     else
         ret = prelude_string_sprintf(str, "%u:%u", gen_id, sig_id);
 
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_reference_new_meaning(ref, &str);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = prelude_string_sprintf(str, "Snort Signature ID");
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = idmef_reference_new_url(ref, &str);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     if ( gen_id == 0 )
@@ -566,18 +599,18 @@ static int EventToReference(const PacketAlert *pa, const Packet *p, idmef_classi
     SCEnter();
 
     ret = idmef_classification_new_ident(class, &str);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     if ( pa->s->gid == 0 )
         ret = prelude_string_sprintf(str, "%u", pa->s->id);
     else
         ret = prelude_string_sprintf(str, "%u:%u", pa->s->gid, pa->s->id);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     ret = AddSnortReference(class, pa->s->gid, pa->s->id);
-    if (ret < 0)
+    if (unlikely(ret < 0))
         SCReturnInt(ret);
 
     SCReturnInt(0);
@@ -606,9 +639,9 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
 
     SCEnter();
 
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for Prelude.  \"initdata\" argument NULL");
+    if (unlikely(initdata == NULL)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error getting context for Prelude.  \"initdata\" argument NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -617,8 +650,27 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
         SCReturnInt(TM_ECODE_FAILED);
     memset(aun, 0, sizeof(AlertPreludeThread));
 
-    /** Use the Ouput Context */
+    /* Use the Ouput Context */
     aun->ctx = ((OutputCtx *)initdata)->data;
+
+    /* Create a per-thread idmef analyzer */
+    if (unlikely(idmef_analyzer_new(&aun->analyzer) < 0)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error creating idmef analyzer for Prelude.");
+
+        SCFree(aun);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* Setup the per-thread idmef analyzer */
+    if (unlikely(SetupAnalyzer(aun->analyzer) < 0)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error configuring idmef analyzer for Prelude.");
+
+        idmef_analyzer_destroy(aun->analyzer);
+        SCFree(aun);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     *data = (void *)aun;
     SCReturnInt(TM_ECODE_OK);
@@ -635,12 +687,13 @@ static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
 
     SCEnter();
 
-    if (aun == NULL) {
+    if (unlikely(aun == NULL)) {
         SCLogDebug("AlertPreludeThreadDeinit done (error)");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
     /* clear memory */
+    idmef_analyzer_destroy(aun->analyzer);
     memset(aun, 0, sizeof(AlertPreludeThread));
     SCFree(aun);
 
@@ -677,7 +730,7 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     SCEnter();
 
     ret = prelude_init(0, NULL);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         prelude_perror(ret, "unable to initialize the prelude library");
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
@@ -690,23 +743,28 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     log_packet_header = ConfNodeLookupChildValue(conf, "log-packet-header");
 
     ret = prelude_client_new(&client, prelude_profile_name);
-    if ( ret < 0 || ! client ) {
+    if ( unlikely(ret < 0 || client == NULL )) {
         prelude_perror(ret, "Unable to create a prelude client object");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
 
     ret = prelude_client_set_flags(client, prelude_client_get_flags(client) | PRELUDE_CLIENT_FLAGS_ASYNC_TIMER|PRELUDE_CLIENT_FLAGS_ASYNC_SEND);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         SCLogDebug("Unable to set asynchronous send and timer.");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
 
-    SetupAnalyzer(prelude_client_get_analyzer(client));
+    ret = SetupAnalyzer(prelude_client_get_analyzer(client));
+    if (ret < 0) {
+        SCLogDebug("Unable to setup prelude client analyzer.");
+        prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
+        SCReturnPtr(NULL, "AlertPreludeCtx");
+    }
 
     ret = prelude_client_start(client);
-    if (ret < 0) {
+    if (unlikely(ret < 0)) {
         prelude_perror(ret, "Unable to start prelude client");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
@@ -779,7 +837,7 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
 
     SCEnter();
 
-    if (apn == NULL || apn->ctx == NULL) {
+    if (unlikely(apn == NULL || apn->ctx == NULL)) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -792,43 +850,43 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
     pa = &p->alerts.alerts[p->alerts.cnt-1];
-    if (pa->s == NULL)
+    if (unlikely(pa->s == NULL))
         goto err;
 
     ret = idmef_message_new(&idmef);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         SCReturnInt(TM_ECODE_FAILED);
 
     ret = idmef_message_new_alert(idmef, &alert);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     ret = idmef_alert_new_classification(alert, &class);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     if (pa->s->msg) {
         ret = idmef_classification_new_text(class, &str);
-        if ( ret < 0 )
+        if (unlikely(ret < 0))
             goto err;
 
         prelude_string_set_ref(str, pa->s->msg);
     }
 
     ret = EventToImpact(pa, p, alert);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     ret = EventToReference(pa, p, class);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     ret = EventToSourceTarget(p, alert);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     ret = PacketToData(p, pa, alert, apn->ctx);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
 
     if (PKT_IS_TCP(p) && (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH)) {
@@ -842,20 +900,20 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
                                    PreludePrintStreamSegmentCallback,
                                    (void *)alert);
     }
-    if (ret < 0)
+    if (unlikely(ret < 0))
         goto err;
 
     ret = idmef_alert_new_detect_time(alert, &time);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
     idmef_time_set_from_timeval(time, &p->ts);
 
     ret = idmef_time_new_from_gettimeofday(&time);
-    if ( ret < 0 )
+    if (unlikely(ret < 0))
         goto err;
     idmef_alert_set_create_time(alert, time);
 
-    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(apn->ctx->client)), IDMEF_LIST_PREPEND);
+    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(apn->analyzer), IDMEF_LIST_PREPEND);
 
     /* finally, send event */
     prelude_client_send_idmef(apn->ctx->client, idmef);

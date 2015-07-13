@@ -319,7 +319,7 @@ void SCPrintByteBin(uint8_t byte)
 {
     uint8_t i = 0;
     for (i = 8; i > 0; i--) {
-        printf("%"PRIu8, ((byte >> (i - 1)) & 0x01));
+        printf("%"PRIu8, (uint8_t)((byte >> (i - 1)) & 0x01));
         if (i == 5)
             printf(" ");
     }

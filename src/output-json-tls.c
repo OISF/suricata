@@ -92,6 +92,12 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
     json_object_set_new(tjs, "fingerprint",
                         json_string(state->server_connp.cert0_fingerprint));
 
+    /* tls.sni */
+    if (state->client_connp.sni) {
+        json_object_set_new(tjs, "sni",
+                            json_string(state->client_connp.sni));
+    }
+
     /* tls.version */
     switch (state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
@@ -245,7 +251,7 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }

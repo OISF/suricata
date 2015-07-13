@@ -32,6 +32,11 @@
 #define PACKET_FANOUT_HASH             0
 #define PACKET_FANOUT_LB               1
 #define PACKET_FANOUT_CPU              2
+#define PACKET_FANOUT_ROLLOVER         3
+#define PACKET_FANOUT_RND              4
+#define PACKET_FANOUT_QM               5
+
+#define PACKET_FANOUT_FLAG_ROLLOVER	   0x1000
 #define PACKET_FANOUT_FLAG_DEFRAG      0x8000
 #else /* HAVE_PACKET_FANOUT */
 #include <linux/if_packet.h>

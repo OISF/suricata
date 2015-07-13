@@ -147,9 +147,11 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
     HtpState *s = f->alstate;
     if (s != NULL && s->conn != NULL) {
         int tx_progress_done_value_ts =
-            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP, 0);
+            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP,
+                                                           ALPROTO_HTTP, STREAM_TOSERVER);
         int tx_progress_done_value_tc =
-            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_HTTP, 1);
+            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP,
+                                                           ALPROTO_HTTP, STREAM_TOCLIENT);
 
         // for each tx
         uint64_t tx_id = 0;
@@ -161,9 +163,11 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                 int tx_done = 0;
                 int tx_logged = 0;
 
-                int tx_progress_ts = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, 0);
+                int tx_progress_ts = AppLayerParserGetStateProgress(
+                        IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
                 if (tx_progress_ts >= tx_progress_done_value_ts) {
-                    int tx_progress_tc = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, 1);
+                    int tx_progress_tc = AppLayerParserGetStateProgress(
+                            IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
                     if (tx_progress_tc >= tx_progress_done_value_tc) {
                         tx_done = 1;
                     }

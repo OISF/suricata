@@ -125,7 +125,6 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
         if (logfile_ctx != NULL) {
-            OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
             LogFileFreeCtx(logfile_ctx);
         }
         SCFree(output_ctx);
@@ -151,11 +150,10 @@ static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
-    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -226,31 +224,35 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
 
     switch (proto) {
         case IPPROTO_TCP:
-            fprintf(dlt->file_ctx->fp, " SPT=%"PRIu16" DPT=%"PRIu16" "
-                    "SEQ=%"PRIu32" ACK=%"PRIu32" WINDOW=%"PRIu32"",
-                    GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_SEQ(p),
-                    TCP_GET_ACK(p), TCP_GET_WINDOW(p));
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_SYN(p) ? " SYN" : "");
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_ACK(p) ? " ACK" : "");
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_PUSH(p) ? " PSH" : "");
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_RST(p) ? " RST" : "");
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_URG(p) ? " URG" : "");
-            fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_FIN(p) ? " FIN" : "");
-            fprintf(dlt->file_ctx->fp, " RES=0x%02"PRIu8" URGP=%"PRIu16"",
-                    TCP_GET_RAW_X2(p->tcph), TCP_GET_URG_POINTER(p));
+            if (PKT_IS_TCP(p)) {
+                fprintf(dlt->file_ctx->fp, " SPT=%"PRIu16" DPT=%"PRIu16" "
+                        "SEQ=%"PRIu32" ACK=%"PRIu32" WINDOW=%"PRIu32"",
+                        GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_SEQ(p),
+                        TCP_GET_ACK(p), TCP_GET_WINDOW(p));
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_SYN(p) ? " SYN" : "");
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_ACK(p) ? " ACK" : "");
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_PUSH(p) ? " PSH" : "");
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_RST(p) ? " RST" : "");
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_URG(p) ? " URG" : "");
+                fprintf(dlt->file_ctx->fp, TCP_ISSET_FLAG_FIN(p) ? " FIN" : "");
+                fprintf(dlt->file_ctx->fp, " RES=0x%02"PRIu8" URGP=%"PRIu16"",
+                        TCP_GET_RAW_X2(p->tcph), TCP_GET_URG_POINTER(p));
+            }
             break;
         case IPPROTO_UDP:
-            fprintf(dlt->file_ctx->fp, " SPT=%"PRIu16" DPT=%"PRIu16""
-                    " LEN=%"PRIu16"", UDP_GET_SRC_PORT(p),
-                    UDP_GET_DST_PORT(p), UDP_GET_LEN(p));
+            if (PKT_IS_UDP(p)) {
+                fprintf(dlt->file_ctx->fp, " SPT=%"PRIu16" DPT=%"PRIu16""
+                        " LEN=%"PRIu16"", UDP_GET_SRC_PORT(p),
+                        UDP_GET_DST_PORT(p), UDP_GET_LEN(p));
+            }
             break;
         case IPPROTO_ICMP:
             if (PKT_IS_ICMPV4(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8""
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV4_GET_TYPE(p),
                         ICMPV4_GET_CODE(p), ICMPV4_GET_ID(p), ICMPV4_GET_SEQ(p));
-            } else if(PKT_IS_ICMPV6(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+            } else if (PKT_IS_ICMPV6(p)) {
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8""
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV6_GET_TYPE(p),
                         ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
             }
