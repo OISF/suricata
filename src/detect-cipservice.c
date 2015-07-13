@@ -136,7 +136,7 @@ int CIPServiceMatch(Packet *p, ENIP_DATA *enip_data, DetectCipServiceData *cipse
 {
 
 	int count = 1;
-	CIP_SERVICE_DATA *temp = enip_data->service_head;
+	CIP_SERVICE_DATA *temp = enip_data->service_head;	
 	while (temp != NULL)
 	{
 		//SCLogDebug("CIP Service #%d : 0x%x\n", count, temp->service);
@@ -195,8 +195,9 @@ void PrintENIP(ENIP_DATA *enip_data)
 /**
  * Rule Function Prototypes
  */
-static int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *,
-		Packet *, Signature *, SigMatch *);
+//static int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *,
+//		Packet *, Signature *, SigMatch *);
+int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
@@ -228,12 +229,15 @@ void DetectCipServiceRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectCipServiceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-		Packet *p, Signature *s, SigMatch *m)
+//int DetectCipServiceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+//		Packet *p, Signature *s, SigMatch *m)
+int DetectCipServiceMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 	int ret = 0;
-	DetectCipServiceData *cipserviced = (DetectCipServiceData *) m->ctx;
+	//DetectCipServiceData *cipserviced = (DetectCipServiceData *) m->ctx;
+    DetectCipServiceData *cipserviced = (const DetectCipServiceData *)ctx;
 
+	//printf("DetectCipServiceMatch -Check rule 0x%x\n", cipserviced->cipservice);
 
 	if (PKT_IS_PSEUDOPKT(p)) {
 		SCLogDebug("Packet is fake");
@@ -295,7 +299,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 	const char delims[] = ",";
 	DetectCipServiceData *cipserviced = NULL;
 
-//	SCLogDebug("DetectCipServiceParse - rule string  %s\n", rulestr);
+	//printf("DetectCipServiceParse - rule string  %s\n", rulestr);
 
 	cipserviced = SCMalloc(sizeof(DetectCipServiceData));
 
@@ -352,10 +356,10 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 	cipserviced->tokens = i;
 
 
-//	SCLogDebug("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
-//	SCLogDebug("DetectCipServiceParse - service %d\n", cipserviced->cipservice );
-//	SCLogDebug("DetectCipServiceParse - class %d\n", cipserviced->cipclass );
-//	SCLogDebug("DetectCipServiceParse - attribute %d\n", cipserviced->cipattribute );
+	//printf("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
+	//printf("DetectCipServiceParse - service %d\n", cipserviced->cipservice );
+	//printf("DetectCipServiceParse - class %d\n", cipserviced->cipclass );
+	//printf("DetectCipServiceParse - attribute %d\n", cipserviced->cipattribute );
 
 	return cipserviced;
 
@@ -383,8 +387,8 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
 
 	cipserviced = DetectCipServiceParse(rulestr);
 	if (cipserviced == NULL)
-		goto error;
-
+		goto error;	
+	
 	sm = SigMatchAlloc();
 	if (sm == NULL)
 		goto error;
@@ -486,8 +490,9 @@ void DetectCipServiceRegisterTests(void)
 */
 
 /* rule function prototypes */
-static int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *,
-		Packet *, Signature *, SigMatch *);
+//static int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *,
+//		Packet *, Signature *, SigMatch *);
+int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
@@ -519,11 +524,13 @@ void DetectEnipCommandRegister(void)
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectEnipCommandMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-		Packet *p, Signature *s, SigMatch *m)
+//int DetectEnipCommandMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+//		Packet *p, Signature *s, SigMatch *m)
+int DetectEnipCommandMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 	int ret = 0;
-	DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) m->ctx;
+	DetectEnipCommandData *enipcmdd = (const DetectEnipCommandData *)ctx;
+	//DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) m->ctx;
 
 
 	if (PKT_IS_PSEUDOPKT(p))
