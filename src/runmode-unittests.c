@@ -206,7 +206,6 @@ void RunUnittests(int list_unittests, char *regex_arg)
     StatsRegisterTests();
     DecodePPPRegisterTests();
     DecodeVLANRegisterTests();
-    HTPParserRegisterTests();
     DecodeRawRegisterTests();
     DecodePPPOERegisterTests();
     DecodeICMPV4RegisterTests();
