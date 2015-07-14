@@ -60,8 +60,11 @@
 
 #define BUFFER_STEP 50
 
-static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
+static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
 {
+    if (size >= USHRT_MAX)
+        return -1;
+
     void *ptmp;
     if (size > det_ctx->hhd_buffers_size) {
         ptmp = SCRealloc(det_ctx->hhd_buffers,
@@ -111,8 +114,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         BUG_ON(base_inspect_id > tx_id);
         /* see how many space we need for the current tx_id */
-        uint16_t txs = (tx_id - base_inspect_id) + 1;
-
+        uint64_t txs = (tx_id - base_inspect_id) + 1;
         if (HHDCreateSpace(det_ctx, txs) < 0)
             goto end;
 
@@ -130,7 +132,7 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
             /* otherwise fall through */
         } else {
             /* not enough space, lets expand */
-            uint16_t txs = (tx_id - det_ctx->hhd_start_tx_id) + 1;
+            uint64_t txs = (tx_id - det_ctx->hhd_start_tx_id) + 1;
             if (HHDCreateSpace(det_ctx, txs) < 0)
                 goto end;
 
