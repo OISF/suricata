@@ -230,6 +230,7 @@ log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
+log-tlsstore.c log-tlsstore.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \

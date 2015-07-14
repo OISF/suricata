@@ -200,7 +200,11 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       #extended: yes # Log extended information like fingerprint
-      certs-log-dir: certs # directory to store the certificates files
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: no
+      #certs-log-dir: certs # directory to store the certificates files
 
   # a line based log of DNS requests and/or replies (no alerts)
   - dns-log:
