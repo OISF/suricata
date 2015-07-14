@@ -235,7 +235,7 @@ int DetectCipServiceMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
 {
 	int ret = 0;
 	//DetectCipServiceData *cipserviced = (DetectCipServiceData *) m->ctx;
-    DetectCipServiceData *cipserviced = (const DetectCipServiceData *)ctx;
+    DetectCipServiceData *cipserviced = (DetectCipServiceData *)ctx;
 
 	//printf("DetectCipServiceMatch -Check rule 0x%x\n", cipserviced->cipservice);
 
@@ -374,7 +374,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
- * \param helloworldstr pointer to the user provided helloworld options
+ * \param rulestr pointer to the user provided cip_service options
  *
  * \retval 0 on Success
  * \retval -1 on Failure
@@ -529,7 +529,7 @@ void DetectEnipCommandRegister(void)
 int DetectEnipCommandMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 	int ret = 0;
-	DetectEnipCommandData *enipcmdd = (const DetectEnipCommandData *)ctx;
+	DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *)ctx;
 	//DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) m->ctx;
 
 
@@ -554,7 +554,7 @@ int DetectEnipCommandMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packe
 	enip_data.service_head = NULL; //initialize pointer
 	enip_data.service_tail = NULL;
 
-//	SCLogDebug("payload total length %d\n", p->payload_len);
+	//printf("payload total length %d\n", p->payload_len);
 
 	//basic port check
 	if ((p->sp == ENIP_PORT) || (p->dp == ENIP_PORT))
@@ -570,7 +570,7 @@ int DetectEnipCommandMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packe
 	//    SCLogDebug("CIPSERVICE %d\n",enipcmdd->enipcommand);
 
 	int status = DecodeENIP(p, &enip_data); //perform EtherNet/IP decoding
-
+	//PrintENIP(&enip_data); //print gathered ENIP data
 	if (status > 0)
 	{
 		if (enipcmdd->enipcommand == enip_data.header.command) //check if rule matches

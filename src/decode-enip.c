@@ -40,16 +40,16 @@
 int DecodeENIP(Packet *p, ENIP_DATA *enip_data)
 {
 	int ret = 1;
-
+	
 	if ((p->payload == NULL) || (p->payload_len == 0))
 	{
 		SCLogDebug("DecodeENIP: no data in packet\n");
 		return 0;
-	}
-
+	}	
+	
 	if (p->payload_len < sizeof(ENIP_ENCAP_HEADER))
 	{
-		SCLogDebug("DecodeENIP: Malformed ENIP packet\n");
+		printf("DecodeENIP: Malformed ENIP packet\n");
 		return 0;
 	}
 
