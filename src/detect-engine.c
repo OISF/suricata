@@ -232,8 +232,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
         /* DNS */
         { IPPROTO_TCP,
           ALPROTO_DNS,
-          DETECT_SM_LIST_DNSQUERY_MATCH,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+          DE_STATE_FLAG_DNSQUERYNAME_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
         /* specifically for UDP, register again
@@ -241,10 +241,26 @@ void DetectEngineRegisterAppInspectionEngines(void)
          * in the detection engine */
         { IPPROTO_UDP,
           ALPROTO_DNS,
-          DETECT_SM_LIST_DNSQUERY_MATCH,
-          DE_STATE_FLAG_DNSQUERY_INSPECT,
+          DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+          DE_STATE_FLAG_DNSQUERYNAME_INSPECT,
           0,
           DetectEngineInspectDnsQueryName },
+        { IPPROTO_TCP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSREQUEST_MATCH,
+          DE_STATE_FLAG_DNSREQUEST_INSPECT,
+          0,
+          DetectEngineInspectDnsRequest },
+        /* specifically for UDP, register again
+         * allows us to use the alproto w/o translation
+         * in the detection engine */
+        { IPPROTO_UDP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSREQUEST_MATCH,
+          DE_STATE_FLAG_DNSREQUEST_INSPECT,
+          0,
+          DetectEngineInspectDnsRequest },
+        /* SMTP */
         { IPPROTO_TCP,
           ALPROTO_SMTP,
           DETECT_SM_LIST_FILEMATCH,
@@ -316,7 +332,22 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DETECT_SM_LIST_MODBUS_MATCH,
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
-          DetectEngineInspectModbus }
+          DetectEngineInspectModbus },
+        { IPPROTO_TCP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSRESPONSE_MATCH,
+          DE_STATE_FLAG_DNSRESPONSE_INSPECT,
+          1,
+          DetectEngineInspectDnsResponse },
+        /* specifically for UDP, register again
+         * allows us to use the alproto w/o translation
+         * in the detection engine */
+        { IPPROTO_UDP,
+          ALPROTO_DNS,
+          DETECT_SM_LIST_DNSRESPONSE_MATCH,
+          DE_STATE_FLAG_DNSRESPONSE_INSPECT,
+          1,
+          DetectEngineInspectDnsResponse },
     };
 
     size_t i;
@@ -1852,8 +1883,12 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_FILEMATCH:
             return "file";
 
-        case DETECT_SM_LIST_DNSQUERY_MATCH:
-            return "dns query";
+        case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
+            return "dns query name";
+        case DETECT_SM_LIST_DNSREQUEST_MATCH:
+            return "dns request";
+        case DETECT_SM_LIST_DNSRESPONSE_MATCH:
+            return "dns response";
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
