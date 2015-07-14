@@ -61,12 +61,12 @@ void DetectEnipCommandRegister(void);
  */
 typedef struct _ENIP_ENCAP_HEADER
 {
-    u_int16_t command;
-    u_int16_t length;
+    u_int64_t context;
     u_int32_t session;
     u_int32_t status;
-    u_int64_t context;
     u_int32_t option;
+    u_int16_t command;
+    u_int16_t length;   
 } ENIP_ENCAP_HEADER;
 
 

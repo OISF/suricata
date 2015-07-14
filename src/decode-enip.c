@@ -49,7 +49,7 @@ int DecodeENIP(Packet *p, ENIP_DATA *enip_data)
 	
 	if (p->payload_len < sizeof(ENIP_ENCAP_HEADER))
 	{
-		printf("DecodeENIP: Malformed ENIP packet\n");
+		SCLogDebug("DecodeENIP: Malformed ENIP packet\n");
 		return 0;
 	}
 
