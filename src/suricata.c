@@ -88,6 +88,7 @@
 #include "log-dnslog.h"
 #include "output-json-dns.h"
 #include "log-tlslog.h"
+#include "log-tlsstore.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
@@ -872,6 +873,7 @@ void RegisterAllModules()
     /* tls log */
     TmModuleLogTlsLogRegister();
     TmModuleJsonTlsLogRegister();
+    TmModuleLogTlsStoreRegister();
     /* ssh */
     TmModuleJsonSshLogRegister();
     /* pcap log */
