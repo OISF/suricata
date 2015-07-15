@@ -293,26 +293,25 @@ int DetectCipServiceMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval cipserviced pointer to DetectCipServiceData on success
  * \retval NULL on failure
  */
-
 DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 {
 	const char delims[] = ",";
 	DetectCipServiceData *cipserviced = NULL;
 
-	//printf("DetectCipServiceParse - rule string  %s\n", rulestr);
+	//SCLogDebug("DetectCipServiceParse - rule string  %s\n", rulestr);
 
 	cipserviced = SCMalloc(sizeof(DetectCipServiceData));
 
 	if (unlikely(cipserviced == NULL))
 		goto error;
 
-
 	char* token;
+	char *save;
 	int var;
 	int input[3];
 	int i = 0;
 
-	token = strtok (rulestr, delims);
+	token = strtok_r (rulestr, delims, &save);
 	while (token != NULL)
 	{
 		if (i > 2) //for now only need 3 parameters
@@ -347,8 +346,9 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 	    sscanf (token, "%d", &var);
 	    input[i++] = var;
 
-	    token = strtok (NULL, delims);
+	    token = strtok_r (NULL, delims, &save);
 	}
+
 
 	cipserviced->cipservice = input[0];
 	cipserviced->cipclass = input[1];
@@ -356,10 +356,10 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 	cipserviced->tokens = i;
 
 
-	//printf("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
-	//printf("DetectCipServiceParse - service %d\n", cipserviced->cipservice );
-	//printf("DetectCipServiceParse - class %d\n", cipserviced->cipclass );
-	//printf("DetectCipServiceParse - attribute %d\n", cipserviced->cipattribute );
+	SCLogDebug("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
+	SCLogDebug("DetectCipServiceParse - service %d\n", cipserviced->cipservice );
+	SCLogDebug("DetectCipServiceParse - class %d\n", cipserviced->cipclass );
+	SCLogDebug("DetectCipServiceParse - attribute %d\n", cipserviced->cipattribute );
 
 	return cipserviced;
 
@@ -368,6 +368,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 	printf("DetectCipServiceParse - Error Parsing Parameters\n");
 	return NULL;
 }
+
 
 /**
  * \brief this function is used to acipserviced the parsed cip_service data into the current signature
@@ -431,18 +432,16 @@ static int DetectCipServiceParseTest01 (void)
 	uint8_t res = 0;
 
 
-	/*	cipserviced = DetectCipServiceParse("1");
-		if (cipserviced != NULL)
+	cipserviced = DetectCipServiceParse("1");
+	if (cipserviced != NULL)
+	{
+		if (cipserviced->cipservice == 1)
 		{
-			if (cipserviced->cipservice == 1)
-			{
-				res = 1;
-			}
-
-			DetectCipServiceFree(cipserviced);
+			res = 1;
 		}
-	*/
-	res = 1;	
+
+		DetectCipServiceFree(cipserviced);
+	}	
 
 	return res;
 }
