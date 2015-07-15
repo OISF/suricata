@@ -104,14 +104,14 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
     Flow * const f = p->flow;
 
     FLOWLOCK_WRLOCK(f); /* WRITE lock before we updated flow logged id */
-    AppProto alproto = f->alproto;//AppLayerGetProtoFromPacket(p);
+    AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
         goto end;
     if (AppLayerParserProtocolHasLogger(p->proto, alproto) == 0)
         goto end;
 
-    void *alstate = f->alstate;//AppLayerGetProtoStateFromPacket((const Packet *)p);
+    void *alstate = f->alstate;
     if (alstate == NULL) {
         SCLogDebug("no alstate");
         goto end;
@@ -120,9 +120,11 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
     int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 0);
+        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                       STREAM_TOSERVER);
     int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto, 1);
+        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                       STREAM_TOCLIENT);
     int proto_logged = 0;
 
     for (; tx_id < total_txs; tx_id++)
@@ -135,13 +137,15 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
         if (!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)))
         {
-            int tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 0);
+            int tx_progress = AppLayerParserGetStateProgress(p->proto, alproto,
+                                                             tx, STREAM_TOSERVER);
             if (tx_progress < tx_progress_done_value_ts) {
                 SCLogDebug("progress not far enough, not logging");
                 break;
             }
 
-            tx_progress = AppLayerParserGetStateProgress(p->proto, alproto, tx, 1);
+            tx_progress = AppLayerParserGetStateProgress(p->proto, alproto,
+                                                         tx, STREAM_TOCLIENT);
             if (tx_progress < tx_progress_done_value_tc) {
                 SCLogDebug("progress not far enough, not logging");
                 break;
