@@ -57,6 +57,9 @@
 
 static char tls_logfile_base_dir[PATH_MAX] = "/tmp";
 SC_ATOMIC_DECLARE(unsigned int, cert_id);
+static char logging_dir_not_writable;
+
+#define LOGGING_WRITE_ISSUE_LIMIT 6
 
 typedef struct LogTlsStoreLogThread_ {
     uint32_t tls_cnt;
@@ -112,7 +115,12 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
     fp = fopen(filename, "w");
     if (fp == NULL) {
-        SCLogWarning(SC_ERR_FOPEN, "Can't create PEM file: %s", filename);
+        if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
+            SCLogWarning(SC_ERR_FOPEN,
+                         "Can't create PEM file '%s' in '%s' directory",
+                         filename, tls_logfile_base_dir);
+            logging_dir_not_writable++;
+        }
         SCReturn;
     }
 
@@ -199,8 +207,12 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
         fclose(fpmeta);
     } else {
-        SCLogWarning(SC_ERR_FOPEN, "Can't open meta file: %s",
-                     filename);
+        if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
+            SCLogWarning(SC_ERR_FOPEN,
+                         "Can't create meta file '%s' in '%s' directory",
+                         filename, tls_logfile_base_dir);
+            logging_dir_not_writable++;
+        }
         SCReturn;
     }
 
@@ -210,11 +222,17 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
 
 end_fwrite_fp:
     fclose(fp);
-    SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate");
+    if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
+        SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate");
+        logging_dir_not_writable++;
+    }
 end_fwrite_fpmeta:
     if (fpmeta) {
         fclose(fpmeta);
-        SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate metafile");
+        if (logging_dir_not_writable < LOGGING_WRITE_ISSUE_LIMIT) {
+            SCLogWarning(SC_ERR_FWRITE, "Unable to write certificate metafile");
+            logging_dir_not_writable++;
+        }
     }
     SCReturn;
 end_fp:
