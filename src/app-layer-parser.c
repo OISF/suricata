@@ -128,7 +128,7 @@ struct AppLayerParserState_ {
     uint8_t flags;
 
     /* State version, incremented for each update.  Can wrap around. */
-    uint16_t version;
+    uint8_t version;
     /* Indicates the current transaction that is being inspected.
      * We have a var per direction. */
     uint64_t inspect_id[2];
@@ -606,7 +606,7 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
 uint16_t AppLayerParserGetStateVersion(AppLayerParserState *pstate)
 {
     SCEnter();
-    SCReturnCT((pstate == NULL) ? 0 : pstate->version, "uint16_t");
+    SCReturnCT((pstate == NULL) ? 0 : pstate->version, "uint8_t");
 }
 
 FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
@@ -871,7 +871,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
             goto error;
     }
     pstate->version++;
-    SCLogDebug("app layer parser state version incremented to %"PRIu16,
+    SCLogDebug("app layer parser state version incremented to %"PRIu8,
                pstate->version);
 
     if (flags & STREAM_EOF)
@@ -1166,7 +1166,7 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
                "p->inspect_id[0](%"PRIu64"), "
                "p->inspect_id[1](%"PRIu64"), "
                "p->log_id(%"PRIu64"), "
-               "p->version(%"PRIu16"), "
+               "p->version(%"PRIu8"), "
                "p->decoder_events(%p).",
                pstate, p->inspect_id[0], p->inspect_id[1], p->log_id,
                p->version, p->decoder_events);
