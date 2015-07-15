@@ -1236,7 +1236,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
-    uint16_t alversion = 0;
+    uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;

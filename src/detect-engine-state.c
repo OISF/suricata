@@ -243,7 +243,7 @@ static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
 }
 
 static void DeStateStoreStateVersion(Flow *f,
-                                     uint16_t alversion, uint8_t direction)
+                                     const uint8_t alversion, uint8_t direction)
 {
     f->detect_alversion[direction & STREAM_TOSERVER ? 0 : 1] = alversion;
 }
@@ -373,7 +373,8 @@ static int HasStoredSigs(Flow *f, uint8_t flags)
  *  \retval 1 inspectable state
  *  \retval 2 inspectable state, but no update
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags)
+int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
+                                   const uint8_t alversion, uint8_t flags)
 {
     int r = 0;
 
@@ -394,7 +395,7 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
 }
 
 static int StoreState(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags, const uint16_t alversion,
+        Flow *f, const uint8_t flags, const uint8_t alversion,
         Signature *s, SigMatch *sm, const uint32_t inspect_flags,
         const uint16_t file_no_match)
 {
@@ -445,7 +446,7 @@ static void StoreStateTxFileOnly(DetectEngineThreadCtx *det_ctx,
  *  \param check_before_add check for duplicates before adding the sig
  */
 static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
-        Flow *f, const uint8_t flags, const uint16_t alversion,
+        Flow *f, const uint8_t flags, const uint8_t alversion,
         const uint64_t tx_id, void *tx,
         Signature *s, SigMatch *sm,
         const uint32_t inspect_flags, const uint16_t file_no_match, int check_before_add)
@@ -475,7 +476,7 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
-                                AppProto alproto, uint16_t alversion)
+                                AppProto alproto, const uint8_t alversion)
 {
     SigMatch *sm = NULL;
     uint16_t file_no_match = 0;
@@ -978,7 +979,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto, uint16_t alversion)
+                                    AppProto alproto, const uint8_t alversion)
 {
     uint16_t file_no_match = 0;
     SigIntId store_cnt = 0;
