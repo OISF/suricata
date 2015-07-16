@@ -127,6 +127,8 @@ TmEcode NoNetmapSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* We have NETMAP support */
 
+#define max(a, b) (((a) > (b)) ? (a) : (b))
+
 #define POLL_TIMEOUT 100
 
 #if defined(__linux__)
@@ -165,6 +167,8 @@ typedef struct NetmapDevice_
     size_t memsize;
     struct netmap_if *nif;
     int rings_cnt;
+    int rx_rings_cnt;
+    int tx_rings_cnt;
     NetmapRing *rings;
     unsigned int ref;
     SC_ATOMIC_DECLARE(unsigned int, threads_run);
@@ -360,15 +364,11 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         }
         goto error_fd;
     };
-    if (nm_req.nr_rx_rings != nm_req.nr_tx_rings) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                   "Interface '%s' have non-equeal Tx/Rx rings (%"PRIu16"/%"PRIu16")",
-                   ifname, nm_req.nr_rx_rings, nm_req.nr_tx_rings);
-        goto error_fd;
-    }
 
-    pdev->rings_cnt = nm_req.nr_rx_rings;
     pdev->memsize = nm_req.nr_memsize;
+    pdev->rx_rings_cnt = nm_req.nr_rx_rings;
+    pdev->tx_rings_cnt = nm_req.nr_tx_rings;
+    pdev->rings_cnt = max(pdev->rx_rings_cnt, pdev->tx_rings_cnt);
 
     pdev->rings = SCMalloc(sizeof(*pdev->rings) * pdev->rings_cnt);
     if (unlikely(pdev->rings == NULL)) {
@@ -410,8 +410,12 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
             pdev->nif = NETMAP_IF(pdev->mem, nm_req.nr_offset);
         }
 
-        pring->rx = NETMAP_RXRING(pdev->nif, i);
-        pring->tx = NETMAP_TXRING(pdev->nif, i);
+        if (i < pdev->rx_rings_cnt) {
+            pring->rx = NETMAP_RXRING(pdev->nif, i);
+        }
+        if (i < pdev->tx_rings_cnt) {
+            pring->tx = NETMAP_TXRING(pdev->nif, i);
+        }
         SCSpinInit(&pring->tx_lock, 0);
         success_cnt++;
     }
@@ -528,11 +532,18 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
         goto error_ntv;
     }
 
-    if (aconf->threads > ntv->ifsrc->rings_cnt) {
+    if (unlikely(!ntv->ifsrc->rx_rings_cnt)) {
+        SCLogError(SC_ERR_NETMAP_CREATE,
+                   "Input interface '%s' does not have Rx rings",
+                   aconf->iface);
+        goto error_src;
+    }
+
+    if (unlikely(aconf->threads > ntv->ifsrc->rx_rings_cnt)) {
         SCLogError(SC_ERR_INVALID_VALUE,
-                   "Thread count can't be greater than ring count. "
-                   "Configured %d threads for interfaces '%s' with %u rings.",
-                   aconf->threads, aconf->iface, ntv->ifsrc->rings_cnt);
+                   "Thread count can't be greater than Rx ring count. "
+                   "Configured %d threads for interface '%s' with %u Rx rings.",
+                   aconf->threads, aconf->iface, ntv->ifsrc->rx_rings_cnt);
         goto error_src;
     }
 
@@ -541,15 +552,21 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     } while (SC_ATOMIC_CAS(&ntv->ifsrc->threads_run, ntv->thread_idx, ntv->thread_idx + 1) == 0);
 
     /* calculate rings borders */
-    int tmp = ntv->ifsrc->rings_cnt / aconf->threads;
+    int tmp = ntv->ifsrc->rx_rings_cnt / aconf->threads;
     ntv->ring_from = ntv->thread_idx * tmp;
     ntv->ring_to = ntv->ring_from + tmp - 1;
-    if (ntv->ring_to >= ntv->ifsrc->rings_cnt)
-        ntv->ring_to = ntv->ifsrc->rings_cnt - 1;
+    if (ntv->ring_to >= ntv->ifsrc->rx_rings_cnt)
+        ntv->ring_to = ntv->ifsrc->rx_rings_cnt - 1;
 
     if (aconf->copy_mode != NETMAP_COPY_MODE_NONE) {
         if (NetmapOpen(aconf->out_iface, 0, &ntv->ifdst, 1) != 0) {
             goto error_src;
+        }
+        if (unlikely(!ntv->ifdst->tx_rings_cnt)) {
+            SCLogError(SC_ERR_NETMAP_CREATE,
+                       "Output interface '%s' does not have Tx rings",
+                       aconf->out_iface);
+            goto error_dst;
         }
     }
 
@@ -576,7 +593,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
                     PCAP_NETMASK_UNKNOWN  /* mask */
                     ) == -1) {
             SCLogError(SC_ERR_NETMAP_CREATE, "Filter compilation failed.");
-            goto error_src;
+            goto error_dst;
         }
     }
 
@@ -589,6 +606,10 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     aconf->DerefFunc(aconf);
     SCReturnInt(TM_ECODE_OK);
 
+error_dst:
+    if (aconf->copy_mode != NETMAP_COPY_MODE_NONE) {
+        NetmapClose(ntv->ifdst);
+    }
 error_src:
     NetmapClose(ntv->ifsrc);
 error_ntv:
@@ -612,7 +633,7 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
     }
 
     /* map src ring_id to dst ring_id */
-    int dst_ring_id = p->netmap_v.ring_id % ntv->ifdst->rings_cnt;
+    int dst_ring_id = p->netmap_v.ring_id % ntv->ifdst->tx_rings_cnt;
     NetmapRing *txring = &ntv->ifdst->rings[dst_ring_id];
     NetmapRing *rxring = &ntv->ifsrc->rings[p->netmap_v.ring_id];
 
@@ -815,7 +836,7 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
 
                 if (ntv->copy_mode != NETMAP_COPY_MODE_NONE) {
                     /* sync dst tx rings */
-                    int dst_ring_id = src_ring_id % ntv->ifdst->rings_cnt;
+                    int dst_ring_id = src_ring_id % ntv->ifdst->tx_rings_cnt;
                     NetmapRing *dst_ring = &ntv->ifdst->rings[dst_ring_id];
                     if (SCSpinTrylock(&dst_ring->tx_lock) == 0) {
                         ioctl(dst_ring->fd, NIOCTXSYNC, 0);
