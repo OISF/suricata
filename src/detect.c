@@ -1233,7 +1233,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
-    uint8_t flags = 0;          /* flow/state flags */
+    uint8_t flow_flags = 0; /* flow/state flags */
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
@@ -1262,8 +1262,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flow_flags = STREAM_TOSERVER;
+            SCLogDebug("flag STREAM_TOSERVER set");
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            flow_flags = STREAM_TOCLIENT;
+            SCLogDebug("flag STREAM_TOCLIENT set");
+        }
+        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+
         if (p->flags & PKT_STREAM_EOF) {
-            flags |= STREAM_EOF;
+            flow_flags |= STREAM_EOF;
             SCLogDebug("STREAM_EOF set");
         }
 
@@ -1308,7 +1317,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(pflow, p, flags);
+                smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1338,18 +1347,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                                                 pflow->alproto,
                                                                 pflow->alstate,
                                                                 pflow->alparser,
-                                                                flags);
+                                                                flow_flags);
         }
         FLOWLOCK_UNLOCK(pflow);
-
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flags |= STREAM_TOSERVER;
-            SCLogDebug("flag STREAM_TOSERVER set");
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-            flags |= STREAM_TOCLIENT;
-            SCLogDebug("flag STREAM_TOCLIENT set");
-        }
-        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
             ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
@@ -1417,11 +1417,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flow_flags);
         if (has_inspectable_state == 1) {
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
-                                           flags, alproto, alversion);
+                                           flow_flags, alproto, alversion);
         } else if (has_inspectable_state == 2) {
             /* no inspectable state, so pretend we don't have a state at all */
             has_state = 0;
@@ -1443,7 +1443,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 #ifdef PROFILING
     if (th_v) {
@@ -1744,7 +1744,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                      p, pflow, flags, alproto, alversion);
+                                                      p, pflow, flow_flags, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
@@ -1789,7 +1789,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(pflow, flags);
+        DeStateUpdateInspectTransactionId(pflow, flow_flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
