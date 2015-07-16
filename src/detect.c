@@ -1335,6 +1335,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
+                /* update flow flags with knowledge on disruptions */
+                flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
                 alversion = AppLayerParserGetStateVersion(pflow->alparser);

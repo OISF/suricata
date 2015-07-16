@@ -160,7 +160,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     if ((htp_state->cfg->request_body_limit == 0 ||
          htud->request_body.content_len_so_far < htp_state->cfg->request_body_limit) &&
         htud->request_body.content_len_so_far < htp_state->cfg->request_inspect_min_size &&
-        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER) > HTP_REQUEST_BODY) &&
+        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
         !(flags & STREAM_EOF)) {
         SCLogDebug("we still haven't seen the entire request body.  "
                    "Let's defer body inspection till we see the "
@@ -274,7 +274,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
 
 
  end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER) > HTP_REQUEST_BODY)
+    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
