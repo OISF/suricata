@@ -381,39 +381,43 @@ typedef struct Signature_ {
     uint8_t action;
     uint8_t file_flags;
 
-    /** ipv4 match arrays */
-    uint16_t addr_dst_match4_cnt;
-    uint16_t addr_src_match4_cnt;
-    DetectMatchAddressIPv4 *addr_dst_match4;
-    DetectMatchAddressIPv4 *addr_src_match4;
-    /** ipv6 match arrays */
-    DetectMatchAddressIPv6 *addr_dst_match6;
-    DetectMatchAddressIPv6 *addr_src_match6;
-    uint16_t addr_dst_match6_cnt;
-    uint16_t addr_src_match6_cnt;
-
-    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
-    /** port settings for this signature */
-    DetectPort *sp, *dp;
-
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
 
     /** classification id **/
     uint8_t class;
 
+    /** ipv4 match arrays */
+    uint16_t addr_dst_match4_cnt;
+    uint16_t addr_src_match4_cnt;
+    uint16_t addr_dst_match6_cnt;
+    uint16_t addr_src_match6_cnt;
+    DetectMatchAddressIPv4 *addr_dst_match4;
+    DetectMatchAddressIPv4 *addr_src_match4;
+    /** ipv6 match arrays */
+    DetectMatchAddressIPv6 *addr_dst_match6;
+    DetectMatchAddressIPv6 *addr_src_match6;
+
+    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
+    uint32_t gid; /**< generator id */
+    uint32_t rev;
+    int prio;
+
+    /** port settings for this signature */
+    DetectPort *sp, *dp;
+
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif
+    /** number of sigmatches in the match and pmatch list */
+    uint16_t sm_cnt;
 
-    uint32_t gid; /**< generator id */
+    /* used to hold flags that are predominantly used during init */
+    uint32_t init_flags;
+    /* coccinelle: Signature:init_flags:SIG_FLAG_INIT_ */
 
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
-
-    uint32_t rev;
-
-    int prio;
 
     /* Hold copies of the sm lists for Match() */
     SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
@@ -435,12 +439,6 @@ typedef struct Signature_ {
     /** address settings for this signature */
     DetectAddressHead src, dst;
 
-    /* used to hold flags that are predominantly used during init */
-    uint32_t init_flags;
-    /* coccinelle: Signature:init_flags:SIG_FLAG_INIT_ */
-
-    /** number of sigmatches in the match and pmatch list */
-    uint16_t sm_cnt;
     /* used at init to determine max dsize */
     SigMatch *dsize_sm;
     /* the fast pattern added from this signature */
@@ -449,11 +447,11 @@ typedef struct Signature_ {
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
+    int list;
+
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
-
-    int list;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
