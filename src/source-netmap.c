@@ -635,7 +635,6 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
     /* map src ring_id to dst ring_id */
     int dst_ring_id = p->netmap_v.ring_id % ntv->ifdst->tx_rings_cnt;
     NetmapRing *txring = &ntv->ifdst->rings[dst_ring_id];
-    NetmapRing *rxring = &ntv->ifsrc->rings[p->netmap_v.ring_id];
 
     SCSpinLock(&txring->tx_lock);
 
@@ -645,21 +644,33 @@ static TmEcode NetmapWritePacket(NetmapThreadVars *ntv, Packet *p)
         return TM_ECODE_FAILED;
     }
 
-    struct netmap_slot *rs = &rxring->rx->slot[p->netmap_v.slot_id];
     struct netmap_slot *ts = &txring->tx->slot[txring->tx->cur];
 
-    /* swap slot buffers */
-    uint32_t tmp_idx;
-    tmp_idx = ts->buf_idx;
-    ts->buf_idx = rs->buf_idx;
-    rs->buf_idx = tmp_idx;
+    if (ntv->flags & NETMAP_FLAG_ZERO_COPY) {
+        NetmapRing *rxring = &ntv->ifsrc->rings[p->netmap_v.ring_id];
+        struct netmap_slot *rs = &rxring->rx->slot[p->netmap_v.slot_id];
 
-    ts->len = rs->len;
+        /* swap slot buffers */
+        uint32_t tmp_idx;
+        tmp_idx = ts->buf_idx;
+        ts->buf_idx = rs->buf_idx;
+        rs->buf_idx = tmp_idx;
 
-    ts->flags |= NS_BUF_CHANGED;
-    rs->flags |= NS_BUF_CHANGED;
+        ts->len = rs->len;
+
+        ts->flags |= NS_BUF_CHANGED;
+        rs->flags |= NS_BUF_CHANGED;
+    } else {
+        unsigned char *slot_data = (unsigned char *)NETMAP_BUF(txring->tx, ts->buf_idx);
+        memcpy(slot_data, GET_PKT_DATA(p), GET_PKT_LEN(p));
+        ts->len = GET_PKT_LEN(p);
+        ts->flags |= NS_BUF_CHANGED;
+    }
 
     txring->tx->head = txring->tx->cur = nm_ring_next(txring->tx, txring->tx->cur);
+    if ((ntv->flags & NETMAP_FLAG_ZERO_COPY) == 0) {
+        ioctl(txring->fd, NIOCTXSYNC, 0);
+    }
 
     SCSpinUnlock(&txring->tx_lock);
 
@@ -739,11 +750,6 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
             if (PacketSetData(p, slot_data, slot->len) == -1) {
                 TmqhOutputPacketpool(ntv->tv, p);
                 SCReturnInt(NETMAP_FAILURE);
-            } else {
-                p->ReleasePacket = NetmapReleasePacket;
-                p->netmap_v.ring_id = ring_id;
-                p->netmap_v.slot_id = cur;
-                p->netmap_v.ntv = ntv;
             }
         } else {
             if (PacketCopyData(p, slot_data, slot->len) == -1) {
@@ -751,6 +757,11 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
                 SCReturnInt(NETMAP_FAILURE);
             }
         }
+
+        p->ReleasePacket = NetmapReleasePacket;
+        p->netmap_v.ring_id = ring_id;
+        p->netmap_v.slot_id = cur;
+        p->netmap_v.ntv = ntv;
 
         SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                    GET_PKT_LEN(p), p, GET_PKT_DATA(p));
@@ -834,10 +845,13 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
                 int src_ring_id = ntv->ring_from + i;
                 NetmapRingRead(ntv, src_ring_id);
 
-                if (ntv->copy_mode != NETMAP_COPY_MODE_NONE) {
+                if ((ntv->copy_mode != NETMAP_COPY_MODE_NONE) &&
+                    (ntv->flags & NETMAP_FLAG_ZERO_COPY)) {
+
                     /* sync dst tx rings */
                     int dst_ring_id = src_ring_id % ntv->ifdst->tx_rings_cnt;
                     NetmapRing *dst_ring = &ntv->ifdst->rings[dst_ring_id];
+                    /* if locked, another loop already do sync */
                     if (SCSpinTrylock(&dst_ring->tx_lock) == 0) {
                         ioctl(dst_ring->fd, NIOCTXSYNC, 0);
                         SCSpinUnlock(&dst_ring->tx_lock);
