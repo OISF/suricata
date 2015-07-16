@@ -100,7 +100,7 @@ int DetectEngineInspectHttpStatMsg(ThreadVars *tv,
 {
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->response_message == NULL) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_LINE)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_LINE)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         else
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

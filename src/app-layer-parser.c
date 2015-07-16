@@ -725,13 +725,26 @@ static void AppLayerParserTransactionsCleanup(Flow *f)
     }
 }
 
+#define IS_DISRUPTED(flags) \
+    ((flags) & (STREAM_DEPTH|STREAM_GAP))
+
+/**
+ *  \brief get the progress value for a tx/protocol
+ *
+ *  If the stream is disrupted, we return the 'completion' value.
+ */
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
-                        void *alstate, uint8_t direction)
+                        void *alstate, uint8_t flags)
 {
     SCEnter();
     int r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
-                StateGetProgress(alstate, direction);
+    if (unlikely(IS_DISRUPTED(flags))) {
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+            StateGetProgressCompletionStatus(flags);
+    } else {
+        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+            StateGetProgress(alstate, flags);
+    }
     SCReturnInt(r);
 }
 

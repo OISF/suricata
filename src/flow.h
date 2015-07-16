@@ -568,6 +568,7 @@ int FlowClearMemory(Flow *,uint8_t );
 
 AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
+uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
 void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);

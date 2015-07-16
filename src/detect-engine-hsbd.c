@@ -286,7 +286,7 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
               htud->response_body.content_len_so_far,
               htp_state->cfg->response_inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
-               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) ? "true" : "false");
+               (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
@@ -294,7 +294,7 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         if ((htp_state->cfg->response_body_limit == 0 ||
              htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
             htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
-            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                        "Let's defer body inspection till we see the "
@@ -368,7 +368,7 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
  end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY)
+    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
