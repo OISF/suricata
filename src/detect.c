@@ -868,7 +868,8 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, AppProto alproto, int has_state, uint8_t *sms_runflags)
+        const uint8_t flags, const AppProto alproto,
+        const int has_state, uint8_t *sms_runflags)
 {
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
