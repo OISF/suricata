@@ -467,8 +467,19 @@ af-packet:
     #threads: auto
     #use-mmap: yes
 
-# netmap support
+# Netmap support
+#
+# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
+# built-in netmap support or compile and install netmap module and appropriate
+# NIC driver on your Linux system.
+# To reach maximum throughput disable all receive-, segmentation-,
+# checksum- offloadings on NIC.
+# Disabling Tx checksum offloading is *required* for connecting OS endpoint
+# with NIC endpoint.
+# You can find more information at https://github.com/luigirizzo/netmap
+#
 netmap:
+   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
  - interface: eth2
    # Number of receive threads. "auto" uses number of RSS queues on interface.
    threads: auto
