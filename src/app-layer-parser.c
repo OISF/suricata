@@ -660,10 +660,9 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     }
 
     /* logger is disabled, return highest 'complete' tx id */
-    uint8_t direction = flags & (STREAM_TOSERVER|STREAM_TOCLIENT);
     uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
-    uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, direction);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto, f->alproto, direction);
+    uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, flags);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto, f->alproto, flags);
     void *tx;
     int state_progress;
 
@@ -671,7 +670,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
         tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, direction);
+        state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
         else
