@@ -1096,12 +1096,16 @@ end:
 }
 /** \brief update flow's inspection id's
  *
+ *  \param f unlocked flow
+ *  \param flags direction and disruption flags
+ *
  *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction)
+void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
 {
     FLOWLOCK_WRLOCK(f);
     if (f->alparser && f->alstate) {
-        AppLayerParserSetTransactionInspectId(f->alparser, f->proto, f->alproto, f->alstate, direction);
+        AppLayerParserSetTransactionInspectId(f->alparser, f->proto,
+                                              f->alproto, f->alstate, flags);
     }
     FLOWLOCK_UNLOCK(f);
 
