@@ -546,15 +546,15 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
 }
 
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
-                                           uint8_t ipproto, AppProto alproto, void *alstate,
-                                           uint8_t direction)
+                                           const uint8_t ipproto, const AppProto alproto,
+                                           void *alstate, const uint8_t flags)
 {
     SCEnter();
 
-    uint8_t dir = (direction & STREAM_TOSERVER) ? 0 : 1;
+    int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
-    uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, direction);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(ipproto, alproto, direction);
+    uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(ipproto, alproto, flags);
     void *tx;
     int state_progress;
 
@@ -562,13 +562,13 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
         tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
         if (tx == NULL)
             continue;
-        state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, direction);
+        state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
         if (state_progress >= state_done_progress)
             continue;
         else
             break;
     }
-    pstate->inspect_id[dir] = idx;
+    pstate->inspect_id[direction] = idx;
 
     SCReturn;
 }
