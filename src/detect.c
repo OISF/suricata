@@ -894,14 +894,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             int tx_progress = 0;
             uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-            uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, alstate);
+            uint64_t total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, alstate);
             for (; idx < total_txs; idx++) {
-                htp_tx_t *tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, idx);
+                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
                 if (tx == NULL)
                     continue;
-                tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOSERVER);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
+
                     if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
@@ -961,7 +962,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
                 } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
 
                     if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
