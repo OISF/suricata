@@ -901,7 +901,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     continue;
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
                     if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
@@ -962,7 +962,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
                 } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
                     if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
