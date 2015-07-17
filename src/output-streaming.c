@@ -164,10 +164,10 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                 int tx_logged = 0;
 
                 int tx_progress_ts = AppLayerParserGetStateProgress(
-                        IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER);
+                        IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
                 if (tx_progress_ts >= tx_progress_done_value_ts) {
                     int tx_progress_tc = AppLayerParserGetStateProgress(
-                            IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
+                            IPPROTO_TCP, ALPROTO_HTTP, tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
                     if (tx_progress_tc >= tx_progress_done_value_tc) {
                         tx_done = 1;
                     }
