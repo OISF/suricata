@@ -138,14 +138,14 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         if (!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)))
         {
             int tx_progress = AppLayerParserGetStateProgress(p->proto, alproto,
-                                                             tx, STREAM_TOSERVER);
+                                                             tx, FlowGetDisruptionFlags(f, STREAM_TOSERVER));
             if (tx_progress < tx_progress_done_value_ts) {
                 SCLogDebug("progress not far enough, not logging");
                 break;
             }
 
             tx_progress = AppLayerParserGetStateProgress(p->proto, alproto,
-                                                         tx, STREAM_TOCLIENT);
+                                                         tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
             if (tx_progress < tx_progress_done_value_tc) {
                 SCLogDebug("progress not far enough, not logging");
                 break;
