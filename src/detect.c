@@ -1939,9 +1939,29 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PACKET_TEST_ACTION(p,
-                                                                    ACTION_DROP)))
+    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
+        (PACKET_TEST_ACTION(p, ACTION_DROP)))
+    {
+        /* hack: if we are in pass the entire flow mode, we need to still
+         * update the inspect_id forward. So test for the condition here,
+         * and call the update code if necessary. */
+        if (p->flow) {
+            uint8_t flags = 0;
+            FLOWLOCK_RDLOCK(p->flow);
+            int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
+            flags = FlowGetDisruptionFlags(p->flow, flags);
+            FLOWLOCK_UNLOCK(p->flow);
+            if (pass) {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    flags |= STREAM_TOSERVER;
+                } else {
+                    flags |= STREAM_TOCLIENT;
+                }
+                DeStateUpdateInspectTransactionId(p->flow, flags);
+            }
+        }
         return 0;
+    }
 
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
