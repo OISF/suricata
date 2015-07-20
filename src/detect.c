@@ -1268,6 +1268,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         FLOWLOCK_WRLOCK(pflow);
         {
+            /* store tenant_id in the flow so that we can use it
+             * for creating pseudo packets */
+            if (p->tenant_id > 0 && pflow->tenant_id == 0) {
+                pflow->tenant_id = p->tenant_id;
+            }
+
             /* live ruleswap check for flow updates */
             if (pflow->de_ctx_id == 0) {
                 /* first time this flow is inspected, set id */
@@ -1922,6 +1928,14 @@ void DetectSignatureApplyActions(Packet *p, const Signature *s)
 
 /* tm module api functions */
 
+static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
+{
+    /* technically we need to pass a DetectEngineThreadCtx struct with the
+     * tentant_id member. But as that member is the first in the struct, we
+     * can use the id directly. */
+    return HashTableLookup(h, &id, 0);
+}
+
 /** \brief Detection engine thread wrapper.
  *  \param tv thread vars
  *  \param p packet to inspect
@@ -1939,22 +1953,46 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                                                                     ACTION_DROP)))
         return 0;
 
+    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
         printf("ERROR: Detect has no thread ctx\n");
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
-        printf("ERROR: Detect has no detection engine ctx\n");
-        goto error;
-    }
-
     if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
-                  det_ctx, de_ctx);
+        SCLogDebug("Detect Engine using new det_ctx - %p",
+                  det_ctx);
+    }
+
+    if (det_ctx->TenantGetId != NULL) {
+        /* in MT mode, but no tenants registered yet */
+        if (det_ctx->mt_det_ctxs_cnt == 0) {
+            return TM_ECODE_OK;
+        }
+
+        uint32_t tenant_id = p->tenant_id;
+        if (tenant_id == 0)
+            tenant_id = det_ctx->TenantGetId(det_ctx, p);
+        if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            p->tenant_id = tenant_id;
+            det_ctx = GetTenantById(det_ctx->mt_det_ctxs_hash, tenant_id);
+            if (det_ctx == NULL)
+                return TM_ECODE_OK;
+            de_ctx = det_ctx->de_ctx;
+            if (de_ctx == NULL)
+                return TM_ECODE_OK;
+
+            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+                (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+                SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
+            }
+        } else {
+            return TM_ECODE_OK;
+        }
+    } else {
+        de_ctx = det_ctx->de_ctx;
     }
 
     /* see if the packet matches one or more of the sigs */

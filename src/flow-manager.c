@@ -1228,10 +1228,7 @@ static int FlowMgrTest04 (void)
 static int FlowMgrTest05 (void)
 {
     int result = 0;
-    extern intmax_t max_pending_packets;
-    max_pending_packets = 128;
 
-    PacketPoolInit();
     FlowInitConfig(FLOW_QUIET);
     FlowConfig backup;
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
@@ -1269,7 +1266,6 @@ static int FlowMgrTest05 (void)
 
     memcpy(&flow_config, &backup, sizeof(FlowConfig));
     FlowShutdown();
-    PacketPoolDestroy();
     return result;
 }
 #endif /* UNITTESTS */
