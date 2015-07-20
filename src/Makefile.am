@@ -112,6 +112,7 @@ detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
 detect-engine-hua.c detect-engine-hua.h \
 detect-engine-iponly.c detect-engine-iponly.h \
+detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-payload.c detect-engine-payload.h \
 detect-engine-port.c detect-engine-port.h \
