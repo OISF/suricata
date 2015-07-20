@@ -1496,7 +1496,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         case DETECT_SM_LIST_HUADMATCH:
         case DETECT_SM_LIST_HHHDMATCH:
         case DETECT_SM_LIST_HRHHDMATCH:
-        case DETECT_SM_LIST_DNSQUERY_MATCH:
+        case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
         {
             MpmCtx *mpm_ctx_ts = NULL;
             MpmCtx *mpm_ctx_tc = NULL;
@@ -1605,7 +1605,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 s->flags |= SIG_FLAG_MPM_APPLAYER;
                 if (cd->flags & DETECT_CONTENT_NEGATED)
                     s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_DNSQUERY_MATCH) {
+            } else if (sm_list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_dnsquery_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
@@ -2078,7 +2078,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             has_co_hrhhd = 1;
         }
 
-        if (s->sm_lists[DETECT_SM_LIST_DNSQUERY_MATCH] != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH] != NULL) {
             has_co_dnsquery = 1;
         }
     }

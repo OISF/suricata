@@ -335,7 +335,7 @@ OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }

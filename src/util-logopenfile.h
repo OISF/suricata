@@ -56,6 +56,11 @@ typedef struct LogFileCtx_ {
     /** The name of the file */
     char *filename;
 
+    /** Handle auto-connecting / reconnecting sockets */
+    int is_sock;
+    int sock_type;
+    uint64_t reconn_timer;
+
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
@@ -78,6 +83,9 @@ typedef struct LogFileCtx_ {
     int rotation_flag;
 } LogFileCtx;
 
+/* Min time (msecs) before trying to reconnect a Unix domain socket */
+#define LOGFILE_RECONN_MIN_TIME     500
+
 /* flags for LogFileCtx */
 #define LOGFILE_HEADER_WRITTEN 0x01
 #define LOGFILE_ALERTS_PRINTED 0x02
@@ -85,7 +93,7 @@ typedef struct LogFileCtx_ {
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
 
-int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *);
+int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

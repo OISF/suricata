@@ -686,8 +686,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             AppLayerHtpEnableResponseBodyCallback();
         } else if (s->list == DETECT_SM_LIST_DMATCH) {
             SCLogDebug("adding to dmatch list because of dce_stub_data");
-        } else if (s->list == DETECT_SM_LIST_DNSQUERY_MATCH) {
-            SCLogDebug("adding to DETECT_SM_LIST_DNSQUERY_MATCH list because of dns_query");
+        } else if (s->list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
+            SCLogDebug("adding to DETECT_SM_LIST_DNSQUERYNAME_MATCH list because of dns_query");
         }
         s->flags |= SIG_FLAG_APPLAYER;
         sm_list = s->list;

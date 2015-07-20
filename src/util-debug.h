@@ -507,6 +507,24 @@ extern int sc_log_module_cleaned;
 
 #endif /* DEBUG */
 
+#define FatalError(x, ...) do {                                             \
+    SCLogError(x, __VA_ARGS__);                                             \
+    exit(EXIT_FAILURE);                                                     \
+} while(0)
+
+/** \brief Fatal error IF we're starting up, and configured to consider
+ *         errors to be fatal errors */
+#define FatalErrorOnInit(x, ...) do {                                       \
+    int init_errors_fatal = 0;                                              \
+    ConfGetBool("engine.init-failure-fatal", &init_errors_fatal);           \
+    if (init_errors_fatal && (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT))\
+    {                                                                       \
+        SCLogError(x, __VA_ARGS__);                                         \
+        exit(EXIT_FAILURE);                                                 \
+    }                                                                       \
+    SCLogWarning(x, __VA_ARGS__);                                           \
+} while(0)
+
 
 SCLogInitData *SCLogAllocLogInitData(void);
 

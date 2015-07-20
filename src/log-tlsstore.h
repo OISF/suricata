@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,18 +18,12 @@
 /**
  * \file
  *
- * \author Roliers Jean-Paul <popof.fpn@gmail.com>
- * \author Eric Leblond <eric@regit.org>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __LOG_TLSLOG_H__
-#define __LOG_TLSLOG_H__
+#ifndef __LOG_TLSSTORE_H__
+#define __LOG_TLSSTORE_H__
 
-void TmModuleLogTlsLogRegister (void);
+void TmModuleLogTlsStoreRegister (void);
 
-int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
-                             Port* sp, char* dstip, size_t dstip_len,
-                             Port* dp, int ipproto);
-
-#endif /* __LOG_TLSLOG_H__ */
-
+#endif /* __LOG_TLSSTORE_H__ */

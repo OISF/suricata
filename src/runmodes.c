@@ -695,15 +695,20 @@ void RunModeInitializeOutputs(void)
 
     ConfNode *output, *output_config;
     const char *enabled;
+    char tls_log_enabled = 0;
+    char tls_store_present = 0;
 
     TAILQ_FOREACH(output, &outputs->head, next) {
 
         output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
             /* Shouldn't happen. */
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "Failed to lookup configuration child node: fast");
-            exit(1);
+            FatalError(SC_ERR_INVALID_ARGUMENT,
+                "Failed to lookup configuration child node: %s", output->val);
+        }
+
+        if (strcmp(output->val, "tls-store") == 0) {
+            tls_store_present = 1;
         }
 
         enabled = ConfNodeLookupChildValue(output_config, "enabled");
@@ -742,12 +747,14 @@ void RunModeInitializeOutputs(void)
                     "files installed to add lua support.");
             continue;
 #endif
+        } else if (strcmp(output->val, "tls-log") == 0) {
+            tls_log_enabled = 1;
         }
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
         if (module == NULL) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "No output module named %s, ignoring", output->val);
+            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                "No output module named %s", output->val);
             continue;
         }
 
@@ -755,8 +762,7 @@ void RunModeInitializeOutputs(void)
         if (module->InitFunc != NULL) {
             output_ctx = module->InitFunc(output_config);
             if (output_ctx == NULL) {
-                /* In most cases the init function will have logged the
-                 * error. Maybe we should exit on init errors? */
+                FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT, "output module setup failed");
                 continue;
             }
         } else if (module->InitSubFunc != NULL) {
@@ -778,20 +784,18 @@ void RunModeInitializeOutputs(void)
 
                     OutputModule *sub_module = OutputGetModuleByConfName(subname);
                     if (sub_module == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "No output module named %s, ignoring", subname);
+                        FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                                "No output module named %s", subname);
                         continue;
                     }
                     if (sub_module->parent_name == NULL ||
                             strcmp(sub_module->parent_name,output->val) != 0) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad parent for %s, ignoring", subname);
-                        continue;
+                        FatalError(SC_ERR_INVALID_ARGUMENT,
+                                "bad parent for %s", subname);
                     }
                     if (sub_module->InitSubFunc == NULL) {
-                        SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                                "bad sub-module for %s, ignoring", subname);
-                        continue;
+                        FatalError(SC_ERR_INVALID_ARGUMENT,
+                                "bad sub-module for %s", subname);
                     }
                     ConfNode *sub_output_config = ConfNodeLookupChild(type, type->val);
                     // sub_output_config may be NULL if no config
@@ -847,6 +851,40 @@ void RunModeInitializeOutputs(void)
             SetupOutput(module->name, module, output_ctx);
         }
     }
+
+    /* Backward compatibility code */
+    if (!tls_store_present && tls_log_enabled) {
+        /* old YAML with no "tls-store" in outputs. "tls-log" value needs
+         * to be started using 'tls-log' config as own config */
+        SCLogWarning(SC_ERR_CONF_YAML_ERROR,
+                     "Please use 'tls-store' in YAML to configure TLS storage");
+
+        TAILQ_FOREACH(output, &outputs->head, next) {
+            output_config = ConfNodeLookupChild(output, output->val);
+
+            if (strcmp(output->val, "tls-log") == 0) {
+
+                OutputModule *module = OutputGetModuleByConfName("tls-store");
+                if (module == NULL) {
+                    SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                            "No output module named %s, ignoring", "tls-store");
+                    continue;
+                }
+
+                OutputCtx *output_ctx = NULL;
+                if (module->InitFunc != NULL) {
+                    output_ctx = module->InitFunc(output_config);
+                    if (output_ctx == NULL) {
+                        continue;
+                    }
+                }
+
+                AddOutputToFreeList(module, output_ctx);
+                SetupOutput(module->name, module, output_ctx);
+            }
+        }
+    }
+
 }
 
 /**
