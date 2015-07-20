@@ -870,6 +870,37 @@ void *FlowGetAppState(const Flow *f)
     return f->alstate;
 }
 
+/**
+ *  \brief get 'disruption' flags: GAP/DEPTH/PASS
+ *  \param f locked flow
+ *  \param flags existing flags to be ammended
+ *  \retval flags original flags + disrupt flags (if any)
+ *  \TODO handle UDP
+ */
+uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
+{
+    if (f->proto != IPPROTO_TCP) {
+        return flags;
+    }
+    if (f->protoctx == NULL) {
+        return flags;
+    }
+
+    uint8_t newflags = flags;
+    TcpSession *ssn = f->protoctx;
+    TcpStream *stream = flags & STREAM_TOSERVER ? &ssn->client : &ssn->server;
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        newflags |= STREAM_DEPTH;
+    }
+    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
+        newflags |= STREAM_GAP;
+    }
+    /* todo: handle pass case (also for UDP!) */
+
+    return newflags;
+}
+
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS

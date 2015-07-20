@@ -62,8 +62,11 @@
 
 #define BUFFER_STEP 50
 
-static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
+static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
 {
+    if (size >= USHRT_MAX)
+        return -1;
+
     void *ptmp;
     if (size > det_ctx->hcbd_buffers_size) {
         ptmp = SCRealloc(det_ctx->hcbd,
@@ -80,7 +83,8 @@ static inline int HCBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
         memset(det_ctx->hcbd + det_ctx->hcbd_buffers_size, 0, BUFFER_STEP * sizeof(HttpReassembledBody));
         det_ctx->hcbd_buffers_size += BUFFER_STEP;
 
-        for (int i = det_ctx->hcbd_buffers_list_len; i < (size); i++) {
+        uint16_t i;
+        for (i = det_ctx->hcbd_buffers_list_len; i < ((uint16_t)size); i++) {
             det_ctx->hcbd[i].buffer_len = 0;
             det_ctx->hcbd[i].offset = 0;
         }
@@ -109,8 +113,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         uint64_t base_inspect_id = AppLayerParserGetTransactionInspectId(f->alparser, flags);
         BUG_ON(base_inspect_id > tx_id);
         /* see how many space we need for the current tx_id */
-        uint16_t txs = (tx_id - base_inspect_id) + 1;
-
+        uint64_t txs = (tx_id - base_inspect_id) + 1;
         if (HCBDCreateSpace(det_ctx, txs) < 0)
             goto end;
 
@@ -125,7 +128,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                 return det_ctx->hcbd[(tx_id - det_ctx->hcbd_start_tx_id)].buffer;
             }
         } else {
-            uint16_t txs = (tx_id - det_ctx->hcbd_start_tx_id) + 1;
+            uint64_t txs = (tx_id - det_ctx->hcbd_start_tx_id) + 1;
             if (HCBDCreateSpace(det_ctx, txs) < 0)
                 goto end; /* let's consider it as stage not done for now */
 
@@ -157,7 +160,7 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     if ((htp_state->cfg->request_body_limit == 0 ||
          htud->request_body.content_len_so_far < htp_state->cfg->request_body_limit) &&
         htud->request_body.content_len_so_far < htp_state->cfg->request_inspect_min_size &&
-        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER) > HTP_REQUEST_BODY) &&
+        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
         !(flags & STREAM_EOF)) {
         SCLogDebug("we still haven't seen the entire request body.  "
                    "Let's defer body inspection till we see the "
@@ -271,7 +274,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
 
 
  end:
-    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER) > HTP_REQUEST_BODY)
+    if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY)
         return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     else
         return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

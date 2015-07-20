@@ -178,7 +178,7 @@ void DetectEngineStateFlowFree(DetectEngineStateFlow *state);
  * \retval 1 Has state.
  * \retval 0 Has no state.
  */
-int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion, uint8_t flags);
+int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint8_t alversion, uint8_t flags);
 
 /**
  * \brief Match app layer sig list against app state and store relevant match
@@ -198,7 +198,7 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto, uint16_t alversion
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                 DetectEngineThreadCtx *det_ctx,
                                 Signature *s, Packet *p, Flow *f, uint8_t flags,
-                                AppProto alproto, uint16_t alversion);
+                                AppProto alproto, uint8_t alversion);
 
 /**
  * \brief Continue DeState detection of the signatures stored in the state.
@@ -214,15 +214,15 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *det_ctx,
                                     Packet *p, Flow *f, uint8_t flags,
-                                    AppProto alproto, uint16_t alversion);
+                                    AppProto alproto, uint8_t alversion);
 
 /**
  *  \brief Update the inspect id.
  *
- *  \param f Flow(unlocked).
- *  \param direction 0 for to server, 1 for toclient.
+ *  \param f unlocked flow
+ *  \param flags direction and disruption flags
  */
-void DeStateUpdateInspectTransactionId(Flow *f, uint8_t direction);
+void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags);
 
 /**
  * \brief Reset a DetectEngineState state.

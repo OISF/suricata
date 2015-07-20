@@ -73,7 +73,7 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
     HtpTxUserData *tx_ud = htp_tx_get_user_data(txv);
 
     if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOSERVER) > HTP_REQUEST_LINE)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_LINE)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         else
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;

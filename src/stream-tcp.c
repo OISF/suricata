@@ -5836,6 +5836,13 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_PSEUDO_STREAM_END;
 
+    if (p->flags & PKT_NOPACKET_INSPECTION) {
+        DecodeSetNoPacketInspectionFlag(p);
+    }
+    if (p->flags & PKT_NOPAYLOAD_INSPECTION) {
+        DecodeSetNoPayloadInspectionFlag(p);
+    }
+
     if (PKT_IS_TOSERVER(p)) {
         SCLogDebug("original is to_server, so pseudo is to_client");
         np->flowflags &= ~FLOW_PKT_TOSERVER;

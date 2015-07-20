@@ -408,6 +408,17 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
         HtpTxUserDataFree(s, htud);
         htp_tx_set_user_data(tx, NULL);
 
+        /* hack: even if libhtp considers the tx incomplete, we want to
+         * free it here. htp_tx_destroy however, will refuse to do this.
+         * As htp_tx_destroy_incomplete isn't available in the public API,
+         * we hack around it here. */
+        if (unlikely(!(
+            tx->request_progress == HTP_REQUEST_COMPLETE &&
+            tx->response_progress == HTP_RESPONSE_COMPLETE)))
+        {
+            tx->request_progress = HTP_REQUEST_COMPLETE;
+            tx->response_progress = HTP_RESPONSE_COMPLETE;
+        }
         htp_tx_destroy(tx);
     }
 }

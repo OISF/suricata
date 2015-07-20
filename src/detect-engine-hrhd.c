@@ -71,7 +71,7 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         SCReturnInt(cnt);
 
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOSERVER) <= HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
             SCReturnInt(cnt);
 
         if (tx_ud->request_headers_raw != NULL) {
@@ -81,7 +81,7 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                              flags);
         }
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOCLIENT) <= HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
             SCReturnInt(cnt);
 
         if (tx_ud->response_headers_raw != NULL) {
@@ -120,10 +120,10 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
     uint32_t headers_raw_len = 0;
 
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOSERVER) <= HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOCLIENT) <= HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
     }
 
@@ -154,10 +154,10 @@ int DetectEngineInspectHttpRawHeader(ThreadVars *tv,
 
  end:
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOSERVER) > HTP_REQUEST_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_REQUEST_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, STREAM_TOCLIENT) > HTP_RESPONSE_HEADERS)
+        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) > HTP_RESPONSE_HEADERS)
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
     }
     return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
