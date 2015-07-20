@@ -1815,9 +1815,10 @@ typedef struct DetectLoaderControl_ {
 } DetectLoaderControl;
 
 #define NLOADERS 4
-static DetectLoaderControl loaders[NLOADERS];
+static DetectLoaderControl *loaders = NULL;
 static int cur_loader = 0;
 void TmThreadWakeupDetectLoaderThreads(void);
+static int num_loaders = NLOADERS;
 
 /** \param loader -1 for auto select
  *  \retval loader_id or negative in case of error */
@@ -1826,10 +1827,10 @@ int DetectLoaderQueueTask(int loader_id, LoaderFunc Func, void *func_ctx)
     if (loader_id == -1) {
         loader_id = cur_loader;
         cur_loader++;
-        if (cur_loader >= NLOADERS)
+        if (cur_loader >= num_loaders)
             cur_loader = 0;
     }
-    if (loader_id >= NLOADERS || loader_id < 0) {
+    if (loader_id >= num_loaders || loader_id < 0) {
         return -ERANGE;
     }
 
@@ -1859,7 +1860,7 @@ int DetectLoadersSync(void)
     SCLogDebug("waiting");
     int errors = 0;
     int i;
-    for (i = 0; i < NLOADERS; i++) {
+    for (i = 0; i < num_loaders; i++) {
         int done = 0;
         DetectLoaderControl *loader = &loaders[i];
         while (!done) {
@@ -1894,8 +1895,24 @@ void DetectLoaderInit(DetectLoaderControl *loader)
 
 void DetectLoadersInit(void)
 {
+    intmax_t setting = NLOADERS;
+    (void)ConfGetInt("multi-detect.loaders", &setting);
+
+    if (setting < 1 || setting > 1024) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                "invalid multi-detect.loaders setting %"PRIdMAX, setting);
+        exit(EXIT_FAILURE);
+    }
+    num_loaders = (int32_t)setting;
+
+    SCLogInfo("using %d detect loader threads", num_loaders);
+
+    BUG_ON(loaders != NULL);
+    loaders = SCCalloc(num_loaders, sizeof(DetectLoaderControl));
+    BUG_ON(loaders == NULL);
+
     int i;
-    for (i = 0; i < NLOADERS; i++) {
+    for (i = 0; i < num_loaders; i++) {
         DetectLoaderInit(&loaders[i]);
     }
 }
@@ -2116,12 +2133,12 @@ static TmEcode DetectLoader(ThreadVars *th_v, void *thread_data)
 /** \brief spawn the detect loader manager thread */
 void DetectLoaderThreadSpawn()
 {
-    uint32_t u;
-    for (u = 0; u < NLOADERS; u++) {
+    int i;
+    for (i = 0; i < num_loaders; i++) {
         ThreadVars *tv_loader = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "DetectLoader%02u", u+1);
+        snprintf(name, sizeof(name), "DetectLoader%02d", i+1);
 
         tv_loader = TmThreadCreateCmdThreadByName("DetectLoader",
                 "DetectLoader", 1);
