@@ -1184,7 +1184,8 @@ enum {
     DETECT_AL_MODBUS,
 
     DETECT_XBITS,
-
+    DETECT_CIPSERVICE,
+    DETECT_ENIPCOMMAND,
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
