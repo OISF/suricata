@@ -48,7 +48,6 @@
 #define UNCONNECTED_DATA_ITEM 	0x00b2
 #define SEQUENCE_ADDR_ITEM      0xB002
 
-
 //status codes
 #define SUCCESS               0x0000
 #define INVALID_CMD           0x0001
@@ -58,17 +57,15 @@
 #define INVALID_LENGTH        0x0065
 #define UNSUPPORTED_PROT_REV  0x0069
 
-
 /**
  * Entry point for decoding ENIP Packet
  */
-int DecodeENIP(Packet *p, ENIP_DATA *enip_data);
+int DecodeENIP(Packet *p, ENIPData *enip_data);
 
 /**
  * Decodes Common Packet Format
  */
-int DecodeCommonPacketFormat(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
-
+int DecodeCommonPacketFormat(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 #endif	/* _DETECT_ENIP_H */
 
