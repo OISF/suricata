@@ -132,6 +132,14 @@ enum {
     HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER,
 };
 
+/* decompression swf type setting */
+enum {
+    HTTP_DECOMP_FLASH_NONE = 0,
+    HTTP_DECOMP_FLASH_ZLIB,
+    HTTP_DECOMP_FLASH_LZMA,
+    HTTP_DECOMP_FLASH_BOTH,
+};
+
 #define HTP_PCRE_NONE           0x00    /**< No pcre executed yet */
 #define HTP_PCRE_DONE           0x01    /**< Flag to indicate that pcre has
                                              done some inspection in the
@@ -158,6 +166,12 @@ typedef struct HTPCfgRec_ {
     int                 randomize;
     int                 randomize_range;
     int                 http_body_inline;
+
+    /* flash decompression */
+    int                 decomp_swf_enabled;
+    int                 decomp_swf_type;
+    uint32_t            decomp_swf_decompress_depth;
+    uint32_t            decomp_swf_compress_depth;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
