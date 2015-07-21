@@ -31,6 +31,7 @@
 
 #include "util-misc.h"
 #include "util-memrchr.h"
+#include "util-unittest.h"
 
 /** XFF header value minimal length */
 #define XFF_CHAIN_MINLEN 7
@@ -38,6 +39,70 @@
 #define XFF_CHAIN_MAXLEN 256
 /** Default XFF header name */
 #define XFF_DEFAULT "X-Forwarded-For"
+
+/** \internal
+ *  \brief parse XFF string
+ *  \param input input string, might be modified
+ *  \param output output buffer
+ *  \param output_size size of output buffer
+ *  \retval bool 1 ok, 0 fail
+ */
+static int ParseXFFString(char *input, char *output, int output_size)
+{
+    size_t len = strlen(input);
+    if (len == 0)
+        return 0;
+
+    if (input[0] == '[') {
+        char *end = strchr(input, ']');
+        if (end == NULL) // malformed, not closed
+            return 0;
+
+        if (end != input+(len - 1)) {
+            SCLogDebug("data after closing bracket");
+            // if we ever want to parse the port, we can do it here
+        }
+
+        /* done, lets wrap up */
+        input++;        // skip past [
+        *end = '\0';    // overwrite ], ignore anything after
+
+    } else {
+        /* lets see if the xff string ends in a port */
+        int c = 0;
+        int d = 0;
+        char *p = input;
+        while (*p != '\0') {
+            if (*p == ':')
+                c++;
+            if (*p == '.')
+                d++;
+            p++;
+        }
+        /* 3 dots: ipv4, one ':' port */
+        if (d == 3 && c == 1) {
+            SCLogDebug("XFF w port %s", input);
+            char *x = strchr(input, ':');
+            if (x) {
+                *x = '\0';
+                SCLogDebug("XFF w/o port %s", input);
+                // if we ever want to parse the port, we can do it here
+            }
+        }
+    }
+
+    SCLogDebug("XFF %s", input);
+
+    /** Sanity check on extracted IP for IPv4 and IPv6 */
+    uint32_t ip[4];
+    if (inet_pton(AF_INET,  input, ip) == 1 ||
+        inet_pton(AF_INET6, input, ip) == 1)
+    {
+        strlcpy(output, input, output_size);
+        return 1; // OK
+    }
+    return 0;
+}
 
 /**
  * \brief Function to return XFF IP if any in the selected transaction. The
@@ -99,13 +164,7 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
             }
             p_xff = xff_chain;
         }
-        /** Sanity check on extracted IP for IPv4 and IPv6 */
-        uint32_t ip[4];
-        if ( inet_pton(AF_INET, (char *)p_xff, ip ) == 1 ||
-                inet_pton(AF_INET6, (char *)p_xff, ip ) == 1 ) {
-            strlcpy(dstbuf, (char *)p_xff, dstbuflen);
-            return 1; // OK
-        }
+        return ParseXFFString((char *)p_xff, dstbuf, dstbuflen);
     }
     return 0;
 }
@@ -193,4 +252,113 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
     else {
         result->flags = XFF_DISABLED;
     }
+}
+
+
+#ifdef UNITTESTS
+static int XFFTest01(void) {
+    char input[] = "1.2.3.4:5678";
+    char output[16];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest02(void) {
+    char input[] = "[12::34]:1234"; // thanks chort!
+    char output[16];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "12::34") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest03(void) {
+    char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]:80"; // thanks chort!
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest04(void) {
+    char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]"; // thanks chort!
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest05(void) {
+    char input[] = "[::ffff:1.2.3.4]:1234"; // thanks double-p
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "::ffff:1.2.3.4") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest06(void) {
+    char input[] = "12::34";
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "12::34") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest07(void) {
+    char input[] = "1.2.3.4";
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest08(void) {
+    char input[] = "[1.2.3.4:1234";
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+static int XFFTest09(void) {
+    char input[] = "999.999.999.999:1234";
+    char output[46];
+    int r = ParseXFFString(input, output, sizeof(output));
+    if (r == 0) {
+        return 1;
+    }
+    return 0;
+}
+
+#endif
+
+void HTPXFFParserRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("XFFTest01", XFFTest01, 1);
+    UtRegisterTest("XFFTest02", XFFTest02, 1);
+    UtRegisterTest("XFFTest03", XFFTest03, 1);
+    UtRegisterTest("XFFTest04", XFFTest04, 1);
+    UtRegisterTest("XFFTest05", XFFTest05, 1);
+    UtRegisterTest("XFFTest06", XFFTest06, 1);
+    UtRegisterTest("XFFTest07", XFFTest07, 1);
+    UtRegisterTest("XFFTest08", XFFTest08, 1);
+    UtRegisterTest("XFFTest09", XFFTest09, 1);
+#endif
 }
