@@ -49,4 +49,6 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg, cha
 
 int HttpXFFGetIP(const Packet *p, HttpXFFCfg *xff_cfg, char *dstbuf, int dstbuflen);
 
+void HTPXFFParserRegisterTests(void);
+
 #endif /* __APP_LAYER_HTP_XFF_H__ */
