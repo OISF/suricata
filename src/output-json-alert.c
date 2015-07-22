@@ -288,7 +288,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 if (json_output_ctx->flags & LOG_JSON_PAYLOAD_BASE64) {
                     unsigned long len = JSON_STREAM_BUFFER_SIZE * 2;
                     uint8_t encoded[len];
-                    Base64Encode((unsigned char *)payload, payload->offset, encoded, &len);
+                    Base64Encode(payload->buffer, payload->offset, encoded, &len);
                     json_object_set_new(js, "payload", json_string((char *)encoded));
                 }
 
@@ -297,7 +297,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     uint32_t offset = 0;
                     PrintStringsToBuffer(printable_buf, &offset,
                                      sizeof(printable_buf),
-                                     (unsigned char *)payload, payload->offset);
+                                     payload->buffer, payload->offset);
                     json_object_set_new(js, "payload_printable",
                                         json_string((char *)printable_buf));
                 }

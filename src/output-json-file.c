@@ -242,6 +242,9 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     }
     json_object_set_new(fjs, "stored",
                         (ff->flags & FILE_STORED) ? json_true() : json_false());
+    if (ff->flags & FILE_STORED) {
+        json_object_set_new(fjs, "file_id", json_integer(ff->file_id));
+    }
     json_object_set_new(fjs, "size", json_integer(ff->size));
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 

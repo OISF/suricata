@@ -37,13 +37,23 @@ enum {
 
 typedef struct NetmapIfaceConfig_
 {
+    /* semantic interface name */
+    char iface_name[NETMAP_IFACE_NAME_LENGTH];
+    /* real inner interface name */
     char iface[NETMAP_IFACE_NAME_LENGTH];
+    /* sw ring flag for iface */
+    int iface_sw;
     int threads;
     int promisc;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     char *bpf_filter;
-    char *out_iface;
+    /* semantic interface name */
+    char *out_iface_name;
+    /* real inner interface name */
+    char out_iface[NETMAP_IFACE_NAME_LENGTH];
+    /* sw ring flag for out_iface */
+    int out_iface_sw;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } NetmapIfaceConfig;
@@ -52,6 +62,7 @@ typedef struct NetmapPacketVars_
 {
     int ring_id;
     int slot_id;
+    int dst_ring_id;
     /* NetmapThreadVars */
     void *ntv;
 } NetmapPacketVars;
