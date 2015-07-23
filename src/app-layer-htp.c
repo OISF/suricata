@@ -35,6 +35,7 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
+#include "conf.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
@@ -58,6 +59,7 @@
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-libhtp.h"
+#include "app-layer-htp-xff.h"
 
 #include "util-spm.h"
 #include "util-debug.h"
@@ -73,7 +75,6 @@
 #include "detect-parse.h"
 
 #include "decode-events.h"
-#include "conf.h"
 
 #include "util-memcmp.h"
 
@@ -6221,6 +6222,7 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest16", HTPParserTest16, 1);
 
     HTPFileParserRegisterTests();
+    HTPXFFParserRegisterTests();
 #endif /* UNITTESTS */
 }
 
