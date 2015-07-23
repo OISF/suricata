@@ -28,6 +28,8 @@
 
 #include "flow.h"
 
+#include "app-layer-events.h"
+
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 
