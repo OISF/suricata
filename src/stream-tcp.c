@@ -5829,6 +5829,8 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     /* Setup the IP and TCP headers */
     StreamTcpPseudoPacketSetupHeader(np,p);
 
+    np->tenant_id = p->flow->tenant_id;
+
     np->flowflags = p->flowflags;
 
     np->flags |= PKT_STREAM_EST;

@@ -280,7 +280,13 @@ void RunUnittests(int list_unittests, char *regex_arg)
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {
+        /* global packet pool */
+        extern intmax_t max_pending_packets;
+        max_pending_packets = 128;
+        PacketPoolInit();
+
         uint32_t failed = UtRunTests(regex_arg);
+        PacketPoolDestroy();
         UtCleanup();
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
