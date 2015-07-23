@@ -396,6 +396,8 @@ util-device.c util-device.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
 util-file.c util-file.h \
+util-file-decompression.c util-file-decompression.h \
+util-file-swf-decompression.c util-file-swf-decompression.h \
 util-fix_checksum.c util-fix_checksum.h \
 util-fmemopen.c util-fmemopen.h \
 util-hash.c util-hash.h \
