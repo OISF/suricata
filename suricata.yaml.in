@@ -501,6 +501,12 @@ netmap:
    # interface will be copied to the copy-iface interface. If 'tap' is set, the
    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
    # will not be copied.
+   # To specify the OS as the copy-iface (so the OS can route packets, or forward
+   # to a service running on the same machine) add a plus sign at the end 
+   # (e.g. "copy-iface: eth0+"). Don't forget to set up a symmetrical eth0+ -> eth0
+   # for return packets. Hardware checksumming must be *off* on the interface if
+   # using an OS endpoint (e.g. 'ifconfig eth0 -rxcsum -txcsum -rxcsum6 -txcsum6' for FreeBSD
+   # or 'ethtool -K eth0 tx off rx off' for Linux).
    #copy-mode: tap
    #copy-iface: eth3
    # Set to yes to disable promiscuous mode
