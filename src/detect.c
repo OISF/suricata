@@ -5165,7 +5165,7 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectCipServiceRegister();
-    DetectEnipCommandRegister();
+ //   DetectEnipCommandRegister();
     DetectAppLayerProtocolRegister();
 }
 

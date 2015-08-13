@@ -226,14 +226,20 @@ static void DetectCipServiceRegisterTests(void);
  */
 void DetectCipServiceRegister(void)
 {
+    SCEnter();
     sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "Rules for detecting CIP Service ";
     sigmatch_table[DETECT_CIPSERVICE].url = "www.solananetworks.com";
-    sigmatch_table[DETECT_CIPSERVICE].Match = DetectCipServiceMatch;
+   // sigmatch_table[DETECT_CIPSERVICE].Match = DetectCipServiceMatch;
+    sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
+    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_CIPSERVICE].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
     sigmatch_table[DETECT_CIPSERVICE].RegisterTests
             = DetectCipServiceRegisterTests;
+
+    SCReturn;
 
 }
 
@@ -321,6 +327,11 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 
     cipserviced = SCMalloc(sizeof(DetectCipServiceData));
 
+    cipserviced->cipservice = 0;
+    cipserviced->cipclass = 0;
+    cipserviced->matchattribute = 1;
+    cipserviced->cipattribute = 0;
+
     if (unlikely(cipserviced == NULL))
         goto error;
 
@@ -339,10 +350,28 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
             goto error;
         }
 
-        if (!isdigit((int) *token))
+        if (i < 2) //if on service or class
         {
-            printf("DetectCipServiceParse - Parameter Error %s\n", token);
-            goto error;
+            if (!isdigit((int) *token))
+            {
+                printf("DetectCipServiceParse - Parameter Error %s\n", token);
+                goto error;
+            }
+        } else //if on attribute
+        {
+
+            if (token[0] == '!')
+            {
+                cipserviced->matchattribute = 0;
+                token++;
+            }
+
+            if (!isdigit((int) *token))
+            {
+                printf("DetectCipServiceParse - Attribute Error  %s\n", token);
+                goto error;
+            }
+
         }
 
         unsigned long num = atol(token);
@@ -374,15 +403,19 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     SCLogDebug("DetectCipServiceParse - tokens %d\n", cipserviced->tokens);
     SCLogDebug("DetectCipServiceParse - service %d\n", cipserviced->cipservice);
     SCLogDebug("DetectCipServiceParse - class %d\n", cipserviced->cipclass);
+    SCLogDebug("DetectCipServiceParse - match attribute %d\n",
+                cipserviced->matchattribute);
     SCLogDebug("DetectCipServiceParse - attribute %d\n",
             cipserviced->cipattribute);
 
-    return cipserviced;
+    //return cipserviced;
+    SCReturnPtr(cipserviced, "DetectENIPFunction");
 
     error: if (cipserviced)
         SCFree(cipserviced);
     printf("DetectCipServiceParse - Error Parsing Parameters\n");
-    return NULL;
+    //return NULL;
+    SCReturnPtr(NULL, "DetectENIP");
 }
 
 /**
@@ -398,6 +431,8 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
         char *rulestr)
 {
+    SCEnter();
+
     DetectCipServiceData *cipserviced = NULL;
     SigMatch *sm = NULL;
 
@@ -412,17 +447,20 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_CIPSERVICE;
     sm->ctx = (void *) cipserviced;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+  //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+  //  s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
+    s->alproto = ALPROTO_ENIP;
 
-    return 0;
+    SCReturnInt(0);
 
     error: if (cipserviced != NULL)
         DetectCipServiceFree(cipserviced);
     if (sm != NULL)
         SCFree(sm);
     printf("DetectCipServiceSetup - Error\n");
-    return -1;
+
+    SCReturnInt(-1);
 }
 
 /**
@@ -526,7 +564,10 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].desc
             = "Rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].url = "www.solananetworks.com";
-    sigmatch_table[DETECT_ENIPCOMMAND].Match = DetectEnipCommandMatch;
+ //   sigmatch_table[DETECT_ENIPCOMMAND].Match = DetectEnipCommandMatch;
+    sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
+    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL;
+ //   sigmatch_table[DETECT_ENIPCOMMAND].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests

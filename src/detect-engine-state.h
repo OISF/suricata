@@ -79,6 +79,7 @@
 #define DE_STATE_FLAG_MODBUS_INSPECT	  (1 << 19)
 #define DE_STATE_FLAG_HRL_INSPECT	      (1 << 20)
 #define DE_STATE_FLAG_FD_SMTP_INSPECT     (1 << 21)
+#define DE_STATE_FLAG_ENIP_INSPECT        (1 << 22)
 
 /* state flags */
 #define DETECT_ENGINE_STATE_FLAG_FILE_STORE_DISABLED 0x0001

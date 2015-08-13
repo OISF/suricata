@@ -19,6 +19,7 @@ app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-dns-common.c app-layer-dns-common.h \
 app-layer-dns-tcp.c app-layer-dns-tcp.h \
 app-layer-dns-udp.c app-layer-dns-udp.h \
+app-layer-enip.c app-layer-enip.h \
 app-layer-events.c app-layer-events.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-htp-body.c app-layer-htp-body.h \
@@ -205,6 +206,7 @@ detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
 decode-enip.c decode-enip.h \
 decode-cip.c decode-cip.h \
+detect-engine-enip.c detect-engine-enip.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \

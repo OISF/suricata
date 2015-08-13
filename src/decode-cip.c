@@ -247,10 +247,16 @@ int DecodeCIPRequestPath(Packet *p, CIPServiceData *node, uint16_t offset,
                         attrib);
 
                 if ((cipserviced->tokens == 3) && (cipserviced->cipclass
-                        == class) && (cipserviced->cipattribute == attrib))
+                        == class) && (cipserviced->cipattribute == attrib) && (cipserviced->matchattribute == 1))
                 { // if rule has class & attribute, matched all here
                     return 1;
                 }
+                if ((cipserviced->tokens == 3) && (cipserviced->cipclass
+                        == class)  && (cipserviced->matchattribute == 0))
+                { // for negation rule on attribute
+                    return 1;
+                }
+
                 bytes_remain--;
                 break;
             case PATH_CLASS_16BIT:
@@ -305,9 +311,18 @@ int DecodeCIPRequestPath(Packet *p, CIPServiceData *node, uint16_t offset,
             ENIPExtractUint16(&attribute, p->payload, &offset);
             SCLogDebug("DecodeCIPRequestPath: attribute %d\n", attribute);
 
-            if (cipserviced->cipattribute == attribute)
+            if (cipserviced->matchattribute == 1) //if matching on attribute
             {
-                return 1;
+                if (cipserviced->cipattribute == attribute)
+                {
+                    return 1;
+                }
+            }else { //if want all except attribute
+                if (cipserviced->cipattribute != attribute)
+                {
+                    return 1;
+                }
+
             }
 
         }

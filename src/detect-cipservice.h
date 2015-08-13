@@ -24,6 +24,11 @@
 #ifndef _DETECT_CIPSERVICE_H
 #define	_DETECT_CIPSERVICE_H
 
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "flow.h"
+#include "queue.h"
+
 /**
  * Byte extraction utilities
  */
@@ -42,6 +47,7 @@ typedef struct DetectCipServiceData_
     uint8_t cipservice; /* cip service type */
     uint16_t cipclass; /* cip service type */
     uint16_t cipattribute; /* cip service type */
+    uint8_t matchattribute;         /* whether to match on attribute*/
     uint8_t tokens; /* number of parameters*/
 } DetectCipServiceData;
 
@@ -147,6 +153,64 @@ int CIPServiceMatch(Packet *p, ENIPData *enip_data,
  * Add new CIPServiceData node to link list
  */
 CIPServiceData *CreateCIPServiceData(ENIPData *enip_data);
+
+
+enum {
+    ENIP_DECODER_EVENT_UNSOLLICITED_RESPONSE,
+    ENIP_DECODER_EVENT_MALFORMED_DATA,
+    ENIP_DECODER_EVENT_NOT_A_REQUEST,
+    ENIP_DECODER_EVENT_NOT_A_RESPONSE,
+    ENIP_DECODER_EVENT_Z_FLAG_SET,
+    ENIP_DECODER_EVENT_FLOODED,
+    ENIP_DECODER_EVENT_STATE_MEMCAP_REACHED,
+};
+
+typedef struct ENIPTransaction_ {
+    uint16_t tx_num;                                /**< internal: id */
+    uint16_t tx_id;                                 /**< transaction id */
+    uint8_t replied;                                /**< bool indicating request is
+                                                         replied to. */
+    uint8_t reply_lost;
+    uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
+    uint8_t recursion_desired;                      /**< server said "recursion desired" */
+
+  //  TAILQ_HEAD(, ENIPQueryEntry_) query_list;        /**< list for query/queries */
+  //  TAILQ_HEAD(, ENIPAnswerEntry_) answer_list;      /**< list for answers */
+  //  TAILQ_HEAD(, ENIPAnswerEntry_) authority_list;   /**< list for authority records */
+
+    AppLayerDecoderEvents *decoder_events;          /**< per tx events */
+
+    TAILQ_ENTRY(ENIPTransaction_) next;
+    DetectEngineState *de_state;
+} ENIPTransaction;
+
+/** \brief Per flow ENIP state container */
+typedef struct ENIPState_ {
+    TAILQ_HEAD(, ENIPTransaction_) tx_list;  /**< transaction list */
+    ENIPTransaction *curr;                   /**< ptr to current tx */
+    ENIPTransaction *iter;
+    uint64_t transaction_max;
+    uint32_t unreplied_cnt;                 /**< number of unreplied requests in a row */
+    uint32_t memuse;                        /**< state memuse, for comparing with
+                                                 state-memcap settings */
+    uint64_t tx_with_detect_state_cnt;
+
+    uint16_t events;
+    uint16_t givenup;
+
+    /* used by TCP only */
+    uint16_t offset;
+    uint16_t record_len;
+    uint8_t *buffer;
+} ENIPState;
+
+
+
+
+
+
+
+
 
 #endif	/* _DETECT_CIPSERVICE_H */
 
