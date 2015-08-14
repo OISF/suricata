@@ -267,21 +267,19 @@ void DetectEngineRegisterAppInspectionEngines(void)
           0,
           DetectEngineInspectSMTPFiledata },
           /* ENIP & CIP */
-          { IPPROTO_TCP,
+  /*        { IPPROTO_TCP,
             ALPROTO_ENIP,
             DETECT_SM_LIST_ENIP_MATCH,
             DE_STATE_FLAG_ENIP_INSPECT,
             0,
             DetectEngineInspectENIP },
-            /* specifically for UDP, register again
-             * allows us to use the alproto w/o translation
-             * in the detection engine */
            { IPPROTO_UDP,
              ALPROTO_ENIP,
              DETECT_SM_LIST_ENIP_MATCH,
              DE_STATE_FLAG_ENIP_INSPECT,
              0,
              DetectEngineInspectENIP },
+             */
     };
 
     struct tmp_t data_toclient[] = {
@@ -335,21 +333,19 @@ void DetectEngineRegisterAppInspectionEngines(void)
           0,
           DetectEngineInspectModbus },
           /* ENIP & CIP */
-          { IPPROTO_TCP,
+          /*{ IPPROTO_TCP,
             ALPROTO_ENIP,
             DETECT_SM_LIST_ENIP_MATCH,
             DE_STATE_FLAG_ENIP_INSPECT,
             0,
             DetectEngineInspectENIP },
-            /* specifically for UDP, register again
-             * allows us to use the alproto w/o translation
-             * in the detection engine */
            { IPPROTO_UDP,
              ALPROTO_ENIP,
              DETECT_SM_LIST_ENIP_MATCH,
              DE_STATE_FLAG_ENIP_INSPECT,
              0,
              DetectEngineInspectENIP },
+             */
     };
 
     size_t i;

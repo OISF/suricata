@@ -39,7 +39,8 @@
 #include "queue.h"
 
 
-void RegisterENIPParsers(void);
+void RegisterENIPUDPParsers(void);
+void RegisterENIPTCPParsers(void);
 void ENIPParserRegisterTests(void);
 
 #endif /* __APP_LAYER_ENIP_H__ */

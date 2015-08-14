@@ -1095,7 +1095,8 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();
     RegisterModbusParsers();
-    RegisterENIPParsers();
+    RegisterENIPUDPParsers();
+    RegisterENIPTCPParsers();
 
     /** IMAP */
     AppLayerProtoDetectRegisterProtocol(ALPROTO_IMAP, "imap");

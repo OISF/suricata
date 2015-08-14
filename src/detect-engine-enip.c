@@ -70,17 +70,17 @@ int DetectEngineInspectENIP(ThreadVars            *tv,
 {
     SCEnter();
    // ENIPData   *tx = (ENIPData *)txv;
-   // SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
-   // DetectCipServiceData        *cipserviced = (DetectCipServiceData *) sm->ctx;
+    SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
+    DetectCipServiceData        *cipserviced = (DetectCipServiceData *) sm->ctx;
 
     int ret = 0;
 
     printf("DetectEngineInspectENIP\n");
 
- //   if (cipserviced == NULL) {
- //       SCLogDebug("no cipservice state, no match");
- //       SCReturnInt(0);
- //   }
+    if (cipserviced == NULL) {
+        SCLogDebug("no cipservice state, no match");
+        SCReturnInt(0);
+    }
 
    ret = 1;
 

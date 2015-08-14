@@ -30,6 +30,8 @@
 #include "util-byte.h"
 
 #include "detect-cipservice.h"
+#include "detect-engine-enip.h"
+
 #include "decode-enip.h"
 
 /**
@@ -221,6 +223,8 @@ static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
 
+int DetectCIPServiceMatch2 (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+
 /**
  * \brief Registration function for cip_service: keyword
  */
@@ -232,7 +236,7 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].url = "www.solananetworks.com";
    // sigmatch_table[DETECT_CIPSERVICE].Match = DetectCipServiceMatch;
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
-    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = DetectCIPServiceMatch2; //DetectEngineInspectENIP;
     sigmatch_table[DETECT_CIPSERVICE].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
@@ -242,6 +246,31 @@ void DetectCipServiceRegister(void)
     SCReturn;
 
 }
+
+
+int DetectCIPServiceMatch2 (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    SCEnter();
+
+    DetectCipServiceData *cipserviced = (DetectCipServiceData *)m->ctx;
+    ENIPState *enip_state = (ENIPState *)state;
+
+    printf("DetectCIPServiceMatch2\n");
+    if (enip_state == NULL) {
+        printf("no cipservice state, no match\n");
+        SCReturnInt(0);
+    }
+
+    printf("DetectCIPServiceMatch2 cipservice %d\n", cipserviced->cipservice);
+    printf("DetectCIPServiceMatch2 test %d\n", enip_state->test);
+    printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
+    int ret = 0;
+
+    ret = 1;
+    SCReturnInt(ret);
+}
+
+
 
 /**
  * \brief This function is used to match cip_service rule option on a packet
@@ -436,6 +465,13 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectCipServiceData *cipserviced = NULL;
     SigMatch *sm = NULL;
 
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP) {
+          SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+          goto error;
+      }
+
+
     cipserviced = DetectCipServiceParse(rulestr);
     if (cipserviced == NULL)
         goto error;
@@ -449,8 +485,10 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
 
   //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
   //  s->flags |= SIG_FLAG_REQUIRE_PACKET;
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
-    s->alproto = ALPROTO_ENIP;
+  //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+   // s->alproto = ALPROTO_ENIP;
+   // s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 
@@ -555,6 +593,8 @@ static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
 
+int DetectENIPCommandMatch2 (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+
 /**
  * \brief Registration function for enip_command: keyword
  */
@@ -566,14 +606,40 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].url = "www.solananetworks.com";
  //   sigmatch_table[DETECT_ENIPCOMMAND].Match = DetectEnipCommandMatch;
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
-    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL;
- //   sigmatch_table[DETECT_ENIPCOMMAND].alproto = ALPROTO_ENIP;
+    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = DetectENIPCommandMatch2;// NULL;
+    sigmatch_table[DETECT_ENIPCOMMAND].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
     sigmatch_table[DETECT_ENIPCOMMAND].RegisterTests
             = DetectEnipCommandRegisterTests;
 
 }
+
+
+
+
+int DetectENIPCommandMatch2 (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    SCEnter();
+
+    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *)m->ctx;
+    ENIPState *enip_state = (ENIPState *)state;
+
+    printf("DetectENIPCommandMatch2\n");
+    if (enip_state == NULL) {
+        printf("no enip state, no match\n");
+        SCReturnInt(0);
+    }
+
+    printf("DetectENIPCommandMatch2 enipcommand %d\n", enipcmdd->enipcommand);
+    printf("DetectENIPCommandMatch2 test %d\n", enip_state->test);
+    printf("DetectENIPCommandMatch2 tx %d\n", enip_state->transaction_max);
+    int ret = 0;
+
+    ret = 1;
+    SCReturnInt(ret);
+}
+
 
 /**
  * \brief This function is used to match cip_service rule option on a packet
@@ -701,6 +767,12 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectEnipCommandData *enipcmdd = NULL;
     SigMatch *sm = NULL;
 
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP) {
+           SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+           goto error;
+    }
+
     enipcmdd = DetectEnipCommandParse(rulestr);
     if (enipcmdd == NULL)
         goto error;
@@ -712,17 +784,19 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_ENIPCOMMAND;
     sm->ctx = (void *) enipcmdd;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    //SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    //s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
 
-    return 0;
+    SCReturnInt(0);
 
     error: if (enipcmdd != NULL)
         DetectEnipCommandFree(enipcmdd);
     if (sm != NULL)
         SCFree(sm);
     printf("DetectEnipCommandSetup - Error\n");
-    return -1;
+    SCReturnInt(-1);
+
 }
 
 /**
