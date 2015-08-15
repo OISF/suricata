@@ -517,8 +517,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         ptv->vlan_disabled = 1;
     }
 
-    /* Since VLAN is disabled we force the cluster type to CLUSTER_FLOW_5_TUPLE */
-    if (ptv->vlan_disabled == 1 && ptv->ctype == CLUSTER_FLOW) {
+    /* If VLAN tracking is disabled, set cluster type to 5-tuple or in case of a
+     * ZC interface, do nothing */
+    if (ptv->vlan_disabled && ptv->ctype == CLUSTER_FLOW &&
+            strncmp(ptv->interface, "zc", 2) != 0) {
         SCLogInfo("VLAN disabled, setting cluster type to CLUSTER_FLOW_5_TUPLE");
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, CLUSTER_FLOW_5_TUPLE);
 
