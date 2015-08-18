@@ -47,25 +47,13 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-enip.h"
-#include "detect-cipservice.h"
+#include "app-layer-enip-common.h"
 
 #include "app-layer-detect-proto.h"
 
 #include "conf.h"
 #include "decode.h"
 
-
-
-SC_ATOMIC_DECLARE(uint64_t, enip_memuse); /**< byte counter of current memuse */
-SC_ATOMIC_DECLARE(uint64_t, enip_memcap_state); /**< counts number of 'rejects' */
-SC_ATOMIC_DECLARE(uint64_t, enip_memcap_global); /**< counts number of 'rejects' */
-
-typedef struct ENIPConfig_ {
-    uint32_t request_flood;
-    uint32_t state_memcap;  /**< memcap in bytes per state */
-    uint64_t global_memcap; /**< memcap in bytes globally for parser */
-} ENIPConfig;
-static ENIPConfig enip_config;
 
 
 void *ENIPGetTx(void *alstate, uint64_t tx_id)
@@ -127,46 +115,6 @@ int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
 
 
 
-void ENIPIncrMemcap(uint32_t size, ENIPState *state)
-{
-    if (state != NULL) {
-        state->memuse += size;
-    }
-    SC_ATOMIC_ADD(enip_memuse, size);
-}
-
-
-
-void ENIPDecrMemcap(uint32_t size, ENIPState *state)
-{
-    if (state != NULL) {
-        BUG_ON(size > state->memuse); /**< TODO remove later */
-        state->memuse -= size;
-    }
-
-    BUG_ON(size > SC_ATOMIC_GET(enip_memuse)); /**< TODO remove later */
-    (void)SC_ATOMIC_SUB(enip_memuse, size);
-}
-
-int ENIPCheckMemcap(uint32_t want, ENIPState *state)
-{
-    if (state != NULL) {
-        if (state->memuse + want > enip_config.state_memcap) {
-            SC_ATOMIC_ADD(enip_memcap_state, 1);
-          //  ENIPSetEvent(state, ENIP_DECODER_EVENT_STATE_MEMCAP_REACHED);
-            return -1;
-        }
-    }
-
-    if (SC_ATOMIC_GET(enip_memuse) + (uint64_t)want > enip_config.global_memcap) {
-        SC_ATOMIC_ADD(enip_memcap_global, 1);
-        return -2;
-    }
-
-    return 0;
-}
-
-
 
 void *ENIPStateAlloc(void)
 {
@@ -179,6 +127,7 @@ void *ENIPStateAlloc(void)
     ENIPState *enip_state = (ENIPState *)s;
 
   //  ENIPIncrMemcap(sizeof(ENIPState), enip_state);
+    enip_state->test = 0;
 
     TAILQ_INIT(&enip_state->tx_list);
     return s;
@@ -191,31 +140,35 @@ void *ENIPStateAlloc(void)
 static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 {
     SCEnter();
-/*
-    ENIPQueryEntry *q = NULL;
-    while ((q = TAILQ_FIRST(&tx->query_list))) {
-        TAILQ_REMOVE(&tx->query_list, q, next);
-        ENIPDecrMemcap((sizeof(ENIPQueryEntry) + q->len), state);
-        SCFree(q);
+
+    CIPServiceEntry *svc = NULL;
+    while ((svc = TAILQ_FIRST(&tx->service_list))) {
+        TAILQ_REMOVE(&tx->service_list, svc, next);
+
+        SegmentEntry *seg = NULL;
+        while ((seg = TAILQ_FIRST(&svc->segment_list)))
+        {
+            TAILQ_REMOVE(&svc->segment_list, seg, next);
+            SCFree(seg);
+        }
+
+        AttributeEntry *attr = NULL;
+        while ((attr = TAILQ_FIRST(&svc->attrib_list)))
+        {
+            TAILQ_REMOVE(&svc->attrib_list, attr, next);
+            SCFree(attr);
+        }
+
+        //ENIPDecrMemcap((sizeof(ENIPQueryEntry) + q->len), state);
+
+        SCFree(svc);
     }
 
-    ENIPAnswerEntry *a = NULL;
-    while ((a = TAILQ_FIRST(&tx->answer_list))) {
-        TAILQ_REMOVE(&tx->answer_list, a, next);
-        ENIPDecrMemcap((sizeof(ENIPAnswerEntry) + a->fqdn_len + a->data_len), state);
-        SCFree(a);
-    }
-    while ((a = TAILQ_FIRST(&tx->authority_list))) {
-        TAILQ_REMOVE(&tx->authority_list, a, next);
-        ENIPDecrMemcap((sizeof(ENIPAnswerEntry) + a->fqdn_len + a->data_len), state);
-        SCFree(a);
-    }
-*/
     AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
     if (tx->de_state != NULL) {
         DetectEngineStateFree(tx->de_state);
-        BUG_ON(state->tx_with_detect_state_cnt == 0);
+     //   BUG_ON(state->tx_with_detect_state_cnt == 0);
         state->tx_with_detect_state_cnt--;
     }
 
@@ -242,12 +195,12 @@ void ENIPStateFree(void *s)
         }
 
         if (enip_state->buffer != NULL) {
-            ENIPDecrMemcap(0xffff, enip_state); /** TODO update if/once we alloc
-                                               *  in a smarter way */
+         //   ENIPDecrMemcap(0xffff, enip_state); /** TODO update if/once we alloc
+ //                                              *  in a smarter way */
             SCFree(enip_state->buffer);
         }
 
-        BUG_ON(enip_state->tx_with_detect_state_cnt > 0);
+      //  BUG_ON(enip_state->tx_with_detect_state_cnt > 0);
 
 //        ENIPDecrMemcap(sizeof(ENIPState), enip_state);
 //        BUG_ON(enip_state->memuse > 0);
@@ -268,19 +221,18 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state, const uint16_t tx
  //   if (ENIPCheckMemcap(sizeof(ENIPTransaction), state) < 0)
  //       return NULL;
 
-    ENIPTransaction *tx = SCMalloc(sizeof(ENIPTransaction));
+    ENIPTransaction *tx = (ENIPTransaction *) SCCalloc(1, sizeof(ENIPTransaction));
     if (unlikely(tx == NULL))
         return NULL;
 
-    ENIPIncrMemcap(sizeof(ENIPTransaction), state);
-
+  //  ENIPIncrMemcap(sizeof(ENIPTransaction), state);
     memset(tx, 0x00, sizeof(ENIPTransaction));
-
- //   TAILQ_INIT(&tx->query_list);
- //   TAILQ_INIT(&tx->answer_list);
- //   TAILQ_INIT(&tx->authority_list);
+    TAILQ_INIT(&tx->service_list);
 
     tx->tx_id = tx_id;
+
+    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+
     return tx;
 
 }
@@ -322,6 +274,9 @@ void ENIPStateTransactionFree(void *state, uint64_t tx_id)
     }
     SCReturn;
 }
+
+
+
 
 
 
@@ -371,6 +326,9 @@ int ENIPHasEvents(void *state)
 
 
 
+
+
+
 /** \internal
  *
  * \brief This function is called to retrieve a ENIP
@@ -381,60 +339,38 @@ int ENIPHasEvents(void *state)
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int ENIPParse(Flow *f, void *state,
-                              AppLayerParserState *pstate,
-                              uint8_t *input, uint32_t input_len,
-                              void *local_data)
+static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
+        uint8_t *input, uint32_t input_len, void *local_data)
 {
     SCEnter();
-    ENIPState         *enip = (ENIPState *) state;
-    ENIPTransaction   *tx;
-
-    if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
-           SCReturnInt(1);
-       } else if (input == NULL || input_len == 0) {
-           SCReturnInt(-1);
-       }
-
-  // printf("ENIPParse input_len %d\n", input_len);
-    enip->test=88;
-  //  printf("ENIPParse test %d\n", enip->test);
-
-  //  while (input_len > 0) {
-            uint32_t    adu_len = input_len;
-            uint8_t     *adu = input;
-
-/*
-            if (ModbusParseHeader(modbus, &header, adu, adu_len))
-                SCReturnInt(0);
-
-            adu_len = (uint32_t) sizeof(ModbusHeader) + (uint32_t) header.length - 1;
-            if (adu_len > input_len)
-                SCReturnInt(0);
-*/
-            /* Allocate a Transaction Context and add it to Transaction list */
-          //  printf("ENIPParse alloc tx\n");
-            tx = ENIPTransactionAlloc(enip, 1);
-
-
-            if (tx == NULL)
-                SCReturnInt(0);
-            enip->transaction_max++;
- //           ModbusCheckHeader(modbus, &header);
-
-            /* Store Transaction ID & PDU length */
-     //       tx->tx_id   = header.transactionId;
-     //       tx->length          = header.length;
-
-            /* Extract MODBUS PDU and fill Transaction Context */
- //           ModbusParseRequestPDU(tx, modbus, adu, adu_len);
-
-            /* Update input line and remaining input length of the command */
-            input       += adu_len;
-            input_len   -= adu_len;
-   //     }
-
+    ENIPState *enip = (ENIPState *) state;
+    ENIPTransaction *tx;
+    int ret = 0;
+    if (input == NULL && AppLayerParserStateIssetFlag(pstate,
+            APP_LAYER_PARSER_EOF))
+    {
         SCReturnInt(1);
+    } else if (input == NULL || input_len == 0)
+    {
+        SCReturnInt(-1);
+    }
+
+    printf("ENIPParse input_len %d\n", input_len);
+    enip->test = enip->test + 1;
+
+    uint32_t adu_len = input_len;
+    uint8_t *adu = input;
+
+    tx = ENIPTransactionAlloc(enip, 1);
+
+    if (tx == NULL)
+        SCReturnInt(0);
+    enip->transaction_max++;
+
+    ret = DecodeENIPPDU(input, input_len, tx);
+
+
+    SCReturnInt(1);
 }
 
 
@@ -602,7 +538,7 @@ void RegisterENIPTCPParsers(void)
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateAlloc,
                                           ENIPStateFree);
-         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP,
+ /*        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP,
                                           ENIPStateTransactionFree);
 
          AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetEvents);
@@ -613,6 +549,7 @@ void RegisterENIPTCPParsers(void)
 
          AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
          AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
+ */
          AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgress);
          AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
 

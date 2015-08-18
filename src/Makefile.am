@@ -20,6 +20,7 @@ app-layer-dns-common.c app-layer-dns-common.h \
 app-layer-dns-tcp.c app-layer-dns-tcp.h \
 app-layer-dns-udp.c app-layer-dns-udp.h \
 app-layer-enip.c app-layer-enip.h \
+app-layer-enip-common.c app-layer-enip-common.h \
 app-layer-events.c app-layer-events.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-htp-body.c app-layer-htp-body.h \
