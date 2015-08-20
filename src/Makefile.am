@@ -472,9 +472,14 @@ cuda-ptxdump.h: $(PTXS)
 CLEANFILES = $(PTXS) cuda-ptxdump.h
 endif
 
+# default CFLAGS
+AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS} ${SECCFLAGS} ${PCAP_CFLAGS} -Wall -Wno-unused-parameter -std=gnu99 -DLOCAL_STATE_DIR=\"$(localstatedir)\"
+# different flags for different cases
+if DEBUG
+AM_CFLAGS += -ggdb -O0
+endif
 
-#suricata_CFLAGS = -Wall -fno-strict-aliasing 
-AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
+AM_LDFLAGS = ${SECLDFLAGS}
 
 if BUILD_UNITTESTS
 check-am:
