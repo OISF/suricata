@@ -419,7 +419,6 @@ int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow
     }
 
     printf("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
-//    printf("DetectCIPServiceMatch2 test %d\n", enip_state->test);
 //    printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
 
     
@@ -801,9 +800,8 @@ int DetectENIPCommandMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flo
         SCReturnInt(0);
     }
 
-  //  printf("DetectENIPCommandMatch2 enipcommand %d\n", enipcmdd->enipcommand);
-  //  printf("DetectENIPCommandMatch2 test %d\n", enip_state->test);
-  //  printf("DetectENIPCommandMatch2 tx %d\n", enip_state->transaction_max);
+  //  printf("DetectENIPCommandMatchAL enipcommand %d\n", enipcmdd->enipcommand);  
+  //  printf("DetectENIPCommandMatchAL tx %d\n", enip_state->transaction_max);
    
     
     ENIPTransaction *tx = NULL;

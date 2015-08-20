@@ -135,8 +135,6 @@ typedef struct ENIPState_ {
     uint16_t events;
     uint16_t givenup;
 
-    uint16_t test;
-
     /* used by TCP only */
     uint16_t offset;
     uint16_t record_len;
