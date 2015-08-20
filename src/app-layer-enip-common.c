@@ -34,7 +34,6 @@
  *
  */
 
-
 #include "suricata-common.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -46,11 +45,11 @@
 
 #include "app-layer-enip-common.h"
 
-
 static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
 {
 
-    CIPServiceEntry *svc = (CIPServiceEntry *) SCCalloc(1, sizeof(CIPServiceEntry));
+    CIPServiceEntry *svc = (CIPServiceEntry *) SCCalloc(1,
+            sizeof(CIPServiceEntry));
     if (unlikely(svc == NULL))
         return NULL;
 
@@ -60,12 +59,11 @@ static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
     TAILQ_INIT(&svc->attrib_list);
 
     TAILQ_INSERT_TAIL(&tx->service_list, svc, next);
-   // svc->service = 75;
+    // svc->service = 75;
 
     return svc;
 
 }
-
 
 void CIPServiceFree(void *s)
 {
@@ -93,15 +91,14 @@ void CIPServiceFree(void *s)
     SCReturn;
 }
 
-
-
-int DecodeENIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data)
+int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
+        ENIPTransaction *enip_data)
 {
     int ret = 1;
 
     uint16_t offset = 0; //byte offset
 
-     //Decode Encapsulation Header
+    //Decode Encapsulation Header
     uint16_t cmd;
     uint16_t len;
     uint32_t session;
@@ -145,12 +142,14 @@ int DecodeENIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data
         case SEND_RR_DATA:
             SCLogDebug(
                     "DecodeENIP - SEND_RR_DATA - parse Common Packet Format\n");
-            ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data, offset);
+            ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data,
+                    offset);
             break;
         case SEND_UNIT_DATA:
             SCLogDebug(
                     "DecodeENIP - SEND UNIT DATA - parse Common Packet Format\n");
-            ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data, offset);
+            ret = DecodeCommonPacketFormatPDU(input, input_len, enip_data,
+                    offset);
             break;
         case INDICATE_STATUS:
             SCLogDebug("DecodeENIP - INDICATE_STATUS\n");
@@ -166,10 +165,8 @@ int DecodeENIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data
     return ret;
 }
 
-
-
-
-int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset)
+int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
+        ENIPTransaction *enip_data, uint16_t offset)
 {
     int ret = 1;
 
@@ -250,7 +247,8 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len, ENIPTransact
 
 }
 
-int DecodeCIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset)
+int DecodeCIPPDU(uint8_t *input, uint32_t input_len,
+        ENIPTransaction *enip_data, uint16_t offset)
 {
     int ret = 1;
 
@@ -260,13 +258,11 @@ int DecodeCIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data,
         return 0;
     }
 
-
     if (offset > input_len)
     {
         SCLogDebug("DecodeCIP: Parsing beyond payload length\n");
         return 0;
     }
-
 
     uint8_t service = 0;
     service = *(input + offset);
@@ -285,12 +281,10 @@ int DecodeCIPPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data,
     return ret;
 }
 
-
-
-int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset)
+int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
+        ENIPTransaction *enip_data, uint16_t offset)
 {
     int ret = 1;
-
 
     if (enip_data->encap_data_item.length < sizeof(CIPReqHdr))
     {
@@ -315,8 +309,8 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *eni
     node->service = service;
     node->request.path_size = path_size;
     node->request.path_offset = offset;
-   // printf("DecodeCIPRequestPDU: service 0x%x size %d\n", node->service,
-   //         node->request.path_size);
+    // printf("DecodeCIPRequestPDU: service 0x%x size %d\n", node->service,
+    //         node->request.path_size);
 
     DecodeCIPRequestPathPDU(input, input_len, node, offset);
 
@@ -378,21 +372,19 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len, ENIPTransaction *eni
     return ret;
 }
 
-
-
-int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len, CIPServiceEntry *node, uint16_t offset)
+int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
+        CIPServiceEntry *node, uint16_t offset)
 {
     int ret = 1;
 
     printf("DecodeCIPRequestPath: service 0x%x size %d length %d\n",
-               node->service, node->request.path_size, input_len);
+            node->service, node->request.path_size, input_len);
 
     if (node->request.path_size < 1)
     {
         //SCLogDebug("DecodeCIPRequestPath: empty path or CIP Response\n");
         return 0;
     }
-
 
     int bytes_remain = node->request.path_size;
 
@@ -481,7 +473,6 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len, CIPServiceEntry 
         }
     }
 
-
     if ((node->service == CIP_SET_ATTR_LIST) || (node->service
             == CIP_GET_ATTR_LIST))
     {
@@ -509,12 +500,12 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len, CIPServiceEntry 
 
 }
 
-
-int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len, ENIPTransaction *enip_data, uint16_t offset)
+int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
+        ENIPTransaction *enip_data, uint16_t offset)
 {
     int ret = 1;
 
-   if (enip_data->encap_data_item.length < sizeof(CIPRespHdr))
+    if (enip_data->encap_data_item.length < sizeof(CIPRespHdr))
     {
         SCLogDebug("DecodeCIPResponse - Malformed CIP Data\n");
         return 0;
@@ -540,7 +531,6 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len, ENIPTransaction *en
 
     SCLogDebug("DecodeCIPResponsePDU: service 0x%x size %d\n", node->service,
             node->request.path_size);
-
 
     //list of CIP services is large and can be vendor specific, store CIP service  anyways and let the rule decide the action
     switch (service)
@@ -598,10 +588,6 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len, ENIPTransaction *en
     return ret;
 }
 
-
-
-
-
 int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -617,7 +603,6 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
 
     for (int svc = 1; svc < num_services + 1; svc++)
     {
-
 
         if (temp_offset > input_len)
         {
@@ -653,7 +638,6 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
     for (int svc = 0; svc < num_services; svc++)
     {
 
-
         if (temp_offset > input_len)
         {
             SCLogDebug("DecodeCIPResponseMSP: Parsing beyond payload length\n");
@@ -671,6 +655,4 @@ int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
 
     return ret;
 }
-
-
 

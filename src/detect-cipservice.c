@@ -149,6 +149,7 @@ void FreeCIPServiceData(CIPServiceData *cip_data)
  * @param cipserviced
  * @return
  */
+/*
 int CIPServiceMatch(Packet *p, ENIPData *enip_data,
         DetectCipServiceData *cipserviced)
 {
@@ -184,6 +185,8 @@ int CIPServiceMatch(Packet *p, ENIPData *enip_data,
     }
     return 0;
 }
+
+*/
 
 /**
  * \brief Print fields from ENIP Packet
@@ -374,8 +377,8 @@ void PrintENIPAL(ENIPTransaction *enip_data)
 /**
  * \brief CIP Service Detect Prototypes
  */
-int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        Signature *, const SigMatchCtx *);
+//int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+//        Signature *, const SigMatchCtx *);
 static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
@@ -418,7 +421,7 @@ int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow
         SCReturnInt(0);
     }
 
-    printf("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
+    SCLogDebug("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
 //    printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
 
     
@@ -429,7 +432,7 @@ int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow
    //   printf("DetectCIPServiceMatch2 transaction #%d\n", count);
       //PrintENIPAL(tx);
       if (CIPServiceMatchAL(tx, cipserviced) == 1){
-          printf("DetectCIPServiceMatchAL found\n");
+          SCLogDebug("DetectCIPServiceMatchAL found\n");
           return 1;
       }
       count++;
@@ -451,6 +454,7 @@ int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow
  * \retval 0 no match
  * \retval 1 match
  */
+
 int DetectCipServiceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
@@ -492,15 +496,15 @@ int DetectCipServiceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     {
         return 0;
     }
-
+/*
     int status = DecodeENIP(p, &enip_data); //perform EtherNet/IP decoding
 
     if (status != 0)
     {
         //PrintENIP(&enip_data); //print gathered ENIP data
-        ret = CIPServiceMatch(p, &enip_data, cipserviced); //check if rule matches
+       // ret = CIPServiceMatch(p, &enip_data, cipserviced); //check if rule matches
     }
-
+*/
     FreeCIPServiceData(enip_data.service_head); //free CIP service data
 
     return ret;
@@ -755,8 +759,8 @@ void DetectCipServiceRegisterTests(void)
 /**
  * \brief ENIP Commond Detect Prototypes
  */
-int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-        Signature *, const SigMatchCtx *);
+//int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
+//        Signature *, const SigMatchCtx *);
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
@@ -810,7 +814,7 @@ int DetectENIPCommandMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flo
       //PrintENIPAL(tx);
       //printf("DetectENIPCommandMatchAL transaction #%d, command %d\n", count, tx->header.command);
       if (enipcmdd->enipcommand == tx->header.command){
-          printf("DetectENIPCommandMatchAL found!\n");
+          SCLogDebug("DetectENIPCommandMatchAL found!\n");
           return 1;
       }     
       count++;
@@ -872,7 +876,7 @@ int DetectEnipCommandMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     //    SCLogDebug("CIPSERVICE %d\n",enipcmdd->enipcommand);
-
+/*
     int status = DecodeENIP(p, &enip_data); //perform EtherNet/IP decoding
     //PrintENIP(&enip_data); //print gathered ENIP data
     if (status > 0)
@@ -882,7 +886,7 @@ int DetectEnipCommandMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             ret = 1;
         }
     }
-
+*/
     FreeCIPServiceData(enip_data.service_head); //free CIP service data
 
     return ret;
