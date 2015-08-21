@@ -54,6 +54,14 @@
 #include "conf.h"
 #include "decode.h"
 
+#include "detect-parse.h"
+#include "detect-engine.h"
+#include "util-byte.h"
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "pkt-var.h"
+#include "util-profiling.h"
+
 
 
 void *ENIPGetTx(void *alstate, uint64_t tx_id)
@@ -582,17 +590,6 @@ void RegisterENIPTCPParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-#include "detect.h"
-#include "detect-engine.h"
-#include "detect-parse.h"
-
-#include "flow-util.h"
-
-#include "util-unittest.h"
-#include "util-unittest-helper.h"
-
-#include "stream-tcp.h"
-#include "stream-tcp-private.h"
 
 /**
  * \brief Test if ENIP Packet matches signature

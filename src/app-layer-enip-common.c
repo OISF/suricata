@@ -45,6 +45,13 @@
 
 #include "app-layer-enip-common.h"
 
+
+
+/**
+ * \brief Create service entry, add to transaction
+ * @param tx Transaction
+ * @return service entry
+ */
 static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
 {
 
@@ -64,6 +71,11 @@ static CIPServiceEntry *CIPServiceAlloc(ENIPTransaction *tx)
     return svc;
 
 }
+
+
+/**
+ * \brief Delete service entry
+ */
 
 void CIPServiceFree(void *s)
 {
@@ -91,6 +103,15 @@ void CIPServiceFree(void *s)
     SCReturn;
 }
 
+
+
+/**
+ * \brief Decode ENIP Encapsulation Header
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data)
 {
@@ -165,6 +186,15 @@ int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
     return ret;
 }
 
+
+/**
+ * \brief Decode Common Packet Format
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -247,6 +277,17 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
 
 }
 
+
+
+/**
+ * \brief Decode CIP packet
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
+
 int DecodeCIPPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -281,6 +322,16 @@ int DecodeCIPPDU(uint8_t *input, uint32_t input_len,
     return ret;
 }
 
+
+
+/**
+ * \brief Decode CIP Request
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -372,6 +423,16 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
     return ret;
 }
 
+
+/**
+ * \brief Deocde CIP Request Path
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @param cipserviced the cip service rule
+ * @return 1 Packet matches
+ * @return 0 Packet not match
+ */
 int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
         CIPServiceEntry *node, uint16_t offset)
 {
@@ -500,6 +561,15 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 
 }
 
+
+/**
+ * \brief Decode CIP Response
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -588,6 +658,15 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
     return ret;
 }
 
+
+/**
+ * \brief Decode CIP Request Multi Service Packet
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
@@ -622,6 +701,16 @@ int DecodeCIPRequestMSPPDU(uint8_t *input, uint32_t input_len,
     return ret;
 }
 
+
+
+/**
+ * \brief Decode CIP Response MultiService Packet.
+ * @param input, input_len data stream
+ * @param enip_data stores data from Packet
+ * @param offset current point in the packet
+ * @return 1 Packet ok
+ * @return 0 Packet has errors
+ */
 int DecodeCIPResponseMSPPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
