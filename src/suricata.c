@@ -88,6 +88,7 @@
 #include "log-dnslog.h"
 #include "output-json-dns.h"
 #include "log-tlslog.h"
+#include "log-tlsstore.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
@@ -872,6 +873,7 @@ void RegisterAllModules()
     /* tls log */
     TmModuleLogTlsLogRegister();
     TmModuleJsonTlsLogRegister();
+    TmModuleLogTlsStoreRegister();
     /* ssh */
     TmModuleJsonSshLogRegister();
     /* pcap log */
@@ -2268,6 +2270,7 @@ int main(int argc, char **argv)
     if (!suri.disabled_detect) {
         SCClassConfInit();
         SCReferenceConfInit();
+        DetectEngineMultiTenantSetup();
         SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             de_ctx = DetectEngineCtxInit();
@@ -2317,7 +2320,7 @@ int main(int argc, char **argv)
     }
 
     if(suri.run_mode == RUNMODE_CONF_TEST){
-        SCLogInfo("Configuration provided was successfully loaded. Exiting.");
+        SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
     }
 

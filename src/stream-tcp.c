@@ -5829,12 +5829,21 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
     /* Setup the IP and TCP headers */
     StreamTcpPseudoPacketSetupHeader(np,p);
 
+    np->tenant_id = p->flow->tenant_id;
+
     np->flowflags = p->flowflags;
 
     np->flags |= PKT_STREAM_EST;
     np->flags |= PKT_STREAM_EOF;
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_PSEUDO_STREAM_END;
+
+    if (p->flags & PKT_NOPACKET_INSPECTION) {
+        DecodeSetNoPacketInspectionFlag(np);
+    }
+    if (p->flags & PKT_NOPAYLOAD_INSPECTION) {
+        DecodeSetNoPayloadInspectionFlag(np);
+    }
 
     if (PKT_IS_TOSERVER(p)) {
         SCLogDebug("original is to_server, so pseudo is to_client");

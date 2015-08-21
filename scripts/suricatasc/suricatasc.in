@@ -15,6 +15,8 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
 
+from __future__ import print_function
+import sys
 import argparse
 from suricatasc import *
 
@@ -33,16 +35,16 @@ sc = SuricataSC(SOCKET_PATH, verbose=args.verbose)
 try:
     sc.connect()
 except SuricataNetException as err:
-    print("Unable to connect to socket %s: %s" % (SOCKET_PATH, err))
+    print("Unable to connect to socket %s: %s" % (SOCKET_PATH, err), file=sys.stderr)
     sys.exit(1)
 except SuricataReturnException as err:
-    print("Unable to negotiate version with server: %s" % (err))
+    print("Unable to negotiate version with server: %s" % (err), file=sys.stderr)
     sys.exit(1)
 
 if args.command:
     (command, arguments) = sc.parse_command(args.command)
     res = sc.send_command(command, arguments)
-    print(res)
+    print(json.dumps(res))
     sc.close()
     if res['return'] == 'OK':
         sys.exit(0)

@@ -80,6 +80,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            TcpSession *ssn,
                                                            int dummy)
 {
+    p->tenant_id = f->tenant_id;
     p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
     FlowReference(&p->flow, f);
@@ -87,6 +88,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
     p->flags |= PKT_PSEUDO_STREAM_END;
+
+    if (f->flags & FLOW_NOPACKET_INSPECTION) {
+        DecodeSetNoPacketInspectionFlag(p);
+    }
+    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
+        DecodeSetNoPayloadInspectionFlag(p);
+    }
+
     if (direction == 0)
         p->flowflags |= FLOW_PKT_TOSERVER;
     else

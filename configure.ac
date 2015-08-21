@@ -961,7 +961,7 @@
     AC_CHECK_LIB(pcap, pcap_activate,, LPCAPVTEST="no")
     if test "$LPCAPVTEST" != "no"; then
         AC_PATH_PROG(HAVE_PCAP_CONFIG, pcap-config, "no")
-        if test "$HAVE_PCAP_CONFIG" = "no"; then
+        if test "$HAVE_PCAP_CONFIG" = "no" -o "$cross_compiling" = "yes"; then
             CFLAGS="${CFLAGS} -DLIBPCAP_VERSION_MAJOR=1"
         else
             CFLAGS="${CFLAGS} `pcap-config --defines` `pcap-config --cflags` -DLIBPCAP_VERSION_MAJOR=1"
@@ -1054,8 +1054,8 @@
             [enable_af_packet="no"],
             [[#include <sys/socket.h>
               #include <linux/if_packet.h>]])
-        AC_CHECK_DECL([PACKET_FANOUT],
-            AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
+        AC_CHECK_DECL([PACKET_FANOUT_QM],
+            AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
     ])

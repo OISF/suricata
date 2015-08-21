@@ -399,6 +399,7 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
     if (r == GLOB_NOMATCH) {
         SCLogWarning(SC_ERR_NO_RULES, "No rule files match the pattern %s", pattern);
         ++(st->bad_files);
+        ++(st->total_files);
         return -1;
     } else if (r != 0) {
         SCLogError(SC_ERR_OPENING_RULE_FILE, "error expanding template %s: %s",
@@ -474,8 +475,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = 0;
-                    ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
+                    ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
+
+                    if (ret != 0 || good_sigs == 0) {
+                        if (de_ctx->failure_fatal == 1) {
+                            exit(EXIT_FAILURE);
+                        }
+                    }
                 }
             }
         }
@@ -483,19 +490,21 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
-        SCLogInfo("Loading rule file: %s", sig_file);
-        ++sig_stat.total_files;
+        ret = ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs);
 
-        if (ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs) != 0) {
-            ++sig_stat.bad_files;
+        if (ret != 0) {
+            if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+            }
         }
 
         if (good_sigs == 0) {
-            SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
-        }
+            SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
 
-        sig_stat.good_sigs_total += good_sigs;
-        sig_stat.bad_sigs_total += bad_sigs;
+            if (de_ctx->failure_fatal == 1) {
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     /* now we should have signatures to work with */
@@ -860,7 +869,8 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, AppProto alproto, int has_state, uint8_t *sms_runflags)
+        const uint8_t flags, const AppProto alproto,
+        const int has_state, uint8_t *sms_runflags)
 {
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
@@ -885,14 +895,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             int tx_progress = 0;
             uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-            uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, alstate);
+            uint64_t total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, alstate);
             for (; idx < total_txs; idx++) {
-                htp_tx_t *tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, idx);
+                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
                 if (tx == NULL)
                     continue;
-                tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOSERVER);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
+
                     if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
@@ -952,7 +963,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
                 } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
                     if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
@@ -1224,11 +1235,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
-    uint8_t flags = 0;          /* flow/state flags */
+    uint8_t flow_flags = 0; /* flow/state flags */
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
-    uint16_t alversion = 0;
+    uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
@@ -1253,13 +1264,28 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flow_flags = STREAM_TOSERVER;
+            SCLogDebug("flag STREAM_TOSERVER set");
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            flow_flags = STREAM_TOCLIENT;
+            SCLogDebug("flag STREAM_TOCLIENT set");
+        }
+        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+
         if (p->flags & PKT_STREAM_EOF) {
-            flags |= STREAM_EOF;
+            flow_flags |= STREAM_EOF;
             SCLogDebug("STREAM_EOF set");
         }
 
         FLOWLOCK_WRLOCK(pflow);
         {
+            /* store tenant_id in the flow so that we can use it
+             * for creating pseudo packets */
+            if (p->tenant_id > 0 && pflow->tenant_id == 0) {
+                pflow->tenant_id = p->tenant_id;
+            }
+
             /* live ruleswap check for flow updates */
             if (pflow->de_ctx_id == 0) {
                 /* first time this flow is inspected, set id */
@@ -1299,7 +1325,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(pflow, p, flags);
+                smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1317,6 +1343,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
+                /* update flow flags with knowledge on disruptions */
+                flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
                 alversion = AppLayerParserGetStateVersion(pflow->alparser);
@@ -1329,18 +1357,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                                                 pflow->alproto,
                                                                 pflow->alstate,
                                                                 pflow->alparser,
-                                                                flags);
+                                                                flow_flags);
         }
         FLOWLOCK_UNLOCK(pflow);
-
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flags |= STREAM_TOSERVER;
-            SCLogDebug("flag STREAM_TOSERVER set");
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-            flags |= STREAM_TOCLIENT;
-            SCLogDebug("flag STREAM_TOCLIENT set");
-        }
-        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
             ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
@@ -1408,11 +1427,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flow_flags);
         if (has_inspectable_state == 1) {
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
-                                           flags, alproto, alversion);
+                                           flow_flags, alproto, alversion);
         } else if (has_inspectable_state == 2) {
             /* no inspectable state, so pretend we don't have a state at all */
             has_state = 0;
@@ -1434,7 +1453,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 #ifdef PROFILING
     if (th_v) {
@@ -1735,7 +1754,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                      p, pflow, flags, alproto, alversion);
+                                                      p, pflow, flow_flags, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
@@ -1780,7 +1799,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(pflow, flags);
+        DeStateUpdateInspectTransactionId(pflow, flow_flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
@@ -1914,6 +1933,14 @@ void DetectSignatureApplyActions(Packet *p, const Signature *s)
 
 /* tm module api functions */
 
+static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
+{
+    /* technically we need to pass a DetectEngineThreadCtx struct with the
+     * tentant_id member. But as that member is the first in the struct, we
+     * can use the id directly. */
+    return HashTableLookup(h, &id, 0);
+}
+
 /** \brief Detection engine thread wrapper.
  *  \param tv thread vars
  *  \param p packet to inspect
@@ -1927,26 +1954,71 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PACKET_TEST_ACTION(p,
-                                                                    ACTION_DROP)))
+    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
+        (PACKET_TEST_ACTION(p, ACTION_DROP)))
+    {
+        /* hack: if we are in pass the entire flow mode, we need to still
+         * update the inspect_id forward. So test for the condition here,
+         * and call the update code if necessary. */
+        if (p->flow) {
+            uint8_t flags = 0;
+            FLOWLOCK_RDLOCK(p->flow);
+            int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
+            flags = FlowGetDisruptionFlags(p->flow, flags);
+            AppProto alproto = FlowGetAppProtocol(p->flow);
+            FLOWLOCK_UNLOCK(p->flow);
+            if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    flags |= STREAM_TOSERVER;
+                } else {
+                    flags |= STREAM_TOCLIENT;
+                }
+                DeStateUpdateInspectTransactionId(p->flow, flags);
+            }
+        }
         return 0;
+    }
 
+    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
         printf("ERROR: Detect has no thread ctx\n");
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
-        printf("ERROR: Detect has no detection engine ctx\n");
-        goto error;
-    }
-
     if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
-                  det_ctx, de_ctx);
+        SCLogDebug("Detect Engine using new det_ctx - %p",
+                  det_ctx);
+    }
+
+    if (det_ctx->TenantGetId != NULL) {
+        /* in MT mode, but no tenants registered yet */
+        if (det_ctx->mt_det_ctxs_cnt == 0) {
+            return TM_ECODE_OK;
+        }
+
+        uint32_t tenant_id = p->tenant_id;
+        if (tenant_id == 0)
+            tenant_id = det_ctx->TenantGetId(det_ctx, p);
+        if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            p->tenant_id = tenant_id;
+            det_ctx = GetTenantById(det_ctx->mt_det_ctxs_hash, tenant_id);
+            if (det_ctx == NULL)
+                return TM_ECODE_OK;
+            de_ctx = det_ctx->de_ctx;
+            if (de_ctx == NULL)
+                return TM_ECODE_OK;
+
+            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+                (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+                SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
+            }
+        } else {
+            return TM_ECODE_OK;
+        }
+    } else {
+        de_ctx = det_ctx->de_ctx;
     }
 
     /* see if the packet matches one or more of the sigs */

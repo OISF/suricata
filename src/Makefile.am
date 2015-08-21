@@ -114,6 +114,7 @@ detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
 detect-engine-hua.c detect-engine-hua.h \
 detect-engine-iponly.c detect-engine-iponly.h \
+detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-payload.c detect-engine-payload.h \
 detect-engine-port.c detect-engine-port.h \
@@ -236,6 +237,7 @@ log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
 log-tlslog.c log-tlslog.h \
+log-tlsstore.c log-tlsstore.h \
 output.c output.h \
 output-file.c output-file.h \
 output-filedata.c output-filedata.h \

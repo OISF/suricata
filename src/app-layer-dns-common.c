@@ -223,8 +223,8 @@ uint64_t DNSGetTxCnt(void *alstate)
 int DNSGetAlstateProgress(void *tx, uint8_t direction)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    if (direction == 1)
-        return dns_tx->replied|dns_tx->reply_lost;
+    if (direction & STREAM_TOCLIENT)
+        return (dns_tx->replied|dns_tx->reply_lost) ? 2 : 1;
     else {
         /* toserver/query is complete if we have stored a query */
         return (TAILQ_FIRST(&dns_tx->query_list) != NULL);
@@ -237,7 +237,10 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
  */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    return 1;
+    if (direction & STREAM_TOCLIENT)
+        return 2;
+    else
+        return 1;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e)

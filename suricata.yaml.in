@@ -200,7 +200,11 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       #extended: yes # Log extended information like fingerprint
-      certs-log-dir: certs # directory to store the certificates files
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: no
+      #certs-log-dir: certs # directory to store the certificates files
 
   # a line based log of DNS requests and/or replies (no alerts)
   - dns-log:
@@ -412,10 +416,22 @@ af-packet:
     #  * cluster_round_robin: round robin load balancing
     #  * cluster_flow: all packets of a given flow are send to the same socket
     #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
+    #  * cluster_qm: all packets linked by network card to a RSS queue are sent to the same
+    #  socket. Requires at least Linux 3.14.
+    #  * cluster_random: packets are sent randomly to sockets but with an equipartition.
+    #  Requires at least Linux 3.14.
+    #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
+    #  to the next. Requires at least Linux 3.10.
+    # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
+    # with capture card using RSS (require cpu affinity tuning and system irq tuning)
     cluster-type: cluster_flow
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
+    # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
+    # full then kernel will send the packet on the next socket with room available. This option
+    # can minimize packet drop and increase the treated bandwith on single intensive flow.
+    #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
     # Ring size will be computed with respect to max_pending_packets and number
@@ -462,9 +478,21 @@ af-packet:
   - interface: default
     #threads: auto
     #use-mmap: yes
+    rollover: yes
 
-# netmap support
+# Netmap support
+#
+# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
+# built-in netmap support or compile and install netmap module and appropriate
+# NIC driver on your Linux system.
+# To reach maximum throughput disable all receive-, segmentation-,
+# checksum- offloadings on NIC.
+# Disabling Tx checksum offloading is *required* for connecting OS endpoint
+# with NIC endpoint.
+# You can find more information at https://github.com/luigirizzo/netmap
+#
 netmap:
+   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
  - interface: eth2
    # Number of receive threads. "auto" uses number of RSS queues on interface.
    threads: auto
@@ -901,13 +929,16 @@ logging:
   outputs:
   - console:
       enabled: yes
+      # type: json
   - file:
       enabled: no
       filename: /var/log/suricata.log
+      # type: json
   - syslog:
       enabled: no
       facility: local5
       format: "[%i] <%d> -- "
+      # type: json
 
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:

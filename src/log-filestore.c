@@ -417,7 +417,7 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
     LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    SCFree(output_ctx);
 
 }
 

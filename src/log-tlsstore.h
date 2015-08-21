@@ -1,4 +1,4 @@
-/* Copyright (C) 2013-2014 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,19 +18,12 @@
 /**
  * \file
  *
- * \author Tom DeCanio <td@npulsetech.com>
- *
- * Logs alerts in JSON format.
- *
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __OUTPUT_JSON_ALERT_H__
-#define __OUTPUT_JSON_ALERT_H__
+#ifndef __LOG_TLSSTORE_H__
+#define __LOG_TLSSTORE_H__
 
-void TmModuleJsonAlertLogRegister (void);
-#ifdef HAVE_LIBJANSSON
-void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
-#endif /* HAVE_LIBJANSSON */
+void TmModuleLogTlsStoreRegister (void);
 
-#endif /* __OUTPUT_JSON_ALERT_H__ */
-
+#endif /* __LOG_TLSSTORE_H__ */

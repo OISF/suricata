@@ -221,7 +221,7 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
     }
@@ -263,14 +263,12 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
 
     SCLogDebug("STATS log output initialized");
 
-    OutputRegisterFileRotationFlag(&file_ctx->rotation_flag);
     return output_ctx;
 }
 
 static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogStatsFileCtx *statslog_ctx = (LogStatsFileCtx *)output_ctx->data;
-    OutputUnregisterFileRotationFlag(&statslog_ctx->file_ctx->rotation_flag);
     LogFileFreeCtx(statslog_ctx->file_ctx);
     SCFree(statslog_ctx);
     SCFree(output_ctx);
