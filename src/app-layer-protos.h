@@ -42,7 +42,6 @@ enum AppProtoEnum {
 
     ALPROTO_DNS,
     ALPROTO_MODBUS,
-    ALPROTO_ENIP,
 
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
