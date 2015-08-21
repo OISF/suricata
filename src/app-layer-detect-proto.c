@@ -645,7 +645,7 @@ void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingParser *pp
         else if (pp->ipproto == IPPROTO_UDP)
             printf("IPProto: UDP\n");
         else
-            printf("IPProto: %"PRIu16"\n", pp->ipproto);
+            printf("IPProto: %"PRIu8"\n", pp->ipproto);
 
         pp_port = pp->port;
         for ( ; pp_port != NULL; pp_port = pp_port->next) {
@@ -934,7 +934,7 @@ static void AppLayerProtoDetectInsertNewProbingParser(AppLayerProtoDetectProbing
     while (curr_pe != NULL) {
         if (curr_pe->alproto == alproto) {
             SCLogError(SC_ERR_ALPARSER, "Duplicate pp registered - "
-                       "ipproto - %"PRIu16" Port - %"PRIu16" "
+                       "ipproto - %"PRIu8" Port - %"PRIu16" "
                        "App Protocol - NULL, App Protocol(ID) - "
                        "%"PRIu16" min_depth - %"PRIu16" "
                        "max_dept - %"PRIu16".",
