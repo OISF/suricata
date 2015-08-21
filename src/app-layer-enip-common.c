@@ -549,7 +549,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
             SCLogDebug("DecodeCIPRequestPathPDU: attribute %d\n", attribute);
             //save attrs
             AttributeEntry *attr = SCMalloc(sizeof(AttributeEntry));
-            if (unlikely(node == NULL))
+            if (unlikely(attr == NULL))
                 return 0;
             attr->attribute = attribute;
             TAILQ_INSERT_TAIL(&node->attrib_list, attr, next);
