@@ -438,8 +438,8 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
 {
     int ret = 1;
 
-    printf("DecodeCIPRequestPath: service 0x%x size %d length %d\n",
-            node->service, node->request.path_size, input_len);
+    //printf("DecodeCIPRequestPath: service 0x%x size %d length %d\n",
+    //        node->service, node->request.path_size, input_len);
 
     if (node->request.path_size < 1)
     {

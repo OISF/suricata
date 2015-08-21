@@ -333,7 +333,7 @@ int CIPServiceMatchAL(ENIPTransaction *enip_data, DetectCipServiceData *cipservi
                 }                
             } else
             {
-                printf("CIPServiceMatchAL found\n");
+               // printf("CIPServiceMatchAL found\n");
                 return 1;
             }
         }
@@ -368,7 +368,7 @@ void PrintENIPAL(ENIPTransaction *enip_data)
  
     int count = 0;
     TAILQ_FOREACH(svc, &enip_data->service_list, next) {
-        printf("CIP Service #%d : 0x%x\n", count, svc->service);
+        //printf("CIP Service #%d : 0x%x\n", count, svc->service);
         count++;
     }
 }
@@ -805,8 +805,8 @@ int DetectENIPCommandMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flo
         SCReturnInt(0);
     }
 
-  //  printf("DetectENIPCommandMatchAL enipcommand %d\n", enipcmdd->enipcommand);  
-  //  printf("DetectENIPCommandMatchAL tx %d\n", enip_state->transaction_max);
+    //printf("DetectENIPCommandMatchAL enipcommand %d\n", enipcmdd->enipcommand);
+    //printf("DetectENIPCommandMatchAL tx %d\n", enip_state->transaction_max);
    
     
     ENIPTransaction *tx = NULL;

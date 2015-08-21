@@ -378,15 +378,20 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
         enip->transaction_max++;
 
         ret = DecodeENIPPDU(input, input_len, tx);
-        int pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
+        uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
         //printf("ENIPParse packet len %d\n", pkt_len);
+        if (pkt_len > input_len){
+            SCLogDebug("Invalid packet length \n");
+            break;
+        }
+
         input += pkt_len;
         input_len -= pkt_len;
         //printf("remaining %d\n", input_len);
 
         if (input_len < sizeof(ENIPEncapHdr))
         {
-            //printf("Not enough data\n");
+            //printf("Not enough data\n"); //not enough data for ENIP
             break;
         }
 
