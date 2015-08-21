@@ -527,14 +527,15 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     //SCLogDebug("DetectCipServiceParse - rule string  %s\n", rulestr);
 
     cipserviced = SCMalloc(sizeof(DetectCipServiceData));
+    if (unlikely(cipserviced == NULL))
+           goto error;
 
     cipserviced->cipservice = 0;
     cipserviced->cipclass = 0;
     cipserviced->matchattribute = 1;
     cipserviced->cipattribute = 0;
 
-    if (unlikely(cipserviced == NULL))
-        goto error;
+
 
     char* token;
     char *save;
@@ -907,6 +908,9 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
     DetectEnipCommandData *enipcmdd = NULL;
 
     enipcmdd = SCMalloc(sizeof(DetectEnipCommandData));
+    if (unlikely(enipcmdd == NULL))
+        goto error;
+
     if (isdigit((int) *rulestr))
     {
         unsigned long cmd = atol(rulestr);
@@ -923,8 +927,7 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
         goto error;
     }
 
-    if (unlikely(enipcmdd == NULL))
-        goto error;
+
 
     return enipcmdd;
 
