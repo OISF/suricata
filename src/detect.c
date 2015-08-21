@@ -170,6 +170,7 @@
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
+#include "detect-cipservice.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -5235,6 +5236,8 @@ void SigTableSetup(void)
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectModbusRegister();
+    DetectCipServiceRegister();
+    DetectEnipCommandRegister();
     DetectAppLayerProtocolRegister();
 }
 

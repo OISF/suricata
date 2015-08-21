@@ -62,6 +62,7 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-enip.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -2629,7 +2630,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
-
+        case DETECT_SM_LIST_ENIP_MATCH:
+            return "enip";
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
 
