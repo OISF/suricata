@@ -62,6 +62,7 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-enip.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -265,6 +266,20 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_FD_SMTP_INSPECT,
           0,
           DetectEngineInspectSMTPFiledata },
+          /* ENIP & CIP */
+  /*        { IPPROTO_TCP,
+            ALPROTO_ENIP,
+            DETECT_SM_LIST_ENIP_MATCH,
+            DE_STATE_FLAG_ENIP_INSPECT,
+            0,
+            DetectEngineInspectENIP },
+           { IPPROTO_UDP,
+             ALPROTO_ENIP,
+             DETECT_SM_LIST_ENIP_MATCH,
+             DE_STATE_FLAG_ENIP_INSPECT,
+             0,
+             DetectEngineInspectENIP },
+             */
     };
 
     struct tmp_t data_toclient[] = {
@@ -316,7 +331,21 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DETECT_SM_LIST_MODBUS_MATCH,
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
-          DetectEngineInspectModbus }
+          DetectEngineInspectModbus },
+          /* ENIP & CIP */
+          /*{ IPPROTO_TCP,
+            ALPROTO_ENIP,
+            DETECT_SM_LIST_ENIP_MATCH,
+            DE_STATE_FLAG_ENIP_INSPECT,
+            0,
+            DetectEngineInspectENIP },
+           { IPPROTO_UDP,
+             ALPROTO_ENIP,
+             DETECT_SM_LIST_ENIP_MATCH,
+             DE_STATE_FLAG_ENIP_INSPECT,
+             0,
+             DetectEngineInspectENIP },
+             */
     };
 
     size_t i;
@@ -1864,7 +1893,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
-
+        case DETECT_SM_LIST_ENIP_MATCH:
+            return "enip";
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
 

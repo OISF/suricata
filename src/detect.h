@@ -122,6 +122,7 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_DNSQUERY_MATCH,
     DETECT_SM_LIST_MODBUS_MATCH,
+    DETECT_SM_LIST_ENIP_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
@@ -1176,7 +1177,8 @@ enum {
     DETECT_AL_MODBUS,
 
     DETECT_XBITS,
-
+    DETECT_CIPSERVICE,
+    DETECT_ENIPCOMMAND,
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
