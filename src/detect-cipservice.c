@@ -421,7 +421,7 @@ int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow
         SCReturnInt(0);
     }
 
-    printf("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
+//    printf("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
 //    printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
 
     

@@ -628,7 +628,7 @@ static int ALDecodeENIPTest01 (void)
         0x00, 0x00
     };
 
-    char *sig = "alert udp any any -> any any (msg:\"Nothing..\"; enip_command:99; sid:1;)";
+    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; enip_command:99; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
 }
@@ -657,7 +657,7 @@ static int ALDecodeCIPTest01 (void)
         0x24, 0x01
     };
 
-    char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\"; cip_service:1; sid:1;)";
+    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:1; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
             sig, 1);
@@ -695,7 +695,7 @@ static int ALDecodeCIPTest02 (void)
         0x0a, 0x00
     };
 
-    char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\"; cip_service:3; sid:1;)";
+    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:3; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
 }
@@ -725,7 +725,7 @@ static int ALDecodeCIPTest03 (void)
         0x5c, 0xff, 0xf3, 0x59, 0x04, 0x00
     };
 
-    char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\"; cip_service:4,139,6; sid:1;)";
+    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:4,139,6; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
 }
@@ -734,10 +734,10 @@ static int ALDecodeCIPTest03 (void)
 
 void ENIPParserRegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("ALDecodeENIPTest01", DecodeENIPTest01, 1);
+    UtRegisterTest("ALDecodeENIPTest01", ALDecodeENIPTest01, 1);
     UtRegisterTest("ALDecodeCIPTest01", ALDecodeCIPTest01, 1);
     UtRegisterTest("ALDecodeCIPTest02", ALDecodeCIPTest02, 1);
-    UtRegisterTest("ALDecodeCIPTest02", ALDecodeCIPTest03, 1);
+    UtRegisterTest("ALDecodeCIPTest03", ALDecodeCIPTest03, 1);
 
 #endif /* UNITTESTS */
 }
