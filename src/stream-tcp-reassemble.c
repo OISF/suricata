@@ -2967,9 +2967,14 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             SCReturnInt(0);
         }
     }
-
+#ifdef DEBUG_VALIDATION
+    uint64_t bytes = 0;
+#endif
     for (; seg != NULL; )
     {
+#ifdef DEBUG_VALIDATION
+        bytes += seg->payload_len;
+#endif
         /* if in inline mode, we process all segments regardless of whether
          * they are ack'd or not. In non-inline, we process only those that
          * are at least partly ack'd. */
@@ -3014,6 +3019,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         seg = next_seg;
     }
+#ifdef DEBUG_VALIDATION /* we should never have this much data queued */
+    BUG_ON(bytes > 1000000ULL && bytes > (stream->window * 1.5));
+#endif
 
     /* put the partly filled smsg in the queue to the l7 handler */
     if (rd.data_len > 0) {
