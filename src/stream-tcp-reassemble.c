@@ -3035,6 +3035,8 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     } else {
         TcpSegment *tmp_seg = stream->seg_list;
         while (tmp_seg != NULL) {
+            if (!(tmp_seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+                break;
             tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
             tmp_seg = tmp_seg->next;
         }
