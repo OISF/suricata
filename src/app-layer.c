@@ -187,7 +187,14 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     }
                 }
-                int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
+
+                int ret = 0;
+                /* if the opposing side is not going to work, then
+                 * we just have to give up. */
+                if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+                    ret = -1;
+                else
+                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
                                                       opposing_stream, p);
                 if (stream == &ssn->client) {
                     if (StreamTcpInlineMode()) {
