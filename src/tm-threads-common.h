@@ -110,6 +110,7 @@ typedef enum {
 
     TMM_LUALOG,
     TMM_TLSSTORE,
+    TMM_TIMEMACHINE,
     TMM_SIZE,
 } TmmId;
 
