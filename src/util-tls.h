@@ -32,10 +32,54 @@
  *
  */
 
-#ifndef __APP_LAYER_TLS_HANDSHAKE_H__
-#define __APP_LAYER_TLS_HANDSHAKE_H__
+#ifndef __UTIL_TLS_H__
+#define __UTIL_TLS_H__
 
-int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t input_len);
-int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uint32_t input_len);
+enum TlsHandshakeDataType {
+    TLS_HS_INVALID=0,
+    TLS_HS_CIPHERSUITE_CS,
+    TLS_HS_CIPHERSUITE_KX,
+    TLS_HS_CIPHERSUITE_AU,
+    TLS_HS_CIPHERSUITE_ENC,
+    TLS_HS_CIPHERSUITE_ENC_MODE,
+    TLS_HS_CIPHERSUITE_ENC_SIZE,
+    TLS_HS_CIPHERSUITE_MAC,
+    TLS_HS_CIPHERSUITE_MAC_SIZE,
+    TLS_HS_CIPHERSUITE_PRF,
+    TLS_HS_CIPHERSUITE_PRF_SIZE,
+    TLS_HS_CIPHERSUITE_RFC,
+    TLS_HS_CIPHERSUITE_EXP,
+    TLS_HS_CIPHERSUITE_CS_NAME,
+    TLS_HS_CIPHERSUITE_OPENSSL_NAME,
+    TLS_HS_CIPHERSUITE_MIN_VERSION,
+    TLS_HS_CIPHERSUITE_MAX_VERSION,
+};
 
-#endif /* __APP_LAYER_TLS_HANDSHAKE_H__ */
+struct TlsCiphersuiteDefinition {
+    uint16_t  cs;
+    char      *kx;
+    char      *au;
+    char      *enc;
+    char      *enc_mode;
+    uint16_t   enc_size;
+    char       *mac;
+    uint16_t   mac_size;
+    char       *prf;
+    uint16_t   prf_size;
+    uint16_t   rfc;
+    uint8_t    exp;
+    char       *cs_name;
+    char       *openssl_name;
+    uint16_t   minversion;
+    uint16_t   maxversion;
+} __attribute((packed,aligned(4)));
+
+const struct TlsCiphersuiteDefinition *TlsCiphersuiteGetById(uint16_t id);
+
+const char *TlsCiphersuiteIdToName(uint16_t id);
+
+int TlsCiphersuiteMatchGroup(uint16_t id, enum TlsHandshakeDataType key, const char *group, char op);
+
+void TlsCiphersInit(void);
+
+#endif /* __UTIL_TLS_H__ */
