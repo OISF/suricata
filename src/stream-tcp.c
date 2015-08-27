@@ -2311,8 +2311,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ssn->server.next_seq);
             ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -2342,8 +2343,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ssn->server.next_seq);
             ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -2636,8 +2638,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -2649,8 +2652,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -3090,8 +3094,9 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -3103,8 +3108,9 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -3396,8 +3402,9 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -3409,8 +3416,9 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -3576,8 +3584,9 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -3589,8 +3598,9 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -3867,8 +3877,9 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -3880,8 +3891,9 @@ static int StreamTcpPacketStateLastAck(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
@@ -3992,8 +4004,9 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 ssn);
 
         if (PKT_IS_TOSERVER(p)) {
-            StreamTcpUpdateLastAck(ssn, &ssn->server,
-                    StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->server, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->server,
+                        StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->client,
                     StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
@@ -4005,8 +4018,9 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                     &ssn->client, p, pq);
         } else {
-            StreamTcpUpdateLastAck(ssn, &ssn->client,
-                    StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+            if ((p->tcph->th_flags & TH_ACK) && StreamTcpValidateAck(ssn, &ssn->client, p) == 0)
+                StreamTcpUpdateLastAck(ssn, &ssn->client,
+                        StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
 
             StreamTcpUpdateLastAck(ssn, &ssn->server,
                     StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
