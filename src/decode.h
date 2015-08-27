@@ -214,6 +214,7 @@ typedef struct Address_ {
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (uint8_t *)((p) + 1) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p) (uint8_t *)((p) + 1)
 #define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
+#define GET_PKT_PAYLOAD_LEN(p) ((p)->payload_len)
 
 #define SET_PKT_LEN(p, len) do { \
     (p)->pktlen = (len); \
