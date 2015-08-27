@@ -730,7 +730,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
                             (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
@@ -749,7 +749,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
                             (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
