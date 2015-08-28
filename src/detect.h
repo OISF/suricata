@@ -306,6 +306,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
 #define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
+#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<13)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t

@@ -28,14 +28,7 @@
 #include "app-layer-parser.h"
 #include "flow.h"
 #include "queue.h"
-
-/**
- * Byte extraction utilities
- */
-void ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset);
-void ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset);
-void ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset);
-void ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset);
+#include "app-layer-enip-common.h"
 
 #define ENIP_PORT 44818 //standard EtherNet/IP port
 
@@ -61,50 +54,6 @@ typedef struct DetectEnipCommandData_
 
 void DetectCipServiceRegister(void);
 void DetectEnipCommandRegister(void);
-
-/**
- * ENIP encapsulation header
- */
-typedef struct ENIPEncapHdr_
-{
-    u_int64_t context;
-    u_int32_t session;
-    u_int32_t status;
-    u_int32_t option;
-    u_int16_t command;
-    u_int16_t length;
-} ENIPEncapHdr;
-
-/**
- * ENIP encapsulation data header
- */
-typedef struct ENIPEncapDataHdr_
-{
-    u_int32_t interface_handle;
-    u_int16_t timeout;
-    u_int16_t item_count;
-} ENIPEncapDataHdr;
-
-/**
- * ENIP encapsulation address item
- */
-typedef struct ENIPEncapAddresItem_
-{
-    u_int16_t type;
-    u_int16_t length;
-    u_int16_t conn_id;
-    u_int16_t sequence_num;
-} ENIPEncapAddresItem;
-
-/**
- * ENIP encapsulation data item
- */
-typedef struct ENIPEncapDataItem_
-{
-    u_int16_t type;
-    u_int16_t length;
-    u_int16_t sequence_count;
-} ENIPEncapDataItem;
 
 /**
  * link list node for storing CIP service data
@@ -145,18 +94,11 @@ typedef struct ENIPData_
 
 } ENIPData;
 
-/**
- * Ccompare cip service data to cip servicerule
- */
-int CIPServiceMatch(Packet *p, ENIPData *enip_data,
-        DetectCipServiceData *cipserviced);
 
 /**
  * Add new CIPServiceData node to link list
  */
 CIPServiceData *CreateCIPServiceData(ENIPData *enip_data);
-
-
 
 
 

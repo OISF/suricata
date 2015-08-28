@@ -62,55 +62,14 @@
 #include "pkt-var.h"
 #include "util-profiling.h"
 
-
-
-void *ENIPGetTx(void *alstate, uint64_t tx_id)
-{
-    ENIPState *enip_state = (ENIPState *)alstate;
-    ENIPTransaction *tx = NULL;
-
-    /* fast track: try the current tx */
-    if (enip_state->curr && enip_state->curr->tx_num == tx_id + 1)
-        return enip_state->curr;
-
-    /* fast track:
-     * if the prev tx_id is equal to the stored tx ptr, we can
-     * use this shortcut to get to the next. */
-    if (enip_state->iter) {
-        if (tx_id == enip_state->iter->tx_num) {
-            tx = TAILQ_NEXT(enip_state->iter, next);
-            if (tx && tx->tx_num == tx_id + 1) {
-                enip_state->iter = tx;
-                return tx;
-            }
-        }
-    }
-
-    /* no luck with the fast tracks, do the full list walk */
-    TAILQ_FOREACH(tx, &enip_state->tx_list, next) {
-        SCLogDebug("tx->tx_num %u, tx_id %"PRIu64, tx->tx_num, (tx_id+1));
-        if ((tx_id+1) != tx->tx_num)
-            continue;
-
-        SCLogDebug("returning tx %p", tx);
-        enip_state->iter = tx;
-        return tx;
-    }
-
-    return NULL;
-}
-
-uint64_t ENIPGetTxCnt(void *alstate)
-{
-    ENIPState *enip_state = (ENIPState *)alstate;
-    return (uint64_t)enip_state->transaction_max;
-}
-
-
+/** \brief get value for 'complete' status in ENIP
+ *
+ *  For ENIP we use a simple bool.
+ */
 int ENIPGetAlstateProgress(void *tx, uint8_t direction)
 {
 
-  //  printf("ENIPGetAlstateProgress direction %d", direction);
+    printf("ENIPGetAlstateProgress direction %d", direction);
 
     return 1;
 }
@@ -121,13 +80,15 @@ int ENIPGetAlstateProgress(void *tx, uint8_t direction)
  */
 int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-  //  printf("ENIPGetAlstateProgressCompletionStatus direction %d", direction);
+    printf("ENIPGetAlstateProgressCompletionStatus direction %d", direction);
+
     return 1;
 }
 
-
-
-
+/** \brief Allocate enip state
+ *
+ *  return state
+ */
 void *ENIPStateAlloc(void)
 {
     void *s = SCMalloc(sizeof(ENIPState));
@@ -136,14 +97,11 @@ void *ENIPStateAlloc(void)
 
     memset(s, 0, sizeof(ENIPState));
 
-    ENIPState *enip_state = (ENIPState *)s;
-
-  //  ENIPIncrMemcap(sizeof(ENIPState), enip_state);
+    ENIPState *enip_state = (ENIPState *) s;
 
     TAILQ_INIT(&enip_state->tx_list);
     return s;
 }
-
 
 /** \internal
  *  \brief Free a ENIP TX
@@ -153,7 +111,8 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
     SCEnter();
 
     CIPServiceEntry *svc = NULL;
-    while ((svc = TAILQ_FIRST(&tx->service_list))) {
+    while ((svc = TAILQ_FIRST(&tx->service_list)))
+    {
         TAILQ_REMOVE(&tx->service_list, svc, next);
 
         SegmentEntry *seg = NULL;
@@ -170,73 +129,64 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
             SCFree(attr);
         }
 
-        //ENIPDecrMemcap((sizeof(ENIPQueryEntry) + q->len), state);
-
         SCFree(svc);
     }
 
     AppLayerDecoderEventsFreeEvents(&tx->decoder_events);
 
-    if (tx->de_state != NULL) {
+    if (tx->de_state != NULL)
+    {
         DetectEngineStateFree(tx->de_state);
-     //   BUG_ON(state->tx_with_detect_state_cnt == 0);
+
         state->tx_with_detect_state_cnt--;
     }
 
     if (state->iter == tx)
         state->iter = NULL;
 
-//    ENIPDecrMemcap(sizeof(ENIPTransaction), state);
     SCFree(tx);
     SCReturn;
 }
 
-
-
+/** \brief Free enip state
+ *
+ */
 void ENIPStateFree(void *s)
 {
     SCEnter();
-    if (s) {
+    if (s)
+    {
         ENIPState *enip_state = (ENIPState *) s;
 
         ENIPTransaction *tx = NULL;
-        while ((tx = TAILQ_FIRST(&enip_state->tx_list))) {
+        while ((tx = TAILQ_FIRST(&enip_state->tx_list)))
+        {
             TAILQ_REMOVE(&enip_state->tx_list, tx, next);
             ENIPTransactionFree(tx, enip_state);
         }
 
-        if (enip_state->buffer != NULL) {
-         //   ENIPDecrMemcap(0xffff, enip_state); /** TODO update if/once we alloc
- //                                              *  in a smarter way */
+        if (enip_state->buffer != NULL)
+        {
             SCFree(enip_state->buffer);
         }
 
-      //  BUG_ON(enip_state->tx_with_detect_state_cnt > 0);
-
-//        ENIPDecrMemcap(sizeof(ENIPState), enip_state);
-//        BUG_ON(enip_state->memuse > 0);
         SCFree(s);
     }
     SCReturn;
 }
 
-
-
-
 /** \internal
  *  \brief Allocate a ENIP TX
  *  \retval tx or NULL */
-static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state, const uint16_t tx_id)
+static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state,
+        const uint16_t tx_id)
 {
 
- //   if (ENIPCheckMemcap(sizeof(ENIPTransaction), state) < 0)
- //       return NULL;
-
-    ENIPTransaction *tx = (ENIPTransaction *) SCCalloc(1, sizeof(ENIPTransaction));
+    ENIPTransaction *tx = (ENIPTransaction *) SCCalloc(1,
+            sizeof(ENIPTransaction));
     if (unlikely(tx == NULL))
         return NULL;
 
-  //  ENIPIncrMemcap(sizeof(ENIPTransaction), state);
     memset(tx, 0x00, sizeof(ENIPTransaction));
     TAILQ_INIT(&tx->service_list);
 
@@ -248,8 +198,6 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state, const uint16_t tx
 
 }
 
-
-
 /**
  *  \brief enip transaction cleanup callback
  */
@@ -260,23 +208,23 @@ void ENIPStateTransactionFree(void *state, uint64_t tx_id)
     ENIPState *enip_state = state;
     ENIPTransaction *tx = NULL;
 
-    SCLogDebug("state %p, id %"PRIu64, enip_state, tx_id);
+    TAILQ_FOREACH(tx, &enip_state->tx_list, next)
+    {
 
-    TAILQ_FOREACH(tx, &enip_state->tx_list, next) {
-        SCLogDebug("tx %p tx->tx_num %u, tx_id %"PRIu64, tx, tx->tx_num, (tx_id+1));
         if ((tx_id+1) < tx->tx_num)
-            break;
+        break;
         else if ((tx_id+1) > tx->tx_num)
-            continue;
+        continue;
 
         if (tx == enip_state->curr)
-            enip_state->curr = NULL;
+        enip_state->curr = NULL;
 
-        if (tx->decoder_events != NULL) {
+        if (tx->decoder_events != NULL)
+        {
             if (tx->decoder_events->cnt <= enip_state->events)
-                enip_state->events -= tx->decoder_events->cnt;
+            enip_state->events -= tx->decoder_events->cnt;
             else
-                enip_state->events = 0;
+            enip_state->events = 0;
         }
 
         TAILQ_REMOVE(&enip_state->tx_list, tx, next);
@@ -285,60 +233,6 @@ void ENIPStateTransactionFree(void *state, uint64_t tx_id)
     }
     SCReturn;
 }
-
-
-
-
-
-
-int ENIPStateHasTxDetectState(void *alstate)
-{
-    ENIPState *state = (ENIPState *)alstate;
-    return (state->tx_with_detect_state_cnt > 0);
-}
-
-DetectEngineState *ENIPGetTxDetectState(void *vtx)
-{
-    ENIPTransaction *tx = (ENIPTransaction *)vtx;
-    return tx->de_state;
-}
-
-int ENIPSetTxDetectState(void *alstate, void *vtx, DetectEngineState *s)
-{
-    ENIPState *state = (ENIPState *)alstate;
-    ENIPTransaction *tx = (ENIPTransaction *)vtx;
-    state->tx_with_detect_state_cnt++;
-    tx->de_state = s;
-    return 0;
-}
-
-
-AppLayerDecoderEvents *ENIPGetEvents(void *state, uint64_t id)
-{
-    ENIPState *enip_state = (ENIPState *)state;
-    ENIPTransaction *tx;
-
-    if (enip_state->curr && enip_state->curr->tx_num == (id + 1)) {
-        return enip_state->curr->decoder_events;
-    }
-
-    TAILQ_FOREACH(tx, &enip_state->tx_list, next) {
-        if (tx->tx_num == (id+1))
-            return tx->decoder_events;
-    }
-    return NULL;
-}
-
-int ENIPHasEvents(void *state)
-{
-    ENIPState *enip_state = (ENIPState *)state;
-    return (enip_state->events > 0);
-}
-
-
-
-
-
 
 /** \internal
  *
@@ -380,41 +274,38 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
         ret = DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
         //printf("ENIPParse packet len %d\n", pkt_len);
-        if (pkt_len > input_len){
+        if (pkt_len > input_len)
+        {
             SCLogDebug("Invalid packet length \n");
             break;
         }
 
         input += pkt_len;
         input_len -= pkt_len;
-        //printf("remaining %d\n", input_len);
+        //SCLogDebug("remaining %d\n", input_len);
 
         if (input_len < sizeof(ENIPEncapHdr))
         {
-            //printf("Not enough data\n"); //not enough data for ENIP
+            //SCLogDebug("Not enough data\n"); //not enough data for ENIP
             break;
         }
 
     }
 
-    SCReturnInt(1);
+    return 1;
 }
 
-
-static uint16_t ENIPProbingParser(uint8_t     *input,
-                                    uint32_t    input_len,
-                                    uint32_t    *offset)
+static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
+        uint32_t *offset)
 {
-  //  SCLogDebug("ENIPProbingParser len %d\n", input_len);
-    if (input_len < sizeof(ENIPEncapHdr)){
-        printf("Length too small to be a ENIP header.\n");
+    if (input_len < sizeof(ENIPEncapHdr))
+    {
+        SCLogDebug("Length too small to be a ENIP header.\n");
         return ALPROTO_UNKNOWN;
     }
 
     return ALPROTO_ENIP;
 }
-
-
 
 /**
  * \brief Function to register the ENIP protocol parsers and other functions
@@ -433,26 +324,26 @@ void RegisterENIPUDPParsers(void)
             AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818", ALPROTO_ENIP,
                     0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
 
-        //    AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
-        //            0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
+            AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818", ALPROTO_ENIP,
+                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
 
         } else
         {
 
-            /* if we have no config, we enable the default port 44818 */
             if (!AppLayerProtoDetectPPParseConfPorts("udp", IPPROTO_UDP,
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
                     ENIPProbingParser))
             {
-                SCLogWarning(SC_ERR_ENIP_CONFIG, "no ENIP UDP config found, "
-                    "enabling ENIP detection on "
-                    "port 44818.");
+                SCLogDebug(
+                        "no ENIP UDP config found enabling ENIP detection on port 44818.");
 
                 AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818",
-                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
-                //    AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818",
-                //            ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
-                //            ENIPProbingParser);
+                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER,
+                        ENIPProbingParser);
+
+                AppLayerProtoDetectPPRegister(IPPROTO_UDP, "44818",
+                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
+                        ENIPProbingParser);
 
             }
         }
@@ -467,29 +358,20 @@ void RegisterENIPUDPParsers(void)
     if (AppLayerParserConfParserEnabled("udp", proto_name))
     {
 
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOSERVER, ENIPParse);
-        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOCLIENT, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP,
+                STREAM_TOSERVER, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_ENIP,
+                STREAM_TOCLIENT, ENIPParse);
 
-        AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateAlloc,
-                                          ENIPStateFree);
-/*
-         AppLayerParserRegisterGetEventsFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetEvents);
-         AppLayerParserRegisterHasEventsFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPHasEvents);
-            AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_ENIP,
-                                          ENIPStateTransactionFree); //causes crash!!
+        AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_ENIP,
+                ENIPStateAlloc, ENIPStateFree);
 
+        //      AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgress);
+        //      AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
 
-         AppLayerParserRegisterDetectStateFuncs(IPPROTO_UDP, ALPROTO_ENIP,
-                                                ENIPStateHasTxDetectState,
-                                                ENIPGetTxDetectState, ENIPSetTxDetectState);
+        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP,
+                ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
 
-         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
-         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
-*/
-         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgress);
-         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
-
-         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP, ALPROTO_ENIP, STREAM_TOSERVER|STREAM_TOCLIENT);
     } else
     {
         SCLogInfo(
@@ -498,13 +380,11 @@ void RegisterENIPUDPParsers(void)
     }
 
 #ifdef UNITTESTS
-    AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_ENIP, ENIPParserRegisterTests);
+    AppLayerParserRegisterProtocolUnittests(IPPROTO_UDP, ALPROTO_ENIP, ENIPParserRegisterTests);
 #endif
 
     SCReturn;
 }
-
-
 
 /**
  * \brief Function to register the ENIP protocol parsers and other functions
@@ -523,26 +403,25 @@ void RegisterENIPTCPParsers(void)
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
                     0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
 
-        //    AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
-        //            0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
+                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
 
         } else
         {
 
-            /* if we have no config, we enable the default port 44818 */
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr),
                     ENIPProbingParser))
             {
-                SCLogWarning(SC_ERR_ENIP_CONFIG, "no ENIP TCP config found, "
-                    "enabling ENIP detection on "
-                    "port 44818.");
+                SCLogDebug(
+                        "no ENIP UDP config found enabling ENIP detection on port 44818.");
 
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
-                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
-                //    AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
-                //            ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
-                //            ENIPProbingParser);
+                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER,
+                        ENIPProbingParser);
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
+                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
+                        ENIPProbingParser);
 
             }
         }
@@ -556,28 +435,19 @@ void RegisterENIPTCPParsers(void)
 
     if (AppLayerParserConfParserEnabled("tcp", proto_name))
     {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP, STREAM_TOSERVER, ENIPParse);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP, STREAM_TOCLIENT, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
+                STREAM_TOSERVER, ENIPParse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
+                STREAM_TOCLIENT, ENIPParse);
 
-        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateAlloc,
-                                          ENIPStateFree);
-/*
-         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetEvents);
-         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPHasEvents);
-               AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP,
-                                          ENIPStateTransactionFree); //causes crash!!
+        AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
+                ENIPStateAlloc, ENIPStateFree);
 
-         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
-                                                ENIPStateHasTxDetectState,
-                                                ENIPGetTxDetectState, ENIPSetTxDetectState);
+        //    AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgress);
+        //    AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
 
-         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
-         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
- */
-         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgress);
-         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgressCompletionStatus);
-
-         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_ENIP, STREAM_TOSERVER|STREAM_TOCLIENT);
+        AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
+                ALPROTO_ENIP, STREAM_TOSERVER | STREAM_TOCLIENT);
     } else
     {
         SCLogInfo(
@@ -591,7 +461,6 @@ void RegisterENIPTCPParsers(void)
 
     SCReturn;
 }
-
 
 /* UNITTESTS */
 #ifdef UNITTESTS
@@ -659,7 +528,7 @@ static int ALDecodeCIPTest01 (void)
         0x24, 0x01
     };
 
-    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:1; sid:1;)";
+    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:1; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
             sig, 1);
@@ -697,7 +566,7 @@ static int ALDecodeCIPTest02 (void)
         0x0a, 0x00
     };
 
-    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:3; sid:1;)";
+    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:3; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
 }
@@ -727,19 +596,20 @@ static int ALDecodeCIPTest03 (void)
         0x5c, 0xff, 0xf3, 0x59, 0x04, 0x00
     };
 
-    char *sig = "alert enip any any -> any 80 (msg:\"Nothing..\"; cip_service:4,139,6; sid:1;)";
+    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:4,139,6; sid:1;)";
 
     return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
 }
 
 #endif /* UNITTESTS */
 
-void ENIPParserRegisterTests(void) {
+void ENIPParserRegisterTests(void)
+{
 #ifdef UNITTESTS
-  //  UtRegisterTest("ALDecodeENIPTest01", ALDecodeENIPTest01, 1);
-  //  UtRegisterTest("ALDecodeCIPTest01", ALDecodeCIPTest01, 1);
-  //  UtRegisterTest("ALDecodeCIPTest02", ALDecodeCIPTest02, 1);
-  //  UtRegisterTest("ALDecodeCIPTest03", ALDecodeCIPTest03, 1);
+    //  UtRegisterTest("ALDecodeENIPTest01", ALDecodeENIPTest01, 1);
+    //  UtRegisterTest("ALDecodeCIPTest01", ALDecodeCIPTest01, 1);
+    //  UtRegisterTest("ALDecodeCIPTest02", ALDecodeCIPTest02, 1);
+    //  UtRegisterTest("ALDecodeCIPTest03", ALDecodeCIPTest03, 1);
 
 #endif /* UNITTESTS */
 }

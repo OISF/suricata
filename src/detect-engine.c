@@ -62,7 +62,8 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
-#include "detect-engine-enip.h"
+//#include "detect-engine-enip.h"
+
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -265,6 +266,21 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSREQUEST_INSPECT,
           0,
           DetectEngineInspectDnsRequest },
+/*
+         { IPPROTO_TCP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_ENIP_MATCH,
+          DE_STATE_FLAG_ENIP_INSPECT,
+          0,
+          DetectEngineInspectENIP },
+
+        { IPPROTO_UDP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_ENIP_MATCH,
+          DE_STATE_FLAG_ENIP_INSPECT,
+          0,
+          DetectEngineInspectENIP },
+*/
         /* SMTP */
         { IPPROTO_TCP,
           ALPROTO_SMTP,
@@ -338,6 +354,20 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
           DetectEngineInspectModbus },
+/*
+          { IPPROTO_TCP,
+             ALPROTO_ENIP,
+             DETECT_SM_LIST_ENIP_MATCH,
+             DE_STATE_FLAG_ENIP_INSPECT,
+             0,
+             DetectEngineInspectENIP },
+           { IPPROTO_UDP,
+             ALPROTO_ENIP,
+             DETECT_SM_LIST_ENIP_MATCH,
+             DE_STATE_FLAG_ENIP_INSPECT,
+             0,
+             DetectEngineInspectENIP },
+*/
         { IPPROTO_TCP,
           ALPROTO_DNS,
           DETECT_SM_LIST_DNSRESPONSE_MATCH,

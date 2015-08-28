@@ -38,7 +38,6 @@
 #include "detect-engine-state.h"
 #include "queue.h"
 
-
 void RegisterENIPUDPParsers(void);
 void RegisterENIPTCPParsers(void);
 void ENIPParserRegisterTests(void);

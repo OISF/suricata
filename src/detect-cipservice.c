@@ -35,66 +35,6 @@
 
 #include "app-layer-enip-common.h"
 
-
-/**
- * \brief Extract 8 bits and move up the offset
- * @param res
- * @param input
- * @param offset
- */
-void ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset)
-{
-    SCEnter();
-    *res = *(input + *offset);
-    *offset += sizeof(uint8_t);
-    SCReturn;
-}
-
-/**
- * \brief Extract 16 bits and move up the offset
- * @param res
- * @param input
- * @param offset
- */
-void ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset)
-{
-    SCEnter();
-    ByteExtractUint16(res, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
-            (const uint8_t *) (input + *offset));
-    *offset += sizeof(uint16_t);
-    SCReturn;
-}
-
-/**
- * \brief Extract 32 bits and move up the offset
- * @param res
- * @param input
- * @param offset
- */
-void ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset)
-{
-    SCEnter();
-    ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
-            (const uint8_t *) (input + *offset));
-    *offset += sizeof(uint32_t);
-    SCReturn;
-}
-
-/**
- * \brief Extract 64 bits and move up the offset
- * @param res
- * @param input
- * @param offset
- */
-void ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset)
-{
-    SCEnter();
-    ByteExtractUint64(res, BYTE_LITTLE_ENDIAN, sizeof(uint64_t),
-            (const uint8_t *) (input + *offset));
-    *offset += sizeof(uint64_t);
-    SCReturn;
-}
-
 /**
  * \brief Create node in list of CIP Service data link list
  * @param enip_data
@@ -142,85 +82,6 @@ void FreeCIPServiceData(CIPServiceData *cip_data)
  *
  */
 
-/**
- * \brief Match CIP Service data against rule
- * @param p
- * @param enip_data
- * @param cipserviced
- * @return
- */
-/*
-int CIPServiceMatch(Packet *p, ENIPData *enip_data,
-        DetectCipServiceData *cipserviced)
-{
-
-    int count = 1;
-    CIPServiceData *temp = enip_data->service_head;
-    while (temp != NULL)
-    {
-        //SCLogDebug("CIP Service #%d : 0x%x\n", count, temp->service);
-        if (cipserviced->cipservice == temp->service)
-        { // compare service
-            //SCLogDebug("Rule Match for cip service %d\n",cipserviced->cipservice );
-            if (cipserviced->tokens > 1)
-            { //if rule params have class and attribute
-                if ((temp->service == CIP_SET_ATTR_LIST) || (temp->service
-                        == CIP_SET_ATTR_SINGLE) || (temp->service
-                        == CIP_GET_ATTR_LIST) || (temp->service
-                        == CIP_GET_ATTR_SINGLE))
-                { //decode path
-                    if (DecodeCIPRequestPath(p, temp,
-                            temp->request.path_offset, cipserviced) == 1)
-                    {
-                        return 1;
-                    }
-                }
-            } else
-            {
-                return 1;
-            }
-        }
-        count++;
-        temp = temp->next;
-    }
-    return 0;
-}
-
-*/
-
-/**
- * \brief Print fields from ENIP Packet
- * @param enip_data
- */
-void PrintENIP(ENIPData *enip_data)
-{
-    printf("============================================\n");
-    printf("ENCAP HEADER cmd 0x%x, length %d, session 0x%x, status 0x%x\n",
-            enip_data->header.command, enip_data->header.length,
-            enip_data->header.session, enip_data->header.status);
-    //printf("context 0x%x option 0x%x\n", enip_data->header.context, enip_data->header.option);
-    printf("ENCAP DATA HEADER handle 0x%x, timeout %d, count %d\n",
-            enip_data->encap_data_header.interface_handle,
-            enip_data->encap_data_header.timeout,
-            enip_data->encap_data_header.item_count);
-    printf("ENCAP ADDR ITEM type 0x%x, length %d \n",
-            enip_data->encap_addr_item.type, enip_data->encap_addr_item.length);
-    printf("ENCAP DATA ITEM type 0x%x, length %d sequence 0x%x\n",
-            enip_data->encap_data_item.type, enip_data->encap_data_item.length,
-            enip_data->encap_data_item.sequence_count);
-
-    int count = 1;
-    CIPServiceData *temp = enip_data->service_head;
-    while (temp != NULL)
-    {
-        printf("CIP Service #%d : 0x%x\n", count, temp->service);
-        count++;
-        temp = temp->next;
-    }
-}
-
-
-
 int CIPPathMatchAL(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
 {
 
@@ -234,106 +95,107 @@ int CIPPathMatchAL(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
         switch(seg->segment)
         {
             case PATH_CLASS_8BIT:
-                class = seg->value;    
-                if (cipserviced->cipclass == class)
+            class = seg->value;
+            if (cipserviced->cipclass == class)
+            {
+                if (cipserviced->tokens == 2)
+                {// if rule only has class
+                    return 1;
+                } else
                 {
-                    if (cipserviced->tokens == 2)
-                    {// if rule only has class
-                        return 1;
-                    } else
-                    {
-                        found_class = 1;
-                    }
-                }    
-                break;
+                    found_class = 1;
+                }
+            }
+            break;
             case PATH_INSTANCE_8BIT:
-                break;
+            break;
             case PATH_ATTR_8BIT: //single attribute
-                attrib = seg->value; 
-                if ((cipserviced->tokens == 3) && (cipserviced->cipclass
-                                == class) && (cipserviced->cipattribute == attrib) && (cipserviced->matchattribute == 1))
-                { // if rule has class & attribute, matched all here
-                    return 1;
-                }
-                if ((cipserviced->tokens == 3) && (cipserviced->cipclass
-                                == class) && (cipserviced->matchattribute == 0))
-                { // for negation rule on attribute
-                    return 1;
-                }    
-                break;
+            attrib = seg->value;
+            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
+                            == class) && (cipserviced->cipattribute == attrib) && (cipserviced->matchattribute == 1))
+            { // if rule has class & attribute, matched all here
+                return 1;
+            }
+            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
+                            == class) && (cipserviced->matchattribute == 0))
+            { // for negation rule on attribute
+                return 1;
+            }
+            break;
             case PATH_CLASS_16BIT:
-                class = seg->value; 
-                if (cipserviced->cipclass == class)
+            class = seg->value;
+            if (cipserviced->cipclass == class)
+            {
+                if (cipserviced->tokens == 2)
+                {// if rule only has class
+                    return 1;
+                } else
                 {
-                    if (cipserviced->tokens == 2)
-                    {// if rule only has class
-                        return 1;
-                    } else
-                    {
-                        found_class = 1;
-                    }
+                    found_class = 1;
                 }
-                break;
+            }
+            break;
             case PATH_INSTANCE_16BIT:
-                break;
+            break;
             default:
-                SCLogDebug(
-                        "CIPPathMatchAL: UNKNOWN SEGMENT 0x%x service 0x%x\n",
-                        segment, node->service);
-                return 0;
+            SCLogDebug(
+                    "CIPPathMatchAL: UNKNOWN SEGMENT 0x%x service 0x%x\n",
+                    segment, node->service);
+            return 0;
         }
     }
-      
+
     if (found_class == 0)
     { // if haven't matched class yet, no need to check attribute
         return 0;
     }
 
-    if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service == CIP_GET_ATTR_LIST))
+    if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
+            == CIP_GET_ATTR_LIST))
     {
         AttributeEntry *attr = NULL;
-        TAILQ_FOREACH(attr, &svc->attrib_list, next)
+TAILQ_FOREACH    (attr, &svc->attrib_list, next)
+    {
+        if (cipserviced->cipattribute == attr->attribute)
         {
-            if (cipserviced->cipattribute == attr->attribute)
-            {
-                return 1;
-            }
+            return 1;
         }
     }
-    
-    return 0;
 }
 
+return 0;
+}
 
-
-int CIPServiceMatchAL(ENIPTransaction *enip_data, DetectCipServiceData *cipserviced)
+int CIPServiceMatchAL(ENIPTransaction *enip_data,
+        DetectCipServiceData *cipserviced)
 {
 
     int count = 1;
-    CIPServiceEntry *svc = NULL; 
+    CIPServiceEntry *svc = NULL;
     //printf("CIPServiceMatchAL\n");
-    TAILQ_FOREACH(svc, &enip_data->service_list, next) {    
+    TAILQ_FOREACH(svc, &enip_data->service_list, next)
+    {
         //printf("CIPServiceMatchAL service #%d : 0x%x\n", count, svc->service);
         if (cipserviced->cipservice == svc->service)
         { // compare service
             //SCLogDebug("Rule Match for cip service %d\n",cipserviced->cipservice );
             if (cipserviced->tokens > 1)
             { //if rule params have class and attribute
-                
+
 
                 if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
-                        == CIP_SET_ATTR_SINGLE) || (svc->service
-                        == CIP_GET_ATTR_LIST) || (svc->service
-                        == CIP_GET_ATTR_SINGLE))
+                                == CIP_SET_ATTR_SINGLE) || (svc->service
+                                == CIP_GET_ATTR_LIST) || (svc->service
+                                == CIP_GET_ATTR_SINGLE))
                 { //decode path
                     if (CIPPathMatchAL(svc, cipserviced) == 1)
                     {
                         return 1;
                     }
-                }                
+                }
             } else
             {
-               // printf("CIPServiceMatchAL found\n");
+                // printf("CIPServiceMatchAL found\n");
                 return 1;
             }
         }
@@ -341,7 +203,6 @@ int CIPServiceMatchAL(ENIPTransaction *enip_data, DetectCipServiceData *cipservi
     }
     return 0;
 }
-
 
 /**
  * \brief Print fields from ENIP Packet
@@ -364,26 +225,25 @@ void PrintENIPAL(ENIPTransaction *enip_data)
             enip_data->encap_data_item.type, enip_data->encap_data_item.length,
             enip_data->encap_data_item.sequence_count);
 
-    CIPServiceEntry *svc = NULL;      
- 
-    int count = 0;
-    TAILQ_FOREACH(svc, &enip_data->service_list, next) {
-        //printf("CIP Service #%d : 0x%x\n", count, svc->service);
-        count++;
-    }
-}
+    CIPServiceEntry *svc = NULL;
 
+    int count = 0;
+TAILQ_FOREACH(svc, &enip_data->service_list, next)
+{
+    //printf("CIP Service #%d : 0x%x\n", count, svc->service);
+    count++;
+}
+}
 
 /**
  * \brief CIP Service Detect Prototypes
  */
-//int DetectCipServiceMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-//        Signature *, const SigMatchCtx *);
 static int DetectCipServiceSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectCipServiceFree(void *);
 static void DetectCipServiceRegisterTests(void);
 
-int DetectCIPServiceMatchAL (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+int DetectCIPServiceMatchAL(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, void *, Signature *, SigMatch *);
 
 /**
  * \brief Registration function for cip_service: keyword
@@ -394,9 +254,8 @@ void DetectCipServiceRegister(void)
     sigmatch_table[DETECT_CIPSERVICE].name = "cip_service"; //rule keyword
     sigmatch_table[DETECT_CIPSERVICE].desc = "Rules for detecting CIP Service ";
     sigmatch_table[DETECT_CIPSERVICE].url = "www.solananetworks.com";
-   // sigmatch_table[DETECT_CIPSERVICE].Match = DetectCipServiceMatch;
     sigmatch_table[DETECT_CIPSERVICE].Match = NULL;
-    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = DetectCIPServiceMatchAL; //DetectEngineInspectENIP;
+    sigmatch_table[DETECT_CIPSERVICE].AppLayerMatch = DetectCIPServiceMatchAL;
     sigmatch_table[DETECT_CIPSERVICE].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_CIPSERVICE].Setup = DetectCipServiceSetup;
     sigmatch_table[DETECT_CIPSERVICE].Free = DetectCipServiceFree;
@@ -408,106 +267,44 @@ void DetectCipServiceRegister(void)
 }
 
 
-int DetectCIPServiceMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+/**
+ * \brief Match function for cip_service: keyword
+ */
+int DetectCIPServiceMatchAL(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     SCEnter();
 
-    DetectCipServiceData *cipserviced = (DetectCipServiceData *)m->ctx;
-    ENIPState *enip_state = (ENIPState *)state;
+    DetectCipServiceData *cipserviced = (DetectCipServiceData *) m->ctx;
+    ENIPState *enip_state = (ENIPState *) state;
     int ret = 0;
-     
-    if (enip_state == NULL) {
+
+    if (enip_state == NULL)
+    {
         printf("no cipservice state, no match\n");
         SCReturnInt(0);
     }
 
-//    printf("DetectCIPServiceMatchAL cipservice %d\n", cipserviced->cipservice);
-//    printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
+    SCLogDebug("DetectCIPServiceMatchAL cipservice %d\n",
+            cipserviced->cipservice);
+    //printf("DetectCIPServiceMatch2 tx %d\n", enip_state->transaction_max);
 
-    
-    
+
     ENIPTransaction *tx = NULL;
-    int  count = 0;
-    TAILQ_FOREACH(tx, &enip_state->tx_list, next) {
-   //   printf("DetectCIPServiceMatch2 transaction #%d\n", count);
-      //PrintENIPAL(tx);
-      if (CIPServiceMatchAL(tx, cipserviced) == 1){
-          SCLogDebug("DetectCIPServiceMatchAL found\n");
-          return 1;
-      }
-      count++;
+    int count = 0;
+    TAILQ_FOREACH(tx, &enip_state->tx_list, next)
+    {
+        //   printf("DetectCIPServiceMatch2 transaction #%d\n", count);
+        //PrintENIPAL(tx);
+        if (CIPServiceMatchAL(tx, cipserviced) == 1)
+        {
+            SCLogDebug("DetectCIPServiceMatchAL found\n");
+            return 1;
+        }
+        count++;
     }
-   
+
     SCReturnInt(ret);
-}
-
-
-
-/**
- * \brief This function is used to match cip_service rule option on a packet
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch with context that we will cast into DetectCipServiceData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-
-int DetectCipServiceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
-{
-    int ret = 0;
-    DetectCipServiceData *cipserviced = (DetectCipServiceData *) ctx;
-
-    if (PKT_IS_PSEUDOPKT(p))
-    {
-        SCLogDebug("Packet is fake");
-    }
-
-    if (PKT_IS_IPV4(p))
-    {
-        /* ipv4 pkt */
-    } else if (PKT_IS_IPV6(p))
-    {
-        SCLogDebug("Packet is IPv6");
-        return ret;
-    } else
-    {
-        SCLogDebug("Packet is not IPv4 or IPv6");
-        return ret;
-    }
-
-    ENIPData enip_data;
-    enip_data.service_head = NULL; //initialize pointer
-    enip_data.service_tail = NULL;
-
-    //	SCLogDebug("payload total length %d\n", p->payload_len);
-
-    //basic port check
-    if ((p->sp == ENIP_PORT) || (p->dp == ENIP_PORT))
-    {
-        if (p->dp == ENIP_PORT)
-            enip_data.direction = 0;
-        else
-            enip_data.direction = 1;
-    } else
-    {
-        return 0;
-    }
-/*
-    int status = DecodeENIP(p, &enip_data); //perform EtherNet/IP decoding
-
-    if (status != 0)
-    {
-        //PrintENIP(&enip_data); //print gathered ENIP data
-       // ret = CIPServiceMatch(p, &enip_data, cipserviced); //check if rule matches
-    }
-*/
-    FreeCIPServiceData(enip_data.service_head); //free CIP service data
-
-    return ret;
 }
 
 /**
@@ -528,14 +325,12 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
 
     cipserviced = SCMalloc(sizeof(DetectCipServiceData));
     if (unlikely(cipserviced == NULL))
-           goto error;
+        goto error;
 
     cipserviced->cipservice = 0;
     cipserviced->cipclass = 0;
     cipserviced->matchattribute = 1;
     cipserviced->cipattribute = 0;
-
-
 
     char* token;
     char *save;
@@ -606,7 +401,7 @@ DetectCipServiceData *DetectCipServiceParse(char *rulestr)
     SCLogDebug("DetectCipServiceParse - service %d\n", cipserviced->cipservice);
     SCLogDebug("DetectCipServiceParse - class %d\n", cipserviced->cipclass);
     SCLogDebug("DetectCipServiceParse - match attribute %d\n",
-                cipserviced->matchattribute);
+            cipserviced->matchattribute);
     SCLogDebug("DetectCipServiceParse - attribute %d\n",
             cipserviced->cipattribute);
 
@@ -638,12 +433,12 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectCipServiceData *cipserviced = NULL;
     SigMatch *sm = NULL;
 
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP) {
-          SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-          goto error;
-      }
-
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP)
+    {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                "rule contains conflicting keywords.");
+        goto error;
+    }
 
     cipserviced = DetectCipServiceParse(rulestr);
     if (cipserviced == NULL)
@@ -656,12 +451,12 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_CIPSERVICE;
     sm->ctx = (void *) cipserviced;
 
-  //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-  //  s->flags |= SIG_FLAG_REQUIRE_PACKET;
-  //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
+    //  SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    //  s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-   // s->alproto = ALPROTO_ENIP;
-   // s->flags |= SIG_FLAG_APPLAYER;
+    s->alproto = ALPROTO_ENIP;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 
@@ -760,13 +555,12 @@ void DetectCipServiceRegisterTests(void)
 /**
  * \brief ENIP Commond Detect Prototypes
  */
-//int DetectEnipCommandMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
-//        Signature *, const SigMatchCtx *);
 static int DetectEnipCommandSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectEnipCommandFree(void *);
 static void DetectEnipCommandRegisterTests(void);
 
-int DetectENIPCommandMatchAL (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+int DetectENIPCommandMatchAL(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+        uint8_t, void *, Signature *, SigMatch *);
 
 /**
  * \brief Registration function for enip_command: keyword
@@ -777,9 +571,8 @@ void DetectEnipCommandRegister(void)
     sigmatch_table[DETECT_ENIPCOMMAND].desc
             = "Rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].url = "www.solananetworks.com";
- //   sigmatch_table[DETECT_ENIPCOMMAND].Match = DetectEnipCommandMatch;
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
-    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = DetectENIPCommandMatchAL;// NULL;
+    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = DetectENIPCommandMatchAL;
     sigmatch_table[DETECT_ENIPCOMMAND].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
@@ -788,109 +581,44 @@ void DetectEnipCommandRegister(void)
 
 }
 
-
-
-
-int DetectENIPCommandMatchAL (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+/**
+ * \brief Match function for enip_command: keyword
+ */
+int DetectENIPCommandMatchAL(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     SCEnter();
 
-    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *)m->ctx;
-    ENIPState *enip_state = (ENIPState *)state;
-    int ret = 0; 
-    
-  //  printf("DetectENIPCommandMatch2\n");
-    if (enip_state == NULL) {
+    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) m->ctx;
+    ENIPState *enip_state = (ENIPState *) state;
+    int ret = 0;
+
+    if (enip_state == NULL)
+    {
         printf("no enip state, no match\n");
         SCReturnInt(0);
     }
 
-    //printf("DetectENIPCommandMatchAL enipcommand %d\n", enipcmdd->enipcommand);
+    SCLogDebug("DetectENIPCommandMatchAL enipcommand %d\n",
+            enipcmdd->enipcommand);
     //printf("DetectENIPCommandMatchAL tx %d\n", enip_state->transaction_max);
-   
-    
+
+
     ENIPTransaction *tx = NULL;
-    int  count = 0;
-    TAILQ_FOREACH(tx, &enip_state->tx_list, next) {
-      //PrintENIPAL(tx);
-      //printf("DetectENIPCommandMatchAL transaction #%d, command %d\n", count, tx->header.command);
-      if (enipcmdd->enipcommand == tx->header.command){
-          SCLogDebug("DetectENIPCommandMatchAL found!\n");
-          return 1;
-      }     
-      count++;
-    }
-         
-    SCReturnInt(ret);    
-}
-
-
-/**
- * \brief This function is used to match cip_service rule option on a packet
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch with context that we will cast into DetectCipServiceData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectEnipCommandMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-        Packet *p, Signature *s, const SigMatchCtx *ctx)
-{
-    int ret = 0;
-    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) ctx;
-
-    if (PKT_IS_PSEUDOPKT(p))
+    int count = 0;
+    TAILQ_FOREACH(tx, &enip_state->tx_list, next)
     {
-        SCLogDebug("Packet is fake");
-    }
-
-    if (PKT_IS_IPV4(p))
-    {
-        /* ipv4 pkt */
-    } else if (PKT_IS_IPV6(p))
-    {
-        SCLogDebug("Packet is IPv6");
-        return ret;
-    } else
-    {
-        SCLogDebug("Packet is not IPv4 or IPv6");
-        return ret;
-    }
-
-    ENIPData enip_data;
-    enip_data.service_head = NULL; //initialize pointer
-    enip_data.service_tail = NULL;
-
-    //basic port check
-    if ((p->sp == ENIP_PORT) || (p->dp == ENIP_PORT))
-    {
-        if (p->dp == ENIP_PORT)
-            enip_data.direction = 0;
-        else
-            enip_data.direction = 1;
-    } else
-    {
-        return 0;
-    }
-
-    //    SCLogDebug("CIPSERVICE %d\n",enipcmdd->enipcommand);
-/*
-    int status = DecodeENIP(p, &enip_data); //perform EtherNet/IP decoding
-    //PrintENIP(&enip_data); //print gathered ENIP data
-    if (status > 0)
-    {
-        if (enipcmdd->enipcommand == enip_data.header.command) //check if rule matches
+        //PrintENIPAL(tx);
+        //printf("DetectENIPCommandMatchAL transaction #%d, command %d\n", count, tx->header.command);
+        if (enipcmdd->enipcommand == tx->header.command)
         {
-            ret = 1;
+            SCLogDebug("DetectENIPCommandMatchAL found!\n");
+            return 1;
         }
+        count++;
     }
-*/
-    FreeCIPServiceData(enip_data.service_head); //free CIP service data
 
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**
@@ -927,8 +655,6 @@ DetectEnipCommandData *DetectEnipCommandParse(char *rulestr)
         goto error;
     }
 
-
-
     return enipcmdd;
 
     error: if (enipcmdd)
@@ -953,10 +679,11 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     DetectEnipCommandData *enipcmdd = NULL;
     SigMatch *sm = NULL;
 
-
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP) {
-           SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-           goto error;
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_ENIP)
+    {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                "rule contains conflicting keywords.");
+        goto error;
     }
 
     enipcmdd = DetectEnipCommandParse(rulestr);
@@ -970,9 +697,12 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_ENIPCOMMAND;
     sm->ctx = (void *) enipcmdd;
 
-    //SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    //s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    // SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+    // s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    s->alproto = ALPROTO_ENIP;
+    s->flags |= SIG_FLAG_APPLAYER;
 
     SCReturnInt(0);
 

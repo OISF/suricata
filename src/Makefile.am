@@ -206,9 +206,6 @@ detect-within.c detect-within.h \
 detect-modbus.c detect-modbus.h \
 detect-xbits.c detect-xbits.h \
 detect-cipservice.c detect-cipservice.h \
-decode-enip.c decode-enip.h \
-decode-cip.c decode-cip.h \
-detect-engine-enip.c detect-engine-enip.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \

@@ -47,6 +47,67 @@
 
 
 
+
+/**
+ * \brief Extract 8 bits and move up the offset
+ * @param res
+ * @param input
+ * @param offset
+ */
+void ENIPExtractUint8(uint8_t *res, uint8_t *input, uint16_t *offset)
+{
+    SCEnter();
+    *res = *(input + *offset);
+    *offset += sizeof(uint8_t);
+    SCReturn;
+}
+
+/**
+ * \brief Extract 16 bits and move up the offset
+ * @param res
+ * @param input
+ * @param offset
+ */
+void ENIPExtractUint16(uint16_t *res, uint8_t *input, uint16_t *offset)
+{
+    SCEnter();
+    ByteExtractUint16(res, BYTE_LITTLE_ENDIAN, sizeof(uint16_t),
+            (const uint8_t *) (input + *offset));
+    *offset += sizeof(uint16_t);
+    SCReturn;
+}
+
+/**
+ * \brief Extract 32 bits and move up the offset
+ * @param res
+ * @param input
+ * @param offset
+ */
+void ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset)
+{
+    SCEnter();
+    ByteExtractUint32(res, BYTE_LITTLE_ENDIAN, sizeof(uint32_t),
+            (const uint8_t *) (input + *offset));
+    *offset += sizeof(uint32_t);
+    SCReturn;
+}
+
+/**
+ * \brief Extract 64 bits and move up the offset
+ * @param res
+ * @param input
+ * @param offset
+ */
+void ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset)
+{
+    SCEnter();
+    ByteExtractUint64(res, BYTE_LITTLE_ENDIAN, sizeof(uint64_t),
+            (const uint8_t *) (input + *offset));
+    *offset += sizeof(uint64_t);
+    SCReturn;
+}
+
+
 /**
  * \brief Create service entry, add to transaction
  * @param tx Transaction

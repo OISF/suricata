@@ -39,11 +39,6 @@
 #include "flow.h"
 #include "queue.h"
 
-// clean later
-#include "detect-cipservice.h"
-//#include "decode-enip.h"
-
-
 #define MAX_ENIP_CMD    65535
 
 // EtherNet/IP commands
@@ -104,6 +99,51 @@
 #define PATH_INSTANCE_16BIT     0x25
 #define PATH_ATTR_8BIT          0x30
 #define PATH_ATTR_16BIT         0x31 //possible value
+
+/**
+ * ENIP encapsulation header
+ */
+typedef struct ENIPEncapHdr_
+{
+    u_int64_t context;
+    u_int32_t session;
+    u_int32_t status;
+    u_int32_t option;
+    u_int16_t command;
+    u_int16_t length;
+} ENIPEncapHdr;
+
+/**
+ * ENIP encapsulation data header
+ */
+typedef struct ENIPEncapDataHdr_
+{
+    u_int32_t interface_handle;
+    u_int16_t timeout;
+    u_int16_t item_count;
+} ENIPEncapDataHdr;
+
+/**
+ * ENIP encapsulation address item
+ */
+typedef struct ENIPEncapAddresItem_
+{
+    u_int16_t type;
+    u_int16_t length;
+    u_int16_t conn_id;
+    u_int16_t sequence_num;
+} ENIPEncapAddresItem;
+
+/**
+ * ENIP encapsulation data item
+ */
+typedef struct ENIPEncapDataItem_
+{
+    u_int16_t type;
+    u_int16_t length;
+    u_int16_t sequence_count;
+} ENIPEncapDataItem;
+
 /**
  * CIP Request Header
  */
@@ -165,11 +205,6 @@ typedef struct ENIPTransaction_
 {
     uint16_t tx_num; /**< internal: id */
     uint16_t tx_id; /**< transaction id */
-    uint8_t replied; /**< bool indicating request is
-     replied to. */
-    uint8_t reply_lost;
-    uint8_t rcode; /**< response code (e.g. "no error" / "no such name") */
-    uint8_t recursion_desired; /**< server said "recursion desired" */
 
     ENIPEncapHdr header; //encapsulation header
     ENIPEncapDataHdr encap_data_header; //encapsulation data header
@@ -191,9 +226,6 @@ typedef struct ENIPState_
     ENIPTransaction *curr; /**< ptr to current tx */
     ENIPTransaction *iter;
     uint64_t transaction_max;
-    uint32_t unreplied_cnt; /**< number of unreplied requests in a row */
-    uint32_t memuse; /**< state memuse, for comparing with
-     state-memcap settings */
     uint64_t tx_with_detect_state_cnt;
 
     uint16_t events;
