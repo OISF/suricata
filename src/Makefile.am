@@ -60,6 +60,7 @@ decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-mpls.c decode-mpls.h \
+decode-template.c decode-template.h \
 defrag-config.c defrag-config.h \
 defrag.c defrag.h \
 defrag-hash.c defrag-hash.h \
@@ -141,6 +142,7 @@ detect-fragoffset.c detect-fragoffset.h \
 detect-ftpbounce.c detect-ftpbounce.h \
 detect-geoip.c detect-geoip.h \
 detect-gid.c detect-gid.h \
+detect-helloworld.c detect-helloworld.h \
 detect-hostbits.c detect-hostbits.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-cookie.c detect-http-cookie.h \

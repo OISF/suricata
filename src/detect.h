@@ -1228,6 +1228,8 @@ enum {
 
     DETECT_XBITS,
 
+    DETECT_HELLOWORLD,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
