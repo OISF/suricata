@@ -478,7 +478,7 @@ af-packet:
   - interface: default
     #threads: auto
     #use-mmap: yes
-    rollover: yes
+    #rollover: yes
 
 # Netmap support
 #
