@@ -192,6 +192,8 @@
     AC_CHECK_FUNCS([strlcpy strlcat])
     CFLAGS=$OCFLAGS
 
+    AC_CHECK_FUNCS([madvise posix_fadvise], [AC_DEFINE([HAVE_ADVISE], [1], [Define if system is willing to listen])])
+
     # Add large file support
     AC_SYS_LARGEFILE
 

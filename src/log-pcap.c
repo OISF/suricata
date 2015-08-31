@@ -53,6 +53,18 @@
 
 #include "queue.h"
 
+#ifdef HAVE_ADVISE
+
+#if HAVE_SYS_MMAN_H
+#include <sys/mman.h>
+#endif
+
+#define PCAP_MMAP_DISABLED              0
+#define PCAP_MMAP_ENABLED               1
+#define PCAP_MMAP_BUFFER                8 * 1024 * 1024
+
+#endif
+
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"
 #define MIN_LIMIT                       1 * 1024 * 1024
@@ -132,6 +144,13 @@ typedef struct PcapLogData_ {
     int threads;                /**< number of threads (only set in the global) */
     char *filename_parts[MAX_TOKS];
     int filename_part_cnt;
+
+#ifdef HAVE_ADVISE
+    int use_pcap_mmap;
+    void *pcap_mmap;
+    int pcap_file;
+    uint64_t pcap_mmap_pos;
+#endif
 } PcapLogData;
 
 typedef struct PcapLogThreadData_ {
@@ -182,8 +201,17 @@ static int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl)
     if (pl != NULL) {
         PCAPLOG_PROFILE_START;
 
-        if (pl->pcap_dumper != NULL)
+        if (pl->pcap_dumper != NULL) {
+#ifdef HAVE_ADVISE
+            if (pl->use_pcap_mmap == PCAP_MMAP_ENABLED) {
+                munmap(pl->pcap_mmap, pl->size_limit);
+                pl->pcap_mmap = NULL;
+                ftruncate(pl->pcap_file, pl->size_current);
+            }
+#endif /* HAVE_ADVISE */
             pcap_dump_close(pl->pcap_dumper);
+        }
+
         pl->size_current = 0;
         pl->pcap_dumper = NULL;
 
@@ -296,12 +324,31 @@ static int PcapLogOpenHandles(PcapLogData *pl, Packet *p)
     }
 
     if (pl->pcap_dumper == NULL) {
-        if ((pl->pcap_dumper = pcap_dump_open(pl->pcap_dead_handle,
-                        pl->filename)) == NULL) {
-            SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+        FILE *fp;
+        if ((fp = fopen(pl->filename, "wb+")) == NULL) {
+            SCLogInfo("Error opening dump file %s", pl->filename);
+            return TM_ECODE_FAILED;
+        }
+
+        if ((pl->pcap_dumper = pcap_dump_fopen(pl->pcap_dead_handle,
+                        fp)) == NULL) {
+            SCLogInfo("Error opening pcap dump %s", pcap_geterr(pl->pcap_dead_handle));
             return TM_ECODE_FAILED;
         }
     }
+
+#ifdef HAVE_ADVISE
+    if (pl->use_pcap_mmap == PCAP_MMAP_ENABLED) {
+        pl->pcap_file = fileno(pcap_dump_file(pl->pcap_dumper));
+        ftruncate(pl->pcap_file, pl->size_limit);
+        if ((pl->pcap_mmap = mmap(NULL, pl->size_limit, PROT_WRITE,
+                        MAP_SHARED, pl->pcap_file, 0)) == MAP_FAILED) {
+            SCLogInfo("Error memory mapping pcap dump file %s", strerror(errno));
+            return TM_ECODE_FAILED;
+        }
+        pl->pcap_mmap_pos = 0;
+    }
+#endif /* HAVE_ADVISE */
 
     PCAPLOG_PROFILE_END(pl->profile_handles);
     return TM_ECODE_OK;
@@ -409,7 +456,28 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue
     }
 
     PCAPLOG_PROFILE_START;
+#ifdef HAVE_ADVISE
+    if (pl->use_pcap_mmap == PCAP_MMAP_ENABLED) {
+
+        /* Signal the kernel to write the mmap buffer. */
+        if (pl->pcap_mmap_pos > PCAP_MMAP_BUFFER) {
+            posix_fadvise(pl->pcap_file, 0, pl->size_current, POSIX_FADV_DONTNEED);
+            madvise(pl->pcap_mmap, pl->size_current, MADV_DONTNEED);
+            pl->pcap_mmap_pos = len;
+        } else {
+            pl->pcap_mmap_pos += len;
+        }
+
+        memcpy((void *)pl->pcap_mmap + pl->size_current, pl->h, sizeof(*pl->h));
+        memcpy((void *)pl->pcap_mmap + pl->size_current + sizeof(*pl->h),
+                GET_PKT_DATA(p), len);
+    } else {
+        pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
+    }
+#else
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
+#endif /* HAVE_ADVISE */
+
     pl->size_current += len;
     PCAPLOG_PROFILE_END(pl->profile_write);
     pl->profile_data_size += len;
@@ -868,6 +936,24 @@ static OutputCtx *PcapLogInitCtx(ConfNode *conf)
             exit(EXIT_FAILURE);
         }
     }
+
+#ifdef HAVE_ADVISE
+    const char *use_pcap_mmap = NULL;
+    if (conf != NULL) { /* To faciliate unit tests. */
+        use_pcap_mmap = ConfNodeLookupChildValue(conf, "use-pcap-mmap");
+    }
+    if (use_pcap_mmap != NULL) {
+        if (ConfValIsFalse(use_pcap_mmap)) {
+            pl->use_pcap_mmap = PCAP_MMAP_DISABLED;
+        } else if (ConfValIsTrue(use_pcap_mmap)) {
+            pl->use_pcap_mmap = PCAP_MMAP_ENABLED;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                "log-pcap use_pcap_mmap specified is invalid must be true or false");
+            exit(EXIT_FAILURE);
+        }
+    }
+#endif /* HAVE_ADVISE */
 
     /* create the output ctx and send it back */
 
