@@ -2620,51 +2620,58 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
                  Packet *p)
 {
-    /* fast path 1: segment is exactly what we need */
-    if (likely(rd->data_len == 0 &&
-               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
-               SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len))))
-    {
-        /* process single segment directly */
-        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                seg->payload, seg->payload_len,
-                StreamGetAppLayerFlags(ssn, stream, p));
-        AppLayerProfilingStore(ra_ctx->app_tctx, p);
-        rd->data_sent += seg->payload_len;
-        rd->ra_base_seq += seg->payload_len;
+    /* fast paths: send data directly into the app layer, w/o first doing
+     * a copy step. However, don't use the fast path until protocol detection
+     * has been completed
+     * TODO if initial data is big enough for proto detect, we could do the
+     *      fast path anyway. */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) {
+        /* fast path 1: segment is exactly what we need */
+        if (likely(rd->data_len == 0 &&
+                    SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+                    SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len))))
+        {
+            /* process single segment directly */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    seg->payload, seg->payload_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += seg->payload_len;
+            rd->ra_base_seq += seg->payload_len;
 #ifdef DEBUG
-        ra_ctx->fp1++;
+            ra_ctx->fp1++;
 #endif
-        /* if after the first data chunk we have no alproto yet,
-         * there is no point in continueing here. */
-        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-            SCLogDebug("no alproto after first data chunk");
-            return 0;
-        }
-        return 1;
-    /* fast path 2: segment acked completely, meets minimal size req for 0copy processing */
-    } else if (rd->data_len == 0 &&
-               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
-               SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) &&
-               seg->payload_len >= stream_config.zero_copy_size)
-    {
-        /* process single segment directly */
-        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                seg->payload, seg->payload_len,
-                StreamGetAppLayerFlags(ssn, stream, p));
-        AppLayerProfilingStore(ra_ctx->app_tctx, p);
-        rd->data_sent += seg->payload_len;
-        rd->ra_base_seq += seg->payload_len;
+            /* if after the first data chunk we have no alproto yet,
+             * there is no point in continueing here. */
+            if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                SCLogDebug("no alproto after first data chunk");
+                return 0;
+            }
+            return 1;
+            /* fast path 2: segment acked completely, meets minimal size req for 0copy processing */
+        } else if (rd->data_len == 0 &&
+                SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+                SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) &&
+                seg->payload_len >= stream_config.zero_copy_size)
+        {
+            /* process single segment directly */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    seg->payload, seg->payload_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += seg->payload_len;
+            rd->ra_base_seq += seg->payload_len;
 #ifdef DEBUG
-        ra_ctx->fp2++;
+            ra_ctx->fp2++;
 #endif
-        /* if after the first data chunk we have no alproto yet,
-         * there is no point in continueing here. */
-        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-            SCLogDebug("no alproto after first data chunk");
-            return 0;
+            /* if after the first data chunk we have no alproto yet,
+             * there is no point in continueing here. */
+            if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                SCLogDebug("no alproto after first data chunk");
+                return 0;
+            }
+            return 1;
         }
-        return 1;
     }
 #ifdef DEBUG
     ra_ctx->sp++;
