@@ -60,6 +60,7 @@ decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-mpls.c decode-mpls.h \
+decode-template.c decode-template.h \
 defrag-config.c defrag-config.h \
 defrag.c defrag.h \
 defrag-hash.c defrag-hash.h \
@@ -192,6 +193,7 @@ detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
+detect-template.c detect-template.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
 detect-tls-version.c detect-tls-version.h \
