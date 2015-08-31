@@ -125,6 +125,7 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_DNSQUERYNAME_MATCH,  /**< per query in a tx list */
 
     DETECT_SM_LIST_MODBUS_MATCH,
+    DETECT_SM_LIST_ENIP_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
@@ -305,6 +306,7 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
 #define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
+#define SIG_MASK_REQUIRE_ENIP_STATE         (1<<13)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
@@ -1227,7 +1229,8 @@ enum {
     DETECT_AL_MODBUS,
 
     DETECT_XBITS,
-
+    DETECT_CIPSERVICE,
+    DETECT_ENIPCOMMAND,
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
