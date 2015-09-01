@@ -764,8 +764,13 @@ uint32_t StreamTcpGetStreamSize(TcpStream *stream)
 #define StreamTcpUpdateLastAck(ssn, stream, ack) { \
     if (SEQ_GT((ack), (stream)->last_ack)) \
     { \
+        SCLogDebug("ssn %p: last_ack set to %"PRIu32", moved %u forward", (ssn), (ack), (ack) - (stream)->last_ack); \
+        if ((SEQ_LEQ((stream)->last_ack, (stream)->next_seq) && SEQ_GT((ack),(stream)->next_seq))) { \
+            SCLogDebug("last_ack just passed next_seq: %u (was %u) > %u", (ack), (stream)->last_ack, (stream)->next_seq); \
+        } else { \
+            SCLogDebug("next_seq (%u) <> last_ack now %d", (stream)->next_seq, (int)(stream)->next_seq - (ack)); \
+        }\
         (stream)->last_ack = (ack); \
-        SCLogDebug("ssn %p: last_ack set to %"PRIu32, (ssn), (stream)->last_ack); \
         StreamTcpSackPruneList((stream)); \
     } else { \
         SCLogDebug("ssn %p: no update: ack %u, last_ack %"PRIu32", next_seq %u (state %u)", \
@@ -2040,6 +2045,17 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
                    " (started before next_seq, ended after)",
                    ssn, ssn->client.next_seq);
+    /* if next_seq has fallen behind last_ack, we got some catching up to do */
+    } else if (SEQ_LT(ssn->client.next_seq, ssn->client.last_ack)) {
+        ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: ssn->client.next_seq %"PRIu32
+                   " (next_seq had fallen behind last_ack)",
+                   ssn, ssn->client.next_seq);
+    } else {
+        SCLogDebug("ssn %p: no update to ssn->client.next_seq %"PRIu32
+                   " SEQ %u SEQ+ %u last_ack %u",
+                   ssn, ssn->client.next_seq,
+                   TCP_GET_SEQ(p), TCP_GET_SEQ(p)+p->payload_len, ssn->client.last_ack);
     }
 
     /* in window check */
@@ -2185,6 +2201,17 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32
                    " (started before next_seq, ended after)",
                    ssn, ssn->server.next_seq);
+    /* if next_seq has fallen behind last_ack, we got some catching up to do */
+    } else if (SEQ_LT(ssn->server.next_seq, ssn->server.last_ack)) {
+        ssn->server.next_seq = TCP_GET_SEQ(p) + p->payload_len;
+        SCLogDebug("ssn %p: ssn->server.next_seq %"PRIu32
+                   " (next_seq had fallen behind last_ack)",
+                   ssn, ssn->server.next_seq);
+    } else {
+        SCLogDebug("ssn %p: no update to ssn->server.next_seq %"PRIu32
+                   " SEQ %u SEQ+ %u last_ack %u",
+                   ssn, ssn->server.next_seq,
+                   TCP_GET_SEQ(p), TCP_GET_SEQ(p)+p->payload_len, ssn->server.last_ack);
     }
 
     if (zerowindowprobe) {
