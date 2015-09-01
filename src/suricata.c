@@ -102,6 +102,8 @@
 
 #include "output-json.h"
 
+#include "output-json-template.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
@@ -896,6 +898,9 @@ void RegisterAllModules()
     TmModuleJsonNetFlowLogRegister();
     /* json stats */
     TmModuleJsonStatsLogRegister();
+
+    /* Template JSON logger. */
+    TmModuleJsonTemplateLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();

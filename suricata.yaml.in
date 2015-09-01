@@ -149,6 +149,7 @@ outputs:
         #- flow
         # uni-directional flows
         #- netflow
+        #- template
 
   # alert output for use with Barnyard2
   - unified2-alert:
@@ -1342,6 +1343,8 @@ app-layer:
         enabled: yes
         detection-ports:
           dp: 53
+    template:
+      enabled: yes
     http:
       enabled: yes
       # memcap: 64mb
