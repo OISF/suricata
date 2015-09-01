@@ -149,6 +149,7 @@ outputs:
         #- flow
         # uni-directional flows
         #- netflow
+        #- template
 
   # alert output for use with Barnyard2
   - unified2-alert:
