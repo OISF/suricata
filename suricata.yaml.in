@@ -1342,6 +1342,8 @@ app-layer:
         enabled: yes
         detection-ports:
           dp: 53
+    template:
+      enabled: yes
     http:
       enabled: yes
       # memcap: 64mb
