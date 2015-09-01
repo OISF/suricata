@@ -123,6 +123,7 @@ detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-tag.c detect-engine-tag.h \
+detect-engine-template.c detect-engine-template.h \
 detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-uri.c detect-engine-uri.h \
 detect-fast-pattern.c detect-fast-pattern.h \
@@ -195,6 +196,7 @@ detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-template.c detect-template.h \
+detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
 detect-tls-version.c detect-tls-version.h \
