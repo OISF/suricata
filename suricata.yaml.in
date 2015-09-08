@@ -162,6 +162,10 @@ outputs:
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
 
+      # Include payload of packets related to alerts. Defaults to true, set to
+      # false if payload is not required.
+      #payload: yes
+
       # HTTP X-Forwarded-For support by adding the unified2 extra header or
       # overwriting the source or destination IP address (depending on flow
       # direction) with the one reported in the X-Forwarded-For HTTP header.
