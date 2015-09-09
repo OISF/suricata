@@ -706,6 +706,7 @@ static int StatsOutput(ThreadVars *tv)
             StatsRecord *r = &stats_table.tstats[offset];
             r->name = table[c].name;
             r->tm_name = sts->name;
+            r->pvalue = r->value;
 
             switch (e->type) {
                 case STATS_TYPE_AVERAGE:
