@@ -27,6 +27,7 @@
 #define __OUTPUT_STATS_H__
 
 typedef struct StatsRecord_ {
+    StatsType type;
     const char *name;
     const char *tm_name;
     uint64_t value;         /**< total value */

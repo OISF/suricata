@@ -45,19 +45,6 @@
 #define STATS_MGMTT_TTS 8
 
 /**
- * \brief Different kinds of qualifier that can be used to modify the behaviour
- *        of the counter to be registered
- */
-enum {
-    STATS_TYPE_NORMAL = 1,
-    STATS_TYPE_AVERAGE = 2,
-    STATS_TYPE_MAXIMUM = 3,
-    STATS_TYPE_FUNC = 4,
-
-    STATS_TYPE_MAX = 5,
-};
-
-/**
  * \brief per thread store of counters
  */
 typedef struct StatsThreadStore_ {
@@ -707,6 +694,7 @@ static int StatsOutput(ThreadVars *tv)
             r->name = table[c].name;
             r->tm_name = sts->name;
             r->pvalue = r->value;
+            r->type = e->type;
 
             switch (e->type) {
                 case STATS_TYPE_AVERAGE:
@@ -733,6 +721,7 @@ static int StatsOutput(ThreadVars *tv)
         table[x].tm_name = "Total";
 
         struct CountersMergeTable *m = &merge_table[x];
+        table[x].type = m->type;
         switch (m->type) {
             case STATS_TYPE_MAXIMUM:
                 if (m->value > table[x].value)
