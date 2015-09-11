@@ -185,7 +185,7 @@ static void AlertJsonFlowVars(const Flow *f, json_t *js)
                 json_object_set_new(fvjs, tag, json_integer((long)fv->data.fv_int.value));
                 SCLogDebug("outputting a flowint: %d %d", fv->idx, fv->data.fv_int.value);
             } else {
-                SCLogDebug("found a flowvar with bad datatype %d", fv->datatype) ;
+                SCLogError("found a flowvar with bad datatype %d", fv->datatype) ;
             }
         }
     }
@@ -309,8 +309,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 FLOWLOCK_UNLOCK(p->flow);
             }
         }
-
-        SCLogDebug("This is where I want to dump PktVars/FlowVars");
 
         //Dump Pktvars to eve.json
         if(json_output_ctx->flags & LOG_JSON_PKTVARS) {
