@@ -64,6 +64,9 @@
 #include "util-logopenfile.h"
 #include "util-crypt.h"
 
+#include "flow-var.h"
+#include "pkt-var.h"
+
 #define MODULE_NAME "JsonAlertLog"
 
 #ifdef HAVE_LIBJANSSON
@@ -74,6 +77,8 @@
 #define LOG_JSON_HTTP 8
 #define LOG_JSON_TLS 16
 #define LOG_JSON_SSH 32
+#define LOG_JSON_FLOWVARS 64
+#define LOG_JSON_PKTVARS 128
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -157,6 +162,53 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     }
 
     return;
+}
+
+static void AlertJsonFlowVars(const Flow *f, json_t *js)
+{
+    GenericVar *gv = f->flowvar;
+    FlowVar* fv;
+    char tag[10];
+    if(gv == NULL)
+        return;
+
+    json_t *fvjs = json_object();
+
+    for ( ; gv != NULL; gv = gv->next) {
+        if (gv->type == DETECT_FLOWVAR) {
+            fv = (FlowVar*)gv;
+            sprintf(tag, "%u", fv->idx);
+            if(fv->datatype == FLOWVAR_TYPE_STR) {
+                json_object_set_new(fvjs, tag, json_string((char*)fv->data.fv_str.value));
+                SCLogDebug("outputting a flowvar idx: %d ", fv->idx);
+            } else if(fv->datatype == FLOWVAR_TYPE_INT) {
+                json_object_set_new(fvjs, tag, json_integer((long)fv->data.fv_int.value));
+                SCLogDebug("outputting a flowint: %d %d", fv->idx, fv->data.fv_int.value);
+            } else {
+                SCLogDebug("found a flowvar with bad datatype %d", fv->datatype) ;
+            }
+        }
+    }
+    json_object_set_new(js, "flowvars", fvjs);
+}
+
+static void AlertJsonPktVars(const Packet *p, json_t *js)
+{
+    PktVar *pv = p->pktvar;
+
+    if(!pv) {
+        return;
+    }
+              
+    json_t *pvjs = json_object();
+
+    for (;pv != NULL; pv = pv->next) {
+        if (pv->name ) {
+            json_object_set_new(pvjs, pv->name, json_string((char*)pv->value));
+            SCLogDebug("outputting a pktvar with a name: %s", pv->name);
+        }
+    }
+    json_object_set_new(js, "pktvars", pvjs);
 }
 
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
@@ -257,6 +309,24 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 FLOWLOCK_UNLOCK(p->flow);
             }
         }
+
+        SCLogDebug("This is where I want to dump PktVars/FlowVars");
+
+        //Dump Pktvars to eve.json
+        if(json_output_ctx->flags & LOG_JSON_PKTVARS) {
+            AlertJsonPktVars(p, js);
+        }
+        //Dump Flowvars to eve.json
+        if(json_output_ctx->flags & LOG_JSON_FLOWVARS) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+ 
+                AlertJsonFlowVars(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+             
 
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
@@ -607,6 +677,8 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *http = ConfNodeLookupChildValue(conf, "http");
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
+        const char *flowvars = ConfNodeLookupChildValue(conf, "flowvars");
+        const char *pktvars = ConfNodeLookupChildValue(conf, "pktvars");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -636,6 +708,16 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 json_output_ctx->flags |= LOG_JSON_PACKET;
+            }
+        }
+        if (flowvars != NULL) {
+            if (ConfValIsTrue(flowvars)) {
+                json_output_ctx->flags |= LOG_JSON_FLOWVARS;
+            }
+        }
+        if (pktvars != NULL) {
+            if (ConfValIsTrue(pktvars)) {
+                json_output_ctx->flags |= LOG_JSON_PKTVARS;
             }
         }
 
