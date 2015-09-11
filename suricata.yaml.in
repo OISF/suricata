@@ -108,6 +108,8 @@ outputs:
             # http: yes              # enable dumping of http fields
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
+            # flowvars: no           # enable dumping of flowvars
+            # pktvars: no            # enable dumping of pktvars
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
