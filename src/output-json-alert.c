@@ -54,6 +54,7 @@
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
+#include "output-json-smtp.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -74,6 +75,7 @@
 #define LOG_JSON_HTTP 8
 #define LOG_JSON_TLS 16
 #define LOG_JSON_SSH 32
+#define LOG_JSON_SMTP 64
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -232,6 +234,22 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_SMTP) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_SMTP) {
+                    hjs = JsonSMTPAddMetadata(p->flow);
+                    if (hjs)
+                        json_object_set_new(js, "smtp", hjs);
+                }
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -586,6 +604,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *http = ConfNodeLookupChildValue(conf, "http");
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
+        const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -600,6 +619,11 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         if (http != NULL) {
             if (ConfValIsTrue(http)) {
                 json_output_ctx->flags |= LOG_JSON_HTTP;
+            }
+        }
+        if (smtp != NULL) {
+            if (ConfValIsTrue(smtp)) {
+                json_output_ctx->flags |= LOG_JSON_SMTP;
             }
         }
         if (payload_printable != NULL) {
