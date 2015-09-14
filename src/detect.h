@@ -686,6 +686,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_app_proto_detect;
     int32_t sgh_mpm_context_dnsquery;
     int32_t sgh_mpm_context_smtp;
+    int32_t sgh_mpm_context_template_buffer;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -966,6 +967,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
 #define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
+#define SIG_GROUP_HEAD_MPM_TEMPLATE_BUFFER (1 << 25)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers */
@@ -1023,6 +1025,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hrhhd_ctx_ts;
     MpmCtx *mpm_dnsquery_ctx_ts;
     MpmCtx *mpm_smtp_filedata_ctx_ts;
+    MpmCtx *mpm_template_buffer_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;
@@ -1033,6 +1036,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hcd_ctx_tc;
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
+    MpmCtx *mpm_template_buffer_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 

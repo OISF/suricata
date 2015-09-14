@@ -21,5 +21,7 @@
 #include "app-layer-template.h"
 
 void DetectTemplateBufferRegister(void);
+uint32_t DetectTemplateBufferInspectMpm(DetectEngineThreadCtx *, Flow *,
+    TemplateState *, uint8_t, void *, uint64_t);
 
 #endif /* __DETECT_TEMPLATE_BUFFER_H__ */

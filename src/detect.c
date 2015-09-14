@@ -1063,6 +1063,39 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 }
             }
         }
+        /* Template buffer. */
+        else if (alproto == ALPROTO_TEMPLATE && has_state) {
+            if (p->flowflags & (FLOW_PKT_TOSERVER|FLOW_PKT_TOCLIENT)) {
+                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TEMPLATE_BUFFER) {
+                    FLOWLOCK_RDLOCK(p->flow);
+                    void *alstate = FlowGetAppState(p->flow);
+                    if (alstate == NULL) {
+                        SCLogInfo("no alstate");
+                        FLOWLOCK_UNLOCK(p->flow);
+                        return;
+                    }
+
+                    uint64_t idx = AppLayerParserGetTransactionInspectId(
+                        p->flow->alparser, flags);
+                    uint64_t total_txs = AppLayerParserGetTxCnt(
+                        p->flow->proto, alproto, alstate);
+                    for (; idx < total_txs; idx++) {
+                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto,
+                            alstate, idx);
+                        if (tx == NULL)
+                            continue;
+
+                        PACKET_PROFILING_DETECT_START(p,
+                            PROF_DETECT_MPM_TEMPLATE_BUFFER);
+                        DetectTemplateBufferInspectMpm(det_ctx, p->flow, alstate,
+                            flags, tx, idx);
+                        PACKET_PROFILING_DETECT_END(p,
+                            PROF_DETECT_MPM_TEMPLATE_BUFFER);
+                    }
+                    FLOWLOCK_UNLOCK(p->flow);
+                }
+            }
+        }
 
         if (smsg != NULL && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
