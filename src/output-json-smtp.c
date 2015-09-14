@@ -117,11 +117,10 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
 }
 
-json_t *JsonSMTPAddMetadata(const Flow *f)
+json_t *JsonSMTPAddMetadata(const Flow *f, uint64_t tx_id)
 {
     SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
     if (smtp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
 
         if (tx) {

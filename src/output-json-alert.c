@@ -246,7 +246,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
                 /* http alert */
                 if (proto == ALPROTO_SMTP) {
-                    hjs = JsonSMTPAddMetadata(p->flow);
+                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
                         json_object_set_new(js, "smtp", hjs);
                 }
