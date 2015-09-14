@@ -99,7 +99,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
                 json_object_set_new(js, "http", hjs);
             break;
         case ALPROTO_SMTP:
-            hjs = JsonSMTPAddMetadata(p->flow);
+            hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
             if (hjs)
                 json_object_set_new(js, "smtp", hjs);
             hjs = JsonEmailAddMetadata(p->flow);
