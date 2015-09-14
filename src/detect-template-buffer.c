@@ -22,6 +22,7 @@
 
 #include "suricata-common.h"
 #include "detect.h"
+#include "detect-engine-mpm.h"
 #include "app-layer-template.h"
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, char *);
@@ -49,6 +50,24 @@ static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
     s->list = DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH;
     s->alproto = ALPROTO_TEMPLATE;
     return 0;
+}
+
+uint32_t DetectTemplateBufferInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+    TemplateState *template_state, uint8_t flags, void *txv, uint64_t tx_id)
+{
+    TemplateTransaction *tx = (TemplateTransaction *)txv;
+    uint32_t ret = 0;
+
+    if (flags & STREAM_TOSERVER && tx->request_buffer != NULL) {
+        ret = TemplateBufferPatternSearch(det_ctx, tx->request_buffer,
+            tx->request_buffer_len, flags);
+    }
+    else if (flags & STREAM_TOCLIENT && tx->response_buffer != NULL) {
+        ret = TemplateBufferPatternSearch(det_ctx, tx->response_buffer,
+            tx->response_buffer_len, flags);
+    }
+
+    return ret;
 }
 
 #ifdef UNITTESTS
