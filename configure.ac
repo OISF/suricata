@@ -1113,6 +1113,12 @@
     AC_ARG_ENABLE(non-bundled-htp,
            AS_HELP_STRING([--enable-non-bundled-htp], [Enable the use of an already installed version of htp]),,[enable_non_bundled_htp=no])
     AS_IF([test "x$enable_non_bundled_htp" = "xyes"], [
+        PKG_CHECK_MODULES([libhtp], htp,, [with_pkgconfig_htp=no])
+        if test "$with_pkgconfig_htp" != "no"; then
+            CPPFLAGS="${CPPFLAGS} ${libhtp_CFLAGS}"
+            LIBS="${LIBS} ${libhtp_LIBS}"
+        fi
+
         AC_ARG_WITH(libhtp_includes,
                 [  --with-libhtp-includes=DIR  libhtp include directory],
                 [with_libhtp_includes="$withval"],[with_libhtp_includes=no])
