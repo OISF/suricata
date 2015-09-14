@@ -212,6 +212,8 @@ int DetectEngineInspectModbus(ThreadVars            *tv,
     DetectModbus        *modbus = (DetectModbus *) sm->ctx;
 
     int ret = 0;
+    ModbusState *state = (ModbusState *) alstate;
+    printf("DetectEngineInspectModbus %d\n", state->transaction_max);
 
     if (modbus == NULL) {
         SCLogDebug("no modbus state, no match");

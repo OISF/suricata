@@ -69,22 +69,24 @@ int DetectEngineInspectENIP(ThreadVars            *tv,
                               uint64_t              tx_id)
 {
     SCEnter();
-   // ENIPData   *tx = (ENIPData *)txv;
+
+    printf("DetectEngineInspectENIP\n");
+    /*
+    ENIPData   *tx = (ENIPData *)txv;
     SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectCipServiceData        *cipserviced = (DetectCipServiceData *) sm->ctx;
 
     int ret = 0;
 
-    printf("DetectEngineInspectENIP\n");
+
 
     if (cipserviced == NULL) {
         SCLogDebug("no cipservice state, no match");
         SCReturnInt(0);
     }
+*/
 
-   ret = 1;
-
-   SCReturnInt(ret);
+   SCReturnInt(1);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -106,15 +108,6 @@ int DetectEngineInspectENIP(ThreadVars            *tv,
 /** \test Test code function. */
 static int DetectEngineInspecENIPTest01(void)
 {
-    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
-    DetectEngineThreadCtx *det_ctx = NULL;
-    DetectEngineCtx *de_ctx = NULL;
-    Flow f;
-    Packet *p = NULL;
-    Signature *s = NULL;
-    TcpSession ssn;
-    ThreadVars tv;
-
     int result = 0;
 
     return result;
