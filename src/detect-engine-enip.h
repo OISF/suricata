@@ -37,5 +37,9 @@ int DetectEngineInspectENIP(ThreadVars *, DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *, Signature *,
                               Flow *, uint8_t, void *, void *, uint64_t);
 
+int DetectEngineInspectENIP2(ThreadVars *, DetectEngineCtx *de_ctx,
+                              DetectEngineThreadCtx *, Signature *,
+                              Flow *, uint8_t, void *, void *, uint64_t);
+
 void DetectEngineInspectENIPRegisterTests(void);
 #endif /* __DETECT_ENGINE_ENIP_H__ */

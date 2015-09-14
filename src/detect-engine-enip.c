@@ -218,6 +218,42 @@ int DetectEngineInspectENIP(ThreadVars            *tv,
    SCReturnInt(0);
 }
 
+
+int DetectEngineInspectENIP2(ThreadVars            *tv,
+                              DetectEngineCtx       *de_ctx,
+                              DetectEngineThreadCtx *det_ctx,
+                              Signature             *s,
+                              Flow                  *f,
+                              uint8_t               flags,
+                              void                  *alstate,
+                              void                  *txv,
+                              uint64_t              tx_id)
+{
+    SCEnter();
+
+    printf("DetectEngineInspectENIP2\n");
+
+    ENIPTransaction   *tx = (ENIPTransaction *)txv;
+    SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH2];
+    DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) sm->ctx;
+
+    int ret = 0;
+
+    if (enipcmdd == NULL) {
+        SCLogDebug("no enipcommand state, no match");
+        SCReturnInt(0);
+    }
+
+    if (enipcmdd->enipcommand == tx->header.command)
+            {
+                SCLogDebug("DetectENIPCommandMatchAL found!\n");
+                SCReturnInt(1);
+            }
+
+   SCReturnInt(0);
+}
+
+
 #ifdef UNITTESTS /* UNITTESTS */
 #include "app-layer-parser.h"
 

@@ -451,11 +451,6 @@ static int DetectCipServiceSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_CIPSERVICE;
     sm->ctx = (void *) cipserviced;
 
-/*
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    s->alproto = ALPROTO_ENIP;
-    s->flags |= SIG_FLAG_APPLAYER;
-*/
     s->alproto = ALPROTO_ENIP;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
@@ -576,7 +571,7 @@ void DetectEnipCommandRegister(void)
             = "Rules for detecting EtherNet/IP command";
     sigmatch_table[DETECT_ENIPCOMMAND].url = "www.solananetworks.com";
     sigmatch_table[DETECT_ENIPCOMMAND].Match = NULL;
-  //  sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = DetectENIPCommandMatchAL;
+    sigmatch_table[DETECT_ENIPCOMMAND].AppLayerMatch = NULL; //DetectENIPCommandMatchAL;
  //   sigmatch_table[DETECT_ENIPCOMMAND].alproto = ALPROTO_ENIP;
     sigmatch_table[DETECT_ENIPCOMMAND].Setup = DetectEnipCommandSetup;
     sigmatch_table[DETECT_ENIPCOMMAND].Free = DetectEnipCommandFree;
@@ -701,14 +696,10 @@ static int DetectEnipCommandSetup(DetectEngineCtx *de_ctx, Signature *s,
     sm->type = DETECT_ENIPCOMMAND;
     sm->ctx = (void *) enipcmdd;
 
-    // SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
-    // s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
-    //s->alproto = ALPROTO_ENIP;
-    s->flags |= SIG_FLAG_APPLAYER;
- //   SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH);
- //   s->alproto = ALPROTO_ENIP;
+    s->alproto = ALPROTO_ENIP;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_ENIP_MATCH2);
+
 
 
     SCReturnInt(0);
