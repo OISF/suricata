@@ -46,6 +46,131 @@
 #include "util-debug.h"
 
 
+
+int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
+{
+
+    uint16_t class = 0;
+    uint16_t attrib = 0;
+    int found_class = 0;
+
+    SegmentEntry *seg = NULL;
+    TAILQ_FOREACH(seg, &svc->segment_list, next)
+    {
+        switch(seg->segment)
+        {
+            case PATH_CLASS_8BIT:
+            class = seg->value;
+            if (cipserviced->cipclass == class)
+            {
+                if (cipserviced->tokens == 2)
+                {// if rule only has class
+                    return 1;
+                } else
+                {
+                    found_class = 1;
+                }
+            }
+            break;
+            case PATH_INSTANCE_8BIT:
+            break;
+            case PATH_ATTR_8BIT: //single attribute
+            attrib = seg->value;
+            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
+                            == class) && (cipserviced->cipattribute == attrib) && (cipserviced->matchattribute == 1))
+            { // if rule has class & attribute, matched all here
+                return 1;
+            }
+            if ((cipserviced->tokens == 3) && (cipserviced->cipclass
+                            == class) && (cipserviced->matchattribute == 0))
+            { // for negation rule on attribute
+                return 1;
+            }
+            break;
+            case PATH_CLASS_16BIT:
+            class = seg->value;
+            if (cipserviced->cipclass == class)
+            {
+                if (cipserviced->tokens == 2)
+                {// if rule only has class
+                    return 1;
+                } else
+                {
+                    found_class = 1;
+                }
+            }
+            break;
+            case PATH_INSTANCE_16BIT:
+            break;
+            default:
+            SCLogDebug(
+                    "CIPPathMatchAL: UNKNOWN SEGMENT 0x%x service 0x%x\n",
+                    segment, node->service);
+            return 0;
+        }
+    }
+
+    if (found_class == 0)
+    { // if haven't matched class yet, no need to check attribute
+        return 0;
+    }
+
+    if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
+            == CIP_GET_ATTR_LIST))
+    {
+        AttributeEntry *attr = NULL;
+TAILQ_FOREACH    (attr, &svc->attrib_list, next)
+    {
+        if (cipserviced->cipattribute == attr->attribute)
+        {
+            return 1;
+        }
+    }
+}
+
+return 0;
+}
+
+int CIPServiceMatch(ENIPTransaction *enip_data,
+        DetectCipServiceData *cipserviced)
+{
+
+    int count = 1;
+    CIPServiceEntry *svc = NULL;
+    //printf("CIPServiceMatchAL\n");
+    TAILQ_FOREACH(svc, &enip_data->service_list, next)
+    {
+        //printf("CIPServiceMatchAL service #%d : 0x%x\n", count, svc->service);
+        if (cipserviced->cipservice == svc->service)
+        { // compare service
+            //SCLogDebug("Rule Match for cip service %d\n",cipserviced->cipservice );
+            if (cipserviced->tokens > 1)
+            { //if rule params have class and attribute
+
+
+                if ((svc->service == CIP_SET_ATTR_LIST) || (svc->service
+                                == CIP_SET_ATTR_SINGLE) || (svc->service
+                                == CIP_GET_ATTR_LIST) || (svc->service
+                                == CIP_GET_ATTR_SINGLE))
+                { //decode path
+                    if (CIPPathMatch(svc, cipserviced) == 1)
+                    {
+                        return 1;
+                    }
+                }
+            } else
+            {
+                // printf("CIPServiceMatchAL found\n");
+                return 1;
+            }
+        }
+        count++;
+    }
+    return 0;
+}
+
+
+
 /** \brief Do the content inspection & validation for a signature
  *
  *  \param de_ctx   Detection engine context
@@ -70,23 +195,27 @@ int DetectEngineInspectENIP(ThreadVars            *tv,
 {
     SCEnter();
 
-    printf("DetectEngineInspectENIP\n");
-    /*
-    ENIPData   *tx = (ENIPData *)txv;
+//    printf("DetectEngineInspectENIP\n");
+
+    ENIPTransaction   *tx = (ENIPTransaction *)txv;
     SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectCipServiceData        *cipserviced = (DetectCipServiceData *) sm->ctx;
 
     int ret = 0;
 
-
-
     if (cipserviced == NULL) {
         SCLogDebug("no cipservice state, no match");
         SCReturnInt(0);
     }
-*/
 
-   SCReturnInt(1);
+    if (CIPServiceMatch(tx, cipserviced) == 1)
+            {
+                SCLogDebug("DetectCIPServiceMatchAL found\n");
+                SCReturnInt(1);
+            }
+
+
+   SCReturnInt(0);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

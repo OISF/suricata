@@ -74,7 +74,7 @@ SCEnumCharMap enip_decoder_event_table[ ] = {
 int ENIPGetAlstateProgress(void *tx, uint8_t direction)
 {
 
-    printf("ENIPGetAlstateProgress direction %d\n", direction);
+   // printf("ENIPGetAlstateProgress direction %d\n", direction);
 
     return 1;
 }
@@ -85,7 +85,7 @@ int ENIPGetAlstateProgress(void *tx, uint8_t direction)
  */
 int ENIPGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    printf("ENIPGetAlstateProgressCompletionStatus direction %d\n", direction);
+  //  printf("ENIPGetAlstateProgressCompletionStatus direction %d\n", direction);
 
     return 1;
 }
@@ -353,7 +353,7 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 
         if (tx == NULL)
             SCReturnInt(0);
-        printf("ENIPParse input len %d\n", input_len);
+    //    printf("ENIPParse input len %d\n", input_len);
         ret = DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
         SCLogDebug("ENIPParse packet len %d\n", pkt_len);
@@ -381,7 +381,7 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
         uint32_t *offset)
 {
-    printf("ENIPProbingParser %d\n", input_len);
+   // printf("ENIPProbingParser %d\n", input_len);
     if (input_len < sizeof(ENIPEncapHdr))
     {
         printf("Length too small to be a ENIP header \n");
@@ -460,6 +460,7 @@ void RegisterENIPUDPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetTxCnt);
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_ENIP, ENIPGetAlstateProgress);
@@ -549,6 +550,7 @@ void RegisterENIPTCPParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetTxCnt);
+        AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPStateTransactionFree);
 
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_ENIP, ENIPGetAlstateProgress);
