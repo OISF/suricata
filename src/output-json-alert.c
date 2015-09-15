@@ -55,6 +55,7 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
+#include "output-json-email-common.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -249,6 +250,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
                         json_object_set_new(js, "smtp", hjs);
+
+                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "email", hjs);
                 }
 
                 FLOWLOCK_UNLOCK(p->flow);
