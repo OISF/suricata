@@ -90,7 +90,7 @@ static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
     json_t *sjs;
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "smtp");
+    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "smtp", tx_id);
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
