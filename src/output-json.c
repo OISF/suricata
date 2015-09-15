@@ -327,6 +327,18 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     return js;
 }
 
+json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event_type, uint32_t tx_id)
+{
+    json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
+    if (unlikely(js == NULL))
+        return NULL;
+
+    /* tx id for correlation with other events */
+    json_object_set_new(js, "tx_id", json_integer(tx_id));
+
+    return js;
+}
+
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
 {
     char *js_s = json_dumps(js,
