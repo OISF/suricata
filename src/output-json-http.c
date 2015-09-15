@@ -396,11 +396,10 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCReturnInt(TM_ECODE_OK);
 }
 
-json_t *JsonHttpAddMetadata(const Flow *f)
+json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
 {
     HtpState *htp_state = (HtpState *)FlowGetAppState(f);
     if (htp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
 
         if (tx) {
