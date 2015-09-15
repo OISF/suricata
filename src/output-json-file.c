@@ -94,7 +94,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
 
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
-            hjs = JsonHttpAddMetadata(p->flow);
+            hjs = JsonHttpAddMetadata(p->flow, ff->txid);
             if (hjs)
                 json_object_set_new(js, "http", hjs);
             break;
