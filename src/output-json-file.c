@@ -102,7 +102,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
             if (hjs)
                 json_object_set_new(js, "smtp", hjs);
-            hjs = JsonEmailAddMetadata(p->flow);
+            hjs = JsonEmailAddMetadata(p->flow, ff->txid);
             if (hjs)
                 json_object_set_new(js, "email", hjs);
             break;

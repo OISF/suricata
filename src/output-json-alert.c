@@ -48,6 +48,7 @@
 #include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
+#include "util-logopenfile.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -55,6 +56,7 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
+#include "output-json-email-common.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -62,7 +64,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
-#include "util-logopenfile.h"
 #include "util-crypt.h"
 
 #define MODULE_NAME "JsonAlertLog"
@@ -249,6 +250,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
                         json_object_set_new(js, "smtp", hjs);
+
+                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "email", hjs);
                 }
 
                 FLOWLOCK_UNLOCK(p->flow);
