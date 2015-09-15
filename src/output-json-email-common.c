@@ -396,11 +396,10 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
         SCReturnInt(TM_ECODE_FAILED);
 }
 
-json_t *JsonEmailAddMetadata(const Flow *f)
+json_t *JsonEmailAddMetadata(const Flow *f, uint32_t tx_id)
 {
     SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
     if (smtp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
         SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
 
         if (tx) {
