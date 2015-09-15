@@ -146,6 +146,11 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
         action = "blocked";
     }
 
+    /* Add tx_id to root element for correlation with other events. */
+    json_object_del(js, "tx_id");
+    if (pa->flags & PACKET_ALERT_FLAG_TX)
+        json_object_set_new(js, "tx_id", json_integer(pa->tx_id));
+
     json_t *ajs = json_object();
     if (ajs == NULL) {
         json_decref(js);
@@ -161,9 +166,6 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     json_object_set_new(ajs, "category",
             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
     json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
-
-    if (pa->flags & PACKET_ALERT_FLAG_TX)
-        json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
 
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
