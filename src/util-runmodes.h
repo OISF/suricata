@@ -34,35 +34,37 @@ int RunModeSetLiveCaptureAuto(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, int runmode);
 
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, int runmode);
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, int runmode);
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc configparser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev);
+                              const char *live_dev, int runmode);
 
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                         char *recv_mod_name,
                         char *verdict_mod_name,
-                        char *decode_mod_name);
+                        char *decode_mod_name,
+                        int runmode);
 
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
                         char *recv_mod_name,
                         char *verdict_mod_name,
-                        char *decode_mod_name);
+                        char *decode_mod_name,
+                        int runmode);
 
 char *RunmodeAutoFpCreatePickupQueuesString(int n);
 
