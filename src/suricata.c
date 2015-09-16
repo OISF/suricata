@@ -1183,7 +1183,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     strlcpy(suri->pcap_dev, optarg,
                             ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                              (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    LiveRegisterDevice(optarg);
+                    LiveRegisterDevice(optarg, RUNMODE_PFRING);
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
@@ -1220,7 +1220,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_AFP_DEV;
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_AFP_DEV);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1230,7 +1230,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple devices to get packets is experimental.");
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_AFP_DEV);
                     } else {
                         SCLogInfo("Multiple af-packet option without interface on each is useless");
                         break;
@@ -1252,7 +1252,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_NETMAP;
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_NETMAP);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1262,7 +1262,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple devices to get packets is experimental.");
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_NETMAP);
                     } else {
                         SCLogInfo("Multiple netmap option without interface on each is useless");
                         break;
@@ -1291,7 +1291,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
                     suri->run_mode = RUNMODE_PCAP_DEV;
                     if (optarg) {
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_PCAP_DEV);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
@@ -1305,7 +1305,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #else
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple pcap devices to get packets is experimental.");
-                    LiveRegisterDevice(optarg);
+                    LiveRegisterDevice(optarg, RUNMODE_PCAP_DEV);
 #endif
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -1440,7 +1440,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     usage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
-                LiveRegisterDevice(optarg);
+                LiveRegisterDevice(optarg, RUNMODE_DAG);
 #else
                 SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receieve packets using --dag.");
@@ -1480,7 +1480,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         strlcpy(suri->pcap_dev, optarg,
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                        LiveRegisterDevice(optarg);
+                        LiveRegisterDevice(optarg, RUNMODE_MPIPE);
                     }
                 } else {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
@@ -1552,7 +1552,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
             if (suri->run_mode == RUNMODE_UNKNOWN) {
                 suri->run_mode = RUNMODE_PCAP_DEV;
-                LiveRegisterDevice(suri->pcap_dev);
+                LiveRegisterDevice(suri->pcap_dev, RUNMODE_PCAP_DEV);
             } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
@@ -1561,7 +1561,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #else
                 SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                         "multiple pcap devices to get packets is experimental.");
-                LiveRegisterDevice(suri->pcap_dev);
+                LiveRegisterDevice(suri->pcap_dev, RUNMODE_PCAP_DEV);
 #endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
