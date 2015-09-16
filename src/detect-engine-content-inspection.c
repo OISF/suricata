@@ -433,7 +433,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (flags & DETECT_BYTETEST_DCE) {
+        if (data && flags & DETECT_BYTETEST_DCE) {
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
