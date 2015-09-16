@@ -185,7 +185,7 @@ int RunModeIdsNflogAutoFp(void)
                                       "ReceiveNFLOG",
                                       "DecodeNFLOG",
                                       "RecvNFLOG",
-                                      live_dev);
+                                      live_dev, RUNMODE_NFLOG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -213,7 +213,7 @@ int RunModeIdsNflogSingle(void)
                                       "ReceiveNFLOG",
                                       "DecodeNFLOG",
                                       "RecvNFLOG",
-                                      live_dev);
+                                      live_dev, RUNMODE_NFLOG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -241,7 +241,7 @@ int RunModeIdsNflogWorkers(void)
                                        "ReceiveNFLOG",
                                        "DecodeNFLOG",
                                        "RecvNFLOG",
-                                       live_dev);
+                                       live_dev, RUNMODE_NFLOG);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
