@@ -62,7 +62,7 @@ function patch_makefile_am() {
     ed -s ${filename} > /dev/null <<EOF
 /output-json-template.c
 t-
-s/template/${protoname_lower}/
+s/template/${protoname_lower}/g
 w
 EOF
 }
