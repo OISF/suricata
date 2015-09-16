@@ -77,7 +77,7 @@ int RunModeNetfilterAutoFp(void)
                                       "ReceiveNFLOG",
                                       "DecodeNFLOG",
                                       "RecvNFLOG",
-                                      live_dev);
+                                      live_dev, "nflog");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start nflog runmode");
         exit(EXIT_FAILURE);
@@ -87,7 +87,8 @@ int RunModeNetfilterAutoFp(void)
     ret = RunModeSetIPSAutoFp(NFQGetThread,
                               "ReceiveNFQ",
                               "VerdictNFQ",
-                              "DecodeNFQ");
+                              "DecodeNFQ",
+                              "nfq");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start nfq runmode");
         exit(EXIT_FAILURE);
@@ -115,7 +116,7 @@ int RunModeNetfilterWorkers(void)
                                        "ReceiveNFLOG",
                                        "DecodeNFLOG",
                                        "RecvNFLOG",
-                                       live_dev);
+                                       live_dev, "nflog");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start nflog runmode");
         exit(EXIT_FAILURE);
@@ -125,7 +126,8 @@ int RunModeNetfilterWorkers(void)
     ret = RunModeSetIPSWorker(NFQGetThread,
                               "ReceiveNFQ",
                               "VerdictNFQ",
-                              "DecodeNFQ");
+                              "DecodeNFQ",
+                              "nfq");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start nfq runmode");
         exit(EXIT_FAILURE);

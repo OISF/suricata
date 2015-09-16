@@ -24,6 +24,7 @@
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
+    char *runmode; /**< the runmode (e.g. "nflog") */
     int ignore_checksum;
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
@@ -32,14 +33,14 @@ typedef struct LiveDevice_ {
 } LiveDevice;
 
 
-int LiveRegisterDevice(char *dev);
-int LiveGetDeviceCount(void);
-char *LiveGetDeviceName(int number);
-LiveDevice *LiveGetDevice(char *dev);
+int LiveRegisterDevice(char *dev, char *runmode);
+int LiveGetDeviceCount(char *runmode);
+char *LiveGetDeviceName(int number, char *runmode);
+LiveDevice *LiveGetDevice(char *dev, char *runmode);
 int LiveBuildDeviceList(char * base);
 void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
-int LiveBuildDeviceListCustom(char * base, char * itemname);
+int LiveBuildDeviceListCustom(char *base, char *itemname);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);
