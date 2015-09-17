@@ -362,9 +362,6 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     if (http_ctx->flags & LOG_HTTP_EXTENDED)
         JsonHttpLogJSONExtended(hjs, tx);
 
-    /* tx id for correlation with alerts */
-    json_object_set_new(hjs, "tx_id", json_integer(tx_id));
-
     json_object_set_new(js, "http", hjs);
 }
 
@@ -376,7 +373,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
     MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
-    json_t *js = CreateJSONHeader((Packet *)p, 1, "http"); //TODO const
+    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http", tx_id); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
 
@@ -394,6 +391,27 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+
+        if (tx) {
+            json_t *hjs = json_object();
+            if (unlikely(hjs == NULL))
+                return NULL;
+
+            JsonHttpLogJSONBasic(hjs, tx);
+            JsonHttpLogJSONExtended(hjs, tx);
+
+            return hjs;
+        }
+    }
+
+    return NULL;
 }
 
 static void OutputHttpLogDeinit(OutputCtx *output_ctx)
