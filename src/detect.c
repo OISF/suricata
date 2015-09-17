@@ -2674,10 +2674,6 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
         SCLogDebug("sig requires smtp state");
     }
-    if (s->alproto == ALPROTO_TEMPLATE) {
-        s->mask |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
-        SCLogDebug("sig requires template state");
-    }
 
     if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
@@ -2685,7 +2681,6 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
-        (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;

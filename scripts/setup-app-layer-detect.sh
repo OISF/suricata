@@ -129,18 +129,6 @@ w
 EOF
 }
 
-function patch_detect_parse_c() {
-    filename="src/detect-parse.c"
-    echo "Patching ${filename}."
-    ed -s ${filename} > /dev/null <<EOF
-/\/\* Template\. \*\/
-.,+4t-
--4s/Template/${protoname}/g
-+1s/TEMPLATE/${protoname_upper}/g
-w
-EOF
-}
-
 function patch_detect_c() {
     filename="src/detect.c"
     echo "Patching ${filename}."
@@ -157,16 +145,6 @@ s/template/${protoname_lower}/g
 +
 s/TEMPLATE/${protoname_upper}/g
 +2
-/ALPROTO_TEMPLATE
-.,+3t-
--3
-.,+s/TEMPLATE/${protoname_upper}/g
-+
-s/template/${protoname_lower}/g
-+3
-/SIG_MASK_REQUIRE_TEMPLATE_STATE
-.t-
-s/TEMPLATE/${protoname_upper}/g
 /DetectTemplateBufferRegister
 t-
 s/Template/${protoname}/
@@ -206,7 +184,6 @@ patch_makefile_am
 patch_detect_engine_content_inspection_h
 patch_detect_engine_state_h
 patch_detect_engine_c
-patch_detect_parse_c
 patch_detect_c
 patch_detect_h
 
