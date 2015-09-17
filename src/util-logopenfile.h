@@ -53,7 +53,6 @@ typedef struct RedisSetup_ {
     enum RedisMode mode;
     char *command;
     char *key;
-    char *sensor_name;
     int  batch_size;
     int  batch_count;
     char *server;
@@ -91,6 +90,9 @@ typedef struct LogFileCtx_ {
 
     /** The name of the file */
     char *filename;
+
+    /** Suricata sensor name */
+    char *sensor_name;
 
     /** Handle auto-connecting / reconnecting sockets */
     int is_sock;
