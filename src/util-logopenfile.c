@@ -513,8 +513,6 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             SCFree(lf_ctx->redis_setup.command);
         if (lf_ctx->redis_setup.key)
             SCFree(lf_ctx->redis_setup.key);
-        if (lf_ctx->redis_setup.sensor_name)
-            SCFree(lf_ctx->redis_setup.sensor_name);
     }
 #endif
 
@@ -525,6 +523,9 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
     if(lf_ctx->filename != NULL)
         SCFree(lf_ctx->filename);
+
+    if (lf_ctx->sensor_name)
+        SCFree(lf_ctx->sensor_name);
 
     OutputUnregisterFileRotationFlag(&lf_ctx->rotation_flag);
 
