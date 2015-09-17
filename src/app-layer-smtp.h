@@ -51,6 +51,13 @@ enum {
     SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG,
 };
 
+typedef struct SMTPString_ {
+    uint8_t *str;
+    uint16_t len;
+
+    TAILQ_ENTRY(SMTPString_) next;
+} SMTPString;
+
 typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
@@ -64,6 +71,12 @@ typedef struct SMTPTransaction_ {
 
     AppLayerDecoderEvents *decoder_events;          /**< per tx events */
     DetectEngineState *de_state;
+
+    /* MAIL FROM parameters */
+    uint8_t *mail_from;
+    uint16_t mail_from_len;
+
+    TAILQ_HEAD(, SMTPString_) rcpt_to_list;  /**< rcpt to string list */
 
     TAILQ_ENTRY(SMTPTransaction_) next;
 } SMTPTransaction;
@@ -136,6 +149,9 @@ typedef struct SMTPState_ {
     /** the list of files sent to the server */
     FileContainer *files_ts;
 
+    /* HELO of HELO message content */
+    uint8_t *helo;
+    uint16_t helo_len;
 } SMTPState;
 
 /* Create SMTP config structure */
