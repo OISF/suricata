@@ -500,7 +500,7 @@ int RunModeIdsAFPAutoFp(void)
     ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
                               AFPConfigGeThreadsCount,
                               "ReceiveAFP",
-                              "DecodeAFP", "C-",
+                              "DecodeAFP", "C",
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -542,7 +542,7 @@ int RunModeIdsAFPSingle(void)
     ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "C-",
+                                    "DecodeAFP", "W",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -587,7 +587,7 @@ int RunModeIdsAFPWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "W-",
+                                    "DecodeAFP", "W",
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
