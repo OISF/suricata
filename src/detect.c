@@ -3722,62 +3722,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                     printf("PatternMatchPrepareGroup failed\n");
                     goto error;
                 }
-                if (sgr->sh->mpm_proto_tcp_ctx_ts != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_tcp_ctx_tc != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_udp_ctx_ts != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_udp_ctx_tc != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_other_ctx != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_other_ctx->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_other_ctx->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_other_ctx->pattern_cnt;
-                }
-                if (sgr->sh->mpm_uri_ctx_ts != NULL) {
-                    if (de_ctx->mpm_uri_max_patcnt < sgr->sh->mpm_uri_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_uri_max_patcnt = sgr->sh->mpm_uri_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_uri_tot_patcnt += sgr->sh->mpm_uri_ctx_ts->pattern_cnt;
-                }
-                /* dbg */
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx_ts->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx_tc) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx_tc->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_udp_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_udp_ctx_ts->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_udp_ctx_tc) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_udp_ctx_tc->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_other_ctx) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_other_ctx->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx_ts->memory_size;
-                }
-
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 SigGroupHeadStore(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
@@ -4010,62 +3954,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                     printf("PatternMatchPrepareGroup failed\n");
                                     goto error;
                                 }
-                                if (dp->sh->mpm_proto_tcp_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_tcp_ctx_tc != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_udp_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_udp_ctx_tc != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_other_ctx != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_other_ctx->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_other_ctx->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_other_ctx->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_uri_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_uri_max_patcnt < dp->sh->mpm_uri_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_uri_max_patcnt = dp->sh->mpm_uri_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_uri_tot_patcnt += dp->sh->mpm_uri_ctx_ts->pattern_cnt;
-                                }
-                                /* dbg */
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx_ts->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx_tc) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx_tc->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_udp_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_udp_ctx_ts->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_udp_ctx_tc) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_udp_ctx_tc->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_other_ctx) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_other_ctx->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx_ts->memory_size;
-                                }
-
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
                                 SigGroupHeadStore(de_ctx, dp->sh);
                                 de_ctx->gh_unique++;
@@ -4250,20 +4138,8 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
     DetectPortSpHashFree(de_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogDebug("MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")",
-            de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
-            de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
-            de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
-
         SCLogDebug("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         SCLogDebug("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
-        SCLogDebug("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
-                de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        SCLogDebug("MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
-                de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        SCLogDebug("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
-        if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            SCLogDebug("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
         SCLogDebug("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_groupscnt ? g_groupportlist_totgroups/g_groupportlist_groupscnt : 0, g_groupportlist_totgroups);
 
         SCLogInfo("building signature grouping structure, stage 3: building destination address lists... complete");

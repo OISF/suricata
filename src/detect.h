@@ -595,12 +595,7 @@ typedef struct DetectEngineCtx_ {
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];
 
-    uint32_t mpm_unique, mpm_reuse, mpm_none,
-        mpm_uri_unique, mpm_uri_reuse, mpm_uri_none;
     uint32_t gh_unique, gh_reuse;
-
-    uint32_t mpm_max_patcnt, mpm_min_patcnt, mpm_tot_patcnt,
-        mpm_uri_max_patcnt, mpm_uri_min_patcnt, mpm_uri_tot_patcnt;
 
     /* init phase vars */
     HashListTable *sgh_hash_table;
