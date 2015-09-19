@@ -80,15 +80,6 @@
 #include "util-memcpy.h"
 #include "util-mpm-ac-tile.h"
 
-#ifndef __tile__
-void MpmACTileRegister(void)
-{
-}
-#endif
-
-/* There are Tilera Tile-Gx specific optimizations in this code. */
-#ifdef __tile__
-
 void SCACTileInitCtx(MpmCtx *);
 void SCACTileInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
 void SCACTileDestroyCtx(MpmCtx *);
@@ -1050,7 +1041,7 @@ static void SCACTileClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt++;
     mpm_ctx->memory_size += size;
 
-    SCLogInfo("Delta Table size %d,  alphabet: %d, %d-byte states: %d",
+    SCLogDebug("Delta Table size %d,  alphabet: %d, %d-byte states: %d",
               size, ctx->alphabet_size, ctx->bytes_per_state, ctx->state_count);
 
     /* Copy next state from Goto table, which is 32 bits and encode it into the next
@@ -1460,10 +1451,19 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define SCHECK(x) ((x) > 0)
 #define BTYPE int32_t
 // Extract byte N=0,1,2,3 from x
+#ifdef __tile__
 #define BYTE0(x) __insn_bfextu(x, 0, 7)
 #define BYTE1(x) __insn_bfextu(x, 8, 15)
 #define BYTE2(x) __insn_bfextu(x, 16, 23)
 #define BYTE3(x) __insn_bfextu(x, 24, 31)
+#define EXTRA 0
+#else /* fallback */
+#define BYTE0(x) (((x) & 0x000000ff) >>  0)
+#define BYTE1(x) (((x) & 0x0000ff00) >>  8)
+#define BYTE2(x) (((x) & 0x00ff0000) >> 16)
+#define BYTE3(x) (((x) & 0xff000000) >> 24)
+#define EXTRA 4 // need 4 extra bytes to avoid OOB reads
+#endif
 
 int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
                uint8_t *buf, uint16_t buflen,
@@ -1494,7 +1494,11 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
         /* Double check case-sensitve match now. */
         if (patterns[k] >> 31) {
             uint16_t patlen = pattern_list[pindex].patlen;
+#ifdef __tile__
             if (SCMemcmpNZ(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+#else
+            if (SCMemcmp(pattern_list[pindex].cs, buf_offset - patlen, patlen) != 0) {
+#endif
                 /* Case-sensitive match failed. */
                 continue;
             }
@@ -1571,13 +1575,22 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
  * Next state entry has MSB as "match" and 15 LSB bits as next-state index.
  */
 // y = 1<<log_mult * (x & (1<<width -1))
+#ifdef __tile__
 #define SINDEX_INTERNAL(y, x, log_mult, width) \
     __insn_bfins(y, x, log_mult, log_mult + (width - 1))
+#else
+#define SINDEX_INTERNAL(y, x, log_mult, width) \
+    ((1<<log_mult) * (x & ((1<<width) - 1)))
+#endif
 
 /* Type of next_state */
 #define STYPE int16_t
+#ifdef __tile__
 // Hint to compiler to expect L2 hit latency for Load int16_t
 #define SLOAD(x) __insn_ld2s_L2((STYPE* restrict)(x))
+#else
+#define SLOAD(x) *(STYPE * restrict)(x)
+#endif
 
 #define FUNC_NAME SCACTileSearchSmall256
 // y = 256 * (x & 0x7FFF)
@@ -1631,8 +1644,12 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
 #undef STYPE
 #define STYPE int8_t
 // Hint to compiler to expect L2 hit latency for Load int8_t
+#ifdef __tile__
 #undef SLOAD
 #define SLOAD(x) __insn_ld1s_L2((STYPE* restrict)(x))
+#else
+/* no op for !__tile__ case */
+#endif
 
 #undef FUNC_NAME
 #undef SINDEX
@@ -1770,7 +1787,11 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
  */
 void MpmACTileRegister(void)
 {
+#ifdef __tile__
     mpm_table[MPM_AC_TILE].name = "ac-tile";
+#else
+    mpm_table[MPM_AC_TILE].name = "ac-ks";
+#endif
     mpm_table[MPM_AC_TILE].max_pattern_length = 0;
 
     mpm_table[MPM_AC_TILE].InitCtx = SCACTileInitCtx;
@@ -2852,4 +2873,3 @@ void SCACTileRegisterTests(void)
 #endif
 }
 
-#endif /* __tile__ */
