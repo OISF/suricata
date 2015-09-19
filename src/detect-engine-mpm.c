@@ -820,10 +820,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
 {
     /* content */
     if (!(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_tcp_ctx_ts, sh);
         if (sh->mpm_proto_tcp_ctx_ts != NULL &&
-            !sh->mpm_proto_tcp_ctx_ts->global) {
+            !sh->mpm_proto_tcp_ctx_ts->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_tcp_ctx_ts, sh);
             mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].
                 DestroyCtx(sh->mpm_proto_tcp_ctx_ts);
             SCFree(sh->mpm_proto_tcp_ctx_ts);
@@ -831,10 +832,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_tcp_ctx_ts = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_tcp_ctx_tc, sh);
         if (sh->mpm_proto_tcp_ctx_tc != NULL &&
-            !sh->mpm_proto_tcp_ctx_tc->global) {
+            !sh->mpm_proto_tcp_ctx_tc->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_tcp_ctx_tc, sh);
             mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].
                 DestroyCtx(sh->mpm_proto_tcp_ctx_tc);
             SCFree(sh->mpm_proto_tcp_ctx_tc);
@@ -842,10 +844,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_tcp_ctx_tc = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_udp_ctx_ts, sh);
         if (sh->mpm_proto_udp_ctx_ts != NULL &&
-            !sh->mpm_proto_udp_ctx_ts->global) {
+            !sh->mpm_proto_udp_ctx_ts->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_udp_ctx_ts, sh);
             mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].
                 DestroyCtx(sh->mpm_proto_udp_ctx_ts);
             SCFree(sh->mpm_proto_udp_ctx_ts);
@@ -853,10 +856,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_udp_ctx_ts = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_udp_ctx_tc, sh);
         if (sh->mpm_proto_udp_ctx_tc != NULL &&
-            !sh->mpm_proto_udp_ctx_tc->global) {
+                !sh->mpm_proto_udp_ctx_tc->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_udp_ctx_tc, sh);
             mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].
                 DestroyCtx(sh->mpm_proto_udp_ctx_tc);
             SCFree(sh->mpm_proto_udp_ctx_tc);
@@ -864,10 +868,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_udp_ctx_tc = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_other_ctx, sh);
         if (sh->mpm_proto_other_ctx != NULL &&
-            !sh->mpm_proto_other_ctx->global) {
+                !sh->mpm_proto_other_ctx->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_other_ctx, sh);
             mpm_table[sh->mpm_proto_other_ctx->mpm_type].
                 DestroyCtx(sh->mpm_proto_other_ctx);
             SCFree(sh->mpm_proto_other_ctx);
@@ -879,8 +884,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
     /* uricontent */
     if ((sh->mpm_uri_ctx_ts != NULL) && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         if (sh->mpm_uri_ctx_ts != NULL) {
-            SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx_ts, sh);
             if (!sh->mpm_uri_ctx_ts->global) {
+                SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx_ts, sh);
                 mpm_table[sh->mpm_uri_ctx_ts->mpm_type].DestroyCtx(sh->mpm_uri_ctx_ts);
                 SCFree(sh->mpm_uri_ctx_ts);
             }
@@ -893,8 +898,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
     if ((sh->mpm_stream_ctx_ts != NULL || sh->mpm_stream_ctx_tc != NULL) &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
         if (sh->mpm_stream_ctx_ts != NULL) {
-            SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_ts, sh);
             if (!sh->mpm_stream_ctx_ts->global) {
+                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_ts, sh);
                 mpm_table[sh->mpm_stream_ctx_ts->mpm_type].DestroyCtx(sh->mpm_stream_ctx_ts);
                 SCFree(sh->mpm_stream_ctx_ts);
             }
@@ -902,8 +907,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
             sh->mpm_stream_ctx_ts = NULL;
         }
         if (sh->mpm_stream_ctx_tc != NULL) {
-            SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_tc, sh);
             if (!sh->mpm_stream_ctx_tc->global) {
+                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_tc, sh);
                 mpm_table[sh->mpm_stream_ctx_tc->mpm_type].DestroyCtx(sh->mpm_stream_ctx_tc);
                 SCFree(sh->mpm_stream_ctx_tc);
             }
