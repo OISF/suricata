@@ -449,10 +449,13 @@ typedef struct Signature_ {
     SigMatch *dsize_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
-    /* helper for init phase */
+
+    /* track max length for content. Indirectly used in grouping:
+     * used to set SigGroupHead::mpm_content_maxlen */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
+    /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
 
     /* Be careful, this pointer is only valid while parsing the sig,
@@ -986,6 +989,7 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
+    /* track max length for content. Used in grouping */
     uint16_t mpm_content_maxlen;
 
     /** array of masks, used to check multiple masks against
