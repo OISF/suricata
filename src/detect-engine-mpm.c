@@ -2383,7 +2383,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
-        //if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
          if (sh->mpm_proto_tcp_ctx_ts != NULL) {
              if (sh->mpm_proto_tcp_ctx_ts->pattern_cnt == 0) {
                  MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_ts);
@@ -2688,7 +2687,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  }
              }
          }
-        //} /* if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) */
     } else {
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_other_ctx);
         sh->mpm_proto_other_ctx = NULL;
