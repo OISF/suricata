@@ -147,7 +147,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         /* create the threads */
         for (thread = 0; thread < threads_count; thread++) {
-            snprintf(tname, sizeof(tname), "%s%d", thread_name, thread+1);
+            snprintf(tname, sizeof(tname), "%s%02d", thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
             if (unlikely(thread_name == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -217,10 +217,9 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                     exit(EXIT_FAILURE);
                 }
 
-                snprintf(tname, sizeof(tname), "%s%s%d", thread_name,
-                         live_dev, thread+1);
+                snprintf(tname, sizeof(tname), "%s%02d-%s", thread_name,
+                         thread+1, visual_devname);
 
->>>>>>> Fixed string copy and cat functions and made shortening safer.
                 char *thread_name = SCStrdup(tname);
                 if (unlikely(thread_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -259,7 +258,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "W%02d", thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -351,7 +350,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         TmModule *tm_module = NULL;
 
         if (single_mode) {
-            snprintf(tname, sizeof(tname), "%s", thread_name);
+            snprintf(tname, sizeof(tname), "%s01", thread_name);
         } else {
             shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
             if (shortening_result != 0) {
@@ -359,8 +358,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
                 exit(EXIT_FAILURE);
             }
 
-            snprintf(tname, sizeof(tname), "%s%s%d",
-                     thread_name, live_dev, thread+1);
+            snprintf(tname, sizeof(tname), "%s%02d-%s", thread_name,
+                     thread+1, visual_devname);
         }
         n_thread_name = SCStrdup(tname);
         if (unlikely(n_thread_name == NULL)) {
