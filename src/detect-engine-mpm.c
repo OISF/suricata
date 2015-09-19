@@ -84,7 +84,7 @@ int SignatureHasPacketContent(Signature *s)
         SCReturnInt(0);
     }
 
-    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
+    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(1);
     }
 
@@ -118,7 +118,7 @@ int SignatureHasStreamContent(Signature *s)
         SCReturnInt(0);
     }
 
-    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
+    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(0);
     }
 
