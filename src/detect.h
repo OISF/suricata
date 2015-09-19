@@ -617,9 +617,6 @@ typedef struct DetectEngineCtx_ {
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
 
-    /* memory counters */
-    uint32_t mpm_memory_size;
-
     DetectEngineIPOnlyCtx io_ctx;
     ThresholdCtx ths_ctx;
 
