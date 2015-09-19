@@ -453,7 +453,6 @@ typedef struct Signature_ {
     /* track max length for content. Indirectly used in grouping:
      * used to set SigGroupHead::mpm_content_maxlen */
     uint16_t mpm_content_maxlen;
-    uint16_t mpm_uricontent_maxlen;
 
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
@@ -1030,7 +1029,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
 
-    uint16_t mpm_uricontent_maxlen;
+    uint16_t mpm_uricontent_minlen; /**< len of shortest mpm pattern in sgh */
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */

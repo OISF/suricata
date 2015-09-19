@@ -4252,6 +4252,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
         SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
+
+        sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
+        SCLogDebug("http_uri content min mpm len: %u", sgh->mpm_uricontent_minlen);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {

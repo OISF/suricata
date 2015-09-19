@@ -1038,17 +1038,6 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
             SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
         }
     }
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-        if (s->mpm_uricontent_maxlen > 0) {
-            if ((*sgh)->mpm_uricontent_maxlen == 0)
-                (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
-
-            if ((*sgh)->mpm_uricontent_maxlen > s->mpm_uricontent_maxlen)
-                (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
-
-            SCLogDebug("(%p)->mpm_uricontent_maxlen %u", *sgh, (*sgh)->mpm_uricontent_maxlen);
-        }
-    }
     return 0;
 
 error:
@@ -1113,13 +1102,6 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
         SCLogDebug("src (%p)->mpm_content_maxlen %u", src, src->mpm_content_maxlen);
         SCLogDebug("dst (%p)->mpm_content_maxlen %u", (*dst), (*dst)->mpm_content_maxlen);
         BUG_ON((*dst)->mpm_content_maxlen == 0);
-    }
-    if (src->mpm_uricontent_maxlen != 0) {
-        if ((*dst)->mpm_uricontent_maxlen == 0)
-            (*dst)->mpm_uricontent_maxlen = src->mpm_uricontent_maxlen;
-
-        if ((*dst)->mpm_uricontent_maxlen > src->mpm_uricontent_maxlen)
-            (*dst)->mpm_uricontent_maxlen = src->mpm_uricontent_maxlen;
     }
     return 0;
 
@@ -1603,6 +1585,45 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 
     return;
+}
+
+/**
+ *  \brief Get size of the shortest mpm pattern.
+ *
+ *  \param de_ctx detection engine ctx for the signatures
+ *  \param sgh sig group head to set the flag in
+ *  \param list sm_list to consider
+ */
+uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
+                                   SigGroupHead *sgh, int list)
+{
+    Signature *s = NULL;
+    uint32_t sig = 0;
+    uint16_t min = USHRT_MAX;
+
+    if (sgh == NULL)
+        return 0;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+        if (s->sm_lists[list] == NULL)
+            continue;
+
+        if (s->mpm_sm != NULL && SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
+        {
+            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+            if (cd->content_len < min)
+                min = cd->content_len;
+            SCLogDebug("cd->content_len %u", cd->content_len);
+        }
+    }
+
+    if (min == USHRT_MAX)
+        min = 0;
+    SCLogDebug("min mpm size %u", min);
+    return min;
 }
 
 /**
