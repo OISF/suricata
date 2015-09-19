@@ -1086,8 +1086,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         }
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
             /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
-                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+            SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
+                    det_ctx->sgh, det_ctx->sgh->mpm_content_minlen, det_ctx->sgh->sig_cnt);
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
             PacketPatternSearch(det_ctx, p);
@@ -3105,15 +3105,15 @@ int CreateGroupedAddrListCmpCnt(DetectAddress *a, DetectAddress *b)
     return 0;
 }
 
-int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b)
+int CreateGroupedAddrListCmpMpmMinlen(DetectAddress *a, DetectAddress *b)
 {
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
-    if (SMALL_MPM(a->sh->mpm_content_maxlen))
+    if (SMALL_MPM(a->sh->mpm_content_minlen))
         return 1;
 
-    if (a->sh->mpm_content_maxlen < b->sh->mpm_content_maxlen)
+    if (a->sh->mpm_content_minlen < b->sh->mpm_content_minlen)
         return 1;
     return 0;
 }
@@ -3139,7 +3139,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
     for (gr = srchead; gr != NULL; gr = gr->next) {
         BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
-        if (SMALL_MPM(gr->sh->mpm_content_maxlen) && unique_groups > 0)
+        if (SMALL_MPM(gr->sh->mpm_content_minlen) && unique_groups > 0)
             unique_groups++;
 
         groups++;
@@ -3280,15 +3280,15 @@ int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
     return 0;
 }
 
-int CreateGroupedPortListCmpMpmMaxlen(DetectPort *a, DetectPort *b)
+int CreateGroupedPortListCmpMpmMinlen(DetectPort *a, DetectPort *b)
 {
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
-    if (SMALL_MPM(a->sh->mpm_content_maxlen))
+    if (SMALL_MPM(a->sh->mpm_content_minlen))
         return 1;
 
-    if (a->sh->mpm_content_maxlen < b->sh->mpm_content_maxlen)
+    if (a->sh->mpm_content_minlen < b->sh->mpm_content_minlen)
         return 1;
 
     return 0;
@@ -3315,7 +3315,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         SCLogDebug("hash list gr %p", gr);
         DetectPortPrint(gr);
 
-        if (SMALL_MPM(gr->sh->mpm_content_maxlen) && unique_groups > 0)
+        if (SMALL_MPM(gr->sh->mpm_content_minlen) && unique_groups > 0)
             unique_groups++;
 
         groups++;
@@ -3505,16 +3505,16 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
 
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->ipv6_head, AF_INET6,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->any_head, AF_UNSPEC,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
 
             DetectAddressHeadFree(de_ctx->flow_gh[f].tmp_gh[proto]);
             de_ctx->flow_gh[f].tmp_gh[proto] = NULL;
@@ -3697,7 +3697,8 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
          * mind the limits we use. */
         int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
 
-        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
+        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups,
+                CreateGroupedAddrListCmpMpmMinlen, max_idx);
 
         /* see if the sig group head of each address group is the
          * same as an earlier one. If it is, free our head and use
@@ -3815,7 +3816,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
          * mind the limits we use. */
         int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
 
-        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
+        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups,
+                CreateGroupedAddrListCmpMpmMinlen, max_idx);
 
         /* add the ports to the dst address groups and the sigs
          * to the ports */
@@ -3866,7 +3868,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                 int spgroups = (flow ? de_ctx->max_uniq_toserver_sp_groups : de_ctx->max_uniq_toclient_sp_groups);
 
-                CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
+                CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups,
+                        CreateGroupedPortListCmpMpmMinlen, max_idx);
 
                 SCLogDebug("adding sgh %p to the hash", dst_gr->sh);
                 SigGroupHeadHashAdd(de_ctx, dst_gr->sh);
@@ -3922,7 +3925,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                         CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table,
                             &sp->dst_ph, dpgroups,
-                            CreateGroupedPortListCmpMpmMaxlen, max_idx);
+                            CreateGroupedPortListCmpMpmMinlen, max_idx);
 
                         SigGroupHeadSPortHashAdd(de_ctx, sp->sh);
 
@@ -4350,7 +4353,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx)
                         DetectPort *dp = sp->dst_ph;
                         for ( ; dp != NULL; dp = dp->next) {
                             printf("   4 Dst port(range): "); DetectPortPrint(dp);
-                            printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
+                            printf(" (sigs %" PRIu32 ", sgh %p, minlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_minlen);
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {
@@ -9828,8 +9831,8 @@ static int SigTestSgh01 (void)
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -9873,13 +9876,13 @@ static int SigTestSgh01 (void)
 
 #if 0
     printf("-\n");
-    printf("sgh2->mpm_content_maxlen %u\n", sgh2->mpm_content_maxlen);
-    printf("sgh2->mpm_uricontent_maxlen %u\n", sgh2->mpm_uricontent_maxlen);
+    printf("sgh2->mpm_content_minlen %u\n", sgh2->mpm_content_minlen);
+    printf("sgh2->mpm_uricontent_minlen %u\n", sgh2->mpm_uricontent_minlen);
     printf("sgh2->sig_cnt %u\n", sgh2->sig_cnt);
     printf("sgh2->sig_size %u\n", sgh2->sig_size);
 #endif
-    if (sgh2->mpm_content_maxlen != 4) {
-        printf("sgh2->mpm_content_maxlen %u, expected 4: ", sgh2->mpm_content_maxlen);
+    if (sgh2->mpm_content_minlen != 4) {
+        printf("sgh2->mpm_content_minlen %u, expected 4: ", sgh2->mpm_content_minlen);
         goto end;
     }
 
@@ -9951,8 +9954,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -9975,8 +9978,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -9989,8 +9992,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10011,8 +10014,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10025,8 +10028,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10040,8 +10043,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10055,8 +10058,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10070,8 +10073,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10148,14 +10151,14 @@ static int SigTestSgh03 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10188,8 +10191,8 @@ static int SigTestSgh03 (void)
 #if 0
     printf("-\n");
     printf("sgh %p\n", sgh);
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10211,8 +10214,8 @@ static int SigTestSgh03 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3 (%x): ", sgh->mpm_content_maxlen, p->dst.addr_data32[0]);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3 (%x): ", sgh->mpm_content_minlen, p->dst.addr_data32[0]);
         goto end;
     }
 
@@ -10226,14 +10229,14 @@ static int SigTestSgh03 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10319,8 +10322,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10343,8 +10346,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10357,8 +10360,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10379,8 +10382,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10393,8 +10396,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10408,8 +10411,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10423,14 +10426,14 @@ static int SigTestSgh04 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 

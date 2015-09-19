@@ -984,8 +984,8 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
-    /* track max length for content. Used in grouping */
-    uint16_t mpm_content_maxlen;
+    /* track min pattern length for content. Used in grouping */
+    uint16_t mpm_content_minlen;
 
     /** array of masks, used to check multiple masks against
      *  a packet using SIMD. */
