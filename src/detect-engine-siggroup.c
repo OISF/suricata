@@ -998,6 +998,17 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx)
     return;
 }
 
+static uint16_t SignatureGetMpmPatternLen(Signature *s, int list)
+{
+    if (s->sm_lists[list] != NULL && s->mpm_sm != NULL &&
+        SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
+    {
+        DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+        return cd->content_len;
+    }
+    return 0;
+}
+
 /**
  * \brief Add a Signature to a SigGroupHead.
  *
@@ -1028,12 +1039,13 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
     /* update maxlen for mpm */
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         /* check with the precalculated values from the sig */
-        if (s->mpm_content_maxlen > 0) {
+        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
+        if (mpm_content_minlen > 0) {
             if ((*sgh)->mpm_content_maxlen == 0)
-                (*sgh)->mpm_content_maxlen = s->mpm_content_maxlen;
+                (*sgh)->mpm_content_maxlen = mpm_content_minlen;
 
-            if ((*sgh)->mpm_content_maxlen > s->mpm_content_maxlen)
-                (*sgh)->mpm_content_maxlen = s->mpm_content_maxlen;
+            if ((*sgh)->mpm_content_maxlen > mpm_content_minlen)
+                (*sgh)->mpm_content_maxlen = mpm_content_minlen;
 
             SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
         }
@@ -1608,15 +1620,12 @@ uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
-        if (s->sm_lists[list] == NULL)
-            continue;
 
-        if (s->mpm_sm != NULL && SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
-        {
-            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
-            if (cd->content_len < min)
-                min = cd->content_len;
-            SCLogDebug("cd->content_len %u", cd->content_len);
+        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
+        if (mpm_content_minlen > 0) {
+            if (mpm_content_minlen < min)
+                min = mpm_content_minlen;
+            SCLogDebug("mpm_content_minlen %u", mpm_content_minlen);
         }
     }
 

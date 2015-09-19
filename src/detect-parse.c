@@ -1345,7 +1345,6 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
                                 uint8_t dir)
 {
-    SigMatch *sm;
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1389,24 +1388,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
 
     if (DetectAppLayerEventPrepare(sig) < 0)
         goto error;
-
-    /* determine the length of the longest pattern in the sig */
-    if (sig->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        sig->mpm_content_maxlen = 0;
-
-        for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                 if (cd == NULL)
-                    continue;
-
-                if (sig->mpm_content_maxlen == 0)
-                    sig->mpm_content_maxlen = cd->content_len;
-                if (sig->mpm_content_maxlen < cd->content_len)
-                    sig->mpm_content_maxlen = cd->content_len;
-            }
-        }
-    }
 
     /* set the packet and app layer flags, but only if the
      * app layer flag wasn't already set in which case we
@@ -3250,11 +3231,6 @@ int SigParseTestMpm01 (void)
         goto end;
     }
 
-    if (sig->mpm_content_maxlen != 4) {
-        printf("mpm content max len %"PRIu16", expected 4: ", sig->mpm_content_maxlen);
-        goto end;
-    }
-
     result = 1;
 end:
     if (sig != NULL)
@@ -3283,11 +3259,6 @@ int SigParseTestMpm02 (void)
 
     if (sig->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         printf("sig doesn't have content list: ");
-        goto end;
-    }
-
-    if (sig->mpm_content_maxlen != 6) {
-        printf("mpm content max len %"PRIu16", expected 6: ", sig->mpm_content_maxlen);
         goto end;
     }
 

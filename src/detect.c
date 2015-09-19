@@ -9792,10 +9792,6 @@ static int SigTestSgh01 (void)
         printf("internal id != 0: ");
         goto end;
     }
-    if (de_ctx->sig_list->mpm_content_maxlen != 3) {
-        printf("de_ctx->sig_list->mpm_content_maxlen %u, expected 3: ", de_ctx->sig_list->mpm_content_maxlen);
-        goto end;
-    }
 
     de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any 81 (msg:\"2\"; content:\"two\"; content:\"abcd\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -9806,10 +9802,6 @@ static int SigTestSgh01 (void)
         printf("internal id != 1: ");
         goto end;
     }
-    if (de_ctx->sig_list->next->mpm_content_maxlen != 4) {
-        printf("de_ctx->sig_list->mpm_content_maxlen %u, expected 4: ", de_ctx->sig_list->next->mpm_content_maxlen);
-        goto end;
-    }
 
     de_ctx->sig_list->next->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"3\"; content:\"three\"; sid:3;)");
     if (de_ctx->sig_list->next->next == NULL) {
@@ -9818,10 +9810,6 @@ static int SigTestSgh01 (void)
     }
     if (de_ctx->sig_list->next->next->num != 2) {
         printf("internal id != 2: ");
-        goto end;
-    }
-    if (de_ctx->sig_list->next->next->mpm_content_maxlen != 5) {
-        printf("de_ctx->sig_list->next->next->mpm_content_maxlen %u, expected 5: ", de_ctx->sig_list->next->next->mpm_content_maxlen);
         goto end;
     }
 

@@ -450,10 +450,6 @@ typedef struct Signature_ {
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
 
-    /* track max length for content. Indirectly used in grouping:
-     * used to set SigGroupHead::mpm_content_maxlen */
-    uint16_t mpm_content_maxlen;
-
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
 
