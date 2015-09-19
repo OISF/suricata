@@ -185,15 +185,13 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
     uint32_t ret = 0;
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
-        if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
-            SCReturnInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
     } else {
-        if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
-            SCReturnInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
@@ -271,9 +269,7 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_uri_ctx_ts == NULL)
-        SCReturnUInt(0U);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_uri_ctx_ts,
@@ -301,9 +297,7 @@ uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_hcbd_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcbd_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
@@ -329,9 +323,7 @@ uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
-
-    if (det_ctx->sgh->mpm_hsbd_ctx_tc == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsbd_ctx_tc == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
         Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
@@ -356,15 +348,13 @@ uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hhd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, headers, headers_len);
     } else {
-        if (det_ctx->sgh->mpm_hhd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
@@ -390,15 +380,13 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hrhd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_headers, raw_headers_len);
     } else {
-        if (det_ctx->sgh->mpm_hrhd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
@@ -425,9 +413,7 @@ uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_hmd_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
@@ -452,15 +438,13 @@ uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hcd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, cookie, cookie_len);
     } else {
-        if (det_ctx->sgh->mpm_hcd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
@@ -487,9 +471,7 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_hrud_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
@@ -515,9 +497,7 @@ uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
-
-    if (det_ctx->sgh->mpm_hsmd_ctx_tc == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsmd_ctx_tc == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
         Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
@@ -543,9 +523,7 @@ uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
-
-    if (det_ctx->sgh->mpm_hscd_ctx_tc == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
         Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
@@ -571,9 +549,7 @@ uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_huad_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
@@ -600,9 +576,7 @@ uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_hhhd_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
@@ -629,9 +603,7 @@ uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_hrhhd_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_hrhhd_ctx_ts, &det_ctx->mtcu,
@@ -659,9 +631,7 @@ uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
@@ -746,9 +716,7 @@ uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
     uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-
-    if (det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL)
-        SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL);
 
     ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
         Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
