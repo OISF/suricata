@@ -232,8 +232,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     } else {
         mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
     }
-
-    if (mpm_ctx == NULL)
+    if (unlikely(mpm_ctx == NULL))
         SCReturnInt(0);
 
 #ifdef __SC_CUDA_SUPPORT__
