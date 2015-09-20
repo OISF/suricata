@@ -1072,6 +1072,7 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 #ifdef BUILD_HYPERSCAN
             de_ctx->mpm_matcher == MPM_HS ||
 #endif
+            de_ctx->mpm_matcher == MPM_AC_TILE ||
 #ifdef __SC_CUDA_SUPPORT__
             de_ctx->mpm_matcher == MPM_AC_BS || de_ctx->mpm_matcher == MPM_AC_CUDA) {
 #else
