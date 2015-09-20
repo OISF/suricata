@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,18 +18,20 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author XXX
+ *
  */
 
-#ifndef __DETECT_LUA_EXT_H__
-#define __DETECT_LUA_EXT_H__
+#ifndef __DECODE_TEMPLATE_H__
+#define __DECODE_TEMPLATE_H__
 
-#ifdef HAVE_LUA
-int LuaRegisterExtensions(lua_State *);
+#include "decode.h"
+#include "threadvars.h"
 
-void LuaExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuaData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int flow_locked, Packet *p, uint8_t flags);
+typedef struct TemplateHdr_ {
+    uint8_t proto;
+    uint8_t pad0;
+    uint16_t pad1;
+} __attribute__((__packed__)) TemplateHdr;
 
-#endif /* HAVE_LUA */
-#endif
+#endif /* __DECODE_TEMPLATE_H__ */

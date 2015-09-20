@@ -1225,7 +1225,7 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     for (u = 0; u < (sgh->init->sig_size * 8); u++) {
         if (sgh->init->sig_array[u / 8] & (1 << (u % 8))) {
             SCLogDebug("%" PRIu32, u);
-            printf("s->num %"PRIu16" ", u);
+            printf("s->num %"PRIu32" ", u);
         }
     }
 

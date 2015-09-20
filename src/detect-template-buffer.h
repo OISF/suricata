@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,21 +15,11 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- */
+#ifndef __DETECT_TEMPLATE_BUFFER_H__
+#define __DETECT_TEMPLATE_BUFFER_H__
 
-#ifndef __DETECT_LUA_EXT_H__
-#define __DETECT_LUA_EXT_H__
+#include "app-layer-template.h"
 
-#ifdef HAVE_LUA
-int LuaRegisterExtensions(lua_State *);
+void DetectTemplateBufferRegister(void);
 
-void LuaExtensionsMatchSetup(lua_State *lua_state,
-        DetectLuaData *, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int flow_locked, Packet *p, uint8_t flags);
-
-#endif /* HAVE_LUA */
-#endif
+#endif /* __DETECT_TEMPLATE_BUFFER_H__ */

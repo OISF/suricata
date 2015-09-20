@@ -525,7 +525,7 @@ af-packet:
   - interface: default
     #threads: auto
     #use-mmap: yes
-    rollover: yes
+    #rollover: yes
 
 # Netmap support
 #
@@ -952,6 +952,15 @@ host:
   hash-size: 4096
   prealloc: 1000
   memcap: 16777216
+
+# IP Pair table:
+#
+# Used by xbits 'ippair' tracking.
+#
+#ippair:
+#  hash-size: 4096
+#  prealloc: 1000
+#  memcap: 16777216
 
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.

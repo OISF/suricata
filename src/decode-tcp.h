@@ -66,7 +66,7 @@
 #define TCP_OPTS_CNT                         tcpvars.tcp_opt_cnt
 
 #define TCP_GET_RAW_OFFSET(tcph)             (((tcph)->th_offx2 & 0xf0) >> 4)
-#define TCP_GET_RAW_X2(tcph)                 ((tcph)->th_offx2 & 0x0f)
+#define TCP_GET_RAW_X2(tcph)                 (unsigned char)((tcph)->th_offx2 & 0x0f)
 #define TCP_GET_RAW_SRC_PORT(tcph)           ntohs((tcph)->th_sport)
 #define TCP_GET_RAW_DST_PORT(tcph)           ntohs((tcph)->th_dport)
 
