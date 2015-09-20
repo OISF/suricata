@@ -263,6 +263,11 @@ static TmEcode TimeMachineInit(ThreadVars *t, void *initdata, void **data)
 
     /* create the flows tree for this thread */
     td->flows = SCMalloc(sizeof(TimeMachineFlows));
+    if (unlikely(td->flows == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlows");
+        exit(EXIT_FAILURE);
+    }  
+    
     SPLAY_INIT(td->flows);
     td->flow_count = 0;
     
@@ -346,11 +351,11 @@ static TmEcode TimeMachineDeinit(ThreadVars *t, void *thread_data)
 static OutputCtx *TimeMachineInitCtx(ConfNode *conf) 
 {       
     TimeMachineData *tm = SCMalloc(sizeof(TimeMachineData));
-
     if (unlikely(tm == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineData");
         exit(EXIT_FAILURE);
     }
+
     memset(tm, 0, sizeof(TimeMachineData));
 
     SCMutexInit(&tm->tm_lock, NULL);
@@ -452,6 +457,11 @@ static OutputCtx *TimeMachineInitCtx(ConfNode *conf)
                 TAILQ_FOREACH(heap_conf_node, &heaps->head, next) {
                     /* create a new heap */
                     TimeMachineHeapConf *heap_conf = SCMalloc(sizeof(TimeMachineHeapConf));
+                    if (unlikely(heap_conf == NULL)) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlowNode");
+                        exit(EXIT_FAILURE);
+                    }  
+    
                     heap_conf->name = ConfNodeLookupChildValue(heap_conf_node, "name");
                     if (heap_conf->name == NULL) {
                         SCLogError(SC_ERR_INVALID_ARGUMENT, "Heaps must have a "
@@ -531,6 +541,10 @@ static OutputCtx *TimeMachineInitCtx(ConfNode *conf)
 
     /* use the default-packet-size for max_packet_size of default heap */
     TimeMachineHeapConf *default_heap_conf = SCMalloc(sizeof(TimeMachineHeapConf));
+    if (unlikely(default_heap_conf == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlowNode");
+        exit(EXIT_FAILURE);
+    }  
 
     const char* default_packet_size_s = NULL;
     default_packet_size_s = ConfNodeLookupChildValue(conf, "default-packet-size");

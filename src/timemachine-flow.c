@@ -227,6 +227,10 @@ TimeMachineFlow* TimeMachineFlowNew(TimeMachineFlows* flows, Packet* p) {
     TimeMachineFlowNode* ent;
         
     flow = SCMalloc(sizeof(TimeMachineFlow));
+    if (unlikely(flow == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlow");
+        exit(EXIT_FAILURE);
+    }   
         
     if (p->ip4h != NULL) {
         FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &flow->src);
@@ -269,6 +273,11 @@ TimeMachineFlow* TimeMachineFlowNew(TimeMachineFlows* flows, Packet* p) {
     flow->output = NULL;  
     
     ent = SCMalloc(sizeof(TimeMachineFlowNode));
+    if (unlikely(ent == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlowNode");
+        exit(EXIT_FAILURE);
+    }  
+        
     ent->hash = TimeMachineFlowGetKey(p);
     ent->data = flow;
     flow->ent = ent;

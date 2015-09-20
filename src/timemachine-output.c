@@ -49,7 +49,7 @@ TimeMachineOutput* TimeMachineOutputNew(TimeMachineFlow* flow) {
     }
      
     output = SCMalloc(sizeof(TimeMachineOutput));
-    if (output == NULL) {
+    if (unlikely(output == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error could not create TimeMachine output. Exiting...");
         exit(EXIT_FAILURE);             
      }

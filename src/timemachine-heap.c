@@ -32,12 +32,12 @@
 
 TimeMachineHeap* TimeMachineHeapNew(TimeMachineData* tm, TimeMachineHeapConf* conf) {
 
-    TimeMachineHeap *heap = SCMalloc(sizeof(TimeMachineHeap));
-    
-    if (heap == NULL) {
+    TimeMachineHeap *heap = SCMalloc(sizeof(TimeMachineHeap));  
+    if (unlikely(heap == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error could not create TimeMachine heap. Exiting...");
         exit(EXIT_FAILURE);        
     }
+
 
     heap->conf = conf;
     heap->used_pool_count = 0;
