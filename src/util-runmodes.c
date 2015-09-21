@@ -521,7 +521,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
+        snprintf(tname, sizeof(tname), "RX-Q%s", cur_queue);
 
         ThreadVars *tv_receive =
             TmThreadCreatePacketHandler(tname,
@@ -554,7 +554,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     }
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "W%02d", thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -599,7 +599,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     /* create the threads */
     for (int i = 0; i < nqueue; i++) {
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Verdict%d", i);
+        snprintf(tname, sizeof(tname), "TX%02d", i);
 
         ThreadVars *tv_verdict =
             TmThreadCreatePacketHandler(tname,
@@ -658,7 +658,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Worker-Q%s", cur_queue);
+        snprintf(tname, sizeof(tname), "W-Q%s", cur_queue);
 
         tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
