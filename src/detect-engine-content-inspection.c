@@ -427,7 +427,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (data && flags & DETECT_BYTETEST_DCE) {
+        if (flags & DETECT_BYTETEST_DCE && data != NULL) {
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
@@ -453,7 +453,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
-        if (flags & DETECT_BYTEJUMP_DCE) {
+        if (flags & DETECT_BYTEJUMP_DCE && data != NULL) {
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
              * processing we reset the flags to the original value*/
@@ -476,7 +476,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         /* if we have dce enabled we will have to use the endianness
          * specified by the dce header */
         if ((bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN) &&
-            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
+            endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE && data != NULL) {
 
             DCERPCState *dcerpc_state = (DCERPCState *)data;
             /* enable the endianness flag temporarily.  once we are done
