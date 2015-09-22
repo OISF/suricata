@@ -273,6 +273,26 @@ static int DetectPcreSetList(int list, int set) {
     return set;
 }
 
+static int DetectPcreHasUpperCase(const char *re)
+{
+    size_t len = strlen(re);
+    int is_meta = 0;
+
+    for (size_t i = 0; i < len; i++) {
+        if (is_meta) {
+            is_meta = 0;
+        }
+        else if (re[i] == '\\') {
+            is_meta = 1;
+        }
+        else if (isupper((unsigned char)re[i])) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr, int *sm_list)
 {
     int ec;
@@ -289,8 +309,6 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     char re[slen], op_str[64] = "";
     uint16_t pos = 0;
     uint8_t negate = 0;
-    uint16_t re_len = 0;
-    uint32_t u = 0;
 
     while (pos < slen && isspace((unsigned char)regexstr[pos])) {
         pos++;
@@ -475,18 +493,14 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
                          "Since the hostname buffer we match against "
                          "is actually lowercase, having a "
                          "nocase is redundant.");
-        } else {
-            re_len = strlen(re);
-            for (u = 0; u < re_len; u++) {
-                if (isupper((unsigned char)re[u])) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre host(\"W\") "
-                               "specified has an uppercase char.  "
-                               "Since the hostname buffer we match against "
-                               "is actually lowercase, please specify an "
-                               "all lowercase based pcre.");
-                    goto error;
-                }
-            }
+        }
+        else if (DetectPcreHasUpperCase(re)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre host(\"W\") "
+                "specified has an uppercase char.  "
+                "Since the hostname buffer we match against "
+                "is actually lowercase, please specify an "
+                "all lowercase based pcre.");
+            goto error;
         }
     }
 
@@ -4052,6 +4066,57 @@ end:
     return result;
 }
 
+/**
+ * \brief Test parsing of pcre's with the W modifier set.
+ */
+static int DetectPcreParseHttpHost(void)
+{
+    int result = 0;
+    DetectPcreData *pd = NULL;
+    int list = DETECT_SM_LIST_NOTSET;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+
+    if (de_ctx == NULL) {
+        return 0;
+    }
+
+    pd = DetectPcreParse(de_ctx, "/domain\\.com/W", &list);
+    if (pd == NULL) {
+        goto end;
+    }
+    DetectPcreFree(pd);
+
+    list = DETECT_SM_LIST_NOTSET;
+    pd = DetectPcreParse(de_ctx, "/dOmain\\.com/W", &list);
+    if (pd != NULL) {
+        DetectPcreFree(pd);
+        goto end;
+    }
+
+    /* Uppercase meta characters are valid. */
+    list = DETECT_SM_LIST_NOTSET;
+    pd = DetectPcreParse(de_ctx, "/domain\\D+\\.com/W", &list);
+    if (pd == NULL) {
+        goto end;
+    }
+    DetectPcreFree(pd);
+
+    /* This should not parse as the first \ escapes the second \, then
+     * we have a D. */
+    list = DETECT_SM_LIST_NOTSET;
+    pd = DetectPcreParse(de_ctx, "/\\\\Ddomain\\.com/W", &list);
+    if (pd != NULL) {
+        DetectPcreFree(pd);
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -4118,6 +4183,8 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreFlowvarCapture01 -- capture for http_header", DetectPcreFlowvarCapture01, 1);
     UtRegisterTest("DetectPcreFlowvarCapture02 -- capture for http_header", DetectPcreFlowvarCapture02, 1);
     UtRegisterTest("DetectPcreFlowvarCapture03 -- capture for http_header", DetectPcreFlowvarCapture03, 1);
+
+    UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost, 1);
 
 #endif /* UNITTESTS */
 }
