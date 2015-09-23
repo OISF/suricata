@@ -92,7 +92,6 @@
 #define DNS_RECORD_TYPE_ANY         255
 #define DNS_RECORD_TYPE_URI         256
 
-
 #define DNS_RCODE_NOERROR       0
 #define DNS_RCODE_FORMERR       1
 #define DNS_RCODE_SERVFAIL      2

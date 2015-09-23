@@ -1005,6 +1005,21 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             data += ntohs(head->len);
             break;
         }
+        case DNS_RECORD_TYPE_SSHFP:
+        {
+            /* data here should be:
+             * [1 byte algo][1 byte type][var bytes fingerprint]
+             * As we currently can't store each of those in the state,
+             * we just store the raw data an let the output/detect
+             * code figure out what to do with it. */
+
+            DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
+                    ntohs(head->type), ntohs(head->class), ntohl(head->ttl),
+                    data, ntohs(head->len), ntohs(dns_header->tx_id));
+
+            data += ntohs(head->len);
+            break;
+        }
         default:    /* unsupported record */
         {
             DNSStoreAnswerInState(dns_state, list, NULL, 0,
