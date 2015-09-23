@@ -79,9 +79,8 @@
 #define MAX_IP6_CHARS  39
 
 /* Globally hold configuration data */
-static MimeDecConfig mime_dec_config = { 1, 1, 1, MAX_HEADER_VALUE };
+static MimeDecConfig mime_dec_config = { 1, 1, 1, 0, MAX_HEADER_VALUE };
 
-#ifdef DEBUG
 /* Mime Parser String translation */
 static const char *StateFlags[] = { "NONE",
         "HEADER_READY",
@@ -93,7 +92,6 @@ static const char *StateFlags[] = { "NONE",
         "PARSE_DONE",
         "PARSE_ERROR",
         NULL };
-#endif
 
 /* URL executable file extensions */
 static const char *UrlExeExts[] = { ".exe",
@@ -297,6 +295,35 @@ MimeDecField * MimeDecAddField(MimeDecEntity *entity)
     }
 
     return node;
+}
+
+
+/**
+ * \brief Searches for header fields with the specified name
+ *
+ * \param entity The entity to search
+ * \param name The header name (lowercase)
+ *
+ * \return number of items found
+ *
+ */
+int MimeDecFindFieldsForEach(const MimeDecEntity *entity, const char *name, int (*DataCallback)(const uint8_t *val, const size_t, void *data), void *data)
+{
+    MimeDecField *curr = entity->field_list;
+    int found = 0;
+
+    while (curr != NULL) {
+        /* name is stored lowercase */
+        if (strlen(name) == curr->name_len) {
+            if (SCMemcmp(curr->name, name, curr->name_len) == 0) {
+                if (DataCallback(curr->value, curr->value_len, data))
+                    found++;
+            }
+        }
+        curr = curr->next;
+    }
+
+    return found;
 }
 
 /**
@@ -915,7 +942,7 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
  */
 static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
 {
-    struct sockaddr_in sa;
+    struct in6_addr in6;
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
@@ -936,7 +963,7 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
 
-    return inet_pton(AF_INET6, tempIp, &(sa.sin_addr));
+    return inet_pton(AF_INET6, tempIp, &in6);
 }
 
 /**
@@ -1992,6 +2019,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
+
 static int ProcessBodyComplete(MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
@@ -2180,6 +2208,16 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     int body_found = 0;
     uint32_t tlen;
 
+#ifdef HAVE_NSS
+    if (MimeDecGetConfig()->body_md5 && state->body_begin == 1 && (state->md5_ctx == NULL)) {
+        state->md5_ctx = HASH_Create(HASH_AlgMD5);
+        if (state->md5_ctx != NULL) {
+            HASH_Begin(state->md5_ctx);
+            HASH_Update(state->md5_ctx, buf, len + 2); /* plus 2 to add CRLF */
+        }
+    }
+#endif
+
     /* Ignore empty lines */
     if (len == 0) {
         return ret;
@@ -2252,6 +2290,11 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     }
 
     return ret;
+}
+
+const char *MimeDecParseStateGetStatus(MimeDecParseState *state)
+{
+    return StateFlags[state->state_flag];
 }
 
 /**
@@ -2394,6 +2437,10 @@ void MimeDecDeInitParser(MimeDecParseState *state)
     SCFree(state->hname);
     FreeDataValue(state->hvalue);
     FreeMimeDecStack(state->stack);
+#ifdef HAVE_NSS
+    if (state->md5_ctx)
+        HASH_Destroy(state->md5_ctx);
+#endif
     SCFree(state);
 }
 
@@ -2426,6 +2473,13 @@ int MimeDecParseComplete(MimeDecParseState *state)
         SCLogDebug("Error: ProcessBodyComplete() function failed");
         return ret;
     }
+
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        unsigned int len = 0;
+        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
+    }
+#endif
 
     if (state->stack->top == NULL) {
         state->msg->anomaly_flags |= ANOM_MALFORMED_MSG;
@@ -2475,6 +2529,11 @@ int MimeDecParseLine(const uint8_t *line, const uint32_t len,
         SCLogDebug("SMTP LINE - EMPTY");
     }
 
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        HASH_Update(state->md5_ctx, line, len + 2);
+    }
+#endif
     /* Process the entity */
     ret = ProcessMimeEntity(line, len, state);
     if (ret != MIME_DEC_OK) {
@@ -2762,6 +2821,59 @@ static int MimeDecParseFullMsgTest01(void)
     return ret;
 }
 
+/* Test full message with linebreaks */
+static int MimeDecParseFullMsgTest02(void)
+{
+    int ret = MIME_DEC_OK;
+
+    uint32_t expected_count = 3;
+    uint32_t line_count = 0;
+
+    char msg[] = "From: Sender2\r\n"
+            "To: Recipient2\r\n"
+            "Subject: subject2\r\n"
+            "Content-Type: text/plain\r\n"
+            "\r\n"
+            "Line 1\r\n"
+            "Line 2\r\n"
+            "Line 3\r\n";
+
+    MimeDecEntity *entity = MimeDecParseFullMsg((uint8_t *)msg, strlen(msg), &line_count,
+            TestDataChunkCallback);
+
+    if (entity == NULL) {
+        SCLogInfo("Warning: Message failed to parse");
+        return -1;
+    }
+
+    MimeDecField *field = MimeDecFindField(entity, "subject");
+    if (field == NULL) {
+        SCLogInfo("Warning: Message failed to parse");
+        return -1;
+    }
+
+    if (field->value_len != sizeof("subject2") - 1) {
+        SCLogInfo("Warning: failed to get subject");
+        return -1;
+    }
+
+    if (memcmp(field->value, "subject2", field->value_len) != 0) {
+        SCLogInfo("Warning: failed to get subject");
+        return -1;
+    }
+
+
+    MimeDecFreeEntity(entity);
+
+    if (expected_count != line_count) {
+        SCLogInfo("Warning: Line count is invalid: expected - %d actual - %d",
+                expected_count, line_count);
+        return -1;
+    }
+
+    return ret;
+}
+
 static int MimeBase64DecodeTest01(void)
 {
     int ret = -1;
@@ -2771,7 +2883,7 @@ static int MimeBase64DecodeTest01(void)
     char *base64msg = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QU"
             "VJTVFVWV1hZWjEyMzQ1Njc4OTBAIyQlXiYqKCktPV8rLC4vOydbXTw+Pzo=";
 
-    uint8_t *dst = SCMalloc(strlen(msg)-1);
+    uint8_t *dst = SCMalloc(strlen(msg) + 1);
     if (dst == NULL)
         return 0;
 
@@ -2780,6 +2892,8 @@ static int MimeBase64DecodeTest01(void)
     if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 0;
     }
+
+    SCFree(dst);
 
     return ret;
 }
@@ -2879,6 +2993,7 @@ void MimeDecRegisterTests(void)
     UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01, 0);
     UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02, 0);
     UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01, 0);
+    UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02, 0);
     UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01, 0);
     UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01, 0);
     UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01, 0);
