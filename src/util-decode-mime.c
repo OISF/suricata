@@ -942,7 +942,7 @@ static int IsIpv4Host(const uint8_t *urlhost, uint32_t len)
  */
 static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
 {
-    struct sockaddr_in sa;
+    struct in6_addr in6;
     char tempIp[MAX_IP6_CHARS + 1];
 
     /* Cut off at '/'  */
@@ -963,7 +963,7 @@ static int IsIpv6Host(const uint8_t *urlhost, uint32_t len)
     memcpy(tempIp, urlhost, i);
     tempIp[i] = '\0';
 
-    return inet_pton(AF_INET6, tempIp, &(sa.sin_addr));
+    return inet_pton(AF_INET6, tempIp, &in6);
 }
 
 /**
