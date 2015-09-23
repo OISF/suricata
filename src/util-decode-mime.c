@@ -2852,7 +2852,12 @@ static int MimeDecParseFullMsgTest02(void)
         return -1;
     }
 
-    if (memcmp(field->value, "subject2", sizeof("subject2")) != 0) {
+    if (field->value_len != sizeof("subject2") - 1) {
+        SCLogInfo("Warning: failed to get subject");
+        return -1;
+    }
+
+    if (memcmp(field->value, "subject2", field->value_len) != 0) {
         SCLogInfo("Warning: failed to get subject");
         return -1;
     }
@@ -2878,7 +2883,7 @@ static int MimeBase64DecodeTest01(void)
     char *base64msg = "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QU"
             "VJTVFVWV1hZWjEyMzQ1Njc4OTBAIyQlXiYqKCktPV8rLC4vOydbXTw+Pzo=";
 
-    uint8_t *dst = SCMalloc(strlen(msg)-1);
+    uint8_t *dst = SCMalloc(strlen(msg) + 1);
     if (dst == NULL)
         return 0;
 
@@ -2887,6 +2892,8 @@ static int MimeBase64DecodeTest01(void)
     if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 0;
     }
+
+    SCFree(dst);
 
     return ret;
 }
