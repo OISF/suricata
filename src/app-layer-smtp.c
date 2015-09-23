@@ -985,7 +985,6 @@ static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8
         spc_i++;
     }
 
-    /* FIXME check arithmetic */
     *target = SCMalloc(spc_i - i + 1);
     if (*target == NULL)
         return -1;
@@ -994,7 +993,6 @@ static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8
     *target_len = spc_i - i;
 
     return 0;
-
 }
 
 static int SMTPParseCommandHELO(SMTPState *state)
