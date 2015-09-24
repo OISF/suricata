@@ -2414,6 +2414,7 @@ static int DefragMfIpv4Test(void)
 {
     int retval = 0;
     int ip_id = 9;
+    Packet *p = NULL;
 
     DefragInit();
 
@@ -2424,7 +2425,7 @@ static int DefragMfIpv4Test(void)
         goto end;
     }
 
-    Packet *p = Defrag(NULL, NULL, p1, NULL);
+    p = Defrag(NULL, NULL, p1, NULL);
     if (p != NULL) {
         goto end;
     }
@@ -2477,6 +2478,7 @@ static int DefragMfIpv6Test(void)
 {
     int retval = 0;
     int ip_id = 9;
+    Packet *p = NULL;
 
     DefragInit();
 
@@ -2487,7 +2489,7 @@ static int DefragMfIpv6Test(void)
         goto end;
     }
 
-    Packet *p = Defrag(NULL, NULL, p1, NULL);
+    p = Defrag(NULL, NULL, p1, NULL);
     if (p != NULL) {
         goto end;
     }
