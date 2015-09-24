@@ -359,6 +359,53 @@ outputs:
       scripts:
       #   - script1.lua
 
+  # Timemachine keeps a list of connections and packets in memory for almost
+  # all packets and connections seen.  This can be useful when an alert fires 
+  # further in a stream (e.g. a string in an HTTP response), however there may
+  # be useful information at the beginning of the stream (like the HTTP request).
+  #
+  # Once an alarm fires, timemachine will output all previous packets to disk
+  # and subsequently continue logging the rest of the stream.
+  - timemachine:
+      enabled: yes
+
+      # Max packet size (packets greater than this will be truncated)
+      packet-size: 1500
+
+      # The maximum system memory to use for time machine
+      max-memory: 1024gb
+
+      # The amount of pre-allocated heap spaces to generate (note: this
+      # does not account for max-memory requirements) (this can be overriden
+      # per heap)
+      heap-prealloc-count: 5000
+
+      # The number of elements to expand a heap by (this can be overriden
+      # per heap)
+      heap-expand-by: 1000
+
+      # The maximum amount of time an output file should be open.  Anything
+      # beyond this timeout will cause for a truncated session.
+      output-timeout: 21600
+
+      # Timemachine creates a heap of "existing" packets and re-uses those 
+      # pre-created packets for speed.  This has a downside where not all 
+      # memory is used because the packets are a predefined size.  Since we do 
+      # this, we go ahead and break the heap into different configerable sizes.
+      heaps: 
+          -   
+              name: micro
+              max-packet-size: 200
+          -
+              name: small
+              max-packet-size: 400
+          -
+              name: medium
+              max-packet-size: 800
+          -
+              name: normal
+              max-packet-size: 1500
+
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 magic-file: @e_magic_file@
