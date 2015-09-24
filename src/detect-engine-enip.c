@@ -45,8 +45,42 @@
 
 #include "util-debug.h"
 
+/**
+ * \brief Print fields from ENIP Packet
+ * @param enip_data
+ */
+void PrintENIPAL(ENIPTransaction *enip_data)
+{
+    printf("============================================\n");
+    printf("ENCAP HEADER cmd 0x%x, length %d, session 0x%x, status 0x%x\n",
+            enip_data->header.command, enip_data->header.length,
+            enip_data->header.session, enip_data->header.status);
+    //printf("context 0x%x option 0x%x\n", enip_data->header.context, enip_data->header.option);
+    printf("ENCAP DATA HEADER handle 0x%x, timeout %d, count %d\n",
+            enip_data->encap_data_header.interface_handle,
+            enip_data->encap_data_header.timeout,
+            enip_data->encap_data_header.item_count);
+    printf("ENCAP ADDR ITEM type 0x%x, length %d \n",
+            enip_data->encap_addr_item.type, enip_data->encap_addr_item.length);
+    printf("ENCAP DATA ITEM type 0x%x, length %d sequence 0x%x\n",
+            enip_data->encap_data_item.type, enip_data->encap_data_item.length,
+            enip_data->encap_data_item.sequence_count);
 
+    CIPServiceEntry *svc = NULL;
 
+    int count = 0;
+TAILQ_FOREACH(svc, &enip_data->service_list, next)
+{
+    //printf("CIP Service #%d : 0x%x\n", count, svc->service);
+    count++;
+}
+}
+
+/**
+ * \brief Matches the rule to the CIP segment in ENIP Packet
+ * @param svc - the CIP service entry
+ * * @param cipserviced - the CIP service rule
+ */
 int CIPPathMatch(CIPServiceEntry *svc, DetectCipServiceData *cipserviced)
 {
 
@@ -131,6 +165,12 @@ TAILQ_FOREACH    (attr, &svc->attrib_list, next)
 return 0;
 }
 
+/**
+ * \brief Matches the rule to the ENIP Transaction
+ * @param enip_data - the ENIP transation
+ * * @param cipserviced - the CIP service rule
+ */
+
 int CIPServiceMatch(ENIPTransaction *enip_data,
         DetectCipServiceData *cipserviced)
 {
@@ -169,6 +209,47 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
     return 0;
 }
 
+/** \brief Do the content inspection & validation for a signature
+ *
+ *  \param de_ctx   Detection engine context
+ *  \param det_ctx  Detection engine thread context
+ *  \param s        Signature to inspect ( and sm: SigMatch to inspect)
+ *  \param f        Flow
+ *  \param flags    App layer flags
+ *  \param alstate  App layer state
+ *  \param txv      Pointer to ENIP Transaction structure
+ *
+ *  \retval 0 no match or 1 match
+ */
+int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
+{
+    SCEnter();
+
+    //    printf("DetectEngineInspectENIP\n");
+
+    ENIPTransaction *tx = (ENIPTransaction *) txv;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_CIP_MATCH];
+    DetectCipServiceData *cipserviced = (DetectCipServiceData *) sm->ctx;
+
+    int ret = 0;
+
+    if (cipserviced == NULL)
+    {
+        SCLogDebug("no cipservice state, no match");
+        SCReturnInt(0);
+    }
+
+    if (CIPServiceMatch(tx, cipserviced) == 1)
+    {
+        //   printf("DetectCIPServiceMatchAL found\n");
+        SCReturnInt(1);
+    }
+
+    SCReturnInt(0);
+}
+
 
 
 /** \brief Do the content inspection & validation for a signature
@@ -183,76 +264,35 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
  *
  *  \retval 0 no match or 1 match
  */
-int DetectEngineInspectENIP(ThreadVars            *tv,
-                              DetectEngineCtx       *de_ctx,
-                              DetectEngineThreadCtx *det_ctx,
-                              Signature             *s,
-                              Flow                  *f,
-                              uint8_t               flags,
-                              void                  *alstate,
-                              void                  *txv,
-                              uint64_t              tx_id)
+
+int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+        void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
 
-//    printf("DetectEngineInspectENIP\n");
-
-    ENIPTransaction   *tx = (ENIPTransaction *)txv;
-    SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
-    DetectCipServiceData        *cipserviced = (DetectCipServiceData *) sm->ctx;
-
-    int ret = 0;
-
-    if (cipserviced == NULL) {
-        SCLogDebug("no cipservice state, no match");
-        SCReturnInt(0);
-    }
-
-    if (CIPServiceMatch(tx, cipserviced) == 1)
-            {
-                SCLogDebug("DetectCIPServiceMatchAL found\n");
-                SCReturnInt(1);
-            }
-
-
-   SCReturnInt(0);
-}
-
-
-int DetectEngineInspectENIP2(ThreadVars            *tv,
-                              DetectEngineCtx       *de_ctx,
-                              DetectEngineThreadCtx *det_ctx,
-                              Signature             *s,
-                              Flow                  *f,
-                              uint8_t               flags,
-                              void                  *alstate,
-                              void                  *txv,
-                              uint64_t              tx_id)
-{
-    SCEnter();
-
-    printf("DetectEngineInspectENIP2\n");
-
-    ENIPTransaction   *tx = (ENIPTransaction *)txv;
-    SigMatch            *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH2];
+    ENIPTransaction *tx = (ENIPTransaction *) txv;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) sm->ctx;
 
     int ret = 0;
 
-    if (enipcmdd == NULL) {
+    if (enipcmdd == NULL)
+    {
         SCLogDebug("no enipcommand state, no match");
         SCReturnInt(0);
     }
 
+    //printf("DetectEngineInspectENIP2 %d, %d\n", enipcmdd->enipcommand, tx->header.command);
+
     if (enipcmdd->enipcommand == tx->header.command)
-            {
-                SCLogDebug("DetectENIPCommandMatchAL found!\n");
-                SCReturnInt(1);
-            }
+    {
+        // printf("DetectENIPCommandMatchAL found!\n");
+        SCReturnInt(1);
+    }
 
-   SCReturnInt(0);
+    SCReturnInt(0);
 }
-
 
 #ifdef UNITTESTS /* UNITTESTS */
 #include "app-layer-parser.h"
@@ -268,8 +308,6 @@ int DetectEngineInspectENIP2(ThreadVars            *tv,
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-
-
 /** \test Test code function. */
 static int DetectEngineInspecENIPTest01(void)
 {
@@ -278,13 +316,12 @@ static int DetectEngineInspecENIPTest01(void)
     return result;
 }
 
-
 #endif /* UNITTESTS */
 
 void DetectEngineInspectENIPRegisterTests(void)
 {
 #ifdef UNITTESTS
-  //  UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01, 1);
+    //  UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01, 1);
 #endif /* UNITTESTS */
     return;
 }

@@ -62,7 +62,6 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
-
 #include "detect-engine-enip.h"
 
 
@@ -267,32 +266,31 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSREQUEST_INSPECT,
           0,
           DetectEngineInspectDnsRequest },
-
+          /* ENIP */
          { IPPROTO_TCP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_CIP_MATCH,
+          DE_STATE_FLAG_CIP_INSPECT,
+          0,
+          DetectEngineInspectCIP },
+        { IPPROTO_UDP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_CIP_MATCH,
+          DE_STATE_FLAG_CIP_INSPECT,
+          0,
+          DetectEngineInspectCIP },
+        { IPPROTO_TCP,
           ALPROTO_ENIP,
           DETECT_SM_LIST_ENIP_MATCH,
           DE_STATE_FLAG_ENIP_INSPECT,
           0,
           DetectEngineInspectENIP },
         { IPPROTO_UDP,
-          ALPROTO_ENIP,
-          DETECT_SM_LIST_ENIP_MATCH,
-          DE_STATE_FLAG_ENIP_INSPECT,
-          0,
-          DetectEngineInspectENIP },
-          { IPPROTO_TCP,
-                 ALPROTO_ENIP,
-                 DETECT_SM_LIST_ENIP_MATCH2,
-                 DE_STATE_FLAG_ENIP_INSPECT2,
-                 0,
-                 DetectEngineInspectENIP2 },
-               { IPPROTO_UDP,
-                 ALPROTO_ENIP,
-                 DETECT_SM_LIST_ENIP_MATCH2,
-                 DE_STATE_FLAG_ENIP_INSPECT2,
-                 0,
-                 DetectEngineInspectENIP2 },
-
+           ALPROTO_ENIP,
+           DETECT_SM_LIST_ENIP_MATCH,
+           DE_STATE_FLAG_ENIP_INSPECT,
+           0,
+           DetectEngineInspectENIP },
         /* SMTP */
         { IPPROTO_TCP,
           ALPROTO_SMTP,
@@ -366,33 +364,31 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_MODBUS_INSPECT,
           0,
           DetectEngineInspectModbus },
-
-          { IPPROTO_TCP,
-             ALPROTO_ENIP,
-             DETECT_SM_LIST_ENIP_MATCH,
-             DE_STATE_FLAG_ENIP_INSPECT,
-             1,
-             DetectEngineInspectENIP },
-
-           { IPPROTO_UDP,
-             ALPROTO_ENIP,
-             DETECT_SM_LIST_ENIP_MATCH,
-             DE_STATE_FLAG_ENIP_INSPECT,
-             1,
-             DetectEngineInspectENIP },
-             { IPPROTO_TCP,
-                        ALPROTO_ENIP,
-                        DETECT_SM_LIST_ENIP_MATCH2,
-                        DE_STATE_FLAG_ENIP_INSPECT2,
-                        1,
-                        DetectEngineInspectENIP2 },
-
-                      { IPPROTO_UDP,
-                        ALPROTO_ENIP,
-                        DETECT_SM_LIST_ENIP_MATCH2,
-                        DE_STATE_FLAG_ENIP_INSPECT2,
-                        1,
-                        DetectEngineInspectENIP2 },
+        /* ENIP */
+        { IPPROTO_TCP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_CIP_MATCH,
+          DE_STATE_FLAG_CIP_INSPECT,
+          1,
+          DetectEngineInspectCIP },
+        { IPPROTO_UDP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_CIP_MATCH,
+          DE_STATE_FLAG_CIP_INSPECT,
+          1,
+          DetectEngineInspectCIP },
+        { IPPROTO_TCP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_ENIP_MATCH,
+          DE_STATE_FLAG_ENIP_INSPECT,
+          1,
+          DetectEngineInspectENIP },
+        { IPPROTO_UDP,
+          ALPROTO_ENIP,
+          DETECT_SM_LIST_ENIP_MATCH,
+          DE_STATE_FLAG_ENIP_INSPECT,
+          1,
+          DetectEngineInspectENIP },
 
         { IPPROTO_TCP,
           ALPROTO_DNS,
@@ -2686,6 +2682,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+        case DETECT_SM_LIST_CIP_MATCH:
+            return "cip";
         case DETECT_SM_LIST_ENIP_MATCH:
             return "enip";
         case DETECT_SM_LIST_POSTMATCH:

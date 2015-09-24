@@ -125,8 +125,8 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_DNSQUERYNAME_MATCH,  /**< per query in a tx list */
 
     DETECT_SM_LIST_MODBUS_MATCH,
+    DETECT_SM_LIST_CIP_MATCH,
     DETECT_SM_LIST_ENIP_MATCH,
-    DETECT_SM_LIST_ENIP_MATCH2,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,

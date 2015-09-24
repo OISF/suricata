@@ -378,13 +378,34 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
     return 1;
 }
 
+
+/** \internal
+ *
+ * \brief This function is called to retrieve a ENIP
+ *
+ * \param state     ENIP state structure for the parser
+ * \param input     Input line of the command
+ * \param input_len Length of the request
+ *
+ * \retval 1 when the command is parsed, 0 otherwise
+ */
+static int ENIPParseResp(Flow *f, void *state, AppLayerParserState *pstate,
+        uint8_t *input, uint32_t input_len, void *local_data)
+{
+    SCEnter();
+    ENIPState *enip = (ENIPState *) state;
+    ENIPTransaction *tx;
+    int ret = 0;
+    return ret;
+}
+
 static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
         uint32_t *offset)
 {
-   // printf("ENIPProbingParser %d\n", input_len);
+   // SCLogDebug("ENIPProbingParser %d\n", input_len);
     if (input_len < sizeof(ENIPEncapHdr))
     {
-        printf("Length too small to be a ENIP header \n");
+        SCLogDebug("Length too small to be a ENIP header \n");
         return ALPROTO_UNKNOWN;
     }
 
@@ -502,8 +523,8 @@ void RegisterENIPTCPParsers(void)
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
                     0, sizeof(ENIPEncapHdr), STREAM_TOSERVER, ENIPProbingParser);
 
-       //     AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
-       //             0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
+            AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818", ALPROTO_ENIP,
+                    0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT, ENIPProbingParser);
 
         } else
         {
@@ -518,9 +539,9 @@ void RegisterENIPTCPParsers(void)
                 AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
                         ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOSERVER,
                         ENIPProbingParser);
-//                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
-//                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
-//                        ENIPProbingParser);
+                AppLayerProtoDetectPPRegister(IPPROTO_TCP, "44818",
+                        ALPROTO_ENIP, 0, sizeof(ENIPEncapHdr), STREAM_TOCLIENT,
+                        ENIPProbingParser);
 
             }
         }
@@ -537,7 +558,7 @@ void RegisterENIPTCPParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
                 STREAM_TOSERVER, ENIPParse);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
-                STREAM_TOCLIENT, ENIPParse);
+                STREAM_TOCLIENT, ENIPParseResp);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
 
