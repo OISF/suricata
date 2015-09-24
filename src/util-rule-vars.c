@@ -74,7 +74,7 @@ char *SCRuleVarsGetConfVar(const char *conf_var_name,
     if (conf_var_name == NULL)
         goto end;
 
-    while (conf_var_name[0] != '\0' && isspace(conf_var_name[0])) {
+    while (conf_var_name[0] != '\0' && isspace((unsigned char)conf_var_name[0])) {
         conf_var_name++;
     }
 
