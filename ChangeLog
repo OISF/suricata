@@ -1,3 +1,15 @@
+2.0.9 -- 2015-09-25
+
+Bug #1558: stream: retransmission not detected (2.0.x)
+Bug #1550: Segmentation Fault at detect-engine-content-inspection.c:438
+Bug #1564: defrag: evasion issue
+Bug #1431: stream: last_ack update issue leading to stream gaps (2.0.x)
+Bug #1483: 2.0.x backport: Leading whitespace in flowbits variable names
+Bug #1490: http_host payload validation erroring on uppercase PCRE metacharacters
+Bug #1501: 2.0.x backport: Add HUP coverage to output json-log
+Bug #1510: 2.0.x: address var parsing issue
+Bug #1513: stream_size <= and >= modifiers function as < and > (equality is not functional) (2.0.x)
+
 2.0.8 -- 2015-05-06
 
 Bug #1450: tls parsing issue
