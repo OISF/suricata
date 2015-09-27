@@ -356,7 +356,7 @@ int UnixCommandAccept(UnixCommand *this)
     json_decref(server_msg);
 
     /* client connected */
-    SCLogInfo("Unix socket: client connected");
+    SCLogDebug("Unix socket: client connected");
 
     uclient = SCMalloc(sizeof(UnixClient));
     if (unlikely(uclient == NULL)) {
@@ -478,9 +478,9 @@ void UnixCommandRun(UnixCommand * this, UnixClient *client)
     ret = recv(client->fd, buffer, sizeof(buffer) - 1, 0);
     if (ret <= 0) {
         if (ret == 0) {
-            SCLogInfo("Unix socket: lost connection with client");
+            SCLogDebug("Unix socket: lost connection with client");
         } else {
-            SCLogInfo("Unix socket: error on recv() from client: %s",
+            SCLogError(SC_ERR_SOCKET, "Unix socket: error on recv() from client: %s",
                       strerror(errno));
         }
         UnixCommandClose(this, client->fd);
@@ -525,7 +525,7 @@ int UnixMain(UnixCommand * this)
         if (errno == EINTR) {
             return 1;
         }
-        SCLogInfo("Command server: select() fatal error: %s", strerror(errno));
+        SCLogError(SC_ERR_SOCKET, "Command server: select() fatal error: %s", strerror(errno));
         return 0;
     }
 
