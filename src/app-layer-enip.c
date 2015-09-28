@@ -173,6 +173,7 @@ int ENIPStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventTy
  */
 void *ENIPStateAlloc(void)
 {
+    SCLogDebug("ENIPStateAlloc \n");
     void *s = SCMalloc(sizeof(ENIPState));
     if (unlikely(s == NULL))
         return NULL;
@@ -191,7 +192,7 @@ void *ENIPStateAlloc(void)
 static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 {
     SCEnter();
-
+    SCLogDebug("ENIPTransactionFree \n");
     CIPServiceEntry *svc = NULL;
     while ((svc = TAILQ_FIRST(&tx->service_list)))
     {
@@ -236,6 +237,7 @@ static void ENIPTransactionFree(ENIPTransaction *tx, ENIPState *state)
 void ENIPStateFree(void *s)
 {
     SCEnter();
+    SCLogDebug("ENIPStateFree \n");
     if (s)
     {
         ENIPState *enip_state = (ENIPState *) s;
@@ -262,7 +264,7 @@ void ENIPStateFree(void *s)
  *  \retval tx or NULL */
 static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
 {
-
+    SCLogDebug("ENIPStateTransactionAlloc \n");
     ENIPTransaction *tx = (ENIPTransaction *) SCCalloc(1,
             sizeof(ENIPTransaction));
     if (unlikely(tx == NULL))
@@ -289,10 +291,9 @@ static ENIPTransaction *ENIPTransactionAlloc(ENIPState *state)
 void ENIPStateTransactionFree(void *state, uint64_t tx_id)
 {
     SCEnter();
-
+    SCLogDebug("ENIPStateTransactionFree \n");
     ENIPState *enip_state = state;
     ENIPTransaction *tx = NULL;
-
     TAILQ_FOREACH(tx, &enip_state->tx_list, next)
     {
 
@@ -336,7 +337,6 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
     ENIPState *enip = (ENIPState *) state;
     ENIPTransaction *tx;
     int ret = 0;
-
     if (input == NULL && AppLayerParserStateIssetFlag(pstate,
             APP_LAYER_PARSER_EOF))
     {
@@ -353,10 +353,10 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 
         if (tx == NULL)
             SCReturnInt(0);
-    //    printf("ENIPParse input len %d\n", input_len);
+        //SCLogDebug("ENIPParse input len %d\n", input_len);
         ret = DecodeENIPPDU(input, input_len, tx);
         uint32_t pkt_len = tx->header.length + sizeof(ENIPEncapHdr);
-        SCLogDebug("ENIPParse packet len %d\n", pkt_len);
+        //SCLogDebug("ENIPParse packet len %d\n", pkt_len);
         if (pkt_len > input_len)
         {
             SCLogDebug("Invalid packet length \n");
@@ -398,6 +398,8 @@ static int ENIPParseResp(Flow *f, void *state, AppLayerParserState *pstate,
     int ret = 0;
     return ret;
 }
+
+
 
 static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
         uint32_t *offset)
@@ -558,7 +560,7 @@ void RegisterENIPTCPParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
                 STREAM_TOSERVER, ENIPParse);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_ENIP,
-                STREAM_TOCLIENT, ENIPParseResp);
+                STREAM_TOCLIENT, ENIPParse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_ENIP,
                 ENIPStateAlloc, ENIPStateFree);
 
@@ -598,152 +600,88 @@ void RegisterENIPTCPParsers(void)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
+#include "app-layer-parser.h"
+
+#include "detect-parse.h"
+
+#include "detect-engine.h"
+
+#include "flow-util.h"
+
+#include "stream-tcp.h"
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+
+static uint8_t listIdentity[] = {/* List ID */    0x63, 0x00,
+                                    /* Length */     0x00, 0x00,
+                                    /* Session */    0x00, 0x00, 0x00, 0x00,
+                                    /* Status */     0x00, 0x00, 0x00, 0x00,
+                                    /*  Delay*/     0x00,
+                                    /* Context */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00,};
 
 /**
  * \brief Test if ENIP Packet matches signature
  */
-int ALENIPTestMatch(uint8_t *raw_eth_pkt, uint16_t pktsize, char *sig,
-        uint32_t sid)
+int ALDecodeENIPTest(void)
 {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    TcpSession ssn;
+
     int result = 0;
-    FlowInitConfig(FLOW_QUIET);
-    Packet *p = UTHBuildPacketFromEth(raw_eth_pkt, pktsize);
-    result = UTHPacketMatchSig(p, sig);
-    PACKET_RECYCLE(p);
-    FlowShutdown();
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
+            listIdentity, sizeof(listIdentity));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ENIPState    *enip_state = f.alstate;
+    if (enip_state == NULL) {
+        printf("no enip state: ");
+        goto end;
+    }
+
+    ENIPTransaction *tx = ENIPGetTx(enip_state, 0);
+
+    if (tx->header.command != 99)  {
+        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 99, tx->header.command);
+
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
-/**
- * \brief Test List Identity
- */
-static int ALDecodeENIPTest01 (void)
-{
-    /* List Identity */
-    uint8_t raw_eth_pkt[] = {
-            0x00,0x50,0x56,0xea,0x00,0xbd,0x00,0x0c,
-            0x29,0x40,0xc8,0xb5,0x08,0x00,0x45,0x00,
-            0x01,0xa8,0xb9,0xbb,0x40,0x00,0x40,0x06,
-            0xe0,0xbf,0xc0,0xa8,0x1c,0x83,0xc0,0xa8,
-            0x01,0x01,0xb9,0x0a,0x00,0x50,0x6f,0xa2,
-            0x92,0xed,0x63,0x00,0x00,0x00,0x00,0x00,
-            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-            0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-            0x00,0x00
-            };
-
-    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; enip_command:99; sid:1;)";
-
-
-    return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
-}
-
-/**
- * \brief Test Get Attribute All
- */
-static int ALDecodeCIPTest01 (void)
-{
-    /* Single Get Attribute All */
-    uint8_t raw_eth_pkt[] =
-    {
-        0x00, 0x00, 0xbc, 0x3e, 0xeb, 0xe4, 0x00, 0x1d,
-        0x09, 0x99, 0xb2, 0x2c, 0x08, 0x00, 0x45, 0x00,
-        0x00, 0x5c, 0x81, 0xb9, 0x40, 0x00, 0x80, 0x06,
-        0xe2, 0xb0, 0xc0, 0xa8, 0x0a, 0x69, 0xc0, 0xa8,
-        0x0a, 0x78, 0x04, 0x4e, 0xaf, 0x12, 0x46, 0xb6,
-        0xaf, 0x0e, 0x91, 0xb1, 0x1f, 0x2a, 0x50, 0x18,
-        0xfd, 0xae, 0x96, 0x80, 0x00, 0x00, 0x70, 0x00,
-        0x1c, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0xa1, 0x00,
-        0x04, 0x00, 0x01, 0x29, 0x83, 0x00, 0xb1, 0x00,
-        0x08, 0x00, 0x26, 0x00, 0x01, 0x02, 0x20, 0x02,
-        0x24, 0x01
-    };
-
-    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:1; sid:1;)";
-
-    return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
-            sig, 1);
-}
-
-/**
- * \brief Test Multi Service Packet with Get Attribute List
- */
-static int ALDecodeCIPTest02 (void)
-{
-    /* Multi Service Packet with Get Attribute Lists*/
-    uint8_t raw_eth_pkt[] =
-    {
-        0x00, 0x00, 0xbc, 0x3e, 0xeb, 0xe4, 0x00, 0x1d,
-        0x09, 0x99, 0xb2, 0x2c, 0x08, 0x00, 0x45, 0x00,
-        0x00, 0x9c, 0x81, 0x95, 0x40, 0x00, 0x80, 0x06,
-        0xe2, 0x94, 0xc0, 0xa8, 0x0a, 0x69, 0xc0, 0xa8,
-        0x0a, 0x78, 0x04, 0x4e, 0xaf, 0x12, 0x46, 0xb6,
-        0xa6, 0xc3, 0x91, 0xb1, 0x15, 0xfb, 0x50, 0x18,
-        0xfb, 0x56, 0x96, 0xc0, 0x00, 0x00, 0x70, 0x00,
-        0x5c, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0xa1, 0x00,
-        0x04, 0x00, 0x01, 0x29, 0x83, 0x00, 0xb1, 0x00,
-        0x48, 0x00, 0x05, 0x00, 0x0a, 0x02, 0x20, 0x02,
-        0x24, 0x01, 0x05, 0x00, 0x0c, 0x00, 0x16, 0x00,
-        0x22, 0x00, 0x2c, 0x00, 0x36, 0x00, 0x03, 0x02,
-        0x20, 0x8e, 0x24, 0x01, 0x01, 0x00, 0x08, 0x00,
-        0x03, 0x02, 0x20, 0x64, 0x24, 0x01, 0x02, 0x00,
-        0x01, 0x00, 0x02, 0x00, 0x03, 0x02, 0x20, 0x01,
-        0x24, 0x01, 0x01, 0x00, 0x05, 0x00, 0x03, 0x02,
-        0x20, 0x69, 0x24, 0x00, 0x01, 0x00, 0x0b, 0x00,
-        0x03, 0x02, 0x20, 0x69, 0x24, 0x01, 0x01, 0x00,
-        0x0a, 0x00
-    };
-
-    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:3; sid:1;)";
-
-    return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
-}
-
-/**
- * \brief Test Change Time
- */
-static int ALDecodeCIPTest03 (void)
-{
-    /* Set Attribute List Change Time*/
-    uint8_t raw_eth_pkt[] =
-    {
-        0x00, 0x00, 0xbc, 0x3e, 0xeb, 0xe4, 0x00, 0x1d,
-        0x09, 0x99, 0xb2, 0x2c, 0x08, 0x00, 0x45, 0x00,
-        0x00, 0x68, 0x5e, 0x7d, 0x40, 0x00, 0x80, 0x06,
-        0x05, 0xe1, 0xc0, 0xa8, 0x0a, 0x69, 0xc0, 0xa8,
-        0x0a, 0x78, 0x0b, 0xd9, 0xaf, 0x12, 0xcf, 0xce,
-        0x17, 0xe7, 0x8d, 0xf5, 0x35, 0x00, 0x50, 0x18,
-        0xfa, 0xd2, 0x96, 0x8c, 0x00, 0x00, 0x70, 0x00,
-        0x28, 0x00, 0x00, 0x01, 0x02, 0x11, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-        0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0xa1, 0x00,
-        0x04, 0x00, 0x01, 0x0b, 0x7c, 0x00, 0xb1, 0x00,
-        0x14, 0x00, 0xb2, 0x04, 0x04, 0x02, 0x20, 0x8b,
-        0x24, 0x01, 0x01, 0x00, 0x06, 0x00, 0xc0, 0x32,
-        0x5c, 0xff, 0xf3, 0x59, 0x04, 0x00
-    };
-
-    char *sig = "alert enip any any -> any any (msg:\"Nothing..\"; cip_service:4,139,6; sid:1;)";
-
-    return ALENIPTestMatch(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt), sig, 1);
-}
 
 #endif /* UNITTESTS */
 
 void ENIPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-      UtRegisterTest("ALDecodeENIPTest01", ALDecodeENIPTest01, 0);
-      UtRegisterTest("ALDecodeCIPTest01", ALDecodeCIPTest01, 0);
-      UtRegisterTest("ALDecodeCIPTest02", ALDecodeCIPTest02, 0);
-      UtRegisterTest("ALDecodeCIPTest03", ALDecodeCIPTest03, 0);
+      UtRegisterTest("ALDecodeENIPTest", ALDecodeENIPTest, 1);
+
 
 #endif /* UNITTESTS */
 }

@@ -227,13 +227,12 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    //    printf("DetectEngineInspectENIP\n");
+    //    SCLogDebug("DetectEngineInspectCIP %d\n", cipserviced->cipservice);
 
     ENIPTransaction *tx = (ENIPTransaction *) txv;
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_CIP_MATCH];
     DetectCipServiceData *cipserviced = (DetectCipServiceData *) sm->ctx;
 
-    int ret = 0;
 
     if (cipserviced == NULL)
     {
@@ -275,7 +274,6 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_ENIP_MATCH];
     DetectEnipCommandData *enipcmdd = (DetectEnipCommandData *) sm->ctx;
 
-    int ret = 0;
 
     if (enipcmdd == NULL)
     {
@@ -283,7 +281,7 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    //printf("DetectEngineInspectENIP2 %d, %d\n", enipcmdd->enipcommand, tx->header.command);
+    //SCLogDebug("DetectEngineInspectENIP %d, %d\n", enipcmdd->enipcommand, tx->header.command);
 
     if (enipcmdd->enipcommand == tx->header.command)
     {
@@ -308,12 +306,105 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-/** \test Test code function. */
-static int DetectEngineInspecENIPTest01(void)
-{
-    int result = 0;
 
-    return result;
+static uint8_t listIdentity[] = {/* List ID */    0x00, 0x63,
+                                    /* Length */     0x00, 0x00,
+                                    /* Session */    0x00, 0x00, 0x00, 0x00,
+                                    /* Status */     0x00, 0x00, 0x00, 0x00,
+                                    /*  Delay*/     0x00,
+                                    /* Context */  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                                    /* Quantity of coils */ 0x00, 0x00, 0x00, 0x00,};
+
+
+
+/** \test Test code function. */
+static int DetectEngineInspectENIPTest01(void)
+{
+
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+        DetectEngineThreadCtx *det_ctx = NULL;
+        DetectEngineCtx *de_ctx = NULL;
+        Flow f;
+        Packet *p = NULL;
+        Signature *s = NULL;
+        TcpSession ssn;
+        ThreadVars tv;
+
+        int result = 0;
+
+        memset(&tv, 0, sizeof(ThreadVars));
+        memset(&f, 0, sizeof(Flow));
+        memset(&ssn, 0, sizeof(TcpSession));
+
+        p = UTHBuildPacket(listIdentity, sizeof(listIdentity), IPPROTO_TCP);
+
+        FLOW_INITIALIZE(&f);
+        f.alproto   = ALPROTO_ENIP;
+        f.protoctx  = (void *)&ssn;
+        f.proto     = IPPROTO_TCP;
+        f.flags     |= FLOW_IPV4;
+
+        p->flow         = &f;
+        p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+        p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+        StreamTcpInitConfig(TRUE);
+
+        de_ctx = DetectEngineCtxInit();
+        if (de_ctx == NULL)
+            goto end;
+
+        de_ctx->flags |= DE_QUIET;
+        s = de_ctx->sig_list = SigInit(de_ctx, "alert enip any any -> any any "
+                                                "(msg:\"Testing enip command\"; "
+                                                "enipcommand:99 ; sid:1;)");
+
+        if (s == NULL)
+            goto end;
+
+        SigGroupBuild(de_ctx);
+        DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+        SCMutexLock(&f.m);
+        int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_ENIP, STREAM_TOSERVER,
+                listIdentity, sizeof(listIdentity));
+        if (r != 0) {
+            printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+            SCMutexUnlock(&f.m);
+            goto end;
+        }
+        SCMutexUnlock(&f.m);
+
+        ENIPState    *enip_state = f.alstate;
+        if (enip_state == NULL) {
+            printf("no enip state: ");
+            goto end;
+        }
+
+        /* do detect */
+        SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+        if (!(PacketAlertCheck(p, 1))) {
+            printf("sid 1 didn't match but should have: ");
+            goto end;
+        }
+
+        result = 1;
+
+    end:
+        if (alp_tctx != NULL)
+            AppLayerParserThreadCtxFree(alp_tctx);
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&tv, det_ctx);
+        if (de_ctx != NULL)
+            SigGroupCleanup(de_ctx);
+        if (de_ctx != NULL)
+            DetectEngineCtxFree(de_ctx);
+
+        StreamTcpFreeConfig(TRUE);
+        FLOW_DESTROY(&f);
+        UTHFreePacket(p);
+        return result;
 }
 
 #endif /* UNITTESTS */
@@ -321,7 +412,7 @@ static int DetectEngineInspecENIPTest01(void)
 void DetectEngineInspectENIPRegisterTests(void)
 {
 #ifdef UNITTESTS
-    //  UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01, 1);
+      UtRegisterTest("DetectEngineInspectENIPTest01", DetectEngineInspectENIPTest01, 1);
 #endif /* UNITTESTS */
     return;
 }
