@@ -419,12 +419,12 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
     return;
 }
 
-int SigMatchListSMBelongsTo(Signature *s, SigMatch *key_sm)
+int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
     int list = 0;
 
     for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
-        SigMatch *sm = s->sm_lists[list];
+        const SigMatch *sm = s->sm_lists[list];
         while (sm != NULL) {
             if (sm == key_sm)
                 return list;
