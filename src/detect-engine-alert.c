@@ -332,6 +332,13 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
      * keyword context for sessions and hosts */
     if (!(p->flags & PKT_PSEUDO_STREAM_END))
         TagHandlePacket(de_ctx, det_ctx, p);
+
+    /* We have some alerts, so time machine is enabled on this flow */
+    if (p->alerts.cnt > 0 && p->flow) {
+        FLOWLOCK_WRLOCK(p->flow);
+        p->flow->flags |= FLOW_TIMEMACHINE_ENABLED;
+        FLOWLOCK_UNLOCK(p->flow);
+    }
 }
 
 

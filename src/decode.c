@@ -485,6 +485,9 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
         return NULL;
     }
 
+    if (timemachine_config.enabled) 
+        dtv->timemachine_vars = TimeMachineThreadVarsAlloc();
+    
     /** set config defaults */
     int vlanbool = 0;
     if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
@@ -504,6 +507,9 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
         if (dtv->output_flow_thread_data != NULL)
             OutputFlowLogThreadDeinit(tv, dtv->output_flow_thread_data);
 
+        if (dtv->timemachine_vars != NULL) 
+            TimeMachineThreadVarsFree(dtv->timemachine_vars);
+            
         SCFree(dtv);
     }
 }

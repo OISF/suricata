@@ -156,6 +156,10 @@
 #include <sys/stat.h>
 #endif
 
+#ifdef HAVE_SYS_SYSINFO_H
+#include <sys/sysinfo.h>
+#endif
+
 #if HAVE_NETINET_IN_H
 #include <netinet/in.h>
 #endif
@@ -178,6 +182,10 @@
 
 #ifdef HAVE_PCAP_BPF_H
 #include <pcap/bpf.h>
+#endif
+
+#ifdef HAVE_SYS_TREE_H
+#include <bsd/sys/tree.h>
 #endif
 
 #if __CYGWIN__

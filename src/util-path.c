@@ -64,3 +64,26 @@ int PathIsRelative(const char *path)
 {
     return PathIsAbsolute(path) ? 0 : 1;
 }
+
+/**
+ *  \brief Given a string recusrively create a path of directories
+ *
+ *  \param path string with the path
+ *  \param mode directory mode
+ *
+ *  \retval 0 if the path was created successfully 
+ */
+int MakePath(const char* file_path, mode_t mode) {
+    char* p;
+    for (p=strchr(file_path+1, '/'); p; p=strchr(p+1, '/')) {
+        *p='\0';
+        if (mkdir(file_path, mode)==-1) {
+            if (errno != EEXIST) {
+                *p='/';
+                return -1;
+            }
+        }
+        *p='/';
+    }
+    return 0;
+}

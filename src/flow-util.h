@@ -73,6 +73,8 @@
         SC_ATOMIC_INIT((f)->autofp_tmqh_flow_qid);  \
         (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
+        (f)->tm_pkt_cnt = 0; \
+        TAILQ_INIT((&(f)->tm_pkts)); \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
@@ -117,6 +119,9 @@
             (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
         }                                       \
         RESET_COUNTERS((f)); \
+        FlowCleanupTimeMachine((f)); \
+        (f)->tm_pkt_cnt = 0; \
+        TAILQ_INIT((&(f)->tm_pkts)); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
@@ -130,6 +135,7 @@
         } \
         GenericVarFree((f)->flowvar); \
         SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
+        FlowCleanupTimeMachine((f)); \
     } while(0)
 
 /** \brief check if a memory alloc would fit in the memcap

@@ -29,6 +29,7 @@
 #include "util-atomic.h"
 #include "detect-tag.h"
 #include "util-optimize.h"
+#include "timemachine-packet.h"
 
 /* Part of the flow structure, so we declare it here.
  * The actual declaration is in app-layer-parser.c */
@@ -76,6 +77,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
 /** alproto detect done.  Right now we need it only for udp */
 #define FLOW_ALPROTO_DETECT_DONE          0x00008000
+/** time machine is enabled on this flow */
+#define FLOW_TIMEMACHINE_ENABLED          0x00010000
 
 // vacany 1x
 
@@ -414,6 +417,12 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t todstbytecnt;
     uint64_t tosrcbytecnt;
+    
+    /** List of time machine related data structures for
+     *  a given flow */
+    uint32_t tm_pkt_cnt;
+    TimeMachinePackets tm_pkts;
+    
 } Flow;
 
 enum {
@@ -457,6 +466,7 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
+void FlowCleanupTimeMachine(Flow *);
 
 /** ----- Inline functions ----- */
 

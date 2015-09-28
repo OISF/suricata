@@ -154,7 +154,7 @@
     AC_CHECK_HEADERS([limits.h netdb.h netinet/in.h poll.h sched.h signal.h])
     AC_CHECK_HEADERS([stdarg.h stdint.h stdio.h stdlib.h string.h sys/ioctl.h])
     AC_CHECK_HEADERS([syslog.h sys/prctl.h sys/socket.h sys/stat.h sys/syscall.h])
-    AC_CHECK_HEADERS([sys/time.h time.h unistd.h])
+    AC_CHECK_HEADERS([sys/sysinfo.h sys/time.h time.h unistd.h])
     AC_CHECK_HEADERS([sys/ioctl.h linux/if_ether.h linux/if_packet.h linux/filter.h])
     AC_CHECK_HEADERS([linux/ethtool.h linux/sockios.h])
     AC_CHECK_HEADER(glob.h,,[AC_ERROR(glob.h not found ...)])
@@ -1053,6 +1053,30 @@
         LIBNET_FAIL_WARN($libnet_dir)
     fi
 
+  # libbsd
+     AC_ARG_WITH(libbsd_includes,
+            [  --with-libbsd-includes=DIR  libbsd include directory],
+            [with_libbsd_includes="$withval"],[with_libbsd_includes=no])
+
+    if test "$with_libbsd_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libbsd_includes}"
+    fi
+
+    LIBBSD=""
+    AC_CHECK_HEADER(bsd/sys/tree.h,, LIBBSD="no")
+
+    if test "$LIBBSD" = "no"; then
+        echo
+        echo "   ERROR!  libbsd-dev files not found, go get them"
+        echo
+        echo "   Ubuntu: apt-get install libbsd-dev"
+        echo "   Fedora: yum install libbsd-devel"
+        echo
+        exit 1
+    fi   
+     
+    AC_DEFINE([HAVE_SYS_TREE_H],[1],[bsd/sys/tree.h available])
+    
   # libpcap
     AC_ARG_WITH(libpcap_includes,
             [  --with-libpcap-includes=DIR  libpcap include directory],

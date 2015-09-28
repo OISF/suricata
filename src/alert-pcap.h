@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,18 +15,18 @@
  * 02110-1301, USA.
  */
 
+
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Mat Oldham <mat.oldham@gmail.com>
  *
+ * Output PCAP files when an alert fires
  */
 
-#ifndef __UTIL_PATH_H__
-#define __UTIL_PATH_H__
+#ifndef __ALERT_PCAP_H__
+#define __ALERT_PCAP_H__
 
-int PathIsAbsolute(const char *);
-int PathIsRelative(const char *);
-int MakePath(const char*, mode_t);
+void TmModuleAlertPcapLogRegister (void);
 
-#endif /* __UTIL_PATH_H__ */
+#endif /* __ALERT_PCAP_H__ */

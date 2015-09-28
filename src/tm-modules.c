@@ -218,6 +218,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_ALERTPRELUDE);
         CASE_CODE (TMM_ALERTDEBUGLOG);
         CASE_CODE (TMM_ALERTSYSLOG);
+        CASE_CODE (TMM_ALERTPCAP);
         CASE_CODE (TMM_LOGDROPLOG);
         CASE_CODE (TMM_ALERTSYSLOG4);
         CASE_CODE (TMM_ALERTSYSLOG6);
@@ -276,7 +277,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_RECEIVENETMAP);
         CASE_CODE (TMM_DECODENETMAP);
         CASE_CODE (TMM_TLSSTORE);
-
+        
         CASE_CODE (TMM_SIZE);
     }
     return "<unknown>";
