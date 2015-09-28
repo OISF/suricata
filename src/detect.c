@@ -2937,10 +2937,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
             SigGroupHeadSetSigCnt(iter->sh, max_idx);
             SigGroupHeadBuildMatchArray(de_ctx, iter->sh, max_idx);
-
-            /* init the pattern matcher, this will respect the copy
-             * setting */
-            BUG_ON(PatternMatchPrepareGroup(de_ctx, iter->sh) != 0);
+            SigGroupHeadSetProtoAndDirection(iter->sh, ipproto, direction);
             SigGroupHeadHashAdd(de_ctx, iter->sh);
             SigGroupHeadStore(de_ctx, iter->sh);
             de_ctx->gh_unique++;
