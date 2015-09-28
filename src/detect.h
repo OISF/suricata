@@ -983,6 +983,9 @@ typedef struct SigGroupHeadInitData_ {
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
 
+    uint8_t protos[256];
+    uint8_t direction;
+
     /* port ptr */
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
