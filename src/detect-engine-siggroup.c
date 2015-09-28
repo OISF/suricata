@@ -1143,11 +1143,12 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
 }
 
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
-                                      uint8_t ipproto, uint8_t dir)
+                                      uint8_t ipproto, int dir)
 {
     if (sgh && sgh->init) {
+        SCLogDebug("setting proto %u and dir %d on sgh %p", ipproto, dir, sgh);
         sgh->init->protos[ipproto] = 1;
-        sgh->init->direction = dir;
+        sgh->init->direction |= dir;
     }
 }
 
