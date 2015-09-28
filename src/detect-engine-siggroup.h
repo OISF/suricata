@@ -74,7 +74,7 @@ int SigGroupHeadSPortHashRemove(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid);
 void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx);
 void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
-                                      uint8_t ipproto, uint8_t dir);
+                                      uint8_t ipproto, int dir);
 int SigGroupHeadBuildMatchArray (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                                  uint32_t max_idx);
 void SigGroupHeadFreeSigArrays(DetectEngineCtx *de_ctx);
