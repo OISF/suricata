@@ -3725,13 +3725,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                 /* put the contents in our sig group head */
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
                 SigGroupHeadBuildMatchArray(de_ctx, sgr->sh, max_idx);
-
-                /* init the pattern matcher, this will respect the copy
-                 * setting */
-                if (PatternMatchPrepareGroup(de_ctx, sgr->sh) < 0) {
-                    printf("PatternMatchPrepareGroup failed\n");
-                    goto error;
-                }
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 SigGroupHeadStore(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
@@ -3959,13 +3952,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                                 SigGroupHeadSetSigCnt(dp->sh, max_idx);
                                 SigGroupHeadBuildMatchArray(de_ctx,dp->sh, max_idx);
-
-                                /* init the pattern matcher, this will respect the copy
-                                 * setting */
-                                if (PatternMatchPrepareGroup(de_ctx, dp->sh) < 0) {
-                                    printf("PatternMatchPrepareGroup failed\n");
-                                    goto error;
-                                }
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
                                 SigGroupHeadStore(de_ctx, dp->sh);
                                 de_ctx->gh_unique++;
@@ -4263,6 +4249,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
+        BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
         SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
 
         sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
