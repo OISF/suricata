@@ -1693,6 +1693,16 @@
         enable_geoip="yes"
     fi
 
+  # Position Independent Executable
+    AC_ARG_ENABLE(pie,
+                AS_HELP_STRING([--enable-pie],[Enable compiling as a position independent executable]),
+                [ enable_pie="yes"],
+                [ enable_pie="no"])
+    if test "$enable_pie" = "yes"; then
+        CPPFLAGS="${CPPFLAGS} -fPIC"
+        LDFLAGS="${LDFLAGS} -pie"
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1832,6 +1842,7 @@ Generic build parameters:
   GCC Protect enabled:                     ${enable_gccprotect}
   GCC march native enabled:                ${enable_gccmarch_native}
   GCC Profile enabled:                     ${enable_gccprofile}
+  Position Independent Executable enabled: ${enable_pie}
   CFLAGS                                   ${CFLAGS}
   PCAP_CFLAGS                              ${PCAP_CFLAGS}
   SECCFLAGS                                ${SECCFLAGS}"
