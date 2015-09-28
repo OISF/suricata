@@ -618,16 +618,23 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     int proto = IP_GET_IPPROTO(p);
     if (proto == IPPROTO_TCP) {
         DetectPort *list = de_ctx->flow_gh[f].tcp;
+        SCLogDebug("tcp toserver %p, tcp toclient %p: going to use %p",
+                de_ctx->flow_gh[1].tcp, de_ctx->flow_gh[0].tcp, de_ctx->flow_gh[f].tcp);
         uint16_t port = f ? p->dp : p->sp;
+        SCLogDebug("tcp port %u -> %u:%u", port, p->sp, p->dp);
         DetectPort *sghport = DetectPortLookupGroup(list, port);
         if (sghport != NULL)
             sgh = sghport->sh;
+        SCLogDebug("TCP list %p, port %u, direction %s, sghport %p, sgh %p",
+                list, port, f ? "toserver" : "toclient", sghport, sgh);
     } else if (proto == IPPROTO_UDP) {
         DetectPort *list = de_ctx->flow_gh[f].udp;
         uint16_t port = f ? p->dp : p->sp;
         DetectPort *sghport = DetectPortLookupGroup(list, port);
         if (sghport != NULL)
             sgh = sghport->sh;
+        SCLogDebug("UDP list %p, port %u, direction %s, sghport %p, sgh %p",
+                list, port, f ? "toserver" : "toclient", sghport, sgh);
     } else {
         sgh = de_ctx->flow_gh[f].sgh[proto];
     }
@@ -861,6 +868,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         const uint8_t flags, const AppProto alproto,
         const int has_state, uint8_t *sms_runflags)
 {
+    SCEnter();
+
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
@@ -1081,7 +1090,11 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
 
             *sms_runflags |= SMS_USED_PM;
+        } else {
+            SCLogDebug("not packet");
         }
+    } else {
+        SCLogDebug("how did we get here?");
     }
 
     /* UDP DNS inspection is independent of est or not */
@@ -1309,9 +1322,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
                 if ((p->flowflags & FLOW_PKT_TOSERVER) && (pflow->flags & FLOW_SGH_TOSERVER)) {
                     det_ctx->sgh = pflow->sgh_toserver;
+                    SCLogDebug("det_ctx->sgh = pflow->sgh_toserver; => %p", det_ctx->sgh);
                     sms_runflags |= SMS_USE_FLOW_SGH;
                 } else if ((p->flowflags & FLOW_PKT_TOCLIENT) && (pflow->flags & FLOW_SGH_TOCLIENT)) {
                     det_ctx->sgh = pflow->sgh_toclient;
+                    SCLogDebug("det_ctx->sgh = pflow->sgh_toclient; => %p", det_ctx->sgh);
                     sms_runflags |= SMS_USE_FLOW_SGH;
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
@@ -1714,11 +1729,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     KEYWORD_PROFILING_START;
                     if (sigmatch_table[smd->type].Match(th_v, det_ctx, p, s, smd->ctx) <= 0) {
                         KEYWORD_PROFILING_END(det_ctx, smd->type, 0);
+                        SCLogDebug("no match");
                         goto next;
                     }
                     KEYWORD_PROFILING_END(det_ctx, smd->type, 1);
-                    if (smd->is_last)
+                    if (smd->is_last) {
+                        SCLogDebug("match and is_last");
                         break;
+                    }
                     smd++;
                 }
             }
@@ -2944,7 +2962,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
         SCLogInfo("PORT %u-%u %p (sgh=%s)", iter->port, iter->port2, iter->sh, iter->flags & PORT_SIGGROUPHEAD_COPY ? "ref" : "own");
     }
 #endif
-    SCLogInfo("%u port groups, %u unique SGH's, %u copies", cnt, own, ref);
+    SCLogInfo("%s %s: %u port groups, %u unique SGH's, %u copies",
+            ipproto == 6 ? "TCP" : "UDP",
+            direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
+            cnt, own, ref);
     return list;
 }
 
