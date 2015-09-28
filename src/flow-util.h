@@ -83,7 +83,11 @@
  *  managed by the queueing code. Same goes for fb (FlowBucket ptr) field.
  */
 #define FLOW_RECYCLE(f) do { \
+        FlowCleanupTimeMachine((f)); \
+        (f)->tm_pkt_cnt = 0; \
         FlowCleanupAppLayer((f)); \
+        FlowCleanupTimeMachine((f)); \
+        (f)->tm_pkt_cnt = 0; \
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
@@ -119,12 +123,12 @@
             (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
         }                                       \
         RESET_COUNTERS((f)); \
-        FlowCleanupTimeMachine((f)); \
-        (f)->tm_pkt_cnt = 0; \
         TAILQ_INIT((&(f)->tm_pkts)); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
+        FlowCleanupTimeMachine((f)); \
+        (f)->tm_pkt_cnt = 0; \
         FlowCleanupAppLayer((f)); \
         SC_ATOMIC_DESTROY((f)->flow_state); \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
@@ -135,7 +139,6 @@
         } \
         GenericVarFree((f)->flowvar); \
         SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
-        FlowCleanupTimeMachine((f)); \
     } while(0)
 
 /** \brief check if a memory alloc would fit in the memcap

@@ -26,22 +26,19 @@
  
 #ifndef __TIMEMACHINE_PACKET_H__
 #define __TIMEMACHINE_PACKET_H__
- 
+
 #include "suricata-common.h"
 #include "timemachine.h"
- 
+
 struct TimeMachinePackets_;
- 
+
 struct TimeMachinePacket_ {
     struct Flow_                            *flow;
-    TimeMachineHeap                         *heap;
-    TimeMachineMemPool                      *mem_pool;
-    
     struct pcap_pkthdr                      header;
     void                                    *data;
     TAILQ_ENTRY(TimeMachinePacket_)         next;
 };
- 
+
 /* TAILQ Macros */
 TAILQ_HEAD(TimeMachinePackets_, TimeMachinePacket_);
 

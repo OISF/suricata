@@ -801,9 +801,6 @@ flow:
 timemachine:
   enabled: no
 
-  # Default max packet size (packets greater than this will be truncated)
-  packet-size: 1540
-
   # The maximum memory per thread to use for time machine.  The current 
   # memory calculation per thread is roughly calculated  as the sum of
   # max-packet-size * count of heap spaces for each heap within a thread
@@ -813,7 +810,7 @@ timemachine:
   # does not account for max-memory requirements) (this can be overriden
   # per heap)
   heap-prealloc-count: 5000
-      
+
   # Timemachine creates a heap of "existing" packets and re-uses those 
   # pre-created packets for speed.  This has a downside where not all 
   # memory is used because the packets are a predefined size.  Since we do 
@@ -831,7 +828,7 @@ timemachine:
       -
           name: normal
           max-packet-size: 1540
-              
+
 # This option controls the use of vlan ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)
 # setups where both sides of a flow are not tagged with the same vlan

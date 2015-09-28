@@ -77,8 +77,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
 /** alproto detect done.  Right now we need it only for udp */
 #define FLOW_ALPROTO_DETECT_DONE          0x00008000
-/** time machine is enabled on this flow */
-#define FLOW_TIMEMACHINE_ENABLED          0x00010000
+/** At least one packet in the flow contained an alert */
+#define FLOW_CONTAINS_ALERTS              0x00010000
 
 // vacany 1x
 

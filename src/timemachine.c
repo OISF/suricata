@@ -40,22 +40,22 @@
 #include "util-cpu.h"
 #include "util-atomic.h"
 #include "util-time.h"
+#include "util-pool.h"
 
 #include "timemachine.h"
 #include "timemachine-heap.h"
 #include "timemachine-packet.h"
 
 #define DEFAULT_MAX_MEMORY                        1024 * 1024 * 256
-#define DEFAULT_MAX_PACKET_SIZE                   1500
+#define DEFAULT_MAX_PACKET_SIZE                   1514
 #define DEFAULT_HEAP_PREALLOC_COUNT               5000
 #define DEFAULT_HEAP_EXPAND_BY                    1000
-
 
 /** \brief Initialize the time machine config 
  *  \warning Not thread safe but neither is flow 
  **/
 void TimeMachineInitConfig() 
-{       
+{
     SCLogDebug("initializing time machine...");
 
     memset(&timemachine_config, 0, sizeof(TimeMachineConfig));
@@ -66,7 +66,7 @@ void TimeMachineInitConfig()
             timemachine_config.enabled = 1;
         }
     }
-    
+
     timemachine_config.max_memory = DEFAULT_MAX_MEMORY;
     if ((ConfGet("timemachine.max-memory", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &timemachine_config.max_memory) < 0) {
@@ -76,7 +76,7 @@ void TimeMachineInitConfig()
             exit(EXIT_FAILURE);
         } 
     }
-    
+
     uint32_t global_heap_prealloc_count = DEFAULT_HEAP_PREALLOC_COUNT;
     if ((ConfGet("timemachine.heap-prealloc-count", &conf_val)) == 1) {
         if (ByteExtractStringUint32(&global_heap_prealloc_count, 10, 0, 
@@ -112,7 +112,7 @@ void TimeMachineInitConfig()
             timemachine_config.heap_expand_by = global_heap_expand_by;
         }
     }
-    
+
     TAILQ_INIT(&timemachine_config.heap_confs);
 
     ConfNode* heaps = ConfGetNode("timemachine.heaps");
@@ -132,7 +132,7 @@ void TimeMachineInitConfig()
                     SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlowNode");
                     exit(EXIT_FAILURE);
                 }  
-    
+
                 heap_conf->name = ConfNodeLookupChildValue(heap_conf_node, "name");
                 if (heap_conf->name == NULL) {
                     SCLogError(SC_ERR_INVALID_ARGUMENT, "Heaps must have a "
@@ -178,7 +178,7 @@ void TimeMachineInitConfig()
                 else {
                     heap_conf->prealloc_count = global_heap_prealloc_count;
                 }
-                    
+
                 const char* heap_expand_by_s = NULL;
                 heap_expand_by_s = ConfNodeLookupChildValue(heap_conf_node, "heap-expand-by");
                 if (heap_expand_by_s != NULL) {
@@ -218,9 +218,9 @@ void TimeMachineInitConfig()
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate Memory for TimeMachineFlowNode");
             exit(EXIT_FAILURE);
         }  
-        
+
         const char* default_packet_size_s = NULL;
-        if ((ConfGet("timemachine.default-packet-size", &conf_val)) == 1) {
+        if ((ConfGet("default-packet-size", &conf_val)) == 1) {
             if (ByteExtractStringUint32(&default_packet_size, 10, 0, 
                                         conf_val) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "Failed to initialize "
@@ -254,29 +254,29 @@ void TimeMachineInitConfig()
 TimeMachineThreadVars* TimeMachineThreadVarsAlloc() {
     TimeMachineThreadVars *tmtv = NULL;
     TimeMachineHeapConf *heap_conf = NULL;
-    
+
     if ((tmtv = SCMalloc(sizeof(TimeMachineThreadVars))) == NULL)
         return NULL;
     memset(tmtv, 0, sizeof(TimeMachineThreadVars));
-    
+
     /* create all the heaps for this thread */
     TAILQ_INIT(&tmtv->heaps);
-    
-    TAILQ_FOREACH(heap_conf, &timemachine_config.heap_confs, next) {
+
+    TAILQ_FOREACH(heap_conf, &timemachine_config.heap_confs, next) {              
         TimeMachineHeap* heap = TimeMachineHeapNew(tmtv, heap_conf);
         TAILQ_INSERT_TAIL(&tmtv->heaps, heap, next);
         tmtv->heap_count++;
     }
-        
+
     return tmtv;
 }
 
 void TimeMachineThreadVarsFree(TimeMachineThreadVars* tmtv) {
-  
+
     if (tmtv == NULL) {
         return;
     }
-    
+
     while (tmtv->heap_count > 0) {
         TimeMachineHeap* heap = TAILQ_FIRST(&tmtv->heaps);
         TAILQ_REMOVE(&tmtv->heaps, heap, next);

@@ -184,10 +184,6 @@
 #include <pcap/bpf.h>
 #endif
 
-#ifdef HAVE_SYS_TREE_H
-#include <bsd/sys/tree.h>
-#endif
-
 #if __CYGWIN__
 #if !defined _X86_ && !defined __x86_64
 #define _X86_

@@ -333,12 +333,11 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
     if (!(p->flags & PKT_PSEUDO_STREAM_END))
         TagHandlePacket(de_ctx, det_ctx, p);
 
-    /* We have some alerts, so time machine is enabled on this flow */
+    /* Set a flag to indicate that at least one packet contained within the 
+       flow has an alert so we can track that for future packets */
     if (p->alerts.cnt > 0 && p->flow) {
         FLOWLOCK_WRLOCK(p->flow);
-        p->flow->flags |= FLOW_TIMEMACHINE_ENABLED;
+        p->flow->flags |= FLOW_CONTAINS_ALERTS;
         FLOWLOCK_UNLOCK(p->flow);
     }
 }
-
-

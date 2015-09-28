@@ -26,11 +26,11 @@
 #include "suricata-common.h"
 #include "timemachine.h"
 #include "timemachine-packet.h"
- 
+
 TimeMachinePacket* TimeMachinePacketNew() {
 
     TimeMachinePacket* packet = SCMalloc(sizeof(TimeMachinePacket));
-    
+
     if (packet == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for packet.");
         exit(EXIT_FAILURE);
@@ -40,10 +40,10 @@ TimeMachinePacket* TimeMachinePacketNew() {
 }
 
 void TimeMachinePacketDestroy(TimeMachinePacket* packet) {
-        
+
     if (packet == NULL) {
         return;
     }
-    
+
     SCFree(packet);
 }

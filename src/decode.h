@@ -584,7 +584,7 @@ typedef struct DecodeThreadVars_
 {
     /** Specific context for udp protocol detection (here atm) */
     AppLayerThreadCtx *app_tctx;
-    
+
     int vlan_disabled;
 
     /** stats/counters */
@@ -925,14 +925,14 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
  *
  * \param p Packet to set the flag in
  */
-#define DecodeSetTimemachineFlag(p) do { \
-        (p)->flags |= PKT_TIMEMACHINE;    \
+#define DecodeSetFlowContainsAlertsFlag(p) do { \
+        (p)->flags |= PKT_FLOW_CONTAINS_ALERTS;    \
     } while (0)
-   
-#define DecodeUnsetTimemachineFlag(p) do { \
-        (p)->flags |= PKT_TIMEMACHINE;      \
+
+#define DecodeUnsetFlowContainsAlertsFlag(p) do { \
+        (p)->flags |= PKT_FLOW_CONTAINS_ALERTS;      \
     } while (0)
-    
+
 /** \brief Set the No payload inspection Flag for the packet.
  *
  * \param p Packet to set the flag in
@@ -1067,7 +1067,7 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
 #define PKT_IS_INVALID                  (1<<20)
 #define PKT_PROFILE                     (1<<21)
-#define PKT_TIMEMACHINE                 (1<<22)     /**< Packet is ID'd for TM */
+#define PKT_FLOW_CONTAINS_ALERTS        (1<<22)     /**< Tag this packet with the fact it's flow contained an alert */
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

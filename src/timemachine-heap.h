@@ -51,7 +51,7 @@ struct TimeMachineMemPool_ {
 /* TAILQ Macros */
 TAILQ_HEAD(TimeMachineMemPools_, TimeMachineMemPool_);
 
-typedef struct TimeMachineHeap_ {
+struct TimeMachineHeap_ {
     TimeMachineHeapConf                 *conf;
 
     size_t                              used_pool_count;
@@ -60,9 +60,9 @@ typedef struct TimeMachineHeap_ {
     TimeMachineMemPools                 used_mem_pools;
     TimeMachineMemPools                 unused_mem_pools;
     TimeMachinePackets                  unused_packets;
-    
+
     TAILQ_ENTRY(TimeMachineHeap_)       next;
-} TimeMachineHeap;
+};
 
 /* prototypes */
 TimeMachineHeap* TimeMachineHeapNew(TimeMachineThreadVars*, TimeMachineHeapConf*);
