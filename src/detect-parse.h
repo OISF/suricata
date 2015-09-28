@@ -55,7 +55,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
 
 void SigMatchAppendSMToList(Signature *, SigMatch *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
-int SigMatchListSMBelongsTo(Signature *, SigMatch *);
+int SigMatchListSMBelongsTo(const Signature *, const SigMatch *);
 
 int DetectParseDupSigHashInit(DetectEngineCtx *);
 void DetectParseDupSigHashFree(DetectEngineCtx *);

@@ -76,7 +76,7 @@
  *  \retval 1 true
  *  \retval 0 false
  */
-int SignatureHasPacketContent(Signature *s)
+int SignatureHasPacketContent(const Signature *s)
 {
     SCEnter();
 
@@ -110,7 +110,7 @@ int SignatureHasPacketContent(Signature *s)
  *  \retval 1 true
  *  \retval 0 false
  */
-int SignatureHasStreamContent(Signature *s)
+int SignatureHasStreamContent(const Signature *s)
 {
     SCEnter();
 
@@ -1257,7 +1257,7 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
     return;
 }
 
-static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
+static void PopulateMpmAddPatternToMpm(const DetectEngineCtx *de_ctx,
                                        SigGroupHead *sgh, Signature *s,
                                        SigMatch *mpm_sm)
 {
@@ -1929,7 +1929,7 @@ SigMatch *RetrieveFPForSigV2(Signature *s)
  *
  * \retval  0 Always.
  */
-static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
+static int PatternMatchPreparePopulateMpm(const DetectEngineCtx *de_ctx,
                                           SigGroupHead *sgh)
 {
     uint32_t sig = 0;
@@ -1949,7 +1949,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
  *  \todo do error checking
  *  \todo rewrite the COPY stuff
  */
-int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
+int PatternMatchPrepareGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     Signature *s = NULL;
     uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */

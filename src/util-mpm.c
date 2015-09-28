@@ -184,7 +184,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
     }
 }
 
-int32_t MpmFactoryIsMpmCtxAvailable(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
+int32_t MpmFactoryIsMpmCtxAvailable(const DetectEngineCtx *de_ctx, const MpmCtx *mpm_ctx)
 {
     if (mpm_ctx == NULL)
         return 0;
@@ -203,7 +203,7 @@ int32_t MpmFactoryIsMpmCtxAvailable(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
     }
 }
 
-MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int direction)
+MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id, int direction)
 {
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
@@ -226,7 +226,7 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int d
     }
 }
 
-void MpmFactoryReClaimMpmCtx(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
+void MpmFactoryReClaimMpmCtx(const DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
 {
     if (mpm_ctx == NULL)
         return;
