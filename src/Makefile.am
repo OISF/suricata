@@ -301,6 +301,11 @@ stream-tcp-util.c stream-tcp-util.h \
 suricata.c suricata.h \
 threads.c threads.h threads-arch-tile.h \
 threads-debug.h threads-profile.h \
+timemachine.c timemachine.h \
+timemachine-flow.c timemachine-flow.h \
+timemachine-heap.c timemachine-heap.h \
+timemachine-output.c timemachine-output.h \
+timemachine-packet.c timemachine-packet.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
 tmqh-nfq.c tmqh-nfq.h \
