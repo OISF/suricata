@@ -4120,21 +4120,6 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
     /* prepare the decoder event sgh */
     DetectEngineBuildDecoderEventSgh(de_ctx);
 
-    /* cleanup group head (uri)content_array's */
-    SigGroupHeadFreeMpmArrays(de_ctx);
-    /* cleanup group head sig arrays */
-    SigGroupHeadFreeSigArrays(de_ctx);
-
-    /* cleanup the hashes now since we won't need them
-     * after the initialization phase. */
-    SigGroupHeadHashFree(de_ctx);
-    SigGroupHeadDPortHashFree(de_ctx);
-    SigGroupHeadSPortHashFree(de_ctx);
-    SigGroupHeadMpmHashFree(de_ctx);
-    SigGroupHeadMpmUriHashFree(de_ctx);
-    DetectPortDpHashFree(de_ctx);
-    DetectPortSpHashFree(de_ctx);
-
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         SCLogDebug("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
@@ -4260,6 +4245,21 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         /* no need to set filestore count here as that would make a
          * signature not decode event only. */
     }
+
+    /* cleanup group head (uri)content_array's */
+    SigGroupHeadFreeMpmArrays(de_ctx);
+    /* cleanup group head sig arrays */
+    SigGroupHeadFreeSigArrays(de_ctx);
+
+    /* cleanup the hashes now since we won't need them
+     * after the initialization phase. */
+    SigGroupHeadHashFree(de_ctx);
+    SigGroupHeadDPortHashFree(de_ctx);
+    SigGroupHeadSPortHashFree(de_ctx);
+    SigGroupHeadMpmHashFree(de_ctx);
+    SigGroupHeadMpmUriHashFree(de_ctx);
+    DetectPortDpHashFree(de_ctx);
+    DetectPortSpHashFree(de_ctx);
 
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array_cnt = 0;
