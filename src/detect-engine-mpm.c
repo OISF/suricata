@@ -1149,6 +1149,139 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
     return;
 }
 
+#define SGH_PROTO(sgh, p) ((sgh)->init->protos[(p)] == 1)
+#define SGH_DIRECTION_TS(sgh) ((sgh)->init->direction & SIG_FLAG_TOSERVER)
+#define SGH_DIRECTION_TC(sgh) ((sgh)->init->direction & SIG_FLAG_TOCLIENT)
+
+/* TODO the sig updates don't belong here */
+static void PopulateMpmAddPatternToMpmPMATCH(const DetectEngineCtx *de_ctx,
+                                       SigGroupHead *sgh, Signature *s,
+                                       SigMatch *mpm_sm)
+{
+    DetectContentData *cd = (DetectContentData *)mpm_sm->ctx;
+
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                !(cd->flags & DETECT_CONTENT_REPLACE) &&
+                cd->content_len == cd->fp_chop_len)
+        {
+            cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+        }
+    } else {
+        if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                !(cd->flags & DETECT_CONTENT_REPLACE))
+        {
+            cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+        }
+    }
+
+    /* add the content to the "packet" mpm:
+     * chop is handled in PopulateMpmHelperAddPatternToPktCtx
+     */
+    if (SignatureHasPacketContent(s)) {
+        /* per TCP packet mpm */
+        if (SGH_PROTO(sgh, IPPROTO_TCP) && (s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
+            if (SGH_DIRECTION_TS(sgh) && s->flags & SIG_FLAG_TOSERVER) {
+                PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_ts,
+                        cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+            }
+            if (SGH_DIRECTION_TC(sgh) && s->flags & SIG_FLAG_TOCLIENT) {
+                PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_tc,
+                        cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+            }
+        }
+    }
+    /* per UDP packet mpm */
+    if (SGH_PROTO(sgh, IPPROTO_UDP) && (s->proto.proto[IPPROTO_UDP / 8] & 1 << (IPPROTO_UDP % 8))) {
+        if (SGH_DIRECTION_TS(sgh) && s->flags & SIG_FLAG_TOSERVER) {
+            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_ts,
+                    cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+        }
+        if (SGH_DIRECTION_TC(sgh) && s->flags & SIG_FLAG_TOCLIENT) {
+            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_tc,
+                    cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+        }
+    }
+
+    /* other IP protocols */
+    if (!(SGH_PROTO(sgh, IPPROTO_TCP) || SGH_PROTO(sgh, IPPROTO_UDP))) {
+        PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_other_ctx,
+                cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+    }
+
+    /* tell matcher we are inspecting packet */
+    s->flags |= SIG_FLAG_MPM_PACKET;
+    s->mpm_pattern_id_div_8 = cd->id / 8;
+    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+    if (cd->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+        s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+    }
+    sgh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+    /* for TCP, we have a special "stream" mpm as well */
+    if (SGH_PROTO(sgh, IPPROTO_TCP) && SignatureHasStreamContent(s)) {
+        if (cd->flags & DETECT_CONTENT_NOCASE) {
+            if (SGH_DIRECTION_TS(sgh) && s->flags & SIG_FLAG_TOSERVER) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0, cd->id, s->num, 0);
+                } else {
+                    MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
+                            cd->content, cd->content_len,
+                            0, 0, cd->id, s->num, 0);
+                }
+            }
+            if (SGH_DIRECTION_TC(sgh) && s->flags & SIG_FLAG_TOCLIENT) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0, cd->id, s->num, 0);
+                } else {
+                    MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
+                            cd->content, cd->content_len,
+                            0, 0, cd->id, s->num, 0);
+                }
+            }
+        } else {
+            if (SGH_DIRECTION_TS(sgh) && s->flags & SIG_FLAG_TOSERVER) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0, cd->id, s->num, 0);
+                } else {
+                    MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
+                            cd->content, cd->content_len,
+                            0, 0, cd->id, s->num, 0);
+                }
+            }
+            if (SGH_DIRECTION_TC(sgh) && s->flags & SIG_FLAG_TOCLIENT) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
+                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
+                            0, 0, cd->id, s->num, 0);
+                } else {
+                    MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
+                            cd->content, cd->content_len,
+                            0, 0, cd->id, s->num, 0);
+                }
+            }
+        }
+        /* tell matcher we are inspecting stream */
+        s->flags |= SIG_FLAG_MPM_STREAM;
+        s->mpm_pattern_id_div_8 = cd->id / 8;
+        s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+        if (cd->flags & DETECT_CONTENT_NEGATED) {
+            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+            s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+        }
+        sgh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+    }
+}
+
 static void PopulateMpmAddPatternToMpm(const DetectEngineCtx *de_ctx,
                                        SigGroupHead *sgh, Signature *s,
                                        SigMatch *mpm_sm)
@@ -1171,187 +1304,7 @@ static void PopulateMpmAddPatternToMpm(const DetectEngineCtx *de_ctx,
     switch (sm_list) {
         case DETECT_SM_LIST_PMATCH:
         {
-            cd = (DetectContentData *)mpm_sm->ctx;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                    !(cd->flags & DETECT_CONTENT_REPLACE) &&
-                    cd->content_len == cd->fp_chop_len) {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-
-                /* add the content to the "packet" mpm */
-                if (SignatureHasPacketContent(s)) {
-                    if (s->proto.proto[6 / 8] & 1 << (6 % 8)) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_ts,
-                                                                cd, s, flags, 1);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_tc,
-                                                                cd, s, flags, 1);
-                        }
-                    }
-                    if (s->proto.proto[17 / 8] & 1 << (17 % 8)) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_ts,
-                                                                cd, s, flags, 1);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_tc,
-                                                                cd, s, flags, 1);
-                        }
-                    }
-                    int i;
-                    for (i = 0; i < 256; i++) {
-                        if (i == 6 || i == 17)
-                            continue;
-                        if (s->proto.proto[i / 8] & (1 << (i % 8))) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_other_ctx,
-                                                                cd, s, flags, 1);
-                            break;
-                        }
-                    }
-                    /* tell matcher we are inspecting packet */
-                    s->flags |= SIG_FLAG_MPM_PACKET;
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_PACKET_NEG;
-                    }
-                }
-                if (SignatureHasStreamContent(s)) {
-                    if (cd->flags & DETECT_CONTENT_NOCASE) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
-                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
-                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                    } else {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
-                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
-                                            cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                    }
-                    /* tell matcher we are inspecting stream */
-                    s->flags |= SIG_FLAG_MPM_STREAM;
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                    }
-                }
-            } else {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                    !(cd->flags & DETECT_CONTENT_REPLACE)) {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-
-                if (SignatureHasPacketContent(s)) {
-                    /* add the content to the "packet" mpm */
-                    if (s->proto.proto[6 / 8] & 1 << (6 % 8)) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_ts,
-                                                                cd, s, flags, 0);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx_tc,
-                                                                cd, s, flags, 0);
-                        }
-                    }
-                    if (s->proto.proto[17 / 8] & 1 << (17 % 8)) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_ts,
-                                                                cd, s, flags, 0);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx_tc,
-                                                                cd, s, flags, 0);
-                        }
-                    }
-                    int i;
-                    for (i = 0; i < 256; i++) {
-                        if (i == 6 || i == 17)
-                            continue;
-                        if (s->proto.proto[i / 8] & (1 << (i % 8))) {
-                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_other_ctx,
-                                                                cd, s, flags, 0);
-                            break;
-                        }
-                    }
-                    /* tell matcher we are inspecting packet */
-                    s->flags |= SIG_FLAG_MPM_PACKET;
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_PACKET_NEG;
-                    }
-                }
-                if (SignatureHasStreamContent(s)) {
-                    /* add the content to the "packet" mpm */
-                    if (cd->flags & DETECT_CONTENT_NOCASE) {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            MpmAddPatternCI(sgh->mpm_stream_ctx_ts,
-                                            cd->content, cd->content_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            MpmAddPatternCI(sgh->mpm_stream_ctx_tc,
-                                            cd->content, cd->content_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                    } else {
-                        if (s->flags & SIG_FLAG_TOSERVER) {
-                            MpmAddPatternCS(sgh->mpm_stream_ctx_ts,
-                                            cd->content, cd->content_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                        if (s->flags & SIG_FLAG_TOCLIENT) {
-                            MpmAddPatternCS(sgh->mpm_stream_ctx_tc,
-                                            cd->content, cd->content_len,
-                                            0, 0,
-                                            cd->id, s->num, flags);
-                        }
-                    }
-                    /* tell matcher we are inspecting stream */
-                    s->flags |= SIG_FLAG_MPM_STREAM;
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                    }
-                }
-            }
-            if (SignatureHasPacketContent(s)) {
-                sgh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
-            }
-            if (SignatureHasStreamContent(s)) {
-                sgh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
-            }
-
+            PopulateMpmAddPatternToMpmPMATCH(de_ctx, sgh, s, mpm_sm);
             break;
         } /* case DETECT_CONTENT */
 
@@ -1767,94 +1720,101 @@ int PatternMatchPrepareGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sh)
         s = sh->match_array[sig];
         if (s == NULL)
             continue;
-
-        if (SignatureHasPacketContent(s) == 1) {
+        if (!(SGH_PROTO(sh, IPPROTO_TCP)) ||
+            (SGH_PROTO(sh, IPPROTO_TCP) && SignatureHasPacketContent(s) == 1))
+        {
             has_co_packet = 1;
         }
-        if (SignatureHasStreamContent(s) == 1) {
-            has_co_stream = 1;
-        }
 
-        if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-            has_co_uri = 1;
-        }
+        if (SGH_PROTO(sh, IPPROTO_TCP)) {
+            if (SignatureHasStreamContent(s) == 1) {
+                has_co_stream = 1;
+            }
 
-        if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
-            has_co_hcbd = 1;
-        }
+            if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+                has_co_uri = 1;
+            }
 
-        if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
-            if (s->alproto == ALPROTO_SMTP)
-                has_co_smtp = 1;
-            else if (s->alproto == ALPROTO_HTTP)
-                has_co_hsbd = 1;
-            else if (s->alproto == ALPROTO_UNKNOWN) {
-                has_co_smtp = 1;
-                has_co_hsbd = 1;
+            if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+                has_co_hcbd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_FILEDATA] != NULL) {
+                if (s->alproto == ALPROTO_SMTP)
+                    has_co_smtp = 1;
+                else if (s->alproto == ALPROTO_HTTP)
+                    has_co_hsbd = 1;
+                else if (s->alproto == ALPROTO_UNKNOWN) {
+                    has_co_smtp = 1;
+                    has_co_hsbd = 1;
+                }
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+                has_co_hhd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+                has_co_hrhd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+                has_co_hmd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
+                has_co_hcd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
+                has_co_hrud = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
+                has_co_hsmd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                has_co_hscd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                has_co_huad = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
+                has_co_hhhd = 1;
+            }
+
+            if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
+                has_co_hrhhd = 1;
             }
         }
 
-        if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
-            has_co_hhd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
-            has_co_hrhd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
-            has_co_hmd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
-            has_co_hcd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
-            has_co_hrud = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
-            has_co_hsmd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
-            has_co_hscd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
-            has_co_huad = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HHHDMATCH] != NULL) {
-            has_co_hhhd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_HRHHDMATCH] != NULL) {
-            has_co_hrhhd = 1;
-        }
-
-        if (s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH] != NULL) {
-            has_co_dnsquery = 1;
+        if (SGH_PROTO(sh, IPPROTO_TCP) || SGH_PROTO(sh, IPPROTO_UDP)) {
+            if (s->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH] != NULL) {
+                has_co_dnsquery = 1;
+            }
         }
     }
 
     /* intialize contexes */
     if (has_co_packet) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
-            sh->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
-        } else {
-            sh->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-            sh->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
+        if (SGH_PROTO(sh, IPPROTO_TCP)) {
+            if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+                sh->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+                sh->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+            } else {
+                sh->mpm_proto_tcp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
+                sh->mpm_proto_tcp_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
+            }
+            if (sh->mpm_proto_tcp_ctx_ts == NULL || sh->mpm_proto_tcp_ctx_tc == NULL) {
+                SCLogDebug("sh->mpm_proto_tcp_ctx == NULL. This should never happen");
+                exit(EXIT_FAILURE);
+            }
+            MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher);
+            MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher);
         }
-        if (sh->mpm_proto_tcp_ctx_ts == NULL || sh->mpm_proto_tcp_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_proto_tcp_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_ts, de_ctx->mpm_matcher);
-        MpmInitCtx(sh->mpm_proto_tcp_ctx_tc, de_ctx->mpm_matcher);
-
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
             sh->mpm_proto_udp_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
             sh->mpm_proto_udp_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
@@ -2136,6 +2096,7 @@ int PatternMatchPrepareGroup(const DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_hrhhd ||
         has_co_dnsquery)
     {
+        /* add the patterns of all the rules to the mpms of this sgh */
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
         if (sh->mpm_proto_tcp_ctx_ts != NULL) {
