@@ -150,7 +150,7 @@ void SigGroupHeadStore(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  * \retval sgh Pointer to the newly init SigGroupHead on success; or NULL in
  *             case of error.
  */
-static SigGroupHead *SigGroupHeadAlloc(DetectEngineCtx *de_ctx, uint32_t size)
+static SigGroupHead *SigGroupHeadAlloc(const DetectEngineCtx *de_ctx, uint32_t size)
 {
     SigGroupHead *sgh = SCMalloc(sizeof(SigGroupHead));
     if (unlikely(sgh == NULL))
@@ -998,7 +998,7 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx)
     return;
 }
 
-static uint16_t SignatureGetMpmPatternLen(Signature *s, int list)
+static uint16_t SignatureGetMpmPatternLen(const Signature *s, const int list)
 {
     if (s->sm_lists[list] != NULL && s->mpm_sm != NULL &&
         SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
@@ -1020,8 +1020,8 @@ static uint16_t SignatureGetMpmPatternLen(Signature *s, int list)
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
-                          Signature *s)
+int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh,
+                          const Signature *s)
 {
     if (de_ctx == NULL)
         return 0;
