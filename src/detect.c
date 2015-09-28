@@ -3004,7 +3004,9 @@ error:
     return -1;
 }
 
-static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, DetectEngineLookupFlow *flow_gh, Signature *s, int family)
+static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx,
+                                                    DetectEngineLookupFlow *flow_gh,
+                                                    Signature *s, int family)
 {
     DetectAddress *gr = NULL, *lookup_gr = NULL, *head = NULL;
     int proto;
@@ -3641,7 +3643,9 @@ error:
 /**
  *  \brief Build the destination address portion of the match tree
  */
-int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow)
+int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx,
+                                 DetectAddressHead *head,
+                                 int family, int flow, int ipproto)
 {
     Signature *tmp_s = NULL;
     DetectAddress *gr = NULL, *sgr = NULL, *lookup_gr = NULL;
@@ -3753,7 +3757,9 @@ error:
 }
 
 //static
-int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAddressHead *head, int family, int flow)
+int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx,
+                                              DetectAddressHead *head,
+                                              int family, int flow, int ipproto)
 {
     Signature *tmp_s = NULL;
     DetectAddress *src_gr = NULL, *dst_gr = NULL, *sig_gr = NULL, *lookup_gr = NULL;
@@ -4050,47 +4056,47 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
     int f = 0;
     int proto;
     for (f = 0; f < FLOW_STATES; f++) {
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET,f,IPPROTO_TCP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET,f,IPPROTO_UDP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET,f,IPPROTO_SCTP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET6,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET6,f,IPPROTO_TCP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET6,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET6,f,IPPROTO_UDP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET6,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET6,f,IPPROTO_SCTP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_UNSPEC,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_UNSPEC,f,IPPROTO_TCP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_UNSPEC,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_UNSPEC,f,IPPROTO_UDP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_UNSPEC,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_UNSPEC,f,IPPROTO_SCTP);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
@@ -4099,17 +4105,17 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
             if (proto == IPPROTO_TCP || proto == IPPROTO_UDP || proto == IPPROTO_SCTP)
                 continue;
 
-            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET,f);
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET,f,proto);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET) failed\n", proto);
                 goto error;
             }
-            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET6,f);
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET6,f,proto);
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_INET6) failed\n", proto);
                 goto error;
             }
-            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_UNSPEC,f); /* for any */
+            r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_UNSPEC,f,proto); /* for any */
             if (r < 0) {
                 printf ("BuildDestinationAddressHeads(src_gh[%" PRId32 "],AF_UNSPEC) failed\n", proto);
                 goto error;
