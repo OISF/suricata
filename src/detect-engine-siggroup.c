@@ -1142,6 +1142,15 @@ void SigGroupHeadSetSigCnt(SigGroupHead *sgh, uint32_t max_idx)
     return;
 }
 
+void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
+                                      uint8_t ipproto, uint8_t dir)
+{
+    if (sgh && sgh->init) {
+        sgh->init->protos[ipproto] = 1;
+        sgh->init->direction = dir;
+    }
+}
+
 /**
  * \brief Prints the memory statistics for the detect-engine-siggroup.[ch] module.
  */
