@@ -3728,6 +3728,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx,
             if (sgh == NULL) {
                 /* put the contents in our sig group head */
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
+                SigGroupHeadSetProtoAndDirection(sgr->sh, ipproto, flow);
                 SigGroupHeadBuildMatchArray(de_ctx, sgr->sh, max_idx);
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 SigGroupHeadStore(de_ctx, sgr->sh);
@@ -3957,6 +3958,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx,
                                 SCLogDebug("dp %p dp->sh %p is the original (sp %p, dst_gr %p, src_gr %p)", dp, dp->sh, sp, dst_gr, src_gr);
 
                                 SigGroupHeadSetSigCnt(dp->sh, max_idx);
+                                SigGroupHeadSetProtoAndDirection(dp->sh, ipproto, flow);
                                 SigGroupHeadBuildMatchArray(de_ctx,dp->sh, max_idx);
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
                                 SigGroupHeadStore(de_ctx, dp->sh);
