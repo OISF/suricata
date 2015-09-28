@@ -984,8 +984,8 @@ typedef struct SigGroupHeadInitData_ {
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
 
-    uint8_t protos[256];
-    uint8_t direction;
+    uint8_t protos[256];    /**< proto(s) this sgh is for */
+    uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
 
     /* port ptr */
     struct DetectPort_ *port;
