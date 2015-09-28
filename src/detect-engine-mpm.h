@@ -64,7 +64,7 @@ void PatternMatchDestroy(MpmCtx *, uint16_t);
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 void PatternMatchThreadPrint(MpmThreadCtx *, uint16_t);
 
-int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
+int PatternMatchPrepareGroup(const DetectEngineCtx *, SigGroupHead *);
 void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 void PatternMatchDestroyGroup(SigGroupHead *);
 
@@ -78,8 +78,8 @@ void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
 uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
 uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
 
-int SignatureHasPacketContent(Signature *);
-int SignatureHasStreamContent(Signature *);
+int SignatureHasPacketContent(const Signature *);
+int SignatureHasStreamContent(const Signature *);
 
 SigMatch *RetrieveFPForSig(Signature *s);
 SigMatch *RetrieveFPForSigV2(Signature *s);
