@@ -402,7 +402,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
     return ret;
 }
 
-static void EngineAnalysisRulesPrintFP(Signature *s)
+static void EngineAnalysisRulesPrintFP(const Signature *s)
 {
     DetectContentData *fp_cd = NULL;
     SigMatch *mpm_sm = s->mpm_sm;
@@ -506,7 +506,7 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
  *
  * \param s Pointer to the signature.
  */
-void EngineAnalysisRules(Signature *s, char *line)
+void EngineAnalysisRules(const Signature *s, const char *line)
 {
     uint32_t rule_bidirectional = 0;
     uint32_t rule_pcre = 0;

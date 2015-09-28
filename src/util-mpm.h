@@ -204,10 +204,10 @@ void MpmCudaEnvironmentSetup();
 struct DetectEngineCtx_;
 
 int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *, uint8_t);
-void MpmFactoryReClaimMpmCtx(struct DetectEngineCtx_ *, MpmCtx *);
-MpmCtx *MpmFactoryGetMpmCtxForProfile(struct DetectEngineCtx_ *, int32_t, int);
+void MpmFactoryReClaimMpmCtx(const struct DetectEngineCtx_ *, MpmCtx *);
+MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, int);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
-int32_t MpmFactoryIsMpmCtxAvailable(struct DetectEngineCtx_ *, MpmCtx *);
+int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
 int PmqSetup(PatternMatcherQueue *, uint32_t);
 void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);

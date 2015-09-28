@@ -26,7 +26,7 @@
 
 void DetectSigGroupPrintMemory(void);
 
-int SigGroupHeadAppendSig(DetectEngineCtx *, SigGroupHead **, Signature *);
+int SigGroupHeadAppendSig(const DetectEngineCtx *, SigGroupHead **, const Signature *);
 int SigGroupHeadClearSigs(SigGroupHead *);
 int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
 
