@@ -3534,6 +3534,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
     //SCLogInfo("sgh's %"PRIu32, de_ctx->sgh_array_cnt);
 
+    uint32_t cnt = 0;
     uint32_t idx = 0;
     for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
@@ -3550,7 +3551,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
         SCLogDebug("http_uri content min mpm len: %u", sgh->mpm_uricontent_minlen);
+        cnt++;
     }
+    SCLogInfo("Unique rule groups: %u", cnt);
 
     if (de_ctx->decoder_event_sgh != NULL) {
         /* no need to set filestore count here as that would make a
