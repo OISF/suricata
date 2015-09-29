@@ -2879,6 +2879,127 @@ static void SigParseApplyDsizeToContent(Signature *s)
     }
 }
 
+int RulesGroupByProto(DetectEngineCtx *de_ctx)
+{
+    Signature *s = de_ctx->sig_list;
+
+    uint32_t max_idx = 0;
+    SigGroupHead *sgh_ts[256] = {NULL};
+    SigGroupHead *sgh_tc[256] = {NULL};
+
+    for ( ; s != NULL; s = s->next) {
+        if (s->flags & SIG_FLAG_IPONLY)
+            continue;
+
+        int p;
+        for (p = 0; p < 256; p++) {
+            if (p == IPPROTO_TCP || p == IPPROTO_UDP) {
+                continue;
+            }
+            if (!(s->proto.proto[p / 8] & (1<<(p % 8)) || (s->proto.flags & DETECT_PROTO_ANY))) {
+                continue;
+            }
+
+            if (s->flags & SIG_FLAG_TOCLIENT) {
+                SigGroupHeadAppendSig(de_ctx, &sgh_tc[p], s);
+                max_idx = s->num;
+            }
+            if (s->flags & SIG_FLAG_TOSERVER) {
+                SigGroupHeadAppendSig(de_ctx, &sgh_ts[p], s);
+                max_idx = s->num;
+            }
+        }
+    }
+    SCLogDebug("max_idx %u", max_idx);
+
+    /* lets look at deduplicating this list */
+    SigGroupHeadHashFree(de_ctx);
+    SigGroupHeadHashInit(de_ctx);
+
+    uint32_t cnt = 0;
+    uint32_t own = 0;
+    uint32_t ref = 0;
+    int p;
+    for (p = 0; p < 256; p++) {
+        if (p == IPPROTO_TCP || p == IPPROTO_UDP)
+            continue;
+        if (sgh_ts[p] == NULL)
+            continue;
+
+        cnt++;
+
+        SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(de_ctx, sgh_ts[p]);
+        if (lookup_sgh == NULL) {
+            SCLogDebug("proto group %d sgh %p is the original", p, sgh_ts[p]);
+
+            SigGroupHeadSetSigCnt(sgh_ts[p], max_idx);
+            SigGroupHeadBuildMatchArray(de_ctx, sgh_ts[p], max_idx);
+
+            SigGroupHeadHashAdd(de_ctx, sgh_ts[p]);
+            SigGroupHeadStore(de_ctx, sgh_ts[p]);
+
+            de_ctx->gh_unique++;
+            own++;
+        } else {
+            SCLogDebug("proto group %d sgh %p is a copy", p, sgh_ts[p]);
+
+            SigGroupHeadFree(sgh_ts[p]);
+            sgh_ts[p] = lookup_sgh;
+            sgh_ts[p]->flags |= SIG_GROUP_HEAD_REFERENCED;
+
+            de_ctx->gh_reuse++;
+            ref++;
+        }
+    }
+    SCLogInfo("OTHER %s: %u proto groups, %u unique SGH's, %u copies", "toserver", cnt, own, ref);
+
+    cnt = 0;
+    own = 0;
+    ref = 0;
+    for (p = 0; p < 256; p++) {
+        if (p == IPPROTO_TCP || p == IPPROTO_UDP)
+            continue;
+        if (sgh_tc[p] == NULL)
+            continue;
+
+        cnt++;
+
+        SigGroupHead *lookup_sgh = SigGroupHeadHashLookup(de_ctx, sgh_tc[p]);
+        if (lookup_sgh == NULL) {
+            SCLogDebug("proto group %d sgh %p is the original", p, sgh_tc[p]);
+
+            SigGroupHeadSetSigCnt(sgh_tc[p], max_idx);
+            SigGroupHeadBuildMatchArray(de_ctx, sgh_tc[p], max_idx);
+
+            SigGroupHeadHashAdd(de_ctx, sgh_tc[p]);
+            SigGroupHeadStore(de_ctx, sgh_tc[p]);
+
+            de_ctx->gh_unique++;
+            own++;
+        } else {
+            SCLogDebug("proto group %d sgh %p is a copy", p, sgh_tc[p]);
+
+            SigGroupHeadFree(sgh_tc[p]);
+            sgh_tc[p] = lookup_sgh;
+            sgh_tc[p]->flags |= SIG_GROUP_HEAD_REFERENCED;
+
+            de_ctx->gh_reuse++;
+            ref++;
+        }
+    }
+    SCLogInfo("OTHER %s: %u proto groups, %u unique SGH's, %u copies", "toclient", cnt, own, ref);
+
+    for (p = 0; p < 256; p++) {
+        if (p == IPPROTO_TCP || p == IPPROTO_UDP)
+            continue;
+
+        de_ctx->flow_gh[0].sgh[p] = sgh_tc[p];
+        de_ctx->flow_gh[1].sgh[p] = sgh_ts[p];
+    }
+
+    return 0;
+}
+
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint32_t direction) {
     /* step 1: create a list of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
@@ -3092,41 +3213,6 @@ error:
     return -1;
 }
 
-/**
- *  \brief add signature to the right flow group(s)
- */
-static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s)
-{
-    SCLogDebug("s->id %u", s->id);
-
-    uint32_t cnt_ts = 0;
-    uint32_t cnt_tc = 0;
-
-    int p;
-    for (p = 0; p < 256; p++) {
-        if (p == IPPROTO_TCP || p == IPPROTO_UDP)
-            continue;
-
-        if (s->proto.proto[p / 8] & (1<<(p % 8)) || (s->proto.flags & DETECT_PROTO_ANY)) {
-            if (s->flags & SIG_FLAG_TOCLIENT) {
-                SigGroupHeadAppendSig(de_ctx, &de_ctx->flow_gh[0].sgh[p], s);
-                cnt_tc++;
-            }
-            if (s->flags & SIG_FLAG_TOSERVER) {
-                SigGroupHeadAppendSig(de_ctx, &de_ctx->flow_gh[1].sgh[p], s);
-                cnt_ts++;
-            }
-        }
-    }
-
-    /* see which rules use many protos. > 2 as alert icmp actually is also icmpv6. */
-    if (cnt_ts > 2 || cnt_tc > 2) {
-        SCLogDebug("Rule %u added to multiple proto groups (%u ts/%u tc)", s->id, cnt_ts, cnt_tc);
-    }
-
-    return 0;
-}
-
 //#define SMALL_MPM(c) 0
 #define SMALL_MPM(c) ((c) == 1)
 // || (c) == 2)
@@ -3329,14 +3415,14 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
     de_ctx->flow_gh[1].udp = RulesGroupByPorts(de_ctx, IPPROTO_UDP, SIG_FLAG_TOSERVER);
     de_ctx->flow_gh[0].udp = RulesGroupByPorts(de_ctx, IPPROTO_UDP, SIG_FLAG_TOCLIENT);
 
+    /* Setup the other IP Protocols (so not TCP/UDP) */
+    RulesGroupByProto(de_ctx);
+
     /* now for every rule add the source group to our temp lists */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
         SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
         if (tmp_s->flags & SIG_FLAG_IPONLY) {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
-        } else {
-            /* handle non-tcp/non-udp rules */
-            DetectEngineLookupFlowAddSig(de_ctx, tmp_s);
         }
 
         if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
@@ -3449,33 +3535,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     //SCLogInfo("sgh's %"PRIu32, de_ctx->sgh_array_cnt);
 
     uint32_t idx = 0;
-
-    for (idx = 0; idx < 256; idx++) {
-        int f = 0;
-        for (f = 0; f <= 1; f++) {
-            SigGroupHead *sgh = de_ctx->flow_gh[f].sgh[idx];
-            if (sgh == NULL) {
-                //SCLogInfo("skipped %u/%d", idx, f);
-                continue;
-            }
-
-            uint32_t max_idx = DetectEngineGetMaxSigId(de_ctx);
-            SigGroupHeadSetSigCnt(sgh, max_idx);
-            SigGroupHeadSetProtoAndDirection(sgh, idx,
-                    ((f == 1) ? SIG_FLAG_TOSERVER : SIG_FLAG_TOCLIENT));
-            SigGroupHeadBuildMatchArray(de_ctx, sgh, max_idx);
-            SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
-            SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
-            SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
-            SigGroupHeadSetFilestoreCount(de_ctx, sgh);
-            SCLogDebug("filestore count %u", sgh->filestore_cnt);
-
-            PatternMatchPrepareGroup(de_ctx, sgh);
-            SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
-        }
-    }
-
-
     for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
         if (sgh == NULL)
