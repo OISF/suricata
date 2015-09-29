@@ -3000,6 +3000,9 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
+int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
+
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint32_t direction) {
     /* step 1: create a list of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
@@ -3039,6 +3042,12 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
     next:
         s = s->next;
     }
+
+    SCLogDebug("rules analyzed");
+
+    DetectPort *newlist = NULL;
+    CreateGroupedPortList(de_ctx, list, &newlist, 10, CreateGroupedPortListCmpCnt, max_idx);
+    list = newlist;
 
     /* step 2: deduplicate the SGH's */
     SigGroupHeadHashFree(de_ctx);
@@ -3213,55 +3222,30 @@ error:
     return -1;
 }
 
-//#define SMALL_MPM(c) 0
-#define SMALL_MPM(c) ((c) == 1)
-// || (c) == 2)
-// || (c) == 3)
-
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
-    if (a->cnt > b->cnt)
+    if (a->sh->sig_cnt > b->sh->sig_cnt)
         return 1;
     return 0;
 }
 
-int CreateGroupedPortListCmpMpmMinlen(DetectPort *a, DetectPort *b)
-{
-    if (a->sh == NULL || b->sh == NULL)
-        return 0;
-
-    if (SMALL_MPM(a->sh->mpm_content_minlen))
-        return 1;
-
-    if (a->sh->mpm_content_minlen < b->sh->mpm_content_minlen)
-        return 1;
-
-    return 0;
-}
-
-static uint32_t g_groupportlist_maxgroups = 0;
-static uint32_t g_groupportlist_groupscnt = 0;
-static uint32_t g_groupportlist_totgroups = 0;
-
-int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx)
+int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx)
 {
     DetectPort *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
     char insert = 0;
     DetectPort *gr, *next_gr;
     uint32_t groups = 0;
-
-    HashListTableBucket *htb = HashListTableGetListHead(port_hash);
+    DetectPort *list;
 
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
-    for ( ; htb != NULL; htb = HashListTableGetListNext(htb)) {
-        gr = (DetectPort *)HashListTableGetListData(htb);
+    for (list = port_list; list != NULL; list = list->next) {
+        gr = (DetectPort *)list;
 
         SCLogDebug("hash list gr %p", gr);
         DetectPortPrint(gr);
 
-        if (SMALL_MPM(gr->sh->mpm_content_minlen) && unique_groups > 0)
-            unique_groups++;
+        SigGroupHeadSetSigCnt(gr->sh, max_idx);
 
         groups++;
 
@@ -3270,6 +3254,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         if (newtmp == NULL) {
             goto error;
         }
+        SigGroupHeadSetSigCnt(newtmp->sh, max_idx);
 
         /* insert it */
         DetectPort *tmpgr = tmplist, *prevtmpgr = NULL;
@@ -3300,12 +3285,8 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
     }
 
     uint32_t i = unique_groups;
-    if (i == 0) i = groups;
-
-    if (unique_groups > g_groupportlist_maxgroups)
-        g_groupportlist_maxgroups = unique_groups;
-    g_groupportlist_groupscnt++;
-    g_groupportlist_totgroups += unique_groups;
+    if (i == 0)
+        i = groups;
 
     for (gr = tmplist; gr != NULL; ) {
         SCLogDebug("temp list gr %p", gr);
