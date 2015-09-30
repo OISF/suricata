@@ -299,6 +299,8 @@ typedef enum {
     SC_ERR_MT_NO_SELECTOR,
     SC_ERR_MT_DUPLICATE_TENANT,
     SC_ERR_NO_JSON_SUPPORT,
+    SC_ERR_INVALID_RULE_ARGUMENT, /**< Generic error code for invalid
+                                   * rule argument. */
 } SCError;
 
 const char *SCErrorToString(SCError);
