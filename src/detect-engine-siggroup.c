@@ -629,6 +629,9 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     for (idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
 
+    if (src->init->whitelist)
+        (*dst)->init->whitelist = 1;
+
     if (src->mpm_content_minlen != 0) {
         if ((*dst)->mpm_content_minlen == 0)
             (*dst)->mpm_content_minlen = src->mpm_content_minlen;
