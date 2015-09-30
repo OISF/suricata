@@ -982,6 +982,7 @@ typedef struct SigGroupHeadInitData_ {
 
     uint8_t protos[256];    /**< proto(s) this sgh is for */
     uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
+    int whitelist;          /**< try to make this group a unique one */
 
     /* port ptr */
     struct DetectPort_ *port;
