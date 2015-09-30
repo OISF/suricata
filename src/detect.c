@@ -3224,136 +3224,147 @@ error:
 
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
-    if (a->sh->sig_cnt > b->sh->sig_cnt)
+    if (a->sh->sig_cnt > b->sh->sig_cnt) {
+        SCLogDebug("pg %u:%u %u > %u:%u %u",
+                a->port, a->port2, a->sh->sig_cnt,
+                b->port, b->port2, b->sh->sig_cnt);
         return 1;
+    }
     return 0;
 }
 
+/** \internal
+ *  \brief Create a list of DetectPort objects sorted based on CompareFunc's
+ *         logic.
+ *
+ *  List can limit the number of groups. In this case an extra "join" group
+ *  is created that contains the sigs belonging to that. It's *appended* to
+ *  the list, meaning that if the list is walked linearly it's found last.
+ *  The joingr is meant to be a catch all.
+ *
+ */
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx)
 {
-    DetectPort *tmplist = NULL, *tmplist2 = NULL, *joingr = NULL;
+    DetectPort *tmplist = NULL, *joingr = NULL;
     char insert = 0;
-    DetectPort *gr, *next_gr;
     uint32_t groups = 0;
     DetectPort *list;
 
-    /* insert the addresses into the tmplist, where it will
-     * be sorted descending on 'cnt'. */
-    for (list = port_list; list != NULL; list = list->next) {
-        gr = (DetectPort *)list;
+   /* insert the addresses into the tmplist, where it will
+     * be sorted descending on 'cnt' and on wehther a group
+     * is whitelisted. */
 
-        SCLogDebug("hash list gr %p", gr);
-        DetectPortPrint(gr);
-
-        SigGroupHeadSetSigCnt(gr->sh, max_idx);
+    DetectPort *oldhead = port_list;
+    while (oldhead) {
+        /* take the top of the list */
+        list = oldhead;
+        oldhead = oldhead->next;
+        list->next = NULL;
 
         groups++;
 
-        /* alloc a copy */
-        DetectPort *newtmp = DetectPortCopySingle(de_ctx, gr);
-        if (newtmp == NULL) {
-            goto error;
-        }
-        SigGroupHeadSetSigCnt(newtmp->sh, max_idx);
+        SigGroupHeadSetSigCnt(list->sh, max_idx);
 
         /* insert it */
         DetectPort *tmpgr = tmplist, *prevtmpgr = NULL;
         if (tmplist == NULL) {
             /* empty list, set head */
-            tmplist = newtmp;
+            tmplist = list;
         } else {
             /* look for the place to insert */
-            for ( ; tmpgr != NULL&&!insert; tmpgr = tmpgr->next) {
-                if (CompareFunc(gr, tmpgr)) {
+            for ( ; tmpgr != NULL && !insert; tmpgr = tmpgr->next) {
+                if (CompareFunc(list, tmpgr) == 1) {
                     if (tmpgr == tmplist) {
-                        newtmp->next = tmplist;
-                        tmplist = newtmp;
+                        list->next = tmplist;
+                        tmplist = list;
+                        SCLogDebug("new list top: %u:%u", tmplist->port, tmplist->port2);
                     } else {
-                        newtmp->next = prevtmpgr->next;
-                        prevtmpgr->next = newtmp;
+                        list->next = prevtmpgr->next;
+                        prevtmpgr->next = list;
                     }
                     insert = 1;
+                    break;
                 }
                 prevtmpgr = tmpgr;
             }
             if (insert == 0) {
-                newtmp->next = NULL;
-                prevtmpgr->next = newtmp;
+                list->next = NULL;
+                prevtmpgr->next = list;
             }
             insert = 0;
         }
     }
 
-    uint32_t i = unique_groups;
-    if (i == 0)
-        i = groups;
+    uint32_t left = unique_groups;
+    if (left == 0)
+        left = groups;
 
+    /* create another list: take the port groups from above
+     * and add them to the 2nd list until we have met our
+     * count. The rest is added to the 'join' group. */
+    DetectPort *tmplist2 = NULL, *tmplist2_tail = NULL;
+    DetectPort *gr, *next_gr;
     for (gr = tmplist; gr != NULL; ) {
-        SCLogDebug("temp list gr %p", gr);
+        next_gr = gr->next;
+
+        SCLogDebug("temp list gr %p %u:%u", gr, gr->port, gr->port2);
         DetectPortPrint(gr);
 
-        if (i == 0) {
+        /* if we've set up all the unique groups, add the rest to the
+         * catch-all joingr */
+        if (left == 0) {
             if (joingr == NULL) {
-                joingr = DetectPortCopySingle(de_ctx,gr);
+                DetectPortParse(de_ctx, &joingr, "0:65535");
                 if (joingr == NULL) {
                     goto error;
                 }
-            } else {
-                DetectPortJoin(de_ctx,joingr, gr);
+                SCLogDebug("joingr => %u-%u", joingr->port, joingr->port2);
+                joingr->next = NULL;
             }
+            SigGroupHeadCopySigs(de_ctx,gr->sh,&joingr->sh);
+
+            /* when a group's sigs are added to the joingr, we can free it */
+            gr->next = NULL;
+            DetectPortFree(gr);
+            gr = NULL;
+
+        /* append */
         } else {
-            DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
-            if (newtmp == NULL) {
-                goto error;
-            }
+            gr->next = NULL;
 
             if (tmplist2 == NULL) {
-                tmplist2 = newtmp;
+                tmplist2 = gr;
+                tmplist2_tail = gr;
             } else {
-                newtmp->next = tmplist2;
-                tmplist2 = newtmp;
+                tmplist2_tail->next = gr;
+                tmplist2_tail = gr;
             }
         }
-        if (i)i--;
 
-        next_gr = gr->next;
-        gr->next = NULL;
-        DetectPortFree(gr);
+        if (left > 0)
+            left--;
+
         gr = next_gr;
     }
 
-    /* we now have a tmplist2 containing the 'unique' groups and
-     * possibly a joingr that covers the rest. Now build the newhead
-     * that we will pass back to the caller.
-     *
-     * Start with inserting the unique groups */
-    for (gr = tmplist2; gr != NULL; ) {
-        SCLogDebug("temp list2 gr %p", gr);
-        DetectPortPrint(gr);
-
-        DetectPort *newtmp = DetectPortCopySingle(de_ctx,gr);
-        if (newtmp == NULL) {
-            goto error;
-        }
-
-        int r = DetectPortInsert(de_ctx,newhead,newtmp);
-        BUG_ON(r == -1);
-
-        next_gr = gr->next;
-        gr->next = NULL;
-        DetectPortFree(gr);
-        gr = next_gr;
-    }
-
-    DetectPortPrintList(*newhead);
-
-    /* if present, insert the joingr that covers the rest */
+    /* if present, append the joingr that covers the rest */
     if (joingr != NULL) {
-        SCLogDebug("inserting joingr %p", joingr);
-        DetectPortInsert(de_ctx,newhead,joingr);
+        SCLogDebug("appending joingr %p %u:%u", joingr, joingr->port, joingr->port2);
+
+        if (tmplist2 == NULL) {
+            tmplist2 = joingr;
+            tmplist2_tail = joingr;
+        } else {
+            tmplist2_tail->next = joingr;
+            tmplist2_tail = joingr;
+        }
     } else {
         SCLogDebug("no joingr");
     }
+
+    /* pass back our new list to the caller */
+    *newhead = tmplist2;
+    DetectPortPrintList(*newhead);
 
     return 0;
 error:
