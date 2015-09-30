@@ -3046,7 +3046,9 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
     SCLogDebug("rules analyzed");
 
     DetectPort *newlist = NULL;
-    CreateGroupedPortList(de_ctx, list, &newlist, 10, CreateGroupedPortListCmpCnt, max_idx);
+    uint16_t groupmax = (direction == SIG_FLAG_TOCLIENT) ? de_ctx->max_uniq_toclient_dp_groups :
+                                                           de_ctx->max_uniq_toserver_dp_groups;
+    CreateGroupedPortList(de_ctx, list, &newlist, groupmax, CreateGroupedPortListCmpCnt, max_idx);
     list = newlist;
 
     /* step 2: deduplicate the SGH's */
