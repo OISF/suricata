@@ -42,6 +42,8 @@
 #include "detect-uricontent.h"
 #include "detect-urilen.h"
 #include "detect-lua.h"
+#include "detect-base64-decode.h"
+#include "detect-base64-data.h"
 
 #include "app-layer-dcerpc.h"
 
@@ -551,6 +553,16 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         SCLogDebug("lua match");
         goto match;
 #endif /* HAVE_LUA */
+    } else if (sm->type == DETECT_BASE64_DECODE) {
+        if (DetectBase64DecodeDoMatch(det_ctx, s, sm, buffer, buffer_len)) {
+            if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
+                KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+                if (DetectBase64DataDoMatch(de_ctx, det_ctx, s, f)) {
+                    /* Base64 is a terminal list. */
+                    goto final_match;
+                }
+            }
+        }
     } else {
         SCLogDebug("sm->type %u", sm->type);
 #ifdef DEBUG
@@ -569,8 +581,8 @@ match:
         KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
         int r = DetectEngineContentInspection(de_ctx, det_ctx, s, sm->next, f, buffer, buffer_len, stream_start_offset, inspection_mode, data);
         SCReturnInt(r);
-    } else {
-        KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
-        SCReturnInt(1);
     }
+final_match:
+    KEYWORD_PROFILING_END(det_ctx, sm->type, 1);
+    SCReturnInt(1);
 }
