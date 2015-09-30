@@ -60,6 +60,8 @@
 #include "detect-engine-event.h"
 #include "decode.h"
 
+#include "detect-base64-decode.h"
+#include "detect-base64-data.h"
 #include "detect-ipopts.h"
 #include "detect-flags.h"
 #include "detect-fragbits.h"
@@ -1254,6 +1256,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
 
+    det_ctx->base64_decoded_len = 0;
+
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         SCReturnInt(0);
@@ -1728,6 +1732,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (smd->is_last)
                         break;
                     smd++;
+                }
+            }
+        }
+
+        /* Match on base64 decoded data for stateless rules. */
+        if (!(sflags & SIG_FLAG_STATE_MATCH)) {
+            if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
+                if (!DetectBase64DataDoMatch(de_ctx, det_ctx, s, pflow)) {
+                    goto next;
                 }
             }
         }
@@ -5130,6 +5143,8 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectAppLayerProtocolRegister();
+    DetectBase64DecodeRegister();
+    DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplateBufferRegister();
 }
