@@ -2971,6 +2971,24 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
     return 0;
 }
 
+int tcp_whitelisted[] = { 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080, -1 };
+int udp_whitelisted[] = { 53, 135, 5060, -1 };
+
+static int PortIsWhitelisted(const DetectPort *a, int ipproto)
+{
+    int *w = tcp_whitelisted;
+    if (ipproto == IPPROTO_UDP)
+        w = udp_whitelisted;
+    while (*w++ != -1) {
+        if (a->port >= *w && a->port2 <= *w) {
+            SCLogDebug("port group %u:%u whitelisted -> %d", a->port, a->port2, *w);
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
@@ -3016,6 +3034,13 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
             BUG_ON(tmp == NULL);
             SigGroupHeadAppendSig(de_ctx, &tmp->sh, s);
+            tmp->sh->init->whitelist = PortIsWhitelisted(tmp, ipproto);
+            if (tmp->sh->init->whitelist) {
+                SCLogDebug("%s/%s Rule %u whitelisted port group %u:%u",
+                        direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
+                        ipproto == 6 ? "TCP" : "UDP",
+                        s->id, p->port, p->port2);
+            }
 
             int r = DetectPortInsert(de_ctx, &list , tmp);
             BUG_ON(r == -1);
@@ -3072,7 +3097,10 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
     }
 #if 0
     for (iter = list ; iter != NULL; iter = iter->next) {
-        SCLogInfo("PORT %u-%u %p (sgh=%s)", iter->port, iter->port2, iter->sh, iter->flags & PORT_SIGGROUPHEAD_COPY ? "ref" : "own");
+        SCLogInfo("PORT %u-%u %p (sgh=%s, whitelisted=%s)",
+                iter->port, iter->port2, iter->sh,
+                iter->flags & PORT_SIGGROUPHEAD_COPY ? "ref" : "own",
+                iter->sh->init->whitelist ? "true" : "false");
     }
 #endif
     SCLogInfo("%s %s: %u port groups, %u unique SGH's, %u copies",
@@ -3208,8 +3236,17 @@ error:
     return -1;
 }
 
+static int PortGroupIsWhitelisted(const DetectPort *a)
+{
+    return a->sh->init->whitelist;
+}
+
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
+    if (PortGroupIsWhitelisted(a) && !PortGroupIsWhitelisted(b))
+        return 1;
+    if (!PortGroupIsWhitelisted(a) && PortGroupIsWhitelisted(b))
+        return 0;
     if (a->sh->sig_cnt > b->sh->sig_cnt) {
         SCLogDebug("pg %u:%u %u > %u:%u %u",
                 a->port, a->port2, a->sh->sig_cnt,
