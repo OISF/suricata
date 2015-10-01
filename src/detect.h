@@ -455,6 +455,11 @@ typedef struct Signature_ {
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
 
+    /** score to influence rule grouping. A higher value leads to a higher
+     *  likelyhood of a rulegroup with this sig ending up as a contained
+     *  group. */
+    int whitelist;
+
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
