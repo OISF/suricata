@@ -1376,8 +1376,23 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 
             const DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
 
-            PopulateMpmHelperAddPatternToPktCtx(ms->mpm_ctx,
-                    cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+            int skip = 0;
+            /* negated logic: if mpm match can't be used to be sure about this
+             * pattern, we have to inspect the rule fully regardless of mpm
+             * match. So in this case there is no point of adding it at all.
+             * The non-mpm list entry for the sig will make sure the sig is
+             * inspected. */
+            if ((cd->flags & DETECT_CONTENT_NEGATED) &&
+                !(DETECT_CONTENT_MPM_IS_CONCLUSIVE(cd)))
+            {
+                skip = 1;
+                SCLogDebug("not adding negated mpm as it's not 'single'");
+            }
+
+            if (!skip) {
+                PopulateMpmHelperAddPatternToPktCtx(ms->mpm_ctx,
+                        cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
+            }
         }
     }
 
