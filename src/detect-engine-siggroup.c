@@ -630,7 +630,7 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
 
     if (src->init->whitelist)
-        (*dst)->init->whitelist = 1;
+        (*dst)->init->whitelist = MAX((*dst)->init->whitelist, src->init->whitelist);
 
     if (src->mpm_content_minlen != 0) {
         if ((*dst)->mpm_content_minlen == 0)
