@@ -763,7 +763,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
         goto final;
     }
     while (1) {
-        if (mpm <= nonmpm) {
+        if (mpm < nonmpm) {
             /* Take from mpm list */
             id = mpm;
 
@@ -776,12 +776,12 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
             if (unlikely(--m_cnt == 0)) {
                 /* mpm list is now empty */
                 final_ptr = nonmpm_ptr;
-                 final_cnt = n_cnt;
-                 goto final;
+                final_cnt = n_cnt;
+                goto final;
              }
              mpm_ptr++;
              mpm = *mpm_ptr;
-         } else {
+         } else if (mpm > nonmpm) {
              id = nonmpm;
 
              s = sig_array[id];
@@ -797,6 +797,38 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
              }
              nonmpm_ptr++;
              nonmpm = *nonmpm_ptr;
+
+        } else { /* implied mpm == nonmpm */
+            /* special case: if on both lists, it's a negated mpm pattern */
+
+            /* mpm list may have dups, so skip past them here */
+            while (--m_cnt != 0) {
+                mpm_ptr++;
+                mpm = *mpm_ptr;
+                if (mpm != nonmpm)
+                    break;
+            }
+            /* if mpm is done, update nonmpm_ptrs and jump to final */
+            if (unlikely(m_cnt == 0)) {
+                n_cnt--;
+
+                /* mpm list is now empty */
+                final_ptr = ++nonmpm_ptr;
+                final_cnt = n_cnt;
+                goto final;
+            }
+            /* otherwise, if nonmpm is done jump to final for mpm
+             * mpm ptrs alrady updated */
+            if (unlikely(--n_cnt == 0)) {
+                final_ptr = mpm_ptr;
+                final_cnt = m_cnt;
+                goto final;
+            }
+
+            /* not at end of the lists, update nonmpm. Mpm already
+             * updated in while loop above. */
+            nonmpm_ptr++;
+            nonmpm = *nonmpm_ptr;
         }
     }
 
