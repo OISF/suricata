@@ -1213,14 +1213,32 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
 static inline void DetectPrefilterBuildNonMpmList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
     uint32_t x = 0;
-    for (x = 0; x < det_ctx->sgh->non_mpm_store_cnt; x++) {
+    for (x = 0; x < det_ctx->non_mpm_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
-        SignatureMask rule_mask = det_ctx->sgh->non_mpm_store_array[x].mask;
+        SignatureMask rule_mask = det_ctx->non_mpm_store_ptr[x].mask;
         if ((rule_mask & mask) == rule_mask) {
-            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->sgh->non_mpm_store_array[x].id;
+            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->non_mpm_store_ptr[x].id;
         }
     }
+}
+
+/** \internal
+ *  \brief select non-mpm list
+ *  Based on the packet properties, select the non-mpm list to use */
+static inline void DetectPrefilterSetNonMpmList(const Packet *p, DetectEngineThreadCtx *det_ctx)
+{
+    if ((p->proto == IPPROTO_TCP) && (p->tcph != NULL) && (p->tcph->th_flags & TH_SYN)) {
+        det_ctx->non_mpm_store_ptr = det_ctx->sgh->non_mpm_syn_store_array;
+        det_ctx->non_mpm_store_cnt = det_ctx->sgh->non_mpm_syn_store_cnt;
+    } else {
+        det_ctx->non_mpm_store_ptr = det_ctx->sgh->non_mpm_other_store_array;
+        det_ctx->non_mpm_store_cnt = det_ctx->sgh->non_mpm_other_store_cnt;
+    }
+    SCLogDebug("sgh non_mpm ptr %p cnt %u (syn %p/%u, other %p/%u)",
+            det_ctx->non_mpm_store_ptr, det_ctx->non_mpm_store_cnt,
+            det_ctx->sgh->non_mpm_syn_store_array, det_ctx->sgh->non_mpm_syn_store_cnt,
+            det_ctx->sgh->non_mpm_other_store_array, det_ctx->sgh->non_mpm_other_store_cnt);
 }
 
 /**
@@ -1429,6 +1447,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         goto end;
     }
 
+    DetectPrefilterSetNonMpmList(p, det_ctx);
+
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
@@ -1452,7 +1472,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* build and prefilter non_mpm list against the mask of the packet */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
     det_ctx->non_mpm_id_cnt = 0;
-    if (likely(det_ctx->sgh->non_mpm_store_cnt > 0)) {
+    if (likely(det_ctx->non_mpm_store_cnt > 0)) {
         DetectPrefilterBuildNonMpmList(det_ctx, mask);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
@@ -1466,7 +1486,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         StatsAddUI64(th_v, det_ctx->counter_mpm_list,
                              (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         StatsAddUI64(th_v, det_ctx->counter_nonmpm_list,
-                             (uint64_t)det_ctx->sgh->non_mpm_store_cnt);
+                             (uint64_t)det_ctx->non_mpm_store_cnt);
         /* non mpm sigs after mask prefilter */
         StatsAddUI64(th_v, det_ctx->counter_fnonmpm_list,
                              (uint64_t)det_ctx->non_mpm_id_cnt);
