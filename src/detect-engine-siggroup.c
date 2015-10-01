@@ -39,6 +39,7 @@
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-flags.h"
 
 #include "util-hash.h"
 #include "util-hashlist.h"
@@ -180,10 +181,16 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         sgh->match_array = NULL;
     }
 
-    if (sgh->non_mpm_store_array != NULL) {
-        SCFree(sgh->non_mpm_store_array);
-        sgh->non_mpm_store_array = NULL;
-        sgh->non_mpm_store_cnt = 0;
+    if (sgh->non_mpm_other_store_array != NULL) {
+        SCFree(sgh->non_mpm_other_store_array);
+        sgh->non_mpm_other_store_array = NULL;
+        sgh->non_mpm_other_store_cnt = 0;
+    }
+
+    if (sgh->non_mpm_syn_store_array != NULL) {
+        SCFree(sgh->non_mpm_syn_store_array);
+        sgh->non_mpm_syn_store_array = NULL;
+        sgh->non_mpm_syn_store_cnt = 0;
     }
 
     sgh->sig_cnt = 0;
@@ -957,53 +964,64 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     Signature *s = NULL;
     uint32_t sig = 0;
     uint32_t non_mpm = 0;
+    uint32_t non_mpm_syn = 0;
 
     if (sgh == NULL)
         return 0;
 
-    BUG_ON(sgh->non_mpm_store_array != NULL);
+    BUG_ON(sgh->non_mpm_other_store_array != NULL);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL)
-            non_mpm++;
-        else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))
-            non_mpm++;
+        if (s->mpm_sm == NULL || (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))) {
+            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
+                non_mpm++;
+            }
+            non_mpm_syn++;
+        }
     }
 
-    if (non_mpm == 0) {
-        sgh->non_mpm_store_array = NULL;
+    if (non_mpm == 0 && non_mpm_syn == 0) {
+        sgh->non_mpm_other_store_array = NULL;
+        sgh->non_mpm_syn_store_array = NULL;
         return 0;
     }
 
-    sgh->non_mpm_store_array = SCMalloc(non_mpm * sizeof(SignatureNonMpmStore));
-    BUG_ON(sgh->non_mpm_store_array == NULL);
-    memset(sgh->non_mpm_store_array, 0, non_mpm * sizeof(SignatureNonMpmStore));
+    sgh->non_mpm_other_store_array = SCMalloc(non_mpm * sizeof(SignatureNonMpmStore));
+    BUG_ON(sgh->non_mpm_other_store_array == NULL);
+    memset(sgh->non_mpm_other_store_array, 0, non_mpm * sizeof(SignatureNonMpmStore));
+
+    sgh->non_mpm_syn_store_array = SCMalloc(non_mpm_syn * sizeof(SignatureNonMpmStore));
+    BUG_ON(sgh->non_mpm_syn_store_array == NULL);
+    memset(sgh->non_mpm_syn_store_array, 0, non_mpm_syn * sizeof(SignatureNonMpmStore));
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL) {
-            BUG_ON(sgh->non_mpm_store_cnt >= non_mpm);
-            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].id = s->num;
-            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].mask = s->mask;
-            sgh->non_mpm_store_cnt++;
-        } else if (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG)) {
-            BUG_ON(sgh->non_mpm_store_cnt >= non_mpm);
-            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].id = s->num;
-            sgh->non_mpm_store_array[sgh->non_mpm_store_cnt].mask = s->mask;
-            sgh->non_mpm_store_cnt++;
+        if (s->mpm_sm == NULL || (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))) {
+            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
+                BUG_ON(sgh->non_mpm_other_store_cnt >= non_mpm);
+                sgh->non_mpm_other_store_array[sgh->non_mpm_other_store_cnt].id = s->num;
+                sgh->non_mpm_other_store_array[sgh->non_mpm_other_store_cnt].mask = s->mask;
+                sgh->non_mpm_other_store_cnt++;
+            }
+
+            BUG_ON(sgh->non_mpm_syn_store_cnt >= non_mpm_syn);
+            sgh->non_mpm_syn_store_array[sgh->non_mpm_syn_store_cnt].id = s->num;
+            sgh->non_mpm_syn_store_array[sgh->non_mpm_syn_store_cnt].mask = s->mask;
+            sgh->non_mpm_syn_store_cnt++;
         }
     }
 
     /* track highest cnt for any sgh in our de_ctx */
-    if (sgh->non_mpm_store_cnt > de_ctx->non_mpm_store_cnt_max)
-        de_ctx->non_mpm_store_cnt_max = sgh->non_mpm_store_cnt;
+    uint32_t max = MAX(sgh->non_mpm_other_store_cnt, sgh->non_mpm_syn_store_cnt);
+    if (max > de_ctx->non_mpm_store_cnt_max)
+        de_ctx->non_mpm_store_cnt_max = max;
 
     return 0;
 }
