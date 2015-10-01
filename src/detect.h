@@ -736,6 +736,11 @@ typedef struct FiledataReassembledBody_ {
 /** \todo review how many we actually need here */
 #define DETECT_SMSG_PMQ_NUM 256
 
+typedef struct SignatureNonMpmStore_ {
+    SigIntId id;
+    SignatureMask mask;
+} SignatureNonMpmStore;
+
 /**
   * Detection engine thread data.
   */
@@ -832,6 +837,10 @@ typedef struct DetectEngineThreadCtx_ {
     uint8_t *de_state_sig_array;
 
     struct SigGroupHead_ *sgh;
+
+    SignatureNonMpmStore *non_mpm_store_ptr;
+    uint32_t non_mpm_store_cnt;
+
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
      *  or uricontent ctx. */
@@ -983,11 +992,6 @@ typedef struct SigGroupHeadInitData_ {
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
 
-typedef struct SignatureNonMpmStore_ {
-    SigIntId id;
-    SignatureMask mask;
-} SignatureNonMpmStore;
-
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
     uint32_t flags;
@@ -1003,8 +1007,12 @@ typedef struct SigGroupHead_ {
     SignatureMask *mask_array;
 #endif
 
-    SignatureNonMpmStore *non_mpm_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
-    uint32_t non_mpm_store_cnt;
+    /* non mpm list excluding SYN rules */
+    SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
+    uint32_t non_mpm_other_store_cnt;
+    /* non mpm list including SYN rules */
+    SignatureNonMpmStore *non_mpm_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonMpmStore)
+    uint32_t non_mpm_syn_store_cnt;
 
     /* pattern matcher instances */
     const MpmCtx *mpm_proto_other_ctx;
