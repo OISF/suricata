@@ -2848,6 +2848,40 @@ static void SigParseApplyDsizeToContent(Signature *s)
     }
 }
 
+/** \brief Pure-PCRE or bytetest rule */
+int RuleInspectsPayloadHasNoMpm(const Signature *s)
+{
+    if (s->mpm_sm == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
+        return 1;
+    return 0;
+}
+
+int RuleGetMpmPatternSize(const Signature *s)
+{
+    if (s->mpm_sm == NULL)
+        return -1;
+    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    if (mpm_list < 0)
+        return -1;
+    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    if (cd == NULL)
+        return -1;
+    return (int)cd->content_len;
+}
+
+int RuleMpmIsNegated(const Signature *s)
+{
+    if (s->mpm_sm == NULL)
+        return 0;
+    int mpm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+    if (mpm_list < 0)
+        return 0;
+    const DetectContentData *cd = (const DetectContentData *)s->mpm_sm->ctx;
+    if (cd == NULL)
+        return 0;
+    return (cd->flags & DETECT_CONTENT_NEGATED);
+}
+
 int RulesGroupByProto(DetectEngineCtx *de_ctx)
 {
     Signature *s = de_ctx->sig_list;
@@ -2987,6 +3021,49 @@ static int PortIsWhitelisted(const DetectPort *a, int ipproto)
     return 0;
 }
 
+static int RuleSetWhitelist(Signature *s)
+{
+    DetectPort *p = NULL;
+    if (s->flags & SIG_FLAG_TOSERVER)
+        p = s->dp;
+    else if (s->flags & SIG_FLAG_TOCLIENT)
+        p = s->sp;
+    else
+        return 0;
+
+    /* for sigs that don't use 'any' as port, see if we want to
+     * whitelist poor sigs */
+    int wl = 0;
+    if (!(p->port == 0 && p->port2 == 65535)) {
+        /* pure pcre, bytetest, etc rules */
+        if (RuleInspectsPayloadHasNoMpm(s)) {
+            SCLogDebug("Rule %u MPM has 1 byte fast_pattern. Whitelisting SGH's.", s->id);
+            wl = 99;
+
+        } else if (RuleMpmIsNegated(s)) {
+            SCLogDebug("Rule %u MPM is negated. Whitelisting SGH's.", s->id);
+            wl = 77;
+
+            /* one byte pattern in packet/stream payloads */
+        } else if (s->mpm_sm != NULL &&
+                   SigMatchListSMBelongsTo(s, s->mpm_sm) == DETECT_SM_LIST_PMATCH &&
+                   RuleGetMpmPatternSize(s) == 1)
+        {
+            SCLogDebug("Rule %u No MPM. Payload inspecting. Whitelisting SGH's.", s->id);
+            wl = 55;
+
+        } else if (DetectFlagsSignatureNeedsSynPackets(s) &&
+                   DetectFlagsSignatureNeedsSynOnlyPackets(s))
+        {
+            SCLogDebug("Rule %u Needs SYN, so inspected often. Whitelisting SGH's.", s->id);
+            wl = 33;
+        }
+    }
+
+    s->whitelist = wl;
+    return wl;
+}
+
 int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, DetectPort **newhead, uint32_t unique_groups, int (*CompareFunc)(DetectPort *, DetectPort *), uint32_t max_idx);
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
@@ -3028,11 +3105,14 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             goto next;
         }
 
+        int wl = s->whitelist;
         while (p) {
             DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
             BUG_ON(tmp == NULL);
             SigGroupHeadAppendSig(de_ctx, &tmp->sh, s);
-            tmp->sh->init->whitelist = PortIsWhitelisted(tmp, ipproto);
+
+            int pwl = PortIsWhitelisted(tmp, ipproto) ? 111 : 0;
+            tmp->sh->init->whitelist = MAX(wl, pwl);
             if (tmp->sh->init->whitelist) {
                 SCLogDebug("%s/%s Rule %u whitelisted port group %u:%u",
                         direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
@@ -3095,10 +3175,11 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
     }
 #if 0
     for (iter = list ; iter != NULL; iter = iter->next) {
-        SCLogInfo("PORT %u-%u %p (sgh=%s, whitelisted=%s)",
+        SCLogInfo("PORT %u-%u %p (sgh=%s, whitelisted=%s/%d)",
                 iter->port, iter->port2, iter->sh,
                 iter->flags & PORT_SIGGROUPHEAD_COPY ? "ref" : "own",
-                iter->sh->init->whitelist ? "true" : "false");
+                iter->sh->init->whitelist ? "true" : "false",
+                iter->sh->init->whitelist);
     }
 #endif
     SCLogInfo("%s %s: %u port groups, %u unique SGH's, %u copies",
@@ -3211,6 +3292,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
         SignatureCreateMask(tmp_s);
         SigParseApplyDsizeToContent(tmp_s);
 
+        RuleSetWhitelist(tmp_s);
+
         de_ctx->sig_cnt++;
     }
 
@@ -3234,23 +3317,40 @@ error:
     return -1;
 }
 
-static int PortGroupIsWhitelisted(const DetectPort *a)
+static int PortGroupWhitelist(const DetectPort *a)
 {
     return a->sh->init->whitelist;
 }
 
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
 {
-    if (PortGroupIsWhitelisted(a) && !PortGroupIsWhitelisted(b))
+    if (PortGroupWhitelist(a) && !PortGroupWhitelist(b)) {
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
+                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
+                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
         return 1;
-    if (!PortGroupIsWhitelisted(a) && PortGroupIsWhitelisted(b))
+    } else if (!PortGroupWhitelist(a) && PortGroupWhitelist(b)) {
+        SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
+                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
+                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
         return 0;
-    if (a->sh->sig_cnt > b->sh->sig_cnt) {
-        SCLogDebug("pg %u:%u %u > %u:%u %u",
-                a->port, a->port2, a->sh->sig_cnt,
-                b->port, b->port2, b->sh->sig_cnt);
+    } else if (PortGroupWhitelist(a) > PortGroupWhitelist(b)) {
+        SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
+                a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
+                b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
         return 1;
+    } else if (PortGroupWhitelist(a) == PortGroupWhitelist(b)) {
+        if (a->sh->sig_cnt > b->sh->sig_cnt) {
+            SCLogDebug("%u:%u (cnt %u, wl %d) wins against %u:%u (cnt %u, wl %d)",
+                    a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
+                    b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
+            return 1;
+        }
     }
+
+    SCLogDebug("%u:%u (cnt %u, wl %d) loses against %u:%u (cnt %u, wl %d)",
+            a->port, a->port2, a->sh->sig_cnt, PortGroupWhitelist(a),
+            b->port, b->port2, b->sh->sig_cnt, PortGroupWhitelist(b));
     return 0;
 }
 
