@@ -2040,6 +2040,13 @@ static int ProcessBodyComplete(MimeDecParseState *state)
         }
     }
 
+#ifdef HAVE_NSS
+    if (state->md5_ctx) {
+        unsigned int len = 0;
+        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
+    }
+#endif
+
     /* Invoke pre-processor and callback with remaining data */
     ret = ProcessDecodedDataChunk(state->data_chunk, state->data_chunk_len, state);
     if (ret != MIME_DEC_OK) {
@@ -2209,12 +2216,14 @@ static int ProcessMimeBody(const uint8_t *buf, uint32_t len,
     uint32_t tlen;
 
 #ifdef HAVE_NSS
-    if (MimeDecGetConfig()->body_md5 && state->body_begin == 1 && (state->md5_ctx == NULL)) {
-        state->md5_ctx = HASH_Create(HASH_AlgMD5);
-        if (state->md5_ctx != NULL) {
-            HASH_Begin(state->md5_ctx);
-            HASH_Update(state->md5_ctx, buf, len + 2); /* plus 2 to add CRLF */
+    if (MimeDecGetConfig()->body_md5) {
+        if (state->body_begin == 1) {
+            if (state->md5_ctx == NULL) {
+                state->md5_ctx = HASH_Create(HASH_AlgMD5);
+                HASH_Begin(state->md5_ctx);
+            }
         }
+        HASH_Update(state->md5_ctx, buf, len + state->current_line_delimiter_len);
     }
 #endif
 
@@ -2474,13 +2483,6 @@ int MimeDecParseComplete(MimeDecParseState *state)
         return ret;
     }
 
-#ifdef HAVE_NSS
-    if (state->md5_ctx) {
-        unsigned int len = 0;
-        HASH_End(state->md5_ctx, state->md5, &len, sizeof(state->md5));
-    }
-#endif
-
     if (state->stack->top == NULL) {
         state->msg->anomaly_flags |= ANOM_MALFORMED_MSG;
         SCLogDebug("Error: Message is malformed");
@@ -2513,12 +2515,13 @@ int MimeDecParseComplete(MimeDecParseState *state)
  *
  * \param line A string representing the line (w/out CRLF)
  * \param len The length of the line
+ * \param delim_len The length of the line end delimiter
  * \param state The parser state
  *
  * \return MIME_DEC_OK on success, otherwise < 0 on failure
  */
 int MimeDecParseLine(const uint8_t *line, const uint32_t len,
-        MimeDecParseState *state)
+        const uint8_t delim_len, MimeDecParseState *state)
 {
     int ret = MIME_DEC_OK;
 
@@ -2529,11 +2532,7 @@ int MimeDecParseLine(const uint8_t *line, const uint32_t len,
         SCLogDebug("SMTP LINE - EMPTY");
     }
 
-#ifdef HAVE_NSS
-    if (state->md5_ctx) {
-        HASH_Update(state->md5_ctx, line, len + 2);
-    }
-#endif
+    state->current_line_delimiter_len = delim_len;
     /* Process the entity */
     ret = ProcessMimeEntity(line, len, state);
     if (ret != MIME_DEC_OK) {
@@ -2581,8 +2580,10 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
 
             line = tok;
 
+            state->current_line_delimiter_len = (remainPtr - tok) - tokLen;
             /* Parse the line */
-            ret = MimeDecParseLine(line, tokLen, state);
+            ret = MimeDecParseLine(line, tokLen,
+                                   (remainPtr - tok) - tokLen, state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("Error: MimeDecParseLine() function failed: %d",
                         ret);
@@ -2669,25 +2670,25 @@ static int MimeDecParseLineTest01(void)
             TestDataChunkCallback);
 
     char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "A simple message line 2";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "A simple message line 3";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     if (ret != MIME_DEC_OK) {
         return ret;
@@ -2737,23 +2738,23 @@ static int MimeDecParseLineTest02(void)
             TestDataChunkCallback);
 
     char *str = "From: Sender1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "To: Recipient1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "Content-Type: text/plain";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "A simple message line 1";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     str = "A simple message line 2 click on http://www.test.com/malware.exe?"
             "hahah hopefully you click this link";
-    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), state);
+    ret |= MimeDecParseLine((uint8_t *)str, strlen(str), 1, state);
 
     if (ret != MIME_DEC_OK) {
         return ret;
