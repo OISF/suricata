@@ -813,7 +813,8 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 
         if (smtp_config.decode_mime && state->curr_tx->mime_state) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
-                    state->current_line_len, state->curr_tx->mime_state);
+                    state->current_line_len, state->current_line_delimiter_len,
+                    state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
             }

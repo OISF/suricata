@@ -207,6 +207,7 @@ typedef struct MimeDecParseState {
     int found_child;  /**< Flag indicating a child entity was found */
     int body_begin;  /**< Currently at beginning of body */
     int body_end;  /**< Currently at end of body */
+    uint8_t current_line_delimiter_len; /**< Length of line delimiter */
     void *data;  /**< Pointer to data specific to the caller */
     int (*DataChunkProcessorFunc) (const uint8_t *chunk, uint32_t len,
             struct MimeDecParseState *state);  /**< Data chunk processing function callback */
@@ -236,7 +237,7 @@ MimeDecParseState * MimeDecInitParser(void *data, int (*dcpfunc)(const uint8_t *
         uint32_t len, MimeDecParseState *state));
 void MimeDecDeInitParser(MimeDecParseState *state);
 int MimeDecParseComplete(MimeDecParseState *state);
-int MimeDecParseLine(const uint8_t *line, const uint32_t len, MimeDecParseState *state);
+int MimeDecParseLine(const uint8_t *line, const uint32_t len, const uint8_t delim_len, MimeDecParseState *state);
 MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *data,
         int (*DataChunkProcessorFunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
 const char *MimeDecParseStateGetStatus(MimeDecParseState *state);
