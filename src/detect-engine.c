@@ -1022,8 +1022,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     uint8_t profile = ENGINE_PROFILE_UNKNOWN;
     char *de_ctx_profile = NULL;
 
-    const char *max_uniq_toclient_dp_groups_str = NULL;
-    const char *max_uniq_toserver_dp_groups_str = NULL;
+    const char *max_uniq_toclient_groups_str = NULL;
+    const char *max_uniq_toserver_groups_str = NULL;
 
     char *sgh_mpm_context = NULL;
 
@@ -1103,49 +1103,49 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     opt = NULL;
     switch (profile) {
         case ENGINE_PROFILE_LOW:
-            de_ctx->max_uniq_toclient_dp_groups = 3;
-            de_ctx->max_uniq_toserver_dp_groups = 3;
+            de_ctx->max_uniq_toclient_groups = 3;
+            de_ctx->max_uniq_toserver_groups = 3;
             break;
 
         case ENGINE_PROFILE_HIGH:
-            de_ctx->max_uniq_toclient_dp_groups = 20;
-            de_ctx->max_uniq_toserver_dp_groups = 40;
+            de_ctx->max_uniq_toclient_groups = 20;
+            de_ctx->max_uniq_toserver_groups = 40;
             break;
 
         case ENGINE_PROFILE_CUSTOM:
             TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
                 if (strcmp(opt->val, "custom-values") == 0) {
-                    max_uniq_toclient_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toclient-dp-groups");
-                    max_uniq_toserver_dp_groups_str = ConfNodeLookupChildValue
-                            (opt->head.tqh_first, "toserver-dp-groups");
+                    max_uniq_toclient_groups_str = ConfNodeLookupChildValue
+                            (opt->head.tqh_first, "toclient-groups");
+                    max_uniq_toserver_groups_str = ConfNodeLookupChildValue
+                            (opt->head.tqh_first, "toserver-groups");
                 }
             }
-            if (max_uniq_toclient_dp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_dp_groups, 10,
-                    strlen(max_uniq_toclient_dp_groups_str),
-                    (const char *)max_uniq_toclient_dp_groups_str) <= 0) {
-                    de_ctx->max_uniq_toclient_dp_groups = 6;
+            if (max_uniq_toclient_groups_str != NULL) {
+                if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_groups, 10,
+                    strlen(max_uniq_toclient_groups_str),
+                    (const char *)max_uniq_toclient_groups_str) <= 0) {
+                    de_ctx->max_uniq_toclient_groups = 6;
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
-                            "toclient-dp-groups failed, using %u",
-                            max_uniq_toclient_dp_groups_str,
-                            de_ctx->max_uniq_toclient_dp_groups);
+                            "toclient-groups failed, using %u",
+                            max_uniq_toclient_groups_str,
+                            de_ctx->max_uniq_toclient_groups);
                 }
             } else {
-                de_ctx->max_uniq_toclient_dp_groups = 6;
+                de_ctx->max_uniq_toclient_groups = 6;
             }
-            if (max_uniq_toserver_dp_groups_str != NULL) {
-                if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_dp_groups, 10,
-                    strlen(max_uniq_toserver_dp_groups_str),
-                    (const char *)max_uniq_toserver_dp_groups_str) <= 0) {
-                    de_ctx->max_uniq_toserver_dp_groups = 30;
+            if (max_uniq_toserver_groups_str != NULL) {
+                if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_groups, 10,
+                    strlen(max_uniq_toserver_groups_str),
+                    (const char *)max_uniq_toserver_groups_str) <= 0) {
+                    de_ctx->max_uniq_toserver_groups = 30;
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
-                            "toserver-dp-groups failed, using %u",
-                            max_uniq_toserver_dp_groups_str,
-                            de_ctx->max_uniq_toserver_dp_groups);
+                            "toserver-groups failed, using %u",
+                            max_uniq_toserver_groups_str,
+                            de_ctx->max_uniq_toserver_groups);
                 }
             } else {
-                de_ctx->max_uniq_toserver_dp_groups = 30;
+                de_ctx->max_uniq_toserver_groups = 30;
             }
             break;
 
@@ -1153,8 +1153,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         case ENGINE_PROFILE_MEDIUM:
         case ENGINE_PROFILE_UNKNOWN:
         default:
-            de_ctx->max_uniq_toclient_dp_groups = 6;
-            de_ctx->max_uniq_toserver_dp_groups = 30;
+            de_ctx->max_uniq_toclient_groups = 6;
+            de_ctx->max_uniq_toserver_groups = 30;
             break;
     }
 
@@ -3136,8 +3136,8 @@ static int DetectEngineTest08(void)
         "detect-engine:\n"
         "  - profile: custom\n"
         "  - custom-values:\n"
-        "      toclient-dp-groups: 23\n"
-        "      toserver-dp-groups: 27\n";
+        "      toclient-groups: 23\n"
+        "      toserver-groups: 27\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -3148,8 +3148,8 @@ static int DetectEngineTest08(void)
     if (de_ctx == NULL)
         goto end;
 
-    if (de_ctx->max_uniq_toclient_dp_groups == 23 &&
-        de_ctx->max_uniq_toserver_dp_groups == 27)
+    if (de_ctx->max_uniq_toclient_groups == 23 &&
+        de_ctx->max_uniq_toserver_groups == 27)
         result = 1;
 
  end:
@@ -3170,8 +3170,8 @@ static int DetectEngineTest09(void)
         "detect-engine:\n"
         "  - profile: custom\n"
         "  - custom-values:\n"
-        "      toclient-dp-groups: BA\n"
-        "      toserver-dp-groups: BA\n"
+        "      toclient-groups: BA\n"
+        "      toserver-groups: BA\n"
         "  - inspection-recursion-limit: 10\n";
 
     DetectEngineCtx *de_ctx = NULL;
@@ -3183,8 +3183,8 @@ static int DetectEngineTest09(void)
     if (de_ctx == NULL)
         goto end;
 
-    if (de_ctx->max_uniq_toclient_dp_groups ==  6 &&
-        de_ctx->max_uniq_toserver_dp_groups == 30)
+    if (de_ctx->max_uniq_toclient_groups ==  6 &&
+        de_ctx->max_uniq_toserver_groups == 30)
         result = 1;
 
  end:
