@@ -1051,13 +1051,13 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     opt = NULL;
     switch (profile) {
         case ENGINE_PROFILE_LOW:
-            de_ctx->max_uniq_toclient_groups = 3;
-            de_ctx->max_uniq_toserver_groups = 3;
+            de_ctx->max_uniq_toclient_groups = 15;
+            de_ctx->max_uniq_toserver_groups = 25;
             break;
 
         case ENGINE_PROFILE_HIGH:
-            de_ctx->max_uniq_toclient_groups = 20;
-            de_ctx->max_uniq_toserver_groups = 40;
+            de_ctx->max_uniq_toclient_groups = 75;
+            de_ctx->max_uniq_toserver_groups = 75;
             break;
 
         case ENGINE_PROFILE_CUSTOM:
@@ -1072,28 +1072,32 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             if (max_uniq_toclient_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toclient_groups, 10,
                     strlen(max_uniq_toclient_groups_str),
-                    (const char *)max_uniq_toclient_groups_str) <= 0) {
-                    de_ctx->max_uniq_toclient_groups = 6;
+                    (const char *)max_uniq_toclient_groups_str) <= 0)
+                {
+                    de_ctx->max_uniq_toclient_groups = 20;
+
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
                             "toclient-groups failed, using %u",
                             max_uniq_toclient_groups_str,
                             de_ctx->max_uniq_toclient_groups);
                 }
             } else {
-                de_ctx->max_uniq_toclient_groups = 6;
+                de_ctx->max_uniq_toclient_groups = 20;
             }
             if (max_uniq_toserver_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_groups, 10,
                     strlen(max_uniq_toserver_groups_str),
-                    (const char *)max_uniq_toserver_groups_str) <= 0) {
-                    de_ctx->max_uniq_toserver_groups = 30;
+                    (const char *)max_uniq_toserver_groups_str) <= 0)
+                {
+                    de_ctx->max_uniq_toserver_groups = 40;
+
                     SCLogWarning(SC_ERR_SIZE_PARSE, "parsing '%s' for "
                             "toserver-groups failed, using %u",
                             max_uniq_toserver_groups_str,
                             de_ctx->max_uniq_toserver_groups);
                 }
             } else {
-                de_ctx->max_uniq_toserver_groups = 30;
+                de_ctx->max_uniq_toserver_groups = 40;
             }
             break;
 
@@ -1101,8 +1105,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         case ENGINE_PROFILE_MEDIUM:
         case ENGINE_PROFILE_UNKNOWN:
         default:
-            de_ctx->max_uniq_toclient_groups = 6;
-            de_ctx->max_uniq_toserver_groups = 30;
+            de_ctx->max_uniq_toclient_groups = 20;
+            de_ctx->max_uniq_toserver_groups = 40;
             break;
     }
 
@@ -3131,8 +3135,8 @@ static int DetectEngineTest09(void)
     if (de_ctx == NULL)
         goto end;
 
-    if (de_ctx->max_uniq_toclient_groups ==  6 &&
-        de_ctx->max_uniq_toserver_groups == 30)
+    if (de_ctx->max_uniq_toclient_groups == 20 &&
+        de_ctx->max_uniq_toserver_groups == 40)
         result = 1;
 
  end:
