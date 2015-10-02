@@ -630,9 +630,8 @@ typedef struct DetectEngineCtx_ {
 
     /* Config options */
 
-    uint16_t max_uniq_toclient_dp_groups;
-
-    uint16_t max_uniq_toserver_dp_groups;
+    uint16_t max_uniq_toclient_groups;
+    uint16_t max_uniq_toserver_groups;
 
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_context;
