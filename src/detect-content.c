@@ -65,12 +65,6 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
 }
 
-/* pass on the content_max_id */
-uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx)
-{
-    return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
-}
-
 /**
  *  \brief Parse a content string, ie "abc|DE|fgh"
  *
