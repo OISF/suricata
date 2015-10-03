@@ -823,19 +823,10 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     SigGroupHeadHashInit(de_ctx);
     SigGroupHeadMpmHashInit(de_ctx);
-    SigGroupHeadMpmUriHashInit(de_ctx);
-    SigGroupHeadSPortHashInit(de_ctx);
     SigGroupHeadDPortHashInit(de_ctx);
-    DetectPortSpHashInit(de_ctx);
-    DetectPortDpHashInit(de_ctx);
     ThresholdHashInit(de_ctx);
     VariableNameInitHash(de_ctx);
     DetectParseDupSigHashInit(de_ctx);
-
-    de_ctx->mpm_pattern_id_store = MpmPatternIdTableInitHash();
-    if (de_ctx->mpm_pattern_id_store == NULL) {
-        goto error;
-    }
 
     /* init iprep... ignore errors for now */
     (void)SRepInit(de_ctx);
@@ -915,17 +906,11 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     /* Normally the hashes are freed elsewhere, but
      * to be sure look at them again here.
      */
-    MpmPatternIdTableFreeHash(de_ctx->mpm_pattern_id_store); /* normally cleaned up in SigGroupBuild */
-
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadMpmHashFree(de_ctx);
-    SigGroupHeadMpmUriHashFree(de_ctx);
-    SigGroupHeadSPortHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
     DetectParseDupSigHashFree(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
-    DetectPortSpHashFree(de_ctx);
-    DetectPortDpHashFree(de_ctx);
     ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
 

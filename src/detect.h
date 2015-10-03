@@ -607,14 +607,8 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sgh_hash_table;
 
     HashListTable *sgh_mpm_hash_table;
-    HashListTable *sgh_mpm_uri_hash_table;
-    HashListTable *sgh_mpm_stream_hash_table;
 
-    HashListTable *sgh_sport_hash_table;
     HashListTable *sgh_dport_hash_table;
-
-    HashListTable *sport_hash_table;
-    HashListTable *dport_hash_table;
 
     HashListTable *variable_names;
     HashListTable *variable_idxs;
@@ -969,10 +963,6 @@ typedef struct SigGroupHeadInitData_ {
     /* list of content containers */
     uint8_t *content_array;
     uint32_t content_size;
-    uint8_t *uri_content_array;
-    uint32_t uri_content_size;
-    uint8_t *stream_content_array;
-    uint32_t stream_content_size;
 
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
