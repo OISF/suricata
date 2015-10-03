@@ -108,6 +108,7 @@ outputs:
             # http: yes              # enable dumping of http fields
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
+            # smtp: yes              # enable dumping of smtp fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -139,7 +140,19 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop:
         #    alerts: no       # log alerts that caused drops
-        - smtp
+        - smtp:
+            #extended: yes # enable this for extended logging information
+            # this includes: bcc, message-id, subject, x_mailer, user-agent
+            # custom fields logging from the list:
+            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
+            #  x-originating-ip, in-reply-to, references, importance, priority,
+            #  sensitivity, organization, content-md5, date
+            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
+            # output md5 of fields: body, subject
+            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
+            # to yes
+            #md5: [body, subject]
+
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -1291,6 +1304,9 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        body-md5: no
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
         content-limit: 1000
