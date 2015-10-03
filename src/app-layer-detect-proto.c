@@ -1690,7 +1690,7 @@ AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
         for (j = 0; j < 2; j++) {
             mpm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx;
             mpm_tctx = &alpd_tctx->mpm_tctx[i][j];
-            mpm_table[mpm_ctx->mpm_type].InitThreadCtx(mpm_ctx, mpm_tctx, 0);
+            mpm_table[mpm_ctx->mpm_type].InitThreadCtx(mpm_ctx, mpm_tctx);
         }
     }
 
