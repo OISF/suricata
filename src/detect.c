@@ -3563,11 +3563,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
      * after the initialization phase. */
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
-    SigGroupHeadSPortHashFree(de_ctx);
     SigGroupHeadMpmHashFree(de_ctx);
-    SigGroupHeadMpmUriHashFree(de_ctx);
-    DetectPortDpHashFree(de_ctx);
-    DetectPortSpHashFree(de_ctx);
 
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array_cnt = 0;
