@@ -1437,7 +1437,7 @@ static void SMTPSetMpmState(void)
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM, 0);
+    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 
     uint32_t i = 0;
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
