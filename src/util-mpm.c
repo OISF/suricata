@@ -611,9 +611,9 @@ void PmqFree(PatternMatcherQueue *pmq)
     PmqCleanup(pmq);
 }
 
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id)
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher)
 {
-    mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
+    mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx);
 }
 
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
