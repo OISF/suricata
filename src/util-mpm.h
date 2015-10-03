@@ -137,7 +137,7 @@ typedef struct MpmTableElmt_ {
     char *name;
     uint8_t max_pattern_length;
     void (*InitCtx)(struct MpmCtx_ *);
-    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
+    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
 
@@ -221,7 +221,7 @@ void MpmRegisterTests(void);
 int MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
                    uint8_t *bitarray, SigIntId *sids, uint32_t sids_size);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
