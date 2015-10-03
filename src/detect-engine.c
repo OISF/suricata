@@ -1455,15 +1455,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 {
     int i;
 
-    /** \todo we still depend on the global mpm_ctx here
-     *
-     * Initialize the thread pattern match ctx with the max size
-     * of the content and uricontent id's so our match lookup
-     * table is always big enough
-     */
-    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
-    PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher, DetectContentMaxId(de_ctx));
-    PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher, DetectUricontentMaxId(de_ctx));
+    PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
+    PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher);
+    PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher);
 
     PmqSetup(&det_ctx->pmq, de_ctx->max_fp_id);
     for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
