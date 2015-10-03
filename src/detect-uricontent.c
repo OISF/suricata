@@ -83,15 +83,6 @@ void DetectUricontentRegister (void)
 }
 
 /**
- * \brief   pass on the uricontent_max_id
- * \param   de_ctx  pointer to the detect egine context whose max id is asked
- */
-uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
-{
-    return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
-}
-
-/**
  * \brief this function will Free memory associated with DetectContentData
  *
  * \param cd pointer to DetectUricotentData
