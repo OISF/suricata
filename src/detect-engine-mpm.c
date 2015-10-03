@@ -808,10 +808,10 @@ void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
     if (mpm_table[mpm_matcher].DestroyThreadCtx != NULL)
         mpm_table[mpm_matcher].DestroyThreadCtx(NULL, mpm_thread_ctx);
 }
-void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher, uint32_t max_id)
+void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matcher)
 {
-    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16", max_id %"PRIu32"", mpm_thread_ctx, mpm_matcher, max_id);
-    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher, max_id);
+    SCLogDebug("mpm_thread_ctx %p, type %"PRIu16, mpm_thread_ctx, mpm_matcher);
+    MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
 
 

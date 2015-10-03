@@ -61,7 +61,7 @@
 #include "util-memcpy.h"
 
 void SCACBSInitCtx(MpmCtx *);
-void SCACBSInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
+void SCACBSInitThreadCtx(MpmCtx *, MpmThreadCtx *);
 void SCACBSDestroyCtx(MpmCtx *);
 void SCACBSDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
 int SCACBSAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
@@ -1252,7 +1252,7 @@ error:
  * \param mpm_thread_ctx Pointer to the mpm thread context.
  * \param matchsize      We don't need this.
  */
-void SCACBSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t matchsize)
+void SCACBSInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
 {
     memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
 
@@ -1713,7 +1713,7 @@ static int SCACBSTest01(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1747,7 +1747,7 @@ static int SCACBSTest02(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
@@ -1780,7 +1780,7 @@ static int SCACBSTest03(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1817,7 +1817,7 @@ static int SCACBSTest04(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
@@ -1851,7 +1851,7 @@ static int SCACBSTest05(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
@@ -1885,7 +1885,7 @@ static int SCACBSTest06(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     PmqSetup(&pmq, 1);
@@ -1917,7 +1917,7 @@ static int SCACBSTest07(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* should match 30 times */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0);
@@ -1962,7 +1962,7 @@ static int SCACBSTest08(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -1994,7 +1994,7 @@ static int SCACBSTest09(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
@@ -2026,7 +2026,7 @@ static int SCACBSTest10(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0);
@@ -2063,7 +2063,7 @@ static int SCACBSTest11(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     if (MpmAddPatternCS(&mpm_ctx, (uint8_t *)"he", 2, 0, 0, 1, 0, 0) == -1)
         goto end;
@@ -2110,7 +2110,7 @@ static int SCACBSTest12(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0);
@@ -2145,7 +2145,7 @@ static int SCACBSTest13(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
@@ -2179,7 +2179,7 @@ static int SCACBSTest14(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
@@ -2213,7 +2213,7 @@ static int SCACBSTest15(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
@@ -2247,7 +2247,7 @@ static int SCACBSTest16(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABC";
@@ -2281,7 +2281,7 @@ static int SCACBSTest17(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzAB";
@@ -2315,7 +2315,7 @@ static int SCACBSTest18(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
@@ -2349,7 +2349,7 @@ static int SCACBSTest19(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
     char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
@@ -2382,7 +2382,7 @@ static int SCACBSTest20(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
     char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
@@ -2416,7 +2416,7 @@ static int SCACBSTest21(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
@@ -2448,7 +2448,7 @@ static int SCACBSTest22(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
@@ -2483,7 +2483,7 @@ static int SCACBSTest23(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
@@ -2515,7 +2515,7 @@ static int SCACBSTest24(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 1 */
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
@@ -2547,7 +2547,7 @@ static int SCACBSTest25(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
@@ -2581,7 +2581,7 @@ static int SCACBSTest26(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 1, 0, 0);
@@ -2614,7 +2614,7 @@ static int SCACBSTest27(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ONE", 3, 0, 0, 0, 0, 0);
@@ -2647,7 +2647,7 @@ static int SCACBSTest28(void)
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 0, 0, 0);
@@ -2680,7 +2680,7 @@ static int SCACBSTest29(void)
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitCtx(&mpm_ctx, MPM_AC_BS);
-    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+    SCACBSInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcdef", 5, 0, 0, 1, 0, 0);
