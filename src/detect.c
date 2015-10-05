@@ -3534,6 +3534,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SigGroupHead *sgh = de_ctx->sgh_array[idx];
         if (sgh == NULL)
             continue;
+
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
@@ -3549,6 +3550,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
     }
     SCLogInfo("Unique rule groups: %u", cnt);
 
+    MpmStoreReportStats(de_ctx);
+
     if (de_ctx->decoder_event_sgh != NULL) {
         /* no need to set filestore count here as that would make a
          * signature not decode event only. */
@@ -3563,7 +3566,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
      * after the initialization phase. */
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
-    SigGroupHeadMpmHashFree(de_ctx);
+    MpmStoreFree(de_ctx);
 
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array_cnt = 0;
