@@ -82,7 +82,6 @@ int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
 SigMatch *RetrieveFPForSig(Signature *s);
-SigMatch *RetrieveFPForSigV2(Signature *s);
 
 /**
  * \brief Figured out the FP and their respective content ids for all the
