@@ -71,10 +71,77 @@ const char *builtin_mpms[] = {
 
     NULL };
 
+typedef struct AppLayerMpms_ {
+    const char *name;
+    int32_t sgh_mpm_context;    /**< mpm factory id */
+    int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
+    int sm_list;
+    uint32_t flags;             /**< flags set to SGH when this mpm is present */
+    int id;                     /**< index into this array and result arrays */
+} AppLayerMpms;
 
-#define POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS 0x01
-#define POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS 0x02
-#define POPULATE_MPM_AVOID_URI_MPM_PATTERNS 0x04
+AppLayerMpms app_mpms[] = {
+    { "http_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_UMATCH, SIG_GROUP_HEAD_MPM_URI, 0 },
+    { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH, SIG_GROUP_HEAD_MPM_HRUD, 1 },
+
+    { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, 2},
+    { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, 3},
+
+    { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH, SIG_GROUP_HEAD_MPM_HUAD, 4},
+
+    { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, 5},
+    { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, 6},
+
+    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH, SIG_GROUP_HEAD_MPM_HMD, 7},
+
+    { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_FD_SMTP, 8}, /* smtp */
+    { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_HSBD, 9}, /* http server body */
+
+    { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH, SIG_GROUP_HEAD_MPM_HSMD, 10},
+    { "http_stat_code", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSCDMATCH, SIG_GROUP_HEAD_MPM_HSCD, 11},
+
+    { "http_client_body", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCBDMATCH, SIG_GROUP_HEAD_MPM_HCBD, 12},
+
+    { "http_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHHDMATCH, SIG_GROUP_HEAD_MPM_HHHD, 13},
+    { "http_raw_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHHDMATCH, SIG_GROUP_HEAD_MPM_HRHHD, 14},
+
+    { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, 15},
+    { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, 16},
+
+    { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH, SIG_GROUP_HEAD_MPM_DNSQUERY, 17},
+
+    { NULL, 0, 0, 0, 0, 0, }
+};
+
+void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
+{
+    int i;
+    for (i = 0; i < APP_MPMS_MAX; i++) {
+        AppLayerMpms *am = &app_mpms[i];
+
+        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name,
+                MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+
+        SCLogDebug("AppLayer MPM %s: %u", am->name, am->sgh_mpm_context);
+    }
+}
+
+void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
+{
+    int i;
+    for (i = 0; i < APP_MPMS_MAX; i++) {
+        AppLayerMpms *am = &app_mpms[i];
+
+        int dir = (am->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
+
+        MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
+        if (mpm_ctx != NULL) {
+            if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+                mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+            }
+        }
+    }
+}
 
 /**
  *  \brief check if a signature has patterns that are to be inspected
@@ -1145,252 +1212,6 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
 #define SGH_DIRECTION_TS(sgh) ((sgh)->init->direction & SIG_FLAG_TOSERVER)
 #define SGH_DIRECTION_TC(sgh) ((sgh)->init->direction & SIG_FLAG_TOCLIENT)
 
-static void PopulateMpmAddPatternToMpm(const DetectEngineCtx *de_ctx,
-                                       SigGroupHead *sgh, Signature *s,
-                                       SigMatch *mpm_sm)
-{
-    s->mpm_sm = mpm_sm;
-
-    if (mpm_sm == NULL) {
-        SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
-        return;
-    }
-
-    int sm_list = SigMatchListSMBelongsTo(s, mpm_sm);
-    if (sm_list == -1)
-        BUG_ON(SigMatchListSMBelongsTo(s, mpm_sm) == -1);
-
-    uint8_t flags = 0;
-
-    DetectContentData *cd = NULL;
-
-    switch (sm_list) {
-        case DETECT_SM_LIST_PMATCH:
-        {
-            BUG_ON(1);
-            break;
-        } /* case DETECT_CONTENT */
-
-        case DETECT_SM_LIST_UMATCH:
-        case DETECT_SM_LIST_HRUDMATCH:
-        case DETECT_SM_LIST_HCBDMATCH:
-        case DETECT_SM_LIST_FILEDATA:
-        case DETECT_SM_LIST_HHDMATCH:
-        case DETECT_SM_LIST_HRHDMATCH:
-        case DETECT_SM_LIST_HMDMATCH:
-        case DETECT_SM_LIST_HCDMATCH:
-        case DETECT_SM_LIST_HSMDMATCH:
-        case DETECT_SM_LIST_HSCDMATCH:
-        case DETECT_SM_LIST_HUADMATCH:
-        case DETECT_SM_LIST_HHHDMATCH:
-        case DETECT_SM_LIST_HRHHDMATCH:
-        case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-        {
-            MpmCtx *mpm_ctx_ts = NULL;
-            MpmCtx *mpm_ctx_tc = NULL;
-
-            cd = (DetectContentData *)mpm_sm->ctx;
-
-            if (sm_list == DETECT_SM_LIST_UMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_uri_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_URI;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HCBDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hcbd_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HCBD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_FILEDATA) {
-                if (s->flags & SIG_FLAG_TOCLIENT) {
-                    mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
-                    sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
-                }
-                if (s->flags & SIG_FLAG_TOSERVER) {
-                    mpm_ctx_ts = sgh->mpm_smtp_filedata_ctx_ts;
-                    sgh->flags |= SIG_GROUP_HEAD_MPM_FD_SMTP;
-                }
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HHDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hhd_ctx_ts;
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = sgh->mpm_hhd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HHD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HRHDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hrhd_ctx_ts;
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = sgh->mpm_hrhd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HRHD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HMDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hmd_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HMD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HCDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hcd_ctx_ts;
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = sgh->mpm_hcd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HCD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HRUDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hrud_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HRUD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HSMDMATCH) {
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = sgh->mpm_hsmd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HSMD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HSCDMATCH) {
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = sgh->mpm_hscd_ctx_tc;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HSCD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HUADMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_huad_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HUAD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HHHDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hhhd_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HHHD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_HRHHDMATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_hrhhd_ctx_ts;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_HRHHD;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            } else if (sm_list == DETECT_SM_LIST_DNSQUERYNAME_MATCH) {
-                if (s->flags & SIG_FLAG_TOSERVER)
-                    mpm_ctx_ts = sgh->mpm_dnsquery_ctx_ts;
-                if (s->flags & SIG_FLAG_TOCLIENT)
-                    mpm_ctx_tc = NULL;
-                sgh->flags |= SIG_GROUP_HEAD_MPM_DNSQUERY;
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
-            }
-
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                    !(cd->flags & DETECT_CONTENT_REPLACE) &&
-                    cd->content_len == cd->fp_chop_len) {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-
-                /* add the content to the mpm */
-                if (cd->flags & DETECT_CONTENT_NOCASE) {
-                    if (mpm_ctx_ts != NULL) {
-                        MpmAddPatternCI(mpm_ctx_ts,
-                                        cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                    if (mpm_ctx_tc != NULL) {
-                        MpmAddPatternCI(mpm_ctx_tc,
-                                        cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                } else {
-                    if (mpm_ctx_ts != NULL) {
-                        MpmAddPatternCS(mpm_ctx_ts,
-                                        cd->content + cd->fp_chop_offset,
-                                        cd->fp_chop_len,
-                                        0, 0, cd->id, s->num, flags);
-                    }
-                    if (mpm_ctx_tc != NULL) {
-                        MpmAddPatternCS(mpm_ctx_tc,
-                                        cd->content + cd->fp_chop_offset,
-                                        cd->fp_chop_len,
-                                        0, 0, cd->id, s->num, flags);
-                    }
-                }
-            } else {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                    !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                    !(cd->flags & DETECT_CONTENT_REPLACE)) {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-
-                /* add the content to the "uri" mpm */
-                if (cd->flags & DETECT_CONTENT_NOCASE) {
-                    if (mpm_ctx_ts != NULL) {
-                        MpmAddPatternCI(mpm_ctx_ts,
-                                        cd->content, cd->content_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                    if (mpm_ctx_tc != NULL) {
-                        MpmAddPatternCI(mpm_ctx_tc,
-                                        cd->content, cd->content_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                } else {
-                    if (mpm_ctx_ts != NULL) {
-                        MpmAddPatternCS(mpm_ctx_ts,
-                                        cd->content, cd->content_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                    if (mpm_ctx_tc != NULL) {
-                        MpmAddPatternCS(mpm_ctx_tc,
-                                        cd->content, cd->content_len,
-                                        0, 0,
-                                        cd->id, s->num, flags);
-                    }
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->mpm_pattern_id_div_8 = cd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-
-            break;
-        }
-    } /* switch (mpm_sm->type) */
-
-    SCLogDebug("%"PRIu32" adding cd->id %"PRIu32" to the mpm phase "
-               "(s->num %"PRIu32")", s->id,
-               ((DetectContentData *)mpm_sm->ctx)->id, s->num);
-
-    return;
-}
-
 SigMatch *RetrieveFPForSig(Signature *s)
 {
     if (s->mpm_sm != NULL)
@@ -1511,37 +1332,6 @@ SigMatch *RetrieveFPForSig(Signature *s)
     return mpm_sm;
 }
 
-/**
- * \internal
- * \brief Setup the mpm content.
- *
- * \param de_ctx Pointer to the detect engine context.
- * \param sgh    Pointer to the signature group head against which we are
- *               adding patterns to the mpm ctx.
- *
- * \retval  0 Always.
- */
-static int PatternMatchPreparePopulateMpm(const DetectEngineCtx *de_ctx,
-                                          SigGroupHead *sgh)
-{
-    uint32_t sig = 0;
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        Signature *s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-        if (s->mpm_sm == NULL)
-            continue;
-        int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
-        if (list < 0)
-            continue;
-        if (list == DETECT_SM_LIST_PMATCH)
-            continue;
-        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, s->mpm_sm);
-    } /* for (sig = 0; sig < sgh->sig_cnt; sig++) */
-
-    return 0;
-}
-
 /** \internal
  *  \brief The hash function for MpmStore
  *
@@ -1587,6 +1377,9 @@ static char MpmStoreCompareFunc(void *data1, uint16_t len1, void *data2,
         return 0;
 
     if (ms1->direction != ms2->direction)
+        return 0;
+
+    if (ms1->sm_list != ms2->sm_list)
         return 0;
 
     if (SCMemcmp(ms1->sid_array, ms2->sid_array,
@@ -1657,6 +1450,7 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
     HashListTableBucket *htb = NULL;
 
     uint32_t stats[MPMB_MAX] = {0};
+    uint32_t appstats[APP_MPMS_MAX] = {0};
 
     for (htb = HashListTableGetListHead(de_ctx->mpm_hash_table);
             htb != NULL;
@@ -1666,12 +1460,37 @@ void MpmStoreReportStats(const DetectEngineCtx *de_ctx)
         if (ms == NULL) {
             continue;
         }
-        stats[ms->buffer]++;
+        if (ms->buffer < MPMB_MAX)
+            stats[ms->buffer]++;
+        else if (ms->sm_list != DETECT_SM_LIST_PMATCH) {
+            int i;
+            for (i = 0; i < APP_MPMS_MAX; i++) {
+                AppLayerMpms *am = &app_mpms[i];
+                if (ms->sm_list == am->sm_list &&
+                    ms->direction == am->direction)
+                {
+                    SCLogDebug("%s %s: %u patterns. Min %u, Max %u. Ctx %p", am->name,
+                            am->direction == SIG_FLAG_TOSERVER ? "toserver":"toclient",
+                            ms->mpm_ctx->pattern_cnt,
+                            ms->mpm_ctx->minlen, ms->mpm_ctx->maxlen,
+                            ms->mpm_ctx);
+                    appstats[i]++;
+                    break;
+                }
+            }
+        }
     }
 
     uint32_t x;
     for (x = 0; x < MPMB_MAX; x++) {
         SCLogInfo("Builtin MPM \"%s\": %u", builtin_mpms[x], stats[x]);
+    }
+    for (x = 0; x < APP_MPMS_MAX; x++) {
+        if (appstats[x] == 0)
+            continue;
+        const char *name = app_mpms[x].name;
+        char *direction = app_mpms[x].direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient";
+        SCLogInfo("AppLayer MPM \"%s %s\": %u", direction, name, appstats[x]);
     }
 }
 
@@ -1696,48 +1515,41 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     Signature *s = NULL; // TODO const
     uint32_t sig;
 
-    int32_t sgh_mpm_context = 0;
-    switch (ms->buffer) {
-        case MPMB_TCP_PKT_TS:
-        case MPMB_TCP_PKT_TC:
-            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_tcp_packet;
-            break;
-        case MPMB_TCP_STREAM_TS:
-        case MPMB_TCP_STREAM_TC:
-            sgh_mpm_context = de_ctx->sgh_mpm_context_stream;
-            break;
-        case MPMB_UDP_TS:
-        case MPMB_UDP_TC:
-            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_udp_packet;
-            break;
-        case MPMB_OTHERIP:
-            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_other_packet;
-            break;
-        default:
-            break;
-    }
-
     int dir = 0;
-    switch (ms->buffer) {
-        /* TS is 1 */
-        case MPMB_TCP_PKT_TS:
-        case MPMB_TCP_STREAM_TS:
-        case MPMB_UDP_TS:
-            dir = 1;
-            break;
 
-        /* TC is 0 */
-        default:
-        case MPMB_UDP_TC:
-        case MPMB_TCP_STREAM_TC:
-        case MPMB_TCP_PKT_TC:
-        case MPMB_OTHERIP:          /**< use 0 for other */
+    if (ms->buffer != MPMB_MAX) {
+        BUG_ON(ms->sm_list != DETECT_SM_LIST_PMATCH);
+
+        switch (ms->buffer) {
+            /* TS is 1 */
+            case MPMB_TCP_PKT_TS:
+            case MPMB_TCP_STREAM_TS:
+            case MPMB_UDP_TS:
+                dir = 1;
+                break;
+
+                /* TC is 0 */
+            default:
+            case MPMB_UDP_TC:
+            case MPMB_TCP_STREAM_TC:
+            case MPMB_TCP_PKT_TC:
+            case MPMB_OTHERIP:          /**< use 0 for other */
+                dir = 0;
+                break;
+        }
+    } else {
+        BUG_ON(ms->sm_list == DETECT_SM_LIST_PMATCH);
+        BUG_ON(ms->direction == 0);
+        BUG_ON(ms->direction == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT));
+
+        if (ms->direction == SIG_FLAG_TOSERVER)
+            dir = 1;
+        else
             dir = 0;
-            break;
     }
 
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, sgh_mpm_context, dir);
+        ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, ms->sgh_mpm_context, dir);
     } else {
         ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, dir);
     }
@@ -1754,7 +1566,9 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
             if (list < 0)
                 continue;
-            if (list != DETECT_SM_LIST_PMATCH)
+            if (list != ms->sm_list)
+                continue;
+            if ((s->flags & ms->direction) == 0)
                 continue;
 
             SCLogDebug("adding %u", s->id);
@@ -1780,25 +1594,34 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             PopulateMpmHelperAddPatternToPktCtx(ms->mpm_ctx,
                     cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
 
-            /* tell matcher we are inspecting packet */
-/* TODO remove! */
-            if (!(ms->buffer == MPMB_TCP_STREAM_TC || ms->buffer == MPMB_TCP_STREAM_TS)) {
-                s->flags |= SIG_FLAG_MPM_PACKET;
-                s->mpm_pattern_id_div_8 = cd->id / 8;
-                s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                if (cd->flags & DETECT_CONTENT_NEGATED) {
-                    SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                    s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+            if (ms->buffer != MPMB_MAX) {
+                /* tell matcher we are inspecting packet */
+                /* TODO remove! */
+                if (!(ms->buffer == MPMB_TCP_STREAM_TC || ms->buffer == MPMB_TCP_STREAM_TS)) {
+                    s->flags |= SIG_FLAG_MPM_PACKET;
+                    s->mpm_pattern_id_div_8 = cd->id / 8;
+                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                        s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+                    }
+                } else {
+                    /* tell matcher we are inspecting stream */
+                    s->flags |= SIG_FLAG_MPM_STREAM;
+                    s->mpm_pattern_id_div_8 = cd->id / 8;
+                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                        s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+                    }
                 }
             } else {
-                /* tell matcher we are inspecting stream */
-                s->flags |= SIG_FLAG_MPM_STREAM;
+                /* tell matcher we are inspecting app-layer */
                 s->mpm_pattern_id_div_8 = cd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                if (cd->flags & DETECT_CONTENT_NEGATED) {
-                    SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                    s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                }
+                s->flags |= SIG_FLAG_MPM_APPLAYER;
+                if (cd->flags & DETECT_CONTENT_NEGATED)
+                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             }
         }
     }
@@ -1831,6 +1654,27 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
     uint8_t sids_array[max_sid];
     memset(sids_array, 0x00, max_sid);
+    int sgh_mpm_context = 0;
+
+    switch (buf) {
+        case MPMB_TCP_PKT_TS:
+        case MPMB_TCP_PKT_TC:
+            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_tcp_packet;
+            break;
+        case MPMB_TCP_STREAM_TS:
+        case MPMB_TCP_STREAM_TC:
+            sgh_mpm_context = de_ctx->sgh_mpm_context_stream;
+            break;
+        case MPMB_UDP_TS:
+        case MPMB_UDP_TC:
+            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_udp_packet;
+            break;
+        case MPMB_OTHERIP:
+            sgh_mpm_context = de_ctx->sgh_mpm_context_proto_other_packet;
+            break;
+        default:
+            break;
+    }
 
     switch(buf) {
         case MPMB_TCP_PKT_TS:
@@ -1903,7 +1747,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     if (cnt == 0)
         return NULL;
 
-    MpmStore lookup = { sids_array, max_sid, direction, buf, NULL};
+    MpmStore lookup = { sids_array, max_sid, direction, buf, DETECT_SM_LIST_PMATCH, 0, NULL};
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
@@ -1921,6 +1765,8 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         copy->sid_array_size = max_sid;
         copy->buffer = buf;
         copy->direction = direction;
+        copy->sm_list = DETECT_SM_LIST_PMATCH;
+        copy->sgh_mpm_context = sgh_mpm_context;
 
         MpmStoreSetup(de_ctx, copy);
         MpmStoreAdd(de_ctx, copy);
@@ -1930,11 +1776,114 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     }
 }
 
+MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, AppLayerMpms *am)
+{
+    const Signature *s = NULL;
+    uint32_t sig;
+    uint32_t cnt = 0;
+    uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
+    uint8_t sids_array[max_sid];
+    memset(sids_array, 0x00, max_sid);
+
+    SCLogDebug("handling %s direction %s for list %d", am->name,
+            am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient", am->sm_list);
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (s->mpm_sm == NULL)
+            continue;
+
+        int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
+        if (list < 0)
+            continue;
+
+        if ((s->flags & am->direction) == 0)
+            continue;
+
+        if (list != am->sm_list)
+            continue;
+
+        sids_array[s->num / 8] |= 1 << (s->num % 8);
+        cnt++;
+    }
+
+    if (cnt == 0)
+        return NULL;
+
+    MpmStore lookup = { sids_array, max_sid, am->direction, MPMB_MAX, am->sm_list, 0, NULL};
+
+    MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
+    if (result == NULL) {
+        SCLogDebug("new unique mpm for %s %s: %u patterns",
+                am->name, am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient", cnt);
+
+        MpmStore *copy = SCCalloc(1, sizeof(MpmStore));
+        if (copy == NULL)
+            return NULL;
+        uint8_t *sids = SCCalloc(1, max_sid);
+        if (sids == NULL) {
+            SCFree(copy);
+            return NULL;
+        }
+
+        memcpy(sids, sids_array, max_sid);
+        copy->sid_array = sids;
+        copy->sid_array_size = max_sid;
+        copy->buffer = MPMB_MAX;
+        copy->direction = am->direction;
+        copy->sm_list = am->sm_list;
+        copy->sgh_mpm_context = am->sgh_mpm_context;
+
+        MpmStoreSetup(de_ctx, copy);
+        MpmStoreAdd(de_ctx, copy);
+        return copy;
+    } else {
+        return result;
+    }
+    return NULL;
+}
+
+/** \todo fixup old mpm ptrs. We could use the array directly later */
+void MpmStoreFixup(SigGroupHead *sgh)
+{
+    int i = 0;
+    sgh->mpm_uri_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hrud_ctx_ts = sgh->app_mpms[i++];
+
+    sgh->mpm_hhd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hhd_ctx_tc = sgh->app_mpms[i++];
+
+    sgh->mpm_huad_ctx_ts = sgh->app_mpms[i++];
+
+    sgh->mpm_hrhd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hrhd_ctx_tc = sgh->app_mpms[i++];
+
+    sgh->mpm_hmd_ctx_ts = sgh->app_mpms[i++];
+
+    sgh->mpm_smtp_filedata_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hsbd_ctx_tc = sgh->app_mpms[i++];
+
+    sgh->mpm_hsmd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_hscd_ctx_tc = sgh->app_mpms[i++];
+
+    sgh->mpm_hcbd_ctx_ts = sgh->app_mpms[i++];
+
+    sgh->mpm_hhhd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hrhhd_ctx_ts = sgh->app_mpms[i++];
+
+    sgh->mpm_hcd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hcd_ctx_tc = sgh->app_mpms[i++];
+
+    sgh->mpm_dnsquery_ctx_ts = sgh->app_mpms[i++];
+
+    BUG_ON(APP_MPMS_MAX != 18 || i != 18);
+}
+
 /** \brief Prepare the pattern matcher ctx in a sig group head.
  *
- *  \todo determine if a content match can set the 'single' flag
- *  \todo do error checking
- *  \todo rewrite the COPY stuff
  */
 int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
@@ -2001,635 +1950,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
 
-
-
-    Signature *s = NULL;
-    uint32_t has_co_uri = 0;    /**< our sgh has uri inspecting content */
-    /* used to indicate if sgh has atleast one sig with http_client_body */
-    uint32_t has_co_hcbd = 0;
-    /* used to indicate if sgh has atleast one sig with http_server_body */
-    uint32_t has_co_hsbd = 0;
-    /* used to indicate if sgh has smtp file_data inspecting content */
-    uint32_t has_co_smtp = 0;
-    /* used to indicate if sgh has atleast one sig with http_header */
-    uint32_t has_co_hhd = 0;
-    /* used to indicate if sgh has atleast one sig with http_raw_header */
-    uint32_t has_co_hrhd = 0;
-    /* used to indicate if sgh has atleast one sig with http_method */
-    uint32_t has_co_hmd = 0;
-    /* used to indicate if sgh has atleast one sig with http_cookie */
-    uint32_t has_co_hcd = 0;
-    /* used to indicate if sgh has atleast one sig with http_raw_uri */
-    uint32_t has_co_hrud = 0;
-    /* used to indicate if sgh has atleast one sig with http_stat_msg */
-    uint32_t has_co_hsmd = 0;
-    /* used to indicate if sgh has atleast one sig with http_stat_code */
-    uint32_t has_co_hscd = 0;
-    /* used to indicate if sgh has atleast one sig with http_user_agent */
-    uint32_t has_co_huad = 0;
-    /* used to indicate if sgh has atleast one sig with http_host */
-    uint32_t has_co_hhhd = 0;
-    /* used to indicate if sgh has atleast one sig with http_raw_host */
-    uint32_t has_co_hrhhd = 0;
-    //uint32_t cnt = 0;
-    uint32_t sig = 0;
-    /* sgh has at least one sig with dns_query */
-    int has_co_dnsquery = 0;
-
-    /* see if this head has content and/or uricontent */
-    for (sig = 0; sig < sh->sig_cnt; sig++) {
-        s = sh->match_array[sig];
-        if (s == NULL)
-            continue;
-        if (s->mpm_sm == NULL)
-            continue;
-
-        int list = SigMatchListSMBelongsTo(s, s->mpm_sm);
-        if (list < 0)
-            continue;
-        if (list == DETECT_SM_LIST_PMATCH)
-            continue;
-
-
-        if (SGH_PROTO(sh, IPPROTO_TCP)) {
-            switch (list) {
-                case DETECT_SM_LIST_UMATCH:
-                    has_co_uri = 1;
-                    break;
-
-                case DETECT_SM_LIST_HCBDMATCH:
-                    has_co_hcbd = 1;
-                    break;
-
-                case DETECT_SM_LIST_FILEDATA:
-                    if (s->alproto == ALPROTO_SMTP)
-                        has_co_smtp = 1;
-                    else if (s->alproto == ALPROTO_HTTP)
-                        has_co_hsbd = 1;
-                    else if (s->alproto == ALPROTO_UNKNOWN) {
-                        has_co_smtp = 1;
-                        has_co_hsbd = 1;
-                    }
-                    break;
-
-                case DETECT_SM_LIST_HHDMATCH:
-                    has_co_hhd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HRHDMATCH:
-                    has_co_hrhd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HMDMATCH:
-                    has_co_hmd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HCDMATCH:
-                    has_co_hcd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HRUDMATCH:
-                    has_co_hrud = 1;
-                    break;
-
-                case DETECT_SM_LIST_HSMDMATCH:
-                    has_co_hsmd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HSCDMATCH:
-                    has_co_hscd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HUADMATCH:
-                    has_co_huad = 1;
-                    break;
-
-                case DETECT_SM_LIST_HHHDMATCH:
-                    has_co_hhhd = 1;
-                    break;
-
-                case DETECT_SM_LIST_HRHHDMATCH:
-                    has_co_hrhhd = 1;
-                    break;
-
-                case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-                    has_co_dnsquery = 1;
-                    break;
-
-                default:
-                    BUG_ON(1);
-            }
-
-        /* UDP */
-        } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
-            switch (list) {
-                case DETECT_SM_LIST_DNSQUERYNAME_MATCH:
-                    has_co_dnsquery = 1;
-                    break;
-
-                default:
-                    BUG_ON(1);
-            }
-
-        /* all other protos just support PMATCH */
-        } else {
-            switch (list) {
-                default:
-                    BUG_ON(1);
-            }
+    AppLayerMpms *a = app_mpms;
+    while (a->name != NULL) {
+        mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
+        if (mpm_store != NULL) {
+            sh->app_mpms[a->id] = mpm_store->mpm_ctx;
+            if (sh->app_mpms[a->id] != NULL)
+                sh->flags |= a->flags;
         }
+        a++;
     }
 
-    /* intialize contexes */
-    if (has_co_uri) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_uri_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 0);
-        } else {
-            sh->mpm_uri_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_uri_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_uri_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_uri_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hcbd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hcbd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 0);
-        } else {
-            sh->mpm_hcbd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_hcbd_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hcbd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hcbd_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hsbd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hsbd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 1);
-        } else {
-            sh->mpm_hsbd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hsbd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hsbd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hsbd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_smtp) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_smtp_filedata_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 0);
-        } else {
-            sh->mpm_smtp_filedata_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_smtp_filedata_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_smtp_filedata_ctx_ts == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_smtp_filedata_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hhd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
-            sh->mpm_hhd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 1);
-        } else {
-            sh->mpm_hhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-            sh->mpm_hhd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hhd_ctx_ts == NULL || sh->mpm_hhd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hhd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hhd_ctx_ts, de_ctx->mpm_matcher);
-        MpmInitCtx(sh->mpm_hhd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hrhd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hrhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 0);
-            sh->mpm_hrhd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 1);
-        } else {
-            sh->mpm_hrhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-            sh->mpm_hrhd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hrhd_ctx_ts == NULL || sh->mpm_hrhd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hrhd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hrhd_ctx_ts, de_ctx->mpm_matcher);
-        MpmInitCtx(sh->mpm_hrhd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hmd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hmd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 0);
-        } else {
-            sh->mpm_hmd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_hmd_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hmd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hmd_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hcd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hcd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 0);
-            sh->mpm_hcd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 1);
-        } else {
-            sh->mpm_hcd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-            sh->mpm_hcd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hcd_ctx_ts == NULL || sh->mpm_hcd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hcd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hcd_ctx_ts, de_ctx->mpm_matcher);
-        MpmInitCtx(sh->mpm_hcd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hrud) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hrud_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 0);
-        } else {
-            sh->mpm_hrud_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_hrud_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hrud_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hrud_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hsmd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hsmd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1);
-        } else {
-            sh->mpm_hsmd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hsmd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hsmd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hscd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hscd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1);
-        } else {
-            sh->mpm_hscd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
-        }
-        if (sh->mpm_hscd_ctx_tc == NULL) {
-            SCLogDebug("sh->mpm_hscd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_huad) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_huad_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 0);
-        } else {
-            sh->mpm_huad_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_huad_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_huad_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_huad_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hhhd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hhhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhhd, 0);
-        } else {
-            sh->mpm_hhhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_hhhd_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hhhd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hhhd_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_hrhhd) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hrhhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhhd, 0);
-        } else {
-            sh->mpm_hrhhd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_hrhhd_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hrhhd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_hrhhd_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_dnsquery) {
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_dnsquery_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_dnsquery, 0);
-        } else {
-            sh->mpm_dnsquery_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
-        }
-        if (sh->mpm_dnsquery_ctx_ts == NULL) {
-            SCLogDebug("sh->mpm_hrhhd_ctx == NULL. This should never happen");
-            exit(EXIT_FAILURE);
-        }
-
-        MpmInitCtx(sh->mpm_dnsquery_ctx_ts, de_ctx->mpm_matcher);
-    }
-
-    if (has_co_uri ||
-        has_co_hcbd ||
-        has_co_hsbd ||
-        has_co_smtp ||
-        has_co_hhd ||
-        has_co_hrhd ||
-        has_co_hmd ||
-        has_co_hcd ||
-        has_co_hsmd ||
-        has_co_hscd ||
-        has_co_hrud ||
-        has_co_huad ||
-        has_co_hhhd ||
-        has_co_hrhhd ||
-        has_co_dnsquery)
-    {
-        /* add the patterns of all the rules to the mpms of this sgh */
-        PatternMatchPreparePopulateMpm(de_ctx, sh);
-
-        if (sh->mpm_uri_ctx_ts != NULL) {
-            if (sh->mpm_uri_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_uri_ctx_ts);
-                sh->mpm_uri_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare(sh->mpm_uri_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hcbd_ctx_ts != NULL) {
-            if (sh->mpm_hcbd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcbd_ctx_ts);
-                sh->mpm_hcbd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare(sh->mpm_hcbd_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hsbd_ctx_tc != NULL) {
-            if (sh->mpm_hsbd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsbd_ctx_tc);
-                sh->mpm_hsbd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare(sh->mpm_hsbd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
-            if (sh->mpm_smtp_filedata_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
-                sh->mpm_smtp_filedata_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare != NULL) {
-                        mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare(sh->mpm_smtp_filedata_ctx_ts);
-                    }
-                }
-            }
-        }
-
-        if (sh->mpm_hhd_ctx_ts != NULL) {
-            if (sh->mpm_hhd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_ts);
-                sh->mpm_hhd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhd_ctx_ts);
-                }
-            }
-        }
-        if (sh->mpm_hhd_ctx_tc != NULL) {
-            if (sh->mpm_hhd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_tc);
-                sh->mpm_hhd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare(sh->mpm_hhd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_hrhd_ctx_ts != NULL) {
-            if (sh->mpm_hrhd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_ts);
-                sh->mpm_hrhd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhd_ctx_ts);
-                }
-            }
-        }
-        if (sh->mpm_hrhd_ctx_tc != NULL) {
-            if (sh->mpm_hrhd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_tc);
-                sh->mpm_hrhd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare(sh->mpm_hrhd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_hmd_ctx_ts != NULL) {
-            if (sh->mpm_hmd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hmd_ctx_ts);
-                sh->mpm_hmd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare(sh->mpm_hmd_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hcd_ctx_ts != NULL) {
-            if (sh->mpm_hcd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_ts);
-                sh->mpm_hcd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare(sh->mpm_hcd_ctx_ts);
-                }
-            }
-        }
-        if (sh->mpm_hcd_ctx_tc != NULL) {
-            if (sh->mpm_hcd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_tc);
-                sh->mpm_hcd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare(sh->mpm_hcd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_hrud_ctx_ts != NULL) {
-            if (sh->mpm_hrud_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrud_ctx_ts);
-                sh->mpm_hrud_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare(sh->mpm_hrud_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hsmd_ctx_tc != NULL) {
-            if (sh->mpm_hsmd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsmd_ctx_tc);
-                sh->mpm_hsmd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare(sh->mpm_hsmd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_hscd_ctx_tc != NULL) {
-            if (sh->mpm_hscd_ctx_tc->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hscd_ctx_tc);
-                sh->mpm_hscd_ctx_tc = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare(sh->mpm_hscd_ctx_tc);
-                }
-            }
-        }
-
-        if (sh->mpm_huad_ctx_ts != NULL) {
-            if (sh->mpm_huad_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_huad_ctx_ts);
-                sh->mpm_huad_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare(sh->mpm_huad_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hhhd_ctx_ts != NULL) {
-            if (sh->mpm_hhhd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhhd_ctx_ts);
-                sh->mpm_hhhd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhhd_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_hrhhd_ctx_ts != NULL) {
-            if (sh->mpm_hrhhd_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhhd_ctx_ts);
-                sh->mpm_hrhhd_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhhd_ctx_ts);
-                }
-            }
-        }
-
-        if (sh->mpm_dnsquery_ctx_ts != NULL) {
-            if (sh->mpm_dnsquery_ctx_ts->pattern_cnt == 0) {
-                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
-                sh->mpm_dnsquery_ctx_ts = NULL;
-            } else {
-                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                    if (mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare != NULL)
-                        mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare(sh->mpm_dnsquery_ctx_ts);
-                }
-            }
-        }
-    } else {
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_uri_ctx_ts);
-        sh->mpm_uri_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcbd_ctx_ts);
-        sh->mpm_hcbd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_ts);
-        sh->mpm_hhd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_ts);
-        sh->mpm_hrhd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hmd_ctx_ts);
-        sh->mpm_hmd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_ts);
-        sh->mpm_hcd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrud_ctx_ts);
-        sh->mpm_hrud_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_huad_ctx_ts);
-        sh->mpm_huad_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhhd_ctx_ts);
-        sh->mpm_hhhd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhhd_ctx_ts);
-        sh->mpm_hrhhd_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
-        sh->mpm_dnsquery_ctx_ts = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
-        sh->mpm_smtp_filedata_ctx_ts = NULL;
-
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_tc);
-        sh->mpm_hhd_ctx_tc = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_tc);
-        sh->mpm_hrhd_ctx_tc = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_tc);
-        sh->mpm_hcd_ctx_tc = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsmd_ctx_tc);
-        sh->mpm_hsmd_ctx_tc = NULL;
-        MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hscd_ctx_tc);
-        sh->mpm_hscd_ctx_tc = NULL;
-    }
-
+    MpmStoreFixup(sh);
     return 0;
 }
 
