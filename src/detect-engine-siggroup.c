@@ -204,133 +204,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 }
 
 /**
- * \brief The hash function to be the used by the mpm SigGroupHead hash table -
- *        DetectEngineCtx->sgh_mpm_hash_table.
- *
- * \param ht      Pointer to the hash table.
- * \param data    Pointer to the SigGroupHead.
- * \param datalen Not used in our case.
- *
- * \retval hash The generated hash value.
- */
-uint32_t SigGroupHeadMpmHashFunc(HashListTable *ht, void *data, uint16_t datalen)
-{
-    SigGroupHead *sgh = (SigGroupHead *)data;
-    uint32_t hash = 0;
-    uint32_t b = 0;
-
-    for (b = 0; b < sgh->init->content_size; b++)
-        hash += sgh->init->content_array[b];
-
-    return hash % ht->array_size;
-}
-
-/**
- * \brief The Compare function to be used by the mpm SigGroupHead hash table -
- *        DetectEngineCtx->sgh_mpm_hash_table.
- *
- * \param data1 Pointer to the first SigGroupHead.
- * \param len1  Not used.
- * \param data2 Pointer to the second SigGroupHead.
- * \param len2  Not used.
- *
- * \retval 1 If the 2 SigGroupHeads sent as args match.
- * \retval 0 If the 2 SigGroupHeads sent as args do not match.
- */
-char SigGroupHeadMpmCompareFunc(void *data1, uint16_t len1, void *data2,
-                                uint16_t len2)
-{
-    SigGroupHead *sgh1 = (SigGroupHead *)data1;
-    SigGroupHead *sgh2 = (SigGroupHead *)data2;
-
-    if (sgh1->init->content_size != sgh2->init->content_size)
-        return 0;
-
-    if (SCMemcmp(sgh1->init->content_array, sgh2->init->content_array,
-               sgh1->init->content_size) != 0) {
-        return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \brief Initializes the SigGroupHead mpm hash table to be used by the detection
- *        engine context.
- *
- * \param de_ctx Pointer to the detection engine context.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-int SigGroupHeadMpmHashInit(DetectEngineCtx *de_ctx)
-{
-    de_ctx->sgh_mpm_hash_table = HashListTableInit(4096, SigGroupHeadMpmHashFunc,
-                                                   SigGroupHeadMpmCompareFunc,
-                                                   NULL);
-
-    if (de_ctx->sgh_mpm_hash_table == NULL)
-        goto error;
-
-    return 0;
-
-error:
-    return -1;
-}
-
-/**
- * \brief Adds a SigGroupHead to the detection engine context SigGroupHead
- *        mpm hash table.
- *
- * \param de_ctx Pointer to the detection engine context.
- * \param sgh    Pointer to the SigGroupHead.
- *
- * \retval ret 0 on Successfully adding the argument sgh; -1 on failure.
- */
-int SigGroupHeadMpmHashAdd(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
-{
-    int ret = HashListTableAdd(de_ctx->sgh_mpm_hash_table, (void *)sgh, 0);
-
-    return ret;
-}
-
-/**
- * \brief Used to lookup a SigGroupHead from the detection engine context
- *        SigGroupHead mpm hash table.
- *
- * \param de_ctx Pointer to the detection engine context.
- * \param sgh    Pointer to the SigGroupHead.
- *
- * \retval rsgh On success a pointer to the SigGroupHead if the SigGroupHead is
- *              found in the hash table; NULL on failure.
- */
-SigGroupHead *SigGroupHeadMpmHashLookup(DetectEngineCtx *de_ctx,
-                                        SigGroupHead *sgh)
-{
-    SigGroupHead *rsgh = HashListTableLookup(de_ctx->sgh_mpm_hash_table,
-                                             (void *)sgh, 0);
-
-    return rsgh;
-}
-
-/**
- * \brief Frees the hash table - DetectEngineCtx->sgh_mpm_hash_table, allocated by
- *        SigGroupHeadMpmHashInit() function.
- *
- * \param de_ctx Pointer to the detection engine context.
- */
-void SigGroupHeadMpmHashFree(DetectEngineCtx *de_ctx)
-{
-    if (de_ctx->sgh_mpm_hash_table == NULL)
-        return;
-
-    HashListTableFree(de_ctx->sgh_mpm_hash_table);
-    de_ctx->sgh_mpm_hash_table = NULL;
-
-    return;
-}
-
-/**
  * \brief The hash function to be the used by the hash table -
  *        DetectEngineCtx->sgh_hash_table.
  *
@@ -1193,28 +1066,6 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 int SigAddressPrepareStage1(DetectEngineCtx *);
 
 /**
- * \test Check if a SigGroupHead mpm hash table is properly allocated and
- *       deallocated when calling SigGroupHeadMpmHashInit() and
- *       SigGroupHeadMpmHashFree() respectively.
- */
-static int SigGroupHeadTest01(void)
-{
-    int result = 1;
-
-    DetectEngineCtx de_ctx;
-
-    SigGroupHeadMpmHashInit(&de_ctx);
-
-    result &= (de_ctx.sgh_mpm_hash_table != NULL);
-
-    SigGroupHeadMpmHashFree(&de_ctx);
-
-    result &= (de_ctx.sgh_mpm_hash_table == NULL);
-
-    return result;
-}
-
-/**
  * \test Check if a SigGroupHead hash table is properly allocated and
  *       deallocated when calling SigGroupHeadHashInit() and
  *       SigGroupHeadHashFree() respectively.
@@ -1720,7 +1571,6 @@ end:
 void SigGroupHeadRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SigGroupHeadTest01", SigGroupHeadTest01, 1);
     UtRegisterTest("SigGroupHeadTest03", SigGroupHeadTest03, 1);
     UtRegisterTest("SigGroupHeadTest04", SigGroupHeadTest04, 1);
     UtRegisterTest("SigGroupHeadTest06", SigGroupHeadTest06, 1);
