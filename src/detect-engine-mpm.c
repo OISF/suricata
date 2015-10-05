@@ -1577,122 +1577,6 @@ static void PopulateMpmAddPatternToMpm(const DetectEngineCtx *de_ctx,
 
 SigMatch *RetrieveFPForSig(Signature *s)
 {
-    SigMatch *mpm_sm = NULL, *sm = NULL;
-    uint8_t has_non_negated_non_stream_pattern = 0;
-
-    if (s->mpm_sm != NULL)
-        return s->mpm_sm;
-
-    int list_id;
-    for (list_id = 0 ; list_id < DETECT_SM_LIST_MAX; list_id++) {
-        /* we have no keywords that support fp in this Signature sm list */
-        if (!FastPatternSupportEnabledForSigMatchList(list_id))
-            continue;
-
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-            /* this keyword isn't registered for fp support */
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
-                return sm;
-            if (!(cd->flags & DETECT_CONTENT_NEGATED) &&
-                (list_id != DETECT_SM_LIST_PMATCH) &&
-                (list_id != DETECT_SM_LIST_HMDMATCH) &&
-                (list_id != DETECT_SM_LIST_HSMDMATCH) &&
-                (list_id != DETECT_SM_LIST_HSCDMATCH)) {
-                has_non_negated_non_stream_pattern = 1;
-            }
-        }
-    }
-
-    int max_len = 0;
-    int max_len_negated = 0;
-    int max_len_non_negated = 0;
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
-        if (!FastPatternSupportEnabledForSigMatchList(list_id))
-            continue;
-
-        if (has_non_negated_non_stream_pattern &&
-            ((list_id == DETECT_SM_LIST_PMATCH) ||
-             (list_id == DETECT_SM_LIST_HMDMATCH) ||
-             (list_id == DETECT_SM_LIST_HSMDMATCH) ||
-             (list_id == DETECT_SM_LIST_HSCDMATCH))) {
-            continue;
-        }
-
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (max_len_negated < cd->content_len)
-                    max_len_negated = cd->content_len;
-            } else {
-                if (max_len_non_negated < cd->content_len)
-                    max_len_non_negated = cd->content_len;
-            }
-        }
-    }
-
-    int skip_negated_content = 0;
-    if (max_len_non_negated == 0) {
-        max_len = max_len_negated;
-        skip_negated_content = 0;
-    } else {
-        max_len = max_len_non_negated;
-        skip_negated_content = 1;
-    }
-
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
-        if (!FastPatternSupportEnabledForSigMatchList(list_id))
-            continue;
-
-        if (has_non_negated_non_stream_pattern &&
-            ((list_id == DETECT_SM_LIST_PMATCH) ||
-             (list_id == DETECT_SM_LIST_HMDMATCH) ||
-             (list_id == DETECT_SM_LIST_HSMDMATCH) ||
-             (list_id == DETECT_SM_LIST_HSCDMATCH))) {
-            continue;
-        }
-
-        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_CONTENT)
-                continue;
-
-            DetectContentData *cd = (DetectContentData *)sm->ctx;
-            if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
-                continue;
-            if (cd->content_len < max_len)
-                continue;
-
-            if (mpm_sm == NULL) {
-                mpm_sm = sm;
-            } else {
-                DetectContentData *data1 = (DetectContentData *)sm->ctx;
-                DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
-                uint32_t ls = PatternStrength(data1->content, data1->content_len);
-                uint32_t ss = PatternStrength(data2->content, data2->content_len);
-                if (ls > ss) {
-                    mpm_sm = sm;
-                } else if (ls == ss) {
-                    /* if 2 patterns are of equal strength, we pick the longest */
-                    if (data1->content_len > data2->content_len)
-                        mpm_sm = sm;
-                } else {
-                    SCLogDebug("sticking with mpm_sm");
-                }
-            } /* else - if (mpm == NULL) */
-        } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
-    } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
-
-    return mpm_sm;
-}
-
-SigMatch *RetrieveFPForSigV2(Signature *s)
-{
     if (s->mpm_sm != NULL)
         return s->mpm_sm;
 
@@ -2802,7 +2686,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
      * true size, since duplicates are removed below, but counted here.
      */
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
-        s->mpm_sm = RetrieveFPForSigV2(s);
+        s->mpm_sm = RetrieveFPForSig(s);
         if (s->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
