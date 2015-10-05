@@ -32,6 +32,9 @@
 
 #include "stream.h"
 
+void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
+void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx);
+
 uint16_t PatternMatchDefaultMatcher(void);
 
 uint32_t PatternStrength(uint8_t *, uint16_t);
