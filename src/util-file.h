@@ -172,6 +172,8 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id);
 void FilePrune(FileContainer *ffc);
 
+void FileForceFilestoreEnable(void);
+int FileForceFilestore(void);
 
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);

@@ -36,6 +36,11 @@
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
+/** \brief switch to force filestore on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_filestore = 0;
+
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
  */
@@ -55,6 +60,11 @@ static int g_file_force_tracking = 0;
 static void FileFree(File *);
 static void FileDataFree(FileData *);
 
+void FileForceFilestoreEnable(void)
+{
+    g_file_force_filestore = 1;
+}
+
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
@@ -63,6 +73,11 @@ void FileForceMagicEnable(void)
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
+}
+
+int FileForceFilestore(void)
+{
+    return g_file_force_filestore;
 }
 
 int FileForceMagic(void)
@@ -534,7 +549,7 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         SCReturnPtr(NULL, "File");
     }
 
-    if (flags & FILE_STORE) {
+    if (flags & FILE_STORE || g_file_force_filestore) {
         ff->flags |= FILE_STORE;
     } else if (flags & FILE_NOSTORE) {
         SCLogDebug("not storing this file");
