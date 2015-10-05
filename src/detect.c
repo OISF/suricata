@@ -357,7 +357,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
         sig = DetectEngineAppendSig(de_ctx, line);
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
-                sig->mpm_sm = RetrieveFPForSigV2(sig);
+                sig->mpm_sm = RetrieveFPForSig(sig);
                 if (fp_engine_analysis_set) {
                     EngineAnalysisFP(sig, line);
                 }
