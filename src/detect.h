@@ -655,22 +655,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_proto_udp_packet;
     int32_t sgh_mpm_context_proto_other_packet;
     int32_t sgh_mpm_context_stream;
-    int32_t sgh_mpm_context_uri;
-    int32_t sgh_mpm_context_hcbd;
-    int32_t sgh_mpm_context_hsbd;
-    int32_t sgh_mpm_context_hhd;
-    int32_t sgh_mpm_context_hrhd;
-    int32_t sgh_mpm_context_hmd;
-    int32_t sgh_mpm_context_hcd;
-    int32_t sgh_mpm_context_hrud;
-    int32_t sgh_mpm_context_hsmd;
-    int32_t sgh_mpm_context_hscd;
-    int32_t sgh_mpm_context_huad;
-    int32_t sgh_mpm_context_hhhd;
-    int32_t sgh_mpm_context_hrhhd;
     int32_t sgh_mpm_context_app_proto_detect;
-    int32_t sgh_mpm_context_dnsquery;
-    int32_t sgh_mpm_context_smtp;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
@@ -959,6 +944,8 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
 #define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
 
+#define APP_MPMS_MAX 18
+
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
     MPMB_TCP_PKT_TC,
@@ -976,6 +963,8 @@ typedef struct MpmStore_ {
 
     int direction;
     enum MpmBuiltinBuffers buffer;
+    int sm_list;
+    int32_t sgh_mpm_context;
 
     MpmCtx *mpm_ctx;
 
@@ -1054,6 +1043,8 @@ typedef struct SigGroupHead_ {
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
+
+    MpmCtx *app_mpms[APP_MPMS_MAX];
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;
