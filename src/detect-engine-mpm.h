@@ -64,7 +64,7 @@ void PatternMatchDestroy(MpmCtx *, uint16_t);
 void PatternMatchThreadDestroy(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 void PatternMatchThreadPrint(MpmThreadCtx *, uint16_t);
 
-int PatternMatchPrepareGroup(const DetectEngineCtx *, SigGroupHead *);
+int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
 void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
 void PatternMatchDestroyGroup(SigGroupHead *);
 
@@ -82,6 +82,11 @@ int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
 SigMatch *RetrieveFPForSig(Signature *s);
+
+int MpmStoreInit(DetectEngineCtx *);
+void MpmStoreFree(DetectEngineCtx *);
+void MpmStoreReportStats(const DetectEngineCtx *de_ctx);
+MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum MpmBuiltinBuffers buf);
 
 /**
  * \brief Figured out the FP and their respective content ids for all the

@@ -606,7 +606,7 @@ typedef struct DetectEngineCtx_ {
     /* init phase vars */
     HashListTable *sgh_hash_table;
 
-    HashListTable *sgh_mpm_hash_table;
+    HashListTable *mpm_hash_table;
 
     HashListTable *sgh_dport_hash_table;
 
@@ -959,10 +959,30 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
 #define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
 
+enum MpmBuiltinBuffers {
+    MPMB_TCP_PKT_TS,
+    MPMB_TCP_PKT_TC,
+    MPMB_TCP_STREAM_TS,
+    MPMB_TCP_STREAM_TC,
+    MPMB_UDP_TS,
+    MPMB_UDP_TC,
+    MPMB_OTHERIP,
+    MPMB_MAX,
+};
+
+typedef struct MpmStore_ {
+    uint8_t *sid_array;
+    uint32_t sid_array_size;
+
+    int direction;
+    enum MpmBuiltinBuffers buffer;
+
+    MpmCtx *mpm_ctx;
+
+} MpmStore;
+
 typedef struct SigGroupHeadInitData_ {
-    /* list of content containers */
-    uint8_t *content_array;
-    uint32_t content_size;
+    MpmStore mpm_store[MPMB_MAX];
 
     uint8_t *sig_array; /**< bit array of sig nums (internal id's) */
     uint32_t sig_size; /**< size in bytes */
