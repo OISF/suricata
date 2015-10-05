@@ -871,7 +871,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     DetectEngineCtxLoadConf(de_ctx);
 
     SigGroupHeadHashInit(de_ctx);
-    SigGroupHeadMpmHashInit(de_ctx);
+    MpmStoreInit(de_ctx);
     SigGroupHeadDPortHashInit(de_ctx);
     ThresholdHashInit(de_ctx);
     VariableNameInitHash(de_ctx);
@@ -956,7 +956,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
      * to be sure look at them again here.
      */
     SigGroupHeadHashFree(de_ctx);
-    SigGroupHeadMpmHashFree(de_ctx);
+    MpmStoreFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
     DetectParseDupSigHashFree(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
