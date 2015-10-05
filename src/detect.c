@@ -2732,53 +2732,13 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
     de_ctx->sgh_mpm_context_proto_other_packet =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_uri =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "uri",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_stream =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hcbd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hcbd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hsbd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hsbd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_smtp =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "smtp",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hhd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hhd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hrhd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hrhd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hmd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hmd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hcd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hcd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hrud =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hrud",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hsmd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hsmd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hscd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hscd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_huad =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "huad",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hhhd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hhhd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_hrhhd =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "hrhhd",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_app_proto_detect =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "app_proto_detect", 0);
+
+    DetectMpmInitializeAppMpms(de_ctx);
 
     return;
 }
@@ -3690,7 +3650,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             }
         }
 #endif
-
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -3717,96 +3676,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         }
         //printf("packet- %d\n", mpm_ctx->pattern_cnt);
 
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_uri, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("uri- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcbd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hcbd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsbd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hsbd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_smtp, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("smtp- %d\n"; mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hhd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hrhd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hmd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hmd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hcd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hcd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrud, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hrud- %d\n", mpm_ctx->pattern_cnt);
-
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
@@ -3817,62 +3686,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         }
         //printf("stream- %d\n", mpm_ctx->pattern_cnt);
 
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hsmd- %d\n", mpm_ctx->pattern_cnt);
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hsmd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hsmd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hscd- %d\n", mpm_ctx->pattern_cnt);
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hscd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hscd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("huad- %d\n", mpm_ctx->pattern_cnt);
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_huad, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("huad- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhhd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hhhd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hhhd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hhhd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhhd, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hrhhd- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_hrhhd, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("hrhhd- %d\n", mpm_ctx->pattern_cnt);
+        DetectMpmPrepareAppMpms(de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
