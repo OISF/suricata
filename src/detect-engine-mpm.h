@@ -69,7 +69,6 @@ void PatternMatchThreadPrint(MpmThreadCtx *, uint16_t);
 
 int PatternMatchPrepareGroup(DetectEngineCtx *, SigGroupHead *);
 void DetectEngineThreadCtxInfo(ThreadVars *, DetectEngineThreadCtx *);
-void PatternMatchDestroyGroup(SigGroupHead *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);
 TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
