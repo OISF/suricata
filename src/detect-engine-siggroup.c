@@ -173,8 +173,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
 
     SCLogDebug("sgh %p", sgh);
 
-    PatternMatchDestroyGroup(sgh);
-
     if (sgh->match_array != NULL) {
         detect_siggroup_matcharray_free_cnt++;
         detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(Signature *));
