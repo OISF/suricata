@@ -895,252 +895,6 @@ void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
     MpmInitThreadCtx(mpm_thread_ctx, mpm_matcher);
 }
 
-
-/* free the pattern matcher part of a SigGroupHead */
-void PatternMatchDestroyGroup(SigGroupHead *sh)
-{
-    /* content */
-    if (!(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        if (sh->mpm_proto_tcp_ctx_ts != NULL &&
-            !sh->mpm_proto_tcp_ctx_ts->global)
-        {
-            SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                    sh->mpm_proto_tcp_ctx_ts, sh);
-            mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].
-                DestroyCtx(sh->mpm_proto_tcp_ctx_ts);
-            SCFree(sh->mpm_proto_tcp_ctx_ts);
-        }
-        /* ready for reuse */
-        sh->mpm_proto_tcp_ctx_ts = NULL;
-
-        if (sh->mpm_proto_tcp_ctx_tc != NULL &&
-            !sh->mpm_proto_tcp_ctx_tc->global)
-        {
-            SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                    sh->mpm_proto_tcp_ctx_tc, sh);
-            mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].
-                DestroyCtx(sh->mpm_proto_tcp_ctx_tc);
-            SCFree(sh->mpm_proto_tcp_ctx_tc);
-        }
-        /* ready for reuse */
-        sh->mpm_proto_tcp_ctx_tc = NULL;
-
-        if (sh->mpm_proto_udp_ctx_ts != NULL &&
-            !sh->mpm_proto_udp_ctx_ts->global)
-        {
-            SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                    sh->mpm_proto_udp_ctx_ts, sh);
-            mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].
-                DestroyCtx(sh->mpm_proto_udp_ctx_ts);
-            SCFree(sh->mpm_proto_udp_ctx_ts);
-        }
-        /* ready for reuse */
-        sh->mpm_proto_udp_ctx_ts = NULL;
-
-        if (sh->mpm_proto_udp_ctx_tc != NULL &&
-                !sh->mpm_proto_udp_ctx_tc->global)
-        {
-            SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                    sh->mpm_proto_udp_ctx_tc, sh);
-            mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].
-                DestroyCtx(sh->mpm_proto_udp_ctx_tc);
-            SCFree(sh->mpm_proto_udp_ctx_tc);
-        }
-        /* ready for reuse */
-        sh->mpm_proto_udp_ctx_tc = NULL;
-
-        if (sh->mpm_proto_other_ctx != NULL &&
-                !sh->mpm_proto_other_ctx->global)
-        {
-            SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                    sh->mpm_proto_other_ctx, sh);
-            mpm_table[sh->mpm_proto_other_ctx->mpm_type].
-                DestroyCtx(sh->mpm_proto_other_ctx);
-            SCFree(sh->mpm_proto_other_ctx);
-        }
-        /* ready for reuse */
-        sh->mpm_proto_other_ctx = NULL;
-    }
-
-    /* uricontent */
-    if ((sh->mpm_uri_ctx_ts != NULL) && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-        if (sh->mpm_uri_ctx_ts != NULL) {
-            if (!sh->mpm_uri_ctx_ts->global) {
-                SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx_ts, sh);
-                mpm_table[sh->mpm_uri_ctx_ts->mpm_type].DestroyCtx(sh->mpm_uri_ctx_ts);
-                SCFree(sh->mpm_uri_ctx_ts);
-            }
-            /* ready for reuse */
-            sh->mpm_uri_ctx_ts = NULL;
-        }
-    }
-
-    /* stream content */
-    if ((sh->mpm_stream_ctx_ts != NULL || sh->mpm_stream_ctx_tc != NULL) &&
-        !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-        if (sh->mpm_stream_ctx_ts != NULL) {
-            if (!sh->mpm_stream_ctx_ts->global) {
-                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_ts, sh);
-                mpm_table[sh->mpm_stream_ctx_ts->mpm_type].DestroyCtx(sh->mpm_stream_ctx_ts);
-                SCFree(sh->mpm_stream_ctx_ts);
-            }
-            /* ready for reuse */
-            sh->mpm_stream_ctx_ts = NULL;
-        }
-        if (sh->mpm_stream_ctx_tc != NULL) {
-            if (!sh->mpm_stream_ctx_tc->global) {
-                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_tc, sh);
-                mpm_table[sh->mpm_stream_ctx_tc->mpm_type].DestroyCtx(sh->mpm_stream_ctx_tc);
-                SCFree(sh->mpm_stream_ctx_tc);
-            }
-            /* ready for reuse */
-            sh->mpm_stream_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_hcbd_ctx_ts != NULL) {
-        if (sh->mpm_hcbd_ctx_ts != NULL) {
-            if (!sh->mpm_hcbd_ctx_ts->global) {
-                mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hcbd_ctx_ts);
-                SCFree(sh->mpm_hcbd_ctx_ts);
-            }
-            sh->mpm_hcbd_ctx_ts = NULL;
-        }
-    }
-
-    if (sh->mpm_hsbd_ctx_tc != NULL) {
-        if (sh->mpm_hsbd_ctx_tc != NULL) {
-            if (!sh->mpm_hsbd_ctx_tc->global) {
-                mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hsbd_ctx_tc);
-                SCFree(sh->mpm_hsbd_ctx_tc);
-            }
-            sh->mpm_hsbd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
-        if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
-            if (!sh->mpm_smtp_filedata_ctx_ts->global) {
-                mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].DestroyCtx(sh->mpm_smtp_filedata_ctx_ts);
-                SCFree(sh->mpm_smtp_filedata_ctx_ts);
-            }
-            sh->mpm_smtp_filedata_ctx_ts = NULL;
-        }
-    }
-
-    if (sh->mpm_hhd_ctx_ts != NULL || sh->mpm_hhd_ctx_tc != NULL) {
-        if (sh->mpm_hhd_ctx_ts != NULL) {
-            if (!sh->mpm_hhd_ctx_ts->global) {
-                mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hhd_ctx_ts);
-                SCFree(sh->mpm_hhd_ctx_ts);
-            }
-            sh->mpm_hhd_ctx_ts = NULL;
-        }
-        if (sh->mpm_hhd_ctx_tc != NULL) {
-            if (!sh->mpm_hhd_ctx_tc->global) {
-                mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hhd_ctx_tc);
-                SCFree(sh->mpm_hhd_ctx_tc);
-            }
-            sh->mpm_hhd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_hrhd_ctx_ts != NULL || sh->mpm_hrhd_ctx_tc != NULL) {
-        if (sh->mpm_hrhd_ctx_ts != NULL) {
-            if (!sh->mpm_hrhd_ctx_ts->global) {
-                mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hrhd_ctx_ts);
-                SCFree(sh->mpm_hrhd_ctx_ts);
-            }
-            sh->mpm_hrhd_ctx_ts = NULL;
-        }
-        if (sh->mpm_hrhd_ctx_tc != NULL) {
-            if (!sh->mpm_hrhd_ctx_tc->global) {
-                mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hrhd_ctx_tc);
-                SCFree(sh->mpm_hrhd_ctx_tc);
-            }
-            sh->mpm_hrhd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_hmd_ctx_ts != NULL) {
-        if (sh->mpm_hmd_ctx_ts != NULL) {
-            if (!sh->mpm_hmd_ctx_ts->global) {
-                mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hmd_ctx_ts);
-                SCFree(sh->mpm_hmd_ctx_ts);
-            }
-            sh->mpm_hmd_ctx_ts = NULL;
-        }
-    }
-
-    if (sh->mpm_hcd_ctx_ts != NULL || sh->mpm_hcd_ctx_tc != NULL) {
-        if (sh->mpm_hcd_ctx_ts != NULL) {
-            if (!sh->mpm_hcd_ctx_ts->global) {
-                mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hcd_ctx_ts);
-                SCFree(sh->mpm_hcd_ctx_ts);
-            }
-            sh->mpm_hcd_ctx_ts = NULL;
-        }
-        if (sh->mpm_hcd_ctx_tc != NULL) {
-            if (!sh->mpm_hcd_ctx_tc->global) {
-                mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hcd_ctx_tc);
-                SCFree(sh->mpm_hcd_ctx_tc);
-            }
-            sh->mpm_hcd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_hrud_ctx_ts != NULL) {
-        if (sh->mpm_hrud_ctx_ts != NULL) {
-            if (!sh->mpm_hrud_ctx_ts->global) {
-                mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].DestroyCtx(sh->mpm_hrud_ctx_ts);
-                SCFree(sh->mpm_hrud_ctx_ts);
-            }
-            sh->mpm_hrud_ctx_ts = NULL;
-        }
-    }
-
-    if (sh->mpm_hsmd_ctx_tc != NULL) {
-        if (sh->mpm_hsmd_ctx_tc != NULL) {
-            if (!sh->mpm_hsmd_ctx_tc->global) {
-                mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hsmd_ctx_tc);
-                SCFree(sh->mpm_hsmd_ctx_tc);
-            }
-            sh->mpm_hsmd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_hscd_ctx_tc != NULL) {
-        if (sh->mpm_hscd_ctx_tc != NULL) {
-            if (!sh->mpm_hscd_ctx_tc->global) {
-                mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].DestroyCtx(sh->mpm_hscd_ctx_tc);
-                SCFree(sh->mpm_hscd_ctx_tc);
-            }
-            sh->mpm_hscd_ctx_tc = NULL;
-        }
-    }
-
-    if (sh->mpm_huad_ctx_ts != NULL) {
-        if (sh->mpm_huad_ctx_ts != NULL) {
-            if (!sh->mpm_huad_ctx_ts->global) {
-                mpm_table[sh->mpm_huad_ctx_ts->mpm_type].DestroyCtx(sh->mpm_huad_ctx_ts);
-                SCFree(sh->mpm_huad_ctx_ts);
-            }
-            sh->mpm_huad_ctx_ts = NULL;
-        }
-    }
-
-    /* dns query */
-    if (sh->mpm_dnsquery_ctx_ts != NULL) {
-        if (!sh->mpm_dnsquery_ctx_ts->global) {
-            mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].DestroyCtx(sh->mpm_dnsquery_ctx_ts);
-            SCFree(sh->mpm_dnsquery_ctx_ts);
-        }
-        sh->mpm_dnsquery_ctx_ts = NULL;
-    }
-
-    return;
-}
-
 /** \brief Predict a strength value for patterns
  *
  *  Patterns with high character diversity score higher.
@@ -1408,6 +1162,23 @@ static char MpmStoreCompareFunc(void *data1, uint16_t len1, void *data2,
     return 1;
 }
 
+static void MpmStoreFreeFunc(void *ptr)
+{
+    MpmStore *ms = ptr;
+    if (ms != NULL) {
+        if (ms->mpm_ctx != NULL && !ms->mpm_ctx->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p", ms->mpm_ctx);
+            mpm_table[ms->mpm_ctx->mpm_type].DestroyCtx(ms->mpm_ctx);
+            SCFree(ms->mpm_ctx);
+        }
+        ms->mpm_ctx = NULL;
+
+        SCFree(ms->sid_array);
+        SCFree(ms);
+    }
+}
+
 /**
  * \brief Initializes the MpmStore mpm hash table to be used by the detection
  *        engine context.
@@ -1422,7 +1193,7 @@ int MpmStoreInit(DetectEngineCtx *de_ctx)
     de_ctx->mpm_hash_table = HashListTableInit(4096,
                                                MpmStoreHashFunc,
                                                MpmStoreCompareFunc,
-                                               NULL);
+                                               MpmStoreFreeFunc);
     if (de_ctx->mpm_hash_table == NULL)
         goto error;
 
