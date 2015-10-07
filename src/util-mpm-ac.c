@@ -78,8 +78,8 @@ int SCACAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
 int SCACAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                      uint32_t, SigIntId, uint8_t);
 int SCACPreparePatterns(MpmCtx *mpm_ctx);
-uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen);
+uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                    PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen);
 void SCACPrintInfo(MpmCtx *mpm_ctx);
 void SCACPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACRegisterTests(void);
@@ -1302,10 +1302,10 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
  *
  * \retval matches Match count.
  */
-uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
+uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                    PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen)
 {
-    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+    const SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     int i = 0;
     int matches = 0;
 
