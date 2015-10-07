@@ -89,53 +89,53 @@ int SCACTileAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
 int SCACTileAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                          uint32_t, SigIntId, uint8_t);
 int SCACTilePreparePatterns(MpmCtx *mpm_ctx);
-uint32_t SCACTileSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                        PatternMatcherQueue *pmq, uint8_t *buf,
+uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                        PatternMatcherQueue *pmq, const uint8_t *buf,
                         uint16_t buflen);
 void SCACTilePrintInfo(MpmCtx *mpm_ctx);
 void SCACTilePrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACTileRegisterTests(void);
 
-uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PatternMatcherQueue *pmq,
-                             uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall256(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                             const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PatternMatcherQueue *pmq,
-                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall128(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                                const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                 PatternMatcherQueue *pmq,
-                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall64(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                                const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall32(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall16(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchSmall8(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchSmall8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PatternMatcherQueue *pmq,
-                              uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint16_t buflen);
 
-uint32_t SCACTileSearchTiny256(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                                PatternMatcherQueue *pmq,
-                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchTiny128(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                                PatternMatcherQueue *pmq,
-                                uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchTiny64(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchTiny256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchTiny32(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                                PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchTiny16(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
-                               uint8_t *buf, uint16_t buflen);
-uint32_t SCACTileSearchTiny8(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                               const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                               PatternMatcherQueue *pmq,
-                              uint8_t *buf, uint16_t buflen);
+                              const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                              PatternMatcherQueue *pmq,
+                              const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                              PatternMatcherQueue *pmq,
+                              const uint8_t *buf, uint16_t buflen);
+uint32_t SCACTileSearchTiny8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                             PatternMatcherQueue *pmq,
+                             const uint8_t *buf, uint16_t buflen);
 
 
 static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
@@ -1490,13 +1490,13 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define EXTRA 4 // need 4 extra bytes to avoid OOB reads
 #endif
 
-int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
-               uint8_t *buf, uint16_t buflen,
+int CheckMatch(const SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
+               const uint8_t *buf, uint16_t buflen,
                uint16_t state, int i, int matches,
                uint8_t *mpm_bitarray)
 {
     SCACTilePatternList *pattern_list = ctx->pattern_list;
-    uint8_t *buf_offset = buf + i + 1; // Lift out of loop
+    const uint8_t *buf_offset = buf + i + 1; // Lift out of loop
     uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
     MpmPatternIndex *patterns = ctx->output_table[state].patterns;
     uint8_t *pmq_bitarray = pmq->pattern_id_bitarray;
@@ -1559,10 +1559,10 @@ int CheckMatch(SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
  *
  * \retval matches Match count.
  */
-uint32_t SCACTileSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                        PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
+uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                        PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen)
 {
-    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
+    const SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
     if (buflen == 0)
         return 0;
@@ -1572,9 +1572,9 @@ uint32_t SCACTileSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 }
 
 /* This function handles (ctx->state_count >= 32767) */
-uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
                              PatternMatcherQueue *pmq,
-                             uint8_t *buf, uint16_t buflen)
+                             const uint8_t *buf, uint16_t buflen)
 {
     int i = 0;
     int matches = 0;
@@ -1582,7 +1582,7 @@ uint32_t SCACTileSearchLarge(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ct
     uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
     memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
 
-    uint8_t* restrict xlate = ctx->translate_table;
+    const uint8_t* restrict xlate = ctx->translate_table;
     register int state = 0;
     int32_t (*state_table_u32)[256] = ctx->state_table;
     for (i = 0; i < buflen; i++) {
