@@ -316,6 +316,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_JSON_STATS_LOG_NEGATED);
         CASE_CODE (SC_ERR_DEPRECATED_CONF);
         CASE_CODE (SC_WARN_FASTER_CAPTURE_AVAILABLE);
+        CASE_CODE (SC_WARN_POOR_RULE);
     }
 
     return "UNKNOWN_ERROR";
