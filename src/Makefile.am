@@ -356,6 +356,7 @@ util-lua-common.c util-lua-common.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
 util-lua-tls.c util-lua-tls.h \
+util-lua-ssh.c util-lua-ssh.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \

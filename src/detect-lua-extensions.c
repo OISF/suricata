@@ -67,6 +67,7 @@
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
 #include "util-lua-tls.h"
+#include "util-lua-ssh.h"
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -619,6 +620,7 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterHttpFunctions(lua_state);
     LuaRegisterDnsFunctions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
+    LuaRegisterSshFunctions(lua_state);
     return 0;
 }
 
