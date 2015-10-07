@@ -289,7 +289,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     SCEnter();
 
     uint32_t ret;
-    MpmCtx *mpm_ctx = NULL;
+    const MpmCtx *mpm_ctx = NULL;
 
     if (p->proto == IPPROTO_TCP) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
