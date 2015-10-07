@@ -3008,6 +3008,20 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
         else
             BUG_ON(1);
 
+        /* see if we want to exclude directionless sigs that really care only for
+         * to_server syn scans/floods */
+        if ((direction == SIG_FLAG_TOCLIENT) &&
+             DetectFlagsSignatureNeedsSynPackets(s) &&
+             DetectFlagsSignatureNeedsSynOnlyPackets(s) &&
+            ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) &&
+            (!(s->dp->port == 0 && s->dp->port2 == 65535)))
+        {
+            SCLogWarning(SC_WARN_POOR_RULE, "rule %u: SYN-only to port(s) %u:%u "
+                    "w/o direction specified, disabling for toclient direction",
+                    s->id, s->dp->port, s->dp->port2);
+            goto next;
+        }
+
         while (p) {
             DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
             BUG_ON(tmp == NULL);
