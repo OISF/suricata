@@ -31,8 +31,8 @@
 #ifdef FUNC_NAME
 
 /* This function handles (ctx->state_count < 32767) */
-uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                   PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
+uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
+                   PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen)
 {
     int i = 0;
     int matches = 0;
@@ -40,7 +40,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     uint8_t mpm_bitarray[ctx->mpm_bitarray_size];
     memset(mpm_bitarray, 0, ctx->mpm_bitarray_size);
 
-    uint8_t* restrict xlate = ctx->translate_table;
+    const uint8_t* restrict xlate = ctx->translate_table;
     STYPE *state_table = (STYPE*)ctx->state_table;
     STYPE state = 0;
     int c = xlate[buf[0]];
