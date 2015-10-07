@@ -297,6 +297,10 @@
 #define MIN(x, y) (((x)<(y))?(x):(y))
 #endif
 
+#ifndef MAX
+#define MAX(x, y) (((x)<(y))?(y):(x))
+#endif
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_MPM,
     PROF_DETECT_MPM_PACKET,         /* PKT MPM */
