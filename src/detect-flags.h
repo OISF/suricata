@@ -56,4 +56,7 @@ void DetectFlagsRegister (void);
 
 void FlagsRegisterTests(void);
 
+int DetectFlagsSignatureNeedsSynPackets(const Signature *s);
+int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s);
+
 #endif /*__DETECT_FLAGS_H__ */
