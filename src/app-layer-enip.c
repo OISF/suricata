@@ -379,27 +379,6 @@ static int ENIPParse(Flow *f, void *state, AppLayerParserState *pstate,
 }
 
 
-/** \internal
- *
- * \brief This function is called to retrieve a ENIP
- *
- * \param state     ENIP state structure for the parser
- * \param input     Input line of the command
- * \param input_len Length of the request
- *
- * \retval 1 when the command is parsed, 0 otherwise
- */
-static int ENIPParseResp(Flow *f, void *state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, void *local_data)
-{
-    SCEnter();
-    ENIPState *enip = (ENIPState *) state;
-    ENIPTransaction *tx;
-    int ret = 0;
-    return ret;
-}
-
-
 
 static uint16_t ENIPProbingParser(uint8_t *input, uint32_t input_len,
         uint32_t *offset)

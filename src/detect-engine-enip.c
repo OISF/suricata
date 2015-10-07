@@ -177,10 +177,11 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
 
     int count = 1;
     CIPServiceEntry *svc = NULL;
-    //printf("CIPServiceMatchAL\n");
+    //SCLogDebug("CIPServiceMatchAL\n");
     TAILQ_FOREACH(svc, &enip_data->service_list, next)
     {
-        //printf("CIPServiceMatchAL service #%d : 0x%x\n", count, svc->service);
+        SCLogDebug("CIPServiceMatchAL service #%d : 0x%x dir %d \n", count, svc->service,  svc->direction);
+
         if (cipserviced->cipservice == svc->service)
         { // compare service
             //SCLogDebug("Rule Match for cip service %d\n",cipserviced->cipservice );
@@ -195,11 +196,15 @@ int CIPServiceMatch(ENIPTransaction *enip_data,
                 { //decode path
                     if (CIPPathMatch(svc, cipserviced) == 1)
                     {
+                        if (svc->direction == 1) return 0; //don't match responses
+
                         return 1;
                     }
                 }
             } else
             {
+                if (svc->direction == 1) return 0; //don't match responses
+
                 // printf("CIPServiceMatchAL found\n");
                 return 1;
             }
@@ -227,7 +232,6 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    //    SCLogDebug("DetectEngineInspectCIP %d\n", cipserviced->cipservice);
 
     ENIPTransaction *tx = (ENIPTransaction *) txv;
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_CIP_MATCH];
@@ -239,10 +243,12 @@ int DetectEngineInspectCIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
         SCLogDebug("no cipservice state, no match");
         SCReturnInt(0);
     }
+   // SCLogDebug("DetectEngineInspectCIP %d\n", cipserviced->cipservice);
+
 
     if (CIPServiceMatch(tx, cipserviced) == 1)
     {
-        //   printf("DetectCIPServiceMatchAL found\n");
+        //   SCLogDebug("DetectCIPServiceMatchAL found\n");
         SCReturnInt(1);
     }
 
@@ -285,7 +291,7 @@ int DetectEngineInspectENIP(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     if (enipcmdd->enipcommand == tx->header.command)
     {
-        // printf("DetectENIPCommandMatchAL found!\n");
+        // SCLogDebug("DetectENIPCommandMatchAL found!\n");
         SCReturnInt(1);
     }
 

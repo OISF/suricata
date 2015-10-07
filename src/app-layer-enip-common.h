@@ -182,6 +182,7 @@ TAILQ_ENTRY(AttributeEntry_) next;
 typedef struct CIPServiceEntry_
 {
     uint8_t service; //cip service
+    uint8_t direction;
     union
     {
         struct

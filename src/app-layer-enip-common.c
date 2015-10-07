@@ -418,6 +418,7 @@ int DecodeCIPRequestPDU(uint8_t *input, uint32_t input_len,
 
     //save CIP data
     CIPServiceEntry *node = CIPServiceAlloc(enip_data);
+    node->direction = 0;
     node->service = service;
     node->request.path_size = path_size;
     node->request.path_offset = offset;
@@ -657,6 +658,7 @@ int DecodeCIPResponsePDU(uint8_t *input, uint32_t input_len,
 
     //save CIP data
     CIPServiceEntry *node = CIPServiceAlloc(enip_data);
+    node->direction = 1;
     node->service = service;
     node->response.status = status;
 
