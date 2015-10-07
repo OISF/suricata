@@ -1007,33 +1007,33 @@ typedef struct SigGroupHead_ {
     uint32_t non_mpm_store_cnt;
 
     /* pattern matcher instances */
-    MpmCtx *mpm_proto_other_ctx;
+    const MpmCtx *mpm_proto_other_ctx;
 
-    MpmCtx *mpm_proto_tcp_ctx_ts;
-    MpmCtx *mpm_proto_udp_ctx_ts;
-    MpmCtx *mpm_stream_ctx_ts;
-    MpmCtx *mpm_uri_ctx_ts;
-    MpmCtx *mpm_hcbd_ctx_ts;
-    MpmCtx *mpm_hhd_ctx_ts;
-    MpmCtx *mpm_hrhd_ctx_ts;
-    MpmCtx *mpm_hmd_ctx_ts;
-    MpmCtx *mpm_hcd_ctx_ts;
-    MpmCtx *mpm_hrud_ctx_ts;
-    MpmCtx *mpm_huad_ctx_ts;
-    MpmCtx *mpm_hhhd_ctx_ts;
-    MpmCtx *mpm_hrhhd_ctx_ts;
-    MpmCtx *mpm_dnsquery_ctx_ts;
-    MpmCtx *mpm_smtp_filedata_ctx_ts;
+    const MpmCtx *mpm_proto_tcp_ctx_ts;
+    const MpmCtx *mpm_proto_udp_ctx_ts;
+    const MpmCtx *mpm_stream_ctx_ts;
+    const MpmCtx *mpm_uri_ctx_ts;
+    const MpmCtx *mpm_hcbd_ctx_ts;
+    const MpmCtx *mpm_hhd_ctx_ts;
+    const MpmCtx *mpm_hrhd_ctx_ts;
+    const MpmCtx *mpm_hmd_ctx_ts;
+    const MpmCtx *mpm_hcd_ctx_ts;
+    const MpmCtx *mpm_hrud_ctx_ts;
+    const MpmCtx *mpm_huad_ctx_ts;
+    const MpmCtx *mpm_hhhd_ctx_ts;
+    const MpmCtx *mpm_hrhhd_ctx_ts;
+    const MpmCtx *mpm_dnsquery_ctx_ts;
+    const MpmCtx *mpm_smtp_filedata_ctx_ts;
 
-    MpmCtx *mpm_proto_tcp_ctx_tc;
-    MpmCtx *mpm_proto_udp_ctx_tc;
-    MpmCtx *mpm_stream_ctx_tc;
-    MpmCtx *mpm_hsbd_ctx_tc;
-    MpmCtx *mpm_hhd_ctx_tc;
-    MpmCtx *mpm_hrhd_ctx_tc;
-    MpmCtx *mpm_hcd_ctx_tc;
-    MpmCtx *mpm_hsmd_ctx_tc;
-    MpmCtx *mpm_hscd_ctx_tc;
+    const MpmCtx *mpm_proto_tcp_ctx_tc;
+    const MpmCtx *mpm_proto_udp_ctx_tc;
+    const MpmCtx *mpm_stream_ctx_tc;
+    const MpmCtx *mpm_hsbd_ctx_tc;
+    const MpmCtx *mpm_hhd_ctx_tc;
+    const MpmCtx *mpm_hrhd_ctx_tc;
+    const MpmCtx *mpm_hcd_ctx_tc;
+    const MpmCtx *mpm_hsmd_ctx_tc;
+    const MpmCtx *mpm_hscd_ctx_tc;
 
     uint16_t mpm_uricontent_minlen; /**< len of shortest mpm pattern in sgh */
 

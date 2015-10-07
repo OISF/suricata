@@ -259,7 +259,7 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret = 0;
-    MpmCtx *mpm_ctx = NULL;
+    const MpmCtx *mpm_ctx = NULL;
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
@@ -294,7 +294,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     SCEnter();
 
     uint32_t ret;
-    MpmCtx *mpm_ctx = NULL;
+    const MpmCtx *mpm_ctx = NULL;
 
     if (p->proto == IPPROTO_TCP) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
