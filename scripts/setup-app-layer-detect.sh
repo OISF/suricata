@@ -34,9 +34,11 @@ function copy_template_file() {
 
     echo "Creating ${dst}."
 
-    sed -e "s/TEMPLATE/${protoname_upper}/g" \
+    sed -e '/TEMPLATE_START_REMOVE/,/TEMPLATE_END_REMOVE/d' \
+	-e "s/TEMPLATE/${protoname_upper}/g" \
 	-e "s/template/${protoname_lower}/g" \
-	-e "s/Template/${protoname}/g" > ${dst} < ${src}
+	-e "s/Template/${protoname}/g" \
+	> ${dst} < ${src}
 }
 
 function copy_templates() {
