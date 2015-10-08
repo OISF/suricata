@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "stream.h"
+#include "conf.h"
 
 #include "util-unittest.h"
 
@@ -428,6 +429,12 @@ void RegisterTemplateParsers(void)
 {
     char *proto_name = "template";
 
+    /* TEMPLATE_START_REMOVE */
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
+        return;
+    }
+    /* TEMPLATE_END_REMOVE */
+
     /* Check if Template TCP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
@@ -481,8 +488,8 @@ void RegisterTemplateParsers(void)
             STREAM_TOSERVER, TemplateParseRequest);
 
         /* Register response parser for parsing frames from server to client. */
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TEMPLATE, STREAM_TOCLIENT,
-            TemplateParseResponse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            STREAM_TOCLIENT, TemplateParseResponse);
 
         /* Register a function to be called by the application layer
          * when a transaction is to be freed. */
@@ -490,7 +497,8 @@ void RegisterTemplateParsers(void)
             TemplateStateTxFree);
 
         /* Register a function to return the current transaction count. */
-        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEMPLATE, TemplateGetTxCnt);
+        AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            TemplateGetTxCnt);
 
         /* Transaction handling. */
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP,
