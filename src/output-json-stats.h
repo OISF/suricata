@@ -32,6 +32,8 @@
 
 #ifdef HAVE_LIBJANSSON
 json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
+TmEcode OutputEngineStatsReloadTime(json_t **jdata);
+TmEcode OutputEngineStatsRuleset(json_t **jdata);
 #endif
 void JsonStatsLogRegister(void);
 
