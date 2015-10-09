@@ -820,6 +820,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+    memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (minimal) {
         de_ctx->minimal = 1;

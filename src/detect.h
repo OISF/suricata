@@ -526,6 +526,14 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
+/** \brief Signature loader statistics */
+typedef struct SigFileLoaderStat_ {
+    int bad_files;
+    int total_files;
+    int good_sigs_total;
+    int bad_sigs_total;
+} SigFileLoaderStat;
+
 typedef struct DetectEngineThreadKeywordCtxItem_ {
     void *(*InitFunc)(void *);
     void (*FreeFunc)(void *);
@@ -676,6 +684,12 @@ typedef struct DetectEngineCtx_ {
 
     DetectPort *tcp_whitelist;
     DetectPort *udp_whitelist;
+
+    /** time of last ruleset reload */
+    struct timeval last_reload;
+
+    /** signatures stats */
+    SigFileLoaderStat sig_stat;
 
 } DetectEngineCtx;
 
@@ -1085,14 +1099,6 @@ typedef struct DetectEngineMasterCtx_ {
     DetectEngineTenantMapping *tenant_mapping_list;
 
 } DetectEngineMasterCtx;
-
-/** \brief Signature loader statistics */
-typedef struct SigFileLoaderStat_ {
-    int bad_files;
-    int total_files;
-    int good_sigs_total;
-    int bad_sigs_total;
-} SigFileLoaderStat;
 
 /** Remember to add the options in SignatureIsIPOnly() at detect.c otherwise it wont be part of a signature group */
 
