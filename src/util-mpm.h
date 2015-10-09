@@ -79,7 +79,7 @@ enum {
 #ifdef __tile__
 #define DEFAULT_MPM   MPM_AC_TILE
 #else
-#define DEFAULT_MPM   MPM_AC
+#define DEFAULT_MPM   MPM_AC_TILE // ac-ks
 #endif
 
 /* Internal Pattern Index: 0 to pattern_cnt-1 */
