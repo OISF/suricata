@@ -43,6 +43,7 @@
 #include "detect-engine-apt-event.h"
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
+#include "detect-http-method.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -1205,6 +1206,9 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
+
+    if (!DetectHttpMethodValidateRule(s))
+        SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
     //    if (s->flags & SIG_FLAG_STATE_MATCH) {
