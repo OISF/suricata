@@ -2554,6 +2554,7 @@ static void PostConfLoadedDetectSetup(SCInstance *suri)
             }
         }
 
+        gettimeofday(&de_ctx->last_reload, NULL);
         DetectEngineAddToMaster(de_ctx);
         DetectEngineBumpVersion();
     } else {
