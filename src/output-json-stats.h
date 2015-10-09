@@ -24,6 +24,14 @@
 #ifndef __OUTPUT_JSON_COUNTERS_H__
 #define __OUTPUT_JSON_COUNTERS_H__
 
+enum {
+    LAST_RELOAD = 0,
+    RULESET,
+    BOTH
+};
+
 void TmModuleJsonStatsLogRegister (void);
+json_t *OutputTenancyStatsLastReload();
+json_t *OutputTenancyStatsRuleset();
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */

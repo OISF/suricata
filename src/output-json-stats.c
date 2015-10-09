@@ -28,6 +28,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
+#include "detect-engine.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -45,6 +46,7 @@
 #include "util-crypt.h"
 
 #include "output-json.h"
+#include "output-json-stats.h"
 
 #define MODULE_NAME "JsonStatsLog"
 
@@ -65,6 +67,75 @@ typedef struct JsonStatsLogThread_ {
     MemBuffer *buffer;
 } JsonStatsLogThread;
 
+static json_t *OutputDetectEngineStats2Json(DetectEngineCtx *de_ctx, int output_type)
+{
+    struct timeval last_reload;
+    char timebuf[64];
+    SigFileLoaderStat *sig_stat = NULL;
+
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    if (output_type == LAST_RELOAD || output_type == BOTH) {
+        last_reload = de_ctx->last_reload;
+        CreateIsoTimeString(&last_reload, timebuf, sizeof(timebuf));
+        json_object_set_new(jdata, "last_reload", json_string(timebuf));
+    }
+
+    sig_stat = &de_ctx->sig_stat;
+    if ((output_type == RULESET || output_type == BOTH) && sig_stat != NULL) {
+        json_object_set_new(jdata, "rules_loaded",
+                            json_integer(sig_stat->good_sigs_total));
+        json_object_set_new(jdata, "rules_failed",
+                            json_integer(sig_stat->bad_sigs_total));
+    }
+
+    return jdata;
+}
+
+static json_t *OutputTenancyStats2Json(int output_type)
+{
+    DetectEngineCtx *list = DetectEngineGetCurrent();
+    if (list == NULL) {
+        return NULL;
+    }
+
+    json_t *js_tenant_list = json_array();
+
+    if (js_tenant_list == NULL) {
+        return NULL;
+    }
+
+    while(list) {
+        json_t *js_tenant = json_object();
+        if (js_tenant == NULL) {
+            json_decref(js_tenant_list);
+            return NULL;
+        }
+        json_object_set_new(js_tenant, "id", json_integer(list->tenant_id));
+
+        json_t *jdata = OutputDetectEngineStats2Json(list, output_type);
+        if (jdata == NULL) {
+            return NULL;
+        }
+        json_object_update_missing(js_tenant, jdata); 
+        json_array_append_new(js_tenant_list, js_tenant);
+        list = list->next;
+    }
+
+    return js_tenant_list;
+}
+
+json_t *OutputTenancyStatsLastReload() {
+    return OutputTenancyStats2Json(LAST_RELOAD);
+}
+
+json_t *OutputTenancyStatsRuleset() {
+    return OutputTenancyStats2Json(RULESET);
+}
+
 static json_t *OutputStats2Json(json_t *js, const char *key)
 {
     void *iter;
@@ -83,6 +154,13 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
         value = json_object();
+        if (!DetectEngineMultiTenantEnabled() && !strncmp(s, "detect", 6)) {
+            json_t *js_engine =
+                OutputDetectEngineStats2Json(DetectEngineGetCurrent(), BOTH);
+            if (js_engine != NULL) {
+                json_object_set_new(value, "engine", js_engine);
+            }
+        }
         json_object_set_new(js, s, value);
     }
     if (s2 != NULL) {
@@ -119,6 +197,14 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     /* Uptime, in seconds. */
     json_object_set_new(js_stats, "uptime",
         json_integer((int)difftime(tval.tv_sec, st->start_time)));
+
+    /* tenancy stats */
+    if (DetectEngineMultiTenantEnabled()) {
+        json_t *js_tenancy = OutputTenancyStats2Json(BOTH);
+        if (js_tenancy != NULL) {
+            json_object_set_new(js_stats, "tenancy", js_tenancy);
+        }
+    }
 
     uint32_t u = 0;
     if (aft->statslog_ctx->flags & JSON_STATS_TOTALS) {
