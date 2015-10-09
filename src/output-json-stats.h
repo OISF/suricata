@@ -25,5 +25,9 @@
 #define __OUTPUT_JSON_COUNTERS_H__
 
 void TmModuleJsonStatsLogRegister (void);
+#ifdef HAVE_LIBJANSSON
+TmEcode OutputTenancyStatsLastReload();
+TmEcode OutputTenancyStatsRuleset();
+#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */
