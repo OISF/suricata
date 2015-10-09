@@ -29,6 +29,8 @@
 #include "runmodes.h"
 #include "conf.h"
 
+#include "output-json-stats.h"
+
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
@@ -659,6 +661,47 @@ TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
     SCReturnInt(TM_ECODE_OK);
 }
 
+TmEcode UnixManagerLastReloadCommand(json_t *cmd,
+                                     json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval = TM_ECODE_OK;
+    json_t *jdata = NULL;
+
+    retval = OutputTenancyStatsLastReload(&jdata);
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (retval == TM_ECODE_FAILED) {
+        json_object_set_new(server_msg, "message", jdata);
+        SCReturnInt(retval);
+    }
+
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
+                                       json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_t *jdata = NULL;
+    TmEcode retval = TM_ECODE_OK;
+
+    retval = OutputTenancyStatsRuleset(&jdata);
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (retval == TM_ECODE_FAILED) {
+        json_object_set_new(server_msg, "message", jdata);
+        SCReturnInt(retval);
+    }
+
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(TM_ECODE_OK);
+}
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
@@ -899,6 +942,8 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("last-reload", UnixManagerLastReloadCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
