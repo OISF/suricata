@@ -142,6 +142,8 @@ static const char *RunModeTranslateModeToName(int runmode)
 #endif
         case RUNMODE_UNIX_SOCKET:
             return "UNIX_SOCKET";
+        case RUNMODE_NETFILTER:
+            return "NETFILTER";
         default:
             SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
             exit(EXIT_FAILURE);
@@ -215,6 +217,7 @@ void RunModeRegisterRunModes(void)
     RunModeIdsNflogRegister();
     RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
+    RunModeNetfilterRegister();
 #ifdef UNITTESTS
     UtRunModeRegister();
 #endif
@@ -322,6 +325,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
             case RUNMODE_NFLOG:
                 custom_mode = RunModeIdsNflogGetDefaultMode();
+                break;
+            case RUNMODE_NETFILTER:
+                custom_mode = RunModeNetfilterGetDefaultMode();
                 break;
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

@@ -104,7 +104,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev)
+                              const char *live_dev, char *runmode)
 {
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
@@ -112,7 +112,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     int thread = 0;
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(runmode);
     int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
     /* always create at least one thread */
     if (thread_max == 0)
@@ -190,7 +190,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         int lthread;
 
         for (lthread = 0; lthread < nlive; lthread++) {
-            char *live_dev = LiveGetDeviceName(lthread);
+            char *live_dev = LiveGetDeviceName(lthread, runmode);
             void *aconf;
             int threads_count;
 
@@ -412,9 +412,9 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev)
+                              const char *live_dev, char *runmode)
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(runmode);
     void *aconf;
     int ldev;
 
@@ -428,7 +428,7 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
                 exit(EXIT_FAILURE);
             }
         } else {
-            live_dev_c = LiveGetDeviceName(ldev);
+            live_dev_c = LiveGetDeviceName(ldev, runmode);
             aconf = ConfigParser(live_dev_c);
         }
         RunModeSetLiveCaptureWorkersForDevice(ModThreadsCount,
@@ -447,9 +447,9 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev)
+                              const char *live_dev, char *runmode)
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(runmode);
     void *aconf;
 
     if (nlive > 1) {
@@ -461,7 +461,7 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
     if (live_dev != NULL) {
         aconf = ConfigParser(live_dev);
     } else {
-        char *live_dev_c = LiveGetDeviceName(0);
+        char *live_dev_c = LiveGetDeviceName(0, runmode);
         aconf = ConfigParser(live_dev_c);
         /* \todo Set threads number in config to 1 */
     }
@@ -482,7 +482,8 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
                         char *recv_mod_name,
                         char *verdict_mod_name,
-                        char *decode_mod_name)
+                        char *decode_mod_name,
+                        char *runmode)
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
@@ -494,8 +495,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int nqueue = LiveGetDeviceCount();
-
+    int nqueue = LiveGetDeviceCount(runmode);
     int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
     /* always create at least one thread */
     if (thread_max == 0)
@@ -513,7 +513,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     for (int i = 0; i < nqueue; i++) {
     /* create the threads */
-        cur_queue = LiveGetDeviceName(i);
+        cur_queue = LiveGetDeviceName(i, runmode);
         if (cur_queue == NULL) {
             SCLogError(SC_ERR_RUNMODE, "invalid queue number");
             exit(EXIT_FAILURE);
@@ -534,6 +534,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
+
         TmModule *tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
@@ -659,18 +660,19 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         char *recv_mod_name,
         char *verdict_mod_name,
-        char *decode_mod_name)
+        char *decode_mod_name,
+        char *runmode)
 {
     char tname[TM_THREAD_NAME_MAX];
     ThreadVars *tv = NULL;
     TmModule *tm_module = NULL;
     char *cur_queue = NULL;
 
-    int nqueue = LiveGetDeviceCount();
+    int nqueue = LiveGetDeviceCount(runmode);
 
     for (int i = 0; i < nqueue; i++) {
         /* create the threads */
-        cur_queue = LiveGetDeviceName(i);
+        cur_queue = LiveGetDeviceName(i, runmode);
         if (cur_queue == NULL) {
             SCLogError(SC_ERR_RUNMODE, "invalid queue number");
             exit(EXIT_FAILURE);

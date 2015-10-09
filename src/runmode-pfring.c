@@ -397,7 +397,7 @@ static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
         if (*live_dev == NULL) {
             if (ConfGet("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
-                LiveRegisterDevice(*live_dev);
+                LiveRegisterDevice(*live_dev, "pfring");
             } else {
                 SCLogInfo("No interface found, problem incoming");
                 *live_dev = NULL;
@@ -434,7 +434,7 @@ int RunModeIdsPfringAutoFp(void)
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
-                              live_dev);
+                              live_dev, "pfring");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
@@ -471,7 +471,7 @@ int RunModeIdsPfringSingle(void)
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
-                              live_dev);
+                              live_dev, "pfring");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
@@ -508,7 +508,7 @@ int RunModeIdsPfringWorkers(void)
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
                               "DecodePfring", "RxPFR",
-                              live_dev);
+                              live_dev, "pfring");
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);

@@ -31,6 +31,7 @@ enum {
     RUNMODE_PFRING,
     RUNMODE_NFQ,
     RUNMODE_NFLOG,
+    RUNMODE_NETFILTER,
     RUNMODE_IPFW,
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
@@ -91,6 +92,7 @@ int RunModeOutputFiledataEnabled(void);
 #include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
+#include "runmode-netfilter.h"
 
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;

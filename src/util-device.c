@@ -42,7 +42,7 @@ static int live_devices_stats = 1;
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDevice(char *dev)
+int LiveRegisterDevice(char *dev, char *runmode)
 {
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
@@ -51,6 +51,11 @@ int LiveRegisterDevice(char *dev)
 
     pd->dev = SCStrdup(dev);
     if (unlikely(pd->dev == NULL)) {
+        SCFree(pd);
+        return -1;
+    }
+    pd->runmode = SCStrdup(runmode);
+    if (unlikely(pd->runmode == NULL)) {
         SCFree(pd);
         return -1;
     }
@@ -69,13 +74,15 @@ int LiveRegisterDevice(char *dev)
  *
  *  \retval cnt the number of registered devices
  */
-int LiveGetDeviceCount(void)
+int LiveGetDeviceCount(char *runmode)
 {
     int i = 0;
     LiveDevice *pd;
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        i++;
+        if (!strcmp(runmode, pd->runmode)) {
+            i++;
+        }
     }
 
     return i;
@@ -89,17 +96,20 @@ int LiveGetDeviceCount(void)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-char *LiveGetDeviceName(int number)
+char *LiveGetDeviceName(int number, char *runmode)
 {
     int i = 0;
     LiveDevice *pd;
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        if (i == number) {
+        if (i == number && !strcmp(runmode, pd->runmode)) {
+            SCLogInfo("if");
             return pd->dev;
         }
 
-        i++;
+        if (!strcmp(runmode, pd->runmode)) {
+            i++;
+        }
     }
 
     return NULL;
@@ -113,7 +123,7 @@ char *LiveGetDeviceName(int number)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-LiveDevice *LiveGetDevice(char *name)
+LiveDevice *LiveGetDevice(char *name, char *runmode)
 {
     int i = 0;
     LiveDevice *pd;
@@ -124,11 +134,13 @@ LiveDevice *LiveGetDevice(char *name)
     }
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        if (!strcmp(name, pd->dev)) {
+        if (!strcmp(name, pd->dev) && !strcmp(runmode, pd->runmode)) {
             return pd;
         }
 
-        i++;
+        if (!strcmp(runmode, pd->runmode)) {
+            i++;
+        }
     }
 
     return NULL;
@@ -136,12 +148,12 @@ LiveDevice *LiveGetDevice(char *name)
 
 
 
-int LiveBuildDeviceList(char * runmode)
+int LiveBuildDeviceList(char *runmode)
 {
     return LiveBuildDeviceListCustom(runmode, "interface");
 }
 
-int LiveBuildDeviceListCustom(char * runmode, char * itemname)
+int LiveBuildDeviceListCustom(char *runmode, char *itemname)
 {
     ConfNode *base = ConfGetNode(runmode);
     ConfNode *child;
@@ -158,7 +170,7 @@ int LiveBuildDeviceListCustom(char * runmode, char * itemname)
                     break;
                 SCLogInfo("Adding %s %s from config file",
                           itemname, subchild->val);
-                LiveRegisterDevice(subchild->val);
+                LiveRegisterDevice(subchild->val, runmode);
                 i++;
             }
         }
