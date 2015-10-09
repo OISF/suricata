@@ -29,6 +29,8 @@
 #include "runmodes.h"
 #include "conf.h"
 
+#include "output-json-stats.h"
+
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-device.h"
@@ -664,8 +666,40 @@ static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *dat
     SCReturnInt(TM_ECODE_OK);
 }
 
+static TmEcode UnixManagerLastReloadCommand(json_t *cmd,
+                                            json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        return TM_ECODE_FAILED;
+    }
+
+    retval = OutputTenancyStatsLastReload(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+static TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
+                                              json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval;
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        return TM_ECODE_FAILED;
+    }
+
+    retval = OutputTenancyStatsRuleset(&jdata);
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
 static TmEcode UnixManagerConfGetCommand(json_t *cmd,
-                                  json_t *server_msg, void *data)
+                                         json_t *server_msg, void *data)
 {
     SCEnter();
 
@@ -875,6 +909,8 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-last-reload", UnixManagerLastReloadCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
