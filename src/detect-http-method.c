@@ -118,6 +118,41 @@ void DetectHttpMethodFree(void *ptr)
     SCFree(data);
 }
 
+/**
+ *  \retval 1 valid
+ *  \retval 0 invalid
+ */
+int DetectHttpMethodValidateRule(const Signature *s)
+{
+    if (s->alproto != ALPROTO_HTTP)
+        return 1;
+
+    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+        const SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HMDMATCH];
+        for ( ; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+            const DetectContentData *cd = (const DetectContentData *)sm->ctx;
+            if (cd->content && cd->content_len) {
+                if (cd->content[cd->content_len-1] == 0x20) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing space");
+                    return 0;
+                } else if (cd->content[0] == 0x20) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading space");
+                    return 0;
+                } else if (cd->content[cd->content_len-1] == 0x09) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing tab");
+                    return 0;
+                } else if (cd->content[0] == 0x09) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading tab");
+                    return 0;
+                }
+            }
+        }
+    }
+    return 1;
+}
+
 #ifdef UNITTESTS /* UNITTESTS */
 
 #include "stream-tcp-reassemble.h"
@@ -649,7 +684,7 @@ static int DetectHttpMethodSigTest03(void)
     s = de_ctx->sig_list = SigInit(de_ctx,
                                    "alert tcp any any -> any any "
                                    "(msg:\"Testing http_method\"; "
-                                   "content:\" \"; "
+                                   "content:\"GET\"; "
                                    "http_method; sid:1;)");
     if (s == NULL) {
         SCLogDebug("Bad signature");
