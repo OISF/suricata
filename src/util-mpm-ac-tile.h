@@ -156,6 +156,11 @@ typedef struct SCACTileSearchCtx_ {
     /* Number of bytes in the array of bits. One bit per pattern in this MPM. */
     uint32_t mpm_bitarray_size;
 
+    /* Number of states used by ac-tile */
+    uint32_t state_count;
+
+    uint32_t pattern_cnt;
+
     /* MPM Creation data, only used at initialization. */
     SCACTileCtx *init_ctx;
 
