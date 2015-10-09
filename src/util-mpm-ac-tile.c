@@ -305,6 +305,12 @@ static void SCACTileFreePattern(MpmCtx *mpm_ctx, SCACTilePattern *p)
         mpm_ctx->memory_size -= p->len;
     }
 
+    if (p != NULL && p->sids != NULL) {
+        SCFree(p->sids);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (p->sids_size * sizeof(SigIntId));
+    }
+
     if (p != NULL) {
         SCFree(p);
         mpm_ctx->memory_cnt--;
@@ -1165,9 +1171,11 @@ static void SCACTilePrepareSearch(MpmCtx *mpm_ctx)
     /* TODO: Could be made more compact */
     search_ctx->output_table = ctx->output_table;
     ctx->output_table = NULL;
+    search_ctx->state_count = ctx->state_count;
 
     search_ctx->pattern_list = ctx->pattern_list;
     ctx->pattern_list = NULL;
+    search_ctx->pattern_cnt = mpm_ctx->pattern_cnt;
 
     /* One bit per pattern, rounded up to the next byte size. */
     search_ctx->mpm_bitarray_size = (mpm_ctx->pattern_cnt + 7) / 8;
@@ -1260,6 +1268,8 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
         /* ACPatternList now owns this memory */
         ctx->pattern_list[i].sids_size = ctx->parray[i]->sids_size;
         ctx->pattern_list[i].sids = ctx->parray[i]->sids;
+        ctx->parray[i]->sids = NULL;
+        ctx->parray[i]->sids_size = 0;
     }
 
     /* prepare the state table required by AC */
@@ -1434,8 +1444,25 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 
     /* Free Search tables */
     SCFree(search_ctx->state_table);
-    SCFree(search_ctx->pattern_list);
-    SCFree(search_ctx->output_table);
+
+    if (search_ctx->pattern_list != NULL) {
+        uint32_t i;
+        for (i = 0; i < search_ctx->pattern_cnt; i++) {
+            if (search_ctx->pattern_list[i].sids != NULL)
+                SCFree(search_ctx->pattern_list[i].sids);
+        }
+        SCFree(search_ctx->pattern_list);
+    }
+
+    if (search_ctx->output_table != NULL) {
+        uint32_t state;
+        for (state = 0; state < search_ctx->state_count; state++) {
+            if (search_ctx->output_table[state].patterns != NULL) {
+                SCFree(search_ctx->output_table[state].patterns);
+            }
+        }
+        SCFree(search_ctx->output_table);
+    }
 
     SCFree(search_ctx);
     mpm_ctx->ctx = NULL;
