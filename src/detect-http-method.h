@@ -28,6 +28,7 @@
 void DetectHttpMethodRegister(void);
 int DetectHttpMethodDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
                             Flow *, uint8_t, void *);
+int DetectHttpMethodValidateRule(const Signature *s);
 
 #endif /* __DETECT_HTTP_METHOD_H__ */
 
