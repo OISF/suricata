@@ -106,6 +106,7 @@ typedef struct AppLayerProtoDetectProbingParser_ {
 
 typedef struct AppLayerProtoDetectPMSignature_ {
     AppProto alproto;
+    SigIntId id;
     /* \todo Change this into a non-pointer */
     DetectContentData *cd;
     struct AppLayerProtoDetectPMSignature_ *next;
@@ -124,6 +125,7 @@ typedef struct AppLayerProtoDetectPMCtx_ {
 
     /* \todo we don't need this except at setup time.  Get rid of it. */
     PatIntId max_pat_id;
+    SigIntId max_sig_id;
 } AppLayerProtoDetectPMCtx;
 
 typedef struct AppLayerProtoDetectCtxIpproto_ {
@@ -254,8 +256,8 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
     /* loop through unique pattern id's. Can't use search_cnt here,
      * as that contains all matches, tctx->pmq.pattern_id_array_cnt
      * contains only *unique* matches. */
-    for (cnt = 0; cnt < tctx->pmq.pattern_id_array_cnt; cnt++) {
-        const AppLayerProtoDetectPMSignature *s = pm_ctx->map[tctx->pmq.pattern_id_array[cnt]];
+    for (cnt = 0; cnt < tctx->pmq.rule_id_array_cnt; cnt++) {
+        const AppLayerProtoDetectPMSignature *s = pm_ctx->map[tctx->pmq.rule_id_array[cnt]];
         while (s != NULL) {
             AppProto proto = AppLayerProtoDetectPMMatchSignature(s,
                     buf, searchlen, ipproto);
@@ -1027,8 +1029,6 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
     SCEnter();
 
     const AppLayerProtoDetectPMSignature *s = NULL;
-    int pat_id, max_pat_id;
-
     int i, j;
     uint8_t ipproto;
 
@@ -1036,15 +1036,12 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
         ipproto = FlowGetReverseProtoMapping(i);
         for (j = 0; j < 2; j++) {
             AppLayerProtoDetectPMCtx *pm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j];
-            max_pat_id = pm_ctx->max_pat_id;
 
-            for (pat_id = 0; pat_id < max_pat_id; pat_id++) {
-                s = pm_ctx->map[pat_id];
-                while (s != NULL) {
-                    if (s->alproto == alproto)
-                        ipprotos[ipproto / 8] |= 1 << (ipproto % 8);
-                    s = s->next;
-                }
+            SigIntId x;
+            for (x = 0; x < pm_ctx->max_sig_id;x++) {
+                s = pm_ctx->map[x];
+                if (s->alproto == alproto)
+                    ipprotos[ipproto / 8] |= 1 << (ipproto % 8);
             }
         }
     }
@@ -1081,6 +1078,7 @@ static int AppLayerProtoDetectPMSetContentIDs(AppLayerProtoDetectPMCtx *ctx)
     for (s = ctx->head; s != NULL; s = s->next) {
         struct_total_size += sizeof(TempContainer);
         content_total_size += s->cd->content_len;
+        ctx->max_sig_id++;
     }
 
     ahb = SCMalloc(sizeof(uint8_t) * (struct_total_size + content_total_size));
@@ -1134,54 +1132,40 @@ static int AppLayerProtoDetectPMMapSignatures(AppLayerProtoDetectPMCtx *ctx)
     SCEnter();
 
     int ret = 0;
-    PatIntId max_pat_id = 0, tmp_pat_id;
     AppLayerProtoDetectPMSignature *s, *next_s;
     int mpm_ret;
+    SigIntId id = 0;
 
-    max_pat_id = ctx->max_pat_id;
-
-    ctx->map = SCMalloc((max_pat_id) * sizeof(AppLayerProtoDetectPMSignature *));
+    ctx->map = SCMalloc(ctx->max_sig_id * sizeof(AppLayerProtoDetectPMSignature *));
     if (ctx->map == NULL)
         goto error;
-    memset(ctx->map, 0, (max_pat_id) * sizeof(AppLayerProtoDetectPMSignature *));
+    memset(ctx->map, 0, ctx->max_sig_id * sizeof(AppLayerProtoDetectPMSignature *));
 
-    /* add an array indexed by pattern id to look up the sig */
-    for (s = ctx->head; s != NULL;) {
+    /* add an array indexed by rule id to look up the sig */
+    for (s = ctx->head; s != NULL; ) {
         next_s = s->next;
-        s->next = ctx->map[s->cd->id];
-        ctx->map[s->cd->id] = s;
-        s = next_s;
-    }
-    ctx->head = NULL;
+        s->id = id++;
+        SCLogDebug("s->id %u", s->id);
 
-
-    for (tmp_pat_id = 0; tmp_pat_id < max_pat_id; tmp_pat_id++) {
-        s = NULL;
-        for (s = ctx->map[tmp_pat_id]; s != NULL; s = s->next) {
-            if (s->cd->flags & DETECT_CONTENT_NOCASE) {
-                break;
-            }
-        }
-        /* if s != NULL now, it's CI. If NULL, CS */
-
-        if (s != NULL) {
+        if (s->cd->flags & DETECT_CONTENT_NOCASE) {
             mpm_ret = MpmAddPatternCI(&ctx->mpm_ctx,
                                       s->cd->content, s->cd->content_len,
-                                      0, 0, tmp_pat_id, 0, 0);
+                                      0, 0, s->cd->id, s->id, 0);
             if (mpm_ret < 0)
                 goto error;
         } else {
-            s = ctx->map[tmp_pat_id];
-            if (s == NULL)
-                goto error;
-
             mpm_ret = MpmAddPatternCS(&ctx->mpm_ctx,
                                       s->cd->content, s->cd->content_len,
-                                      0, 0, tmp_pat_id, 0, 0);
+                                      0, 0, s->cd->id, s->id, 0);
             if (mpm_ret < 0)
                 goto error;
         }
+
+        ctx->map[s->id] = s;
+        s->next = NULL;
+        s = next_s;
     }
+    ctx->head = NULL;
 
     goto end;
  error:
@@ -1356,7 +1340,7 @@ int AppLayerProtoDetectPrepareState(void)
             if (AppLayerProtoDetectPMSetContentIDs(ctx_pm) < 0)
                 goto error;
 
-            if (ctx_pm->max_pat_id == 0)
+            if (ctx_pm->max_sig_id == 0)
                 continue;
 
             if (AppLayerProtoDetectPMMapSignatures(ctx_pm) < 0)
@@ -1553,19 +1537,15 @@ int AppLayerProtoDetectDeSetup(void)
     int dir = 0;
     PatIntId id = 0;
     AppLayerProtoDetectPMCtx *pm_ctx = NULL;
-    AppLayerProtoDetectPMSignature *sig = NULL, *next_sig = NULL;
+    AppLayerProtoDetectPMSignature *sig = NULL;
 
     for (ipproto_map = 0; ipproto_map < FLOW_PROTO_DEFAULT; ipproto_map++) {
         for (dir = 0; dir < 2; dir++) {
             pm_ctx = &alpd_ctx.ctx_ipp[ipproto_map].ctx_pm[dir];
             mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(pm_ctx->mpm_ctx.ctx);
-            for (id = 0; id < pm_ctx->max_pat_id; id++) {
+            for (id = 0; id < pm_ctx->max_sig_id; id++) {
                 sig = pm_ctx->map[id];
-                while (sig != NULL) {
-                    next_sig = sig->next;
-                    AppLayerProtoDetectPMFreeSignature(sig);
-                    sig = next_sig;
-                }
+                AppLayerProtoDetectPMFreeSignature(sig);
             }
         }
     }
