@@ -1389,27 +1389,17 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
                     s->flags |= SIG_FLAG_MPM_PACKET;
                     s->mpm_pattern_id_div_8 = cd->id / 8;
                     s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_PACKET_NEG;
-                    }
                 } else {
                     /* tell matcher we are inspecting stream */
                     s->flags |= SIG_FLAG_MPM_STREAM;
                     s->mpm_pattern_id_div_8 = cd->id / 8;
                     s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                    if (cd->flags & DETECT_CONTENT_NEGATED) {
-                        SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                        s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                    }
                 }
             } else {
                 /* tell matcher we are inspecting app-layer */
                 s->mpm_pattern_id_div_8 = cd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
                 s->flags |= SIG_FLAG_MPM_APPLAYER;
-                if (cd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_APPLAYER_NEG;
             }
         }
     }

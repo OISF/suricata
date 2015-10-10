@@ -1558,28 +1558,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        /* check for a pattern match of the one pattern in this sig. */
-        if (likely(sflags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_APPLAYER))) {
-            /* filter out sigs that want pattern matches, but
-             * have no matches */
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-                if (sflags & SIG_FLAG_MPM_PACKET) {
-                    if (!(sflags & SIG_FLAG_MPM_PACKET_NEG)) {
-                        goto next;
-                    }
-                } else if (sflags & SIG_FLAG_MPM_STREAM) {
-                    /* filter out sigs that want pattern matches, but
-                     * have no matches */
-                    if (!(sflags & SIG_FLAG_MPM_STREAM_NEG)) {
-                        goto next;
-                    }
-                } else if (sflags & SIG_FLAG_MPM_APPLAYER) {
-                    if (!(sflags & SIG_FLAG_MPM_APPLAYER_NEG)) {
-                        goto next;
-                    }
-                }
-            }
-        }
         if (sflags & SIG_FLAG_STATE_MATCH) {
             if (det_ctx->de_state_sig_array[s->num] & DE_STATE_MATCH_NO_NEW_STATE)
                 goto next;
@@ -1673,14 +1651,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     uint8_t pmq_idx = 0;
                     StreamMsg *smsg_inspect = smsg;
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
-                        /* filter out sigs that want pattern matches, but
-                         * have no matches */
-                        if ((sflags & SIG_FLAG_MPM_STREAM) && !(sflags & SIG_FLAG_MPM_STREAM_NEG) &&
-                            !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-                            SCLogDebug("no match in this smsg");
-                            continue;
-                        }
-
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
@@ -1706,34 +1676,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             goto next;
                     }
 
-                    if (sms_runflags & SMS_USED_PM) {
-                        if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
-                            !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
-                              s->mpm_pattern_id_mod_8)) {
-                            goto next;
-                        }
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
-                            goto next;
-                        }
-                    } else {
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
-                            goto next;
-                        }
-                    }
-                }
-            } else {
-                if (sms_runflags & SMS_USED_PM) {
-                    if ((sflags & SIG_FLAG_MPM_PACKET) && !(sflags & SIG_FLAG_MPM_PACKET_NEG) &&
-                        !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
-                          s->mpm_pattern_id_mod_8)) {
-                        goto next;
-                    }
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
                         goto next;
                     }
-                } else {
-                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1)
-                        goto next;
+                }
+            } else {
+                if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, pflow, p) != 1) {
+                    goto next;
                 }
             }
         }
@@ -3300,6 +3249,10 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
             }
         }
 #endif /* DEBUG */
+
+        if (RuleMpmIsNegated(tmp_s)) {
+            tmp_s->flags |= SIG_FLAG_MPM_NEG;
+        }
 
         SignatureCreateMask(tmp_s);
         SigParseApplyDsizeToContent(tmp_s);
