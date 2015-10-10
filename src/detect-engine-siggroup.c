@@ -979,7 +979,7 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL || (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))) {
+        if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
             if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
                 non_mpm++;
             }
@@ -1006,7 +1006,7 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL || (s->flags & (SIG_FLAG_MPM_PACKET_NEG|SIG_FLAG_MPM_STREAM_NEG|SIG_FLAG_MPM_APPLAYER_NEG))) {
+        if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
             if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
                 BUG_ON(sgh->non_mpm_other_store_cnt >= non_mpm);
                 sgh->non_mpm_other_store_array[sgh->non_mpm_other_store_cnt].id = s->num;
