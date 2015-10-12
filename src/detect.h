@@ -944,7 +944,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_FREE             (1 << 16)
 #define SIG_GROUP_HEAD_MPM_PACKET       (1 << 17)
 #define SIG_GROUP_HEAD_MPM_STREAM       (1 << 18)
-#define SIG_GROUP_HEAD_REFERENCED       (1 << 19) /**< sgh is being referenced by others, don't clear */
+
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
