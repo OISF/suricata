@@ -624,6 +624,8 @@ typedef struct DecodeThreadVars_
     uint16_t counter_defrag_ipv6_timeouts;
     uint16_t counter_defrag_max_hit;
 
+    uint16_t counter_flow_memcap;
+
     /* thread data for flow logging api: only used at forced
      * flow recycle during lookups */
     void *output_flow_thread_data;
