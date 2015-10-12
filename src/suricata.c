@@ -197,6 +197,14 @@
 #include "util-storage.h"
 #include "host-storage.h"
 
+#ifdef HAVE_DPDKINTEL
+#include "runmode-dpdkintel.h"
+#include "dpdk-include-common.h"
+#include "source-dpdkintel.h"
+
+extern file_config_t file_config;
+#endif
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -562,6 +570,9 @@ void usage(const char *progname)
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards                    : list cuda supported cards\n");
 #endif
+#ifdef HAVE_DPDKINTEL
+    printf("\t--list-dpdkintel-ports               : list DPDK-INTEL supported ports\n");
+#endif
     printf("\t--list-runmodes                      : list supported runmodes\n");
     printf("\t--runmode <runmode_id>               : specific runmode modification the engine should run.  The argument\n"
            "\t                                       supplied should be the id for the runmode obtained by running\n"
@@ -606,6 +617,9 @@ void usage(const char *progname)
 #endif
 #ifdef HAVE_MPIPE
     printf("\t--mpipe                              : run with tilegx mpipe interface(s)\n");
+#endif
+#ifdef HAVE_DPDKINTEL
+    printf("\t--dpdkintel                          : run with DPDK Intel interface(s)\n");
 #endif
     printf("\t--set name=value                     : set a configuration value\n");
     printf("\n");
@@ -658,6 +672,9 @@ void SCPrintBuildInfo(void)
 #endif
 #ifdef HAVE_PFRING
     strlcat(features, "PF_RING ", sizeof(features));
+#endif
+#ifdef HAVE_DPDKINTEL
+    strlcat(features, "DPDK_INTEL ", sizeof(features));
 #endif
 #ifdef HAVE_AF_PACKET
     strlcat(features, "AF_PACKET ", sizeof(features));
@@ -844,6 +861,12 @@ void RegisterAllModules()
     TmModuleNapatechStreamRegister();
     TmModuleNapatechDecodeRegister();
 
+#ifdef HAVE_DPDKINTEL
+    /* dpdk intel */
+    TmModuleReceiveDpdkRegister();
+    TmModuleDecodeDpdkRegister();
+#endif
+
     /* stream engine */
     TmModuleStreamTcpRegister();
     /* detection */
@@ -1017,6 +1040,19 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             SCReturnInt(TM_ECODE_FAILED);
         }
 #endif
+#ifdef HAVE_DPDKINTEL
+    } else if (run_mode == RUNMODE_DPDKINTEL) {
+        if (strlen(pcap_dev)) {
+                fprintf(stderr, "ERROR: DPDK Intel is not supported for PCAP\n");
+                SCReturnInt(TM_ECODE_FAILED);
+        } else {
+            int ret = LiveBuildDeviceList("dpdkintel.inputs");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found for DPDK Intel\n");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+#endif /* HAVE_DPDKINTEL */
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -1103,6 +1139,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int list_app_layer_protocols = 0;
     int list_unittests = 0;
     int list_cuda_cards = 0;
+#ifdef HAVE_DPDKINTEL
+    int list_dpdkintel_ports = 0;
+#endif /* HAVE_DPDKINTEL */
     int list_runmodes = 0;
     int list_keywords = 0;
     int build_info = 0;
@@ -1122,6 +1161,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
+#ifdef HAVE_DPDKINTEL
+        {"dpdkintel", optional_argument, 0, 0},
+        /*{"dpdkintel-type", optional_argument, 0, 0}, ToDo: add run type*/
+#endif /* HAVE_DPDKINTEL */
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
@@ -1133,6 +1176,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
+#ifdef HAVE_DPDKINTEL
+        {"list-dpdkintel-ports", 0, &list_dpdkintel_ports, 1},
+#endif /* HAVE_DPDKINTEL */
         {"list-runmodes", 0, &list_runmodes, 1},
         {"list-keywords", optional_argument, &list_keywords, 1},
         {"runmode", required_argument, NULL, 0},
@@ -1334,6 +1380,18 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
 #endif
             }
+#ifdef HAVE_DPDKINTEL
+            else if (strcmp((long_opts[option_index]).name , "dpdkintel") == 0) {
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_DPDKINTEL;
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    return TM_ECODE_FAILED;
+                }
+            }
+#endif
             else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
                 /* listing all supported app layer protocols */
             }
@@ -1359,7 +1417,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         suri->keyword_info = optarg;
                     }
                 }
-            } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
+            } 
+#ifdef HAVE_DPDKINTEL
+            else if(strcmp((long_opts[option_index]).name, "list-dpdkintel-ports") == 0) {
+                suri->run_mode = RUNMODE_LIST_DPDKINTEL_PORTS;
+                return TM_ECODE_OK;
+            }
+#endif /* HAVE_DPDKINTEL */
+            else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
                 suri->runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
@@ -1728,6 +1793,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         suri->run_mode = RUNMODE_CONF_TEST;
     if (engine_analysis)
         suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
+#ifdef HAVE_DPDKINTEL
+    if (list_dpdkintel_ports)
+        suri->run_mode = RUNMODE_LIST_DPDKINTEL_PORTS;
+#endif /* HAVE_DPDKINTEL */
 
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)
@@ -1867,6 +1936,11 @@ int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
         case RUNMODE_PRINT_USAGE:
             usage(argv[0]);
             return TM_ECODE_DONE;
+#ifdef HAVE_DPDKINTEL
+        case RUNMODE_LIST_DPDKINTEL_PORTS:
+            ListDpdkIntelPorts();
+            return TM_ECODE_DONE;
+#endif /* HAVE_DPDKINTEL */
 #ifdef __SC_CUDA_SUPPORT__
         case RUNMODE_LIST_CUDA_CARDS:
             return ListCudaCards();
@@ -2181,6 +2255,14 @@ int main(int argc, char **argv)
     /* Initialize the configuration module. */
     ConfInit();
 
+#ifdef HAVE_DPDKINTEL
+/* ToDo: Find an alternate to rte_init at this point.
+         Initializing at later stage lead to DPDK init failure */
+    if (dpdkEalInit() < 0) { 
+        exit(EXIT_FAILURE);
+    }
+#endif /* HAVE_DPDKINTEL */
+
     if (ParseCommandLine(argc, argv, &suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
@@ -2324,6 +2406,29 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+#ifdef HAVE_DPDKINTEL
+    if (suri.run_mode == RUNMODE_DPDKINTEL) {
+       /* Load DPDK configurations from yaml */
+        ParseDpdkConfig();
+
+       /* Validate Port Map for IPS|Bypass modes */
+        validateMap();
+
+      /* Initialize and configure dpdk devices */
+        dpdkConfSetup();
+
+        if (DPDKINTEL_GENCFG.OpMode == IPS) {
+            EngineModeSetIPS();
+            SCLogInfo("DPDK OPMODE set to IPS!!!");
+        }
+        SCLogInfo("DPDK OPMODE set to %d!!!", DPDKINTEL_GENCFG.OpMode);
+
+        /* Debug - dump match pattern counter */
+        //dumpMatchPattern();
+    }
+
+#endif /* HAVE_DPDKINTEL */
+
     if(suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
@@ -2397,6 +2502,11 @@ int main(int argc, char **argv)
 #endif
 
     int engine_retval = EXIT_SUCCESS;
+#ifdef HAVE_DPDKINTEL
+    if (suri.run_mode == RUNMODE_DPDKINTEL) {
+        launchDpdkFrameParser();
+    }
+#endif
     while(1) {
         if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogNotice("Signal Received.  Stopping engine.");
@@ -2457,6 +2567,12 @@ int main(int argc, char **argv)
     /* kill remaining threads */
     TmThreadKillThreads();
 
+#ifdef HAVE_DPDKINTEL
+    if (suri.run_mode == RUNMODE_DPDKINTEL) 
+    {
+       rte_eal_mp_wait_lcore();
+    }
+#endif /* HAVE_DPDKINTEL */
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         /* destroy the packet pool for flow reassembly after all
