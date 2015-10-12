@@ -1239,6 +1239,8 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACBSPattern *));
 
+    ctx->pattern_id_bitarray_size = (ctx->max_pat_id / 8) + 1;
+
     return 0;
 
 error:
@@ -1434,8 +1436,8 @@ uint32_t SCACBSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     SCACBSPatternList *pid_pat_list = ctx->pid_pat_list;
 
-    uint8_t bitarray[pmq->pattern_id_bitarray_size];
-    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+    uint8_t bitarray[ctx->pattern_id_bitarray_size];
+    memset(bitarray, 0, ctx->pattern_id_bitarray_size);
 
     if (ctx->state_count < 32767) {
         register SC_AC_BS_STATE_TYPE_U16 state = 0;
