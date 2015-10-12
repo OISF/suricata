@@ -52,6 +52,8 @@
 #include "output-json-alert.h"
 #include "output-json-http.h"
 #include "util-byte.h"
+#include "detect-filemagic.h"
+#include "util-magic.h"
 
 typedef struct LogHttpFileCtx_ {
     uint32_t flags; /** Store mode */
@@ -65,6 +67,7 @@ typedef struct JsonHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
     uint32_t uri_cnt;
     OutputJsonThreadCtx *ctx;
+    magic_t magic_ctx;
 } JsonHttpLogThread;
 
 #define MAX_SIZE_HEADER_NAME 256
@@ -423,8 +426,68 @@ void EveHttpLogJSONBodyBase64(SCJsonBuilder *js, Flow *f, uint64_t tx_id)
     }
 }
 
+static void JsonHttpLogJSONAWN(SCJsonBuilder *js, htp_tx_t *tx, Flow *f, uint64_t tx_id, magic_t magic_ctx)
+{
+    SCJbSetUint(js, "request_total_length", htp_tx_request_message_len(tx));
+    SCJbSetUint(js, "response_total_length", htp_tx_response_message_len(tx));
+    
+    /* Fields pertaining to payload */
+    if(!SCJbOpenObject(js, "payload")) {
+        return;
+    }
+    /* We're currently interested in files sent from the server */
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);    
+    File *ff = NULL;
+    if (tx_ud != NULL) {
+        ff = tx_ud->files_tc.head;
+        /* Find the first file for the current transaction */
+        if (ff != NULL) {
+            /* We have a payload! */
+            if (ff->state < FILE_STATE_CLOSED) {
+                /* If we hit a reassembly limit, file may still be open. */
+                FileCloseFilePtr(ff, NULL, NULL, 0, FILE_TRUNCATED);
+            }
+            /* SHA256 hash and the number of bytes covered by the hash. */
+            if ((ff->state == FILE_STATE_CLOSED || ff->state == FILE_STATE_TRUNCATED)) {
+                if ((ff->flags & FILE_SHA256) != 0) {
+                    /* Each byte of the hash will correspond to 2 bytes of the hex string. */
+                    char sha256_string[SC_SHA256_LEN*2 + 1];
+                    for (unsigned i = 0; i < sizeof(ff->sha256); i++) {
+                        snprintf(&sha256_string[2*i], 3 /* room for NULL */, "%02x", ff->sha256[i]);
+                    }
+                    SCJbSetString(js, "sha256", sha256_string);
+                    SCJbSetUint(js, "bytes-hashed", ff->sha256_num_bytes);
+                }
+            }
+            /* "magic" file type, from libmagic. */
+            if (FileForceMagic() && ff->magic == NULL) {
+		FilemagicThreadLookup(&magic_ctx, ff);
+            }
+
+            if (ff->magic != NULL) {
+                const char *comma = strchr(ff->magic, ',');
+                uintptr_t comma_offset = comma - ff->magic;
+                /* We generally expect "magic" to have the format "<something>, <more something>",
+                   and we take everything prior to the comma to be the base type, and everything
+                   after the space that follows the comma to be the extra information.
+                   If our expectations of the magic string don't match reality, take all of it to
+                   be the base magic type.
+                */
+                if (comma == NULL || strlen(ff->magic) - comma_offset < 3) {
+		    SCJbSetString(js, "file-magic-type", ff->magic);
+                } else {
+		    SCJbSetStringFromBytes(js, "file-magic-type", (const uint8_t*)ff->magic, comma_offset);
+                    /* Start after the space that will be after the comma. */
+		    SCJbSetString(js, "file-magic-extra", (comma + 2));
+                }
+            }
+        }
+    }
+    SCJbClose(js);
+}
+
 /* JSON format logging */
-static void EveHttpLogJSON(JsonHttpLogThread *aft, SCJsonBuilder *js, htp_tx_t *tx, uint64_t tx_id)
+static void EveHttpLogJSON(JsonHttpLogThread *aft, SCJsonBuilder *js, htp_tx_t *tx, uint64_t tx_id, Flow *f)
 {
     LogHttpFileCtx *http_ctx = aft->httplog_ctx;
     SCJbOpenObject(js, "http");
@@ -437,6 +500,7 @@ static void EveHttpLogJSON(JsonHttpLogThread *aft, SCJsonBuilder *js, htp_tx_t *
     if (http_ctx->flags & LOG_HTTP_RES_HEADERS || http_ctx->fields != 0)
         EveHttpLogJSONHeaders(js, LOG_HTTP_RES_HEADERS, tx, http_ctx);
 
+    JsonHttpLogJSONAWN(js, tx, f, tx_id, aft->magic_ctx);
     SCJbClose(js);
 }
 
@@ -454,7 +518,7 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     SCLogDebug("got a HTTP request and now logging !!");
 
-    EveHttpLogJSON(jhl, js, tx, tx_id);
+    EveHttpLogJSON(jhl, js, tx, tx_id, f);
     HttpXFFCfg *xff_cfg = jhl->httplog_ctx->xff_cfg != NULL ?
         jhl->httplog_ctx->xff_cfg : jhl->httplog_ctx->parent_xff_cfg;
 
@@ -610,6 +674,11 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, const void *initdata, void *
         goto error_exit;
     }
 
+    aft->magic_ctx = MagicInitContext();
+    if (aft->magic_ctx == NULL) {
+	goto error_exit;
+    }
+    
     *data = (void *)aft;
     return TM_ECODE_OK;
 
