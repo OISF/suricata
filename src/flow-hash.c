@@ -486,6 +486,11 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
 
             f = FlowGetUsedFlow(tv, dtv);
             if (f == NULL) {
+                /* max memcap reached, so increments the counter */
+                if (tv != NULL && dtv != NULL) {
+                    StatsIncr(tv, dtv->counter_flow_memcap);
+                }
+
                 /* very rare, but we can fail. Just giving up */
                 return NULL;
             }
@@ -495,6 +500,9 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
             /* now see if we can alloc a new flow */
             f = FlowAlloc();
             if (f == NULL) {
+                if (tv != NULL && dtv != NULL) {
+                    StatsIncr(tv, dtv->counter_flow_memcap);
+                }
                 return NULL;
             }
 
