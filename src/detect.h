@@ -1005,12 +1005,6 @@ typedef struct SigGroupHead_ {
     /* track min pattern length for content. Used in grouping */
     uint16_t mpm_content_minlen;
 
-    /** array of masks, used to check multiple masks against
-     *  a packet using SIMD. */
-#if defined(__SSE3__) || defined(__tile__)
-    SignatureMask *mask_array;
-#endif
-
     /* non mpm list excluding SYN rules */
     SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
     uint32_t non_mpm_other_store_cnt;
