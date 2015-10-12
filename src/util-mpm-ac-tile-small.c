@@ -45,7 +45,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     STYPE state = 0;
     int c = xlate[buf[0]];
     /* If buflen at least 4 bytes and buf 4-byte aligned. */
-    if (buflen >= (4 + EXTRA) && ((uint64_t)buf & 0x3) == 0) {
+    if (buflen >= (4 + EXTRA) && ((uintptr_t)buf & 0x3) == 0) {
         BTYPE data = *(BTYPE* restrict)(&buf[0]);
         uint64_t index = 0;
         /* Process 4*floor(buflen/4) bytes. */
@@ -85,7 +85,7 @@ uint32_t FUNC_NAME(SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
     }
     /* Process buflen % 4 bytes. */
     for (; i < buflen; i++) {
-        uint64_t index = 0 ;
+        size_t index = 0 ;
         index = SINDEX(index, state);
         state = SLOAD(state_table + index + c);
 #ifndef __tile__
