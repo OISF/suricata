@@ -237,27 +237,19 @@ enum {
 #define PORT_FLAG_ANY           0x01 /**< 'any' special port */
 #define PORT_FLAG_NOT           0x02 /**< negated port */
 #define PORT_SIGGROUPHEAD_COPY  0x04 /**< sgh is a ptr copy */
-#define PORT_GROUP_PORTS_COPY   0x08 /**< dst_ph is a ptr copy */
 
 /** \brief Port structure for detection engine */
 typedef struct DetectPort_ {
     uint16_t port;
     uint16_t port2;
 
+    uint8_t flags;  /**< flags for this port */
+
     /* signatures that belong in this group */
     struct SigGroupHead_ *sh;
 
-    struct DetectPort_ *dst_ph;
-
-    /* double linked list */
-    union {
-        struct DetectPort_ *prev;
-        struct DetectPort_ *hnext; /* hash next */
-    };
+    struct DetectPort_ *prev;
     struct DetectPort_ *next;
-
-    uint32_t cnt;
-    uint8_t flags;  /**< flags for this port */
 } DetectPort;
 
 /* Signature flags */
