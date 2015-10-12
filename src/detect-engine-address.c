@@ -106,22 +106,6 @@ void DetectAddressFree(DetectAddress *ag)
     }
     ag->sh = NULL;
 
-    if (!(ag->flags & ADDRESS_HAVEPORT)) {
-        SCLogDebug("- ag %p dst_gh %p", ag, ag->dst_gh);
-
-        if (ag->dst_gh != NULL)
-            DetectAddressHeadFree(ag->dst_gh);
-        ag->dst_gh = NULL;
-    } else {
-        SCLogDebug("- ag %p port %p", ag, ag->port);
-
-        if (ag->port != NULL && !(ag->flags & ADDRESS_PORTS_COPY)) {
-            SCLogDebug("- ag %p port %p, not a copy so call DetectPortCleanupList",
-                       ag, ag->port);
-            DetectPortCleanupList(ag->port);
-        }
-        ag->port = NULL;
-    }
 #ifdef DEBUG
     detect_address_group_memory -= sizeof(DetectAddress);
     detect_address_group_free_cnt++;
@@ -151,8 +135,6 @@ DetectAddress *DetectAddressCopy(DetectAddress *orig)
 
     COPY_ADDRESS(&orig->ip, &ag->ip);
     COPY_ADDRESS(&orig->ip2, &ag->ip2);
-
-    ag->cnt = 1;
 
     return ag;
 }
@@ -406,11 +388,7 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
             if (r == ADDRESS_EQ) {
                 /* exact overlap/match */
                 if (cur != new) {
-                    DetectPort *port = new->port;
-                    for ( ; port != NULL; port = port->next)
-                        DetectPortInsertCopy(de_ctx, &cur->port, port);
                     SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
-                    cur->cnt += new->cnt;
                     DetectAddressFree(new);
 
                     return 0;
@@ -522,20 +500,13 @@ error:
 int DetectAddressJoin(DetectEngineCtx *de_ctx, DetectAddress *target,
                       DetectAddress *source)
 {
-    DetectPort *port = NULL;
-
     if (target == NULL || source == NULL)
         return -1;
 
     if (target->ip.family != source->ip.family)
         return -1;
 
-    target->cnt += source->cnt;
     SigGroupHeadCopySigs(de_ctx, source->sh, &target->sh);
-
-    port = source->port;
-    for ( ; port != NULL; port = port->next)
-        DetectPortInsertCopy(de_ctx, &target->port, port);
 
     if (target->ip.family == AF_INET)
         return DetectAddressJoinIPv4(de_ctx, target, source);
