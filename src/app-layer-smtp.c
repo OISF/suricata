@@ -1264,8 +1264,7 @@ static void *SMTPLocalStorageAlloc(void)
     if (unlikely(pmq == NULL)) {
         exit(EXIT_FAILURE);
     }
-    PmqSetup(pmq,
-             sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 2);
+    PmqSetup(pmq);
 
     return pmq;
 }
