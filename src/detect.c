@@ -3294,7 +3294,6 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             SigGroupHeadFree(sgh_ts[p]);
             sgh_ts[p] = lookup_sgh;
-            sgh_ts[p]->flags |= SIG_GROUP_HEAD_REFERENCED;
 
             de_ctx->gh_reuse++;
             ref++;
@@ -3331,7 +3330,6 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
 
             SigGroupHeadFree(sgh_tc[p]);
             sgh_tc[p] = lookup_sgh;
-            sgh_tc[p]->flags |= SIG_GROUP_HEAD_REFERENCED;
 
             de_ctx->gh_reuse++;
             ref++;
@@ -3516,7 +3514,6 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             SigGroupHeadFree(iter->sh);
             iter->sh = lookup_sgh;
             iter->flags |= PORT_SIGGROUPHEAD_COPY;
-            iter->sh->flags |= SIG_GROUP_HEAD_REFERENCED;
 
             de_ctx->gh_reuse++;
             ref++;
