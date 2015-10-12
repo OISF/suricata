@@ -3931,6 +3931,19 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
         de_ctx->flow_gh[f].udp = NULL;
     }
 
+    uint32_t idx;
+    for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+        SigGroupHead *sgh = de_ctx->sgh_array[idx];
+        if (sgh == NULL)
+            continue;
+
+        SCLogDebug("sgh %p", sgh);
+        SigGroupHeadFree(sgh);
+    }
+    SCFree(de_ctx->sgh_array);
+    de_ctx->sgh_array = NULL;
+    de_ctx->sgh_array_cnt = 0;
+    de_ctx->sgh_array_size = 0;
 
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
@@ -4007,6 +4020,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         if (sgh == NULL)
             continue;
 
+        SCLogDebug("sgh %p", sgh);
+
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
@@ -4038,10 +4053,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
      * after the initialization phase. */
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
-
-    SCFree(de_ctx->sgh_array);
-    de_ctx->sgh_array_cnt = 0;
-    de_ctx->sgh_array_size = 0;
 
     RulesDumpGrouping(de_ctx);
 
