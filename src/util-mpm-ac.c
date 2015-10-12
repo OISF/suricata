@@ -1340,9 +1340,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            MpmAddPid(pmq, lower_pid);
                             MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
@@ -1350,9 +1348,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(pids[k]) / 8] |= (1 << ((pids[k]) % 8));
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            MpmAddPid(pmq, pids[k]);
                             MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
@@ -1384,9 +1380,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
                             bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
-                            MpmAddPid(pmq, lower_pid);
                             MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                         }
                         matches++;
@@ -1394,9 +1388,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
-                            pmq->pattern_id_bitarray[(pids[k]) / 8] |= (1 << ((pids[k]) % 8));
                             bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                            MpmAddPid(pmq, pids[k]);
                             MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                         }
                         matches++;
@@ -1860,6 +1852,9 @@ uint32_t SCACCudaPacketResultsProcessing(Packet *p, const MpmCtx *mpm_ctx,
     SCACOutputTable *output_table = ctx->output_table;
     SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
+    uint8_t bitarray[ctx->pattern_id_bitarray_size];
+    memset(bitarray, 0, ctx->pattern_id_bitarray_size);
+
     for (u = 0; u < cuda_matches; u += 2) {
         uint32_t offset = results[u];
         uint32_t state = results[u + 1];
@@ -1882,17 +1877,19 @@ uint32_t SCACCudaPacketResultsProcessing(Packet *p, const MpmCtx *mpm_ctx,
                     /* inside loop */
                     continue;
                 }
-                if (pmq->pattern_id_bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
+                if (bitarray[(lower_pid) / 8] & (1 << ((lower_pid) % 8))) {
                     ;
                 } else {
-                    pmq->pattern_id_bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                    bitarray[(lower_pid) / 8] |= (1 << ((lower_pid) % 8));
+                    MpmAddSids(pmq, pid_pat_list[lower_pid].sids, pid_pat_list[lower_pid].sids_size);
                 }
                 matches++;
             } else {
-                if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                if (bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                     ;
                 } else {
-                    pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                    bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                    MpmAddSids(pmq, pid_pat_list[pids[k]].sids, pid_pat_list[pids[k]].sids_size);
                 }
                 matches++;
             }
@@ -2106,7 +2103,7 @@ static int SCACTest01(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2140,7 +2137,7 @@ static int SCACTest02(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2177,7 +2174,7 @@ static int SCACTest03(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 3);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2211,7 +2208,7 @@ static int SCACTest04(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 3);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2245,7 +2242,7 @@ static int SCACTest05(void)
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 3);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2277,7 +2274,7 @@ static int SCACTest06(void)
     SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx);
 
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2321,7 +2318,7 @@ static int SCACTest07(void)
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                      30, 0, 0, 5, 0, 0);
-    PmqSetup(&pmq, 6);
+    PmqSetup(&pmq);
     /* total matches: 135 */
 
     SCACPreparePatterns(&mpm_ctx);
@@ -2355,7 +2352,7 @@ static int SCACTest08(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2387,7 +2384,7 @@ static int SCACTest09(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2419,7 +2416,7 @@ static int SCACTest10(void)
 
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2462,7 +2459,7 @@ static int SCACTest11(void)
         goto end;
     if (MpmAddPatternCS(&mpm_ctx, (uint8_t *)"hers", 4, 0, 0, 4, 0, 0) == -1)
         goto end;
-    PmqSetup(&pmq, 5);
+    PmqSetup(&pmq);
 
     if (SCACPreparePatterns(&mpm_ctx) == -1)
         goto end;
@@ -2505,7 +2502,7 @@ static int SCACTest12(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 2);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2539,7 +2536,7 @@ static int SCACTest13(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2573,7 +2570,7 @@ static int SCACTest14(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2607,7 +2604,7 @@ static int SCACTest15(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2641,7 +2638,7 @@ static int SCACTest16(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzABC";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2675,7 +2672,7 @@ static int SCACTest17(void)
     /* 1 match */
     char *pat = "abcdefghijklmnopqrstuvwxyzAB";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2709,7 +2706,7 @@ static int SCACTest18(void)
     /* 1 match */
     char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2743,7 +2740,7 @@ static int SCACTest19(void)
     /* 1 */
     char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2777,7 +2774,7 @@ static int SCACTest20(void)
     /* 1 */
     char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2810,7 +2807,7 @@ static int SCACTest21(void)
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2844,7 +2841,7 @@ static int SCACTest22(void)
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
     /* 1 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 2);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2877,7 +2874,7 @@ static int SCACTest23(void)
 
     /* 1 */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2909,7 +2906,7 @@ static int SCACTest24(void)
 
     /* 1 */
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2942,7 +2939,7 @@ static int SCACTest25(void)
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"fghiJkl", 7, 0, 0, 2, 0, 0);
-    PmqSetup(&pmq, 3);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -2975,7 +2972,7 @@ static int SCACTest26(void)
 
     MpmAddPatternCI(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 0, 0, 0);
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 1, 0, 0);
-    PmqSetup(&pmq, 2);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3008,7 +3005,7 @@ static int SCACTest27(void)
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"ONE", 3, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
@@ -3041,7 +3038,7 @@ static int SCACTest28(void)
 
     /* 0 match */
     MpmAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 0, 0, 0);
-    PmqSetup(&pmq, 1);
+    PmqSetup(&pmq);
 
     SCACPreparePatterns(&mpm_ctx);
 
