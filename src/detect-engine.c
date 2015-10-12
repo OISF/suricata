@@ -1332,9 +1332,9 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher);
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher);
 
-    PmqSetup(&det_ctx->pmq, de_ctx->max_fp_id);
+    PmqSetup(&det_ctx->pmq);
     for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i], de_ctx->max_fp_id);
+        PmqSetup(&det_ctx->smsg_pmq[i]);
     }
 
     /* sized to the max of our sgh settings. A max setting of 0 implies that all
