@@ -4046,15 +4046,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
          * signature not decode event only. */
     }
 
-    /* cleanup group head (uri)content_array's */
-    SigGroupHeadFreeMpmArrays(de_ctx);
-    /* cleanup group head sig arrays */
-    SigGroupHeadFreeSigArrays(de_ctx);
-
     /* cleanup the hashes now since we won't need them
      * after the initialization phase. */
     SigGroupHeadHashFree(de_ctx);
-    SigGroupHeadDPortHashFree(de_ctx);
 
     RulesDumpGrouping(de_ctx);
 
