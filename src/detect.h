@@ -611,8 +611,6 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *mpm_hash_table;
 
-    HashListTable *sgh_dport_hash_table;
-
     HashListTable *variable_names;
     HashListTable *variable_idxs;
     uint16_t variable_names_idx;
