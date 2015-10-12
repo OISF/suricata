@@ -1476,7 +1476,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
  */
 
 #define SCHECK(x) ((x) > 0)
-#define BTYPE int32_t
+#define BUF_TYPE int32_t
 // Extract byte N=0,1,2,3 from x
 #ifdef __tile__
 #define BYTE0(x) __insn_bfextu(x, 0, 7)
