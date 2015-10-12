@@ -71,6 +71,9 @@ typedef struct SCACBSCtx_ {
 
     /* no of states used by ac */
     uint32_t state_count;
+
+    uint16_t pattern_id_bitarray_size;
+
     /* the all important memory hungry state_table */
     SC_AC_BS_STATE_TYPE_U16 (*state_table_u16)[256];
     /* the all important memory hungry state_table */
