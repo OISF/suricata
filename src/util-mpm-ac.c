@@ -990,7 +990,7 @@ static void SCACPrintDeltaTable(MpmCtx *mpm_ctx)
  *
  * \param mpm_ctx Pointer to the mpm context.
  */
-static inline void SCACPrepareStateTable(MpmCtx *mpm_ctx)
+static void SCACPrepareStateTable(MpmCtx *mpm_ctx)
 {
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
 
@@ -1130,6 +1130,8 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     ctx->parray = NULL;
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACPattern *));
+
+    ctx->pattern_id_bitarray_size = (ctx->max_pat_id / 8) + 1;
 
     return 0;
 
@@ -1314,8 +1316,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
     SCACPatternList *pid_pat_list = ctx->pid_pat_list;
 
-    uint8_t bitarray[pmq->pattern_id_bitarray_size];
-    memset(bitarray, 0, pmq->pattern_id_bitarray_size);
+    uint8_t bitarray[ctx->pattern_id_bitarray_size];
+    memset(bitarray, 0, ctx->pattern_id_bitarray_size);
 
     if (ctx->state_count < 32767) {
         register SC_AC_STATE_TYPE_U16 state = 0;
