@@ -98,13 +98,6 @@ void DetectPortFree(DetectPort *dp)
     }
     dp->sh = NULL;
 
-    if (dp->dst_ph != NULL && !(dp->flags & PORT_GROUP_PORTS_COPY)) {
-        DetectPortCleanupList(dp->dst_ph);
-    }
-    dp->dst_ph = NULL;
-
-    //BUG_ON(dp->next != NULL);
-
     detect_port_memory -= sizeof(DetectPort);
     detect_port_free_cnt++;
     SCFree(dp);
@@ -288,7 +281,6 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 /* exact overlap/match */
                 if (cur != new) {
                     SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
-                    cur->cnt += new->cnt;
                     DetectPortFree(new);
                     return 0;
                 }
@@ -420,9 +412,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
         SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy a to b */
 
-        tmp_c->cnt += b->cnt;
-        b->cnt += a->cnt;
-
     /**
      * We have 3 parts: [bbb[baba]aaa]
      * part a: b_port1 <-> a_port1 - 1
@@ -460,13 +449,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
         SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
-        tmp->cnt += a->cnt;
-        a->cnt = 0;
-        tmp_c->cnt += tmp->cnt;
-        a->cnt += b->cnt;
-        b->cnt += tmp->cnt;
-        tmp->cnt = 0;
-
     /**
      * We have 2 or three parts:
      *
@@ -496,7 +478,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             /** 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh);
-            a->cnt += b->cnt;
 
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
@@ -513,12 +494,9 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
              *        clear a
              *        copy tmp to a */
             SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh); /* store old a list */
-            tmp->cnt = b->cnt;
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-            b->cnt += a->cnt;
             SigGroupHeadClearSigs(a->sh); /* clean a list */
             SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);/* merge old a with b */
-            a->cnt = tmp->cnt;
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         } else {
             SCLogDebug("3");
@@ -550,13 +528,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh);/* merge old a with b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
-
-            tmp->cnt += a->cnt;
-            a->cnt = 0;
-            tmp_c->cnt += b->cnt;
-            a->cnt += b->cnt;
-            b->cnt += tmp->cnt;
-            tmp->cnt = 0;
         }
     /**
      * We have 2 or three parts:
@@ -593,12 +564,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             SigGroupHeadClearSigs(tmp->sh);
 
-            tmp->cnt += b->cnt;
-            b->cnt = 0;
-            b->cnt += a->cnt;
-            a->cnt += tmp->cnt;
-            tmp->cnt = 0;
-
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
 
@@ -610,8 +575,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             /** 'a' overlaps 'b' so 'b' needs the 'a' sigs */
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-
-            b->cnt += a->cnt;
 
         } else {
             SCLogDebug("3");
@@ -633,9 +596,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
             SigGroupHeadCopySigs(de_ctx,a->sh,&tmp_c->sh);
-
-            b->cnt += a->cnt;
-            tmp_c->cnt += a->cnt;
         }
     }
 
@@ -898,7 +858,6 @@ int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target,
     if (target == NULL || source == NULL)
         return -1;
 
-    target->cnt += source->cnt;
     SigGroupHeadCopySigs(de_ctx,source->sh,&target->sh);
 
     if (source->port < target->port)
