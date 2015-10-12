@@ -165,9 +165,6 @@ enum {
 #define ADDRESS_FLAG_NOT            0x02 /**< address is negated */
 
 #define ADDRESS_SIGGROUPHEAD_COPY   0x04 /**< sgh is a ptr to another sgh */
-#define ADDRESS_PORTS_COPY          0x08 /**< ports are a ptr to other ports */
-#define ADDRESS_PORTS_NOTUNIQ       0x10
-#define ADDRESS_HAVEPORT            0x20 /**< address has a ports ptr */
 
 /** \brief address structure for use in the detection engine.
  *
@@ -177,12 +174,6 @@ typedef struct DetectAddress_ {
     /** address data for this group */
     Address ip;
     Address ip2;
-
-    /** ptr to the next address (dst addr in that case) or to the src port */
-    union {
-        struct DetectAddressHead_ *dst_gh; /**< destination address */
-        struct DetectPort_ *port; /**< source port */
-    };
 
     /** signatures that belong in this group */
     struct SigGroupHead_ *sh;
@@ -194,8 +185,6 @@ typedef struct DetectAddress_ {
     struct DetectAddress_ *prev;
     /** ptr to the next address in the list */
     struct DetectAddress_ *next;
-
-    uint32_t cnt;
 } DetectAddress;
 
 /** Signature grouping head. Here 'any', ipv4 and ipv6 are split out */
