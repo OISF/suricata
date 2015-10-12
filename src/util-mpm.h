@@ -65,16 +65,8 @@ typedef struct MpmThreadCtx_ {
  *         thread has this and passes a pointer to it to the pattern matcher.
  *         The actual pattern matcher will fill the structure. */
 typedef struct PatternMatcherQueue_ {
-    uint32_t *pattern_id_array;     /** array with pattern id's that had a
-                                        pattern match. These will be inspected
-                                        futher by the detection engine. */
-    uint32_t pattern_id_array_cnt;  /**< Number currently stored */
-    uint32_t pattern_id_array_size; /**< Allocated size in bytes */
-
-    uint8_t *pattern_id_bitarray;   /** bitarray with pattern id matches */
-    uint32_t pattern_id_bitarray_size; /**< size in bytes */
-
     /* used for storing rule id's */
+
     /* Array of rule IDs found. */
     SigIntId *rule_id_array;
     /* Number of rule IDs in the array. */
@@ -210,7 +202,7 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, 
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
 int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
-int PmqSetup(PatternMatcherQueue *, uint32_t);
+int PmqSetup(PatternMatcherQueue *);
 void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
 void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
@@ -264,21 +256,5 @@ MpmAddSids(PatternMatcherQueue *pmq, SigIntId *sids, uint32_t sids_size)
         *ptr++ = *sids++;
     } while (ptr != end);
     pmq->rule_id_array_cnt += sids_size;
-}
-
-/* Resize Pattern ID array. Only called from MpmAddPid(). */
-int MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size);
-
-static inline void
-MpmAddPid(PatternMatcherQueue *pmq, uint32_t patid)
-{
-    uint32_t new_size = pmq->pattern_id_array_cnt + 1;
-    if (new_size > pmq->pattern_id_array_size)  {
-        if (MpmAddPidResize(pmq, new_size) == 0)
-            return;
-    }
-    pmq->pattern_id_array[pmq->pattern_id_array_cnt] = patid;
-    pmq->pattern_id_array_cnt = new_size;
-    SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
 }
 #endif /* __UTIL_MPM_H__ */
