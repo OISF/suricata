@@ -3507,6 +3507,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             SigGroupHeadSetProtoAndDirection(iter->sh, ipproto, direction);
             SigGroupHeadHashAdd(de_ctx, iter->sh);
             SigGroupHeadStore(de_ctx, iter->sh);
+            iter->flags |= PORT_SIGGROUPHEAD_COPY;
             de_ctx->gh_unique++;
             own++;
         } else {
@@ -3930,6 +3931,21 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx)
     if (de_ctx->decoder_event_sgh)
         SigGroupHeadFree(de_ctx->decoder_event_sgh);
     de_ctx->decoder_event_sgh = NULL;
+
+    int f;
+    for (f = 0; f < FLOW_STATES; f++) {
+        int p;
+        for (p = 0; p < 256; p++) {
+            de_ctx->flow_gh[f].sgh[p] = NULL;
+        }
+
+        /* free lookup lists */
+        DetectPortCleanupList(de_ctx->flow_gh[f].tcp);
+        de_ctx->flow_gh[f].tcp = NULL;
+        DetectPortCleanupList(de_ctx->flow_gh[f].udp);
+        de_ctx->flow_gh[f].udp = NULL;
+    }
+
 
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
