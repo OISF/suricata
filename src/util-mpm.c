@@ -408,16 +408,13 @@ void MpmCudaEnvironmentSetup()
  *  \brief Setup a pmq
  *
  *  \param pmq Pattern matcher queue to be initialized
- *  \param maxid Max sig id to be matched on
- *  \param patmaxid Max pattern id to be matched on
  *
  *  \retval -1 error
  *  \retval 0 ok
  */
-int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
+int PmqSetup(PatternMatcherQueue *pmq)
 {
     SCEnter();
-    SCLogDebug("patmaxid %u", patmaxid);
 
     if (pmq == NULL) {
         SCReturnInt(-1);
@@ -425,38 +422,16 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
 
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
-    if (patmaxid > 0) {
-        pmq->pattern_id_array_size = 32; /* Intial size, TODO Make this configure option */
-        pmq->pattern_id_array_cnt = 0;
+    pmq->rule_id_array_size = 128; /* Initial size, TODO: Make configure option. */
+    pmq->rule_id_array_cnt = 0;
 
-        pmq->pattern_id_array = SCCalloc(pmq->pattern_id_array_size, sizeof(uint32_t));
-        if (pmq->pattern_id_array == NULL) {
-            SCReturnInt(-1);
-        }
-
-        /* lookup bitarray */
-        pmq->pattern_id_bitarray_size = (patmaxid / 8) + 1;
-
-        pmq->pattern_id_bitarray = SCMalloc(pmq->pattern_id_bitarray_size);
-        if (pmq->pattern_id_bitarray == NULL) {
-            SCReturnInt(-1);
-        }
-        memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
-
-        SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
-                pmq->pattern_id_array, pmq->pattern_id_bitarray);
-
-        pmq->rule_id_array_size = 128; /* Initial size, TODO: Make configure option. */
-        pmq->rule_id_array_cnt = 0;
-
-        size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
-        pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
-        if (pmq->rule_id_array == NULL) {
-            pmq->rule_id_array_size = 0;
-            SCReturnInt(-1);
-        }
-        // Don't need to zero memory since it is always written first.
+    size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
+    pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
+    if (pmq->rule_id_array == NULL) {
+        pmq->rule_id_array_size = 0;
+        SCReturnInt(-1);
     }
+    // Don't need to zero memory since it is always written first.
 
     SCReturnInt(0);
 }
@@ -497,40 +472,6 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
     return new_size;
 }
 
-/** \brief Increase the size of the Pattern rule ID array.
- *
- *  \param pmq storage for match results
- *  \param new_size number of Signature IDs needing to be stored.
- *
- *  \return 0 on failure.
- */
-int
-MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
-{
-    /* Need to make the array bigger. Double the size needed to
-     * also handle the case that sids_size might still be
-     * larger than the old size.
-     */
-    new_size = new_size * 2;
-    uint32_t *new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
-                                               new_size * sizeof(uint32_t));
-    if (unlikely(new_array == NULL)) {
-        // Failed to allocate 2x, so try 1x.
-        new_size = new_size / 2;
-        new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
-                                         new_size * sizeof(uint32_t));
-        if (unlikely(new_array == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
-                       " pattern ID array. Some new Pattern ID matches were lost.");
-            return 0;
-        }
-    }
-    pmq->pattern_id_array = new_array;
-    pmq->pattern_id_array_size = new_size;
-
-    return new_size;
-}
-
 /**
  *  \brief Merge two pmq's bitarrays
  *
@@ -539,16 +480,8 @@ MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
  */
 void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
 {
-    uint32_t u;
-
-    if (src->pattern_id_array_cnt == 0)
+    if (src->rule_id_array_cnt == 0)
         return;
-
-    for (u = 0; u < src->pattern_id_bitarray_size && u < dst->pattern_id_bitarray_size; u++) {
-        dst->pattern_id_bitarray[u] |= src->pattern_id_bitarray[u];
-    }
-
-    /** \todo now set merged flag? */
 
     if (src->rule_id_array && dst->rule_id_array) {
         MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
@@ -565,10 +498,6 @@ void PmqReset(PatternMatcherQueue *pmq)
     if (pmq == NULL)
         return;
 
-    memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
-
-    pmq->pattern_id_array_cnt = 0;
-
     pmq->rule_id_array_cnt = 0;
     /* TODO: Realloc the rule id array smaller at some size? */
 }
@@ -580,24 +509,10 @@ void PmqCleanup(PatternMatcherQueue *pmq)
 {
     if (pmq == NULL)
         return;
-
-    if (pmq->pattern_id_array != NULL) {
-        SCFree(pmq->pattern_id_array);
-        pmq->pattern_id_array = NULL;
-    }
-
-    if (pmq->pattern_id_bitarray != NULL) {
-        SCFree(pmq->pattern_id_bitarray);
-        pmq->pattern_id_bitarray = NULL;
-    }
-
     if (pmq->rule_id_array != NULL) {
         SCFree(pmq->rule_id_array);
         pmq->rule_id_array = NULL;
     }
-
-    pmq->pattern_id_array_cnt = 0;
-    pmq->pattern_id_array_size = 0;
 }
 
 /** \brief Cleanup and free a Pmq

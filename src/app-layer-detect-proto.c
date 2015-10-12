@@ -1663,7 +1663,7 @@ AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
     memset(alpd_tctx, 0, sizeof(*alpd_tctx));
 
     /* Get the max pat id for all the mpm ctxs. */
-    if (PmqSetup(&alpd_tctx->pmq, max_pat_id) < 0)
+    if (PmqSetup(&alpd_tctx->pmq) < 0)
         goto error;
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
