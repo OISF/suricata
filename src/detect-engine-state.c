@@ -54,6 +54,7 @@
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-parse.h"
+#include "detect-base64-data.h"
 #include "detect-engine-state.h"
 #include "detect-engine-dcepayload.h"
 
@@ -529,6 +530,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                              flags, alstate,
                                              tx, tx_id);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
+
+                        if (s->sm_arrays[DETECT_SM_LIST_BASE64_DATA] != NULL) {
+                            if (!DetectBase64DataDoMatch(de_ctx, det_ctx, s, f)) {
+                                break;
+                            }
+                        }
+
                         inspect_flags |= engine->inspect_flags;
                         engine = engine->next;
                         total_matches++;
