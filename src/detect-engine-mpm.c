@@ -983,6 +983,34 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
 #define SGH_DIRECTION_TS(sgh) ((sgh)->init->direction & SIG_FLAG_TOSERVER)
 #define SGH_DIRECTION_TC(sgh) ((sgh)->init->direction & SIG_FLAG_TOCLIENT)
 
+static void SetMpm(Signature *s, SigMatch *mpm_sm)
+{
+    if (s == NULL || mpm_sm == NULL)
+        return;
+
+    DetectContentData *cd = (DetectContentData *)mpm_sm->ctx;
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                !(cd->flags & DETECT_CONTENT_REPLACE) &&
+                cd->content_len == cd->fp_chop_len)
+        {
+            cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+        }
+    } else {
+        if (DETECT_CONTENT_IS_SINGLE(cd) &&
+                !(cd->flags & DETECT_CONTENT_NEGATED) &&
+                !(cd->flags & DETECT_CONTENT_REPLACE))
+        {
+            cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
+        }
+    }
+    s->mpm_pattern_id_div_8 = cd->id / 8;
+    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+    s->mpm_sm = mpm_sm;
+    return;
+}
+
 void RetrieveFPForSig(Signature *s)
 {
     if (s->mpm_sm != NULL)
@@ -1011,7 +1039,7 @@ void RetrieveFPForSig(Signature *s)
 
             /* fast_pattern set in rule, so using this pattern */
             if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                s->mpm_sm = sm;
+                SetMpm(s, sm);
                 return;
             }
 
@@ -1107,7 +1135,8 @@ void RetrieveFPForSig(Signature *s)
         }
     }
 
-    s->mpm_sm = mpm_sm;
+    /* assign to signature */
+    SetMpm(s, mpm_sm);
     return;
 }
 
@@ -1308,7 +1337,7 @@ void MpmStoreFree(DetectEngineCtx *de_ctx)
 
 void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 {
-    Signature *s = NULL; // TODO const
+    const Signature *s = NULL;
     uint32_t sig;
 
     int dir = 0;
@@ -1369,41 +1398,10 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 
             SCLogDebug("adding %u", s->id);
 
-            DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx; // TODO const
-            /* TODO move this into cd setup code */
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                        !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                        !(cd->flags & DETECT_CONTENT_REPLACE) &&
-                        cd->content_len == cd->fp_chop_len)
-                {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-            } else {
-                if (DETECT_CONTENT_IS_SINGLE(cd) &&
-                        !(cd->flags & DETECT_CONTENT_NEGATED) &&
-                        !(cd->flags & DETECT_CONTENT_REPLACE))
-                {
-                    cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
-                }
-            }
+            const DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+
             PopulateMpmHelperAddPatternToPktCtx(ms->mpm_ctx,
                     cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
-
-            if (ms->buffer != MPMB_MAX) {
-                /* tell matcher we are inspecting packet */
-                /* TODO remove! */
-                if (!(ms->buffer == MPMB_TCP_STREAM_TC || ms->buffer == MPMB_TCP_STREAM_TS)) {
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                } else {
-                    s->mpm_pattern_id_div_8 = cd->id / 8;
-                    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                }
-            } else {
-                s->mpm_pattern_id_div_8 = cd->id / 8;
-                s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-            }
         }
     }
 
