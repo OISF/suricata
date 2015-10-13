@@ -966,11 +966,10 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
 #define SGH_DIRECTION_TS(sgh) ((sgh)->init->direction & SIG_FLAG_TOSERVER)
 #define SGH_DIRECTION_TC(sgh) ((sgh)->init->direction & SIG_FLAG_TOCLIENT)
 
-SigMatch *RetrieveFPForSig(Signature *s)
+void RetrieveFPForSig(Signature *s)
 {
     if (s->mpm_sm != NULL)
-        return s->mpm_sm;
-
+        return;
 
     SigMatch *mpm_sm = NULL, *sm = NULL;
     int nn_sm_list[DETECT_SM_LIST_MAX];
@@ -981,6 +980,8 @@ SigMatch *RetrieveFPForSig(Signature *s)
     int count_n_sm_list = 0;
     int list_id;
 
+    /* inspect rule to see if we have the fast_pattern keyword to
+     * force using a sig, otherwise keep stats about the patterns */
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
@@ -990,8 +991,13 @@ SigMatch *RetrieveFPForSig(Signature *s)
                 continue;
 
             DetectContentData *cd = (DetectContentData *)sm->ctx;
-            if ((cd->flags & DETECT_CONTENT_FAST_PATTERN))
-                return sm;
+
+            /* fast_pattern set in rule, so using this pattern */
+            if ((cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                s->mpm_sm = sm;
+                return;
+            }
+
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 n_sm_list[list_id] = 1;
                 count_n_sm_list++;
@@ -999,9 +1005,10 @@ SigMatch *RetrieveFPForSig(Signature *s)
                 nn_sm_list[list_id] = 1;
                 count_nn_sm_list++;
             }
-        } /* for */
-    } /* for */
+        }
+    }
 
+    /* prefer normal not-negated over negated */
     int *curr_sm_list = NULL;
     int skip_negated_content = 1;
     if (count_nn_sm_list > 0) {
@@ -1010,7 +1017,7 @@ SigMatch *RetrieveFPForSig(Signature *s)
         curr_sm_list = n_sm_list;
         skip_negated_content = 0;
     } else {
-        return NULL;
+        return;
     }
 
     int final_sm_list[DETECT_SM_LIST_MAX];
@@ -1021,8 +1028,8 @@ SigMatch *RetrieveFPForSig(Signature *s)
     while (tmp != NULL) {
         for (priority = tmp->priority;
              tmp != NULL && priority == tmp->priority;
-             tmp = tmp->next) {
-
+             tmp = tmp->next)
+        {
             if (curr_sm_list[tmp->list_id] == 0)
                 continue;
             final_sm_list[count_final_sm_list++] = tmp->list_id;
@@ -1079,11 +1086,12 @@ SigMatch *RetrieveFPForSig(Signature *s)
                 } else {
                     SCLogDebug("sticking with mpm_sm");
                 }
-            } /* else - if */
-        } /* for */
-    } /* for */
+            }
+        }
+    }
 
-    return mpm_sm;
+    s->mpm_sm = mpm_sm;
+    return;
 }
 
 /** \internal
@@ -1750,7 +1758,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
      * true size, since duplicates are removed below, but counted here.
      */
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
-        s->mpm_sm = RetrieveFPForSig(s);
+        RetrieveFPForSig(s);
         if (s->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
