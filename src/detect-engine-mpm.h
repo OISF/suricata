@@ -58,7 +58,6 @@ uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, 
 uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
-void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg);
 
 void PatternMatchPrepare(MpmCtx *, uint16_t);
 void PatternMatchThreadPrepare(MpmThreadCtx *, uint16_t type);

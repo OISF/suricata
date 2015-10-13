@@ -740,14 +740,9 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
         for ( ; smsg != NULL; smsg = smsg->next) {
             r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
                 Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
-                       &det_ctx->smsg_pmq[cnt], smsg->data, smsg->data_len);
+                       &det_ctx->pmq, smsg->data, smsg->data_len);
             if (r > 0) {
                 ret += r;
-
-                SCLogDebug("smsg match stored in det_ctx->smsg_pmq[%u]", cnt);
-
-                /* merge results with overall pmq */
-                PmqMerge(&det_ctx->smsg_pmq[cnt], &det_ctx->pmq);
             }
 
             cnt++;
@@ -756,14 +751,9 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
         for ( ; smsg != NULL; smsg = smsg->next) {
             r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
                 Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
-                       &det_ctx->smsg_pmq[cnt], smsg->data, smsg->data_len);
+                       &det_ctx->pmq, smsg->data, smsg->data_len);
             if (r > 0) {
                 ret += r;
-
-                SCLogDebug("smsg match stored in det_ctx->smsg_pmq[%u]", cnt);
-
-                /* merge results with overall pmq */
-                PmqMerge(&det_ctx->smsg_pmq[cnt], &det_ctx->pmq);
             }
 
             cnt++;
@@ -847,18 +837,6 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
     }
 
     return;
-}
-
-void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg)
-{
-    uint8_t cnt = 0;
-
-    while (smsg != NULL) {
-        PmqReset(&det_ctx->smsg_pmq[cnt]);
-
-        smsg = smsg->next;
-        cnt++;
-    }
 }
 
 void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
