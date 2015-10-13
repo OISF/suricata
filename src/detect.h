@@ -712,8 +712,6 @@ typedef struct FiledataReassembledBody_ {
 } FiledataReassembledBody;
 
 #define DETECT_FILESTORE_MAX 15
-/** \todo review how many we actually need here */
-#define DETECT_SMSG_PMQ_NUM 256
 
 typedef struct SignatureNonMpmStore_ {
     SigIntId id;
@@ -827,7 +825,6 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PatternMatcherQueue pmq;
-    PatternMatcherQueue smsg_pmq[DETECT_SMSG_PMQ_NUM];
 
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
