@@ -202,7 +202,6 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
 int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
 int PmqSetup(PatternMatcherQueue *);
-void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
 void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
