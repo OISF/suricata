@@ -1369,20 +1369,15 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
                 /* tell matcher we are inspecting packet */
                 /* TODO remove! */
                 if (!(ms->buffer == MPMB_TCP_STREAM_TC || ms->buffer == MPMB_TCP_STREAM_TS)) {
-                    s->flags |= SIG_FLAG_MPM_PACKET;
                     s->mpm_pattern_id_div_8 = cd->id / 8;
                     s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
                 } else {
-                    /* tell matcher we are inspecting stream */
-                    s->flags |= SIG_FLAG_MPM_STREAM;
                     s->mpm_pattern_id_div_8 = cd->id / 8;
                     s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
                 }
             } else {
-                /* tell matcher we are inspecting app-layer */
                 s->mpm_pattern_id_div_8 = cd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                s->flags |= SIG_FLAG_MPM_APPLAYER;
             }
         }
     }
