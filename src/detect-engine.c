@@ -1272,16 +1272,11 @@ error:
  */
 static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx)
 {
-    int i;
-
     PatternMatchThreadPrepare(&det_ctx->mtc, de_ctx->mpm_matcher);
     PatternMatchThreadPrepare(&det_ctx->mtcs, de_ctx->mpm_matcher);
     PatternMatchThreadPrepare(&det_ctx->mtcu, de_ctx->mpm_matcher);
 
     PmqSetup(&det_ctx->pmq);
-    for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
-        PmqSetup(&det_ctx->smsg_pmq[i]);
-    }
 
     /* sized to the max of our sgh settings. A max setting of 0 implies that all
      * sgh's have: sgh->non_mpm_store_cnt == 0 */
@@ -1473,6 +1468,8 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
 
 void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
 {
+    int i;
+
     if (det_ctx->tenant_array != NULL) {
         SCFree(det_ctx->tenant_array);
         det_ctx->tenant_array = NULL;
@@ -1493,10 +1490,6 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
 
     PmqFree(&det_ctx->pmq);
-    int i;
-    for (i = 0; i < DETECT_SMSG_PMQ_NUM; i++) {
-        PmqFree(&det_ctx->smsg_pmq[i]);
-    }
 
     if (det_ctx->non_mpm_id_array != NULL)
         SCFree(det_ctx->non_mpm_id_array);
