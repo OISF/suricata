@@ -845,7 +845,6 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
-#define SMS_USED_STREAM_PM      0x04
 
 /**
  * \internal
@@ -1062,8 +1061,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
             StreamPatternSearch(det_ctx, p, smsg, flags);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
-
-            *sms_runflags |= SMS_USED_STREAM_PM;
         } else {
             SCLogDebug("smsg NULL or no stream mpm for this sgh");
         }
@@ -1797,10 +1794,6 @@ end:
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
     if (p->flags & PKT_HAS_FLOW) {
-        if (sms_runflags & SMS_USED_STREAM_PM) {
-            StreamPatternCleanup(th_v, det_ctx, smsg);
-        }
-
         FLOWLOCK_WRLOCK(pflow);
         if (debuglog_enabled) {
             if (p->alerts.cnt > 0) {
