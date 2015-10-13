@@ -83,7 +83,7 @@ uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
-SigMatch *RetrieveFPForSig(Signature *s);
+void RetrieveFPForSig(Signature *s);
 
 int MpmStoreInit(DetectEngineCtx *);
 void MpmStoreFree(DetectEngineCtx *);
