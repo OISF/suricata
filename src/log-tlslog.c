@@ -83,6 +83,9 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
     if (state->server_connp.cert0_fingerprint != NULL) {
         MemBufferWriteString(aft->buffer, " SHA1='%s'", state->server_connp.cert0_fingerprint);
     }
+    if (state->client_connp.sni != NULL) {
+        MemBufferWriteString(aft->buffer, " SNI='%s'", state->client_connp.sni);
+    }
     switch (state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
             MemBufferWriteString(aft->buffer, " VERSION='UNDETERMINED'");
