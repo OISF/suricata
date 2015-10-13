@@ -355,9 +355,6 @@ typedef struct Signature_ {
     uint16_t dsize_low;
     uint16_t dsize_high;
 
-    uint16_t mpm_pattern_id_div_8;
-    uint8_t mpm_pattern_id_mod_8;
-
     SignatureMask mask;
     SigIntId num; /**< signature number, internal id */
 
