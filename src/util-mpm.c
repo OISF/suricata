@@ -472,22 +472,6 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
     return new_size;
 }
 
-/**
- *  \brief Merge two pmq's bitarrays
- *
- *  \param src source pmq
- *  \param dst destination pmq to merge into
- */
-void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
-{
-    if (src->rule_id_array_cnt == 0)
-        return;
-
-    if (src->rule_id_array && dst->rule_id_array) {
-        MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
-    }
-}
-
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
  *  \param pmq Pattern matcher to be reset.
  *  \todo memset is expensive, but we need it as we merge pmq's. We might use
