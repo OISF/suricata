@@ -983,8 +983,6 @@ static void SetMpm(Signature *s, SigMatch *mpm_sm)
             cd->flags |= DETECT_CONTENT_NO_DOUBLE_INSPECTION_REQUIRED;
         }
     }
-    s->mpm_pattern_id_div_8 = cd->id / 8;
-    s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
     s->mpm_sm = mpm_sm;
     return;
 }
