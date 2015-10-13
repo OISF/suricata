@@ -258,9 +258,6 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_REQUIRE_STREAM         (1<<10) /**< signature is requiring stream match */
 
 #define SIG_FLAG_MPM_NEG                (1<<11)
-#define SIG_FLAG_MPM_PACKET             (1<<12)
-#define SIG_FLAG_MPM_STREAM             (1<<13)
-#define SIG_FLAG_MPM_APPLAYER           (1<<14)
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
