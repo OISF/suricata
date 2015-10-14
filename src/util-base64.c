@@ -83,10 +83,13 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
  * \param dest The destination byte buffer
  * \param src The source string
  * \param len The length of the source string
+ * \param strict If set file on invalid byte, otherwise return what has been
+ *    decoded.
  *
  * \return Number of bytes decoded, or 0 if no data is decoded or it fails
  */
-uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len) {
+uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
+    int strict) {
 
     int val;
     uint32_t padding = 0, numDecoded = 0, bbidx = 0, valid = 1, i;
@@ -103,7 +106,9 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len) {
             /* Invalid character found, so decoding fails */
             if (src[i] != '=') {
                 valid = 0;
-                numDecoded = 0;
+                if (strict) {
+                    numDecoded = 0;
+                }
                 break;
             }
             padding++;
