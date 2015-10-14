@@ -103,7 +103,6 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len) {
             /* Invalid character found, so decoding fails */
             if (src[i] != '=') {
                 valid = 0;
-                numDecoded = 0;
                 break;
             }
             padding++;
