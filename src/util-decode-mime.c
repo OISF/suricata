@@ -1227,7 +1227,7 @@ static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
     /* Only decode if divisible by 4 */
     if (state->bvr_len == B64_BLOCK || force) {
         remdec = DecodeBase64(state->data_chunk + state->data_chunk_len,
-                              state->bvremain, state->bvr_len);
+                              state->bvremain, state->bvr_len, 1);
         if (remdec > 0) {
 
             /* Track decoded length */
@@ -1329,7 +1329,7 @@ static int ProcessBase64BodyLine(const uint8_t *buf, uint32_t len,
             SCLogDebug("Decoding: %u", len - rem1 - rem2);
 
             numDecoded = DecodeBase64(state->data_chunk + state->data_chunk_len,
-                    buf + offset, tobuf);
+                    buf + offset, tobuf, 1);
             if (numDecoded > 0) {
 
                 /* Track decoded length */
@@ -2888,7 +2888,7 @@ static int MimeBase64DecodeTest01(void)
     if (dst == NULL)
         return 0;
 
-    ret = DecodeBase64(dst, (const uint8_t *)base64msg, strlen(base64msg));
+    ret = DecodeBase64(dst, (const uint8_t *)base64msg, strlen(base64msg), 1);
 
     if (memcmp(dst, msg, strlen(msg)) == 0) {
         ret = 0;
