@@ -26,6 +26,7 @@
 
 #include "detect-engine-state.h"
 #include "tmqh-flow.h"
+#include "flow-manager.h"
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
