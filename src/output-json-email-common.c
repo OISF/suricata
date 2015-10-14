@@ -270,51 +270,73 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
         json_object_set_new(sjs, "status",
                             json_string(MimeDecParseStateGetStatus(mime_state)));
 
-        if ((entity->header_flags & HDR_IS_LOGGED) == 0) {
-            MimeDecField *field;
-            //printf("email LOG\n");
+        MimeDecField *field;
+        //printf("email LOG\n");
 
-            /* From: */
-            field = MimeDecFindField(entity, "from");
-            if (field != NULL) {
-                char *s = BytesToString((uint8_t *)field->value,
-                                        (size_t)field->value_len);
-                if (likely(s != NULL)) {
-                    //printf("From: \"%s\"\n", s);
-                    char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
-                    json_object_set_new(sjs, "from", json_string(sp));
+        /* From: */
+        field = MimeDecFindField(entity, "from");
+        if (field != NULL) {
+            char *s = BytesToString((uint8_t *)field->value,
+                                    (size_t)field->value_len);
+            if (likely(s != NULL)) {
+                //printf("From: \"%s\"\n", s);
+                char * sp = SkipWhiteSpaceTill(s, s + strlen(s));
+                json_object_set_new(sjs, "from", json_string(sp));
+                SCFree(s);
+            }
+        }
+
+        /* To: */
+        field = MimeDecFindField(entity, "to");
+        if (field != NULL) {
+            json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
+            if (ajs) {
+                json_object_set_new(sjs, "to", ajs);
+            }
+        }
+
+        /* Cc: */
+        field = MimeDecFindField(entity, "cc");
+        if (field != NULL) {
+            json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
+            if (ajs) {
+                json_object_set_new(sjs, "cc", ajs);
+            }
+        }
+
+        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL)
+            SCReturnPtr(NULL, "json_t");
+
+        entity = (MimeDecEntity *)mime_state->stack->top->data;
+        int attch_cnt = 0;
+        int url_cnt = 0;
+        json_t *js_attch = json_array();
+        json_t *js_url = json_array();
+        if (entity->url_list != NULL) {
+            MimeDecUrl *url;
+            for (url = entity->url_list; url != NULL; url = url->next) {
+                char *s = BytesToString((uint8_t *)url->url,
+                                        (size_t)url->url_len);
+                if (s != NULL) {
+                    //printf("URL: \"%s\"\n", s);
+                    json_array_append_new(js_url,
+                                      json_string(s));
                     SCFree(s);
+                    url_cnt += 1;
                 }
             }
+        }
+        for (entity = entity->child; entity != NULL; entity = entity->next) {
+            if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
 
-            /* To: */
-            field = MimeDecFindField(entity, "to");
-            if (field != NULL) {
-                json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
-                if (ajs) {
-                    json_object_set_new(sjs, "to", ajs);
-                }
+                char *s = BytesToString((uint8_t *)entity->filename,
+                                        (size_t)entity->filename_len);
+                //printf("found attachment \"%s\"\n", s);
+                json_array_append_new(js_attch,
+                                      json_string(s));
+                SCFree(s);
+                attch_cnt += 1;
             }
-
-            /* Cc: */
-            field = MimeDecFindField(entity, "cc");
-            if (field != NULL) {
-                json_t *ajs = JsonEmailJsonArrayFromCommaList(field->value, field->value_len);
-                if (ajs) {
-                    json_object_set_new(sjs, "cc", ajs);
-                }
-            }
-
-            entity->header_flags |= HDR_IS_LOGGED;
-
-            if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL)
-                SCReturnPtr(NULL, "json_t");
-
-            entity = (MimeDecEntity *)mime_state->stack->top->data;
-            int attch_cnt = 0;
-            int url_cnt = 0;
-            json_t *js_attch = json_array();
-            json_t *js_url = json_array();
             if (entity->url_list != NULL) {
                 MimeDecUrl *url;
                 for (url = entity->url_list; url != NULL; url = url->next) {
@@ -329,45 +351,19 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                     }
                 }
             }
-            for (entity = entity->child; entity != NULL; entity = entity->next) {
-                if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
-
-                    char *s = BytesToString((uint8_t *)entity->filename,
-                                            (size_t)entity->filename_len);
-                    //printf("found attachment \"%s\"\n", s);
-                    json_array_append_new(js_attch,
-                                          json_string(s));
-                    SCFree(s);
-                    attch_cnt += 1;
-                }
-                if (entity->url_list != NULL) {
-                    MimeDecUrl *url;
-                    for (url = entity->url_list; url != NULL; url = url->next) {
-                        char *s = BytesToString((uint8_t *)url->url,
-                                                (size_t)url->url_len);
-                        if (s != NULL) {
-                            //printf("URL: \"%s\"\n", s);
-                            json_array_append_new(js_url,
-                                              json_string(s));
-                            SCFree(s);
-                            url_cnt += 1;
-                        }
-                    }
-                }
-            }
-            if (attch_cnt > 0) {
-                json_object_set_new(sjs, "attachment", js_attch);
-            } else {
-                json_decref(js_attch);
-            }
-            if (url_cnt > 0) {
-                json_object_set_new(sjs, "url", js_url);
-            } else {
-                json_decref(js_url);
-            }
-//            FLOWLOCK_UNLOCK(p->flow);
-            SCReturnPtr(sjs, "json_t");
         }
+        if (attch_cnt > 0) {
+            json_object_set_new(sjs, "attachment", js_attch);
+        } else {
+            json_decref(js_attch);
+        }
+        if (url_cnt > 0) {
+            json_object_set_new(sjs, "url", js_url);
+        } else {
+            json_decref(js_url);
+        }
+//        FLOWLOCK_UNLOCK(p->flow);
+        SCReturnPtr(sjs, "json_t");
     }
 
     json_decref(sjs);
