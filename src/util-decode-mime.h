@@ -33,9 +33,6 @@
 #include "util-base64.h"
 #include "util-debug.h"
 
-/* Header Flags */
-#define HDR_IS_LOGGED         1
-
 /* Content Flags */
 #define CTNT_IS_MSG           1
 #define CTNT_IS_ENV           2
