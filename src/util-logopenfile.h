@@ -51,7 +51,7 @@ enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
 
 typedef struct RedisSetup_ {
     enum RedisMode mode;
-    char *command;
+    const char *command;
     char *key;
     int  batch_size;
     int  batch_count;
