@@ -34,6 +34,9 @@
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
 
+const char * redis_push_cmd = "LPUSH";
+const char * redis_publish_cmd = "PUBLISH";
+
 /** \brief connect to the indicated local stream socket, logging any errors
  *  \param path filesystem path to connect to
  *  \param log_err, non-zero if connect failure should be logged.
@@ -399,13 +402,13 @@ int SCConfLogOpenRedis(ConfNode *redis_node, LogFileCtx *log_ctx)
     }
 
     if (!strcmp(redis_mode, "list")) {
-        log_ctx->redis_setup.command = SCStrdup("LPUSH");
+        log_ctx->redis_setup.command = redis_push_cmd;
         if (!log_ctx->redis_setup.command) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
             exit(EXIT_FAILURE);
         }
     } else {
-        log_ctx->redis_setup.command = SCStrdup("PUBLISH");
+        log_ctx->redis_setup.command = redis_publish_cmd;
         if (!log_ctx->redis_setup.command) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate redis key command");
             exit(EXIT_FAILURE);
@@ -509,8 +512,6 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
             redisFree(lf_ctx->redis);
         if (lf_ctx->redis_setup.server)
             SCFree(lf_ctx->redis_setup.server);
-        if (lf_ctx->redis_setup.command)
-            SCFree(lf_ctx->redis_setup.command);
         if (lf_ctx->redis_setup.key)
             SCFree(lf_ctx->redis_setup.key);
     }
