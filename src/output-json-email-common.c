@@ -271,7 +271,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                             json_string(MimeDecParseStateGetStatus(mime_state)));
 
         MimeDecField *field;
-        //printf("email LOG\n");
 
         /* From: */
         field = MimeDecFindField(entity, "from");
@@ -318,7 +317,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                 char *s = BytesToString((uint8_t *)url->url,
                                         (size_t)url->url_len);
                 if (s != NULL) {
-                    //printf("URL: \"%s\"\n", s);
                     json_array_append_new(js_url,
                                       json_string(s));
                     SCFree(s);
@@ -331,7 +329,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
 
                 char *s = BytesToString((uint8_t *)entity->filename,
                                         (size_t)entity->filename_len);
-                //printf("found attachment \"%s\"\n", s);
                 json_array_append_new(js_attch,
                                       json_string(s));
                 SCFree(s);
@@ -343,7 +340,6 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
                     char *s = BytesToString((uint8_t *)url->url,
                                             (size_t)url->url_len);
                     if (s != NULL) {
-                        //printf("URL: \"%s\"\n", s);
                         json_array_append_new(js_url,
                                           json_string(s));
                         SCFree(s);
@@ -362,12 +358,10 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
         } else {
             json_decref(js_url);
         }
-//        FLOWLOCK_UNLOCK(p->flow);
         SCReturnPtr(sjs, "json_t");
     }
 
     json_decref(sjs);
-//    FLOWLOCK_UNLOCK(p->flow);
     SCReturnPtr(NULL, "json_t");
 }
 
