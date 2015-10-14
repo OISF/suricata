@@ -40,7 +40,6 @@ TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
-
 enum JsonFormat { COMPACT, INDENT };
 
 /*
