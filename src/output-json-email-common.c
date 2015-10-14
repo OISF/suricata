@@ -412,6 +412,7 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
+        email_ctx->fields  = 0;
         ConfNode *custom;
         if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
             ConfNode *field;
@@ -433,6 +434,7 @@ void OutputEmailInitConf(ConfNode *conf, OutputJsonEmailCtx *email_ctx)
             }
         }
 
+        email_ctx->flags  = 0;
         ConfNode *md5_conf;
         if ((md5_conf = ConfNodeLookupChild(conf, "md5")) != NULL) {
             ConfNode *field;
