@@ -25,6 +25,9 @@
 #define __UTIL_MPM_H__
 #include "suricata-common.h"
 
+
+#define MPM_INIT_HASH_SIZE 65536
+
 enum {
     MPM_NOTSET = 0,
 
@@ -76,6 +79,27 @@ typedef struct PatternMatcherQueue_ {
 
 } PatternMatcherQueue;
 
+typedef struct MpmPattern_ {
+    /* length of the pattern */
+    uint16_t len;
+    /* flags decribing the pattern */
+    uint8_t flags;
+    /* holds the original pattern that was added */
+    uint8_t *original_pat;
+    /* case sensitive */
+    uint8_t *cs;
+    /* case INsensitive */
+    uint8_t *ci;
+    /* pattern id */
+    uint32_t id;
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
+    struct MpmPattern_ *next;
+} MpmPattern;
+
 typedef struct MpmCtx_ {
     void *ctx;
     uint16_t mpm_type;
@@ -94,6 +118,11 @@ typedef struct MpmCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
+
+    uint32_t max_pat_id;
+
+    /* hash used during ctx initialization */
+    MpmPattern **init_hash;
 } MpmCtx;
 
 /* if we want to retrieve an unique mpm context from the mpm context factory
@@ -125,6 +154,9 @@ typedef struct MpmCtxFactoryContainer_ {
 #define MPM_PATTERN_FLAG_OFFSET     0x08
 /** one byte pattern (used in b2g) */
 #define MPM_PATTERN_ONE_BYTE        0x10
+/** the ctx uses it's own internal id instead of
+ *  what is passed through the API */
+#define MPM_PATTERN_CTX_OWNS_ID     0x20
 
 typedef struct MpmTableElmt_ {
     char *name;
@@ -219,6 +251,12 @@ int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
 int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, SigIntId sid, uint8_t flags);
+
+void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p);
+
+int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                            uint16_t offset, uint16_t depth, uint32_t pid,
+                            SigIntId sid, uint8_t flags);
 
 /* Resize Signature ID array. Only called from MpmAddSids(). */
 int MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);

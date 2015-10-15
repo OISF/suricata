@@ -143,8 +143,6 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx);
 
 /* a placeholder to denote a failure transition in the goto table */
 #define SC_AC_TILE_FAIL (-1)
-/* size of the hash table used to speed up pattern insertions initially */
-#define INIT_HASH_SIZE 65536
 
 #define STATE_QUEUE_CONTAINER_SIZE 65536
 
@@ -167,193 +165,6 @@ static void SCACTileGetConfig()
 {
 }
 
-/**
- * \internal
- * \brief Compares 2 patterns.  We use it for the hashing process during the
- *        the initial pattern insertion time, to cull duplicate sigs.
- *
- * \param p      Pointer to the first pattern(SCACTilePattern).
- * \param pat    Pointer to the second pattern(raw pattern array).
- * \param patlen Pattern length.
- * \param flags  Flags.  We don't need this.
- *
- * \retval hash A 32 bit unsigned hash.
- */
-static inline int SCACTileCmpPattern(SCACTilePattern *p, uint8_t *pat,
-                                     uint16_t patlen, char flags)
-{
-    if (p->len != patlen)
-        return 0;
-
-    if (p->flags != flags)
-        return 0;
-
-    if (flags & MPM_PATTERN_FLAG_NOCASE) {
-        // Case insensitive
-        if (SCMemcmpLowercase(p->cs, pat, patlen) != 0)
-            return 0;
-
-    } else {
-        // Case sensitive
-        if (SCMemcmp(p->cs, pat, patlen) != 0)
-            return 0;
-    }
-
-    return 1;
-}
-
-/**
- * \internal
- * \brief Creates a hash of the pattern.  We use it for the hashing process
- *        during the initial pattern insertion time, to cull duplicate sigs.
- *
- * \param pat    Pointer to the pattern.
- * \param patlen Pattern length.
- *
- * \retval hash A 32 bit unsigned hash.
- */
-static inline uint32_t SCACTileInitHashRaw(uint8_t *pat, uint16_t patlen)
-{
-    uint32_t hash = patlen * pat[0];
-    if (patlen > 1)
-        hash += pat[1];
-
-    return (hash % INIT_HASH_SIZE);
-}
-
-/**
- * \internal
- * \brief Looks up a pattern.  We use it for the hashing process during the
- *        the initial pattern insertion time, to cull duplicate sigs.
- *
- * \param ctx    Pointer to the AC ctx.
- * \param pat    Pointer to the pattern.
- * \param patlen Pattern length.
- * \param flags  Flags.  We don't need this.
- *
- * \retval hash A 32 bit unsigned hash.
- */
-static inline SCACTilePattern *SCACTileInitHashLookup(SCACTileCtx *ctx,
-                                                      uint8_t *pat,
-                                                      uint16_t patlen,
-                                                      char flags,
-                                                      uint32_t pid)
-{
-    uint32_t hash = SCACTileInitHashRaw(pat, patlen);
-
-    if (ctx->init_hash == NULL) {
-        return NULL;
-    }
-
-    SCACTilePattern *t = ctx->init_hash[hash];
-    for ( ; t != NULL; t = t->next) {
-        if (t->id == pid) {
-            return t;
-        }
-    }
-
-    return NULL;
-}
-
-/**
- * \internal
- * \brief Allocs a new pattern instance.
- *
- * \param mpm_ctx Pointer to the mpm context.
- *
- * \retval p Pointer to the newly created pattern.
- */
-static inline SCACTilePattern *SCACTileAllocPattern(MpmCtx *mpm_ctx)
-{
-    SCACTilePattern *p = SCMalloc(sizeof(SCACTilePattern));
-    if (unlikely(p == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(p, 0, sizeof(SCACTilePattern));
-
-    mpm_ctx->memory_cnt++;
-    mpm_ctx->memory_size += sizeof(SCACTilePattern);
-
-    return p;
-}
-
-/**
- * \internal
- * \brief Used to free SCACTilePattern instances.
- *
- * \param mpm_ctx Pointer to the mpm context.
- * \param p       Pointer to the SCACTilePattern instance to be freed.
- * \param free    Free the above pointer or not.
- */
-static void SCACTileFreePattern(MpmCtx *mpm_ctx, SCACTilePattern *p)
-{
-    if (p != NULL && p->cs != NULL && p->cs != p->ci) {
-        SCFree(p->cs);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
-    }
-
-    if (p != NULL && p->ci != NULL) {
-        SCFree(p->ci);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
-    }
-
-    if (p != NULL && p->original_pat != NULL) {
-        SCFree(p->original_pat);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= p->len;
-    }
-
-    if (p != NULL && p->sids != NULL) {
-        SCFree(p->sids);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= (p->sids_size * sizeof(SigIntId));
-    }
-
-    if (p != NULL) {
-        SCFree(p);
-        mpm_ctx->memory_cnt--;
-        mpm_ctx->memory_size -= sizeof(SCACTilePattern);
-    }
-}
-
-static inline uint32_t SCACTileInitHash(SCACTilePattern *p)
-{
-    uint32_t hash = p->len * p->original_pat[0];
-    if (p->len > 1)
-        hash += p->original_pat[1];
-
-    return (hash % INIT_HASH_SIZE);
-}
-
-static inline int SCACTileInitHashAdd(SCACTileCtx *ctx, SCACTilePattern *p)
-{
-    uint32_t hash = SCACTileInitHash(p);
-
-    if (ctx->init_hash == NULL) {
-        return 0;
-    }
-
-    if (ctx->init_hash[hash] == NULL) {
-        ctx->init_hash[hash] = p;
-        return 0;
-    }
-
-    SCACTilePattern *tt = NULL;
-    SCACTilePattern *t = ctx->init_hash[hash];
-
-    /* get the list tail */
-    do {
-        tt = t;
-        t = t->next;
-    } while (t != NULL);
-
-    tt->next = p;
-
-    return 0;
-}
-
 
 /**
  * \internal
@@ -362,7 +173,7 @@ static inline int SCACTileInitHashAdd(SCACTileCtx *ctx, SCACTilePattern *p)
  * characters, so could just set to 1 instead of counting.
  */
 static inline void SCACTileHistogramAlphabet(SCACTileCtx *ctx,
-                                             SCACTilePattern *p)
+                                             MpmPattern *p)
 {
     for (int i = 0; i < p->len; i++) {
         ctx->alpha_hist[p->ci[i]]++;
@@ -411,137 +222,6 @@ static void SCACTileInitTranslateTable(SCACTileCtx *ctx)
         ctx->alphabet_storage = 128;
     } else
         ctx->alphabet_storage = 256;
-}
-
-/**
- * \internal
- * \brief Add a pattern to the mpm-ac context.
- *
- * \param mpm_ctx Mpm context.
- * \param pat     Pointer to the pattern.
- * \param patlen  Length of the pattern.
- * \param pid     Pattern id
- * \param sid     Signature id (internal id).
- * \param flags   Pattern's MPM_PATTERN_* flags.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-static int SCACTileAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
-                              uint16_t offset, uint16_t depth, uint32_t pid,
-                              uint32_t sid, uint8_t flags)
-{
-    SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
-    SCACTileCtx *ctx = search_ctx->init_ctx;
-
-    SCLogDebug("Adding pattern for ctx %p, patlen %"PRIu16" and pid %" PRIu32,
-               ctx, patlen, pid);
-
-    if (patlen == 0) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "pattern length 0");
-        return 0;
-    }
-
-    /* Check if we have already inserted this pattern. */
-    SCACTilePattern *p = SCACTileInitHashLookup(ctx, pat, patlen, flags, pid);
-    if (p == NULL) {
-        SCLogDebug("Allocing new pattern");
-
-        /* p will never be NULL */
-        p = SCACTileAllocPattern(mpm_ctx);
-
-        p->len = patlen;
-        p->flags = flags;
-        p->id = pid;
-
-        p->original_pat = SCMalloc(patlen);
-        if (p->original_pat == NULL)
-            goto error;
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += patlen;
-        memcpy(p->original_pat, pat, patlen);
-
-        p->ci = SCMalloc(patlen);
-        if (p->ci == NULL)
-            goto error;
-        mpm_ctx->memory_cnt++;
-        mpm_ctx->memory_size += patlen;
-        memcpy_tolower(p->ci, pat, patlen);
-
-        /* setup the case sensitive part of the pattern */
-        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
-            /* nocase means no difference between cs and ci */
-            p->cs = p->ci;
-        } else {
-            if (memcmp(p->ci, pat, p->len) == 0) {
-                /* no diff between cs and ci: pat is lowercase */
-                p->cs = p->ci;
-            } else {
-                p->cs = SCMalloc(patlen);
-                if (p->cs == NULL)
-                    goto error;
-                mpm_ctx->memory_cnt++;
-                mpm_ctx->memory_size += patlen;
-                memcpy(p->cs, pat, patlen);
-            }
-        }
-
-        /* put in the pattern hash */
-        SCACTileInitHashAdd(ctx, p);
-        /* Count alphabet usages */
-        SCACTileHistogramAlphabet(ctx, p);
-
-        //if (mpm_ctx->pattern_cnt == 65535) {
-        //    SCLogError(SC_ERR_AHO_CORASICK, "Max search words reached.  Can't "
-        //               "insert anymore.  Exiting");
-        //    exit(EXIT_FAILURE);
-        //}
-        mpm_ctx->pattern_cnt++;
-
-        if (mpm_ctx->maxlen < patlen)
-            mpm_ctx->maxlen = patlen;
-
-        if (mpm_ctx->minlen == 0) {
-            mpm_ctx->minlen = patlen;
-        } else {
-            if (mpm_ctx->minlen > patlen)
-                mpm_ctx->minlen = patlen;
-        }
-
-        p->sids_size = 1;
-        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
-        BUG_ON(p->sids == NULL);
-        p->sids[0] = sid;
-        //SCLogInfo("MPM added %u:%u", pid, sid);
-    } else {
-        /* TODO figure out how we can be called multiple times for the same CTX with the same sid */
-
-        int found = 0;
-        uint32_t x = 0;
-        for (x = 0; x < p->sids_size; x++) {
-            if (p->sids[x] == sid) {
-                found = 1;
-                break;
-            }
-        }
-        if (!found) {
-            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
-            BUG_ON(sids == NULL);
-            p->sids = sids;
-            p->sids[p->sids_size] = sid;
-            p->sids_size++;
-            //SCLogInfo("p->sids_size %u", p->sids_size);
-            //SCLogInfo("MPM added %u:%u (append)", pid, sid);
-        } else {
-            //SCLogInfo("rule %u already part of pid %u", sid, pid);
-        }
-    }
-
-    return 0;
-
-error:
-    SCACTileFreePattern(mpm_ctx, p);
-    return -1;
 }
 
 static void SCACTileReallocOutputTable(SCACTileCtx *ctx, int new_state_count)
@@ -1198,33 +878,34 @@ int SCACTilePreparePatterns(MpmCtx *mpm_ctx)
         return 0;
     }
     SCACTileCtx *ctx = search_ctx->init_ctx;
-    if (ctx->init_hash == NULL) {
+    if (mpm_ctx->init_hash == NULL) {
         SCLogDebug("no patterns supplied to this mpm_ctx");
         return 0;
     }
 
     /* alloc the pattern array */
-    ctx->parray = (SCACTilePattern **)SCMalloc(mpm_ctx->pattern_cnt *
-                                               sizeof(SCACTilePattern *));
+    ctx->parray = (MpmPattern **)SCMalloc(mpm_ctx->pattern_cnt *
+                                               sizeof(MpmPattern *));
     if (ctx->parray == NULL)
         goto error;
-    memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(SCACTilePattern *));
+    memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(MpmPattern *));
 
     /* populate it with the patterns in the hash */
     uint32_t i = 0, p = 0;
-    for (i = 0; i < INIT_HASH_SIZE; i++) {
-        SCACTilePattern *node = ctx->init_hash[i], *nnode = NULL;
+    for (i = 0; i < MPM_INIT_HASH_SIZE; i++) {
+        MpmPattern *node = mpm_ctx->init_hash[i], *nnode = NULL;
         while(node != NULL) {
             nnode = node->next;
             node->next = NULL;
             ctx->parray[p++] = node;
+            SCACTileHistogramAlphabet(ctx, node);
             node = nnode;
         }
     }
 
     /* we no longer need the hash, so free it's memory */
-    SCFree(ctx->init_hash);
-    ctx->init_hash = NULL;
+    SCFree(mpm_ctx->init_hash);
+    mpm_ctx->init_hash = NULL;
 
     /* Handle case patterns by storing a copy of the pattern to compare
      * to each possible match (no-case).
@@ -1336,12 +1017,11 @@ void SCACTileInitCtx(MpmCtx *mpm_ctx)
     mpm_ctx->memory_size += sizeof(SCACTileCtx);
 
     /* initialize the hash we use to speed up pattern insertions */
-    SCACTileCtx *ctx = search_ctx->init_ctx;
-    ctx->init_hash = SCMalloc(sizeof(SCACTilePattern *) * INIT_HASH_SIZE);
-    if (ctx->init_hash == NULL) {
+    mpm_ctx->init_hash = SCMalloc(sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
+    if (mpm_ctx->init_hash == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(ctx->init_hash, 0, sizeof(SCACTilePattern *) * INIT_HASH_SIZE);
+    memset(mpm_ctx->init_hash, 0, sizeof(MpmPattern *) * MPM_INIT_HASH_SIZE);
 
     /* get conf values for AC from our yaml file.  We have no conf values for
      * now.  We will certainly need this, as we develop the algo */
@@ -1374,16 +1054,16 @@ static void SCACTileDestroyInitCtx(MpmCtx *mpm_ctx)
     if (ctx == NULL)
         return;
 
-    if (ctx->init_hash != NULL) {
-        SCFree(ctx->init_hash);
-        ctx->init_hash = NULL;
+    if (mpm_ctx->init_hash != NULL) {
+        SCFree(mpm_ctx->init_hash);
+        mpm_ctx->init_hash = NULL;
     }
 
     if (ctx->parray != NULL) {
         uint32_t i;
         for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
             if (ctx->parray[i] != NULL) {
-                SCACTileFreePattern(mpm_ctx, ctx->parray[i]);
+                MpmFreePattern(mpm_ctx, ctx->parray[i]);
             }
         }
 
@@ -1739,7 +1419,7 @@ int SCACTileAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          SigIntId sid, uint8_t flags)
 {
     flags |= MPM_PATTERN_FLAG_NOCASE;
-    return SCACTileAddPattern(mpm_ctx, pat, patlen, offset, depth,
+    return MpmAddPattern(mpm_ctx, pat, patlen, offset, depth,
                               pid, sid, flags);
 }
 
@@ -1764,7 +1444,7 @@ int SCACTileAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                          uint16_t offset, uint16_t depth, uint32_t pid,
                          SigIntId sid, uint8_t flags)
 {
-    return SCACTileAddPattern(mpm_ctx, pat, patlen, offset, depth,
+    return MpmAddPattern(mpm_ctx, pat, patlen, offset, depth,
                               pid, sid, flags);
 }
 
@@ -1789,8 +1469,8 @@ void SCACTilePrintInfo(MpmCtx *mpm_ctx)
     printf(" Sizeof:\n");
     printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
     printf("  SCACTileCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(SCACTileCtx));
-    printf("  SCACTilePattern      %" PRIuMAX "\n", (uintmax_t)sizeof(SCACTilePattern));
-    printf("  SCACTilePattern     %" PRIuMAX "\n", (uintmax_t)sizeof(SCACTilePattern));
+    printf("  MpmPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(MpmPattern));
+    printf("  MpmPattern     %" PRIuMAX "\n", (uintmax_t)sizeof(MpmPattern));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
