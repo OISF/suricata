@@ -916,24 +916,24 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
             MpmAddPatternCI(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
                             0, 0,
-                            cd->id, s->num, flags);
+                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         } else {
             MpmAddPatternCI(mpm_ctx,
                             cd->content, cd->content_len,
                             0, 0,
-                            cd->id, s->num, flags);
+                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     } else {
         if (chop) {
             MpmAddPatternCS(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
                             0, 0,
-                            cd->id, s->num, flags);
+                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         } else {
             MpmAddPatternCS(mpm_ctx,
                             cd->content, cd->content_len,
                             0, 0,
-                            cd->id, s->num, flags);
+                            cd->id, s->num, flags|MPM_PATTERN_CTX_OWNS_ID);
         }
     }
 
