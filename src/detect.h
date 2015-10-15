@@ -957,6 +957,8 @@ typedef struct SigGroupHeadInitData_ {
     uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
     int whitelist;          /**< try to make this group a unique one */
 
+    MpmCtx *app_mpms[APP_MPMS_MAX];
+
     /* port ptr */
     struct DetectPort_ *port;
 } SigGroupHeadInitData;
@@ -1014,8 +1016,6 @@ typedef struct SigGroupHead_ {
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
-
-    MpmCtx *app_mpms[APP_MPMS_MAX];
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;
