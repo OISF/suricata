@@ -1602,37 +1602,57 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
 /** \todo fixup old mpm ptrs. We could use the array directly later */
 void MpmStoreFixup(SigGroupHead *sgh)
 {
+    if (!(SGH_PROTO(sgh, IPPROTO_TCP) || SGH_PROTO(sgh, IPPROTO_UDP)))
+        return;
+
+#define SET_TS(sgh, ptr) do {                   \
+        if (SGH_DIRECTION_TS((sgh)))            \
+            (ptr) = (sgh)->init->app_mpms[i++]; \
+        else                                    \
+            i++;                                \
+    } while(0)
+
+#define SET_TC(sgh, ptr) do {                   \
+        if (SGH_DIRECTION_TC((sgh)))            \
+            (ptr) = (sgh)->init->app_mpms[i++]; \
+        else                                    \
+            i++;                                \
+    } while(0)
+
     int i = 0;
-    sgh->mpm_uri_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hrud_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_uri_ctx_ts);
+    SET_TS(sgh, sgh->mpm_hrud_ctx_ts);
 
-    sgh->mpm_hhd_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hhd_ctx_tc = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hhd_ctx_ts);
+    SET_TC(sgh, sgh->mpm_hhd_ctx_tc);
 
-    sgh->mpm_huad_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_huad_ctx_ts);
 
-    sgh->mpm_hrhd_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hrhd_ctx_tc = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hrhd_ctx_ts);
+    SET_TC(sgh, sgh->mpm_hrhd_ctx_tc);
 
-    sgh->mpm_hmd_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hmd_ctx_ts);
 
-    sgh->mpm_smtp_filedata_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hsbd_ctx_tc = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_smtp_filedata_ctx_ts);
+    SET_TC(sgh, sgh->mpm_hsbd_ctx_tc);
 
-    sgh->mpm_hsmd_ctx_tc = sgh->init->app_mpms[i++];
-    sgh->mpm_hscd_ctx_tc = sgh->init->app_mpms[i++];
+    SET_TC(sgh, sgh->mpm_hsmd_ctx_tc);
+    SET_TC(sgh, sgh->mpm_hscd_ctx_tc);
 
-    sgh->mpm_hcbd_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hcbd_ctx_ts);
 
-    sgh->mpm_hhhd_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hrhhd_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hhhd_ctx_ts);
+    SET_TS(sgh, sgh->mpm_hrhhd_ctx_ts);
 
-    sgh->mpm_hcd_ctx_ts = sgh->init->app_mpms[i++];
-    sgh->mpm_hcd_ctx_tc = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_hcd_ctx_ts);
+    SET_TC(sgh, sgh->mpm_hcd_ctx_tc);
 
-    sgh->mpm_dnsquery_ctx_ts = sgh->init->app_mpms[i++];
+    SET_TS(sgh, sgh->mpm_dnsquery_ctx_ts);
 
     BUG_ON(APP_MPMS_MAX != 18 || i != 18);
+
+#undef SET_TS
+#undef SET_TC
 }
 
 /** \brief Prepare the pattern matcher ctx in a sig group head.
