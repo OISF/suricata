@@ -26,27 +26,6 @@
 #ifndef __UTIL_MPM_AC_TILE__H__
 #define __UTIL_MPM_AC_TILE__H__
 
-typedef struct SCACTilePattern_ {
-    /* length of the pattern */
-    uint16_t len;
-    /* flags decribing the pattern */
-    uint8_t flags;
-    /* holds the original pattern that was added */
-    uint8_t *original_pat;
-    /* case sensitive */
-    uint8_t *cs;
-    /* case INsensitive */
-    uint8_t *ci;
-    /* pattern id */
-    uint32_t id;
-
-    /* sid(s) for this pattern */
-    uint32_t sids_size;
-    SigIntId *sids;
-
-    struct SCACTilePattern_ *next;
-} SCACTilePattern;
-
 typedef struct SCACTilePatternList_ {
     uint8_t *cs;
     uint16_t patlen;
@@ -98,12 +77,9 @@ typedef struct SCACTileCtx_ {
     /* Indexed by MpmPatternIndex */
     SCACTilePatternList *pattern_list;
 
-    /* hash used during ctx initialization */
-    SCACTilePattern **init_hash;
-
     /* pattern arrays.  We need this only during the goto table
        creation phase */
-    SCACTilePattern **parray;
+    MpmPattern **parray;
 
     /* goto_table, failure table and output table.  Needed to create
      * state_table.  Will be freed, once we have created the
