@@ -1603,34 +1603,34 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
 void MpmStoreFixup(SigGroupHead *sgh)
 {
     int i = 0;
-    sgh->mpm_uri_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hrud_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_uri_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hrud_ctx_ts = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hhd_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hhd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_hhd_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hhd_ctx_tc = sgh->init->app_mpms[i++];
 
-    sgh->mpm_huad_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_huad_ctx_ts = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hrhd_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hrhd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_hrhd_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hrhd_ctx_tc = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hmd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hmd_ctx_ts = sgh->init->app_mpms[i++];
 
-    sgh->mpm_smtp_filedata_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hsbd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_smtp_filedata_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hsbd_ctx_tc = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hsmd_ctx_tc = sgh->app_mpms[i++];
-    sgh->mpm_hscd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_hsmd_ctx_tc = sgh->init->app_mpms[i++];
+    sgh->mpm_hscd_ctx_tc = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hcbd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hcbd_ctx_ts = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hhhd_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hrhhd_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_hhhd_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hrhhd_ctx_ts = sgh->init->app_mpms[i++];
 
-    sgh->mpm_hcd_ctx_ts = sgh->app_mpms[i++];
-    sgh->mpm_hcd_ctx_tc = sgh->app_mpms[i++];
+    sgh->mpm_hcd_ctx_ts = sgh->init->app_mpms[i++];
+    sgh->mpm_hcd_ctx_tc = sgh->init->app_mpms[i++];
 
-    sgh->mpm_dnsquery_ctx_ts = sgh->app_mpms[i++];
+    sgh->mpm_dnsquery_ctx_ts = sgh->init->app_mpms[i++];
 
     BUG_ON(APP_MPMS_MAX != 18 || i != 18);
 }
@@ -1707,8 +1707,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     while (a->name != NULL) {
         mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
         if (mpm_store != NULL) {
-            sh->app_mpms[a->id] = mpm_store->mpm_ctx;
-            if (sh->app_mpms[a->id] != NULL)
+            sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
+            if (sh->init->app_mpms[a->id] != NULL)
                 sh->flags |= a->flags;
         }
         a++;
