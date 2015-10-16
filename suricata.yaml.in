@@ -1497,6 +1497,12 @@ profiling:
     filename: keyword_perf.log
     append: yes
 
+  # per rulegroup profiling
+  rulegroups:
+    enabled: yes
+    filename: rule_group_perf.log
+    append: yes
+
   # packet profiling
   packets:
 
