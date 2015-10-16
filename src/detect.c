@@ -1529,6 +1529,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #endif
     Signature **match_array = det_ctx->match_array;
 
+    SGH_PROFILING_RECORD(det_ctx, det_ctx->sgh);
+
     uint32_t sflags, next_sflags = 0;
     if (match_cnt) {
         next_s = *match_array++;
@@ -4081,6 +4083,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
     RulesDumpGrouping(de_ctx);
 
+#ifdef PROFILING
+    SCProfilingSghInitCounters(de_ctx);
+#endif
     SCReturnInt(0);
 }
 
