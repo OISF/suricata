@@ -190,12 +190,18 @@ int DetectLuajitSetupStatesPool(int num, int reloads)
     pthread_mutex_lock(&luajit_states_lock);
 
     if (luajit_states == NULL) {
-        int cnt = 0;
-        char *conf_val = NULL;
+        intmax_t cnt = 0;
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "luajit-states") == 0) {
+                    ConfGetChildValueInt(denode, "luajit-states", &cnt);
+                }
+            }
+        }
 
-        if ((ConfGet("detect-engine.luajit-states", &conf_val)) == 1) {
-            cnt = (int)atoi(conf_val);
-        } else {
+        if (cnt == 0) {
             int cpus = UtilCpuGetNumProcessorsOnline();
             if (cpus == 0) {
                 cpus = 10;
