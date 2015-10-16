@@ -654,16 +654,33 @@ static TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+static TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, void *data, int do_wait)
 {
     SCEnter();
-    DetectEngineReloadStart();
+    int r = DetectEngineReloadStart();
 
-    while (!DetectEngineReloadIsIdle())
-        usleep(100);
+    if (r == 0 && do_wait) {
+        while (!DetectEngineReloadIsIdle())
+            usleep(100);
+    } else {
+        if (r == -1) {
+            json_object_set_new(server_msg, "message", json_string("Reload already in progress"));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
 
     json_object_set_new(server_msg, "message", json_string("done"));
     SCReturnInt(TM_ECODE_OK);
+}
+
+static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 1);
+}
+
+static TmEcode UnixManagerNonBlockingReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 0);
 }
 
 static TmEcode UnixManagerReloadTimeCommand(json_t *cmd,
@@ -901,6 +918,7 @@ int UnixManagerInit(void)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-nonblocking", UnixManagerNonBlockingReloadRules, NULL, 0);
     UnixManagerRegisterCommand("ruleset-reload-time", UnixManagerReloadTimeCommand, NULL, 0);
     UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
