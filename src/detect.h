@@ -655,6 +655,7 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileDetectCtx_ *profile_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
+    struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
 #endif
 
     char config_prefix[64];
@@ -853,6 +854,7 @@ typedef struct DetectEngineThreadCtx_ {
     struct SCProfileKeywordData_ *keyword_perf_data;
     struct SCProfileKeywordData_ *keyword_perf_data_per_list[DETECT_SM_LIST_MAX];
     int keyword_perf_list; /**< list we're currently inspecting, DETECT_SM_LIST_* */
+    struct SCProfileSghData_ *sgh_perf_data;
 #endif
 } DetectEngineThreadCtx;
 
@@ -1025,6 +1027,7 @@ typedef struct SigGroupHead_ {
 
     /* ptr to our init data we only use at... init :) */
     SigGroupHeadInitData *init;
+
 } SigGroupHead;
 
 /** sigmatch has no options, so the parser shouldn't expect any */
