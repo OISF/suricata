@@ -2118,6 +2118,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
+        SCProfilingSghsGlobalInit();
         SCProfilingInit();
     }
 #endif /* PROFILING */
