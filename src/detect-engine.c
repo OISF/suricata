@@ -891,6 +891,19 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
     de_ctx->keyword_list = NULL;
 }
 
+static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
+{
+    SigString *item = de_ctx->sig_stat.failed_sigs;
+    while (item) {
+        SigString *next = item->next;
+        SCFree(item->filename);
+        SCFree(item->sig_str);
+        SCFree(item);
+        item = next;
+    }
+    de_ctx->sig_stat.failed_sigs = NULL;
+}
+
 /**
  * \brief Free a DetectEngineCtx::
  *
@@ -945,6 +958,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+    DetectEngineCtxFreeFailedSigs(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {

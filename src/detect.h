@@ -554,8 +554,16 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
+typedef struct SigString_ {
+    char *filename;
+    char *sig_str;
+    int line;
+    struct SigString_ *next;
+} SigString;
+
 /** \brief Signature loader statistics */
 typedef struct SigFileLoaderStat_ {
+    SigString *failed_sigs;
     int bad_files;
     int total_files;
     int good_sigs_total;
