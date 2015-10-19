@@ -33,6 +33,7 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-profile.h"
 
 #include "detect-engine-alert.h"
 #include "detect-engine-siggroup.h"
@@ -201,7 +202,6 @@
 #include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
-
 #include "runmodes.h"
 
 #include <glob.h>
@@ -1539,6 +1539,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature **match_array = det_ctx->match_array;
 
     SGH_PROFILING_RECORD(det_ctx, det_ctx->sgh);
+
+#ifdef PROFILING
+    if (match_cnt >= de_ctx->profile_match_logging_threshold)
+        RulesDumpMatchArray(det_ctx, p);
+#endif
 
     uint32_t sflags, next_sflags = 0;
     if (match_cnt) {
