@@ -122,7 +122,7 @@ void DetectHttpMethodFree(void *ptr)
  *  \retval 1 valid
  *  \retval 0 invalid
  */
-int DetectHttpMethodValidateRule(const Signature *s)
+int DetectHttpMethodValidateRule(const Signature *s, char **sigerror)
 {
     if (s->alproto != ALPROTO_HTTP)
         return 1;
@@ -135,16 +135,36 @@ int DetectHttpMethodValidateRule(const Signature *s)
             const DetectContentData *cd = (const DetectContentData *)sm->ctx;
             if (cd->content && cd->content_len) {
                 if (cd->content[cd->content_len-1] == 0x20) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing space");
+                    *sigerror = SCStrdup("http_method pattern with trailing space");
+                    if (*sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        return 0;
+                    }
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                     return 0;
                 } else if (cd->content[0] == 0x20) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading space");
+                    *sigerror = SCStrdup("http_method pattern with leading space");
+                    if (*sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        return 0;
+                    }
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                     return 0;
                 } else if (cd->content[cd->content_len-1] == 0x09) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with trailing tab");
+                    *sigerror = SCStrdup("http_method pattern with trailing tab");
+                    if (*sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        return 0;
+                    }
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                     return 0;
                 } else if (cd->content[0] == 0x09) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method pattern with leading tab");
+                    *sigerror = SCStrdup("http_method pattern with leading tab");
+                    if (*sigerror == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        return 0;
+                    }
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "%s", *sigerror);
                     return 0;
                 }
             }

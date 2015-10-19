@@ -1163,7 +1163,7 @@ static void SigBuildAddressMatchArray(Signature *s)
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
+int SigValidate(DetectEngineCtx *de_ctx, Signature *s, char **sigerror)
 {
     uint32_t u = 0;
     uint32_t sig_flags = 0;
@@ -1274,7 +1274,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (!DetectHttpMethodValidateRule(s))
+    if (!DetectHttpMethodValidateRule(s, sigerror))
         SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
@@ -1429,7 +1429,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
  * \brief Helper function for SigInit().
  */
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
-                                uint8_t dir)
+                                uint8_t dir, char **sigerror)
 {
     Signature *sig = SigAlloc();
     if (sig == NULL)
@@ -1607,7 +1607,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     }
 
     /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(de_ctx, sig) == 0) {
+    if (SigValidate(de_ctx, sig, sigerror) == 0) {
         goto error;
     }
 
@@ -1629,7 +1629,7 @@ error:
  *
  * \retval Pointer to the Signature instance on success; NULL on failure.
  */
-Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr, char *sigerror)
+Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr, char **sigerror)
 {
     SCEnter();
 
@@ -1637,12 +1637,12 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr, char *sigerror)
 
     Signature *sig;
 
-    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL)) == NULL) {
+    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL, sigerror)) == NULL) {
         goto error;
     }
 
     if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
-        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED, &sigstr);
         if (sig->next == NULL) {
             goto error;
         }
@@ -1902,9 +1902,9 @@ end:
  * \retval Pointer to the head Signature in the detection engine ctx sig_list
  *         on success; NULL on failure.
  */
-Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr, char *sigerror)
+Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr, char **sigerror)
 {
-    Signature *sig = SigInit(de_ctx, sigstr, NULL);
+    Signature *sig = SigInit(de_ctx, sigstr, sigerror);
     if (sig == NULL) {
         return NULL;
     }

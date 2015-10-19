@@ -806,7 +806,7 @@ void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 /**********Unittests**********/
 
 DetectEngineCtx *DetectEngineCtxInit(void);
-Signature *SigInit(DetectEngineCtx *, char *, char *);
+Signature *SigInit(DetectEngineCtx *, char *, char **);
 void SigFree(Signature *);
 void DetectEngineCtxFree(DetectEngineCtx *);
 

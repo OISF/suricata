@@ -819,6 +819,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
     memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
+    TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
 
     if (minimal) {
         de_ctx->minimal = 1;
@@ -912,6 +913,22 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
     de_ctx->keyword_list = NULL;
 }
 
+static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
+{
+    SigString *item = NULL;
+    SigString *sitem;
+
+    TAILQ_FOREACH_SAFE(item, &de_ctx->sig_stat.failed_sigs, next, sitem) {
+        SCFree(item->filename);
+        SCFree(item->sig_str);
+        if (item->sig_error) {
+            SCFree(item->sig_error);
+        }
+        TAILQ_REMOVE(&de_ctx->sig_stat.failed_sigs, item, next);
+        SCFree(item);
+    }
+}
+
 /**
  * \brief Free a DetectEngineCtx::
  *
@@ -962,6 +979,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+    DetectEngineCtxFreeFailedSigs(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {

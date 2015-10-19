@@ -202,6 +202,7 @@
 #include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
+#include "util-detect.h"
 #include "runmodes.h"
 
 #include <glob.h>
@@ -284,6 +285,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
     char line[DETECT_MAX_RULE_SIZE] = "";
     size_t offset = 0;
     int lineno = 0, multiline = 0;
+    char *sigerror = NULL;
 
     (*goodsigs) = 0;
     (*badsigs) = 0;
@@ -328,7 +330,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
         de_ctx->rule_file = sig_file;
         de_ctx->rule_line = lineno - multiline;
 
-        sig = DetectEngineAppendSig(de_ctx, line, NULL);
+        sig = DetectEngineAppendSig(de_ctx, line, &sigerror);
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
                 RetrieveFPForSig(sig);
@@ -349,6 +351,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
+            if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, sigerror, (lineno - multiline))) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            }
+            if (sigerror) {
+                SCFree(sigerror);
+                sigerror = NULL;
+            }
         }
         multiline = 0;
     }
