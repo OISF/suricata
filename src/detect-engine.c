@@ -369,7 +369,7 @@ typedef struct DetectBufferType_ {
     _Bool mpm;
     _Bool packet; /**< compat to packet matches */
     void (*SetupCallback)(Signature *);
-    _Bool (*ValidateCallback)(const Signature *);
+    _Bool (*ValidateCallback)(const Signature *, char **sigerror);
 } DetectBufferType;
 
 static DetectBufferType **g_buffer_type_map = NULL;
@@ -579,7 +579,7 @@ void DetectBufferRunSetupCallback(const int id, Signature *s)
 }
 
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        _Bool (*ValidateCallback)(const Signature *))
+        _Bool (*ValidateCallback)(const Signature *, const char **sigerror))
 {
     BUG_ON(g_buffer_type_reg_closed);
     DetectBufferTypeRegister(name);
@@ -588,11 +588,11 @@ void DetectBufferTypeRegisterValidateCallback(const char *name,
     exists->ValidateCallback = ValidateCallback;
 }
 
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s)
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, const char **sigerror)
 {
     const DetectBufferType *map = DetectBufferTypeGetById(id);
     if (map && map->ValidateCallback) {
-        return map->ValidateCallback(s);
+        return map->ValidateCallback(s, sigerror);
     }
     return TRUE;
 }
@@ -1000,6 +1000,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
     memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
+    TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
+    de_ctx->sigerror = NULL;
 
     if (minimal) {
         de_ctx->minimal = 1;
@@ -1096,6 +1098,22 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
     de_ctx->keyword_list = NULL;
 }
 
+static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
+{
+    SigString *item = NULL;
+    SigString *sitem;
+
+    TAILQ_FOREACH_SAFE(item, &de_ctx->sig_stat.failed_sigs, next, sitem) {
+        SCFree(item->filename);
+        SCFree(item->sig_str);
+        if (item->sig_error) {
+            SCFree(item->sig_error);
+        }
+        TAILQ_REMOVE(&de_ctx->sig_stat.failed_sigs, item, next);
+        SCFree(item);
+    }
+}
+
 /**
  * \brief Free a DetectEngineCtx::
  *
@@ -1146,6 +1164,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+    DetectEngineCtxFreeFailedSigs(de_ctx);
 
     DetectAddressMapFree(de_ctx);
 
