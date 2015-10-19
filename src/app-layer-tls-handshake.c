@@ -87,6 +87,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
     int i;
     Asn1Generic *cert;
     char buffer[256];
+    time_t not_before, not_after;
     int rc;
     int parsed;
     uint8_t *start_data;
@@ -173,6 +174,16 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                         DerFree(cert);
                         return -1;
                     }
+                }
+            }
+
+            rc = Asn1DerGetValidity(cert, &not_before, &not_after, &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                    ssl_state->server_connp.cert0_not_before = not_before;
+                    ssl_state->server_connp.cert0_not_after = not_after;
                 }
             }
 
