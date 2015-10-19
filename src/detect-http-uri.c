@@ -59,7 +59,7 @@
 
 static void DetectHttpUriRegisterTests(void);
 static void DetectHttpUriSetupCallback(Signature *s);
-static bool DetectHttpUriValidateCallback(const Signature *s);
+static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror);
 
 static int g_http_uri_buffer_id = 0;
 
@@ -117,9 +117,9 @@ int DetectHttpUriSetup(DetectEngineCtx *de_ctx, Signature *s, const char *str)
                                                   ALPROTO_HTTP);
 }
 
-static bool DetectHttpUriValidateCallback(const Signature *s)
+static bool DetectHttpUriValidateCallback(const Signature *s, const char **sigerror)
 {
-    return DetectUrilenValidateContent(s, g_http_uri_buffer_id);
+    return DetectUrilenValidateContent(s, g_http_uri_buffer_id, sigerror);
 }
 
 static void DetectHttpUriSetupCallback(Signature *s)

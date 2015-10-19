@@ -59,7 +59,7 @@
 static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, const char *);
 static void DetectHttpRawUriRegisterTests(void);
 static void DetectHttpRawUriSetupCallback(Signature *s);
-static bool DetectHttpRawUriValidateCallback(const Signature *s);
+static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **);
 static int g_http_raw_uri_buffer_id = 0;
 
 /**
@@ -113,9 +113,9 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, const ch
                                                   ALPROTO_HTTP);
 }
 
-static bool DetectHttpRawUriValidateCallback(const Signature *s)
+static bool DetectHttpRawUriValidateCallback(const Signature *s, const char **sigerror)
 {
-    return DetectUrilenValidateContent(s, g_http_raw_uri_buffer_id);
+    return DetectUrilenValidateContent(s, g_http_raw_uri_buffer_id, sigerror);
 }
 
 static void DetectHttpRawUriSetupCallback(Signature *s)
