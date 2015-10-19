@@ -292,6 +292,58 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
     return path;
 }
 
+static SigString *SigStringAlloc(void)
+{
+    SigString *sigstr = SCMalloc(sizeof(SigString));
+    if (unlikely(sigstr == NULL))
+        return NULL;
+
+    sigstr->line = 0;
+    sigstr->next = NULL;
+
+    return sigstr;
+}
+
+static int SigStringAddSig(SigString *sig, const char *sig_file,
+                           const char *sig_str, int line)
+{
+    if (sig_file == NULL || sig_str == NULL) {
+        return 0;
+    }
+
+    sig->filename = SCStrdup(sig_file);
+    sig->sig_str = SCStrdup(sig_str);
+    sig->line = line;
+
+    return 1;
+}
+
+static int SigStringAppend(SigString **list, const char *sig_file,
+                           const char *sig_str, int line)
+{
+    SigString *item = SigStringAlloc();
+    if (item == NULL) {
+        return 0;
+    }
+
+    if (!SigStringAddSig(item, sig_file, sig_str, line)) {
+        return 0;
+    }
+
+    if (*list == NULL) {
+        *list = item;
+    } else {
+        SigString *tmpptr = *list;
+        while (tmpptr->next != NULL) {
+            tmpptr = tmpptr->next;
+        }
+        tmpptr->next = item;
+    }
+    item = item->next;
+
+    return 1;
+}
+
 /**
  *  \brief Load a file with signatures
  *  \param de_ctx Pointer to the detection engine context
@@ -373,6 +425,10 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
+            if (!SigStringAppend(&de_ctx->sig_stat.failed_sigs, sig_file, line, (lineno - multiline))) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            }
         }
         multiline = 0;
     }
