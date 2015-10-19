@@ -339,6 +339,7 @@ util-decode-asn1.c util-decode-asn1.h \
 util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
+util-detect.c util-detect.h \
 util-device.c util-device.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
