@@ -214,6 +214,7 @@ static int rule_engine_analysis_set = 0;
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
@@ -1528,6 +1529,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature **match_array = det_ctx->match_array;
 
     SGH_PROFILING_RECORD(det_ctx, det_ctx->sgh);
+
+#ifdef PROFILING
+    if (match_cnt >= de_ctx->profile_match_logging_threshold)
+        RulesDumpMatchArray(det_ctx, p);
+#endif
 
     uint32_t sflags, next_sflags = 0;
     if (match_cnt) {
@@ -2938,6 +2944,101 @@ int RuleMpmIsNegated(const Signature *s)
 }
 
 #ifdef HAVE_LIBJANSSON
+#ifdef PROFILING
+static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, char *pat_chop, uint32_t pat_chop_sz)
+{
+    int fast_pattern_chop_set = 0;
+    const DetectContentData *cd = (DetectContentData *)sm->ctx;
+
+    if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+            fast_pattern_chop_set = 1;
+        }
+    }
+
+    uint32_t off = 0;
+    PrintRawUriBuf(pat_orig, &off, pat_orig_sz, cd->content, cd->content_len);
+
+    if (fast_pattern_chop_set) {
+        off = 0;
+        PrintRawUriBuf(pat_chop, &off, pat_chop_sz, cd->content + cd->fp_chop_offset, cd->fp_chop_len);
+    }
+}
+
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
+{
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return;
+
+    json_object_set_new(js, "id", json_integer(det_ctx->sgh->id));
+    json_object_set_new(js, "cnt", json_integer(det_ctx->match_array_cnt));
+
+    if (p->pcap_cnt > 0)
+        json_object_set_new(js, "packet_cnt", json_integer(p->pcap_cnt));
+
+    json_t *js_array = json_array();
+    uint32_t x;
+    for (x = 0; x < det_ctx->match_array_cnt; x++)
+    {
+        const Signature *s = det_ctx->match_array[x];
+        if (s == NULL)
+            continue;
+
+        json_t *js_sig = json_object();
+        if (unlikely(js == NULL))
+            continue;
+        json_object_set_new(js_sig, "sig_id", json_integer(s->id));
+
+        json_object_set_new(js_sig, "mpm", (s->mpm_sm != NULL) ? json_true() : json_false());
+
+        if (s->mpm_sm != NULL) {
+            char orig[256] = "";
+            char chop[256] = "";
+
+            DumpFp(s->mpm_sm, orig, sizeof(orig), chop, sizeof(chop));
+
+            json_object_set_new(js_sig, "mpm_buffer", json_string(DetectListToHumanString(SigMatchListSMBelongsTo(s, s->mpm_sm))));
+            json_object_set_new(js_sig, "mpm_pattern", json_string(orig));
+
+            if (strlen(chop) > 0) {
+                json_object_set_new(js_sig, "mpm_pattern_chop", json_string(chop));
+            }
+        }
+        json_array_append_new(js_array, js_sig);
+    }
+
+    json_object_set_new(js, "rules", js_array);
+
+    const char *filename = "rule_match_peak.json";
+    const char *log_dir = ConfigGetLogDirectory();
+    char log_path[PATH_MAX] = "";
+    snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, filename);
+
+    FILE *fp = fopen(log_path, "a");
+    if (fp != NULL) {
+        char *js_s = json_dumps(js,
+                JSON_PRESERVE_ORDER|
+                JSON_COMPACT|
+                JSON_ENSURE_ASCII|
+#ifdef JSON_ESCAPE_SLASH
+                JSON_ESCAPE_SLASH
+#else
+                0
+#endif
+                );
+        if (unlikely(js_s != NULL)) {
+            fprintf(fp, "%s\n", js_s);
+            free(js_s);
+        }
+        fclose(fp);
+    }
+
+    json_object_clear(js);
+    json_decref(js);
+}
+#endif /* PROFILING */
+
 json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
 {
     uint32_t mpm_cnt = 0;
