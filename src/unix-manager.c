@@ -762,6 +762,52 @@ TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
     json_object_set_new(server_msg, "message", jdata);
     SCReturnInt(retval);
 }
+
+TmEcode UnixManagerShowFailedRules(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    /* Since we need to deference de_ctx, we don't want to lost it. */
+    DetectEngineCtx *list = de_ctx;
+    json_t *js_sigs_array = json_array();
+
+    if (js_sigs_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        goto error;
+    }
+    while (list) {
+        SigString *sigs_str = list->sig_stat.failed_sigs;
+        while (sigs_str != NULL) {
+            json_t *jdata = json_object();
+            if (jdata == NULL) {
+                json_object_set_new(server_msg, "message", json_string("Unable to get the sig"));
+                json_object_clear(js_sigs_array);
+                goto error;
+            }
+
+            json_object_set_new(jdata, "tenant_id", json_integer(list->tenant_id));
+            json_object_set_new(jdata, "rule", json_string(sigs_str->sig_str));
+            json_object_set_new(jdata, "filename", json_string(sigs_str->filename));
+            json_object_set_new(jdata, "line", json_integer(sigs_str->line));
+            json_array_append_new(js_sigs_array, jdata);
+
+            sigs_str = sigs_str->next;
+        }
+        list = list->next;
+    }
+
+    json_object_set_new(server_msg, "message", js_sigs_array);
+    DetectEngineDeReference(&de_ctx);
+    SCReturnInt(TM_ECODE_OK);
+
+error:
+    DetectEngineDeReference(&de_ctx);
+    json_object_clear(js_sigs_array);
+    json_decref(js_sigs_array);
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
@@ -983,6 +1029,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     UnixManagerRegisterCommand("reload-rules-non-blocking", UnixManagerNonBlockingReloadRules, NULL, 0);
     UnixManagerRegisterCommand("last-reload", UnixManagerLastReloadCommand, NULL, 0);
     UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
+    UnixManagerRegisterCommand("show-failed-rules", UnixManagerShowFailedRules, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
