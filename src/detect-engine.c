@@ -832,6 +832,11 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
 #ifdef PROFILING
     SCProfilingKeywordInitCounters(de_ctx);
+    de_ctx->profile_match_logging_threshold = UINT_MAX; // disabled
+
+    intmax_t v = 0;
+    if (ConfGetInt("detect.profiling.inspect-logging-threshold", &v) == 1)
+        de_ctx->profile_match_logging_threshold = (uint32_t)v;
 #endif
 
     SCClassConfLoadClassficationConfigFile(de_ctx, NULL);
