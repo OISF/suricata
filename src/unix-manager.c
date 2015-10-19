@@ -702,6 +702,39 @@ TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
     json_object_set_new(server_msg, "message", jdata);
     SCReturnInt(TM_ECODE_OK);
 }
+
+TmEcode UnixManagerShowFailedRules(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    SigString *sigs_str = de_ctx->sig_stat.failed_sigs;
+    json_t *js_sigs_array = json_array();
+
+    if (js_sigs_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    while (sigs_str != NULL) {
+        json_t *jdata = json_object();
+        if (jdata == NULL) {
+            json_object_set_new(server_msg, "message", json_string("Unable to get the sig"));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        json_object_set_new(jdata, "rule", json_string(sigs_str->sig_str));
+        json_object_set_new(jdata, "filename", json_string(sigs_str->filename));
+        json_object_set_new(jdata, "line", json_integer(sigs_str->line));
+        json_array_append_new(js_sigs_array, jdata);
+
+        sigs_str = sigs_str->next;
+    }
+
+    json_object_set_new(server_msg, "message", js_sigs_array);
+    SCReturnInt(TM_ECODE_OK);
+}
+
 TmEcode UnixManagerConfGetCommand(json_t *cmd,
                                   json_t *server_msg, void *data)
 {
@@ -945,6 +978,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
     UnixManagerRegisterCommand("non-blocking-reload-rules", UnixManagerNonBlockingReloadRules, NULL, 0);
     UnixManagerRegisterCommand("last-reload", UnixManagerLastReloadCommand, NULL, 0);
     UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
+    UnixManagerRegisterCommand("show-failed-rules", UnixManagerShowFailedRules, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
