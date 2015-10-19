@@ -38,6 +38,7 @@
 const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode);
 
 int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetValidity(const Asn1Generic *cert, time_t *not_before, time_t *not_after, uint32_t *errcode);
 int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 
 #endif /* __UTIL_DECODE_DER_GET_H__ */
