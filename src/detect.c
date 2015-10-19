@@ -212,6 +212,7 @@
 #include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
+#include "util-detect.h"
 #include "runmodes.h"
 
 #include <glob.h>
@@ -359,6 +360,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
+            if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, de_ctx->sigerror, (lineno - multiline))) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            }
+            if (de_ctx->sigerror) {
+                SCFree(de_ctx->sigerror);
+                de_ctx->sigerror = NULL;
+            }
         }
         multiline = 0;
     }

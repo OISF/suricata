@@ -1330,7 +1330,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (!DetectHttpMethodValidateRule(s))
+    if (!DetectHttpMethodValidateRule(s, &de_ctx->sigerror))
         SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
