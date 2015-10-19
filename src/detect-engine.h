@@ -44,8 +44,8 @@ void DetectBufferTypeRegisterSetupCallback(const char *name,
         void (*Callback)(Signature *));
 void DetectBufferRunSetupCallback(const int id, Signature *s);
 void DetectBufferTypeRegisterValidateCallback(const char *name,
-        _Bool (*ValidateCallback)(const Signature *));
-_Bool DetectBufferRunValidateCallback(const int id, const Signature *s);
+        _Bool (*ValidateCallback)(const Signature *, char **sigerror));
+_Bool DetectBufferRunValidateCallback(const int id, const Signature *s, char **sigerror);
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
