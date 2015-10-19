@@ -656,6 +656,7 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx;
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
+    uint32_t profile_match_logging_threshold;
 #endif
 
     char config_prefix[64];

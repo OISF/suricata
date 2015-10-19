@@ -608,6 +608,13 @@ detect-engine:
   # is started. This will limit the downtime in IPS mode.
   #- delayed-detect: yes
 
+  profiling:
+    # Log the rules that made it past the prefilter stage, per packet
+    # default is off. The threshold setting determines how many rules
+    # must have made it past pre-filter for that rule to trigger the
+    # logging.
+    #inspect-logging-threshold: 200
+
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
   # On some cpu's/architectures it is beneficial to tie individual threads
