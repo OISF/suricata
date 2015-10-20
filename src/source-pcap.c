@@ -128,6 +128,7 @@ void TmModuleReceivePcapRegister (void)
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
     tmm_modules[TMM_RECEIVEPCAP].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
+    tmm_modules[TMM_RECEIVEPCAP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;

@@ -62,6 +62,7 @@
 #endif /* __SC_CUDA_SUPPORT__ */
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
+TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
@@ -175,6 +176,7 @@ void TmModuleReceivePfringRegister (void)
     tmm_modules[TMM_RECEIVEPFRING].ThreadInit = ReceivePfringThreadInit;
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
     tmm_modules[TMM_RECEIVEPFRING].PktAcqLoop = ReceivePfringLoop;
+    tmm_modules[TMM_RECEIVEPFRING].PktAcqBreakLoop = PfringBreakLoop;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = ReceivePfringThreadExitStats;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = ReceivePfringThreadDeinit;
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
@@ -375,6 +377,31 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         }
         StatsSyncCountersIfSignalled(tv);
     }
+
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Stop function for ReceivePfringLoop.
+ *
+ * This function forces ReceivePfringLoop to stop the
+ * execution, exiting the packet capture loop.
+ *
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into PfringThreadVars for ptv
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on failure
+ */
+TmEcode PfringBreakLoop(ThreadVars *tv, void *data)
+{
+    PfringThreadVars *ptv = (PfringThreadVars *)data;
+
+    /* Safety check */
+    if (ptv->pd == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    pfring_breakloop(ptv->pd);
 
     return TM_ECODE_OK;
 }

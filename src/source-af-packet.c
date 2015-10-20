@@ -271,6 +271,7 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].ThreadInit = ReceiveAFPThreadInit;
     tmm_modules[TMM_RECEIVEAFP].Func = NULL;
     tmm_modules[TMM_RECEIVEAFP].PktAcqLoop = ReceiveAFPLoop;
+    tmm_modules[TMM_RECEIVEAFP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadExitPrintStats = ReceiveAFPThreadExitStats;
     tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;

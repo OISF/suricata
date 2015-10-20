@@ -173,6 +173,7 @@ void TmModuleReceiveMpipeRegister (void)
     tmm_modules[TMM_RECEIVEMPIPE].ThreadInit = ReceiveMpipeThreadInit;
     tmm_modules[TMM_RECEIVEMPIPE].Func = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].PktAcqLoop = ReceiveMpipeLoop;
+    tmm_modules[TMM_RECEIVEMPIPE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].ThreadExitPrintStats = ReceiveMpipeThreadExitStats;
     tmm_modules[TMM_RECEIVEMPIPE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].RegisterTests = NULL;

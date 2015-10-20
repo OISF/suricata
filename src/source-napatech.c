@@ -110,6 +110,7 @@ void TmModuleNapatechStreamRegister(void)
     tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NapatechStreamThreadInit;
     tmm_modules[TMM_RECEIVENAPATECH].Func = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].PktAcqLoop = NapatechStreamLoop;
+    tmm_modules[TMM_RECEIVENAPATECH].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadExitPrintStats = NapatechStreamThreadExitStats;
     tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechStreamThreadDeinit;
     tmm_modules[TMM_RECEIVENAPATECH].RegisterTests = NULL;

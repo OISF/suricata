@@ -1438,10 +1438,11 @@ again:
      * with all receive threads */
     while (tv) {
         int disable = 0;
+        TmModule *tm = NULL;
         /* obtain the slots for this TV */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
-            TmModule *tm = TmModuleGetById(slots->tm_id);
+            tm = TmModuleGetById(slots->tm_id);
 
             if (tm->flags & TM_FLAG_RECEIVE_TM) {
                 disable = 1;
@@ -1470,6 +1471,9 @@ again:
             }
 
             /* we found a receive TV. Send it a KILL_PKTACQ signal. */
+            if (tm && tm->PktAcqBreakLoop != NULL) {
+                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
+            }
             TmThreadsSetFlag(tv, THV_KILL_PKTACQ);
 
             if (tv->inq != NULL) {

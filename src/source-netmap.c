@@ -1069,6 +1069,7 @@ void TmModuleReceiveNetmapRegister(void)
     tmm_modules[TMM_RECEIVENETMAP].ThreadInit = ReceiveNetmapThreadInit;
     tmm_modules[TMM_RECEIVENETMAP].Func = NULL;
     tmm_modules[TMM_RECEIVENETMAP].PktAcqLoop = ReceiveNetmapLoop;
+    tmm_modules[TMM_RECEIVENETMAP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENETMAP].ThreadExitPrintStats = ReceiveNetmapThreadExitStats;
     tmm_modules[TMM_RECEIVENETMAP].ThreadDeinit = ReceiveNetmapThreadDeinit;
     tmm_modules[TMM_RECEIVENETMAP].RegisterTests = NULL;
