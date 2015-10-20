@@ -57,6 +57,33 @@
 #include "app-layer-protos.h"
 
 #include "detect-engine-hua.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http user agent match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param cookie     User-Agent to inspect.
+ * \param cookie_len User-Agent buffer length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
+                             uint8_t *ua, uint32_t ua_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, ua, ua_len);
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                              HtpState *htp_state, uint8_t flags,

@@ -40,22 +40,8 @@ uint16_t PatternMatchDefaultMatcher(void);
 uint32_t PatternStrength(uint8_t *, uint16_t);
 uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *, Packet *);
 uint32_t PacketPatternSearch(DetectEngineThreadCtx *, Packet *);
-uint32_t UriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint16_t, uint8_t);
 uint32_t StreamPatternSearch(DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
-uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
-uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t, uint8_t);
 uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
-uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx, uint8_t *buffer, uint32_t buffer_len, uint8_t flags);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 
