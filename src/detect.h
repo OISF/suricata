@@ -515,15 +515,6 @@ typedef struct DetectEngineLookupFlow_ {
  */
 #define FLOW_STATES 2
 
-/* mpm pattern id api */
-typedef struct MpmPatternIdStore_ {
-    HashTable *hash;
-    PatIntId max_id;
-
-    uint32_t unique_patterns;
-    uint32_t shared_patterns;
-} MpmPatternIdStore;
-
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
     SCMutex threshold_table_lock;                   /**< Mutex for hash table */
@@ -606,9 +597,6 @@ typedef struct DetectEngineCtx_ {
     /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_context;
 
-    /** hash table for looking up patterns for
-     *  id sharing and id tracking. */
-    MpmPatternIdStore *mpm_pattern_id_store;
     uint32_t max_fp_id;
 
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
