@@ -118,6 +118,14 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
             break;
     }
     json_object_set_new(tjs, "version", json_string(ssl_version));
+
+    /* tls.notBefore */
+    json_object_set_new(tjs, "notBefore",
+                        json_integer(state->server_connp.cert0_not_before));
+
+    /* tls.notAfter */
+    json_object_set_new(tjs, "notAfter",
+                        json_integer(state->server_connp.cert0_not_after));
 }
 
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
