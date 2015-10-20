@@ -68,6 +68,7 @@
 #include "suricata-common.h"
 #include "packet-queue.h"
 #include "data-queue.h"
+#include "runmodes.h"
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
@@ -91,6 +92,8 @@
 #define SURICATA_KILL    (1 << 1)   /**< shut down asap, discarding outstanding
                                      packets. */
 #define SURICATA_DONE    (1 << 2)   /**< packets capture ended */
+
+#define RUNMODES_MAX     2
 
 /* Engine stage/status*/
 enum {
@@ -126,8 +129,13 @@ PacketQueue trans_q[256];
 
 SCDQDataQueue data_queues[256];
 
+typedef struct RunModesList_ {
+    enum RunModes run_mode[RUNMODES_MAX];
+    int runmodes_cnt;
+} RunModesList;
+
 typedef struct SCInstance_ {
-    int run_mode;
+    RunModesList runmodeslist;
 
     char pcap_dev[128];
     char *sig_file;
@@ -188,10 +196,10 @@ void SignalHandlerSigusr2EngineShutdown(int);
 void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
-int RunmodeGetCurrent(void);
+int RunmodeGetCurrent(int index);
 int IsRuleReloadSet(int quiet);
 
-extern int run_mode;
+extern RunModesList runmodeslist;
 
 #endif /* __SURICATA_H__ */
 
