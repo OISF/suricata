@@ -58,6 +58,34 @@
 #include "app-layer-protos.h"
 
 #include "detect-engine-hhhd.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http host header match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param hh     Host header to inspect.
+ * \param hh_len Host header buffer length.
+ * \param flags  Flags
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
+                             uint8_t *hh, uint32_t hh_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, hh, hh_len);
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                              HtpState *htp_state, uint8_t flags,
