@@ -711,35 +711,6 @@ cuda:
 
 mpm-algo: ac
 
-# The memory settings for hash size of these algorithms can vary from lowest
-# (2048) - low (4096) - medium (8192) - high (16384) - higher (32768) - max
-# (65536). The bloomfilter sizes of these algorithms can vary from low (512) -
-# medium (1024) - high (2048).
-#
-# For B2g/B3g algorithms, there is a support for two different scan/search
-# algorithms. For B2g the scan algorithms are B2gScan & B2gScanBNDMq, and
-# search algorithms are B2gSearch & B2gSearchBNDMq. For B3g scan algorithms
-# are B3gScan & B3gScanBNDMq, and search algorithms are B3gSearch &
-# B3gSearchBNDMq.
-#
-# For B2g the different scan/search algorithms and, hash and bloom
-# filter size settings. For B3g the different scan/search algorithms and, hash
-# and bloom filter size settings. For wumanber the hash and bloom filter size
-# settings.
-
-pattern-matcher:
-  - b2g:
-      search-algo: B2gSearchBNDMq
-      hash-size: low
-      bf-size: medium
-  - b3g:
-      search-algo: B3gSearchBNDMq
-      hash-size: low
-      bf-size: medium
-  - wumanber:
-      hash-size: low
-      bf-size: medium
-
 # Defrag settings:
 
 defrag:

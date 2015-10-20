@@ -28,11 +28,7 @@
 #include "util-debug.h"
 
 /* include pattern matchers */
-#include "util-mpm-wumanber.h"
-#include "util-mpm-b2g.h"
-#include "util-mpm-b3g.h"
 #include "util-mpm-ac.h"
-#include "util-mpm-ac-gfbs.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-tile.h"
 #include "util-mpm-hs.h"
@@ -536,43 +532,6 @@ MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
     return new_size;
 }
 
-/** \brief Verify and store a match
- *
- *   used at search runtime
- *
- *  \param thread_ctx mpm thread ctx
- *  \param pmq storage for match results
- *  \param patid pattern ID being checked
- *  \param bitarray Array of bits for patterns IDs found in current search
- *  \param sids pointer to array of Signature IDs
- *  \param sids_size number of Signature IDs in sids array.
- *
- *  \retval 0 no match after all
- *  \retval 1 (new) match
- */
-int
-MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
-               uint8_t *bitarray, SigIntId *sids, uint32_t sids_size)
-{
-    SCEnter();
-
-    /* Handle pattern id storage */
-    if (pmq != NULL && pmq->pattern_id_bitarray != NULL) {
-        SCLogDebug("using pattern id arrays, storing %"PRIu32, patid);
-
-        if ((bitarray[(patid / 8)] & (1<<(patid % 8))) == 0) {
-            bitarray[(patid / 8)] |= (1<<(patid % 8));
-            /* flag this pattern id as being added now */
-            pmq->pattern_id_bitarray[(patid / 8)] |= (1<<(patid % 8));
-            /* append the pattern_id to the array with matches */
-            MpmAddPid(pmq, patid);
-            MpmAddSids(pmq, sids, sids_size);
-        }
-    }
-
-    SCReturnInt(1);
-}
-
 /**
  *  \brief Merge two pmq's bitarrays
  *
@@ -668,12 +627,8 @@ void MpmTableSetup(void)
 {
     memset(mpm_table, 0, sizeof(mpm_table));
 
-    MpmWuManberRegister();
-    MpmB2gRegister();
-    MpmB3gRegister();
     MpmACRegister();
     MpmACBSRegister();
-    MpmACGfbsRegister();
     MpmACTileRegister();
 #ifdef BUILD_HYPERSCAN
     MpmHSRegister();
@@ -681,62 +636,6 @@ void MpmTableSetup(void)
 #ifdef __SC_CUDA_SUPPORT__
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
-}
-
-/** \brief  Function to return the default hash size for the mpm algorithm,
- *          which has been defined by the user in the config file
- *
- *  \param  conf_val    pointer to the string value of hash size
- *  \retval hash_value  returns the hash value as defined by user, otherwise
- *                      default low size value
- */
-uint32_t MpmGetHashSize(const char *conf_val)
-{
-    SCEnter();
-    uint32_t hash_value = HASHSIZE_LOW;
-
-    if(strcmp(conf_val, "lowest") == 0) {
-        hash_value = HASHSIZE_LOWEST;
-    } else if(strcmp(conf_val, "low") == 0) {
-        hash_value = HASHSIZE_LOW;
-    } else if(strcmp(conf_val, "medium") == 0) {
-        hash_value = HASHSIZE_MEDIUM;
-    } else if(strcmp(conf_val, "high") == 0) {
-        hash_value = HASHSIZE_HIGH;
-    /* "highest" is supported in 1.0 to 1.0.2, so we keep supporting
-     * it for backwards compatibility */
-    } else if(strcmp(conf_val, "highest") == 0) {
-        hash_value = HASHSIZE_HIGHER;
-    } else if(strcmp(conf_val, "higher") == 0) {
-        hash_value = HASHSIZE_HIGHER;
-    } else if(strcmp(conf_val, "max") == 0) {
-        hash_value = HASHSIZE_MAX;
-    }
-
-    SCReturnInt(hash_value);
-}
-
-/** \brief  Function to return the default bloomfilter size for the mpm algorithm,
- *          which has been defined by the user in the config file
- *
- *  \param  conf_val    pointer to the string value of bloom filter size
- *  \retval bloom_value returns the bloom filter value as defined by user,
- *                      otherwise default medium size value
- */
-uint32_t MpmGetBloomSize(const char *conf_val)
-{
-    SCEnter();
-    uint32_t bloom_value = BLOOMSIZE_MEDIUM;
-
-    if(strncmp(conf_val, "low", 3) == 0) {
-        bloom_value = BLOOMSIZE_LOW;
-    } else if(strncmp(conf_val, "medium", 6) == 0) {
-        bloom_value = BLOOMSIZE_MEDIUM;
-    } else if(strncmp(conf_val, "high", 4) == 0) {
-        bloom_value = BLOOMSIZE_HIGH;
-    }
-
-    SCReturnInt(bloom_value);
 }
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
