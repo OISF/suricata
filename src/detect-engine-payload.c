@@ -33,11 +33,144 @@
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
 
+#include "stream.h"
+
 #include "util-debug.h"
 #include "util-print.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-validate.h"
+
+uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
+                                         Packet *p)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
+        if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
+            SCReturnInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
+                   p->payload, p->payload_len);
+
+    } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_tc == NULL);
+        if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
+            SCReturnInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
+                   p->payload, p->payload_len);
+    }
+
+    SCReturnInt(ret);
+}
+
+/** \brief Pattern match -- searches for only one pattern per signature.
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet
+ *  \param smsg stream msg (reassembled stream data)
+ *  \param flags stream flags
+ *
+ *  \retval ret number of matches
+ */
+uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
+                             StreamMsg *smsg, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+    uint8_t cnt = 0;
+
+    //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+
+    uint32_t r;
+    if (flags & STREAM_TOSERVER) {
+        for ( ; smsg != NULL; smsg = smsg->next) {
+            r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
+                Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
+                       &det_ctx->pmq, smsg->data, smsg->data_len);
+            if (r > 0) {
+                ret += r;
+            }
+
+            cnt++;
+        }
+    } else if (flags & STREAM_TOCLIENT) {
+        for ( ; smsg != NULL; smsg = smsg->next) {
+            r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
+                Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
+                       &det_ctx->pmq, smsg->data, smsg->data_len);
+            if (r > 0) {
+                ret += r;
+            }
+
+            cnt++;
+        }
+    }
+
+    SCReturnInt(ret);
+}
+
+/** \brief Pattern match -- searches for only one pattern per signature.
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *
+ *  \retval ret number of matches
+ */
+uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    SCEnter();
+
+    uint32_t ret;
+    const MpmCtx *mpm_ctx = NULL;
+
+    if (p->proto == IPPROTO_TCP) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_ts;
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_tc;
+        }
+    } else if (p->proto == IPPROTO_UDP) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_ts;
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_tc;
+        }
+    } else {
+        mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
+    }
+    if (unlikely(mpm_ctx == NULL))
+        SCReturnInt(0);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (p->cuda_pkt_vars.cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
+        ret = SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
+    } else {
+        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                                  &det_ctx->mtc,
+                                                  &det_ctx->pmq,
+                                                  p->payload,
+                                                  p->payload_len);
+    }
+#else
+    ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                              &det_ctx->mtc,
+                                              &det_ctx->pmq,
+                                              p->payload,
+                                              p->payload_len);
+#endif
+
+    SCReturnInt(ret);
+}
 
 /**
  *  \brief Do the content inspection & validation for a signature
