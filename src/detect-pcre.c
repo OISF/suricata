@@ -1698,7 +1698,7 @@ static int DetectPcreParseTest27(void)
     return result;
 }
 
-static int DetectPcreTestSig01Real(int mpm_type)
+static int DetectPcreTestSig01(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1739,7 +1739,6 @@ static int DetectPcreTestSig01Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/^gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)");
@@ -1781,20 +1780,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig01B2g (void)
-{
-    return DetectPcreTestSig01Real(MPM_B2G);
-}
-static int DetectPcreTestSig01B3g (void)
-{
-    return DetectPcreTestSig01Real(MPM_B3G);
-}
-static int DetectPcreTestSig01Wm (void)
-{
-    return DetectPcreTestSig01Real(MPM_WUMANBER);
-}
 
-static int DetectPcreTestSig02Real(int mpm_type)
+static int DetectPcreTestSig02(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1827,7 +1814,6 @@ static int DetectPcreTestSig02Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/two/O\"; sid:2;)");
@@ -1854,23 +1840,11 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig02B2g (void)
-{
-    return DetectPcreTestSig02Real(MPM_B2G);
-}
-static int DetectPcreTestSig02B3g (void)
-{
-    return DetectPcreTestSig02Real(MPM_B3G);
-}
-static int DetectPcreTestSig02Wm (void)
-{
-    return DetectPcreTestSig02Real(MPM_WUMANBER);
-}
 
 /**
  * \test DetectPcreTestSig03Real negation test ! outside of "" this sig should not match
  */
-static int DetectPcreTestSig03Real(int mpm_type)
+static int DetectPcreTestSig03(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1895,7 +1869,6 @@ static int DetectPcreTestSig03Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:!\"/two/\"; sid:1;)");
@@ -1920,19 +1893,6 @@ static int DetectPcreTestSig03Real(int mpm_type)
 end:
     UTHFreePackets(&p, 1);
     return result;
-}
-
-static int DetectPcreTestSig03B2g (void)
-{
-    return DetectPcreTestSig03Real(MPM_B2G);
-}
-static int DetectPcreTestSig03B3g (void)
-{
-    return DetectPcreTestSig03Real(MPM_B3G);
-}
-static int DetectPcreTestSig03Wm (void)
-{
-    return DetectPcreTestSig03Real(MPM_WUMANBER);
 }
 
 /**
@@ -4161,15 +4121,9 @@ void DetectPcreRegisterTests(void)
     UtRegisterTest("DetectPcreParseTest26", DetectPcreParseTest26, 1);
     UtRegisterTest("DetectPcreParseTest27", DetectPcreParseTest27, 1);
 
-    UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
-    UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
-    UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
-    UtRegisterTest("DetectPcreTestSig02B2g -- pcre test", DetectPcreTestSig02B2g, 1);
-    UtRegisterTest("DetectPcreTestSig02B3g -- pcre test", DetectPcreTestSig02B3g, 1);
-    UtRegisterTest("DetectPcreTestSig02Wm -- pcre test", DetectPcreTestSig02Wm, 1);
-    UtRegisterTest("DetectPcreTestSig03B2g -- negated pcre test", DetectPcreTestSig03B2g, 1);
-    UtRegisterTest("DetectPcreTestSig03B3g -- negated pcre test", DetectPcreTestSig03B3g, 1);
-    UtRegisterTest("DetectPcreTestSig03Wm -- negated pcre test", DetectPcreTestSig03Wm, 1);
+    UtRegisterTest("DetectPcreTestSig01 -- pcre test", DetectPcreTestSig01, 1);
+    UtRegisterTest("DetectPcreTestSig02 -- pcre test", DetectPcreTestSig02, 1);
+    UtRegisterTest("DetectPcreTestSig03 -- negated pcre test", DetectPcreTestSig03, 1);
 
     UtRegisterTest("DetectPcreModifPTest04 -- Modifier P", DetectPcreModifPTest04, 1);
     UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented", DetectPcreModifPTest05, 1);
