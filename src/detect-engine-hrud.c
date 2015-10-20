@@ -56,6 +56,33 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "util-validate.h"
+
+/**
+ * \brief Http raw uri match -- searches for one pattern per signature.
+ *
+ * \param det_ctx Detection engine thread ctx.
+ * \param uri     Raw uri to inspect.
+ * \param uri_len Raw uri length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t *uri, uint32_t uri_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, uri, uri_len);
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against raw http uris.

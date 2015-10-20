@@ -49,6 +49,8 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
+#include "util-validate.h"
+
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -256,6 +258,34 @@ void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx)
     det_ctx->smtp_start_tx_id = 0;
 
     return;
+}
+
+/**
+ * \brief SMTP Filedata match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param buffer     Buffer to inspect.
+ * \param buffer_len buffer length.
+ * \param flags      Flags
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
+                              uint8_t *buffer, uint32_t buffer_len,
+                              uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, buffer, buffer_len);
+
+    SCReturnUInt(ret);
 }
 
 int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
