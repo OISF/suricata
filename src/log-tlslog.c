@@ -110,6 +110,22 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
                                  state->server_connp.version);
             break;
     }
+    if (state->server_connp.cert0_not_before != 0) {
+        char timebuf[64];
+        struct timeval tv;
+        tv.tv_sec = state->server_connp.cert0_not_before;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        MemBufferWriteString(aft->buffer, " NOTBEFORE='%s'", timebuf);
+    }
+    if (state->server_connp.cert0_not_after != 0) {
+        char timebuf[64];
+        struct timeval tv;
+        tv.tv_sec = state->server_connp.cert0_not_after;
+        tv.tv_usec = 0;
+        CreateUtcIsoTimeString(&tv, timebuf, sizeof(timebuf));
+        MemBufferWriteString(aft->buffer, " NOTAFTER='%s'", timebuf);
+    }
     MemBufferWriteString(aft->buffer, "\n");
 }
 
