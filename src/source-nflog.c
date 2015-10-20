@@ -117,6 +117,7 @@ void TmModuleReceiveNFLOGRegister (void)
     tmm_modules[TMM_RECEIVENFLOG].ThreadInit = ReceiveNFLOGThreadInit;
     tmm_modules[TMM_RECEIVENFLOG].Func = NULL;
     tmm_modules[TMM_RECEIVENFLOG].PktAcqLoop = ReceiveNFLOGLoop;
+    tmm_modules[TMM_RECEIVENFLOG].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENFLOG].ThreadExitPrintStats = ReceiveNFLOGThreadExitStats;
     tmm_modules[TMM_RECEIVENFLOG].ThreadDeinit = ReceiveNFLOGThreadDeinit;
     tmm_modules[TMM_RECEIVENFLOG].RegisterTests = NULL;

@@ -138,6 +138,7 @@ TmModuleReceiveErfDagRegister(void)
     tmm_modules[TMM_RECEIVEERFDAG].ThreadInit = ReceiveErfDagThreadInit;
     tmm_modules[TMM_RECEIVEERFDAG].Func = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].PktAcqLoop = ReceiveErfDagLoop;
+    tmm_modules[TMM_RECEIVEERFDAG].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats =
         ReceiveErfDagThreadExitStats;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
