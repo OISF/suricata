@@ -57,6 +57,39 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "util-validate.h"
+
+/**
+ * \brief Http raw header match -- searches for one pattern per signature.
+ *
+ * \param det_ctx     Detection engine thread ctx.
+ * \param headers     Raw headers to inspect.
+ * \param headers_len Raw headers length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                    uint8_t *raw_headers, uint32_t raw_headers_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+    if (flags & STREAM_TOSERVER) {
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_ts == NULL);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, raw_headers, raw_headers_len);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_tc == NULL);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
+                   &det_ctx->pmq, raw_headers, raw_headers_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                     HtpState *htp_state, uint8_t flags,
