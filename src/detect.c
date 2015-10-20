@@ -5229,7 +5229,7 @@ static const char *dummy_conf_string =
     "    SSH_PORTS: 22\n"
     "\n";
 
-static int SigTest01Real (int mpm_type)
+static int SigTest01 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
@@ -5243,7 +5243,7 @@ static int SigTest01Real (int mpm_type)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, mpm_type) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
     }
@@ -5267,20 +5267,7 @@ end:
     return result;
 }
 
-static int SigTest01B2g (void)
-{
-    return SigTest01Real(MPM_B2G);
-}
-static int SigTest01B3g (void)
-{
-    return SigTest01Real(MPM_B3G);
-}
-static int SigTest01Wm (void)
-{
-    return SigTest01Real(MPM_WUMANBER);
-}
-
-static int SigTest02Real (int mpm_type)
+static int SigTest02 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
@@ -5292,26 +5279,12 @@ static int SigTest02Real (int mpm_type)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)";
-    int ret = UTHPacketMatchSigMpm(p, sig, mpm_type);
+    int ret = UTHPacketMatchSigMpm(p, sig, MPM_AC);
     UTHFreePacket(p);
     return ret;
 }
 
-static int SigTest02B2g (void)
-{
-    return SigTest02Real(MPM_B2G);
-}
-static int SigTest02B3g (void)
-{
-    return SigTest02Real(MPM_B3G);
-}
-static int SigTest02Wm (void)
-{
-    return SigTest02Real(MPM_WUMANBER);
-}
-
-
-static int SigTest03Real (int mpm_type)
+static int SigTest03 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
@@ -5335,7 +5308,6 @@ static int SigTest03Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; sid:1;)");
@@ -5345,7 +5317,6 @@ static int SigTest03Real (int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -5356,27 +5327,13 @@ static int SigTest03Real (int mpm_type)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest03B2g (void)
-{
-    return SigTest03Real(MPM_B2G);
-}
-static int SigTest03B3g (void)
-{
-    return SigTest03Real(MPM_B3G);
-}
-static int SigTest03Wm (void)
-{
-    return SigTest03Real(MPM_WUMANBER);
-}
 
-
-static int SigTest04Real (int mpm_type)
+static int SigTest04 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n" /* 20*/
@@ -5401,7 +5358,6 @@ static int SigTest04Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
@@ -5426,21 +5382,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest04B2g (void)
-{
-    return SigTest04Real(MPM_B2G);
-}
-static int SigTest04B3g (void)
-{
-    return SigTest04Real(MPM_B3G);
-}
-static int SigTest04Wm (void)
-{
-    return SigTest04Real(MPM_WUMANBER);
-}
 
-
-static int SigTest05Real (int mpm_type)
+static int SigTest05 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
@@ -5464,7 +5407,6 @@ static int SigTest05Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
@@ -5492,21 +5434,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest05B2g (void)
-{
-    return SigTest05Real(MPM_B2G);
-}
-static int SigTest05B3g (void)
-{
-    return SigTest05Real(MPM_B3G);
-}
-static int SigTest05Wm (void)
-{
-    return SigTest05Real(MPM_WUMANBER);
-}
 
-
-static int SigTest06Real (int mpm_type)
+static int SigTest06 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
@@ -5547,7 +5476,6 @@ static int SigTest06Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
@@ -5596,21 +5524,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest06B2g (void)
-{
-    return SigTest06Real(MPM_B2G);
-}
-static int SigTest06B3g (void)
-{
-    return SigTest06Real(MPM_B3G);
-}
-static int SigTest06Wm (void)
-{
-    return SigTest06Real(MPM_WUMANBER);
-}
 
-
-static int SigTest07Real (int mpm_type)
+static int SigTest07 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
@@ -5651,7 +5566,6 @@ static int SigTest07Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
@@ -5695,26 +5609,12 @@ end:
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
     return result;
 }
-static int SigTest07B2g (void)
-{
-    return SigTest07Real(MPM_B2G);
-}
-static int SigTest07B3g (void)
-{
-    return SigTest07Real(MPM_B3G);
-}
-static int SigTest07Wm (void)
-{
-    return SigTest07Real(MPM_WUMANBER);
-}
 
-
-static int SigTest08Real (int mpm_type)
+static int SigTest08 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
@@ -5755,7 +5655,6 @@ static int SigTest08Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
@@ -5805,21 +5704,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest08B2g (void)
-{
-    return SigTest08Real(MPM_B2G);
-}
-static int SigTest08B3g (void)
-{
-    return SigTest08Real(MPM_B3G);
-}
-static int SigTest08Wm (void)
-{
-    return SigTest08Real(MPM_WUMANBER);
-}
 
-
-static int SigTest09Real (int mpm_type)
+static int SigTest09 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.0\r\n"    /* 20 */
@@ -5860,7 +5746,6 @@ static int SigTest09Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
@@ -5907,21 +5792,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest09B2g (void)
-{
-    return SigTest09Real(MPM_B2G);
-}
-static int SigTest09B3g (void)
-{
-    return SigTest09Real(MPM_B3G);
-}
-static int SigTest09Wm (void)
-{
-    return SigTest09Real(MPM_WUMANBER);
-}
 
-
-static int SigTest10Real (int mpm_type)
+static int SigTest10 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "ABC";
@@ -5957,7 +5829,6 @@ static int SigTest10Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
@@ -5973,7 +5844,6 @@ static int SigTest10Real (int mpm_type)
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-
 
     SCMutexLock(&f.m);
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
@@ -6005,21 +5875,8 @@ static int SigTest10Real (int mpm_type)
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest10B2g (void)
-{
-    return SigTest10Real(MPM_B2G);
-}
-static int SigTest10B3g (void)
-{
-    return SigTest10Real(MPM_B3G);
-}
-static int SigTest10Wm (void)
-{
-    return SigTest10Real(MPM_WUMANBER);
-}
 
-
-static int SigTest11Real (int mpm_type)
+static int SigTest11 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -6053,7 +5910,6 @@ static int SigTest11Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
@@ -6083,21 +5939,8 @@ static int SigTest11Real (int mpm_type)
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest11B2g (void)
-{
-    return SigTest11Real(MPM_B2G);
-}
-static int SigTest11B3g (void)
-{
-    return SigTest11Real(MPM_B3G);
-}
-static int SigTest11Wm (void)
-{
-    return SigTest11Real(MPM_WUMANBER);
-}
 
-
-static int SigTest12Real (int mpm_type)
+static int SigTest12 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -6122,7 +5965,6 @@ static int SigTest12Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
@@ -6152,21 +5994,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest12B2g (void)
-{
-    return SigTest12Real(MPM_B2G);
-}
-static int SigTest12B3g (void)
-{
-    return SigTest12Real(MPM_B3G);
-}
-static int SigTest12Wm (void)
-{
-    return SigTest12Real(MPM_WUMANBER);
-}
 
-
-static int SigTest13Real (int mpm_type)
+static int SigTest13 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -6191,7 +6020,6 @@ static int SigTest13Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
@@ -6218,21 +6046,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest13B2g (void)
-{
-    return SigTest13Real(MPM_B2G);
-}
-static int SigTest13B3g (void)
-{
-    return SigTest13Real(MPM_B3G);
-}
-static int SigTest13Wm (void)
-{
-    return SigTest13Real(MPM_WUMANBER);
-}
 
-
-static int SigTest14Real (int mpm_type)
+static int SigTest14 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+";
@@ -6251,7 +6066,6 @@ static int SigTest14Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
@@ -6277,21 +6091,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest14B2g (void)
-{
-    return SigTest14Real(MPM_B2G);
-}
-static int SigTest14B3g (void)
-{
-    return SigTest14Real(MPM_B3G);
-}
-static int SigTest14Wm (void)
-{
-    return SigTest14Real(MPM_WUMANBER);
-}
 
-
-static int SigTest15Real (int mpm_type)
+static int SigTest15 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
@@ -6321,8 +6122,6 @@ static int SigTest15Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
-
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
@@ -6350,21 +6149,8 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest15B2g (void)
-{
-    return SigTest15Real(MPM_B2G);
-}
-static int SigTest15B3g (void)
-{
-    return SigTest15Real(MPM_B3G);
-}
-static int SigTest15Wm (void)
-{
-    return SigTest15Real(MPM_WUMANBER);
-}
 
-
-static int SigTest16Real (int mpm_type)
+static int SigTest16 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
@@ -6387,8 +6173,6 @@ static int SigTest16Real (int mpm_type)
     if (de_ctx == NULL) {
         goto end;
     }
-
-    de_ctx->mpm_matcher = mpm_type;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -6415,21 +6199,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest16B2g (void)
-{
-    return SigTest16Real(MPM_B2G);
-}
-static int SigTest16B3g (void)
-{
-    return SigTest16Real(MPM_B3G);
-}
-static int SigTest16Wm (void)
-{
-    return SigTest16Real(MPM_WUMANBER);
-}
 
-
-static int SigTest17Real (int mpm_type)
+static int SigTest17 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"    /* 20 */
@@ -6457,7 +6228,6 @@ static int SigTest17Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
@@ -6497,20 +6267,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTest17B2g (void)
-{
-    return SigTest17Real(MPM_B2G);
-}
-static int SigTest17B3g (void)
-{
-    return SigTest17Real(MPM_B3G);
-}
-static int SigTest17Wm (void)
-{
-    return SigTest17Real(MPM_WUMANBER);
-}
 
-static int SigTest18Real (int mpm_type)
+static int SigTest18 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -6536,8 +6294,6 @@ static int SigTest18Real (int mpm_type)
     if (de_ctx == NULL) {
         goto end;
     }
-
-    de_ctx->mpm_matcher = mpm_type;
 
     de_ctx->flags |= DE_QUIET;
 
@@ -6564,20 +6320,8 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest18B2g (void)
-{
-    return SigTest18Real(MPM_B2G);
-}
-static int SigTest18B3g (void)
-{
-    return SigTest18Real(MPM_B3G);
-}
-static int SigTest18Wm (void)
-{
-    return SigTest18Real(MPM_WUMANBER);
-}
 
-int SigTest19Real (int mpm_type)
+static int SigTest19 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -6611,7 +6355,6 @@ int SigTest19Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
@@ -6638,20 +6381,8 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest19B2g (void)
-{
-    return SigTest19Real(MPM_B2G);
-}
-static int SigTest19B3g (void)
-{
-    return SigTest19Real(MPM_B3G);
-}
-static int SigTest19Wm (void)
-{
-    return SigTest19Real(MPM_WUMANBER);
-}
 
-static int SigTest20Real (int mpm_type)
+static int SigTest20 (void)
 {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
@@ -6685,7 +6416,6 @@ static int SigTest20Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
@@ -6695,9 +6425,7 @@ static int SigTest20Real (int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-    //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (PacketAlertCheck(p, 999))
@@ -6708,7 +6436,6 @@ static int SigTest20Real (int mpm_type)
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     ConfDeInit();
@@ -6716,21 +6443,8 @@ end:
     SCFree(p);
     return result;
 }
-static int SigTest20B2g (void)
-{
-    return SigTest20Real(MPM_B2G);
-}
-static int SigTest20B3g (void)
-{
-    return SigTest20Real(MPM_B3G);
-}
-static int SigTest20Wm (void)
-{
-    return SigTest20Real(MPM_WUMANBER);
-}
 
-
-static int SigTest21Real (int mpm_type)
+static int SigTest21 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -6764,7 +6478,6 @@ static int SigTest21Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
@@ -6808,21 +6521,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest21B2g (void)
-{
-    return SigTest21Real(MPM_B2G);
-}
-static int SigTest21B3g (void)
-{
-    return SigTest21Real(MPM_B3G);
-}
-static int SigTest21Wm (void)
-{
-    return SigTest21Real(MPM_WUMANBER);
-}
 
-
-static int SigTest22Real (int mpm_type)
+static int SigTest22 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -6858,7 +6558,6 @@ static int SigTest22Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
@@ -6873,7 +6572,6 @@ static int SigTest22Real (int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -6891,7 +6589,6 @@ static int SigTest22Real (int mpm_type)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p1, 1);
@@ -6899,20 +6596,8 @@ end:
     FLOW_DESTROY(&f);
     return result;
 }
-static int SigTest22B2g (void)
-{
-    return SigTest22Real(MPM_B2G);
-}
-static int SigTest22B3g (void)
-{
-    return SigTest22Real(MPM_B3G);
-}
-static int SigTest22Wm (void)
-{
-    return SigTest22Real(MPM_WUMANBER);
-}
 
-static int SigTest23Real (int mpm_type)
+static int SigTest23 (void)
 {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
@@ -6948,7 +6633,6 @@ static int SigTest23Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
@@ -6986,18 +6670,6 @@ end:
     UTHFreePackets(&p2, 1);
     FLOW_DESTROY(&f);
     return result;
-}
-static int SigTest23B2g (void)
-{
-    return SigTest23Real(MPM_B2G);
-}
-static int SigTest23B3g (void)
-{
-    return SigTest23Real(MPM_B3G);
-}
-static int SigTest23Wm (void)
-{
-    return SigTest23Real(MPM_WUMANBER);
 }
 
 int SigTest24IPV4Keyword(void)
@@ -8900,7 +8572,7 @@ end:
     return result;
 }
 
-int SigTest38Real(int mpm_type)
+static int SigTest38(void)
 {
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p1 == NULL))
@@ -8978,8 +8650,6 @@ int SigTest38Real(int mpm_type)
     if (de_ctx == NULL) {
         goto end;
     }
-
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -9032,20 +8702,8 @@ end:
     SCFree(p1);
     return result;
 }
-static int SigTest38B2g (void)
-{
-    return SigTest38Real(MPM_B2G);
-}
-static int SigTest38B3g (void)
-{
-    return SigTest38Real(MPM_B3G);
-}
-static int SigTest38Wm (void)
-{
-    return SigTest38Real(MPM_WUMANBER);
-}
 
-int SigTest39Real(int mpm_type)
+static int SigTest39(void)
 {
     Packet *p1 = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p1 == NULL))
@@ -9123,8 +8781,6 @@ int SigTest39Real(int mpm_type)
     if (de_ctx == NULL) {
         goto end;
     }
-
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -9181,34 +8837,20 @@ end:
     SCFree(p1);
     return result;
 }
-static int SigTest39B2g (void)
-{
-    return SigTest39Real(MPM_B2G);
-}
-static int SigTest39B3g (void)
-{
-    return SigTest39Real(MPM_B3G);
-}
-static int SigTest39Wm (void)
-{
-    return SigTest39Real(MPM_WUMANBER);
-}
-
-
 
 /**
  * \test SigTest36ContentAndIsdataatKeywords01 is a test to check window with constructed packets,
  * \brief expecting to match a size
  */
 
-int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type)
+static int SigTest36ContentAndIsdataatKeywords01 (void)
 {
     int result = 0;
 
     // Buid and decode the packet
 
     uint8_t raw_eth [] = {
-   0x00,0x25,0x00,0x9e,0xfa,0xfe,0x00,0x02,0xcf,0x74,0xfe,0xe1,0x08,0x00,0x45,0x00
+     0x00,0x25,0x00,0x9e,0xfa,0xfe,0x00,0x02,0xcf,0x74,0xfe,0xe1,0x08,0x00,0x45,0x00
 	,0x01,0xcc,0xcb,0x91,0x00,0x00,0x34,0x06,0xdf,0xa8,0xd1,0x55,0xe3,0x67,0xc0,0xa8
 	,0x64,0x8c,0x00,0x50,0xc0,0xb7,0xd1,0x11,0xed,0x63,0x81,0xa9,0x9a,0x05,0x80,0x18
 	,0x00,0x75,0x0a,0xdd,0x00,0x00,0x01,0x01,0x08,0x0a,0x09,0x8a,0x06,0xd0,0x12,0x21
@@ -9260,7 +8902,6 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
@@ -9270,7 +8911,6 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -9285,7 +8925,6 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type)
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
     PACKET_RECYCLE(p);
     FlowShutdown();
@@ -9323,7 +8962,7 @@ end:
  *  \brief not expecting to match a size
  */
 
-int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type)
+static int SigTest37ContentAndIsdataatKeywords02 (void)
 {
     int result = 0;
 
@@ -9382,7 +9021,6 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest37ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
@@ -9396,16 +9034,6 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type)
         printf("type not content: ");
         goto end;
     }
-/*
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->next == NULL) {
-        printf("s->sm_lists[DETECT_SM_LIST_PMATCH]->next == NULL: ");
-        goto end;
-    }
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->next->type != DETECT_ISDATAAT) {
-        printf("type not isdataat: ");
-        goto end;
-    }
-*/
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
@@ -9452,41 +9080,12 @@ end:
     return result;
 }
 
-
-// Wrapper functions to pass the mpm_type
-static int SigTest36ContentAndIsdataatKeywords01B2g (void)
-{
-    return SigTest36ContentAndIsdataatKeywords01Real(MPM_B2G);
-}
-static int SigTest36ContentAndIsdataatKeywords01B3g (void)
-{
-    return SigTest36ContentAndIsdataatKeywords01Real(MPM_B3G);
-}
-static int SigTest36ContentAndIsdataatKeywords01Wm (void)
-{
-    return SigTest36ContentAndIsdataatKeywords01Real(MPM_WUMANBER);
-}
-
-static int SigTest37ContentAndIsdataatKeywords02B2g (void)
-{
-    return SigTest37ContentAndIsdataatKeywords02Real(MPM_B2G);
-}
-static int SigTest37ContentAndIsdataatKeywords02B3g (void)
-{
-    return SigTest37ContentAndIsdataatKeywords02Real(MPM_B3G);
-}
-static int SigTest37ContentAndIsdataatKeywords02Wm (void)
-{
-    return SigTest37ContentAndIsdataatKeywords02Real(MPM_WUMANBER);
-}
-
-
 /**
  * \test SigTest41NoPacketInspection is a test to check that when PKT_NOPACKET_INSPECTION
  *  flag is set, we don't need to inspect the packet protocol header or its contents.
  */
 
-int SigTest40NoPacketInspection01(void)
+static int SigTest40NoPacketInspection01(void)
 {
 
     uint8_t *buf = (uint8_t *)
@@ -10476,7 +10075,7 @@ static int SigTestSgh05 (void)
         goto end;
     }
     de_ctx->flags |= DE_QUIET;
-    de_ctx->mpm_matcher = MPM_WUMANBER;
+    de_ctx->mpm_matcher = MPM_AC;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> 1.2.3.4-1.2.3.6 any (msg:\"1\"; content:\"one\"; content:\"1\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -10507,8 +10106,8 @@ static int SigTestSgh05 (void)
         goto end;
     }
 
-    if (sgh->mpm_stream_ctx_ts->mpm_type != MPM_WUMANBER) {
-        printf("sgh->mpm_type != MPM_WUMANBER, expected %d, got %d: ", MPM_WUMANBER, sgh->mpm_stream_ctx_ts->mpm_type);
+    if (sgh->mpm_stream_ctx_ts->mpm_type != MPM_AC) {
+        printf("sgh->mpm_type != MPM_AC, expected %d, got %d: ", MPM_AC, sgh->mpm_stream_ctx_ts->mpm_type);
         goto end;
     }
 
@@ -10522,7 +10121,7 @@ end:
     return result;
 }
 
-static int SigTestContent01Real (int mpm_type)
+static int SigTestContent01 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
@@ -10540,7 +10139,6 @@ static int SigTestContent01Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
@@ -10567,20 +10165,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent01B2g (void)
-{
-    return SigTestContent01Real(MPM_B2G);
-}
-static int SigTestContent01B3g (void)
-{
-    return SigTestContent01Real(MPM_B3G);
-}
-static int SigTestContent01Wm (void)
-{
-    return SigTestContent01Real(MPM_WUMANBER);
-}
 
-static int SigTestContent02Real (int mpm_type)
+static int SigTestContent02 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901";
     uint16_t buflen = strlen((char *)buf);
@@ -10597,7 +10183,6 @@ static int SigTestContent02Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
@@ -10634,20 +10219,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent02B2g (void)
-{
-    return SigTestContent02Real(MPM_B2G);
-}
-static int SigTestContent02B3g (void)
-{
-    return SigTestContent02Real(MPM_B3G);
-}
-static int SigTestContent02Wm (void)
-{
-    return SigTestContent02Real(MPM_WUMANBER);
-}
 
-static int SigTestContent03Real (int mpm_type)
+static int SigTestContent03 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
@@ -10664,7 +10237,6 @@ static int SigTestContent03Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
@@ -10691,20 +10263,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent03B2g (void)
-{
-    return SigTestContent03Real(MPM_B2G);
-}
-static int SigTestContent03B3g (void)
-{
-    return SigTestContent03Real(MPM_B3G);
-}
-static int SigTestContent03Wm (void)
-{
-    return SigTestContent03Real(MPM_WUMANBER);
-}
 
-static int SigTestContent04Real (int mpm_type)
+static int SigTestContent04 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
@@ -10722,7 +10282,6 @@ static int SigTestContent04Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
@@ -10749,21 +10308,9 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent04B2g (void)
-{
-    return SigTestContent04Real(MPM_B2G);
-}
-static int SigTestContent04B3g (void)
-{
-    return SigTestContent04Real(MPM_B3G);
-}
-static int SigTestContent04Wm (void)
-{
-    return SigTestContent04Real(MPM_WUMANBER);
-}
 
 /** \test sigs with patterns at the limit of the pm's size limit */
-static int SigTestContent05Real (int mpm_type)
+static int SigTestContent05 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901PADabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
@@ -10781,7 +10328,6 @@ static int SigTestContent05Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
@@ -10824,20 +10370,8 @@ end:
     }
     return result;
 }
-static int SigTestContent05B2g (void)
-{
-    return SigTestContent05Real(MPM_B2G);
-}
-static int SigTestContent05B3g (void)
-{
-    return SigTestContent05Real(MPM_B3G);
-}
-static int SigTestContent05Wm (void)
-{
-    return SigTestContent05Real(MPM_WUMANBER);
-}
 
-static int SigTestContent06Real (int mpm_type)
+static int SigTestContent06 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
@@ -10854,7 +10388,6 @@ static int SigTestContent06Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
@@ -10895,20 +10428,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestContent06B2g (void)
-{
-    return SigTestContent06Real(MPM_B2G);
-}
-static int SigTestContent06B3g (void)
-{
-    return SigTestContent06Real(MPM_B3G);
-}
-static int SigTestContent06Wm (void)
-{
-    return SigTestContent06Real(MPM_WUMANBER);
-}
 
-static int SigTestWithinReal01 (int mpm_type)
+static int SigTestWithin01 (void)
 {
     DecodeThreadVars dtv;
     ThreadVars th_v;
@@ -11018,7 +10539,6 @@ static int SigTestWithinReal01 (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"within test\"; content:\"Hi, this is a big test to check \"; content:\"content matches\"; distance:0; within:15; sid:556;)");
@@ -11122,20 +10642,7 @@ end:
     return result;
 }
 
-static int SigTestWithinReal01B2g (void)
-{
-    return SigTestWithinReal01(MPM_B2G);
-}
-static int SigTestWithinReal01B3g (void)
-{
-    return SigTestWithinReal01(MPM_B3G);
-}
-static int SigTestWithinReal01Wm (void)
-{
-    return SigTestWithinReal01(MPM_WUMANBER);
-}
-
-static int SigTestDepthOffset01Real (int mpm_type)
+static int SigTestDepthOffset01 (void)
 {
     uint8_t *buf = (uint8_t *)"01234567890123456789012345678901abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     uint16_t buflen = strlen((char *)buf);
@@ -11153,7 +10660,6 @@ static int SigTestDepthOffset01Real (int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; sid:1;)");
@@ -11178,18 +10684,6 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int SigTestDepthOffset01B2g (void)
-{
-    return SigTestDepthOffset01Real(MPM_B2G);
-}
-static int SigTestDepthOffset01B3g (void)
-{
-    return SigTestDepthOffset01Real(MPM_B3G);
-}
-static int SigTestDepthOffset01Wm (void)
-{
-    return SigTestDepthOffset01Real(MPM_WUMANBER);
-}
 
 static int SigTestDetectAlertCounter(void)
 {
@@ -11205,7 +10699,6 @@ static int SigTestDetectAlertCounter(void)
         goto end;
     }
 
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test counter\"; "
@@ -11289,7 +10782,6 @@ static int SigTestDropFlow01(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop http any any -> any any "
@@ -11392,7 +10884,6 @@ static int SigTestDropFlow02(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
@@ -11514,7 +11005,6 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
@@ -11686,7 +11176,6 @@ static int SigTestDropFlow04(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
@@ -11832,7 +11321,6 @@ static int SigTestPorts01(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any 80 "
@@ -12120,97 +11608,29 @@ void SigRegisterTests(void)
     SigParseRegisterTests();
     IPOnlyRegisterTests();
 
-    UtRegisterTest("SigTest01B2g -- HTTP URI cap", SigTest01B2g, 1);
-    UtRegisterTest("SigTest01B3g -- HTTP URI cap", SigTest01B3g, 1);
-    UtRegisterTest("SigTest01Wm -- HTTP URI cap", SigTest01Wm, 1);
-
-    UtRegisterTest("SigTest02B2g -- Offset/Depth match", SigTest02B2g, 1);
-    UtRegisterTest("SigTest02B3g -- Offset/Depth match", SigTest02B3g, 1);
-    UtRegisterTest("SigTest02Wm -- Offset/Depth match", SigTest02Wm, 1);
-
-    UtRegisterTest("SigTest03B2g -- offset/depth mismatch", SigTest03B2g, 1);
-    UtRegisterTest("SigTest03B3g -- offset/depth mismatch", SigTest03B3g, 1);
-    UtRegisterTest("SigTest03Wm -- offset/depth mismatch", SigTest03Wm, 1);
-
-    UtRegisterTest("SigTest04B2g -- distance/within match", SigTest04B2g, 1);
-    UtRegisterTest("SigTest04B3g -- distance/within match", SigTest04B3g, 1);
-    UtRegisterTest("SigTest04Wm -- distance/within match", SigTest04Wm, 1);
-
-    UtRegisterTest("SigTest05B2g -- distance/within mismatch", SigTest05B2g, 1);
-    UtRegisterTest("SigTest05B3g -- distance/within mismatch", SigTest05B3g, 1);
-    UtRegisterTest("SigTest05Wm -- distance/within mismatch", SigTest05Wm, 1);
-
-    UtRegisterTest("SigTest06B2g -- uricontent HTTP/1.1 match test", SigTest06B2g, 1);
-    UtRegisterTest("SigTest06B3g -- uricontent HTTP/1.1 match test", SigTest06B3g, 1);
-    UtRegisterTest("SigTest06wm -- uricontent HTTP/1.1 match test", SigTest06Wm, 1);
-
-    UtRegisterTest("SigTest07B2g -- uricontent HTTP/1.1 mismatch test", SigTest07B2g, 1);
-    UtRegisterTest("SigTest07B3g -- uricontent HTTP/1.1 mismatch test", SigTest07B3g, 1);
-    UtRegisterTest("SigTest07Wm -- uricontent HTTP/1.1 mismatch test", SigTest07Wm, 1);
-
-    UtRegisterTest("SigTest08B2g -- uricontent HTTP/1.0 match test", SigTest08B2g, 1);
-    UtRegisterTest("SigTest08B3g -- uricontent HTTP/1.0 match test", SigTest08B3g, 1);
-    UtRegisterTest("SigTest08Wm -- uricontent HTTP/1.0 match test", SigTest08Wm, 1);
-
-    UtRegisterTest("SigTest09B2g -- uricontent HTTP/1.0 mismatch test", SigTest09B2g, 1);
-    UtRegisterTest("SigTest09B3g -- uricontent HTTP/1.0 mismatch test", SigTest09B3g, 1);
-    UtRegisterTest("SigTest09Wm -- uricontent HTTP/1.0 mismatch test", SigTest09Wm, 1);
-
-    UtRegisterTest("SigTest10B2g -- long content match, longer than pkt", SigTest10B2g, 1);
-    UtRegisterTest("SigTest10B3g -- long content match, longer than pkt", SigTest10B3g, 1);
-    UtRegisterTest("SigTest10Wm -- long content match, longer than pkt", SigTest10Wm, 1);
-
-    UtRegisterTest("SigTest11B2g -- mpm searching", SigTest11B2g, 1);
-    UtRegisterTest("SigTest11B3g -- mpm searching", SigTest11B3g, 1);
-    UtRegisterTest("SigTest11Wm -- mpm searching", SigTest11Wm, 1);
-
-    UtRegisterTest("SigTest12B2g -- content order matching, normal", SigTest12B2g, 1);
-    UtRegisterTest("SigTest12B3g -- content order matching, normal", SigTest12B3g, 1);
-    UtRegisterTest("SigTest12Wm -- content order matching, normal", SigTest12Wm, 1);
-
-    UtRegisterTest("SigTest13B2g -- content order matching, diff order", SigTest13B2g, 1);
-    UtRegisterTest("SigTest13B3g -- content order matching, diff order", SigTest13B3g, 1);
-    UtRegisterTest("SigTest13Wm -- content order matching, diff order", SigTest13Wm, 1);
-
-    UtRegisterTest("SigTest14B2g -- content order matching, distance 0", SigTest14B2g, 1);
-    UtRegisterTest("SigTest14B3g -- content order matching, distance 0", SigTest14B3g, 1);
-    UtRegisterTest("SigTest14Wm -- content order matching, distance 0", SigTest14Wm, 1);
-
-    UtRegisterTest("SigTest15B2g -- port negation sig (no match)", SigTest15B2g, 1);
-    UtRegisterTest("SigTest15B3g -- port negation sig (no match)", SigTest15B3g, 1);
-    UtRegisterTest("SigTest15Wm -- port negation sig (no match)", SigTest15Wm, 1);
-
-    UtRegisterTest("SigTest16B2g -- port negation sig (match)", SigTest16B2g, 1);
-    UtRegisterTest("SigTest16B3g -- port negation sig (match)", SigTest16B3g, 1);
-    UtRegisterTest("SigTest16Wm -- port negation sig (match)", SigTest16Wm, 1);
-
-    UtRegisterTest("SigTest17B2g -- HTTP Host Pkt var capture", SigTest17B2g, 1);
-    UtRegisterTest("SigTest17B3g -- HTTP Host Pkt var capture", SigTest17B3g, 1);
-    UtRegisterTest("SigTest17Wm -- HTTP Host Pkt var capture", SigTest17Wm, 1);
-
-    UtRegisterTest("SigTest18B2g -- Ftp negation sig test", SigTest18B2g, 1);
-    UtRegisterTest("SigTest18B3g -- Ftp negation sig test", SigTest18B3g, 1);
-    UtRegisterTest("SigTest18Wm -- Ftp negation sig test", SigTest18Wm, 1);
-
-    UtRegisterTest("SigTest19B2g -- IP-ONLY test (1)", SigTest19B2g, 1);
-    UtRegisterTest("SigTest19B3g -- IP-ONLY test (1)", SigTest19B3g, 1);
-    UtRegisterTest("SigTest19Wm -- IP-ONLY test (1)", SigTest19Wm, 1);
-
-    UtRegisterTest("SigTest20B2g -- IP-ONLY test (2)", SigTest20B2g, 1);
-    UtRegisterTest("SigTest20B3g -- IP-ONLY test (2)", SigTest20B3g, 1);
-    UtRegisterTest("SigTest20Wm -- IP-ONLY test (2)", SigTest20Wm, 1);
-
-    UtRegisterTest("SigTest21B2g -- FLOWBIT test (1)", SigTest21B2g, 1);
-    UtRegisterTest("SigTest21B3g -- FLOWBIT test (1)", SigTest21B3g, 1);
-    UtRegisterTest("SigTest21Wm -- FLOWBIT test (1)", SigTest21Wm, 1);
-
-    UtRegisterTest("SigTest22B2g -- FLOWBIT test (2)", SigTest22B2g, 1);
-    UtRegisterTest("SigTest22B3g -- FLOWBIT test (2)", SigTest22B3g, 1);
-    UtRegisterTest("SigTest22Wm -- FLOWBIT test (2)", SigTest22Wm, 1);
-
-    UtRegisterTest("SigTest23B2g -- FLOWBIT test (3)", SigTest23B2g, 1);
-    UtRegisterTest("SigTest23B3g -- FLOWBIT test (3)", SigTest23B3g, 1);
-    UtRegisterTest("SigTest23Wm -- FLOWBIT test (3)", SigTest23Wm, 1);
+    UtRegisterTest("SigTest01", SigTest01, 1);
+    UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02, 1);
+    UtRegisterTest("SigTest03 -- offset/depth mismatch", SigTest03, 1);
+    UtRegisterTest("SigTest04 -- distance/within match", SigTest04, 1);
+    UtRegisterTest("SigTest05 -- distance/within mismatch", SigTest05, 1);
+    UtRegisterTest("SigTest06 -- uricontent HTTP/1.1 match test", SigTest06, 1);
+    UtRegisterTest("SigTest07 -- uricontent HTTP/1.1 mismatch test", SigTest07, 1);
+    UtRegisterTest("SigTest08 -- uricontent HTTP/1.0 match test", SigTest08, 1);
+    UtRegisterTest("SigTest09 -- uricontent HTTP/1.0 mismatch test", SigTest09, 1);
+    UtRegisterTest("SigTest10 -- long content match, longer than pkt", SigTest10, 1);
+    UtRegisterTest("SigTest11 -- mpm searching", SigTest11, 1);
+    UtRegisterTest("SigTest12 -- content order matching, normal", SigTest12, 1);
+    UtRegisterTest("SigTest13 -- content order matching, diff order", SigTest13, 1);
+    UtRegisterTest("SigTest14 -- content order matching, distance 0", SigTest14, 1);
+    UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15, 1);
+    UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16, 1);
+    UtRegisterTest("SigTest17 -- HTTP Host Pkt var capture", SigTest17, 1);
+    UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18, 1);
+    UtRegisterTest("SigTest19 -- IP-ONLY test (1)", SigTest19, 1);
+    UtRegisterTest("SigTest20 -- IP-ONLY test (2)", SigTest20, 1);
+    UtRegisterTest("SigTest21 -- FLOWBIT test (1)", SigTest21, 1);
+    UtRegisterTest("SigTest22 -- FLOWBIT test (2)", SigTest22, 1);
+    UtRegisterTest("SigTest23 -- FLOWBIT test (3)", SigTest23, 1);
 
     UtRegisterTest("SigTest24IPV4Keyword", SigTest24IPV4Keyword, 1);
     UtRegisterTest("SigTest25NegativeIPV4Keyword",
@@ -12238,23 +11658,10 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTest35NegativeICMPV4Keyword",
                    SigTest35NegativeICMPV4Keyword, 1);
 
-    /* The following tests check content options with isdataat options
-       relative to that content match
-    */
-
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B2g",
-                    SigTest36ContentAndIsdataatKeywords01B2g, 1);
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01B3g",
-                    SigTest36ContentAndIsdataatKeywords01B3g, 1);
-    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01Wm" ,
-                    SigTest36ContentAndIsdataatKeywords01Wm,  1);
-
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B2g",
-                    SigTest37ContentAndIsdataatKeywords02B2g, 1);
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02B3g",
-                    SigTest37ContentAndIsdataatKeywords02B3g, 1);
-    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02Wm" ,
-                    SigTest37ContentAndIsdataatKeywords02Wm,  1);
+    UtRegisterTest("SigTest36ContentAndIsdataatKeywords01",
+                    SigTest36ContentAndIsdataatKeywords01, 1);
+    UtRegisterTest("SigTest37ContentAndIsdataatKeywords02",
+                    SigTest37ContentAndIsdataatKeywords02, 1);
 
     /* We need to enable these tests, as soon as we add the ICMPv6 protocol
        support in our rules engine */
@@ -12262,13 +11669,9 @@ void SigRegisterTests(void)
     //UtRegisterTest("SigTest37NegativeICMPV6Keyword",
     //               SigTest37NegativeICMPV6Keyword, 1);
 
-    UtRegisterTest("SigTest38B2g -- byte_test test (1)", SigTest38B2g, 1);
-    UtRegisterTest("SigTest38B3g -- byte_test test (1)", SigTest38B3g, 1);
-    UtRegisterTest("SigTest38Wm -- byte_test test (1)", SigTest38Wm, 1);
+    UtRegisterTest("SigTest38 -- byte_test test (1)", SigTest38, 1);
 
-    UtRegisterTest("SigTest39B2g -- byte_jump test (2)", SigTest39B2g, 1);
-    UtRegisterTest("SigTest39B3g -- byte_jump test (2)", SigTest39B3g, 1);
-    UtRegisterTest("SigTest39Wm -- byte_jump test (2)", SigTest39Wm, 1);
+    UtRegisterTest("SigTest39 -- byte_jump test (2)", SigTest39, 1);
 
     UtRegisterTest("SigTest40NoPacketInspection01", SigTest40NoPacketInspection01, 1);
     UtRegisterTest("SigTest40NoPayloadInspection02", SigTest40NoPayloadInspection02, 1);
@@ -12283,37 +11686,15 @@ void SigRegisterTests(void)
     UtRegisterTest("SigTestSgh04", SigTestSgh04, 1);
     UtRegisterTest("SigTestSgh05", SigTestSgh05, 1);
 
-    UtRegisterTest("SigTestContent01B2g -- 32 byte pattern", SigTestContent01B2g, 1);
-    UtRegisterTest("SigTestContent01B3g -- 32 byte pattern", SigTestContent01B3g, 1);
-    UtRegisterTest("SigTestContent01Wm -- 32 byte pattern", SigTestContent01Wm, 1);
+    UtRegisterTest("SigTestContent01 -- 32 byte pattern", SigTestContent01, 1);
+    UtRegisterTest("SigTestContent02 -- 32+31 byte pattern", SigTestContent02, 1);
+    UtRegisterTest("SigTestContent03 -- 32 byte pattern, x2 + distance", SigTestContent03, 1);
+    UtRegisterTest("SigTestContent04 -- 32 byte pattern, x2 + distance/within", SigTestContent04, 1);
+    UtRegisterTest("SigTestContent05 -- distance/within", SigTestContent05, 1);
+    UtRegisterTest("SigTestContent06 -- distance/within ip only", SigTestContent06, 1);
 
-    UtRegisterTest("SigTestContent02B2g -- 32+31 byte pattern", SigTestContent02B2g, 1);
-    UtRegisterTest("SigTestContent02B3g -- 32+31 byte pattern", SigTestContent02B3g, 1);
-    UtRegisterTest("SigTestContent02Wm -- 32+31 byte pattern", SigTestContent02Wm, 1);
-
-    UtRegisterTest("SigTestContent03B2g -- 32 byte pattern, x2 + distance", SigTestContent03B2g, 1);
-    UtRegisterTest("SigTestContent03B3g -- 32 byte pattern, x2 + distance", SigTestContent03B3g, 1);
-    UtRegisterTest("SigTestContent03Wm -- 32 byte pattern, x2 + distance", SigTestContent03Wm, 1);
-
-    UtRegisterTest("SigTestContent04B2g -- 32 byte pattern, x2 + distance/within", SigTestContent04B2g, 1);
-    UtRegisterTest("SigTestContent04B3g -- 32 byte pattern, x2 + distance/within", SigTestContent04B3g, 1);
-    UtRegisterTest("SigTestContent04Wm -- 32 byte pattern, x2 + distance/within", SigTestContent04Wm, 1);
-
-    UtRegisterTest("SigTestContent05B2g -- distance/within", SigTestContent05B2g, 1);
-    UtRegisterTest("SigTestContent05B3g -- distance/within", SigTestContent05B3g, 1);
-    UtRegisterTest("SigTestContent05Wm -- distance/within", SigTestContent05Wm, 1);
-
-    UtRegisterTest("SigTestContent06B2g -- distance/within ip only", SigTestContent06B2g, 1);
-    UtRegisterTest("SigTestContent06B3g -- distance/within ip only", SigTestContent06B3g, 1);
-    UtRegisterTest("SigTestContent06Wm -- distance/within ip only", SigTestContent06Wm, 1);
-
-    UtRegisterTest("SigTestWithinReal01B2g", SigTestWithinReal01B2g, 1);
-    UtRegisterTest("SigTestWithinReal01B3g", SigTestWithinReal01B3g, 1);
-    UtRegisterTest("SigTestWithinReal01Wm", SigTestWithinReal01Wm, 1);
-
-    UtRegisterTest("SigTestDepthOffset01B2g", SigTestDepthOffset01B2g, 1);
-    UtRegisterTest("SigTestDepthOffset01B3g", SigTestDepthOffset01B3g, 1);
-    UtRegisterTest("SigTestDepthOffset01Wm", SigTestDepthOffset01Wm, 1);
+    UtRegisterTest("SigTestWithinReal01", SigTestWithin01, 1);
+    UtRegisterTest("SigTestDepthOffset01", SigTestDepthOffset01, 1);
 
     UtRegisterTest("SigTestDetectAlertCounter", SigTestDetectAlertCounter, 1);
 
