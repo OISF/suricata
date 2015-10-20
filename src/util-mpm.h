@@ -52,10 +52,6 @@ enum {
 /* Internal Pattern Index: 0 to pattern_cnt-1 */
 typedef uint32_t MpmPatternIndex;
 
-typedef struct MpmMatchBucket_ {
-    uint32_t len;
-} MpmMatchBucket;
-
 typedef struct MpmThreadCtx_ {
     void *ctx;
 
