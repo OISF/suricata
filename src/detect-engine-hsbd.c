@@ -62,6 +62,8 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "util-validate.h"
+
 #define BUFFER_STEP 50
 
 static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
@@ -311,6 +313,32 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     *stream_start_offset = det_ctx->hsbd[index].offset;
  end:
     return buffer;
+}
+
+/** \brief Http server body pattern match -- searches for one pattern per
+ *         signature.
+ *
+ *  \param det_ctx  Detection engine thread ctx.
+ *  \param body     The request body to inspect.
+ *  \param body_len Body length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                     uint8_t *body, uint32_t body_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsbd_ctx_tc == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
+        Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
+                &det_ctx->pmq, body, body_len);
+
+    SCReturnUInt(ret);
 }
 
 int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
