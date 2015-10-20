@@ -158,6 +158,7 @@ void TmModuleReceiveIPFWRegister (void)
     tmm_modules[TMM_RECEIVEIPFW].ThreadInit = ReceiveIPFWThreadInit;
     tmm_modules[TMM_RECEIVEIPFW].Func = NULL;
     tmm_modules[TMM_RECEIVEIPFW].PktAcqLoop = ReceiveIPFWLoop;
+    tmm_modules[TMM_RECEIVEIPFW].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = ReceiveIPFWThreadExitStats;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = ReceiveIPFWThreadDeinit;
     tmm_modules[TMM_RECEIVEIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
