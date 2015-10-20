@@ -56,6 +56,33 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http method match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param method     Method to inspect.
+ * \param method_len Method length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t *raw_method, uint32_t raw_method_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, raw_method, raw_method_len);
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                  HtpState *htp_state, uint8_t flags,

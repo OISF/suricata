@@ -47,6 +47,99 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/** \brief Uri Pattern match -- searches for one pattern per signature.
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *
+ *  \retval ret number of matches
+ */
+static uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
+                          uint8_t *uri, uint16_t uri_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_uri_ctx_ts,
+                &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
+
+    //PrintRawDataFp(stdout, uri, uri_len);
+
+    SCReturnUInt(ret);
+}
+
+/**
+ * \brief   Checks if the content sent as the argument, has a uricontent which
+ *          has been provided in the rule. This match function matches the
+ *          normalized http uri against the given rule using multi pattern
+ *          search algorithms.
+ *
+ * \param det_ctx       Pointer to the detection engine thread context
+ * \param content       Pointer to the uri content currently being matched
+ * \param content_len   Content_len of the received uri content
+ *
+ * \retval 1 if the uri contents match; 0 no match
+ */
+static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ctx,
+                                                   uint8_t *uri, uint16_t uri_len, uint8_t flags)
+{
+    int ret = 0;
+    /* run the pattern matcher against the uri */
+    if (det_ctx->sgh->mpm_uricontent_minlen > uri_len) {
+        SCLogDebug("not searching as uri len is smaller than the "
+                   "shortest uricontent length we need to match");
+    } else {
+        SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt "
+                "%" PRIu32 ")", det_ctx->sgh,
+                det_ctx->sgh->mpm_uricontent_minlen, det_ctx->sgh->sig_cnt);
+
+        ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
+
+        SCLogDebug("post search: cnt %" PRIu32, ret);
+    }
+    return ret;
+}
+
+/**
+ *  \brief Run the pattern matcher against the uri(s)
+ *
+ *  We run against _all_ uri(s) we have as the pattern matcher will
+ *  flag each sig that has a match. We need to do this for all uri(s)
+ *  to not miss possible events.
+ *
+ *  \param f locked flow
+ *  \param htp_state initialized htp state
+ *
+ *  \warning Make sure the flow/state is locked
+ *  \todo what should we return? Just the fact that we matched?
+ */
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                    HtpState *htp_state, uint8_t flags,
+                                    void *txv, uint64_t idx)
+{
+    SCEnter();
+
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    uint32_t cnt = 0;
+
+    if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL)
+        goto end;
+    cnt = DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
+                                          bstr_ptr(tx_ud->request_uri_normalized),
+                                          bstr_len(tx_ud->request_uri_normalized),
+                                          flags);
+
+end:
+    SCReturnUInt(cnt);
+}
 
 /**
  * \brief Do the content inspection & validation for a signature
