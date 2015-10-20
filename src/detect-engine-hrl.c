@@ -149,7 +149,6 @@ static int UriTestSig01(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -272,7 +271,6 @@ static int UriTestSig02(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -395,7 +393,6 @@ static int UriTestSig03(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -518,7 +515,6 @@ static int UriTestSig04(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -641,7 +637,6 @@ static int UriTestSig05(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -764,7 +759,6 @@ static int UriTestSig06(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -887,7 +881,6 @@ static int UriTestSig07(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1010,7 +1003,6 @@ static int UriTestSig08(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1133,7 +1125,6 @@ static int UriTestSig09(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1256,7 +1247,6 @@ static int UriTestSig10(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1379,7 +1369,6 @@ static int UriTestSig11(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1503,7 +1492,6 @@ static int UriTestSig12(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1627,7 +1615,6 @@ static int UriTestSig13(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1751,7 +1738,6 @@ static int UriTestSig14(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1875,7 +1861,6 @@ static int UriTestSig15(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -1999,7 +1984,6 @@ static int UriTestSig16(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
@@ -2119,7 +2103,6 @@ static int UriTestSig17(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2215,7 +2198,6 @@ static int UriTestSig18(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2311,7 +2293,6 @@ static int UriTestSig19(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2408,7 +2389,6 @@ static int UriTestSig20(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2504,7 +2484,6 @@ static int UriTestSig21(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2600,7 +2579,6 @@ static int UriTestSig22(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2694,7 +2672,6 @@ static int UriTestSig23(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2788,7 +2765,6 @@ static int UriTestSig24(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2882,7 +2858,6 @@ static int UriTestSig25(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -2976,7 +2951,6 @@ static int UriTestSig26(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3070,7 +3044,6 @@ static int UriTestSig27(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3196,7 +3169,6 @@ static int UriTestSig28(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -3289,7 +3261,6 @@ static int UriTestSig29(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -3382,7 +3353,6 @@ static int UriTestSig30(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -3475,7 +3445,6 @@ static int UriTestSig31(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -3568,7 +3537,6 @@ static int UriTestSig32(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -3661,7 +3629,6 @@ static int UriTestSig33(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3752,7 +3719,6 @@ static int UriTestSig34(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3843,7 +3809,6 @@ static int UriTestSig35(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3934,7 +3899,6 @@ static int UriTestSig36(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -4025,7 +3989,6 @@ static int UriTestSig37(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -4116,7 +4079,6 @@ static int UriTestSig38(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
