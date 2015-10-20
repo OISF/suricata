@@ -58,6 +58,8 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "util-validate.h"
+
 #define BUFFER_STEP 50
 
 static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
@@ -210,6 +212,38 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     *buffer_len = (uint32_t)headers_buffer_len;
  end:
     return headers_buffer;
+}
+
+/**
+ * \brief Http header match -- searches for one pattern per signature.
+ *
+ * \param det_ctx     Detection engine thread ctx.
+ * \param headers     Headers to inspect.
+ * \param headers_len Headers length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t *headers, uint32_t headers_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+    if (flags & STREAM_TOSERVER) {
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_ts == NULL);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, headers, headers_len);
+    } else {
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_tc == NULL);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
+                   &det_ctx->pmq, headers, headers_len);
+    }
+
+    SCReturnUInt(ret);
 }
 
 int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,

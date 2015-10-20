@@ -53,6 +53,33 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http stat code match -- searches for one pattern per signature.
+ *
+ * \param det_ctx       Detection engine thread ctx.
+ * \param stat_code     Stat code to inspect.
+ * \param stat_code_len Stat code length.
+ *
+ *  \retval ret Number of matches.
+ */
+static uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
+                                   uint8_t *stat_code, uint32_t stat_code_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
+        Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
+                &det_ctx->pmq, stat_code, stat_code_len);
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against http stat code.
