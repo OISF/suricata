@@ -61,7 +61,7 @@ enum RunModes {
 };
 
 char *RunmodeGetActive(void);
-const char *RunModeGetMainMode(void);
+const char *RunModeGetMainMode(int index);
 
 void RunModeListRunmodes(void);
 void RunModeDispatch(int, const char *);
