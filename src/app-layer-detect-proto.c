@@ -3315,7 +3315,6 @@ static int AppLayerProtoDetectTest16(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
@@ -3409,7 +3408,6 @@ static int AppLayerProtoDetectTest17(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
@@ -3505,7 +3503,6 @@ static int AppLayerProtoDetectTest18(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert ftp any any -> any any "
@@ -3597,7 +3594,6 @@ static int AppLayerProtoDetectTest19(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
@@ -3700,7 +3696,6 @@ static int AppLayerProtoDetectTest20(void)
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
 
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "

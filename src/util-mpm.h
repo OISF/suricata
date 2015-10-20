@@ -25,51 +25,14 @@
 #define __UTIL_MPM_H__
 #include "suricata-common.h"
 
-#define MPM_ENDMATCH_SINGLE     0x01    /**< A single match is sufficient. No
-                                             depth, offset, etc settings. */
-#define MPM_ENDMATCH_OFFSET     0x02    /**< has offset setting */
-#define MPM_ENDMATCH_DEPTH      0x04    /**< has depth setting */
-#define MPM_ENDMATCH_NOSEARCH   0x08    /**< if this matches, no search is
-                                             required (for this pattern) */
-
-#define HASHSIZE_LOWEST         2048    /**< Lowest hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_LOW            4096    /**< Low hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_MEDIUM         8192    /**< Medium hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_HIGH           16384   /**< High hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_HIGHER         32768   /**< Higher hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_MAX            65536   /**< Max hash size for the multi
-                                             pattern matcher algorithms */
-#define BLOOMSIZE_LOW           512     /*<* Low bloomfilter size for the multi
-                                            pattern matcher algorithms */
-#define BLOOMSIZE_MEDIUM        1024    /**< Medium bloomfilter size for the multi
-                                             pattern matcher algorithms */
-#define BLOOMSIZE_HIGH          2048    /**< High bloomfilter size for the multi
-                                             pattern matcher algorithms */
-
 enum {
     MPM_NOTSET = 0,
-
-    /* wumanber as the name suggests */
-    MPM_WUMANBER,
-    /* bndmq 2 gram */
-    MPM_B2G,
-    /* bndmq 3 gram */
-    MPM_B3G,
-    MPM_B2GC,
-    MPM_B2GM,
 
     /* aho-corasick */
     MPM_AC,
 #ifdef __SC_CUDA_SUPPORT__
     MPM_AC_CUDA,
 #endif
-    /* aho-corasick-goto-failure state based */
-    MPM_AC_GFBS,
     MPM_AC_BS,
     MPM_AC_TILE,
     /* table size */
@@ -255,12 +218,8 @@ void PmqFree(PatternMatcherQueue *);
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
-int MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
-                   uint8_t *bitarray, SigIntId *sids, uint32_t sids_size);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
 void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
-uint32_t MpmGetHashSize(const char *);
-uint32_t MpmGetBloomSize(const char *);
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,

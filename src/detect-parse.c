@@ -2985,7 +2985,6 @@ int SigTestBidirec04 (void)
        with source 192.168.1.1 80, all the sids should match */
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* only sid 2 should match with a packet going to 192.168.1.1 port 80 */
@@ -2998,7 +2997,6 @@ int SigTestBidirec04 (void)
         PACKET_RECYCLE(p);
     }
     FlowShutdown();
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
