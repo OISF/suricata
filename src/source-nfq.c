@@ -186,6 +186,7 @@ void TmModuleReceiveNFQRegister (void)
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = NULL;
     tmm_modules[TMM_RECEIVENFQ].PktAcqLoop = ReceiveNFQLoop;
+    tmm_modules[TMM_RECEIVENFQ].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
