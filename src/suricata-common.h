@@ -226,8 +226,8 @@
  *  extensively keeping this as small as possible reduces the overall memory
  *  footprint of the engine. Set to uint32_t if the engine needs to support
  *  more than 64k sigs. */
-#define SigIntId uint16_t
-//#define SigIntId uint32_t
+//#define SigIntId uint16_t
+#define SigIntId uint32_t
 
 /** same for pattern id's */
 #define PatIntId uint16_t

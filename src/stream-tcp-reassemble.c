@@ -2620,51 +2620,58 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                  TcpSession *ssn, TcpStream *stream, TcpSegment *seg, ReassembleData *rd,
                  Packet *p)
 {
-    /* fast path 1: segment is exactly what we need */
-    if (likely(rd->data_len == 0 &&
-               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
-               SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len))))
-    {
-        /* process single segment directly */
-        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                seg->payload, seg->payload_len,
-                StreamGetAppLayerFlags(ssn, stream, p));
-        AppLayerProfilingStore(ra_ctx->app_tctx, p);
-        rd->data_sent += seg->payload_len;
-        rd->ra_base_seq += seg->payload_len;
+    /* fast paths: send data directly into the app layer, w/o first doing
+     * a copy step. However, don't use the fast path until protocol detection
+     * has been completed
+     * TODO if initial data is big enough for proto detect, we could do the
+     *      fast path anyway. */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) {
+        /* fast path 1: segment is exactly what we need */
+        if (likely(rd->data_len == 0 &&
+                    SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+                    SEQ_EQ(stream->last_ack, (seg->seq + seg->payload_len))))
+        {
+            /* process single segment directly */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    seg->payload, seg->payload_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += seg->payload_len;
+            rd->ra_base_seq += seg->payload_len;
 #ifdef DEBUG
-        ra_ctx->fp1++;
+            ra_ctx->fp1++;
 #endif
-        /* if after the first data chunk we have no alproto yet,
-         * there is no point in continueing here. */
-        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-            SCLogDebug("no alproto after first data chunk");
-            return 0;
-        }
-        return 1;
-    /* fast path 2: segment acked completely, meets minimal size req for 0copy processing */
-    } else if (rd->data_len == 0 &&
-               SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
-               SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) &&
-               seg->payload_len >= stream_config.zero_copy_size)
-    {
-        /* process single segment directly */
-        AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                seg->payload, seg->payload_len,
-                StreamGetAppLayerFlags(ssn, stream, p));
-        AppLayerProfilingStore(ra_ctx->app_tctx, p);
-        rd->data_sent += seg->payload_len;
-        rd->ra_base_seq += seg->payload_len;
+            /* if after the first data chunk we have no alproto yet,
+             * there is no point in continueing here. */
+            if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                SCLogDebug("no alproto after first data chunk");
+                return 0;
+            }
+            return 1;
+            /* fast path 2: segment acked completely, meets minimal size req for 0copy processing */
+        } else if (rd->data_len == 0 &&
+                SEQ_EQ(seg->seq, rd->ra_base_seq+1) &&
+                SEQ_GT(stream->last_ack, (seg->seq + seg->payload_len)) &&
+                seg->payload_len >= stream_config.zero_copy_size)
+        {
+            /* process single segment directly */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    seg->payload, seg->payload_len,
+                    StreamGetAppLayerFlags(ssn, stream, p));
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+            rd->data_sent += seg->payload_len;
+            rd->ra_base_seq += seg->payload_len;
 #ifdef DEBUG
-        ra_ctx->fp2++;
+            ra_ctx->fp2++;
 #endif
-        /* if after the first data chunk we have no alproto yet,
-         * there is no point in continueing here. */
-        if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
-            SCLogDebug("no alproto after first data chunk");
-            return 0;
+            /* if after the first data chunk we have no alproto yet,
+             * there is no point in continueing here. */
+            if (!StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
+                SCLogDebug("no alproto after first data chunk");
+                return 0;
+            }
+            return 1;
         }
-        return 1;
     }
 #ifdef DEBUG
     ra_ctx->sp++;
@@ -2888,6 +2895,49 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     GetSessionSize(ssn, p);
 #endif
 
+    /* Check if we have a gap at the start of the stream. 2 conditions:
+     * 1. no segments, but last_ack moved fwd
+     * 2. segments, but clearly some missing: if last_ack is
+     *    bigger than the list start and the list start is bigger than
+     *    next_seq, we know we are missing data that has been ack'd. That
+     *    won't get retransmitted, so it's a data gap.
+     */
+    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
+        int ackadd = (ssn->state >= TCP_FIN_WAIT2) ? 2 : 1;
+        if ((stream->seg_list == NULL && /*1*/
+                    stream->ra_app_base_seq == stream->isn &&
+                    SEQ_GT(stream->last_ack, stream->isn + ackadd))
+                ||
+            (stream->seg_list != NULL && /*2*/
+                    SEQ_GT(stream->seg_list->seq, stream->ra_app_base_seq+1) &&
+                    SEQ_LT(stream->seg_list->seq, stream->last_ack)))
+        {
+            if (stream->seg_list == NULL) {
+                SCLogDebug("no segs, last_ack moved fwd so GAP "
+                        "(base %u, isn %u, last_ack %u => diff %u) p %"PRIu64,
+                        stream->ra_app_base_seq, stream->isn, stream->last_ack,
+                        stream->last_ack - (stream->isn + ackadd), p->pcap_cnt);
+            }
+
+            /* send gap signal */
+            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
+                    NULL, 0,
+                    StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
+            AppLayerProfilingStore(ra_ctx->app_tctx, p);
+
+            /* set a GAP flag and make sure not bothering this stream anymore */
+            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
+            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+
+            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
+            StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
+#ifdef DEBUG
+            dbg_app_layer_gap++;
+#endif
+            SCReturnInt(0);
+        }
+    }
+
     /* if no segments are in the list or all are already processed,
      * and state is beyond established, we send an empty msg */
     TcpSegment *seg_tail = stream->seg_list_tail;
@@ -2934,35 +2984,14 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
     SCLogDebug("pre-loop seg %p", seg);
-
-    /* Check if we have a gap at the start of the list. If last_ack is
-     * bigger than the list start and the list start is bigger than
-     * next_seq, we know we are missing data that has been ack'd. That
-     * won't get retransmitted, so it's a data gap.
-     */
-    if (!(ssn->flags & STREAMTCP_FLAG_APP_LAYER_DISABLED)) {
-        if (SEQ_GT(seg->seq, next_seq) && SEQ_LT(seg->seq, stream->last_ack)) {
-            /* send gap signal */
-            AppLayerHandleTCPData(tv, ra_ctx, p, p->flow, ssn, stream,
-                    NULL, 0,
-                    StreamGetAppLayerFlags(ssn, stream, p)|STREAM_GAP);
-            AppLayerProfilingStore(ra_ctx->app_tctx, p);
-
-            /* set a GAP flag and make sure not bothering this stream anymore */
-            SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
-            stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
-
-            StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
-            StatsIncr(tv, ra_ctx->counter_tcp_reass_gap);
-#ifdef DEBUG
-            dbg_app_layer_gap++;
+#ifdef DEBUG_VALIDATION
+    uint64_t bytes = 0;
 #endif
-            SCReturnInt(0);
-        }
-    }
-
     for (; seg != NULL; )
     {
+#ifdef DEBUG_VALIDATION
+        bytes += seg->payload_len;
+#endif
         /* if in inline mode, we process all segments regardless of whether
          * they are ack'd or not. In non-inline, we process only those that
          * are at least partly ack'd. */
@@ -3007,6 +3036,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         }
         seg = next_seg;
     }
+#ifdef DEBUG_VALIDATION /* we should never have this much data queued */
+    BUG_ON(bytes > 1000000ULL && bytes > (stream->window * 1.5));
+#endif
 
     /* put the partly filled smsg in the queue to the l7 handler */
     if (rd.data_len > 0) {
@@ -3035,6 +3067,8 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
     } else {
         TcpSegment *tmp_seg = stream->seg_list;
         while (tmp_seg != NULL) {
+            if (!(tmp_seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+                break;
             tmp_seg->flags &= ~SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
             tmp_seg = tmp_seg->next;
         }
@@ -5417,6 +5451,9 @@ static int StreamTcpReassembleTest30 (void)
     th_flag = TH_ACK|TH_PUSH;
     th_flags = TH_ACK;
 
+    ssn.client.last_ack = 2;
+    ssn.client.isn = 1;
+
     ssn.server.last_ack = 22;
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
     ssn.server.isn = 9;
@@ -6100,7 +6137,7 @@ static int StreamTcpReassembleTest38 (void)
     ssn.server.last_ack = 60;
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
-    ssn.client.last_ack = 60;
+    ssn.client.last_ack = 9;
     f.alproto = ALPROTO_UNKNOWN;
 
     f.flags |= FLOW_IPV4;
@@ -7218,7 +7255,7 @@ static int StreamTcpReassembleTest45 (void)
     ssn.server.last_ack = 60;
     STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 9);
     ssn.client.isn = 9;
-    ssn.client.last_ack = 60;
+    ssn.client.last_ack = 9;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
     if (f == NULL)
@@ -7337,7 +7374,7 @@ static int StreamTcpReassembleTest46 (void)
     ssn.server.next_seq = ssn.server.isn;
     STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 9);
     ssn.client.isn = 9;
-    ssn.client.last_ack = 60;
+    ssn.client.last_ack = 9;
     ssn.client.next_seq = ssn.client.isn;
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
@@ -8405,6 +8442,9 @@ static int StreamTcpReassembleInlineTest10(void)
     StreamTcpUTInitInline();
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.server, 1);
+    ssn.server.last_ack = 2;
+    StreamTcpUTSetupStream(&ssn.client, 1);
+    ssn.client.last_ack = 2;
 
     f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (f == NULL)

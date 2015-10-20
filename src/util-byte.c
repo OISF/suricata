@@ -207,7 +207,7 @@ int ByteExtractStringUint32(uint32_t *res, int base, uint16_t len, const char *s
 
     if ((uint64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIu32 ")", i64, UINT_MAX);
+                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UINT_MAX);
         return -1;
     }
 
@@ -228,7 +228,7 @@ int ByteExtractStringUint16(uint16_t *res, int base, uint16_t len, const char *s
 
     if ((uint64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIu16 ")", i64, USHRT_MAX);
+                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)USHRT_MAX);
         return -1;
     }
 
@@ -249,7 +249,7 @@ int ByteExtractStringUint8(uint8_t *res, int base, uint16_t len, const char *str
 
     if ((uint64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIu64 " > %" PRIu8 ")", i64, UCHAR_MAX);
+                   "(%" PRIu64 " > %" PRIuMAX ")", i64, (uintmax_t)UCHAR_MAX);
         return -1;
     }
 
@@ -326,7 +326,7 @@ int ByteExtractStringInt32(int32_t *res, int base, uint16_t len, const char *str
 
     if ((int64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIi64 " > %" PRIi32 ")\n", i64, INT_MAX);
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)INT_MAX);
         return -1;
     }
 
@@ -347,7 +347,7 @@ int ByteExtractStringInt16(int16_t *res, int base, uint16_t len, const char *str
 
     if ((int64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIi64 " > %" PRIi16 ")\n", i64, SHRT_MAX);
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)SHRT_MAX);
         return -1;
     }
 
@@ -368,7 +368,7 @@ int ByteExtractStringInt8(int8_t *res, int base, uint16_t len, const char *str)
 
     if ((int64_t)(*res) != i64) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range "
-                   "(%" PRIi64 " > %" PRIi8 ")\n", i64, CHAR_MAX);
+                   "(%" PRIi64 " > %" PRIiMAX ")\n", i64, (intmax_t)CHAR_MAX);
         return -1;
     }
 

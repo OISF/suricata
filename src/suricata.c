@@ -88,6 +88,7 @@
 #include "log-dnslog.h"
 #include "output-json-dns.h"
 #include "log-tlslog.h"
+#include "log-tlsstore.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "log-pcap.h"
@@ -100,6 +101,8 @@
 #include "log-stats.h"
 
 #include "output-json.h"
+
+#include "output-json-template.h"
 
 #include "stream-tcp.h"
 
@@ -872,6 +875,7 @@ void RegisterAllModules()
     /* tls log */
     TmModuleLogTlsLogRegister();
     TmModuleJsonTlsLogRegister();
+    TmModuleLogTlsStoreRegister();
     /* ssh */
     TmModuleJsonSshLogRegister();
     /* pcap log */
@@ -894,6 +898,9 @@ void RegisterAllModules()
     TmModuleJsonNetFlowLogRegister();
     /* json stats */
     TmModuleJsonStatsLogRegister();
+
+    /* Template JSON logger. */
+    TmModuleJsonTemplateLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
@@ -2268,6 +2275,7 @@ int main(int argc, char **argv)
     if (!suri.disabled_detect) {
         SCClassConfInit();
         SCReferenceConfInit();
+        DetectEngineMultiTenantSetup();
         SetupDelayedDetect(&suri);
         if (!suri.delayed_detect) {
             de_ctx = DetectEngineCtxInit();

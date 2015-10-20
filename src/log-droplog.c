@@ -125,7 +125,6 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
         if (logfile_ctx != NULL) {
-            OutputUnregisterFileRotationFlag(&logfile_ctx->rotation_flag);
             LogFileFreeCtx(logfile_ctx);
         }
         SCFree(output_ctx);
@@ -151,11 +150,10 @@ static OutputCtx *LogDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
-    OutputRegisterFileRotationFlag(&logfile_ctx->rotation_flag);
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -246,11 +244,11 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
             break;
         case IPPROTO_ICMP:
             if (PKT_IS_ICMPV4(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8""
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV4_GET_TYPE(p),
                         ICMPV4_GET_CODE(p), ICMPV4_GET_ID(p), ICMPV4_GET_SEQ(p));
             } else if(PKT_IS_ICMPV6(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8""
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV6_GET_TYPE(p),
                         ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
             }

@@ -484,7 +484,7 @@ static void SigNumArrayPrint(void *tmp)
 
         for (; i < 8; i++) {
             if (bitarray & 0x01)
-                printf(", %"PRIu16"", u * 8 + i);
+                printf(", %"PRIu32"", u * 8 + i);
             else
                 printf(", ");
 

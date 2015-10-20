@@ -220,7 +220,9 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0 }, 0, 0, 0};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0};
+
+static SMTPString *SMTPStringAlloc(void);
 
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
@@ -263,6 +265,11 @@ static void SMTPConfigure(void) {
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
         if (ret) {
             smtp_config.mime_config.extract_urls = val;
+        }
+
+        ret = ConfGetChildValueBool(config, "body-md5", &val);
+        if (ret) {
+            smtp_config.mime_config.body_md5 = val;
         }
     }
 
@@ -323,6 +330,7 @@ static SMTPTransaction *SMTPTransactionCreate(void)
         return NULL;
     }
 
+    TAILQ_INIT(&tx->rcpt_to_list);
     tx->mime_state = NULL;
     return tx;
 }
@@ -366,7 +374,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             if (smtp_state->files_ts == NULL) {
                 ret = MIME_DEC_ERR_MEM;
                 SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
-                goto end;
+                SCReturnInt(ret);
             }
         }
         files = smtp_state->files_ts;
@@ -448,7 +456,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     if (files != NULL) {
         FilePrune(files);
     }
-end:
+
     SCReturnInt(ret);
 }
 
@@ -805,7 +813,8 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 
         if (smtp_config.decode_mime && state->curr_tx->mime_state) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
-                    state->current_line_len, state->curr_tx->mime_state);
+                    state->current_line_len, state->current_line_delimiter_len,
+                    state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
                 SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
             }
@@ -955,6 +964,71 @@ static int SMTPParseCommandBDAT(SMTPState *state)
     return 0;
 }
 
+static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8_t **target, uint16_t *target_len)
+{
+    int i = prefix_len + 1;
+    int spc_i = 0;
+
+    while (i < state->current_line_len) {
+        if (state->current_line[i] != ' ') {
+            break;
+        }
+        i++;
+    }
+
+    /* rfc1870: with the size extension the mail from can be followed by an option.
+       We use the space separator to detect it. */
+    spc_i = i;
+    while (spc_i < state->current_line_len) {
+        if (state->current_line[spc_i] == ' ') {
+            break;
+        }
+        spc_i++;
+    }
+
+    *target = SCMalloc(spc_i - i + 1);
+    if (*target == NULL)
+        return -1;
+    memcpy(*target, state->current_line + i, spc_i - i);
+    (*target)[spc_i - i] = '\0';
+    *target_len = spc_i - i;
+
+    return 0;
+}
+
+static int SMTPParseCommandHELO(SMTPState *state)
+{
+    return SMTPParseCommandWithParam(state, 4, &state->helo, &state->helo_len);
+}
+
+static int SMTPParseCommandMAILFROM(SMTPState *state)
+{
+    return SMTPParseCommandWithParam(state, 9,
+                                     &state->curr_tx->mail_from,
+                                     &state->curr_tx->mail_from_len);
+}
+
+static int SMTPParseCommandRCPTTO(SMTPState *state)
+{
+    uint8_t *rcptto;
+    uint16_t rcptto_len;
+
+    if (SMTPParseCommandWithParam(state, 7, &rcptto, &rcptto_len) == 0) {
+        SMTPString *rcptto_str = SMTPStringAlloc();
+        if (rcptto_str) {
+            rcptto_str->str = rcptto;
+            rcptto_str->len = rcptto_len;
+            TAILQ_INSERT_TAIL(&state->curr_tx->rcpt_to_list, rcptto_str, next);
+        } else {
+            SCFree(rcptto);
+            return -1;
+        }
+    } else {
+        return -1;
+    }
+    return 0;
+}
+
 /* consider 'rset' and 'quit' to be part of the existing state */
 static int NoNewTx(SMTPState *state)
 {
@@ -1027,6 +1101,28 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
             }
             state->current_command = SMTP_COMMAND_BDAT;
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        } else if (state->current_line_len >= 4 &&
+                   ((SCMemcmpLowercase("helo", state->current_line, 4) == 0) ||
+                    SCMemcmpLowercase("ehlo", state->current_line, 4) == 0))  {
+            r = SMTPParseCommandHELO(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 9 &&
+                   SCMemcmpLowercase("mail from", state->current_line, 9) == 0) {
+            r = SMTPParseCommandMAILFROM(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
+        } else if (state->current_line_len >= 7 &&
+                   SCMemcmpLowercase("rcpt to", state->current_line, 7) == 0) {
+            r = SMTPParseCommandRCPTTO(state);
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
+            state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
@@ -1142,6 +1238,25 @@ void *SMTPStateAlloc(void)
     return smtp_state;
 }
 
+static SMTPString *SMTPStringAlloc(void)
+{
+    SMTPString *smtp_string = SCMalloc(sizeof(SMTPString));
+    if (unlikely(smtp_string == NULL))
+        return NULL;
+    memset(smtp_string, 0, sizeof(SMTPString));
+
+    return smtp_string;
+}
+
+
+static void SMTPStringFree(SMTPString *str)
+{
+    if (str->str) {
+        SCFree(str->str);
+    }
+    SCFree(str);
+}
+
 static void *SMTPLocalStorageAlloc(void)
 {
     /* needed by the mpm */
@@ -1178,6 +1293,15 @@ static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
 
     if (tx->de_state != NULL)
         DetectEngineStateFree(tx->de_state);
+
+    if (tx->mail_from)
+        SCFree(tx->mail_from);
+
+    SMTPString *str = NULL;
+    while ((str = TAILQ_FIRST(&tx->rcpt_to_list))) {
+        TAILQ_REMOVE(&tx->rcpt_to_list, str, next);
+        SMTPStringFree(str);
+    }
 #if 0
         if (tx->decoder_events->cnt <= smtp_state->events)
             smtp_state->events -= tx->decoder_events->cnt;
@@ -1203,6 +1327,10 @@ static void SMTPStateFree(void *p)
     }
     if (smtp_state->tc_current_line_db) {
         SCFree(smtp_state->tc_db);
+    }
+
+    if (smtp_state->helo) {
+        SCFree(smtp_state->helo);
     }
 
     FileContainerFree(smtp_state->files_ts);
@@ -4365,6 +4493,13 @@ int SMTPParserTest14(void)
         SCMutexUnlock(&f.m);
         goto end;
     }
+
+    if ((smtp_state->helo_len != 7) || strncmp("boo.com", (char *)smtp_state->helo, 7)) {
+        printf("incorrect parsing of HELO field '%s' (%d)\n", smtp_state->helo, smtp_state->helo_len);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+
     SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||
@@ -4402,6 +4537,16 @@ int SMTPParserTest14(void)
         SCMutexUnlock(&f.m);
         goto end;
     }
+
+    if ((smtp_state->curr_tx->mail_from_len != 14) ||
+        strncmp("asdff@asdf.com", (char *)smtp_state->curr_tx->mail_from, 14)) {
+        printf("incorrect parsing of MAIL FROM field '%s' (%d)\n",
+               smtp_state->curr_tx->mail_from,
+               smtp_state->curr_tx->mail_from_len);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+
     SCMutexUnlock(&f.m);
     if (smtp_state->input_len != 0 ||
             smtp_state->cmds_cnt != 0 ||

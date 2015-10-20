@@ -223,17 +223,22 @@ uint64_t DNSGetTxCnt(void *alstate)
 int DNSGetAlstateProgress(void *tx, uint8_t direction)
 {
     DNSTransaction *dns_tx = (DNSTransaction *)tx;
-    if (direction == 1)
-        return dns_tx->replied|dns_tx->reply_lost;
+    if (direction & STREAM_TOCLIENT) {
+        /* response side of the tx is done if we parsed a reply
+         * or if we tagged this tx as 'reply lost'. */
+        return (dns_tx->replied|dns_tx->reply_lost) ? 1 : 0;
+    }
     else {
-        /* toserver/query is complete if we have stored a query */
-        return (TAILQ_FIRST(&dns_tx->query_list) != NULL);
+        /* tx is only created if we have a complete request,
+         * or if we lost the request. Either way, if we have
+         * a tx it we consider the request complete. */
+        return 1;
     }
 }
 
 /** \brief get value for 'complete' status in DNS
  *
- *  For DNS we use a simple bool.
+ *  For DNS we use a simple bool. 1 means done.
  */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
 {

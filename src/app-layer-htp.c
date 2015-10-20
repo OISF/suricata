@@ -35,6 +35,7 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
+#include "conf.h"
 #include "debug.h"
 #include "decode.h"
 #include "threads.h"
@@ -58,6 +59,7 @@
 #include "app-layer-htp-body.h"
 #include "app-layer-htp-file.h"
 #include "app-layer-htp-libhtp.h"
+#include "app-layer-htp-xff.h"
 
 #include "util-spm.h"
 #include "util-debug.h"
@@ -73,7 +75,6 @@
 #include "detect-parse.h"
 
 #include "decode-events.h"
-#include "conf.h"
 
 #include "util-memcmp.h"
 
@@ -408,6 +409,17 @@ static void HTPStateTransactionFree(void *state, uint64_t id)
         HtpTxUserDataFree(s, htud);
         htp_tx_set_user_data(tx, NULL);
 
+        /* hack: even if libhtp considers the tx incomplete, we want to
+         * free it here. htp_tx_destroy however, will refuse to do this.
+         * As htp_tx_destroy_incomplete isn't available in the public API,
+         * we hack around it here. */
+        if (unlikely(!(
+            tx->request_progress == HTP_REQUEST_COMPLETE &&
+            tx->response_progress == HTP_RESPONSE_COMPLETE)))
+        {
+            tx->request_progress = HTP_REQUEST_COMPLETE;
+            tx->response_progress = HTP_RESPONSE_COMPLETE;
+        }
         htp_tx_destroy(tx);
     }
 }
@@ -6210,6 +6222,7 @@ void HTPParserRegisterTests(void)
     UtRegisterTest("HTPParserTest16", HTPParserTest16, 1);
 
     HTPFileParserRegisterTests();
+    HTPXFFParserRegisterTests();
 #endif /* UNITTESTS */
 }
 

@@ -35,6 +35,7 @@
 #include "flow-util.h"
 #include "flow-private.h"
 #include "flow-manager.h"
+#include "flow-storage.h"
 #include "app-layer-parser.h"
 
 #include "util-time.h"
@@ -472,7 +473,7 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
     f = FlowDequeue(&flow_spare_q);
     if (f == NULL) {
         /* If we reached the max memcap, we get a used flow */
-        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
+        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow) + FlowStorageSize()))) {
             /* declare state of emergency */
             if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
                 SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);

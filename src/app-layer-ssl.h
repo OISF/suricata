@@ -76,7 +76,12 @@ enum {
 /* flags specific to HeartBeat state */
 #define SSL_AL_FLAG_HB_INFLIGHT                 0x8000
 #define SSL_AL_FLAG_HB_CLIENT_INIT              0x10000
-#define SSL_AL_FLAG_HB_SERVER_INIT		0x20000
+#define SSL_AL_FLAG_HB_SERVER_INIT              0x20000
+
+/* flags for file storage */
+#define SSL_AL_FLAG_STATE_STORED                0x40000
+
+#define SSL_AL_FLAG_STATE_LOGGED_LUA            0x80000
 
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)

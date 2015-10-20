@@ -443,7 +443,7 @@ void FlowInitConfig(char quiet)
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
-        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
+        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow) + FlowStorageSize()))) {
             SCLogError(SC_ERR_FLOW_INIT, "preallocating flows failed: "
                     "max flow memcap reached. Memcap %"PRIu64", "
                     "Memuse %"PRIu64".", flow_config.memcap,
@@ -462,7 +462,7 @@ void FlowInitConfig(char quiet)
 
     if (quiet == FALSE) {
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
-                flow_spare_q.len, (uintmax_t)sizeof(Flow));
+                flow_spare_q.len, (uintmax_t)(sizeof(Flow) + + FlowStorageSize()));
         SCLogInfo("flow memory usage: %llu bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
     }
@@ -868,6 +868,37 @@ AppProto FlowGetAppProtocol(const Flow *f)
 void *FlowGetAppState(const Flow *f)
 {
     return f->alstate;
+}
+
+/**
+ *  \brief get 'disruption' flags: GAP/DEPTH/PASS
+ *  \param f locked flow
+ *  \param flags existing flags to be ammended
+ *  \retval flags original flags + disrupt flags (if any)
+ *  \TODO handle UDP
+ */
+uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
+{
+    if (f->proto != IPPROTO_TCP) {
+        return flags;
+    }
+    if (f->protoctx == NULL) {
+        return flags;
+    }
+
+    uint8_t newflags = flags;
+    TcpSession *ssn = f->protoctx;
+    TcpStream *stream = flags & STREAM_TOSERVER ? &ssn->client : &ssn->server;
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        newflags |= STREAM_DEPTH;
+    }
+    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
+        newflags |= STREAM_GAP;
+    }
+    /* todo: handle pass case (also for UDP!) */
+
+    return newflags;
 }
 
 /************************************Unittests*******************************/

@@ -267,7 +267,7 @@ int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
     uint32_t cnt = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
-    uint8_t *buffer = 0;
+    uint8_t *buffer = NULL;
 
     if (ffc != NULL) {
         File *file = ffc->head;
@@ -278,11 +278,10 @@ int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
                                                     flags,
                                                     &buffer_len,
                                                     &stream_start_offset);
-
             if (buffer_len == 0)
                 goto end;
 
-            cnt = SMTPFiledataPatternSearch(det_ctx, buffer, buffer_len, flags);
+            cnt += SMTPFiledataPatternSearch(det_ctx, buffer, buffer_len, flags);
         }
     }
 end:

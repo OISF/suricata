@@ -216,11 +216,11 @@ int ThresholdHandlePacketSuppress(Packet *p, DetectThresholdData *td, uint32_t s
     switch (td->track) {
         case TRACK_DST:
             m = DetectAddressLookupInHead(&td->addrs, &p->dst);
-            SCLogInfo("TRACK_DST");
+            SCLogDebug("TRACK_DST");
             break;
         case TRACK_SRC:
             m = DetectAddressLookupInHead(&td->addrs, &p->src);
-            SCLogInfo("TRACK_SRC");
+            SCLogDebug("TRACK_SRC");
             break;
         /* suppress if either src or dst is a match on the suppress
          * address list */

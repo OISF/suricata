@@ -66,6 +66,7 @@
 #include "util-lua-common.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
+#include "util-lua-tls.h"
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -560,7 +561,7 @@ static int LuaDecrFlowint(lua_State *luastate)
 }
 
 void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngineThreadCtx *det_ctx,
-        Flow *f, int flow_locked, Packet *p)
+        Flow *f, int flow_locked, Packet *p, uint8_t flags)
 {
     SCLogDebug("det_ctx %p, f %p", det_ctx, f);
 
@@ -587,6 +588,8 @@ void LuaExtensionsMatchSetup(lua_State *lua_state, DetectLuaData *ld, DetectEngi
 
     if (p != NULL)
         LuaStateSetPacket(lua_state, p);
+
+    LuaStateSetDirection(lua_state, (flags & STREAM_TOSERVER));
 }
 
 /**
@@ -615,6 +618,7 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterFunctions(lua_state);
     LuaRegisterHttpFunctions(lua_state);
     LuaRegisterDnsFunctions(lua_state);
+    LuaRegisterTlsFunctions(lua_state);
     return 0;
 }
 

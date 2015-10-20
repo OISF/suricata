@@ -216,13 +216,13 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
 {
     int ret = 0;
     /* run the pattern matcher against the uri */
-    if (det_ctx->sgh->mpm_uricontent_maxlen > uri_len) {
-        SCLogDebug("not searching as pkt payload is smaller than the "
-                "largest uricontent length we need to match");
+    if (det_ctx->sgh->mpm_uricontent_minlen > uri_len) {
+        SCLogDebug("not searching as uri len is smaller than the "
+                   "shortest uricontent length we need to match");
     } else {
-        SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt "
-                "%" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->
-                mpm_uricontent_maxlen, det_ctx->sgh->sig_cnt);
+        SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt "
+                "%" PRIu32 ")", det_ctx->sgh,
+                det_ctx->sgh->mpm_uricontent_minlen, det_ctx->sgh->sig_cnt);
 
         ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
 

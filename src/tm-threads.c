@@ -991,7 +991,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
                 tv->thread_priority = taf->prio;
             }
             SCLogInfo("Setting prio %d for \"%s\" Module to cpu/core "
-                      "%"PRIu16", thread id %lu", tv->thread_priority,
+                      "%d, thread id %lu", tv->thread_priority,
                       tv->name, cpu, SCGetThreadIdLong());
         } else {
             SetCPUAffinitySet(&taf->cpu_set);

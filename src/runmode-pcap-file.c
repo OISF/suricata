@@ -217,8 +217,8 @@ int RunModeFilePcapAutoFp(void)
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 

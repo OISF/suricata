@@ -103,7 +103,7 @@ static void NetmapDerefConfig(void *conf)
 *
 * \return a NetmapIfaceConfig corresponding to the interface name
 */
-static void *ParseNetmapConfig(const char *iface)
+static void *ParseNetmapConfig(const char *iface_name)
 {
     char *threadsstr = NULL;
     ConfNode *if_root;
@@ -120,20 +120,29 @@ static void *ParseNetmapConfig(const char *iface)
         return NULL;
     }
 
-    if (iface == NULL) {
+    if (iface_name == NULL) {
         SCFree(aconf);
         return NULL;
     }
 
     memset(aconf, 0, sizeof(*aconf));
-    strlcpy(aconf->iface, iface, sizeof(aconf->iface));
-    SC_ATOMIC_INIT(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->DerefFunc = NetmapDerefConfig;
     aconf->threads = 1;
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     aconf->copy_mode = NETMAP_COPY_MODE_NONE;
+    strlcpy(aconf->iface_name, iface_name, sizeof(aconf->iface_name));
+    SC_ATOMIC_INIT(aconf->ref);
+    (void) SC_ATOMIC_ADD(aconf->ref, 1);
+
+    strlcpy(aconf->iface, aconf->iface_name, sizeof(aconf->iface));
+    if (aconf->iface[0]) {
+        size_t len = strlen(aconf->iface);
+        if (aconf->iface[len-1] == '+') {
+            aconf->iface[len-1] = '\0';
+            aconf->iface_sw = 1;
+        }
+    }
 
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
@@ -150,14 +159,14 @@ static void *ParseNetmapConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(netmap_node, "interface", iface);
+    if_root = ConfNodeLookupKeyValue(netmap_node, "interface", aconf->iface_name);
 
     if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find netmap config for "
                 "interface \"%s\" or \"default\", using default value",
-                iface);
+                aconf->iface_name);
         return aconf;
     }
 
@@ -171,7 +180,7 @@ static void *ParseNetmapConfig(const char *iface)
         aconf->threads = 1;
     } else {
         if (strcmp(threadsstr, "auto") == 0) {
-            aconf->threads = GetIfaceRSSQueuesNum(iface);
+            aconf->threads = GetIfaceRSSQueuesNum(aconf->iface);
         } else {
             aconf->threads = (uint8_t)atoi(threadsstr);
         }
@@ -181,33 +190,44 @@ static void *ParseNetmapConfig(const char *iface)
         aconf->threads = 1;
     }
     if (aconf->threads) {
-        SCLogInfo("Using %d threads for interface %s", aconf->threads, iface);
+        SCLogInfo("Using %d threads for interface %s", aconf->threads,
+                  aconf->iface_name);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
-            aconf->out_iface = out_iface;
+            aconf->out_iface_name = out_iface;
         }
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
-        if (aconf->out_iface == NULL) {
+        if (aconf->out_iface_name == NULL) {
             SCLogInfo("Copy mode activated but no destination"
                     " iface. Disabling feature");
         } else if (strlen(copymodestr) <= 0) {
-            aconf->out_iface = NULL;
+            aconf->out_iface_name = NULL;
         } else if (strcmp(copymodestr, "ips") == 0) {
             SCLogInfo("Netmap IPS mode activated %s->%s",
-                    iface,
-                    aconf->out_iface);
+                    aconf->iface_name,
+                    aconf->out_iface_name);
             aconf->copy_mode = NETMAP_COPY_MODE_IPS;
         } else if (strcmp(copymodestr, "tap") == 0) {
             SCLogInfo("Netmap TAP mode activated %s->%s",
-                    iface,
-                    aconf->out_iface);
+                    aconf->iface_name,
+                    aconf->out_iface_name);
             aconf->copy_mode = NETMAP_COPY_MODE_TAP;
         } else {
             SCLogInfo("Invalid mode (not in tap, ips)");
+        }
+    }
+
+    if (aconf->out_iface_name && aconf->out_iface_name[0]) {
+        strlcpy(aconf->out_iface, aconf->out_iface_name,
+                sizeof(aconf->out_iface));
+        size_t len = strlen(aconf->out_iface);
+        if (aconf->out_iface[len-1] == '+') {
+            aconf->out_iface[len-1] = '\0';
+            aconf->out_iface_sw = 1;
         }
     }
 
@@ -239,7 +259,7 @@ static void *ParseNetmapConfig(const char *iface)
         } else if (strcmp(tmpctype, "no") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface);
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface_name);
         }
     }
 

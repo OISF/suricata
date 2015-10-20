@@ -155,6 +155,8 @@
 #include "detect-geoip.h"
 #include "detect-dns-query.h"
 #include "detect-app-layer-protocol.h"
+#include "detect-template.h"
+#include "detect-template-buffer.h"
 
 #include "util-rule-vars.h"
 
@@ -162,6 +164,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "app-layer-smtp.h"
+#include "app-layer-template.h"
 #include "detect-tls.h"
 #include "detect-tls-version.h"
 #include "detect-ssh-proto-version.h"
@@ -689,7 +692,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
                             (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
@@ -708,7 +711,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
 
                 /* if the smsg is bigger than the current packet, we will
                  * process the smsg in a later run */
-                if ((head->seq + head->data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                if (SEQ_GT((head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len))) {
                     SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
                             (head->seq + head->data_len), (TCP_GET_SEQ(p) + p->payload_len));
                     goto end;
@@ -868,7 +871,8 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
  */
 static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        uint8_t flags, AppProto alproto, int has_state, uint8_t *sms_runflags)
+        const uint8_t flags, const AppProto alproto,
+        const int has_state, uint8_t *sms_runflags)
 {
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
@@ -893,14 +897,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             int tx_progress = 0;
             uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-            uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, ALPROTO_HTTP, alstate);
+            uint64_t total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, alstate);
             for (; idx < total_txs; idx++) {
-                htp_tx_t *tx = AppLayerParserGetTx(p->flow->proto, ALPROTO_HTTP, htp_state, idx);
+                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
                 if (tx == NULL)
                     continue;
-                tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOSERVER);
 
                 if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
+
                     if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
@@ -960,7 +965,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
                 } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(p->flow->proto, ALPROTO_HTTP, tx, STREAM_TOCLIENT);
+                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
                     if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
@@ -1081,8 +1086,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         }
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
             /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
-                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+            SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
+                    det_ctx->sgh, det_ctx->sgh->mpm_content_minlen, det_ctx->sgh->sig_cnt);
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
             PacketPatternSearch(det_ctx, p);
@@ -1232,11 +1237,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 #ifdef PROFILING
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
-    uint8_t flags = 0;          /* flow/state flags */
+    uint8_t flow_flags = 0; /* flow/state flags */
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
-    uint16_t alversion = 0;
+    uint8_t alversion = 0;
     int state_alert = 0;
     int alerts = 0;
     int app_decoder_events = 0;
@@ -1261,13 +1266,28 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flow_flags = STREAM_TOSERVER;
+            SCLogDebug("flag STREAM_TOSERVER set");
+        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+            flow_flags = STREAM_TOCLIENT;
+            SCLogDebug("flag STREAM_TOCLIENT set");
+        }
+        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
+
         if (p->flags & PKT_STREAM_EOF) {
-            flags |= STREAM_EOF;
+            flow_flags |= STREAM_EOF;
             SCLogDebug("STREAM_EOF set");
         }
 
         FLOWLOCK_WRLOCK(pflow);
         {
+            /* store tenant_id in the flow so that we can use it
+             * for creating pseudo packets */
+            if (p->tenant_id > 0 && pflow->tenant_id == 0) {
+                pflow->tenant_id = p->tenant_id;
+            }
+
             /* live ruleswap check for flow updates */
             if (pflow->de_ctx_id == 0) {
                 /* first time this flow is inspected, set id */
@@ -1307,7 +1327,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(pflow, p, flags);
+                smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1325,6 +1345,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 (p->proto == IPPROTO_UDP) ||
                 (p->proto == IPPROTO_SCTP && (p->flowflags & FLOW_PKT_ESTABLISHED)))
             {
+                /* update flow flags with knowledge on disruptions */
+                flow_flags = FlowGetDisruptionFlags(pflow, flow_flags);
                 has_state = (FlowGetAppState(pflow) != NULL);
                 alproto = FlowGetAppProtocol(pflow);
                 alversion = AppLayerParserGetStateVersion(pflow->alparser);
@@ -1337,18 +1359,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                                                 pflow->alproto,
                                                                 pflow->alstate,
                                                                 pflow->alparser,
-                                                                flags);
+                                                                flow_flags);
         }
         FLOWLOCK_UNLOCK(pflow);
-
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flags |= STREAM_TOSERVER;
-            SCLogDebug("flag STREAM_TOSERVER set");
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-            flags |= STREAM_TOCLIENT;
-            SCLogDebug("flag STREAM_TOCLIENT set");
-        }
-        SCLogDebug("p->flowflags 0x%02x", p->flowflags);
 
         if (((p->flowflags & FLOW_PKT_TOSERVER) && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
             ((p->flowflags & FLOW_PKT_TOCLIENT) && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET)))
@@ -1416,11 +1429,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* stateful app layer detection */
     if ((p->flags & PKT_HAS_FLOW) && has_state) {
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flags);
+        int has_inspectable_state = DeStateFlowHasInspectableState(pflow, alproto, alversion, flow_flags);
         if (has_inspectable_state == 1) {
             /* initialize to 0(DE_STATE_MATCH_HAS_NEW_STATE) */
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p, pflow,
-                                           flags, alproto, alversion);
+                                           flow_flags, alproto, alversion);
         } else if (has_inspectable_state == 2) {
             /* no inspectable state, so pretend we don't have a state at all */
             has_state = 0;
@@ -1442,7 +1455,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, has_state, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 #ifdef PROFILING
     if (th_v) {
@@ -1743,7 +1756,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * can store the tx_id with the alert */
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             state_alert = DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                                                      p, pflow, flags, alproto, alversion);
+                                                      p, pflow, flow_flags, alproto, alversion);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
             if (state_alert == 0)
                 goto next;
@@ -1788,7 +1801,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(pflow, flags);
+        DeStateUpdateInspectTransactionId(pflow, flow_flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
@@ -1922,6 +1935,14 @@ void DetectSignatureApplyActions(Packet *p, const Signature *s)
 
 /* tm module api functions */
 
+static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
+{
+    /* technically we need to pass a DetectEngineThreadCtx struct with the
+     * tentant_id member. But as that member is the first in the struct, we
+     * can use the id directly. */
+    return HashTableLookup(h, &id, 0);
+}
+
 /** \brief Detection engine thread wrapper.
  *  \param tv thread vars
  *  \param p packet to inspect
@@ -1935,26 +1956,71 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) || (PACKET_TEST_ACTION(p,
-                                                                    ACTION_DROP)))
+    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
+        (PACKET_TEST_ACTION(p, ACTION_DROP)))
+    {
+        /* hack: if we are in pass the entire flow mode, we need to still
+         * update the inspect_id forward. So test for the condition here,
+         * and call the update code if necessary. */
+        if (p->flow) {
+            uint8_t flags = 0;
+            FLOWLOCK_RDLOCK(p->flow);
+            int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
+            flags = FlowGetDisruptionFlags(p->flow, flags);
+            AppProto alproto = FlowGetAppProtocol(p->flow);
+            FLOWLOCK_UNLOCK(p->flow);
+            if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    flags |= STREAM_TOSERVER;
+                } else {
+                    flags |= STREAM_TOCLIENT;
+                }
+                DeStateUpdateInspectTransactionId(p->flow, flags);
+            }
+        }
         return 0;
+    }
 
+    DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
         printf("ERROR: Detect has no thread ctx\n");
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
-    if (de_ctx == NULL) {
-        printf("ERROR: Detect has no detection engine ctx\n");
-        goto error;
-    }
-
     if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
-        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
-                  det_ctx, de_ctx);
+        SCLogDebug("Detect Engine using new det_ctx - %p",
+                  det_ctx);
+    }
+
+    if (det_ctx->TenantGetId != NULL) {
+        /* in MT mode, but no tenants registered yet */
+        if (det_ctx->mt_det_ctxs_cnt == 0) {
+            return TM_ECODE_OK;
+        }
+
+        uint32_t tenant_id = p->tenant_id;
+        if (tenant_id == 0)
+            tenant_id = det_ctx->TenantGetId(det_ctx, p);
+        if (tenant_id > 0 && tenant_id < det_ctx->mt_det_ctxs_cnt) {
+            p->tenant_id = tenant_id;
+            det_ctx = GetTenantById(det_ctx->mt_det_ctxs_hash, tenant_id);
+            if (det_ctx == NULL)
+                return TM_ECODE_OK;
+            de_ctx = det_ctx->de_ctx;
+            if (de_ctx == NULL)
+                return TM_ECODE_OK;
+
+            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+                (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
+                SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
+            }
+        } else {
+            return TM_ECODE_OK;
+        }
+    } else {
+        de_ctx = det_ctx->de_ctx;
     }
 
     /* see if the packet matches one or more of the sigs */
@@ -2367,6 +2433,10 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                     SCLogDebug("packet/flow has smtp state");
                     (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
                     break;
+                case ALPROTO_TEMPLATE:
+                    SCLogDebug("packet/flow has template state");
+                    (*mask) |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
+                    break;
                 default:
                     SCLogDebug("packet/flow has other state");
                     break;
@@ -2604,6 +2674,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_SMTP_STATE;
         SCLogDebug("sig requires smtp state");
     }
+    if (s->alproto == ALPROTO_TEMPLATE) {
+        s->mask |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
+        SCLogDebug("sig requires template state");
+    }
 
     if ((s->mask & SIG_MASK_REQUIRE_DCE_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
@@ -2611,6 +2685,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TLS_STATE))
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
@@ -3030,15 +3105,15 @@ int CreateGroupedAddrListCmpCnt(DetectAddress *a, DetectAddress *b)
     return 0;
 }
 
-int CreateGroupedAddrListCmpMpmMaxlen(DetectAddress *a, DetectAddress *b)
+int CreateGroupedAddrListCmpMpmMinlen(DetectAddress *a, DetectAddress *b)
 {
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
-    if (SMALL_MPM(a->sh->mpm_content_maxlen))
+    if (SMALL_MPM(a->sh->mpm_content_minlen))
         return 1;
 
-    if (a->sh->mpm_content_maxlen < b->sh->mpm_content_maxlen)
+    if (a->sh->mpm_content_minlen < b->sh->mpm_content_minlen)
         return 1;
     return 0;
 }
@@ -3064,7 +3139,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
     for (gr = srchead; gr != NULL; gr = gr->next) {
         BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
-        if (SMALL_MPM(gr->sh->mpm_content_maxlen) && unique_groups > 0)
+        if (SMALL_MPM(gr->sh->mpm_content_minlen) && unique_groups > 0)
             unique_groups++;
 
         groups++;
@@ -3205,15 +3280,15 @@ int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b)
     return 0;
 }
 
-int CreateGroupedPortListCmpMpmMaxlen(DetectPort *a, DetectPort *b)
+int CreateGroupedPortListCmpMpmMinlen(DetectPort *a, DetectPort *b)
 {
     if (a->sh == NULL || b->sh == NULL)
         return 0;
 
-    if (SMALL_MPM(a->sh->mpm_content_maxlen))
+    if (SMALL_MPM(a->sh->mpm_content_minlen))
         return 1;
 
-    if (a->sh->mpm_content_maxlen < b->sh->mpm_content_maxlen)
+    if (a->sh->mpm_content_minlen < b->sh->mpm_content_minlen)
         return 1;
 
     return 0;
@@ -3240,7 +3315,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         SCLogDebug("hash list gr %p", gr);
         DetectPortPrint(gr);
 
-        if (SMALL_MPM(gr->sh->mpm_content_maxlen) && unique_groups > 0)
+        if (SMALL_MPM(gr->sh->mpm_content_minlen) && unique_groups > 0)
             unique_groups++;
 
         groups++;
@@ -3430,16 +3505,16 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx)
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->ipv4_head, AF_INET,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
 
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->ipv6_head, AF_INET6,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
             CreateGroupedAddrList(de_ctx,
                     de_ctx->flow_gh[f].tmp_gh[proto]->any_head, AF_UNSPEC,
                     de_ctx->flow_gh[f].src_gh[proto], groups,
-                    CreateGroupedAddrListCmpMpmMaxlen, DetectEngineGetMaxSigId(de_ctx));
+                    CreateGroupedAddrListCmpMpmMinlen, DetectEngineGetMaxSigId(de_ctx));
 
             DetectAddressHeadFree(de_ctx->flow_gh[f].tmp_gh[proto]);
             de_ctx->flow_gh[f].tmp_gh[proto] = NULL;
@@ -3622,7 +3697,8 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
          * mind the limits we use. */
         int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
 
-        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
+        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, gr->dst_gh, groups,
+                CreateGroupedAddrListCmpMpmMinlen, max_idx);
 
         /* see if the sig group head of each address group is the
          * same as an earlier one. If it is, free our head and use
@@ -3647,62 +3723,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                     printf("PatternMatchPrepareGroup failed\n");
                     goto error;
                 }
-                if (sgr->sh->mpm_proto_tcp_ctx_ts != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_tcp_ctx_tc != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_udp_ctx_ts != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_udp_ctx_tc != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-                }
-                if (sgr->sh->mpm_proto_other_ctx != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_other_ctx->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_other_ctx->pattern_cnt;
-
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_other_ctx->pattern_cnt;
-                }
-                if (sgr->sh->mpm_uri_ctx_ts != NULL) {
-                    if (de_ctx->mpm_uri_max_patcnt < sgr->sh->mpm_uri_ctx_ts->pattern_cnt)
-                        de_ctx->mpm_uri_max_patcnt = sgr->sh->mpm_uri_ctx_ts->pattern_cnt;
-
-                    de_ctx->mpm_uri_tot_patcnt += sgr->sh->mpm_uri_ctx_ts->pattern_cnt;
-                }
-                /* dbg */
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx_ts->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx_tc) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx_tc->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_udp_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_udp_ctx_ts->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_udp_ctx_tc) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_udp_ctx_tc->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_other_ctx) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_other_ctx->memory_size;
-                }
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx_ts) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx_ts->memory_size;
-                }
-
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
                 SigGroupHeadStore(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
@@ -3796,7 +3816,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
          * mind the limits we use. */
         int groups = (flow ? de_ctx->max_uniq_toserver_dst_groups : de_ctx->max_uniq_toclient_dst_groups);
 
-        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups, CreateGroupedAddrListCmpMpmMaxlen, max_idx);
+        CreateGroupedAddrList(de_ctx, tmp_gr_list, family, src_gr->dst_gh, groups,
+                CreateGroupedAddrListCmpMpmMinlen, max_idx);
 
         /* add the ports to the dst address groups and the sigs
          * to the ports */
@@ -3847,7 +3868,8 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                 int spgroups = (flow ? de_ctx->max_uniq_toserver_sp_groups : de_ctx->max_uniq_toclient_sp_groups);
 
-                CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups, CreateGroupedPortListCmpMpmMaxlen, max_idx);
+                CreateGroupedPortList(de_ctx, de_ctx->sport_hash_table, &dst_gr->port, spgroups,
+                        CreateGroupedPortListCmpMpmMinlen, max_idx);
 
                 SCLogDebug("adding sgh %p to the hash", dst_gr->sh);
                 SigGroupHeadHashAdd(de_ctx, dst_gr->sh);
@@ -3903,7 +3925,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                         CreateGroupedPortList(de_ctx, de_ctx->dport_hash_table,
                             &sp->dst_ph, dpgroups,
-                            CreateGroupedPortListCmpMpmMaxlen, max_idx);
+                            CreateGroupedPortListCmpMpmMinlen, max_idx);
 
                         SigGroupHeadSPortHashAdd(de_ctx, sp->sh);
 
@@ -3935,62 +3957,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                     printf("PatternMatchPrepareGroup failed\n");
                                     goto error;
                                 }
-                                if (dp->sh->mpm_proto_tcp_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_tcp_ctx_ts->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_tcp_ctx_tc != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_tcp_ctx_tc->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_udp_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_udp_ctx_ts->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_udp_ctx_tc != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_udp_ctx_tc->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_proto_other_ctx != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_other_ctx->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_other_ctx->pattern_cnt;
-
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_other_ctx->pattern_cnt;
-                                }
-                                if (dp->sh->mpm_uri_ctx_ts != NULL) {
-                                    if (de_ctx->mpm_uri_max_patcnt < dp->sh->mpm_uri_ctx_ts->pattern_cnt)
-                                        de_ctx->mpm_uri_max_patcnt = dp->sh->mpm_uri_ctx_ts->pattern_cnt;
-
-                                    de_ctx->mpm_uri_tot_patcnt += dp->sh->mpm_uri_ctx_ts->pattern_cnt;
-                                }
-                                /* dbg */
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx_ts->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx_tc) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx_tc->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_udp_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_udp_ctx_ts->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_udp_ctx_tc) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_udp_ctx_tc->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_other_ctx) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_other_ctx->memory_size;
-                                }
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx_ts) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx_ts->memory_size;
-                                }
-
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
                                 SigGroupHeadStore(de_ctx, dp->sh);
                                 de_ctx->gh_unique++;
@@ -4175,20 +4141,8 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx)
     DetectPortSpHashFree(de_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogDebug("MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")",
-            de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
-            de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
-            de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
-
         SCLogDebug("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         SCLogDebug("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
-        SCLogDebug("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
-                de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        SCLogDebug("MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
-                de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        SCLogDebug("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
-        if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            SCLogDebug("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
         SCLogDebug("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_groupscnt ? g_groupportlist_totgroups/g_groupportlist_groupscnt : 0, g_groupportlist_totgroups);
 
         SCLogInfo("building signature grouping structure, stage 3: building destination address lists... complete");
@@ -4301,6 +4255,9 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
         SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
+
+        sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
+        SCLogDebug("http_uri content min mpm len: %u", sgh->mpm_uricontent_minlen);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
@@ -4396,7 +4353,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx)
                         DetectPort *dp = sp->dst_ph;
                         for ( ; dp != NULL; dp = dp->next) {
                             printf("   4 Dst port(range): "); DetectPortPrint(dp);
-                            printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
+                            printf(" (sigs %" PRIu32 ", sgh %p, minlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_minlen);
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {
@@ -5173,6 +5130,8 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectAppLayerProtocolRegister();
+    DetectTemplateRegister();
+    DetectTemplateBufferRegister();
 }
 
 void SigTableRegisterTests(void)
@@ -9836,10 +9795,6 @@ static int SigTestSgh01 (void)
         printf("internal id != 0: ");
         goto end;
     }
-    if (de_ctx->sig_list->mpm_content_maxlen != 3) {
-        printf("de_ctx->sig_list->mpm_content_maxlen %u, expected 3: ", de_ctx->sig_list->mpm_content_maxlen);
-        goto end;
-    }
 
     de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any 81 (msg:\"2\"; content:\"two\"; content:\"abcd\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -9850,10 +9805,6 @@ static int SigTestSgh01 (void)
         printf("internal id != 1: ");
         goto end;
     }
-    if (de_ctx->sig_list->next->mpm_content_maxlen != 4) {
-        printf("de_ctx->sig_list->mpm_content_maxlen %u, expected 4: ", de_ctx->sig_list->next->mpm_content_maxlen);
-        goto end;
-    }
 
     de_ctx->sig_list->next->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"3\"; content:\"three\"; sid:3;)");
     if (de_ctx->sig_list->next->next == NULL) {
@@ -9862,10 +9813,6 @@ static int SigTestSgh01 (void)
     }
     if (de_ctx->sig_list->next->next->num != 2) {
         printf("internal id != 2: ");
-        goto end;
-    }
-    if (de_ctx->sig_list->next->next->mpm_content_maxlen != 5) {
-        printf("de_ctx->sig_list->next->next->mpm_content_maxlen %u, expected 5: ", de_ctx->sig_list->next->next->mpm_content_maxlen);
         goto end;
     }
 
@@ -9884,8 +9831,8 @@ static int SigTestSgh01 (void)
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -9929,13 +9876,13 @@ static int SigTestSgh01 (void)
 
 #if 0
     printf("-\n");
-    printf("sgh2->mpm_content_maxlen %u\n", sgh2->mpm_content_maxlen);
-    printf("sgh2->mpm_uricontent_maxlen %u\n", sgh2->mpm_uricontent_maxlen);
+    printf("sgh2->mpm_content_minlen %u\n", sgh2->mpm_content_minlen);
+    printf("sgh2->mpm_uricontent_minlen %u\n", sgh2->mpm_uricontent_minlen);
     printf("sgh2->sig_cnt %u\n", sgh2->sig_cnt);
     printf("sgh2->sig_size %u\n", sgh2->sig_size);
 #endif
-    if (sgh2->mpm_content_maxlen != 4) {
-        printf("sgh2->mpm_content_maxlen %u, expected 4: ", sgh2->mpm_content_maxlen);
+    if (sgh2->mpm_content_minlen != 4) {
+        printf("sgh2->mpm_content_minlen %u, expected 4: ", sgh2->mpm_content_minlen);
         goto end;
     }
 
@@ -10007,8 +9954,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10031,8 +9978,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10045,8 +9992,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10067,8 +10014,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10081,8 +10028,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10096,8 +10043,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10111,8 +10058,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10126,8 +10073,8 @@ static int SigTestSgh02 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10204,14 +10151,14 @@ static int SigTestSgh03 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10244,8 +10191,8 @@ static int SigTestSgh03 (void)
 #if 0
     printf("-\n");
     printf("sgh %p\n", sgh);
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10267,8 +10214,8 @@ static int SigTestSgh03 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3 (%x): ", sgh->mpm_content_maxlen, p->dst.addr_data32[0]);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3 (%x): ", sgh->mpm_content_minlen, p->dst.addr_data32[0]);
         goto end;
     }
 
@@ -10282,14 +10229,14 @@ static int SigTestSgh03 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10375,8 +10322,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10399,8 +10346,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10413,8 +10360,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10435,8 +10382,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10449,8 +10396,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
@@ -10464,8 +10411,8 @@ static int SigTestSgh04 (void)
         goto end;
     }
 #if 0
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
@@ -10479,14 +10426,14 @@ static int SigTestSgh04 (void)
     }
 #if 0
     printf("-\n");
-    printf("sgh->mpm_content_maxlen %u\n", sgh->mpm_content_maxlen);
-    printf("sgh->mpm_uricontent_maxlen %u\n", sgh->mpm_uricontent_maxlen);
+    printf("sgh->mpm_content_minlen %u\n", sgh->mpm_content_minlen);
+    printf("sgh->mpm_uricontent_minlen %u\n", sgh->mpm_uricontent_minlen);
     printf("sgh->sig_cnt %u\n", sgh->sig_cnt);
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3: ", sgh->mpm_content_maxlen);
+    if (sgh->mpm_content_minlen != 3) {
+        printf("sgh->mpm_content_minlen %u, expected 3: ", sgh->mpm_content_minlen);
         goto end;
     }
 
