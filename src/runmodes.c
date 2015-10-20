@@ -188,9 +188,9 @@ char *RunmodeGetActive(void)
  *
  * \return a string containing the current running mode
  */
-const char *RunModeGetMainMode(void)
+const char *RunModeGetMainMode(int index)
 {
-    int mainmode = RunmodeGetCurrent();
+    int mainmode = RunmodeGetCurrent(index);
 
     return RunModeTranslateModeToName(mainmode);
 }
