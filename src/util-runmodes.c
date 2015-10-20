@@ -420,7 +420,7 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
 
     for (ldev = 0; ldev < nlive; ldev++) {
         char *live_dev_c = NULL;
-        if (live_dev != NULL) {
+        if ((nlive <= 1) && (live_dev != NULL)) {
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
             if (unlikely(live_dev_c == NULL)) {
