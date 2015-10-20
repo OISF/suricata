@@ -107,6 +107,12 @@ static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
                                  state->server_connp.version);
             break;
     }
+    if (state->server_connp.cert0_not_before != 0)
+        MemBufferWriteString(aft->buffer, " NOTBEFORE=%ld",
+                             state->server_connp.cert0_not_before);
+    if (state->server_connp.cert0_not_after != 0)
+        MemBufferWriteString(aft->buffer, " NOTAFTER=%ld",
+                             state->server_connp.cert0_not_after);
     MemBufferWriteString(aft->buffer, "\n");
 }
 
