@@ -74,11 +74,6 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *, void *);
 
 void DbgPrintSearchStats();
 
-MpmPatternIdStore *MpmPatternIdTableInitHash(void);
-void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
-uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
-uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
-
 int SignatureHasPacketContent(const Signature *);
 int SignatureHasStreamContent(const Signature *);
 
