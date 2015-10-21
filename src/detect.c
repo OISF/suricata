@@ -3998,9 +3998,6 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
         SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
 
-        sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
-        SCLogDebug("http_uri content min mpm len: %u", sgh->mpm_uricontent_minlen);
-
         sgh->id = idx;
         cnt++;
     }
