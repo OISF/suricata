@@ -962,7 +962,6 @@ typedef struct SigGroupHead_ {
 
     /* track min pattern length for content. Used in grouping */
     uint16_t mpm_content_minlen;
-    uint16_t mpm_uricontent_minlen; /**< len of shortest mpm pattern in sgh */
 
     /* non mpm list excluding SYN rules */
     uint32_t non_mpm_other_store_cnt;
