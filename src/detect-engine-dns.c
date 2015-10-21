@@ -104,9 +104,9 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
  *
  *  \retval ret Number of matches.
  */
-static uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
-                              uint8_t *buffer, uint32_t buffer_len,
-                              uint8_t flags)
+static inline uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                      const uint8_t *buffer, const uint32_t buffer_len,
+                                      const uint8_t flags)
 {
     SCEnter();
 
@@ -115,9 +115,11 @@ static uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
-                &det_ctx->pmq, buffer, buffer_len);
+    if (buffer_len >= det_ctx->sgh->mpm_dnsquery_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, buffer, buffer_len);
+    }
 
     SCReturnUInt(ret);
 }
