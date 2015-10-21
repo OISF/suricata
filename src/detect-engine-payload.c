@@ -54,9 +54,11 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
         if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
             SCReturnInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
+        if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx_ts->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
+                Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
+                        p->payload, p->payload_len);
+        }
 
     } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
 
@@ -64,9 +66,11 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
         if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
             SCReturnInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
+        if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx_tc->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
+                Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
+                        p->payload, p->payload_len);
+        }
     }
 
     SCReturnInt(ret);
@@ -87,32 +91,31 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
     SCEnter();
 
     uint32_t ret = 0;
-    uint8_t cnt = 0;
 
     //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 
     uint32_t r;
     if (flags & STREAM_TOSERVER) {
         for ( ; smsg != NULL; smsg = smsg->next) {
-            r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-                Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
-                       &det_ctx->pmq, smsg->data, smsg->data_len);
-            if (r > 0) {
-                ret += r;
+            if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx_ts->minlen) {
+                r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
+                    Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
+                            &det_ctx->pmq, smsg->data, smsg->data_len);
+                if (r > 0) {
+                    ret += r;
+                }
             }
-
-            cnt++;
         }
     } else if (flags & STREAM_TOCLIENT) {
         for ( ; smsg != NULL; smsg = smsg->next) {
-            r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-                Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
-                       &det_ctx->pmq, smsg->data, smsg->data_len);
-            if (r > 0) {
-                ret += r;
+            if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx_tc->minlen) {
+                r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
+                    Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
+                            &det_ctx->pmq, smsg->data, smsg->data_len);
+                if (r > 0) {
+                    ret += r;
+                }
             }
-
-            cnt++;
         }
     }
 
@@ -130,7 +133,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
     const MpmCtx *mpm_ctx = NULL;
 
     if (p->proto == IPPROTO_TCP) {
@@ -149,6 +152,8 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
         mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
     }
     if (unlikely(mpm_ctx == NULL))
+        SCReturnInt(0);
+    if (p->payload_len < mpm_ctx->minlen)
         SCReturnInt(0);
 
 #ifdef __SC_CUDA_SUPPORT__

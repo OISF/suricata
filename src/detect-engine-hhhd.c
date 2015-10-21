@@ -70,19 +70,22 @@
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
-                             uint8_t *hh, uint32_t hh_len, uint8_t flags)
+static inline uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *hh, const uint32_t hh_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
-                &det_ctx->pmq, hh, hh_len);
+    if (hh_len >= det_ctx->sgh->mpm_hhhd_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, hh, hh_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -95,12 +98,12 @@ int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->request_hostname == NULL)
         goto end;
-    uint8_t *hname = (uint8_t *)bstr_ptr(tx->request_hostname);
+    const uint8_t *hname = (const uint8_t *)bstr_ptr(tx->request_hostname);
     if (hname == NULL)
         goto end;
-    uint32_t hname_len = bstr_len(tx->request_hostname);
+    const uint32_t hname_len = bstr_len(tx->request_hostname);
 
-    cnt += HttpHHPatternSearch(det_ctx, hname, hname_len, flags);
+    cnt = HttpHHPatternSearch(det_ctx, hname, hname_len, flags);
 
  end:
     return cnt;
