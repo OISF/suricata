@@ -128,14 +128,11 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             if (ff->flags & FILE_MD5) {
                 size_t x;
                 int i;
-                char *s = SCMalloc(256);
-                if (likely(s != NULL)) {
-                    for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
-                        i += snprintf(&s[i], 255-i, "%02x", ff->md5[x]);
-                    }
-                    json_object_set_new(fjs, "md5", json_string(s));
-                    SCFree(s);
+                char s[256];
+                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
+                    i += snprintf(&s[i], 255-i, "%02x", ff->md5[x]);
                 }
+                json_object_set_new(fjs, "md5", json_string(s));
             }
 #endif
             break;
