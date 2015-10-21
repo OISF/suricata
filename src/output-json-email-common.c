@@ -140,13 +140,13 @@ static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPT
         field = MimeDecFindField(entity, "subject");
         if (field != NULL) {
             unsigned char md5[MD5_LENGTH];
-            char smd5[2 * MD5_LENGTH + 1];
+            char smd5[256];
             char *value = BytesToString((uint8_t *)field->value , field->value_len);
             if (value) {
                 size_t i,x;
                 HASH_HashBuf(HASH_AlgMD5, md5, (unsigned char *)value, strlen(value));
                 for (i = 0, x = 0; x < sizeof(md5); x++) {
-                    i += snprintf(smd5 + i, 255-i, "%02x", md5[x]);
+                    i += snprintf(smd5 + i, 255 - i, "%02x", md5[x]);
                 }
                 json_object_set_new(js, "subject_md5", json_string(smd5));
                 SCFree(value);
