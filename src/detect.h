@@ -962,10 +962,10 @@ typedef struct SigGroupHead_ {
 
     /* non mpm list excluding SYN rules */
     uint32_t non_mpm_other_store_cnt;
+    uint32_t non_mpm_syn_store_cnt;
     SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
     /* non mpm list including SYN rules */
     SignatureNonMpmStore *non_mpm_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonMpmStore)
-    uint32_t non_mpm_syn_store_cnt;
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
