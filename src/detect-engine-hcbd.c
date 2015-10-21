@@ -230,19 +230,22 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                     uint8_t *body, uint32_t body_len, uint8_t flags)
+static inline uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *body, const uint32_t body_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcbd_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
-                &det_ctx->pmq, body, body_len);
+    if (body_len >= det_ctx->sgh->mpm_hcbd_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, body, body_len);
+    }
 
     SCReturnUInt(ret);
 }
