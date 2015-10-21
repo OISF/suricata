@@ -223,24 +223,30 @@ static uint8_t *DetectEngineHHDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                 uint8_t *headers, uint32_t headers_len, uint8_t flags)
+static inline uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *headers, const uint32_t headers_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
+
     if (flags & STREAM_TOSERVER) {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, headers, headers_len);
+        if (headers_len >= det_ctx->sgh->mpm_hhd_ctx_ts->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
+                Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
+                        &det_ctx->pmq, headers, headers_len);
+        }
     } else {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_tc == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, headers, headers_len);
+        if (headers_len >= det_ctx->sgh->mpm_hhd_ctx_tc->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
+                Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
+                        &det_ctx->pmq, headers, headers_len);
+        }
     }
 
     SCReturnUInt(ret);

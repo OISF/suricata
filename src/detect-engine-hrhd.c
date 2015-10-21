@@ -62,30 +62,36 @@
 /**
  * \brief Http raw header match -- searches for one pattern per signature.
  *
- * \param det_ctx     Detection engine thread ctx.
- * \param headers     Raw headers to inspect.
- * \param headers_len Raw headers length.
+ * \param det_ctx           Detection engine thread ctx.
+ * \param raw_headers       Raw headers to inspect.
+ * \param raw_headers_len   Raw headers length.
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                    uint8_t *raw_headers, uint32_t raw_headers_len, uint8_t flags)
+static inline uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *raw_headers, const uint32_t raw_headers_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
+
     if (flags & STREAM_TOSERVER) {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, raw_headers, raw_headers_len);
+        if (raw_headers_len >= det_ctx->sgh->mpm_hrhd_ctx_ts->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
+                Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
+                        &det_ctx->pmq, raw_headers, raw_headers_len);
+        }
     } else {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_tc == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, raw_headers, raw_headers_len);
+        if (raw_headers_len >= det_ctx->sgh->mpm_hrhd_ctx_tc->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
+                Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
+                        &det_ctx->pmq, raw_headers, raw_headers_len);
+        }
     }
 
     SCReturnUInt(ret);
@@ -98,14 +104,16 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     SCEnter();
 
     uint32_t cnt = 0;
+
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL)
-        SCReturnInt(cnt);
+    if (tx_ud == NULL) {
+        SCReturnInt(0);
+    }
 
     if (flags & STREAM_TOSERVER) {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
-            SCReturnInt(cnt);
+            SCReturnInt(0);
 
         if (tx_ud->request_headers_raw != NULL) {
             cnt = HttpRawHeaderPatternSearch(det_ctx,
@@ -115,10 +123,10 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         }
     } else {
         if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
-            SCReturnInt(cnt);
+            SCReturnInt(0);
 
         if (tx_ud->response_headers_raw != NULL) {
-            cnt += HttpRawHeaderPatternSearch(det_ctx,
+            cnt = HttpRawHeaderPatternSearch(det_ctx,
                                               tx_ud->response_headers_raw,
                                               tx_ud->response_headers_raw_len,
                                               flags);
