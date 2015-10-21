@@ -125,6 +125,10 @@ static SCMutex pfring_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 #define LIBPFRING_REENTRANT   0
 #define LIBPFRING_WAIT_FOR_INCOMING 1
 
+typedef enum {
+    PFRING_FLAGS_ZERO_COPY = 0x1
+} PfringThreadVarsFlags;
+
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -139,6 +143,8 @@ typedef struct PfringThreadVars_
 
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
+
+    uint32_t flags;
 
     ThreadVars *tv;
     TmSlot *slot;
@@ -296,6 +302,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *)slot;
     time_t last_dump = 0;
     struct timeval current_time;
+    u_int buffer_size;
+    u_char *pkt_buffer;
 
     ptv->slot = s->slot_next;
 
@@ -325,16 +333,23 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         /* Some flavours of PF_RING may fail to set timestamp - see PF-RING-enabled libpcap code*/
         hdr.ts.tv_sec = hdr.ts.tv_usec = 0;
 
+        /* Check for Zero-copy mode */
+        if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
+            buffer_size = 0;
+            pkt_buffer = NULL;
+        } else {
+            buffer_size = GET_PKT_DIRECT_MAX_SIZE(p); 
+            pkt_buffer = GET_PKT_DIRECT_DATA(p);
+        }
+
         /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
-        u_char *pkt_buffer = GET_PKT_DIRECT_DATA(p);
-        u_int buffer_size = GET_PKT_DIRECT_MAX_SIZE(p);
         int r = pfring_recv(ptv->pd, &pkt_buffer,
                 buffer_size,
                 &hdr,
                 LIBPFRING_WAIT_FOR_INCOMING);
 
-        /* Check for Zero-copy if buffer size is zero */
-        if (buffer_size == 0) {
+        /* Check for Zero-copy mode */
+        if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
             PacketSetData(p, pkt_buffer, hdr.caplen);
         }
 
@@ -386,7 +401,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     u_int32_t version = 0;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
     unsigned int opflag;
-
+    char const *active_runmode = RunmodeGetActive();
 
     if (pfconf == NULL)
         return TM_ECODE_FAILED;
@@ -413,6 +428,12 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* enable zero-copy mode for workers runmode */
+    if (active_runmode && strcmp("workers", active_runmode) == 0) {
+        ptv->flags |= PFRING_FLAGS_ZERO_COPY;
+        SCLogInfo("Enabling zero-copy for %s", ptv->interface);
     }
 
     ptv->checksum_mode = pfconf->checksum_mode;
