@@ -24,7 +24,7 @@
 #define __RUNMODES_H__
 
 /* Run mode */
-enum {
+enum RunModes {
     RUNMODE_UNKNOWN = 0,
     RUNMODE_PCAP_DEV,
     RUNMODE_PCAP_FILE,
@@ -61,7 +61,7 @@ enum {
 };
 
 char *RunmodeGetActive(void);
-const char *RunModeGetMainMode(void);
+const char *RunModeGetMainMode(int index);
 
 void RunModeListRunmodes(void);
 void RunModeDispatch(int, const char *);

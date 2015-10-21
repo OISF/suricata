@@ -71,7 +71,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    switch (run_mode) {
+    switch (runmodeslist.run_mode[0]) {
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
