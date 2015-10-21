@@ -56,9 +56,9 @@
  *
  *  \retval ret number of matches
  */
-static uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                 const uint8_t *uri, const uint16_t uri_len,
-                                 const uint8_t flags)
+static inline uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *uri, const uint16_t uri_len,
+        const uint8_t flags)
 {
     SCEnter();
 
