@@ -417,7 +417,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ptv->checksum_mode = pfconf->checksum_mode;
 
-    opflag = PF_RING_REENTRANT | PF_RING_PROMISC;
+    opflag = PF_RING_PROMISC;
 
     /* if suri uses VLAN and if we have a recent kernel, we need
      * to use parsed_pkt to get VLAN info */
