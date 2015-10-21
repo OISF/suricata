@@ -67,24 +67,30 @@
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
-                                 uint8_t *cookie, uint32_t cookie_len, uint8_t flags)
+static inline uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *cookie, const uint32_t cookie_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
+
     if (flags & STREAM_TOSERVER) {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, cookie, cookie_len);
+        if (cookie_len >= det_ctx->sgh->mpm_hcd_ctx_ts->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
+                Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
+                        &det_ctx->pmq, cookie, cookie_len);
+        }
     } else {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_tc == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, cookie, cookie_len);
+        if (cookie_len >= det_ctx->sgh->mpm_hcd_ctx_tc->minlen) {
+            ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
+                Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
+                        &det_ctx->pmq, cookie, cookie_len);
+        }
     }
 
     SCReturnUInt(ret);
