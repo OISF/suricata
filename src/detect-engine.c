@@ -1338,6 +1338,16 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         return TM_ECODE_FAILED;
     }
 
+    /* Allocate space for base64 decoded data. */
+    if (de_ctx->base64_decode_max_len) {
+        det_ctx->base64_decoded = SCMalloc(de_ctx->base64_decode_max_len);
+        if (det_ctx->base64_decoded == NULL) {
+            return TM_ECODE_FAILED;
+        }
+        det_ctx->base64_decoded_len_max = de_ctx->base64_decode_max_len;
+        det_ctx->base64_decoded_len = 0;
+    }
+
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
@@ -1540,6 +1550,11 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
             SCLogDebug("det_ctx->hcbd[i].buffer_size %u", det_ctx->hcbd[i].buffer_size);
         }
         SCFree(det_ctx->hcbd);
+    }
+
+    /* Decoded base64 data. */
+    if (det_ctx->base64_decoded != NULL) {
+        SCFree(det_ctx->base64_decoded);
     }
 
     if (det_ctx->de_ctx != NULL) {
@@ -2644,6 +2659,9 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+
+        case DETECT_SM_LIST_BASE64_DATA:
+            return "base64_data";
 
         case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
             return "template_buffer";

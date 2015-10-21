@@ -847,6 +847,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
         size_t buffer_size = strlen(parser.opts) + 1;
         char input[buffer_size];
         char output[buffer_size];
+        int plist;
         memset(input, 0x00, buffer_size);
         memcpy(input, parser.opts, strlen(parser.opts)+1);
 
@@ -855,14 +856,28 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
          * output variable. */
         do {
             memset(output, 0x00, buffer_size);
+            plist = s->list;
             ret = SigParseOptions(de_ctx, s, input, output, buffer_size);
             if (ret == 1) {
+                /* Check for a transition out of a terminal state. */
+                if (s->list != plist) {
+                    switch (plist) {
+                        case DETECT_SM_LIST_BASE64_DATA:
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Rule buffer "
+                                "cannot be reset after base64_data.");
+                            ret = -1;
+                            goto end;
+                            break;
+                        default:
+                            break;
+                    }
+                }
                 memcpy(input, output, buffer_size);
             }
 
         } while (ret == 1);
     }
-
+end:
     s->sig_str = NULL;
 
     DetectIPProtoRemoveAllSMs(s);

@@ -309,6 +309,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_IPPAIR_INIT);
         CASE_CODE (SC_ERR_MT_NO_SELECTOR);
         CASE_CODE (SC_ERR_MT_DUPLICATE_TENANT);
+        CASE_CODE (SC_ERR_INVALID_RULE_ARGUMENT);
     }
 
     return "UNKNOWN_ERROR";
