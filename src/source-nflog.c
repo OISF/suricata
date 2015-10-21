@@ -155,6 +155,7 @@ static int NFLOGCallback(struct nflog_g_handle *gh, struct nfgenmsg *msg,
         return -1;
 
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    p->pkt_mode = IDS;
 
     ph = nflog_get_msg_packet_hdr(nfa);
     if (ph != NULL) {
@@ -287,7 +288,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCLogDebug("NFLOG netlink queue timeout can't be set to %d",
                     ntv->qtimeout);
 
-    ntv->livedev = LiveGetDevice(nflconfig->numgroup);
+    ntv->livedev = LiveGetDevice(nflconfig->numgroup, RUNMODE_NFLOG);
     if (ntv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
 	    SCFree(ntv);
