@@ -81,6 +81,7 @@ TmModuleReceiveErfFileRegister(void)
     tmm_modules[TMM_RECEIVEERFFILE].ThreadInit = ReceiveErfFileThreadInit;
     tmm_modules[TMM_RECEIVEERFFILE].Func = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].PktAcqLoop = ReceiveErfFileLoop;
+    tmm_modules[TMM_RECEIVEERFFILE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].ThreadExitPrintStats =
         ReceiveErfFileThreadExitStats;
     tmm_modules[TMM_RECEIVEERFFILE].ThreadDeinit = NULL;
