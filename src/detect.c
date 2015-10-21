@@ -1111,8 +1111,8 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         }
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
             /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
-                    det_ctx->sgh, det_ctx->sgh->mpm_content_minlen, det_ctx->sgh->sig_cnt);
+            SCLogDebug("search: (%p, sgh->sig_cnt %" PRIu32 ")",
+                    det_ctx->sgh, det_ctx->sgh->sig_cnt);
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
             PacketPatternSearch(det_ctx, p);
