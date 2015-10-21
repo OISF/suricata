@@ -67,19 +67,22 @@
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                 uint8_t *uri, uint32_t uri_len, uint8_t flags)
+static inline uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *uri, const uint32_t uri_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
-                &det_ctx->pmq, uri, uri_len);
+    if (uri_len >= det_ctx->sgh->mpm_hrud_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, uri, uri_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -99,10 +102,10 @@ int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     uint32_t cnt = 0;
     if (tx->request_uri == NULL)
         goto end;
-    cnt = HttpRawUriPatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(tx->request_uri),
-                                  bstr_len(tx->request_uri), flags);
 
+    cnt = HttpRawUriPatternSearch(det_ctx,
+                                  (const uint8_t *)bstr_ptr(tx->request_uri),
+                                  bstr_len(tx->request_uri), flags);
 end:
     SCReturnInt(cnt);
 }

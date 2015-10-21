@@ -67,19 +67,22 @@
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                 uint8_t *raw_method, uint32_t raw_method_len, uint8_t flags)
+static inline uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *raw_method, const uint32_t raw_method_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
-                &det_ctx->pmq, raw_method, raw_method_len);
+    if (raw_method_len >= det_ctx->sgh->mpm_hmd_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, raw_method, raw_method_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -92,11 +95,11 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->request_method == NULL)
         goto end;
+
     cnt = HttpMethodPatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(tx->request_method),
+                                  (const uint8_t *)bstr_ptr(tx->request_method),
                                   bstr_len(tx->request_method),
                                   flags);
-
  end:
     return cnt;
 }
