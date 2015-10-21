@@ -64,19 +64,22 @@
  *
  *  \retval ret Number of matches.
  */
-static uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
-                                   uint8_t *stat_code, uint32_t stat_code_len, uint8_t flags)
+static inline uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *stat_code, const uint32_t stat_code_len,
+        const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
-        Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
-                &det_ctx->pmq, stat_code, stat_code_len);
+    if (stat_code_len >= det_ctx->sgh->mpm_hscd_ctx_tc->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
+                    &det_ctx->pmq, stat_code, stat_code_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -98,9 +101,8 @@ int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
 
     cnt = HttpStatCodePatternSearch(det_ctx,
-                                     (uint8_t *)bstr_ptr(tx->response_status),
-                                     bstr_len(tx->response_status), flags);
-
+                                    (const uint8_t *)bstr_ptr(tx->response_status),
+                                    bstr_len(tx->response_status), flags);
 end:
     SCReturnInt(cnt);
 }
