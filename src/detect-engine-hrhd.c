@@ -112,9 +112,6 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
     if (flags & STREAM_TOSERVER) {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_REQUEST_HEADERS)
-            SCReturnInt(0);
-
         if (tx_ud->request_headers_raw != NULL) {
             cnt = HttpRawHeaderPatternSearch(det_ctx,
                                              tx_ud->request_headers_raw,
@@ -122,9 +119,6 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                              flags);
         }
     } else {
-        if (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, txv, flags) <= HTP_RESPONSE_HEADERS)
-            SCReturnInt(0);
-
         if (tx_ud->response_headers_raw != NULL) {
             cnt = HttpRawHeaderPatternSearch(det_ctx,
                                               tx_ud->response_headers_raw,
