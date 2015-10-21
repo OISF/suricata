@@ -175,6 +175,32 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
             } else {
                 json_object_set_new(js, "rdata", json_string(""));
             }
+        } else if (entry->type == DNS_RECORD_TYPE_SSHFP) {
+            if (entry->data_len > 2) {
+                /* get algo and type */
+                uint8_t algo = *ptr;
+                uint8_t fptype = *(ptr+1);
+
+                /* turn fp raw buffer into a nice :-separate hex string */
+                uint16_t fp_len = (entry->data_len - 2);
+                uint8_t *dptr = ptr+2;
+                char hexstring[fp_len * 2 + 1], *p = hexstring;
+                hexstring[0] = '\0';
+                uint16_t x;
+                for (x = 0; x < fp_len; x++, p += 3) {
+                    snprintf(p, 4, x == fp_len - 1 ? "%02x" : "%02x:", dptr[x]);
+                }
+
+                /* wrap the whole thing in it's own structure */
+                json_t *hjs = json_object();
+                if (hjs != NULL) {
+                    json_object_set_new(hjs, "fingerprint", json_string(hexstring));
+                    json_object_set_new(hjs, "algo", json_integer(algo));
+                    json_object_set_new(hjs, "type", json_integer(fptype));
+
+                    json_object_set_new(js, "sshfp", hjs);
+                }
+            }
         }
     }
 
