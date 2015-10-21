@@ -960,9 +960,6 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
-    /* track min pattern length for content. Used in grouping */
-    uint16_t mpm_content_minlen;
-
     /* non mpm list excluding SYN rules */
     uint32_t non_mpm_other_store_cnt;
     SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
