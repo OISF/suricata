@@ -224,7 +224,7 @@ uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
     uint32_t hash = 0;
     uint32_t b = 0;
 
-    SCLogDebug("hashing sgh %p (mpm_content_minlen %u)", sgh, sgh->mpm_content_minlen);
+    SCLogDebug("hashing sgh %p", sgh);
 
     for (b = 0; b < sgh->init->sig_size; b++)
         hash += sgh->init->sig_array[b];
@@ -382,20 +382,6 @@ int SigGroupHeadAppendSig(const DetectEngineCtx *de_ctx, SigGroupHead **sgh,
     /* enable the sig in the bitarray */
     (*sgh)->init->sig_array[s->num / 8] |= 1 << (s->num % 8);
 
-    /* update minlen for mpm */
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        /* check with the precalculated values from the sig */
-        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
-        if (mpm_content_minlen > 0) {
-            if ((*sgh)->mpm_content_minlen == 0)
-                (*sgh)->mpm_content_minlen = mpm_content_minlen;
-
-            if ((*sgh)->mpm_content_minlen > mpm_content_minlen)
-                (*sgh)->mpm_content_minlen = mpm_content_minlen;
-
-            SCLogDebug("(%p)->mpm_content_minlen %u", *sgh, (*sgh)->mpm_content_minlen);
-        }
-    }
     return 0;
 
 error:
@@ -453,17 +439,6 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     if (src->init->whitelist)
         (*dst)->init->whitelist = MAX((*dst)->init->whitelist, src->init->whitelist);
 
-    if (src->mpm_content_minlen != 0) {
-        if ((*dst)->mpm_content_minlen == 0)
-            (*dst)->mpm_content_minlen = src->mpm_content_minlen;
-
-        if ((*dst)->mpm_content_minlen > src->mpm_content_minlen)
-            (*dst)->mpm_content_minlen = src->mpm_content_minlen;
-
-        SCLogDebug("src (%p)->mpm_content_minlen %u", src, src->mpm_content_minlen);
-        SCLogDebug("dst (%p)->mpm_content_minlen %u", (*dst), (*dst)->mpm_content_minlen);
-        BUG_ON((*dst)->mpm_content_minlen == 0);
-    }
     return 0;
 
 error:
