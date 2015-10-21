@@ -57,54 +57,25 @@
  *  \retval ret number of matches
  */
 static uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
-                          uint8_t *uri, uint16_t uri_len, uint8_t flags)
+                                 const uint8_t *uri, const uint16_t uri_len,
+                                 const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
     DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
 
-    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
-        Search(det_ctx->sgh->mpm_uri_ctx_ts,
-                &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
+    if (uri_len >= det_ctx->sgh->mpm_uri_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_uri_ctx_ts,
+                    &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
+    }
 
     //PrintRawDataFp(stdout, uri, uri_len);
 
     SCReturnUInt(ret);
-}
-
-/**
- * \brief   Checks if the content sent as the argument, has a uricontent which
- *          has been provided in the rule. This match function matches the
- *          normalized http uri against the given rule using multi pattern
- *          search algorithms.
- *
- * \param det_ctx       Pointer to the detection engine thread context
- * \param content       Pointer to the uri content currently being matched
- * \param content_len   Content_len of the received uri content
- *
- * \retval 1 if the uri contents match; 0 no match
- */
-static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ctx,
-                                                   uint8_t *uri, uint16_t uri_len, uint8_t flags)
-{
-    int ret = 0;
-    /* run the pattern matcher against the uri */
-    if (det_ctx->sgh->mpm_uricontent_minlen > uri_len) {
-        SCLogDebug("not searching as uri len is smaller than the "
-                   "shortest uricontent length we need to match");
-    } else {
-        SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt "
-                "%" PRIu32 ")", det_ctx->sgh,
-                det_ctx->sgh->mpm_uricontent_minlen, det_ctx->sgh->sig_cnt);
-
-        ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
-
-        SCLogDebug("post search: cnt %" PRIu32, ret);
-    }
-    return ret;
 }
 
 /**
@@ -132,10 +103,10 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL)
         goto end;
-    cnt = DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
-                                          bstr_ptr(tx_ud->request_uri_normalized),
-                                          bstr_len(tx_ud->request_uri_normalized),
-                                          flags);
+    cnt = UriPatternSearch(det_ctx, (const uint8_t *)
+                           bstr_ptr(tx_ud->request_uri_normalized),
+                           bstr_len(tx_ud->request_uri_normalized),
+                           flags);
 
 end:
     SCReturnUInt(cnt);
