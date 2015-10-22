@@ -466,8 +466,11 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         if (rc != 0) {
             SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
                     "returned %d for cluster-id: %d", rc, ptv->cluster_id);
-            pfconf->DerefFunc(pfconf);
-            return TM_ECODE_FAILED;
+            if (rc != PF_RING_ERROR_NOT_SUPPORTED || (pfconf->flags & PFRING_CONF_FLAGS_CLUSTER)) {
+                /* cluster is mandatory as explicitly specified in the configuration */
+                pfconf->DerefFunc(pfconf);
+                return TM_ECODE_FAILED;
+            }
         }
     }
 
