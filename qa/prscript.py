@@ -72,6 +72,7 @@ parser.add_argument('-d', '--docker', action='store_const', const=True, help='us
 parser.add_argument('-C', '--create', action='store_const', const=True, help='create docker container' + docker_deps, default=False)
 parser.add_argument('-s', '--start', action='store_const', const=True, help='start docker container' + docker_deps, default=False)
 parser.add_argument('-S', '--stop', action='store_const', const=True, help='stop docker container' + docker_deps, default=False)
+parser.add_argument('-R', '--rm', action='store_const', const=True, help='remove docker container and image' + docker_deps, default=False)
 parser.add_argument('branch', metavar='branch', help='github branch to build', nargs='?')
 args = parser.parse_args()
 username = args.username
@@ -246,6 +247,20 @@ def StopContainer():
     cli.stop('suri-buildbot')
     sys.exit(0)
 
+def RmContainer():
+    cli = Client()
+    try:
+        cli.remove_container('suri-buildbot')
+    except:
+        print "Unable to remove suri-buildbot container"
+        pass
+    try:
+        cli.remove_image('regit/suri-buildbot:latest')
+    except:
+        print "Unable to remove suri-buildbot images"
+        pass
+    sys.exit(0)
+
 if GOT_DOCKER:
     if args.create:
         CreateContainer()
@@ -253,6 +268,8 @@ if GOT_DOCKER:
         StartContainer()
     if args.stop:
         StopContainer()
+    if args.rm:
+        RmContainer()
 
 if not args.branch:
     print "You need to specify a branch for this mode"
