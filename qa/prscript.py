@@ -227,9 +227,6 @@ if not args.local and TestRepoSync(args.branch) == -1:
         sys.exit(-1)
 
 def CreateContainer():
-    if not os.geteuid() == 0:
-        print "Command must be run as root"
-        sys.exit(-1)
     cli = Client()
     # FIXME check if existing
     print "Pulling docking image, first run should take long"
@@ -238,9 +235,6 @@ def CreateContainer():
     sys.exit(0)
 
 def StartContainer():
-    if not os.geteuid() == 0:
-        print "Command must be run as root"
-        sys.exit(-1)
     cli = Client()
     suri_src_dir = os.path.split(os.path.dirname(os.path.realpath(__file__)))[0]
     print "Using base src dir: " + suri_src_dir
@@ -248,9 +242,6 @@ def StartContainer():
     sys.exit(0)
 
 def StopContainer():
-    if not os.geteuid() == 0:
-        print "Command must be run as root"
-        sys.exit(-1)
     cli = Client()
     cli.stop('suri-buildbot')
     sys.exit(0)
