@@ -2386,7 +2386,7 @@ int main(int argc, char **argv)
 
     if (suri.delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload(NULL);
+        DetectEngineReload(NULL, &suri);
 
         if (suri.sig_file != NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
@@ -2419,10 +2419,10 @@ int main(int argc, char **argv)
         }
 
         if (sigusr2_count > 0) {
-            DetectEngineReload(conf_filename);
+            DetectEngineReload(conf_filename, &suri);
             sigusr2_count--;
         } else if (DetectEngineReloadIsStart()) {
-            DetectEngineReload(conf_filename);
+            DetectEngineReload(conf_filename, &suri);
             DetectEngineReloadSetDone();
         }
 

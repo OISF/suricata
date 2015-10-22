@@ -2340,7 +2340,7 @@ static int reloads = 0;
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectEngineReload(const char *filename)
+int DetectEngineReload(const char *filename, SCInstance *suri)
 {
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
@@ -2377,7 +2377,8 @@ int DetectEngineReload(const char *filename)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
-    if (SigLoadSignatures(new_de_ctx, NULL, 0) != 0) {
+    if (SigLoadSignatures(new_de_ctx,
+                          suri->sig_file, suri->sig_file_exclusive) != 0) {
         DetectEngineCtxFree(new_de_ctx);
         DetectEngineDeReference(&old_de_ctx);
         return -1;
