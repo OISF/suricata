@@ -2367,6 +2367,7 @@ int main(int argc, char **argv)
     }
 
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
+    PacketPoolPostRunmodes();
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();

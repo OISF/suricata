@@ -78,5 +78,6 @@ void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(void);
 void PacketPoolInitEmpty(void);
 void PacketPoolDestroy(void);
+void PacketPoolPostRunmodes(void);
 
 #endif /* __TMQH_PACKETPOOL_H__ */

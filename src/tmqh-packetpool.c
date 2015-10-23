@@ -38,6 +38,8 @@
 #include "stream-tcp-reassemble.h"
 
 #include "tm-queuehandlers.h"
+#include "tm-threads.h"
+#include "tm-modules.h"
 
 #include "pkt-var.h"
 
@@ -50,6 +52,7 @@
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
+static uint32_t max_pending_return_packets = MAX_PENDING_RETURN_PACKETS;
 
 #ifdef TLS
 __thread PktPool thread_pkt_pool;
@@ -313,7 +316,7 @@ void PacketPoolReturnPacket(Packet *p)
             p->next = my_pool->pending_head;
             my_pool->pending_head = p;
             my_pool->pending_count++;
-            if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
+            if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > max_pending_return_packets) {
                 /* Return the entire list of pending packets. */
                 SCMutexLock(&pool->return_stack.mutex);
                 my_pool->pending_tail->next = pool->return_stack.head;
@@ -562,4 +565,35 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
         TmqhOutputPacketpool(NULL, p);
 
     return;
+}
+
+/**
+ *  \brief Set the max_pending_return_packets value
+ *
+ *  Set it to the max pending packets value, devided by the number
+ *  of lister threads. Normally, in autofp these are the stream/detect/log
+ *  worker threads.
+ *
+ *  The max_pending_return_packets value needs to stay below the packet
+ *  pool size of the 'producers' (normally pkt capture threads but also
+ *  flow timeout injection ) to avoid a deadlock where all the 'workers'
+ *  keep packets in their return pools, while the capture thread can't
+ *  continue because its pool is empty.
+ */
+void PacketPoolPostRunmodes(void)
+{
+    extern intmax_t max_pending_packets;
+
+    uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
+    if (threads == 0)
+        return;
+    if (threads > max_pending_packets)
+        return;
+
+    uint32_t packets = (max_pending_packets / threads) - 1;
+    if (packets < max_pending_return_packets)
+        max_pending_return_packets = packets;
+
+    SCLogDebug("detect threads %u, max packets %u, max_pending_return_packets %u",
+            threads, (uint)threads, max_pending_return_packets);
 }
