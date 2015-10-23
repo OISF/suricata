@@ -2034,6 +2034,29 @@ ThreadVars *TmThreadsGetCallingThread(void)
     return NULL;
 }
 
+/**
+ * \brief returns a count of all the threads that match the flag
+ */
+uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+    uint32_t cnt = 0;
+
+    SCMutexLock(&tv_root_lock);
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            if ((tv->tmm_flags & flags) == flags)
+                cnt++;
+
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return cnt;
+}
+
 typedef struct Thread_ {
     ThreadVars *tv;     /**< threadvars structure */
     const char *name;
