@@ -392,3 +392,64 @@ time_t SCMkTimeUtc (struct tm *tp)
         result -= tp->tm_gmtoff;
     return result;
 }
+
+/**
+ * \brief Parse a date string based on specified patterns.
+ *
+ * This function is based on GNU C library getdate.
+ *
+ * \param string       Date string to parse.
+ * \param patterns     String array containing patterns.
+ * \param num_patterns Number of patterns to check.
+ * \param tp           Pointer to broken-down time.
+ *
+ * \retval 0 on success.
+ * \retval 1 on failure.
+ */
+int SCStringPatternToTime (char *string, char **patterns, int num_patterns,
+                           struct tm *tp)
+{
+    char *result = NULL;
+    int i = 0;
+
+    /* Do the pattern matching */
+    for (i = 0; i < num_patterns; i++)
+    {
+        if (patterns[i] == NULL)
+            continue;
+
+        tp->tm_hour = tp->tm_min = tp->tm_sec = 0;
+        tp->tm_year = tp->tm_mon = tp->tm_mday = tp->tm_wday = INT_MIN;
+        tp->tm_isdst = -1;
+        tp->tm_gmtoff = 0;
+        tp->tm_zone = NULL;
+        result = strptime(string, patterns[i], tp);
+
+        if (result && *result == '\0')
+            break;
+    }
+
+    /* Return if no patterns matched */
+    if (result == NULL || *result != '\0')
+        return 1;
+
+    /* Return if no date is given */
+    if (tp->tm_year == INT_MIN && tp->tm_mon == INT_MIN &&
+            tp->tm_mday == INT_MIN)
+        return 1;
+
+    /* The first of the month is assumed, if only year and
+       month is given */
+    if (tp->tm_year != INT_MIN && tp->tm_mon != INT_MIN &&
+            tp->tm_mday == INT_MIN)
+        tp->tm_mday = 1;
+
+    /* January 1 is assumed, if only year is given */
+    if (tp->tm_year != INT_MIN && tp->tm_mon == INT_MIN &&
+            tp->tm_mday == INT_MIN) {
+        tp->tm_mon = 0;
+        tp->tm_mday = 1;
+    }
+
+    return 0;
+}
