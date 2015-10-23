@@ -730,6 +730,7 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
      * received a TM as arg, if it didn't exist */
     slot->tm_id = TmModuleGetIDForTM(tm);
 
+    tv->tmm_flags |= tm->flags;
     tv->cap_flags |= tm->cap_flags;
 
     if (tv->tm_slots == NULL) {
