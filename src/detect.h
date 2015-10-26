@@ -974,13 +974,11 @@ typedef struct SigGroupHead_ {
     uint32_t id; /**< unique id used to index sgh_array for stats */
 
     /* pattern matcher instances */
-    const MpmCtx *mpm_proto_other_ctx;
+    const MpmCtx *mpm_packet_ctx;
+    const MpmCtx *mpm_stream_ctx;
 
     union {
         struct {
-            const MpmCtx *mpm_proto_tcp_ctx_ts;
-            const MpmCtx *mpm_proto_udp_ctx_ts;
-            const MpmCtx *mpm_stream_ctx_ts;
             const MpmCtx *mpm_uri_ctx_ts;
             const MpmCtx *mpm_hcbd_ctx_ts;
             const MpmCtx *mpm_hhd_ctx_ts;
@@ -995,9 +993,6 @@ typedef struct SigGroupHead_ {
             const MpmCtx *mpm_smtp_filedata_ctx_ts;
         };
         struct {
-            const MpmCtx *mpm_proto_tcp_ctx_tc;
-            const MpmCtx *mpm_proto_udp_ctx_tc;
-            const MpmCtx *mpm_stream_ctx_tc;
             const MpmCtx *mpm_hsbd_ctx_tc;
             const MpmCtx *mpm_hhd_ctx_tc;
             const MpmCtx *mpm_hrhd_ctx_tc;
