@@ -46,6 +46,11 @@ void DetectPortFree(DetectPort *);
 
 int DetectPortTestConfVars(void);
 
+DetectPort *DetectPortHashLookup(DetectEngineCtx *de_ctx, DetectPort *dp);
+void DetectPortHashFree(DetectEngineCtx *de_ctx);
+int DetectPortHashAdd(DetectEngineCtx *de_ctx, DetectPort *dp);
+int DetectPortHashInit(DetectEngineCtx *de_ctx);
+
 void DetectPortTests(void);
 
 #endif /* __DETECT_PORT_H__ */
