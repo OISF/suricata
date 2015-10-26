@@ -1493,6 +1493,139 @@ int DetectPortIsValidRange(char *port)
 }
 /********************** End parsing routines ********************/
 
+/* hash table */
+
+/**
+ * \brief The hash function to be the used by the hash table -
+ *        DetectEngineCtx->dport_hash_table.
+ *
+ * \param ht      Pointer to the hash table.
+ * \param data    Pointer to the DetectPort.
+ * \param datalen Not used in our case.
+ *
+ * \retval hash The generated hash value.
+ */
+static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    DetectPort *p = (DetectPort *)data;
+    uint32_t hash = 0;
+
+    SCLogDebug("hashing sgh %p", p);
+
+    hash = (p->port << 16) | p->port2;
+
+    hash %= ht->array_size;
+    SCLogDebug("hash %"PRIu32, hash);
+    return hash;
+}
+
+/**
+ * \brief The Compare function to be used by the DetectPort hash table -
+ *        DetectEngineCtx->dport_hash_table.
+ *
+ * \param data1 Pointer to the first DetectPort.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second DetectPort.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 DetectPort sent as args match.
+ * \retval 0 If the 2 DetectPort sent as args do not match.
+ */
+static char DetectPortCompareFunc(void *data1, uint16_t len1,
+                                  void *data2, uint16_t len2)
+{
+    DetectPort *dp1 = (DetectPort *)data1;
+    DetectPort *dp2 = (DetectPort *)data2;
+
+    if (data1 == NULL || data2 == NULL)
+        return 0;
+
+    if (dp1->port == dp2->port && dp1->port2 == dp2->port2)
+        return 1;
+
+    return 0;
+}
+
+static void DetectPortHashFreeFunc(void *ptr)
+{
+    DetectPort *p = ptr;
+    DetectPortFree(p);
+}
+
+/**
+ * \brief Initializes the hash table in the detection engine context to hold the
+ *        DetectPort hash.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectPortHashInit(DetectEngineCtx *de_ctx)
+{
+    de_ctx->dport_hash_table = HashListTableInit(4096, DetectPortHashFunc,
+                                                       DetectPortCompareFunc,
+                                                       DetectPortHashFreeFunc);
+    if (de_ctx->dport_hash_table == NULL)
+        goto error;
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Adds a DetectPort to the detection engine context DetectPort
+ *        hash table.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param dp     Pointer to the DetectPort.
+ *
+ * \retval ret 0 on Successfully adding the DetectPort; -1 on failure.
+ */
+int DetectPortHashAdd(DetectEngineCtx *de_ctx, DetectPort *dp)
+{
+    int ret = HashListTableAdd(de_ctx->dport_hash_table, (void *)dp, 0);
+    return ret;
+}
+
+/**
+ * \brief Used to lookup a DetectPort hash from the detection engine context
+ *        DetectPort hash table.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sgh    Pointer to the DetectPort.
+ *
+ * \retval rsgh On success a pointer to the DetectPort if the DetectPort is
+ *              found in the hash table; NULL on failure.
+ */
+DetectPort *DetectPortHashLookup(DetectEngineCtx *de_ctx, DetectPort *dp)
+{
+    SCEnter();
+
+    DetectPort *rdp = HashListTableLookup(de_ctx->dport_hash_table, (void *)dp, 0);
+
+    SCReturnPtr(rdp, "DetectPort");
+}
+
+/**
+ * \brief Frees the hash table - DetectEngineCtx->sgh_hash_table, allocated by
+ *        DetectPortInit() function.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ */
+void DetectPortHashFree(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->sgh_hash_table == NULL)
+        return;
+
+    HashListTableFree(de_ctx->dport_hash_table);
+    de_ctx->dport_hash_table = NULL;
+
+    return;
+}
+
 /*---------------------- Unittests -------------------------*/
 
 #ifdef UNITTESTS
