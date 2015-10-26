@@ -48,29 +48,15 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret = 0;
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
 
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
-        if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
-            SCReturnInt(0);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx == NULL);
+    if (det_ctx->sgh->mpm_stream_ctx == NULL)
+        SCReturnInt(0);
 
-        if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx_ts->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-                Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
-                        p->payload, p->payload_len);
-        }
-
-    } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_tc == NULL);
-        if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
-            SCReturnInt(0);
-
-        if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx_tc->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-                Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
-                        p->payload, p->payload_len);
-        }
+    if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
+            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
+                    p->payload, p->payload_len);
     }
 
     SCReturnInt(ret);
@@ -95,26 +81,13 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
     //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 
     uint32_t r;
-    if (flags & STREAM_TOSERVER) {
-        for ( ; smsg != NULL; smsg = smsg->next) {
-            if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx_ts->minlen) {
-                r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-                    Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
-                            &det_ctx->pmq, smsg->data, smsg->data_len);
-                if (r > 0) {
-                    ret += r;
-                }
-            }
-        }
-    } else if (flags & STREAM_TOCLIENT) {
-        for ( ; smsg != NULL; smsg = smsg->next) {
-            if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx_tc->minlen) {
-                r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-                    Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
-                            &det_ctx->pmq, smsg->data, smsg->data_len);
-                if (r > 0) {
-                    ret += r;
-                }
+    for ( ; smsg != NULL; smsg = smsg->next) {
+        if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx->minlen) {
+            r = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
+                Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtcs,
+                        &det_ctx->pmq, smsg->data, smsg->data_len);
+            if (r > 0) {
+                ret += r;
             }
         }
     }
@@ -136,21 +109,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     uint32_t ret = 0;
     const MpmCtx *mpm_ctx = NULL;
 
-    if (p->proto == IPPROTO_TCP) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_ts;
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-            mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_tc;
-        }
-    } else if (p->proto == IPPROTO_UDP) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_ts;
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
-            mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_tc;
-        }
-    } else {
-        mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
-    }
+    mpm_ctx = det_ctx->sgh->mpm_packet_ctx;
     if (unlikely(mpm_ctx == NULL))
         SCReturnInt(0);
     if (p->payload_len < mpm_ctx->minlen)
