@@ -3363,9 +3363,10 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
 int CreateGroupedPortListCmpCnt(DetectPort *a, DetectPort *b);
 
 static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint32_t direction) {
-    /* step 1: create a list of 'DetectPort' objects based on all the
+    /* step 1: create a hash of 'DetectPort' objects based on all the
      *         rules. Each object will have a SGH with the sigs added
      *         that belong to the SGH. */
+    DetectPortHashInit(de_ctx);
 
     uint32_t max_idx = 0;
     const Signature *s = de_ctx->sig_list;
@@ -3402,21 +3403,20 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
         int wl = s->whitelist;
         while (p) {
-            DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
-            BUG_ON(tmp == NULL);
-            SigGroupHeadAppendSig(de_ctx, &tmp->sh, s);
+            int pwl = PortIsWhitelisted(p, ipproto) ? 111 : 0;
+            pwl = MAX(wl,pwl);
 
-            int pwl = PortIsWhitelisted(tmp, ipproto) ? 111 : 0;
-            tmp->sh->init->whitelist = MAX(wl, pwl);
-            if (tmp->sh->init->whitelist) {
-                SCLogDebug("%s/%s Rule %u whitelisted port group %u:%u",
-                        direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient",
-                        ipproto == 6 ? "TCP" : "UDP",
-                        s->id, p->port, p->port2);
+            DetectPort *lookup = DetectPortHashLookup(de_ctx, p);
+            if (lookup) {
+                SigGroupHeadAppendSig(de_ctx, &lookup->sh, s);
+                lookup->sh->init->whitelist = MAX(lookup->sh->init->whitelist, pwl);
+            } else {
+                DetectPort *tmp2 = DetectPortCopySingle(de_ctx, p);
+                BUG_ON(tmp2 == NULL);
+                SigGroupHeadAppendSig(de_ctx, &tmp2->sh, s);
+                tmp2->sh->init->whitelist = pwl;
+                DetectPortHashAdd(de_ctx, tmp2);
             }
-
-            int r = DetectPortInsert(de_ctx, &list , tmp);
-            BUG_ON(r == -1);
 
             p = p->next;
         }
@@ -3425,15 +3425,31 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
         s = s->next;
     }
 
+    /* step 2: create a list of DetectPort objects */
+    HashListTableBucket *htb = NULL;
+    for (htb = HashListTableGetListHead(de_ctx->dport_hash_table);
+            htb != NULL;
+            htb = HashListTableGetListNext(htb))
+    {
+        DetectPort *p = HashListTableGetListData(htb);
+        DetectPort *tmp = DetectPortCopySingle(de_ctx, p);
+        BUG_ON(tmp == NULL);
+        int r = DetectPortInsert(de_ctx, &list , tmp);
+        BUG_ON(r == -1);
+    }
+    DetectPortHashFree(de_ctx);
+    de_ctx->dport_hash_table = NULL;
+
     SCLogDebug("rules analyzed");
 
+    /* step 3: group the list and shrink it if necessary */
     DetectPort *newlist = NULL;
     uint16_t groupmax = (direction == SIG_FLAG_TOCLIENT) ? de_ctx->max_uniq_toclient_groups :
                                                            de_ctx->max_uniq_toserver_groups;
     CreateGroupedPortList(de_ctx, list, &newlist, groupmax, CreateGroupedPortListCmpCnt, max_idx);
     list = newlist;
 
-    /* step 2: deduplicate the SGH's */
+    /* step 4: deduplicate the SGH's */
     SigGroupHeadHashFree(de_ctx);
     SigGroupHeadHashInit(de_ctx);
 

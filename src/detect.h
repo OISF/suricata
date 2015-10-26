@@ -660,6 +660,9 @@ typedef struct DetectEngineCtx_ {
     /** id of loader thread 'owning' this de_ctx */
     int loader_id;
 
+
+    HashListTable *dport_hash_table;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
