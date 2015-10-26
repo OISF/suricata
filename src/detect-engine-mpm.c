@@ -262,27 +262,9 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
         return;
 
     /* content */
-    if (det_ctx->sgh->mpm_proto_tcp_ctx_ts != NULL &&
-        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx_ts->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx_ts->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-    if (det_ctx->sgh->mpm_proto_tcp_ctx_tc != NULL &&
-        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx_tc->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx_tc->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-
-    if (det_ctx->sgh->mpm_proto_udp_ctx_ts != NULL &&
-        mpm_table[det_ctx->sgh->mpm_proto_udp_ctx_ts->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_proto_udp_ctx_ts->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-    if (det_ctx->sgh->mpm_proto_udp_ctx_tc != NULL &&
-        mpm_table[det_ctx->sgh->mpm_proto_udp_ctx_tc->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_proto_udp_ctx_tc->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-
-    if (det_ctx->sgh->mpm_proto_other_ctx != NULL &&
-        mpm_table[det_ctx->sgh->mpm_proto_other_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_proto_other_ctx->mpm_type].Cleanup(&det_ctx->mtc);
+    if (det_ctx->sgh->mpm_packet_ctx != NULL &&
+        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup(&det_ctx->mtc);
     }
 
     /* uricontent */
@@ -291,11 +273,9 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
     }
 
     /* stream content */
-    if (det_ctx->sgh->mpm_stream_ctx_ts != NULL && mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].Cleanup(&det_ctx->mtcs);
-    }
-    if (det_ctx->sgh->mpm_stream_ctx_tc != NULL && mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].Cleanup(&det_ctx->mtcs);
+    if (det_ctx->sgh->mpm_stream_ctx != NULL &&
+            mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup(&det_ctx->mtcs);
     }
 
     return;
@@ -1127,31 +1107,35 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TS);
             if (mpm_store != NULL) {
-                sh->mpm_proto_tcp_ctx_ts = mpm_store->mpm_ctx;
-                if (sh->mpm_proto_tcp_ctx_ts)
+                BUG_ON(sh->mpm_packet_ctx);
+                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
+                if (sh->mpm_packet_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
             if (mpm_store != NULL) {
                 BUG_ON(mpm_store == NULL);
-                sh->mpm_stream_ctx_ts = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx_ts)
+                BUG_ON(sh->mpm_stream_ctx);
+                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
+                if (sh->mpm_stream_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
             if (mpm_store != NULL) {
-                sh->mpm_proto_tcp_ctx_tc = mpm_store->mpm_ctx;
-                if (sh->mpm_proto_tcp_ctx_tc)
+                BUG_ON(sh->mpm_packet_ctx);
+                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
+                if (sh->mpm_packet_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
             if (mpm_store != NULL) {
-                sh->mpm_stream_ctx_tc = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx_tc)
+                BUG_ON(sh->mpm_stream_ctx);
+                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
+                if (sh->mpm_stream_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
             }
        }
@@ -1160,27 +1144,30 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TS);
             if (mpm_store != NULL) {
                 BUG_ON(mpm_store == NULL);
-                sh->mpm_proto_udp_ctx_ts = mpm_store->mpm_ctx;
+                BUG_ON(sh->mpm_packet_ctx);
+                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
 
-                if (sh->mpm_proto_udp_ctx_ts != NULL)
+                if (sh->mpm_packet_ctx != NULL)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
-                sh->mpm_proto_udp_ctx_tc = mpm_store->mpm_ctx;
+                BUG_ON(sh->mpm_packet_ctx);
+                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
 
-                if (sh->mpm_proto_udp_ctx_tc != NULL)
+                if (sh->mpm_packet_ctx != NULL)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
             }
         }
     } else {
         mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_OTHERIP);
         if (mpm_store != NULL) {
-            sh->mpm_proto_other_ctx = mpm_store->mpm_ctx;
+            BUG_ON(sh->mpm_packet_ctx);
+            sh->mpm_packet_ctx = mpm_store->mpm_ctx;
 
-            if (sh->mpm_proto_other_ctx != NULL)
+            if (sh->mpm_packet_ctx != NULL)
                 sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
         }
     }
