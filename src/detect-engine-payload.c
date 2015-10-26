@@ -45,7 +45,7 @@
 #include "util-mpm-ac.h"
 
 uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
-                                         Packet *p)
+                                          const Packet *p)
 {
     SCEnter();
 
@@ -73,8 +73,8 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
  *
  *  \retval ret number of matches
  */
-uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
-                             StreamMsg *smsg, uint8_t flags)
+uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, const Packet *p,
+                             const StreamMsg *smsg, const uint8_t flags)
 {
     SCEnter();
 
