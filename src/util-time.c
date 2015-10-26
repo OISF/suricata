@@ -138,6 +138,20 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     }
 }
 
+void TimeToIsoTimeString (time_t time, char *str, size_t size)
+{
+    struct tm local_tm;
+    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
+    char time_fmt[64] = { 0 };
+
+    if (likely(t != NULL)) {
+        strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
+        snprintf(str, size, "%s", time_fmt);
+    } else {
+        snprintf(str, size, "ts-error");
+    }
+}
+
 /*
  * Time Caching code
  */
