@@ -43,67 +43,70 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /* per flow flags */
 
 /** At least on packet from the source address was seen */
-#define FLOW_TO_SRC_SEEN                  0x00000001
+#define FLOW_TO_SRC_SEEN                  (1<<0)
 /** At least on packet from the destination address was seen */
-#define FLOW_TO_DST_SEEN                  0x00000002
+#define FLOW_TO_DST_SEEN                  (1<<1)
 /** Don't return this from the flow hash. It has been replaced. */
-#define FLOW_TCP_REUSED                   0x00000004
+#define FLOW_TCP_REUSED                   (1<<2)
 /** no magic on files in this flow */
-#define FLOW_FILE_NO_MAGIC_TS             0x00000008
-#define FLOW_FILE_NO_MAGIC_TC             0x00000010
+#define FLOW_FILE_NO_MAGIC_TS             (1<<3)
+#define FLOW_FILE_NO_MAGIC_TC             (1<<4)
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET          0x00000020
+#define FLOW_TOSERVER_IPONLY_SET          (1<<5)
 /** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET          0x00000040
+#define FLOW_TOCLIENT_IPONLY_SET          (1<<6)
 
 /** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION          0x00000080
+#define FLOW_NOPACKET_INSPECTION          (1<<7)
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION         0x00000100
+#define FLOW_NOPAYLOAD_INSPECTION         (1<<8)
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP                  0x00000200
+#define FLOW_ACTION_DROP                  (1<<9)
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER                 0x00000800
+#define FLOW_SGH_TOSERVER                 (1<<10)
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT                 0x00001000
+#define FLOW_SGH_TOCLIENT                 (1<<11)
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED         0x00002000
+#define FLOW_TOSERVER_DROP_LOGGED         (1<<12)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
+#define FLOW_TOCLIENT_DROP_LOGGED         (1<<13)
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE          0x00008000
+#define FLOW_ALPROTO_DETECT_DONE          (1<<14)
 
-// vacany 1x
+// vacancy 1x
 
 /** Pattern matcher alproto detection done */
-#define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00020000
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE    (1<<16)
 /** Probing parser alproto detection done */
-#define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00040000
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE    (1<<17)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00100000
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE    (1<<18)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00200000
-#define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00800000
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE    (1<<19)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE      (1<<20)
 /** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_STORE_TS             0x01000000
-#define FLOW_FILE_NO_STORE_TC             0x02000000
+#define FLOW_FILE_NO_STORE_TS             (1<<21)
+#define FLOW_FILE_NO_STORE_TC             (1<<22)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                         0x04000000
+#define FLOW_IPV4                         (1<<23)
 /** flow is ipv6 */
-#define FLOW_IPV6                         0x08000000
+#define FLOW_IPV6                         (1<<24)
 
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               0x10000000
-#define FLOW_FILE_NO_MD5_TC               0x20000000
+#define FLOW_FILE_NO_MD5_TS               (1<<25)
+#define FLOW_FILE_NO_MD5_TC               (1<<26)
 
 /** no size tracking of files in this flow */
-#define FLOW_FILE_NO_SIZE_TS              0x40000000
-#define FLOW_FILE_NO_SIZE_TC              0x80000000
+#define FLOW_FILE_NO_SIZE_TS              (1<<27)
+#define FLOW_FILE_NO_SIZE_TC              (1<<28)
+
+/* flow is reverted */
+#define FLOW_ALPROTO_REVERTED             (1<<29)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
