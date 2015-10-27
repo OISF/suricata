@@ -984,6 +984,8 @@ typedef struct SigGroupHead_ {
      *  set. */
     uint16_t filestore_cnt;
 
+    uint32_t id; /**< unique id used to index sgh_array for stats */
+
     /* pattern matcher instances */
     const MpmCtx *mpm_proto_other_ctx;
 
