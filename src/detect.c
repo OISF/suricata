@@ -2978,6 +2978,8 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
     if (unlikely(js == NULL))
         return NULL;
 
+    json_object_set_new(js, "id", json_integer(sgh->id));
+
     json_t *js_array = json_array();
 
     const Signature *s;
@@ -4070,6 +4072,8 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         sgh->mpm_uricontent_minlen = SigGroupHeadGetMinMpmSize(de_ctx, sgh, DETECT_SM_LIST_UMATCH);
         SCLogDebug("http_uri content min mpm len: %u", sgh->mpm_uricontent_minlen);
+
+        sgh->id = idx;
         cnt++;
     }
     SCLogInfo("Unique rule groups: %u", cnt);
