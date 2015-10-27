@@ -138,6 +138,20 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     }
 }
 
+void TimeToIsoTimeString (time_t time, char *str, size_t size)
+{
+    struct tm local_tm;
+    struct tm *t = (struct tm*)SCLocalTime(time, &local_tm);
+    char time_fmt[64] = { 0 };
+
+    if (likely(t != NULL)) {
+        strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
+        snprintf(str, size, "%s", time_fmt);
+    } else {
+        snprintf(str, size, "ts-error");
+    }
+}
+
 /*
  * Time Caching code
  */
@@ -302,3 +316,106 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
 }
 
 #endif /* defined(__OpenBSD__) */
+
+/**
+ * \brief Parse a date string based on specified patterns.
+ *
+ * This function is based on GNU C library getdate.
+ *
+ * \param string       Date string to parse.
+ * \param patterns     String array containing patterns.
+ * \param num_patterns Number of patterns to check.
+ * \param time         The parsed time.
+ *
+ * \retval 0 on success.
+ * \retval 1 on failure.
+ */
+int SCStringPatternToTime (char *string, char **patterns, int num_patterns,
+                           struct tm *tp)
+{
+    /* Skip leading whitespace.  */
+    while (isspace(*string))
+        string++;
+
+    size_t inlen, oldlen;
+
+    oldlen = inlen = strlen(string);
+
+    /* Skip trailing whitespace */
+    while (inlen > 0 && isspace(string[inlen - 1]))
+        inlen--;
+
+    char *instr = NULL;
+
+    if (inlen < oldlen) {
+        instr = malloc(inlen + 1);
+        if (instr == NULL)
+            return 1;
+
+        memcpy(instr, string, inlen);
+        instr[inlen] = '\0';
+        string = instr;
+    }
+
+    char *result = NULL;
+    int i = 0;
+
+    /* Do the pattern matching */
+    for (i = 0; i < num_patterns; i++)
+    {
+        if (patterns[i] == NULL)
+            continue;
+
+        tp->tm_hour = tp->tm_min = tp->tm_sec = 0;
+        tp->tm_year = tp->tm_mon = tp->tm_mday = tp->tm_wday = INT_MIN;
+        tp->tm_isdst = -1;
+        tp->tm_gmtoff = 0;
+        tp->tm_zone = NULL;
+        result = strptime(string, patterns[i], tp);
+
+        if (result && *result == '\0')
+            break;
+    }
+
+    if (instr != NULL)
+        free(instr);
+
+    /* Return if no patterns matched */
+    if (result == NULL || *result != '\0')
+        return 1;
+
+    /* The first of the month is assumed, if only year and
+       month is given */
+    if (tp->tm_year != INT_MIN && tp->tm_mon != INT_MIN &&
+            tp->tm_mday == INT_MIN)
+        tp->tm_mday = 1;
+
+    /* January 1 is assumed, if only year is given */
+    if (tp->tm_year != INT_MIN && tp->tm_mon == INT_MIN &&
+            tp->tm_mday == INT_MIN) {
+        tp->tm_mon = 0;
+        tp->tm_mday = 1;
+    }
+
+    /* Today is assumed, if no date is given */
+    if (tp->tm_year == INT_MIN && tp->tm_mon == INT_MIN &&
+            tp->tm_mday == INT_MIN) {
+        time_t timer;
+        struct tm tm;
+        time(&timer);
+        localtime_r(&timer, &tm);
+
+        tp->tm_year = tm.tm_year;
+        tp->tm_mon = tm.tm_mon;
+        tp->tm_mday = tm.tm_mday;
+        tp->tm_wday = tm.tm_wday;
+    }
+
+    /* Calculate day of week if undefined */
+    if (tp->tm_wday == INT_MIN) {
+        time_t t = mktime(tp);
+        tp->tm_wday = localtime(&t)->tm_wday;
+    }
+
+    return 0;
+}
