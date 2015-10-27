@@ -38,27 +38,6 @@
 #include "flow.h"
 #endif /* __SC_CUDA_SUPPORT__ */
 
-typedef struct SCACPattern_ {
-    /* length of the pattern */
-    uint16_t len;
-    /* flags decribing the pattern */
-    uint8_t flags;
-    /* holds the original pattern that was added */
-    uint8_t *original_pat;
-    /* case sensitive */
-    uint8_t *cs;
-    /* case INsensitive */
-    uint8_t *ci;
-    /* pattern id */
-    uint32_t id;
-
-    /* sid(s) for this pattern */
-    uint32_t sids_size;
-    SigIntId *sids;
-
-    struct SCACPattern_ *next;
-} SCACPattern;
-
 typedef struct SCACPatternList_ {
     uint8_t *cs;
     uint16_t patlen;
@@ -76,14 +55,14 @@ typedef struct SCACOutputTable_ {
 } SCACOutputTable;
 
 typedef struct SCACCtx_ {
-    /* hash used during ctx initialization */
-    SCACPattern **init_hash;
-
     /* pattern arrays.  We need this only during the goto table creation phase */
-    SCACPattern **parray;
+    MpmPattern **parray;
 
     /* no of states used by ac */
     uint32_t state_count;
+
+    uint32_t pattern_id_bitarray_size;
+
     /* the all important memory hungry state_table */
     SC_AC_STATE_TYPE_U16 (*state_table_u16)[256];
     /* the all important memory hungry state_table */
@@ -98,7 +77,6 @@ typedef struct SCACCtx_ {
 
     /* the size of each state */
     uint16_t single_state_size;
-    uint16_t max_pat_id;
 
     uint32_t allocated_state_count;
 
