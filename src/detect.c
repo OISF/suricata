@@ -3388,8 +3388,13 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
             goto next;
         if (!(s->proto.proto[ipproto / 8] & (1<<(ipproto % 8)) || (s->proto.flags & DETECT_PROTO_ANY)))
             goto next;
-        if (!(s->flags & direction))
-            goto next;
+        if (direction == SIG_FLAG_TOSERVER) {
+            if (!(s->flags & SIG_FLAG_TOSERVER))
+                goto next;
+        } else if (direction == SIG_FLAG_TOCLIENT) {
+            if (!(s->flags & SIG_FLAG_TOCLIENT))
+                goto next;
+        }
 
         DetectPort *p = NULL;
         if (direction == SIG_FLAG_TOSERVER)
