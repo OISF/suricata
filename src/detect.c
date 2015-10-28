@@ -2719,22 +2719,7 @@ static int SignatureCreateMask(Signature *s)
 
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        de_ctx->sgh_mpm_context_proto_tcp_packet =
-            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_tcp");
-        de_ctx->sgh_mpm_context_proto_udp_packet =
-            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_udp");
-        de_ctx->sgh_mpm_context_proto_other_packet =
-            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other");
-        de_ctx->sgh_mpm_context_stream =
-            MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream");
-    } else {
-        de_ctx->sgh_mpm_context_proto_tcp_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-        de_ctx->sgh_mpm_context_proto_udp_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-        de_ctx->sgh_mpm_context_proto_other_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-        de_ctx->sgh_mpm_context_stream = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
-    }
-
+    DetectMpmInitializeBuiltinMpms(de_ctx);
     DetectMpmInitializeAppMpms(de_ctx);
 
     return;
@@ -4129,8 +4114,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     }
 
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        MpmCtx *mpm_ctx = NULL;
-
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             /* setting it to default.  You've gotta remove it once you fix the state table thing */
@@ -4149,42 +4132,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
             }
         }
 #endif
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("packet- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("packet- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("packet- %d\n", mpm_ctx->pattern_cnt);
-
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
-        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
-        }
-        //printf("stream- %d\n", mpm_ctx->pattern_cnt);
-
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             int r = SCCudaCtxPopCurrent(NULL);
@@ -4199,6 +4146,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         DetermineCudaStateTableSize(de_ctx);
 #endif
     }
+    DetectMpmPrepareBuiltinMpms(de_ctx);
     DetectMpmPrepareAppMpms(de_ctx);
 
 //    DetectAddressPrintMemory();
