@@ -34,10 +34,12 @@
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx);
 void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx);
-
-uint16_t PatternMatchDefaultMatcher(void);
+void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx);
+void DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx);
 
 uint32_t PatternStrength(uint8_t *, uint16_t);
+
+uint16_t PatternMatchDefaultMatcher(void);
 uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *, Packet *);
 uint32_t PacketPatternSearch(DetectEngineThreadCtx *, Packet *);
 uint32_t StreamPatternSearch(DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
