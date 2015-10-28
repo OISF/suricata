@@ -619,7 +619,6 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_proto_udp_packet;
     int32_t sgh_mpm_context_proto_other_packet;
     int32_t sgh_mpm_context_stream;
-    int32_t sgh_mpm_context_app_proto_detect;
 
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
