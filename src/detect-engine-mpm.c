@@ -119,8 +119,7 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
     for (i = 0; i < APP_MPMS_MAX; i++) {
         AppLayerMpms *am = &app_mpms[i];
 
-        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name,
-                MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
 
         SCLogDebug("AppLayer MPM %s: %u", am->name, am->sgh_mpm_context);
     }
