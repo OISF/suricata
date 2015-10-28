@@ -2721,14 +2721,21 @@ static int SignatureCreateMask(Signature *s)
 
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
-    de_ctx->sgh_mpm_context_proto_tcp_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_tcp");
-    de_ctx->sgh_mpm_context_proto_udp_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_udp");
-    de_ctx->sgh_mpm_context_proto_other_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other");
-    de_ctx->sgh_mpm_context_stream =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream");
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+        de_ctx->sgh_mpm_context_proto_tcp_packet =
+            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_tcp");
+        de_ctx->sgh_mpm_context_proto_udp_packet =
+            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_udp");
+        de_ctx->sgh_mpm_context_proto_other_packet =
+            MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other");
+        de_ctx->sgh_mpm_context_stream =
+            MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream");
+    } else {
+        de_ctx->sgh_mpm_context_proto_tcp_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        de_ctx->sgh_mpm_context_proto_udp_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        de_ctx->sgh_mpm_context_proto_other_packet = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        de_ctx->sgh_mpm_context_stream = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+    }
 
     DetectMpmInitializeAppMpms(de_ctx);
 
@@ -4102,11 +4109,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     if (DetectSetFastPatternAndItsId(de_ctx) < 0)
         return -1;
 
-    /* if we are using single sgh_mpm_context then let us init the standard mpm
-     * contexts using the mpm_ctx factory */
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        SigInitStandardMpmFactoryContexts(de_ctx);
-    }
+    SigInitStandardMpmFactoryContexts(de_ctx);
 
     if (SigAddressPrepareStage1(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
