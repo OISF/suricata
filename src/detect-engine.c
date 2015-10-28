@@ -978,9 +978,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     SigGroupCleanup(de_ctx);
 
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
-    }
+    MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
