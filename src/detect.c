@@ -459,7 +459,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 de_ctx->config_prefix);
     }
 
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (RunmodeGetCurrent(0) == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
     }
@@ -539,7 +539,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     ret = 0;
 
  end:
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (RunmodeGetCurrent(0) == RUNMODE_ENGINE_ANALYSIS) {
         if (rule_engine_analysis_set) {
             CleanupRuleAnalyzer();
         }
@@ -666,7 +666,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
         TcpSession *ssn = (TcpSession *)f->protoctx;
 
         /* at stream eof, or in inline mode, inspect all smsg's */
-        if ((flags & STREAM_EOF) || StreamTcpInlineMode()) {
+        if ((flags & STREAM_EOF) || StreamTcpInlineMode(p)) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 smsg = ssn->toserver_smsg_head;
                 /* deref from the ssn */
@@ -11505,6 +11505,7 @@ static int SigTestDropFlow03(void)
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
     p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p2->pkt_mode = PKT_MODE_IPS;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
