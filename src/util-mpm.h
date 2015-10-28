@@ -128,7 +128,7 @@ typedef struct MpmCtx_ {
 #define MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD 0x01
 
 typedef struct MpmCtxFactoryItem_ {
-    char *name;
+    const char *name;
     MpmCtx *mpm_ctx_ts;
     MpmCtx *mpm_ctx_tc;
     int32_t id;
