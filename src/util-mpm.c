@@ -53,7 +53,7 @@
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
-int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name, uint8_t flags)
+int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name)
 {
     void *ptmp;
     /* the very first entry */
@@ -95,9 +95,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
          * the array */
         item[0].id = 0;
 
-        /* store the flag */
-        item[0].flags = flags;
-
         /* store the newly created item */
         de_ctx->mpm_ctx_factory_container->items = item;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
@@ -128,7 +125,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                     memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
                     items[i].mpm_ctx_tc->global = 1;
                 }
-                items[i].flags = flags;
                 return items[i].id;
             }
         }
@@ -168,7 +164,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         new_item[0].mpm_ctx_tc->global = 1;
 
         new_item[0].id = de_ctx->mpm_ctx_factory_container->no_of_items;
-        new_item[0].flags = flags;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
 
         /* the newly created id */
