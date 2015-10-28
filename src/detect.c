@@ -4187,8 +4187,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         }
         //printf("stream- %d\n", mpm_ctx->pattern_cnt);
 
-        DetectMpmPrepareAppMpms(de_ctx);
-
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             int r = SCCudaCtxPopCurrent(NULL);
@@ -4202,8 +4200,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
          * \todo Support this. */
         DetermineCudaStateTableSize(de_ctx);
 #endif
-
     }
+    DetectMpmPrepareAppMpms(de_ctx);
 
 //    DetectAddressPrintMemory();
 //    DetectSigGroupPrintMemory();

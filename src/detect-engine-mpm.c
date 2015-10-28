@@ -119,16 +119,33 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
     for (i = 0; i < APP_MPMS_MAX; i++) {
         AppLayerMpms *am = &app_mpms[i];
 
-        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
-        } else {
+        /* default to whatever the global setting is */
+        int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+
+        /* see if we use a unique or shared mpm ctx for this type */
+        int confshared = 0;
+        char confstring[256] = "detect.mpm.";
+        strlcat(confstring, am->name, sizeof(confstring));
+        strlcat(confstring, ".shared", sizeof(confstring));
+        if (ConfGetBool(confstring, &confshared) == 1)
+            shared = confshared;
+
+        if (shared == 0) {
+            SCLogInfo("using unique mpm ctx' for %s", am->name);
             am->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        } else {
+            SCLogInfo("using shared mpm ctx' for %s", am->name);
+            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
         }
 
         SCLogDebug("AppLayer MPM %s: %u", am->name, am->sgh_mpm_context);
     }
 }
 
+/**
+ *  \brief initialize mpm contexts for applayer buffers that are in
+ *         "single or "shared" mode.
+ */
 void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
 {
     int i;
@@ -137,10 +154,13 @@ void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
 
         int dir = (am->direction == SIG_FLAG_TOSERVER) ? 1 : 0;
 
-        MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
-        if (mpm_ctx != NULL) {
-            if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
-                mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        if (am->sgh_mpm_context != MPM_CTX_FACTORY_UNIQUE_CONTEXT)
+        {
+            MpmCtx *mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, am->sgh_mpm_context, dir);
+            if (mpm_ctx != NULL) {
+                if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+                    mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+                }
             }
         }
     }
@@ -825,7 +845,7 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             MpmFactoryReClaimMpmCtx(de_ctx, ms->mpm_ctx);
             ms->mpm_ctx = NULL;
         } else {
-            if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+            if (ms->sgh_mpm_context == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
                 if (mpm_table[ms->mpm_ctx->mpm_type].Prepare != NULL) {
                     mpm_table[ms->mpm_ctx->mpm_type].Prepare(ms->mpm_ctx);
                 }
