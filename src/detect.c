@@ -2720,17 +2720,13 @@ static int SignatureCreateMask(Signature *s)
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
     de_ctx->sgh_mpm_context_proto_tcp_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_tcp",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_tcp");
     de_ctx->sgh_mpm_context_proto_udp_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_udp",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_udp");
     de_ctx->sgh_mpm_context_proto_other_packet =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "packet_proto_other");
     de_ctx->sgh_mpm_context_stream =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream",
-                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+        MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream");
 
     DetectMpmInitializeAppMpms(de_ctx);
 
