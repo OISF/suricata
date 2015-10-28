@@ -71,11 +71,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
 
-        item[0].name = SCStrdup(name);
-        if (item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
+        item[0].name = name;
 
         /* toserver */
         item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -151,11 +147,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         de_ctx->mpm_ctx_factory_container->items = items;
 
         MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
-        new_item[0].name = SCStrdup(name);
-        if (new_item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
+        new_item[0].name = name;
 
         /* toserver */
         new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -248,8 +240,6 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
     int i = 0;
     MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
     for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-        if (items[i].name != NULL)
-            SCFree(items[i].name);
         if (items[i].mpm_ctx_ts != NULL) {
             if (items[i].mpm_ctx_ts->mpm_type != MPM_NOTSET)
                 mpm_table[items[i].mpm_ctx_ts->mpm_type].DestroyCtx(items[i].mpm_ctx_ts);
