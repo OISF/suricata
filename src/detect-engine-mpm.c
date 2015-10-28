@@ -166,6 +166,88 @@ void DetectMpmPrepareAppMpms(DetectEngineCtx *de_ctx)
     }
 }
 
+static int32_t SetupBuiltinMpm(DetectEngineCtx *de_ctx, const char *name)
+{
+    /* default to whatever the global setting is */
+    int shared = (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE);
+
+    /* see if we use a unique or shared mpm ctx for this type */
+    int confshared = 0;
+    char confstring[256] = "detect.mpm.";
+    strlcat(confstring, name, sizeof(confstring));
+    strlcat(confstring, ".shared", sizeof(confstring));
+    if (ConfGetBool(confstring, &confshared) == 1)
+        shared = confshared;
+
+    int32_t ctx;
+    if (shared == 0) {
+        ctx = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        SCLogInfo("using unique mpm ctx' for %s", name);
+    } else {
+        ctx = MpmFactoryRegisterMpmCtxProfile(de_ctx, name);
+        SCLogInfo("using shared mpm ctx' for %s", name);
+    }
+    return ctx;
+}
+
+void DetectMpmInitializeBuiltinMpms(DetectEngineCtx *de_ctx)
+{
+    de_ctx->sgh_mpm_context_proto_tcp_packet = SetupBuiltinMpm(de_ctx, "tcp-packet");
+    de_ctx->sgh_mpm_context_stream = SetupBuiltinMpm(de_ctx, "tcp-stream");
+
+    de_ctx->sgh_mpm_context_proto_udp_packet = SetupBuiltinMpm(de_ctx, "udp-packet");
+    de_ctx->sgh_mpm_context_proto_other_packet = SetupBuiltinMpm(de_ctx, "other-ip");
+}
+
+/**
+ *  \brief initialize mpm contexts for builtin buffers that are in
+ *         "single or "shared" mode.
+ */
+void DetectMpmPrepareBuiltinMpms(DetectEngineCtx *de_ctx)
+{
+    MpmCtx *mpm_ctx = NULL;
+
+    if (de_ctx->sgh_mpm_context_proto_tcp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_tcp_packet, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
+
+    if (de_ctx->sgh_mpm_context_proto_udp_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_udp_packet, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
+
+    if (de_ctx->sgh_mpm_context_proto_other_packet != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_proto_other_packet, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
+
+    if (de_ctx->sgh_mpm_context_stream != MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, de_ctx->sgh_mpm_context_stream, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
+}
+
 /**
  *  \brief check if a signature has patterns that are to be inspected
  *         against a packets payload (as opposed to the stream payload)
