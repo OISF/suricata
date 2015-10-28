@@ -124,14 +124,11 @@ typedef struct MpmCtx_ {
  * we should supply this as the key */
 #define MPM_CTX_FACTORY_UNIQUE_CONTEXT -1
 
-#define MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD 0x01
-
 typedef struct MpmCtxFactoryItem_ {
     const char *name;
     MpmCtx *mpm_ctx_ts;
     MpmCtx *mpm_ctx_tc;
     int32_t id;
-    uint8_t flags;
 } MpmCtxFactoryItem;
 
 typedef struct MpmCtxFactoryContainer_ {
@@ -223,7 +220,7 @@ void MpmCudaEnvironmentSetup();
 
 struct DetectEngineCtx_;
 
-int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *, uint8_t);
+int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *);
 void MpmFactoryReClaimMpmCtx(const struct DetectEngineCtx_ *, MpmCtx *);
 MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, int);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
