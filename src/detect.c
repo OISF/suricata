@@ -2742,8 +2742,6 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
     de_ctx->sgh_mpm_context_stream =
         MpmFactoryRegisterMpmCtxProfile(de_ctx, "stream",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
-    de_ctx->sgh_mpm_context_app_proto_detect =
-        MpmFactoryRegisterMpmCtxProfile(de_ctx, "app_proto_detect", 0);
 
     DetectMpmInitializeAppMpms(de_ctx);
 
