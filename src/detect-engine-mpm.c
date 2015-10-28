@@ -119,7 +119,11 @@ void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
     for (i = 0; i < APP_MPMS_MAX; i++) {
         AppLayerMpms *am = &app_mpms[i];
 
-        am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            am->sgh_mpm_context = MpmFactoryRegisterMpmCtxProfile(de_ctx, am->name);
+        } else {
+            am->sgh_mpm_context = MPM_CTX_FACTORY_UNIQUE_CONTEXT;
+        }
 
         SCLogDebug("AppLayer MPM %s: %u", am->name, am->sgh_mpm_context);
     }
@@ -773,11 +777,7 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             dir = 0;
     }
 
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, ms->sgh_mpm_context, dir);
-    } else {
-        ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, MPM_CTX_FACTORY_UNIQUE_CONTEXT, dir);
-    }
+    ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, ms->sgh_mpm_context, dir);
     MpmInitCtx(ms->mpm_ctx, de_ctx->mpm_matcher);
 
     /* add the patterns */
