@@ -349,3 +349,41 @@ void CreateTimeString (const struct timeval *ts, char *str, size_t size)
 }
 
 #endif /* defined(__OpenBSD__) */
+
+/**
+ * \brief Convert broken-down time to seconds since Unix epoch.
+ *
+ * This function is based on: http://www.catb.org/esr/time-programming
+ * (released to the public domain).
+ *
+ * \param tp Pointer to broken-down time.
+ *
+ * \retval Seconds since Unix epoch.
+ */
+time_t SCMkTimeUtc (struct tm *tp)
+{
+    time_t result;
+    long year;
+#define MONTHSPERYEAR 12
+    static const int mdays[MONTHSPERYEAR] =
+            { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334 };
+
+    year = 1900 + tp->tm_year + tp->tm_mon / MONTHSPERYEAR;
+    result = (year - 1970) * 365 + mdays[tp->tm_mon % MONTHSPERYEAR];
+    result += (year - 1968) / 4;
+    result -= (year - 1900) / 100;
+    result += (year - 1600) / 400;
+    if ((year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) &&
+            (tp->tm_mon % MONTHSPERYEAR) < 2)
+        result--;
+    result += tp->tm_mday - 1;
+    result *= 24;
+    result += tp->tm_hour;
+    result *= 60;
+    result += tp->tm_min;
+    result *= 60;
+    result += tp->tm_sec;
+    if (tp->tm_gmtoff)
+        result -= tp->tm_gmtoff;
+    return result;
+}
