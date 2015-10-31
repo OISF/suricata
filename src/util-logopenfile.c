@@ -623,8 +623,8 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t s
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
     {
-        SCMutexLock(&file_ctx->fp_mutex);
         MemBufferWriteString(buffer, "%s\n", string);
+        SCMutexLock(&file_ctx->fp_mutex);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
             MEMBUFFER_OFFSET(buffer), file_ctx);
         SCMutexUnlock(&file_ctx->fp_mutex);
