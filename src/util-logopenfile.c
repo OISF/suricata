@@ -623,10 +623,11 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t s
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
     {
+        /* append \n for files only */
+        MemBufferWriteString(buffer, "\n");
         SCMutexLock(&file_ctx->fp_mutex);
-        MemBufferWriteString(buffer, "%s\n", string);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
-            MEMBUFFER_OFFSET(buffer), file_ctx);
+                        MEMBUFFER_OFFSET(buffer), file_ctx);
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #ifdef HAVE_LIBHIREDIS
