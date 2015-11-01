@@ -335,16 +335,28 @@ json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event
     return js;
 }
 
+static int MemBufferCallback(const char *str, size_t size, void *data)
+{
+    MemBuffer *memb = data;
+#if 0 // can't expand, need a MemBuffer **
+    /* since we can have many threads, the buffer might not be big enough.
+     *              * Expand if necessary. */
+    if (MEMBUFFER_OFFSET(memb) + size > MEMBUFFER_SIZE(memb)) {
+        MemBufferExpand(&memb, OUTPUT_BUFFER_SIZE);
+    }
+#endif
+    MemBufferWriteString(memb, "%s", str);
+    return 0;
+}
+
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
 {
-    char *js_s = NULL;
-
     if (file_ctx->sensor_name) {
         json_object_set_new(js, "host",
                             json_string(file_ctx->sensor_name));
     }
 
-    js_s = json_dumps(js,
+    int r = json_dump_callback(js, MemBufferCallback, buffer,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
 #ifdef JSON_ESCAPE_SLASH
                             JSON_ESCAPE_SLASH
@@ -352,12 +364,12 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
                             0
 #endif
                             );
-    if (unlikely(js_s == NULL))
+    if (r != 0)
         return TM_ECODE_OK;
 
-    LogFileWrite(file_ctx, buffer, js_s, strlen(js_s));
-
-    free(js_s);
+    LogFileWrite(file_ctx, buffer,
+           (char *)MEMBUFFER_BUFFER(buffer),
+                   MEMBUFFER_OFFSET(buffer));
     return 0;
 }
 
