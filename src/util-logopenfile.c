@@ -615,10 +615,11 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_
 }
 #endif
 
-int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len)
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 {
     if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
-        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s", string);
+        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s",
+                (const char *)MEMBUFFER_BUFFER(buffer));
     } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
@@ -633,7 +634,8 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t s
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
-        LogFileWriteRedis(file_ctx, string, string_len);
+        LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif
