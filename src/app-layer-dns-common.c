@@ -916,7 +916,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             do {
                 //PrintRawDataFp(stdout, (uint8_t*)tdata, txtlen);
 
-                if (txtlen > datalen)
+                if (txtlen >= datalen)
                     goto bad_data;
 
                 DNSStoreAnswerInState(dns_state, list, fqdn, fqdn_len,
