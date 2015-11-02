@@ -367,9 +367,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
     if (r != 0)
         return TM_ECODE_OK;
 
-    LogFileWrite(file_ctx, buffer,
-           (char *)MEMBUFFER_BUFFER(buffer),
-                   MEMBUFFER_OFFSET(buffer));
+    LogFileWrite(file_ctx, buffer);
     return 0;
 }
 
