@@ -38,10 +38,6 @@
 
 #ifdef PROFILING
 
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 /**
  * Extra data for rule profiling.
  */
