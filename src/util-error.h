@@ -298,6 +298,7 @@ typedef enum {
     SC_ERR_IPPAIR_INIT,
     SC_ERR_MT_NO_SELECTOR,
     SC_ERR_MT_DUPLICATE_TENANT,
+    SC_ERR_NO_JSON_SUPPORT,
 } SCError;
 
 const char *SCErrorToString(SCError);
