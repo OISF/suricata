@@ -1977,14 +1977,20 @@ static int ConfigGetCaptureValue(SCInstance *suri)
      * back on a sane default. */
     char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
+        int lthread;
+        int nlive;
         switch (suri->run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_NETMAP:
             case RUNMODE_PFRING:
-                /* FIXME this don't work effficiently in multiinterface */
-                /* find payload for interface and use it */
-                default_packet_size = GetIfaceMaxPacketSize(suri->pcap_dev);
+                nlive = LiveGetDeviceCount();
+                for (lthread = 0; lthread < nlive; lthread++) {
+                    char *live_dev = LiveGetDeviceName(lthread);
+                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(live_dev);
+                    if (iface_max_packet_size > default_packet_size)
+                        default_packet_size = iface_max_packet_size;
+                }
                 if (default_packet_size)
                     break;
                 /* fall through */
@@ -2239,6 +2245,10 @@ int main(int argc, char **argv)
 
     UtilCpuPrintSummary();
 
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
@@ -2318,10 +2328,6 @@ int main(int argc, char **argv)
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
         StatsSetupPostConfig();
-    }
-
-    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
     }
 
     if(suri.run_mode == RUNMODE_CONF_TEST){
