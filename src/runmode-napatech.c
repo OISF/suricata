@@ -204,12 +204,12 @@ static int NapatechInit(int runmode)
         case NT_RUNMODE_AUTOFP:
             ret = RunModeSetLiveCaptureAutoFp(NapatechConfigParser, NapatechGetThreadsCount,
                                               "NapatechStream", "NapatechDecode",
-                                              "C", NULL);
+                                              thread_name_autofp, NULL);
             break;
         case NT_RUNMODE_WORKERS:
             ret = RunModeSetLiveCaptureWorkers(NapatechConfigParser, NapatechGetThreadsCount,
                                                "NapatechStream", "NapatechDecode",
-                                               "W", NULL);
+                                               thread_name_workers, NULL);
             break;
         default:
             ret = -1;
