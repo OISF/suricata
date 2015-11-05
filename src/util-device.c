@@ -19,7 +19,7 @@
 #include "conf.h"
 #include "util-device.h"
 
-#define MAX_DEVNAME 11
+#define MAX_DEVNAME 10
 
 /**
  * \file
@@ -121,15 +121,15 @@ int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
     /* If we have to shorten the interface name */
     if (devnamelen > MAX_DEVNAME) {
 
-        /* IF the dest length is over 11 chars long it will not do any
+        /* IF the dest length is over 10 chars long it will not do any
          * good for the shortening. The shortening is done due to the
-         * max length of pthread names (15 chars) and we use 2 chars
-         * for the threadname indicator eg. "W-" and one-two chars for
+         * max length of pthread names (15 chars) and we use 3 chars
+         * for the threadname indicator eg. "W#-" and one-two chars for
          * the thread number. And if the destination buffer is under
          * 6 chars there is point in shortening it since we must at
          * lest enter two periodes (.) into the string..
          */
-        if ((destlen-1) > 11 && (destlen-1) < 6) {
+        if ((destlen-1) > 10 && (destlen-1) < 6) {
             return 1;
         }
 
