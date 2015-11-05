@@ -372,7 +372,7 @@ int RunModeIdsNetmapAutoFp(void)
                               ParseNetmapConfig,
                               NetmapConfigGeThreadsCount,
                               "ReceiveNetmap",
-                              "DecodeNetmap", "RxNetmap",
+                              "DecodeNetmap", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -405,7 +405,7 @@ int RunModeIdsNetmapSingle(void)
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
-                                    "DecodeNetmap", "NetmapPkt",
+                                    "DecodeNetmap", thread_name_single,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -441,7 +441,7 @@ int RunModeIdsNetmapWorkers(void)
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
-                                    "DecodeNetmap", "NetmapPkt",
+                                    "DecodeNetmap", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
