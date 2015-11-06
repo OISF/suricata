@@ -666,6 +666,17 @@ static int LuaCallbackFileState(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief wrapper to force magic lookup on all files from lua script
+    \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackFileForceMagic(lua_State *luastate)
+{
+    FileForceMagicEnable();
+    lua_pushinteger(luastate, 1);
+    return 1;
+}
+
+/** \internal
  *  \brief fill lua stack with thread info
  *  \param luastate the lua state
  *  \param pa pointer to packet alert struct
@@ -743,6 +754,8 @@ int LuaRegisterFunctions(lua_State *luastate)
     lua_setglobal(luastate, "SCFileInfo");
     lua_pushcfunction(luastate, LuaCallbackFileState);
     lua_setglobal(luastate, "SCFileState");
+    lua_pushcfunction(luastate, LuaCallbackFileForceMagic);
+    lua_setglobal(luastate, "SCFileForceMagic");
 
     lua_pushcfunction(luastate, LuaCallbackThreadInfo);
     lua_setglobal(luastate, "SCThreadInfo");
