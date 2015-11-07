@@ -155,6 +155,7 @@ typedef struct SCInstance_ {
     struct timeval start_time;
 
     char *log_dir;
+    const char *progname; /**< pointer to argv[0] */
 } SCInstance;
 
 
