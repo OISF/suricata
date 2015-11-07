@@ -2385,6 +2385,7 @@ int main(int argc, char **argv)
     SCInstance suri;
 
     SCInstanceInit(&suri);
+    suri.progname = argv[0];
 
     sc_set_caps = FALSE;
 
