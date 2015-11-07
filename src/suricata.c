@@ -1110,6 +1110,41 @@ static void SCPrintElapsedTime(SCInstance *suri)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
+static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
+{
+#ifdef HAVE_AF_PACKET
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_AFP_DEV;
+        if (optarg) {
+            LiveRegisterDevice(optarg);
+            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, optarg,
+                    ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                     (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+        }
+    } else if (suri->run_mode == RUNMODE_AFP_DEV) {
+        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                "multiple devices to get packets is experimental.");
+        if (optarg) {
+            LiveRegisterDevice(optarg);
+        } else {
+            SCLogInfo("Multiple af-packet option without interface on each is useless");
+        }
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                "has been specified");
+        usage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+#else
+    SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
+            "host, make sure to pass --enable-af-packet to "
+            "configure when building.");
+    return TM_ECODE_FAILED;
+#endif
+}
+
 static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
 {
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1276,38 +1311,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
             }
-            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0){
-#ifdef HAVE_AF_PACKET
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_AFP_DEV;
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                        strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    }
-                } else if (suri->run_mode == RUNMODE_AFP_DEV) {
-                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                            "multiple devices to get packets is experimental.");
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                    } else {
-                        SCLogInfo("Multiple af-packet option without interface on each is useless");
-                        break;
-                    }
-                } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                            "has been specified");
-                    usage(argv[0]);
+            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
+            {
+                if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
-#else
-                SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
-                        "host, make sure to pass --enable-af-packet to "
-                        "configure when building.");
-                return TM_ECODE_FAILED;
-#endif
             } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
 #ifdef HAVE_NETMAP
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
