@@ -157,6 +157,7 @@ int GetIfaceOffloading(const char *pcap_dev)
     int fd;
     struct ethtool_value ethv;
     int ret = 0;
+    char *lro = "unset", *gro = "unset";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
@@ -175,10 +176,8 @@ int GetIfaceOffloading(const char *pcap_dev)
         return -1;
     } else {
         if (ethv.data) {
-            SCLogInfo("Generic Receive Offload is set on %s", pcap_dev);
+            gro = "SET";
             ret = 1;
-        } else {
-            SCLogInfo("Generic Receive Offload is unset on %s", pcap_dev);
         }
     }
 
@@ -194,15 +193,13 @@ int GetIfaceOffloading(const char *pcap_dev)
         return -1;
     } else {
         if (ethv.data & ETH_FLAG_LRO) {
-            SCLogInfo("Large Receive Offload is set on %s", pcap_dev);
+            lro = "SET";
             ret = 1;
-        } else {
-            SCLogInfo("Large Receive Offload is unset on %s", pcap_dev);
         }
     }
 
     close(fd);
-
+    SCLogInfo("NIC offloading on %s: GRO: %s, LRO: %s", pcap_dev, gro, lro);
     return ret;
 #else
     /* ioctl is not defined, let's pretend returning 0 is ok */
