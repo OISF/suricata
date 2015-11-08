@@ -1702,9 +1702,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->cluster_id = 1;
     /* We only set cluster info if the number of reader threads is greater than 1 */
     if (afpconfig->threads > 1) {
-            ptv->cluster_id = afpconfig->cluster_id;
-            ptv->cluster_type = afpconfig->cluster_type;
-            ptv->threads = afpconfig->threads;
+        ptv->cluster_id = afpconfig->cluster_id;
+        ptv->cluster_type = afpconfig->cluster_type;
+        ptv->threads = afpconfig->threads;
     }
 #endif
     ptv->flags = afpconfig->flags;
