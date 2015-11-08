@@ -1737,9 +1737,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             suri->run_mode = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
+#ifdef HAVE_AF_PACKET
+            if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
+                return TM_ECODE_FAILED;
+            }
+#else
             if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
+#endif
             break;
         case 'l':
             if (optarg == NULL) {
