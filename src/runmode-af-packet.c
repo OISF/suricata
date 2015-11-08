@@ -92,6 +92,10 @@ void AFPDerefConfig(void *conf)
     }
 }
 
+/* if cluster id is not set, assign it automagically, uniq value per
+ * interface. */
+static int cluster_id_auto = 1;
+
 /**
  * \brief extract information from config file
  *
@@ -192,7 +196,7 @@ void *ParseAFPConfig(const char *iface)
         if (rss_queues > 0) {
             if (rss_queues < aconf->threads) {
                 aconf->threads = rss_queues;
-                SCLogInfo("More core than RSS queues, using %d threads for interface %s",
+                SCLogInfo("More cores than RSS queues, using %d threads for interface %s",
                           aconf->threads, iface);
             }
         }
@@ -252,14 +256,15 @@ void *ParseAFPConfig(const char *iface)
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
+        aconf->cluster_id = (uint16_t)(cluster_id_auto++);
     } else {
         aconf->cluster_id = (uint16_t)atoi(tmpclusterid);
         SCLogDebug("Going to use cluster-id %" PRId32, aconf->cluster_id);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
+        /* default to our safest choice: flow hashing + defrag enabled */
+        aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
