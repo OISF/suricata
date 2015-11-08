@@ -1149,25 +1149,22 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
 {
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
-    if (optarg == NULL) {
-        SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -i");
-        return TM_ECODE_FAILED;
-    }
+    if (optarg != NULL) {
+        /* some windows shells require escaping of the \ in \Device. Otherwise
+         * the backslashes are stripped. We put them back here. */
+        if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
+            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
+        } else {
+            strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
+            PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
+        }
 
-    /* some windows shells require escaping of the \ in \Device. Otherwise
-     * the backslashes are stripped. We put them back here. */
-    if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
-        snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
-    } else {
-        strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
-        PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
-    }
-
-    if (strcmp(suri->pcap_dev, optarg) != 0) {
-        SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
-    } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
-        SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
-        return TM_ECODE_FAILED;
+        if (strcmp(suri->pcap_dev, optarg) != 0) {
+            SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
+        } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
+            SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
+            return TM_ECODE_FAILED;
+        }
     }
 
     if (suri->run_mode == RUNMODE_UNKNOWN) {
@@ -1357,29 +1354,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* HAVE_NFLOG */
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_PCAP_DEV;
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                        strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    }
-                } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-                    SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                            "support is not (yet) supported on Windows.");
-                    return TM_ECODE_FAILED;
-#else
-                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                            "multiple pcap devices to get packets is experimental.");
-                    LiveRegisterDevice(optarg);
-#endif
-                } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                            "has been specified");
-                    usage(argv[0]);
+                if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
             } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
