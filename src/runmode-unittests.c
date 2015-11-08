@@ -119,6 +119,8 @@
 #include "defrag.h"
 #include "detect-engine-siggroup.h"
 
+#include "util-streaming-buffer.h"
+
 #endif /* UNITTESTS */
 
 void RegisterAllModules();
@@ -278,6 +280,8 @@ void RunUnittests(int list_unittests, char *regex_arg)
 #endif
     AppLayerUnittestsRegister();
     MimeDecRegisterTests();
+    StreamingBufferRegisterTests();
+
     if (list_unittests) {
         UtListTests(regex_arg);
     } else {

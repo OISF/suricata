@@ -399,6 +399,7 @@ util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \
 util-spm.c util-spm.h util-clock.h \
 util-storage.c util-storage.h \
+util-streaming-buffer.c util-streaming-buffer.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-syslog.c util-syslog.h \
