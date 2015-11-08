@@ -404,6 +404,7 @@ util-spm-bs.c util-spm-bs.h \
 util-spm-hs.c util-spm-hs.h \
 util-spm.c util-spm.h util-clock.h \
 util-storage.c util-storage.h \
+util-streaming-buffer.c util-streaming-buffer.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-syslog.c util-syslog.h \

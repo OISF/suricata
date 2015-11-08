@@ -98,7 +98,7 @@ typedef struct StreamerCallbackData_ {
     enum OutputStreamingType type;
 } StreamerCallbackData;
 
-int Streamer(void *cbdata, Flow *f, uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
+int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags)
 {
     StreamerCallbackData *streamer_cbdata = (StreamerCallbackData *)cbdata;
     BUG_ON(streamer_cbdata == NULL);
