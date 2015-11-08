@@ -1073,7 +1073,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv)
             }
         /* no packets */
         } else if (r == 0 && AFPPeersListStarted()) {
-            SCLogInfo("Starting to read on %s", ptv->tv->name);
+            SCLogDebug("Starting to read on %s", ptv->tv->name);
             return 1;
         } else if (r < 0) { /* only exit on error */
             SCLogWarning(SC_ERR_AFP_READ, "poll failed with retval %d", r);
@@ -1154,7 +1154,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         AFPPeersListReachedInc();
     }
     if (ptv->afp_state == AFP_STATE_UP) {
-        SCLogInfo("Thread %s using socket %d", tv->name, ptv->socket);
+        SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
         AFPSynchronizeStart(ptv);
     }
 
@@ -1570,8 +1570,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         ptv->frame_offset = 0;
     }
 
-    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
-
+    SCLogDebug("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
 
     ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
     switch (ptv->datalink) {
