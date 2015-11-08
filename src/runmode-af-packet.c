@@ -372,6 +372,22 @@ void *ParseAFPConfig(const char *iface)
                 "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
     }
 
+    char *active_runmode = RunmodeGetActive();
+    if (active_runmode && !strcmp("workers", active_runmode)) {
+        aconf->flags |= AFP_ZERO_COPY;
+        SCLogInfo("%s: enabling zero copy mode", iface);
+    } else {
+        /* If we are using copy mode we need a lock */
+        aconf->flags |= AFP_SOCK_PROTECT;
+    }
+
+    /* If we are in RING mode, then we can use ZERO copy
+     * by using the data release mechanism */
+    if (aconf->flags & AFP_RING_MODE) {
+        aconf->flags |= AFP_ZERO_COPY;
+        SCLogInfo("%s: enabling zero copy mode by using data release call", iface);
+    }
+
     return aconf;
 }
 
