@@ -513,7 +513,7 @@ int RunModeIdsAFPAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsAFPAutoFp initialised");
+    SCLogDebug("RunModeIdsAFPAutoFp initialised");
 #endif /* HAVE_AF_PACKET */
 
     SCReturnInt(0);
@@ -555,7 +555,7 @@ int RunModeIdsAFPSingle(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsAFPSingle initialised");
+    SCLogDebug("RunModeIdsAFPSingle initialised");
 
 #endif /* HAVE_AF_PACKET */
     SCReturnInt(0);
@@ -600,7 +600,7 @@ int RunModeIdsAFPWorkers(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsAFPWorkers initialised");
+    SCLogDebug("RunModeIdsAFPWorkers initialised");
 
 #endif /* HAVE_AF_PACKET */
     SCReturnInt(0);
