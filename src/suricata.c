@@ -2155,6 +2155,8 @@ int main(int argc, char **argv)
 
     SC_ATOMIC_INIT(engine_stage);
 
+    TmInitThreadManager();
+    
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
