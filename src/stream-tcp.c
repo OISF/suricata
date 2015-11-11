@@ -5078,6 +5078,11 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     return ret;
 }
 
+int StreamTcpMidstreamIsEnabled()
+{
+    return (stream_config.midstream == TRUE);
+}
+
 TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
