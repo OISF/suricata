@@ -205,7 +205,7 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                         }
 
                         uint8_t flags = iflags | OUTPUT_STREAMING_FLAG_TRANSACTION;
-                        if (chunk->stream_offset == 0)
+                        if (chunk->sbseg.stream_offset == 0)
                             flags |= OUTPUT_STREAMING_FLAG_OPEN;
                         /* if we need to close and we're at the last segment in the list
                          * we add the 'close' flag so the logger can close up. */
@@ -213,9 +213,13 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
                             flags |= OUTPUT_STREAMING_FLAG_CLOSE;
                         }
 
+                        const uint8_t *data = NULL;
+                        uint32_t data_len = 0;
+                        StreamingBufferSegmentGetData(body->sb, &chunk->sbseg, &data, &data_len);
+
                         // invoke Streamer
-                        Streamer(cbdata, f, chunk->data, (uint32_t)chunk->len, tx_id, flags);
-                        //PrintRawDataFp(stdout, chunk->data, chunk->len);
+                        Streamer(cbdata, f, data, data_len, tx_id, flags);
+                        //PrintRawDataFp(stdout, data, data_len);
                         chunk->logged = 1;
                         tx_logged = 1;
                     }

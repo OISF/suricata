@@ -285,7 +285,12 @@ static int HttpGetBody(lua_State *luastate, int dir)
     lua_newtable(luastate);
     while (chunk != NULL) {
         lua_pushinteger(luastate, index);
-        LuaPushStringBuffer(luastate, chunk->data, chunk->len);
+
+        const uint8_t *data = NULL;
+        uint32_t data_len = 0;
+        StreamingBufferSegmentGetData(body->sb, &chunk->sbseg, &data, &data_len);
+        LuaPushStringBuffer(luastate, data, data_len);
+
         lua_settable(luastate, -3);
 
         chunk = chunk->next;
@@ -293,8 +298,8 @@ static int HttpGetBody(lua_State *luastate, int dir)
     }
 
     if (body->first && body->last) {
-        lua_pushinteger(luastate, body->first->stream_offset);
-        lua_pushinteger(luastate, body->last->stream_offset + body->last->len);
+        lua_pushinteger(luastate, body->first->sbseg.stream_offset);
+        lua_pushinteger(luastate, body->last->sbseg.stream_offset + body->last->sbseg.segment_len);
         return 3;
     } else {
         return 1;

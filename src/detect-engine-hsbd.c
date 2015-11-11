@@ -96,134 +96,7 @@ static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
     return 0;
 }
 
-static void HSBDGetBufferForTXInIDSMode(DetectEngineThreadCtx *det_ctx,
-                                        HtpState *htp_state, HtpBodyChunk *cur,
-                                        HtpTxUserData *htud, int index)
-{
-    int first = 1;
-    while (cur != NULL) {
-        /* see if we can filter out chunks */
-        if (htud->response_body.body_inspected > 0) {
-            if (cur->stream_offset < htud->response_body.body_inspected) {
-                if ((htud->response_body.body_inspected - cur->stream_offset) > htp_state->cfg->response_inspect_window) {
-                    cur = cur->next;
-                    continue;
-                } else {
-                    /* include this one */
-                }
-            } else {
-                /* include this one */
-            }
-        }
-
-        if (first) {
-            det_ctx->hsbd[index].offset = cur->stream_offset;
-            first = 0;
-        }
-
-        /* see if we need to grow the buffer */
-        if (det_ctx->hsbd[index].buffer == NULL || (det_ctx->hsbd[index].buffer_len + cur->len) > det_ctx->hsbd[index].buffer_size) {
-            void *ptmp;
-            uint32_t newsize = det_ctx->hsbd[index].buffer_size + (cur->len * 2);
-
-            if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, newsize)) == NULL) {
-                HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
-                det_ctx->hsbd[index].buffer = NULL;
-                det_ctx->hsbd[index].buffer_size = 0;
-                det_ctx->hsbd[index].buffer_len = 0;
-                return;
-            }
-            det_ctx->hsbd[index].buffer = ptmp;
-            det_ctx->hsbd[index].buffer_size = newsize;
-        }
-        memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data, cur->len);
-        det_ctx->hsbd[index].buffer_len += cur->len;
-
-        cur = cur->next;
-    }
-
-    /* update inspected tracker */
-    htud->response_body.body_inspected = htud->response_body.last->stream_offset + htud->response_body.last->len;
-}
-
-#define MAX_WINDOW 10*1024*1024
-static void HSBDGetBufferForTXInIPSMode(DetectEngineThreadCtx *det_ctx,
-                                        HtpState *htp_state, HtpBodyChunk *cur,
-                                        HtpTxUserData *htud, int index)
-{
-    uint32_t window_size = 0;
-
-    /* how much from before body_inspected will we consider? */
-    uint32_t cfg_win =
-        htud->response_body.body_inspected >= htp_state->cfg->response_inspect_min_size ?
-            htp_state->cfg->response_inspect_window :
-            htp_state->cfg->response_inspect_min_size;
-
-    /* but less if we don't have that much before body_inspected */
-    if ((htud->response_body.body_inspected - htud->response_body.first->stream_offset) < cfg_win) {
-        cfg_win = htud->response_body.body_inspected - htud->response_body.first->stream_offset;
-    }
-    window_size = (htud->response_body.content_len_so_far - htud->response_body.body_inspected) + cfg_win;
-    if (window_size > MAX_WINDOW) {
-        SCLogDebug("weird: body size is %uk", window_size/1024);
-        window_size = MAX_WINDOW;
-    }
-
-    if (det_ctx->hsbd[index].buffer == NULL || window_size > det_ctx->hsbd[index].buffer_size) {
-        void *ptmp;
-
-        if ((ptmp = HTPRealloc(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size, window_size)) == NULL) {
-            HTPFree(det_ctx->hsbd[index].buffer, det_ctx->hsbd[index].buffer_size);
-            det_ctx->hsbd[index].buffer = NULL;
-            det_ctx->hsbd[index].buffer_size = 0;
-            det_ctx->hsbd[index].buffer_len = 0;
-            return;
-        }
-        det_ctx->hsbd[index].buffer = ptmp;
-        det_ctx->hsbd[index].buffer_size = window_size;
-    }
-
-    uint32_t left_edge = htud->response_body.body_inspected - cfg_win;
-
-    int first = 1;
-    while (cur != NULL) {
-        if (first) {
-            det_ctx->hsbd[index].offset = cur->stream_offset;
-            first = 0;
-        }
-
-        /* entirely before our window */
-        if ((cur->stream_offset + cur->len) <= left_edge) {
-            cur = cur->next;
-            continue;
-        } else {
-            uint32_t offset = 0;
-            if (cur->stream_offset < left_edge && (cur->stream_offset + cur->len) > left_edge) {
-                offset = left_edge - cur->stream_offset;
-                BUG_ON(offset > cur->len);
-            }
-
-            /* unusual: if window isn't big enough, we just give up */
-            if (det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size) {
-                htud->response_body.body_inspected = cur->stream_offset;
-                SCReturn;
-            }
-
-            BUG_ON(det_ctx->hsbd[index].buffer_len + (cur->len - offset) > window_size);
-
-            memcpy(det_ctx->hsbd[index].buffer + det_ctx->hsbd[index].buffer_len, cur->data + offset, cur->len - offset);
-            det_ctx->hsbd[index].buffer_len += (cur->len - offset);
-            det_ctx->hsbd[index].offset -= offset;
-        }
-
-        cur = cur->next;
-    }
-
-    /* update inspected tracker to point before the current window */
-    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
-}
-
-static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
+static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, HtpState *htp_state,
@@ -232,7 +105,7 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                                                uint32_t *stream_start_offset)
 {
     int index = 0;
-    uint8_t *buffer = NULL;
+    const uint8_t *buffer = NULL;
     *buffer_len = 0;
     *stream_start_offset = 0;
 
@@ -303,14 +176,25 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
                        "entire body.");
             goto end;
         }
-        HSBDGetBufferForTXInIDSMode(det_ctx, htp_state, cur, htud, index);
-    } else {
-        HSBDGetBufferForTXInIPSMode(det_ctx, htp_state, cur, htud, index);
     }
+
+    StreamingBufferGetData(htud->response_body.sb,
+            &det_ctx->hsbd[index].buffer, &det_ctx->hsbd[index].buffer_len,
+            &det_ctx->hsbd[index].offset);
+
+    /* update inspected tracker */
+    if (!htp_state->cfg->http_body_inline) {
+        htud->response_body.body_inspected = htud->response_body.last->sbseg.stream_offset +
+                                             htud->response_body.last->sbseg.segment_len;
+    } else {
+        htud->response_body.body_inspected = htud->response_body.content_len_so_far;
+    }
+    SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
 
     buffer = det_ctx->hsbd[index].buffer;
     *buffer_len = det_ctx->hsbd[index].buffer_len;
     *stream_start_offset = det_ctx->hsbd[index].offset;
+
  end:
     return buffer;
 }
@@ -361,7 +245,7 @@ int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
     if (buffer_len == 0)
         goto end;
 
-    cnt = HttpServerBodyPatternSearch(det_ctx, buffer, buffer_len, flags);
+    cnt = HttpServerBodyPatternSearch(det_ctx, (uint8_t *)buffer, buffer_len, flags);
 
  end:
     return cnt;
@@ -377,7 +261,7 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
     HtpState *htp_state = (HtpState *)alstate;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
-    uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, tx_id,
+    const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, tx_id,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
                                                      flags,
@@ -391,7 +275,7 @@ int DetectEngineInspectHttpServerBody(ThreadVars *tv,
     det_ctx->inspection_recursion_counter = 0;
     int r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_FILEDATA],
                                           f,
-                                          buffer,
+                                          (uint8_t *)buffer,
                                           buffer_len,
                                           stream_start_offset,
                                           DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSBD, NULL);

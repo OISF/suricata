@@ -629,8 +629,11 @@ static int HTPFileParserTest03(void)
         goto end;
     }
 
-    if (http_state->files_ts->head->chunks_head->len != 11) {
-        printf("filedata len not 11 but %u: ", http_state->files_ts->head->chunks_head->len);
+    if (http_state->files_ts->head->chunks_head == NULL ||
+        http_state->files_ts->head->chunks_head->len != 11)
+    {
+        if (http_state->files_ts->head->chunks_head != NULL)
+            printf("filedata len not 11 but %u: ", http_state->files_ts->head->chunks_head->len);
         goto end;
     }
 

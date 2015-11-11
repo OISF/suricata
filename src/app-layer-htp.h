@@ -37,6 +37,7 @@
 #include "util-file.h"
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
+#include "util-streaming-buffer.h"
 
 #include <htp/htp.h>
 
@@ -158,14 +159,14 @@ typedef struct HTPCfgRec_ {
     int                 randomize;
     int                 randomize_range;
     int                 http_body_inline;
+
+    StreamingBufferConfig sbcfg;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
 struct HtpBodyChunk_ {
-    uint8_t *data;              /**< Pointer to the data of the chunk */
     struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
-    uint64_t stream_offset;
-    uint32_t len;               /**< Length of the chunk */
+    StreamingBufferSegment sbseg;
     int logged;
 } __attribute__((__packed__));
 typedef struct HtpBodyChunk_ HtpBodyChunk;
@@ -174,6 +175,8 @@ typedef struct HtpBodyChunk_ HtpBodyChunk;
 typedef struct HtpBody_ {
     HtpBodyChunk *first; /**< Pointer to the first chunk */
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
+
+    StreamingBuffer *sb;
 
     /* Holds the length of the htp request body seen so far */
     uint64_t content_len_so_far;

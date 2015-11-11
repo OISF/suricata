@@ -1170,60 +1170,11 @@ static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
  *  \param chunks_buffer_len pointer to pass back the buffer length to the caller
  */
 static void HtpRequestBodyReassemble(HtpTxUserData *htud,
-        uint8_t **chunks_buffer, uint32_t *chunks_buffer_len)
+        const uint8_t **chunks_buffer, uint32_t *chunks_buffer_len)
 {
-    uint8_t *buf = NULL;
-    uint8_t *pbuf = NULL;
-    uint32_t buf_len = 0;
-    HtpBodyChunk *cur = htud->request_body.first;
-
-    for ( ; cur != NULL; cur = cur->next) {
-        SCLogDebug("chunk %p", cur);
-
-        /* skip body chunks entirely before what we parsed already */
-        if ((uint64_t )cur->stream_offset + cur->len <= htud->request_body.body_parsed) {
-            SCLogDebug("skipping chunk");
-            continue;
-        }
-
-        SCLogDebug("cur->stream_offset %"PRIu64", cur->len %"PRIu32", body_parsed %"PRIu64,
-            cur->stream_offset, cur->len, htud->request_body.body_parsed);
-
-        if (cur->stream_offset < htud->request_body.body_parsed &&
-                cur->stream_offset + cur->len >= htud->request_body.body_parsed) {
-            SCLogDebug("use part");
-
-            uint32_t toff = htud->request_body.body_parsed - cur->stream_offset;
-            uint32_t tlen = (cur->stream_offset + cur->len) - htud->request_body.body_parsed;
-            uint8_t *pbuf = NULL;
-
-            buf_len += tlen;
-            if ((pbuf = HTPRealloc(buf, buf_len - tlen, buf_len)) == NULL) {
-                HTPFree(buf, buf_len - tlen);
-                buf = NULL;
-                buf_len = 0;
-                break;
-            }
-            buf = pbuf;
-            memcpy(buf + buf_len - tlen, cur->data + toff, tlen);
-
-        } else {
-            SCLogDebug("use entire chunk");
-
-            buf_len += cur->len;
-            if ((pbuf = HTPRealloc(buf, buf_len - cur->len, buf_len)) == NULL) {
-                HTPFree(buf, buf_len - cur->len);
-                buf = NULL;
-                buf_len = 0;
-                break;
-            }
-            buf = pbuf;
-            memcpy(buf + buf_len - cur->len, cur->data, cur->len);
-        }
-    }
-
-    *chunks_buffer = buf;
-    *chunks_buffer_len = buf_len;
+    StreamingBufferGetDataAtOffset(htud->request_body.sb,
+            chunks_buffer, chunks_buffer_len,
+            htud->request_body.body_parsed);
 }
 
 static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
@@ -1249,8 +1200,8 @@ static void HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     memcpy(boundary + 2, htud->boundary, htud->boundary_len);
 }
 
-int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
-                                  void *tx, uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
+int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud, void *tx,
+        const uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
     uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
@@ -1288,7 +1239,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
         if (header_start != NULL || form_end != NULL || (tx_progress > HTP_REQUEST_BODY)) {
             SCLogDebug("reached the end of the file");
 
-            uint8_t *filedata = chunks_buffer;
+            const uint8_t *filedata = chunks_buffer;
             uint32_t filedata_len = 0;
             uint8_t flags = 0;
 
@@ -1328,7 +1279,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             SCLogDebug("not yet at the end of the file");
 
             if (chunks_buffer_len > expected_boundary_end_len) {
-                uint8_t *filedata = chunks_buffer;
+                const uint8_t *filedata = chunks_buffer;
                 uint32_t filedata_len = chunks_buffer_len - expected_boundary_len;
 #ifdef PRINT
                 printf("FILEDATA (part) START: \n");
@@ -1816,7 +1767,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
 
-        uint8_t *chunks_buffer = NULL;
+        const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
 
         if (tx_ud->request_body_type == HTP_BODY_REQUEST_MULTIPART) {
@@ -1837,9 +1788,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
             HtpRequestBodyHandleMultipart(hstate, tx_ud, d->tx, chunks_buffer, chunks_buffer_len);
 
-            if (chunks_buffer != NULL) {
-                HTPFree(chunks_buffer, chunks_buffer_len);
-            }
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_POST) {
             HtpRequestBodyHandlePOST(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
         } else if (tx_ud->request_body_type == HTP_BODY_REQUEST_PUT) {
@@ -2188,6 +2136,10 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->randomize = 0;
 #endif
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
+
+    cfg_prec->sbcfg.flags = 0;
+    cfg_prec->sbcfg.buf_size = cfg_prec->request_inspect_window;
+    cfg_prec->sbcfg.buf_slide = 0;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
     htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
@@ -5666,7 +5618,7 @@ static int HTPBodyReassemblyTest01(void)
     r = HtpBodyAppendChunk(&htud.request_body, chunk2, sizeof(chunk2)-1);
     BUG_ON(r != 0);
 
-    uint8_t *chunks_buffer = NULL;
+    const uint8_t *chunks_buffer = NULL;
     uint32_t chunks_buffer_len = 0;
 
     HtpRequestBodyReassemble(&htud, &chunks_buffer, &chunks_buffer_len);

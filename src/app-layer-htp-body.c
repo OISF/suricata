@@ -62,6 +62,9 @@
 
 #include "util-memcmp.h"
 
+static StreamingBufferConfig default_cfg = {
+    0, 0, 3072, HTPMalloc, HTPCalloc, HTPRealloc, HTPFree };
+
 /**
  * \brief Append a chunk of body to the HtpBody struct
  *
@@ -82,20 +85,19 @@ int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
         SCReturnInt(0);
     }
 
+    if (body->sb == NULL) {
+        body->sb = StreamingBufferInit(&default_cfg);
+        if (body->sb == NULL)
+            SCReturnInt(-1);
+    }
+
     if (body->first == NULL) {
         /* New chunk */
         bd = (HtpBodyChunk *)HTPCalloc(1, sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
-        bd->len = len;
-        bd->stream_offset = 0;
-
-        bd->data = HTPCalloc(1, len);
-        if (bd->data == NULL) {
-            goto error;
-        }
-        memcpy(bd->data, data, len);
+        StreamingBufferAppend(body->sb, &bd->sbseg, data, len);
 
         body->first = body->last = bd;
 
@@ -105,29 +107,19 @@ int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
         if (bd == NULL)
             goto error;
 
-        bd->len = len;
-        bd->stream_offset = body->content_len_so_far;
-
-        bd->data = HTPCalloc(1, len);
-        if (bd->data == NULL) {
-            goto error;
-        }
-        memcpy(bd->data, data, len);
+        StreamingBufferAppend(body->sb, &bd->sbseg, data, len);
 
         body->last->next = bd;
         body->last = bd;
 
         body->content_len_so_far += len;
     }
-    SCLogDebug("Body %p; data %p, len %"PRIu32, body, bd->data, (uint32_t)bd->len);
+    SCLogDebug("body %p", body);
 
     SCReturnInt(0);
 
 error:
     if (bd != NULL) {
-        if (bd->data != NULL) {
-            HTPFree(bd->data, bd->len);
-        }
         HTPFree(bd, sizeof(HtpBodyChunk));
     }
     SCReturnInt(-1);
@@ -150,9 +142,12 @@ void HtpBodyPrint(HtpBody *body)
         SCLogDebug("--- Start body chunks at %p ---", body);
         printf("--- Start body chunks at %p ---\n", body);
         for (cur = body->first; cur != NULL; cur = cur->next) {
-            SCLogDebug("Body %p; data %p, len %"PRIu32, body, cur->data, (uint32_t)cur->len);
-            printf("Body %p; data %p, len %"PRIu32"\n", body, cur->data, (uint32_t)cur->len);
-            PrintRawDataFp(stdout, (uint8_t*)cur->data, cur->len);
+            const uint8_t *data = NULL;
+            uint32_t data_len = 0;
+            StreamingBufferSegmentGetData(body->sb, &cur->sbseg, &data, &data_len);
+            SCLogDebug("Body %p; data %p, len %"PRIu32, body, data, data_len);
+            printf("Body %p; data %p, len %"PRIu32"\n", body, data, data_len);
+            PrintRawDataFp(stdout, data, data_len);
         }
         SCLogDebug("--- End body chunks at %p ---", body);
     }
@@ -170,8 +165,7 @@ void HtpBodyFree(HtpBody *body)
     if (body->first == NULL)
         return;
 
-    SCLogDebug("Removing chunks of Body %p; data %p, len %"PRIu32, body,
-            body->last->data, (uint32_t)body->last->len);
+    SCLogDebug("removing chunks of body %p", body);
 
     HtpBodyChunk *cur = NULL;
     HtpBodyChunk *prev = NULL;
@@ -179,12 +173,12 @@ void HtpBodyFree(HtpBody *body)
     prev = body->first;
     while (prev != NULL) {
         cur = prev->next;
-        if (prev->data != NULL)
-            HTPFree(prev->data, prev->len);
         HTPFree(prev, sizeof(HtpBodyChunk));
         prev = cur;
     }
     body->first = body->last = NULL;
+
+    StreamingBufferFree(body->sb);
 }
 
 /**
@@ -230,24 +224,26 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         SCReturn;
     }
 
-    SCLogDebug("Pruning chunks of Body %p; data %p, len %"PRIu32, body,
-            body->last->data, (uint32_t)body->last->len);
+    uint64_t left_edge = body->body_inspected;
+    if (left_edge <= min_size || left_edge <= window)
+        left_edge = 0;
+    if (left_edge)
+        left_edge -= window;
+
+    if (left_edge) {
+        SCLogDebug("sliding body to offset %"PRIu64, left_edge);
+        StreamingBufferSlideToOffset(body->sb, left_edge);
+    }
+
+    SCLogDebug("pruning chunks of body %p", body);
 
     HtpBodyChunk *cur = body->first;
     while (cur != NULL) {
         HtpBodyChunk *next = cur->next;
+        SCLogDebug("cur %p", cur);
 
-        SCLogDebug("cur->stream_offset %"PRIu64" + cur->len %u = %"PRIu64", "
-                "body->body_parsed %"PRIu64, cur->stream_offset, cur->len,
-                cur->stream_offset + cur->len, body->body_parsed);
-
-        uint64_t left_edge = body->body_inspected;
-        if (left_edge <= min_size || left_edge <= window)
-            left_edge = 0;
-        if (left_edge)
-            left_edge -= window;
-
-        if (cur->stream_offset + cur->len > left_edge) {
+        if (!StreamingBufferSegmentIsBeforeWindow(body->sb, &cur->sbseg)) {
+            SCLogDebug("not removed");
             break;
         }
 
@@ -256,12 +252,10 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
             body->last = next;
         }
 
-        if (cur->data != NULL) {
-            HTPFree(cur->data, cur->len);
-        }
         HTPFree(cur, sizeof(HtpBodyChunk));
 
         cur = next;
+        SCLogDebug("removed");
     }
 
     SCReturn;

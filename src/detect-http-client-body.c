@@ -1641,7 +1641,9 @@ static int DetectHttpClientBodyTest15(void)
         goto end;
     }
 
-    if (memcmp(cur->data, "Body one!!", strlen("Body one!!")) != 0) {
+    if (StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg,
+                (uint8_t *)"Body one!!", 10) != 1)
+    {
         SCLogDebug("Body data in t1 is not correctly set: ");
         goto end;
     }
@@ -1654,7 +1656,9 @@ static int DetectHttpClientBodyTest15(void)
         goto end;
     }
 
-    if (memcmp(cur->data, "Body two!!", strlen("Body two!!")) != 0) {
+    if (StreamingBufferSegmentCompareRawData(htud->request_body.sb, &cur->sbseg,
+                (uint8_t *)"Body two!!", 10) != 1)
+    {
         SCLogDebug("Body data in t1 is not correctly set: ");
         goto end;
     }
