@@ -217,6 +217,7 @@ static inline int StreamNeedsReassembly(TcpSession *ssn, int direction)
 
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 void StreamTcpExitPrintStats(ThreadVars *, void *);
+int StreamTcpMidstreamIsEnabled(void);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);
