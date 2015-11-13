@@ -1765,7 +1765,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
+        HtpBodyAppendChunk(&hstate->cfg->request, &tx_ud->request_body, d->data, len);
 
         const uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1861,7 +1861,7 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        HtpBodyAppendChunk(&tx_ud->response_body, d->data, len);
+        HtpBodyAppendChunk(&hstate->cfg->response, &tx_ud->response_body, d->data, len);
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
     } else {
@@ -2137,10 +2137,6 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 #endif
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
-    cfg_prec->sbcfg.flags = 0;
-    cfg_prec->sbcfg.buf_size = cfg_prec->request_inspect_window;
-    cfg_prec->sbcfg.buf_slide = 0;
-
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
     htp_config_register_request_trailer_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
     htp_config_register_response_header_data(cfg_prec->cfg, HTPCallbackResponseHeaderData);
@@ -2213,6 +2209,23 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 
+    cfg_prec->request.sbcfg.flags = 0;
+    cfg_prec->request.sbcfg.buf_size = cfg_prec->request_inspect_window ?
+                                       cfg_prec->request_inspect_window : 256;
+    cfg_prec->request.sbcfg.buf_slide = 0;
+    cfg_prec->request.sbcfg.Malloc = HTPMalloc;
+    cfg_prec->request.sbcfg.Calloc = HTPCalloc;
+    cfg_prec->request.sbcfg.Realloc = HTPRealloc;
+    cfg_prec->request.sbcfg.Free = HTPFree;
+
+    cfg_prec->response.sbcfg.flags = 0;
+    cfg_prec->response.sbcfg.buf_size = cfg_prec->response_inspect_window ?
+                                        cfg_prec->response_inspect_window : 256;
+    cfg_prec->response.sbcfg.buf_slide = 0;
+    cfg_prec->response.sbcfg.Malloc = HTPMalloc;
+    cfg_prec->response.sbcfg.Calloc = HTPCalloc;
+    cfg_prec->response.sbcfg.Realloc = HTPRealloc;
+    cfg_prec->response.sbcfg.Free = HTPFree;
     return;
 }
 
@@ -5613,9 +5626,9 @@ static int HTPBodyReassemblyTest01(void)
     uint8_t chunk1[] = "--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
     uint8_t chunk2[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
 
-    int r = HtpBodyAppendChunk(&htud.request_body, chunk1, sizeof(chunk1)-1);
+    int r = HtpBodyAppendChunk(NULL, &htud.request_body, chunk1, sizeof(chunk1)-1);
     BUG_ON(r != 0);
-    r = HtpBodyAppendChunk(&htud.request_body, chunk2, sizeof(chunk2)-1);
+    r = HtpBodyAppendChunk(NULL, &htud.request_body, chunk2, sizeof(chunk2)-1);
     BUG_ON(r != 0);
 
     const uint8_t *chunks_buffer = NULL;
