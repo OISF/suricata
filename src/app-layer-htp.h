@@ -140,6 +140,10 @@ enum {
 #define HTP_PCRE_HAS_MATCH      0x02    /**< Flag to indicate that the chunks
                                              matched on some rule */
 
+typedef struct HTPCfgDir_ {
+    StreamingBufferConfig sbcfg;
+} HTPCfgDir;
+
 /** Need a linked list in order to keep track of these */
 typedef struct HTPCfgRec_ {
     htp_cfg_t           *cfg;
@@ -160,7 +164,8 @@ typedef struct HTPCfgRec_ {
     int                 randomize_range;
     int                 http_body_inline;
 
-    StreamingBufferConfig sbcfg;
+    HTPCfgDir request;
+    HTPCfgDir response;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */

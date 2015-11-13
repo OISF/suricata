@@ -76,7 +76,8 @@ static StreamingBufferConfig default_cfg = {
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(const HTPCfgDir *hcfg, HtpBody *body,
+                       const uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -87,7 +88,8 @@ int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
     }
 
     if (body->sb == NULL) {
-        body->sb = StreamingBufferInit(&default_cfg);
+        const StreamingBufferConfig *cfg = hcfg ? &hcfg->sbcfg : &default_cfg;
+        body->sb = StreamingBufferInit(cfg);
         if (body->sb == NULL)
             SCReturnInt(-1);
     }
