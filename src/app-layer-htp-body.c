@@ -73,7 +73,7 @@
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
 {
     SCEnter();
 
