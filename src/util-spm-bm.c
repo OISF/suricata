@@ -73,7 +73,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len)
  * \retval BmCtx pointer to the newly created Context for the pattern
  * \initonly BoyerMoore contexts should be created at init
  */
-BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len)
+BmCtx *BoyerMooreCtxInit(const uint8_t *needle, uint16_t needle_len)
 {
     BmCtx *new = SCMalloc(sizeof(BmCtx));
     if (unlikely(new == NULL)) {
@@ -302,7 +302,7 @@ static void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs)
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BoyerMoore(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, BmCtx *bm_ctx)
+uint8_t *BoyerMoore(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, BmCtx *bm_ctx)
 {
     uint16_t *bmGs = bm_ctx->bmGs;
     uint16_t *bmBc = bm_ctx->bmBc;
@@ -324,7 +324,7 @@ uint8_t *BoyerMoore(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, BmCtx *bm_ctx
       for (i = m - 1; i >= 0 && x[i] == y[i + j]; --i);
 
       if (i < 0) {
-         return y + j;
+         return (uint8_t *)(y + j);
          //j += bmGs[0];
       } else {
  //        printf("%c", y[i+j]);
@@ -351,7 +351,7 @@ uint8_t *BoyerMoore(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, BmCtx *bm_ctx
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BoyerMooreNocase(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, BmCtx *bm_ctx)
+uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, BmCtx *bm_ctx)
 {
     uint16_t *bmGs = bm_ctx->bmGs;
     uint16_t *bmBc = bm_ctx->bmBc;
@@ -372,7 +372,7 @@ uint8_t *BoyerMooreNocase(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, BmCtx *
         for (i = m - 1; i >= 0 && x[i] == u8_tolower(y[i + j]); --i);
 
         if (i < 0) {
-            return y + j;
+            return (uint8_t *)(y + j);
         } else {
             j += (m1=bmGs[i]) > (m2=bmBc[u8_tolower(y[i + j])] - m + 1 + i)?m1:m2;
         }

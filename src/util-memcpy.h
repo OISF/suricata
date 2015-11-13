@@ -35,7 +35,7 @@
  * \param s   Pointer to the src string for memcpy.
  * \param len len of the string sent in s.
  */
-static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
+static inline void memcpy_tolower(uint8_t *d, const uint8_t *s, uint16_t len)
 {
     uint16_t i;
     for (i = 0; i < len; i++)

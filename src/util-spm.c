@@ -68,7 +68,8 @@
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen,
+        const uint8_t *needle, uint16_t needlelen)
 {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -84,7 +85,8 @@ uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t 
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen,
+        const uint8_t *needle, uint16_t needlelen)
 {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -101,7 +103,8 @@ uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uin
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen,
+        const uint8_t *needle, uint16_t needlelen)
 {
     BmCtx *bm_ctx = BoyerMooreCtxInit(needle, needlelen);
 
@@ -120,7 +123,8 @@ uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen)
+uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen,
+        uint8_t *needle, uint16_t needlelen)
 {
     BmCtx *bm_ctx = BoyerMooreNocaseCtxInit(needle, needlelen);
 

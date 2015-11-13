@@ -29,10 +29,10 @@
 #include "util-spm-bm.h"
 
 /** Default algorithm to use: Boyer Moore */
-uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
-uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
-uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
-uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
+uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
+uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
+uint8_t *BoyerMooreSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
+uint8_t *BoyerMooreNocaseSearch(const uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen);
 
 /* Macros for automatic algorithm selection (use them only when you can't store the context) */
 #define SpmSearch(text, textlen, needle, needlelen) ({\
