@@ -61,11 +61,11 @@ typedef struct FileData_ {
 
 typedef struct File_ {
     uint16_t flags;
+    uint16_t name_len;
+    int16_t state;
     uint64_t txid;                  /**< tx this file is part of */
     uint32_t file_id;
     uint8_t *name;
-    uint16_t name_len;
-    int16_t state;
     uint64_t size;                  /**< size tracked so far */
     char *magic;
     FileData *chunks_head;
