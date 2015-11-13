@@ -76,8 +76,9 @@
  *  \retval -1 error
  *  \retval -2 not handling files on this flow
  */
-int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
-        uint8_t *data, uint32_t data_len, uint64_t txid, uint8_t direction)
+int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
+        const uint8_t *data, uint32_t data_len,
+        uint64_t txid, uint8_t direction)
 {
     int retval = 0;
     uint8_t flags = 0;
@@ -201,7 +202,7 @@ end:
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len,
+int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         uint8_t direction)
 {
     SCEnter();
@@ -255,7 +256,7 @@ end:
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len,
+int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         uint8_t flags, uint8_t direction)
 {
     SCEnter();
