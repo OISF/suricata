@@ -109,8 +109,8 @@ void FileContainerAdd(FileContainer *, File *);
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
-        uint8_t *data, uint32_t data_len, uint8_t flags);
+File *FileOpenFile(FileContainer *, const uint8_t *name, uint16_t name_len,
+        const uint8_t *data, uint32_t data_len, uint8_t flags);
 /**
  *  \brief Close a File
  *
@@ -122,7 +122,8 @@ File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint8_t flags);
+int FileCloseFile(FileContainer *, const uint8_t *data, uint32_t data_len,
+        uint8_t flags);
 
 /**
  *  \brief Store a chunk of file data in the flow. The open "flowfile"
@@ -135,7 +136,7 @@ int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint8_t fla
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileAppendData(FileContainer *, uint8_t *data, uint32_t data_len);
+int FileAppendData(FileContainer *, const uint8_t *data, uint32_t data_len);
 
 /**
  *  \brief Tag a file for storing

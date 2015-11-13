@@ -291,7 +291,7 @@ void FileContainerFree(FileContainer *ffc)
  *
  *  \retval new FileData object
  */
-static FileData *FileDataAlloc(uint8_t *data, uint32_t data_len)
+static FileData *FileDataAlloc(const uint8_t *data, uint32_t data_len)
 {
     FileData *new = SCMalloc(sizeof(FileData));
     if (unlikely(new == NULL)) {
@@ -339,7 +339,7 @@ static void FileDataFree(FileData *ffd)
  *
  *  \retval new File object or NULL on error
  */
-static File *FileAlloc(uint8_t *name, uint16_t name_len)
+static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 {
     File *new = SCMalloc(sizeof(File));
     if (unlikely(new == NULL)) {
@@ -465,7 +465,7 @@ static int FileStoreNoStoreCheck(File *ff)
  *  \retval -1 error
  *  \retval -2 no store for this file
  */
-int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
+int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
@@ -537,8 +537,8 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *ffc, uint8_t *name,
-        uint16_t name_len, uint8_t *data, uint32_t data_len, uint8_t flags)
+File *FileOpenFile(FileContainer *ffc, const uint8_t *name, uint16_t name_len,
+        const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
 
@@ -600,7 +600,7 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     SCReturnPtr(ff, "File");
 }
 
-static int FileCloseFilePtr(File *ff, uint8_t *data,
+static int FileCloseFilePtr(File *ff, const uint8_t *data,
         uint32_t data_len, uint8_t flags)
 {
     SCEnter();
@@ -676,7 +676,7 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *ffc, uint8_t *data,
+int FileCloseFile(FileContainer *ffc, const uint8_t *data,
         uint32_t data_len, uint8_t flags)
 {
     SCEnter();
