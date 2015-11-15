@@ -252,7 +252,7 @@ typedef struct HtpState_ {
     uint64_t store_tx_id;
     FileContainer *files_ts;
     FileContainer *files_tc;
-    struct HTPCfgRec_ *cfg;
+    const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */
