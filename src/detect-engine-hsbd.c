@@ -155,20 +155,20 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         goto end;
     }
 
-    SCLogDebug("response_body_limit %u response_body.content_len_so_far %"PRIu64
-               ", response_inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
-              htp_state->cfg->response_body_limit,
+    SCLogDebug("response.body_limit %u response_body.content_len_so_far %"PRIu64
+               ", response.inspect_min_size %"PRIu32", EOF %s, progress > body? %s",
+              htp_state->cfg->response.body_limit,
               htud->response_body.content_len_so_far,
-              htp_state->cfg->response_inspect_min_size,
+              htp_state->cfg->response.inspect_min_size,
               flags & STREAM_EOF ? "true" : "false",
                (AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) ? "true" : "false");
 
     if (!htp_state->cfg->http_body_inline) {
         /* inspect the body if the transfer is complete or we have hit
         * our body size limit */
-        if ((htp_state->cfg->response_body_limit == 0 ||
-             htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
-            htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
+        if ((htp_state->cfg->response.body_limit == 0 ||
+             htud->response_body.content_len_so_far < htp_state->cfg->response.body_limit) &&
+            htud->response_body.content_len_so_far < htp_state->cfg->response.inspect_min_size &&
             !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_RESPONSE_BODY) &&
             !(flags & STREAM_EOF)) {
             SCLogDebug("we still haven't seen the entire response body.  "
