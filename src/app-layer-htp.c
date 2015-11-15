@@ -1980,7 +1980,7 @@ static int HTPCallbackRequestLine(htp_tx_t *tx)
     HtpTxUserData *tx_ud;
     bstr *request_uri_normalized;
     HtpState *hstate = htp_connp_get_user_data(tx->connp);
-    HTPCfgRec *cfg = hstate->cfg;
+    const HTPCfgRec *cfg = hstate->cfg;
 
     request_uri_normalized = SCHTPGenerateNormalizedUri(tx, tx->parsed_uri, cfg->uri_include_all);
     if (request_uri_normalized == NULL)
