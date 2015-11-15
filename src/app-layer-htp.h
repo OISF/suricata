@@ -141,6 +141,9 @@ enum {
                                              matched on some rule */
 
 typedef struct HTPCfgDir_ {
+    uint32_t body_limit;
+    uint32_t inspect_min_size;
+    uint32_t inspect_window;
     StreamingBufferConfig sbcfg;
 } HTPCfgDir;
 
@@ -152,14 +155,6 @@ typedef struct HTPCfgRec_ {
     int                 uri_include_all; /**< use all info in uri (bool) */
 
     /** max size of the client body we inspect */
-    uint32_t            request_body_limit;
-    uint32_t            response_body_limit;
-
-    uint32_t            request_inspect_min_size;
-    uint32_t            request_inspect_window;
-
-    uint32_t            response_inspect_min_size;
-    uint32_t            response_inspect_window;
     int                 randomize;
     int                 randomize_range;
     int                 http_body_inline;

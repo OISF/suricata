@@ -1750,17 +1750,17 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     HtpBodyPrune(hstate, &tx_ud->request_body, STREAM_TOSERVER);
 
     SCLogDebug("tx_ud->request_body.content_len_so_far %"PRIu64, tx_ud->request_body.content_len_so_far);
-    SCLogDebug("hstate->cfg->request_body_limit %u", hstate->cfg->request_body_limit);
+    SCLogDebug("hstate->cfg->request.body_limit %u", hstate->cfg->request.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->request_body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request_body_limit)
+    if (hstate->cfg->request.body_limit == 0 || tx_ud->request_body.content_len_so_far < hstate->cfg->request.body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
-        if (hstate->cfg->request_body_limit > 0 &&
-                (tx_ud->request_body.content_len_so_far + len) > hstate->cfg->request_body_limit)
+        if (hstate->cfg->request.body_limit > 0 &&
+                (tx_ud->request_body.content_len_so_far + len) > hstate->cfg->request.body_limit)
         {
-            len = hstate->cfg->request_body_limit - tx_ud->request_body.content_len_so_far;
+            len = hstate->cfg->request.body_limit - tx_ud->request_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -1846,17 +1846,17 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
     HtpBodyPrune(hstate, &tx_ud->response_body, STREAM_TOCLIENT);
 
     SCLogDebug("tx_ud->response_body.content_len_so_far %"PRIu64, tx_ud->response_body.content_len_so_far);
-    SCLogDebug("hstate->cfg->response_body_limit %u", hstate->cfg->response_body_limit);
+    SCLogDebug("hstate->cfg->response.body_limit %u", hstate->cfg->response.body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->cfg->response_body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response_body_limit)
+    if (hstate->cfg->response.body_limit == 0 || tx_ud->response_body.content_len_so_far < hstate->cfg->response.body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
-        if (hstate->cfg->response_body_limit > 0 &&
-                (tx_ud->response_body.content_len_so_far + len) > hstate->cfg->response_body_limit)
+        if (hstate->cfg->response.body_limit > 0 &&
+                (tx_ud->response_body.content_len_so_far + len) > hstate->cfg->response.body_limit)
         {
-            len = hstate->cfg->response_body_limit - tx_ud->response_body.content_len_so_far;
+            len = hstate->cfg->response.body_limit - tx_ud->response_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -2124,12 +2124,12 @@ static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
 {
     cfg_prec->uri_include_all = FALSE;
-    cfg_prec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-    cfg_prec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
-    cfg_prec->request_inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
-    cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
-    cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
-    cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
+    cfg_prec->request.body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+    cfg_prec->response.body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
+    cfg_prec->request.inspect_min_size = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_MIN_SIZE;
+    cfg_prec->request.inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
+    cfg_prec->response.inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
+    cfg_prec->response.inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
 #ifndef AFLFUZZ_NO_RANDOM
     cfg_prec->randomize = HTP_CONFIG_DEFAULT_RANDOMIZE;
 #else
@@ -2178,40 +2178,40 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
     if (cfg_prec->randomize) {
         int rdrange = cfg_prec->randomize_range;
 
-        cfg_prec->request_inspect_min_size +=
-            (int) (cfg_prec->request_inspect_min_size *
+        cfg_prec->request.inspect_min_size +=
+            (int) (cfg_prec->request.inspect_min_size *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
-        cfg_prec->request_inspect_window +=
-            (int) (cfg_prec->request_inspect_window *
+        cfg_prec->request.inspect_window +=
+            (int) (cfg_prec->request.inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
         SCLogInfo("'%s' server has 'request-body-minimal-inspect-size' set to"
                   " %d and 'request-body-inspect-window' set to %d after"
                   " randomization.",
                   name,
-                  cfg_prec->request_inspect_min_size,
-                  cfg_prec->request_inspect_window);
+                  cfg_prec->request.inspect_min_size,
+                  cfg_prec->request.inspect_window);
 
 
-        cfg_prec->response_inspect_min_size +=
-            (int) (cfg_prec->response_inspect_min_size *
+        cfg_prec->response.inspect_min_size +=
+            (int) (cfg_prec->response.inspect_min_size *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
-        cfg_prec->response_inspect_window +=
-            (int) (cfg_prec->response_inspect_window *
+        cfg_prec->response.inspect_window +=
+            (int) (cfg_prec->response.inspect_window *
                    (random() * 1.0 / RAND_MAX - 0.5) * rdrange / 100);
 
         SCLogInfo("'%s' server has 'response-body-minimal-inspect-size' set to"
                   " %d and 'response-body-inspect-window' set to %d after"
                   " randomization.",
                   name,
-                  cfg_prec->response_inspect_min_size,
-                  cfg_prec->response_inspect_window);
+                  cfg_prec->response.inspect_min_size,
+                  cfg_prec->response.inspect_window);
     }
 
     htp_config_register_request_line(cfg_prec->cfg, HTPCallbackRequestLine);
 
     cfg_prec->request.sbcfg.flags = 0;
-    cfg_prec->request.sbcfg.buf_size = cfg_prec->request_inspect_window ?
-                                       cfg_prec->request_inspect_window : 256;
+    cfg_prec->request.sbcfg.buf_size = cfg_prec->request.inspect_window ?
+                                       cfg_prec->request.inspect_window : 256;
     cfg_prec->request.sbcfg.buf_slide = 0;
     cfg_prec->request.sbcfg.Malloc = HTPMalloc;
     cfg_prec->request.sbcfg.Calloc = HTPCalloc;
@@ -2219,8 +2219,8 @@ static void HTPConfigSetDefaultsPhase2(char *name, HTPCfgRec *cfg_prec)
     cfg_prec->request.sbcfg.Free = HTPFree;
 
     cfg_prec->response.sbcfg.flags = 0;
-    cfg_prec->response.sbcfg.buf_size = cfg_prec->response_inspect_window ?
-                                        cfg_prec->response_inspect_window : 256;
+    cfg_prec->response.sbcfg.buf_size = cfg_prec->response.inspect_window ?
+                                        cfg_prec->response.inspect_window : 256;
     cfg_prec->response.sbcfg.buf_slide = 0;
     cfg_prec->response.sbcfg.Malloc = HTPMalloc;
     cfg_prec->response.sbcfg.Calloc = HTPCalloc;
@@ -2295,28 +2295,28 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
 
         } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                    strcasecmp("request_body_limit", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request_body_limit) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request.body_limit) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("response-body-limit", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response_body_limit) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response.body_limit) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("request-body-minimal-inspect-size", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request_inspect_min_size) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_min_size) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-minimal-inspect-size "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("request-body-inspect-window", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->request_inspect_window) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->request.inspect_window) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-inspect-window "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
@@ -2335,14 +2335,14 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             }
 
         } else if (strcasecmp("response-body-minimal-inspect-size", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response_inspect_min_size) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_min_size) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-minimal-inspect-size "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);
             }
 
         } else if (strcasecmp("response-body-inspect-window", p->name) == 0) {
-            if (ParseSizeStringU32(p->val, &cfg_prec->response_inspect_window) < 0) {
+            if (ParseSizeStringU32(p->val, &cfg_prec->response.inspect_window) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-inspect-window "
                            "from conf file - %s.  Killing engine", p->val);
                 exit(EXIT_FAILURE);

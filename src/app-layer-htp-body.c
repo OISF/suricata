@@ -205,12 +205,12 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
     }
 
     /* get the configured inspect sizes. Default to response values */
-    uint32_t min_size = state->cfg->response_inspect_min_size;
-    uint32_t window = state->cfg->response_inspect_window;
+    uint32_t min_size = state->cfg->response.inspect_min_size;
+    uint32_t window = state->cfg->response.inspect_window;
 
     if (direction == STREAM_TOSERVER) {
-        min_size = state->cfg->request_inspect_min_size;
-        window = state->cfg->request_inspect_window;
+        min_size = state->cfg->request.inspect_min_size;
+        window = state->cfg->request.inspect_window;
     }
 
     uint64_t max_window = ((min_size > window) ? min_size : window);
