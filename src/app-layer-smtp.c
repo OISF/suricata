@@ -879,7 +879,12 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
-            state->parser_state |= SMTP_PARSER_STATE_FIRST_REPLY_SEEN;
+            /* the first server reply can be a multiline message. Let's
+             * flag the fact that we have seen the first reply only at the end
+             * of a multiline reply
+             */
+            if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY))
+                state->parser_state |= SMTP_PARSER_STATE_FIRST_REPLY_SEEN;
             if (reply_code == SMTP_REPLY_220)
                 SCReturnInt(0);
             else
