@@ -178,23 +178,41 @@ static const uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         }
     }
 
-    StreamingBufferGetData(htud->response_body.sb,
-            &det_ctx->hsbd[index].buffer, &det_ctx->hsbd[index].buffer_len,
-            &det_ctx->hsbd[index].offset);
-
-    /* update inspected tracker */
-    if (!htp_state->cfg->http_body_inline) {
-        htud->response_body.body_inspected = htud->response_body.last->sbseg.stream_offset +
-                                             htud->response_body.last->sbseg.segment_len;
-    } else {
-        htud->response_body.body_inspected = htud->response_body.content_len_so_far;
+    /* get the inspect buffer
+     *
+     * make sure that we have at least the configured inspect_win size.
+     * If we have more, take at least 1/4 of the inspect win size before
+     * the new data.
+     */
+    uint64_t offset = 0;
+    if (htud->response_body.body_inspected > htp_state->cfg->response.inspect_min_size) {
+        BUG_ON(htud->response_body.content_len_so_far < htud->response_body.body_inspected);
+        uint64_t inspect_win = htud->response_body.content_len_so_far - htud->response_body.body_inspected;
+        SCLogDebug("inspect_win %u", (uint)inspect_win);
+        if (inspect_win < htp_state->cfg->response.inspect_window) {
+            uint64_t inspect_short = htp_state->cfg->response.inspect_window - inspect_win;
+            if (htud->response_body.body_inspected < inspect_short)
+                offset = 0;
+            else
+                offset = htud->response_body.body_inspected - inspect_short;
+        } else {
+            offset = htud->response_body.body_inspected - (htp_state->cfg->response.inspect_window / 4);
+        }
     }
+
+    StreamingBufferGetDataAtOffset(htud->response_body.sb,
+            &det_ctx->hsbd[index].buffer, &det_ctx->hsbd[index].buffer_len,
+            offset);
+    det_ctx->hsbd[index].offset = offset;
+
+    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+     * the window sizes when freeing data */
+    htud->response_body.body_inspected = htud->response_body.content_len_so_far;
     SCLogDebug("htud->response_body.body_inspected now: %"PRIu64, htud->response_body.body_inspected);
 
     buffer = det_ctx->hsbd[index].buffer;
     *buffer_len = det_ctx->hsbd[index].buffer_len;
     *stream_start_offset = det_ctx->hsbd[index].offset;
-
  end:
     return buffer;
 }
@@ -4111,8 +4129,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 9\n\
+    response-body-inspect-window: 12\n\
 ";
 
     struct TestSteps steps[] = {
@@ -4153,8 +4171,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 9\n\
+    response-body-inspect-window: 12\n\
 ";
 
     struct TestSteps steps[] = {
@@ -4189,8 +4207,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 9\n\
+    response-body-inspect-window: 12\n\
 ";
 
     struct TestSteps steps[] = {
@@ -4225,8 +4243,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 9\n\
+    response-body-inspect-window: 12\n\
 ";
 
     struct TestSteps steps[] = {
@@ -4265,8 +4283,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 8\n\
+    response-body-inspect-window: 4\n\
 ";
 
     struct TestSteps steps[] = {
@@ -4305,8 +4323,8 @@ libhtp:\n\
   default-config:\n\
 \n\
     http-body-inline: yes\n\
-    response-body-minimal-inspect-size: 6\n\
-    response-body-inspect-window: 3\n\
+    response-body-minimal-inspect-size: 8\n\
+    response-body-inspect-window: 4\n\
 ";
 
     struct TestSteps steps[] = {
