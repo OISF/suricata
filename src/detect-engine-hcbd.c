@@ -157,29 +157,57 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
         goto end;
     }
 
-    /* inspect the body if the transfer is complete or we have hit
-     * our body size limit */
-    if ((htp_state->cfg->request.body_limit == 0 ||
-         htud->request_body.content_len_so_far < htp_state->cfg->request.body_limit) &&
-        htud->request_body.content_len_so_far < htp_state->cfg->request.inspect_min_size &&
-        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
-        !(flags & STREAM_EOF)) {
-        SCLogDebug("we still haven't seen the entire request body.  "
-                   "Let's defer body inspection till we see the "
-                   "entire body.");
-        goto end;
+    if (!htp_state->cfg->http_body_inline) {
+        /* inspect the body if the transfer is complete or we have hit
+        * our body size limit */
+        if ((htp_state->cfg->request.body_limit == 0 ||
+             htud->request_body.content_len_so_far < htp_state->cfg->request.body_limit) &&
+            htud->request_body.content_len_so_far < htp_state->cfg->request.inspect_min_size &&
+            !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags) > HTP_REQUEST_BODY) &&
+            !(flags & STREAM_EOF)) {
+            SCLogDebug("we still haven't seen the entire request body.  "
+                       "Let's defer body inspection till we see the "
+                       "entire body.");
+            goto end;
+        }
     }
 
-    StreamingBufferGetData(htud->request_body.sb,
-            &det_ctx->hcbd[index].buffer, &det_ctx->hcbd[index].buffer_len,
-            &det_ctx->hcbd[index].offset);
+    /* get the inspect buffer
+     *
+     * make sure that we have at least the configured inspect_win size.
+     * If we have more, take at least 1/4 of the inspect win size before
+     * the new data.
+     */
+    uint64_t offset = 0;
+    if (htud->request_body.body_inspected > htp_state->cfg->request.inspect_min_size) {
+        BUG_ON(htud->request_body.content_len_so_far < htud->request_body.body_inspected);
+        uint64_t inspect_win = htud->request_body.content_len_so_far - htud->request_body.body_inspected;
+        SCLogDebug("inspect_win %u", (uint)inspect_win);
+        if (inspect_win < htp_state->cfg->request.inspect_window) {
+            uint64_t inspect_short = htp_state->cfg->request.inspect_window - inspect_win;
+            if (htud->request_body.body_inspected < inspect_short)
+                offset = 0;
+            else
+                offset = htud->request_body.body_inspected - inspect_short;
+        } else {
+            offset = htud->request_body.body_inspected - (htp_state->cfg->request.inspect_window / 4);
+        }
+    }
 
-    /* update inspected tracker */
-    htud->request_body.body_inspected = htud->request_body.last->sbseg.stream_offset + htud->request_body.last->sbseg.segment_len;
+    StreamingBufferGetDataAtOffset(htud->request_body.sb,
+            &det_ctx->hcbd[index].buffer, &det_ctx->hcbd[index].buffer_len,
+            offset);
+    det_ctx->hcbd[index].offset = offset;
+
+    /* move inspected tracker to end of the data. HtpBodyPrune will consider
+     * the window sizes when freeing data */
+    htud->request_body.body_inspected = htud->request_body.content_len_so_far;
 
     buffer = det_ctx->hcbd[index].buffer;
     *buffer_len = det_ctx->hcbd[index].buffer_len;
     *stream_start_offset = det_ctx->hcbd[index].offset;
+
+    SCLogDebug("buffer_len %u (%u)", *buffer_len, (uint)htud->request_body.content_len_so_far);
  end:
     return buffer;
 }
