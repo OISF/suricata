@@ -2226,6 +2226,11 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
+        ConfDump();
+        exit(EXIT_SUCCESS);
+    }
+
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig(suri.daemon, suri.verbose);
@@ -2233,11 +2238,6 @@ int main(int argc, char **argv)
     SCPrintVersion();
 
     UtilCpuPrintSummary();
-
-    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
-        ConfDump();
-        exit(EXIT_SUCCESS);
-    }
 
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
