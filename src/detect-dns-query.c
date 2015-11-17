@@ -98,41 +98,6 @@ static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     return 0;
 }
 
-/**
- *  \brief Run the pattern matcher against the queries
- *
- *  \param f locked flow
- *  \param dns_state initialized dns state
- *
- *  \warning Make sure the flow/state is locked
- *  \todo what should we return? Just the fact that we matched?
- */
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  DNSState *dns_state, uint8_t flags, void *txv,
-                                  uint64_t tx_id)
-{
-    SCEnter();
-
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
-    uint8_t *buffer;
-    uint16_t buffer_len;
-    uint32_t cnt = 0;
-
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        SCLogDebug("tx %p query %p", tx, query);
-
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
-
-        cnt += DnsQueryPatternSearch(det_ctx,
-                buffer, buffer_len,
-                flags);
-    }
-
-    SCReturnUInt(cnt);
-}
-
 #ifdef UNITTESTS
 /** \test simple google.com query matching */
 static int DetectDnsQueryTest01(void)

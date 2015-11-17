@@ -40,7 +40,7 @@ typedef struct DetectProto_ {
 
 /* prototypes */
 int DetectProtoParse(DetectProto *dp, char *str);
-int DetectProtoContainsProto(DetectProto *, int);
+int DetectProtoContainsProto(const DetectProto *, int);
 
 void DetectProtoTests(void);
 

@@ -56,6 +56,36 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "util-validate.h"
+
+/**
+ * \brief Http raw uri match -- searches for one pattern per signature.
+ *
+ * \param det_ctx Detection engine thread ctx.
+ * \param uri     Raw uri to inspect.
+ * \param uri_len Raw uri length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *uri, const uint32_t uri_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
+
+    if (uri_len >= det_ctx->sgh->mpm_hrud_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, uri, uri_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against raw http uris.
@@ -72,10 +102,10 @@ int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     uint32_t cnt = 0;
     if (tx->request_uri == NULL)
         goto end;
-    cnt = HttpRawUriPatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(tx->request_uri),
-                                  bstr_len(tx->request_uri), flags);
 
+    cnt = HttpRawUriPatternSearch(det_ctx,
+                                  (const uint8_t *)bstr_ptr(tx->request_uri),
+                                  bstr_len(tx->request_uri), flags);
 end:
     SCReturnInt(cnt);
 }
@@ -3503,7 +3533,6 @@ static int DetectEngineHttpRawUriTest29(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3598,7 +3627,6 @@ static int DetectEngineHttpRawUriTest30(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "

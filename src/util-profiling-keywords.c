@@ -100,7 +100,7 @@ void SCProfilingKeywordsGlobalInit(void)
     }
 }
 
-void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *name)
+static void DoDump(SCProfileKeywordDetectCtx *rules_ctx, FILE *fp, const char *name)
 {
     int i;
     fprintf(fp, "  ----------------------------------------------"
