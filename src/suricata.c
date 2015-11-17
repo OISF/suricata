@@ -2249,6 +2249,10 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
