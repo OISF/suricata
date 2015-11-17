@@ -145,6 +145,10 @@ enum {
     /* RAW EVENTS */
     IPRAW_INVALID_IPV,              /**< invalid ip version in ip raw */
 
+    /* LINKTYPE NULL EVENTS */
+    LTNULL_PKT_TOO_SMALL,           /**< pkt too small for lt:null */
+    LTNULL_UNSUPPORTED_TYPE,        /**< pkt has a type that the decoder doesn't support */
+
     /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,
     STREAM_3WHS_ASYNC_WRONG_SEQ,
