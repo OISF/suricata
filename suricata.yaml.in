@@ -50,7 +50,7 @@ host-mode: auto
 
 # Default pid file.
 # Will use this file if no --pidfile in command options.
-#pid-file: /var/run/suricata.pid
+#pid-file: @e_rundir@suricata.pid
 
 # Daemon working directory
 # Suricata will change directory to this one if provided
@@ -980,7 +980,7 @@ logging:
       # type: json
   - file:
       enabled: no
-      filename: /var/log/suricata.log
+      filename: @e_logdir@suricata.log
       # type: json
   - syslog:
       enabled: no
