@@ -443,6 +443,7 @@ void TmModuleLogFilestoreRegister (void) {
     tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
     tmm_modules[TMM_FILESTORE].cap_flags = 0;
     tmm_modules[TMM_FILESTORE].flags = TM_FLAG_LOGAPI_TM;
+    tmm_modules[TMM_FILESTORE].priority = 10;
 
     OutputRegisterFiledataModule(MODULE_NAME, "file", LogFilestoreLogInitCtx,
             LogFilestoreLogger);

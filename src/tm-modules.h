@@ -57,6 +57,8 @@ typedef struct TmModule_ {
                              the given TmModule */
     /* Other flags used by the module */
     uint8_t flags;
+    /* priority in the logging order, higher priority is runned first */
+    uint8_t priority;
 } TmModule;
 
 TmModule tmm_modules[TMM_SIZE];
