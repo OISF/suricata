@@ -150,7 +150,7 @@ int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
 
     prev = NULL;
     while (tmp != NULL) {
-        if ((tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
+        if (abs(tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
             prev = tmp;
             tmp = tmp->next;
             retval = 0;
@@ -262,7 +262,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             SCLogDebug("limit");
 
             if (lookup_tsh != NULL)  {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                if (abs(p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count <= td->count) {
@@ -297,7 +297,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             SCLogDebug("threshold");
 
             if (lookup_tsh != NULL)  {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                if (abs(p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
 
                     if (lookup_tsh->current_count >= td->count) {
@@ -331,7 +331,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             SCLogDebug("both");
 
             if (lookup_tsh != NULL) {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                if (abs(p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     /* within time limit */
 
                     lookup_tsh->current_count++;
@@ -377,7 +377,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
-                long double time_diff = ((p->ts.tv_sec + p->ts.tv_usec/1000000.0) -
+                long double time_diff = abs((p->ts.tv_sec + p->ts.tv_usec/1000000.0) -
                                          (lookup_tsh->tv_sec1 + lookup_tsh->tv_usec1/1000000.0));
 
                 if (time_diff < td->seconds) {
@@ -420,7 +420,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                 /* Check if we have a timeout enabled, if so,
                  * we still matching (and enabling the new_action) */
                 if (lookup_tsh->tv_timeout != 0) {
-                    if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+                    if (abs(p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
                         /* Ok, we are done, timeout reached */
                         lookup_tsh->tv_timeout = 0;
                     } else {
@@ -448,7 +448,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
 
                 } else {
                     /* Update the matching state with the timeout interval */
-                    if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                    if ( abs(p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                         lookup_tsh->current_count++;
                         if (lookup_tsh->current_count > td->count) {
                             /* Then we must enable the new action by setting a
@@ -517,7 +517,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
     if (lookup_tsh != NULL) {
         /* Check if we have a timeout enabled, if so,
          * we still matching (and enabling the new_action) */
-        if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+        if (abs(p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
             /* Ok, we are done, timeout reached */
             td->timeout = 0;
         } else {
@@ -544,7 +544,7 @@ static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectT
         }
 
         /* Update the matching state with the timeout interval */
-        if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+        if (abs(p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
             lookup_tsh->current_count++;
             if (lookup_tsh->current_count >= td->count) {
                 /* Then we must enable the new action by setting a
