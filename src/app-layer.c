@@ -74,6 +74,12 @@ static void DisableAppLayer(Flow *f)
     StreamTcpDisableAppLayer(f);
 }
 
+static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t direction) {
+    const TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
+    return ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
+            (FLOW_IS_PM_DONE(f, direction) && FLOW_IS_PP_DONE(f, direction)));
+}
+
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                           Packet *p, Flow *f,
                           TcpSession *ssn, TcpStream *stream,
@@ -187,7 +193,14 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                         p->flowflags |= FLOW_PKT_TOCLIENT;
                     }
                 }
-                int ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
+
+                int ret = 0;
+                /* if the opposing side is not going to work, then
+                 * we just have to give up. */
+                if (opposing_stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)
+                    ret = -1;
+                else
+                    ret = StreamTcpReassembleAppLayer(tv, ra_ctx, ssn,
                                                       opposing_stream, p);
                 if (stream == &ssn->client) {
                     if (StreamTcpInlineMode()) {
@@ -329,7 +342,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 } else {
                     f->data_al_so_far[dir] = data_len;
                 }
-            } else {
+             } else {
                 /* See if we're going to have to give up:
                  *
                  * If we're getting a lot of data in one direction and the
@@ -349,9 +362,16 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 uint32_t size_ts = ssn->client.last_ack - ssn->client.isn - 1;
                 uint32_t size_tc = ssn->server.last_ack - ssn->server.isn - 1;
                 SCLogDebug("size_ts %u, size_tc %u", size_ts, size_tc);
+#ifdef DEBUG_VALIDATION
+                if (!(ssn->client.flags & STREAMTCP_STREAM_FLAG_GAP))
+                    BUG_ON(size_ts > 1000000UL);
+                if (!(ssn->server.flags & STREAMTCP_STREAM_FLAG_GAP))
+                    BUG_ON(size_tc > 1000000UL);
+#endif /* DEBUG_VALIDATION */
 
-                if (FLOW_IS_PM_DONE(f, STREAM_TOSERVER) && FLOW_IS_PP_DONE(f, STREAM_TOSERVER) &&
-                    FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)) {
+                if (ProtoDetectDone(f, ssn, STREAM_TOSERVER) &&
+                    ProtoDetectDone(f, ssn, STREAM_TOCLIENT))
+                {
                     DisableAppLayer(f);
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
@@ -391,8 +411,19 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_PROTO_DETECTION_SKIPPED);
+                /* in case of really low TS data (e.g. 4 bytes) we can have
+                 * the PP complete, PM not complete (depth not reached) and
+                 * the TC side also not recognized (proto unknown) */
+                } else if (size_tc > 100000 &&
+                           FLOW_IS_PP_DONE(f, STREAM_TOSERVER) && !(FLOW_IS_PM_DONE(f, STREAM_TOSERVER)) &&
+                           (!FLOW_IS_PM_DONE(f, STREAM_TOCLIENT) && !FLOW_IS_PP_DONE(f, STREAM_TOCLIENT)))
+                {
+                    DisableAppLayer(f);
+                    ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
+                    AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
+                                                     APPLAYER_PROTO_DETECTION_SKIPPED);
                 }
-            }
+             }
         }
     } else {
         SCLogDebug("stream data (len %" PRIu32 " alproto "

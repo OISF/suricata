@@ -63,6 +63,7 @@
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
 #include "detect-engine-enip.h"
+#include "detect-engine-template.h"
 
 
 #include "detect-engine.h"
@@ -312,6 +313,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_FD_SMTP_INSPECT,
           0,
           DetectEngineInspectSMTPFiledata },
+        /* Template. */
+        { IPPROTO_TCP,
+          ALPROTO_TEMPLATE,
+          DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+          DE_STATE_FLAG_TEMPLATE_BUFFER_INSPECT,
+          0,
+          DetectEngineInspectTemplateBuffer },
     };
 
     struct tmp_t data_toclient[] = {
@@ -405,6 +413,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSRESPONSE_INSPECT,
           1,
           DetectEngineInspectDnsResponse },
+        /* Template. */
+        { IPPROTO_TCP,
+          ALPROTO_TEMPLATE,
+          DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+          DE_STATE_FLAG_TEMPLATE_BUFFER_INSPECT,
+          1,
+          DetectEngineInspectTemplateBuffer },
     };
 
     size_t i;
@@ -2378,7 +2393,7 @@ static int reloads = 0;
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectEngineReload(const char *filename)
+int DetectEngineReload(const char *filename, SCInstance *suri)
 {
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
@@ -2415,7 +2430,8 @@ int DetectEngineReload(const char *filename)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
-    if (SigLoadSignatures(new_de_ctx, NULL, 0) != 0) {
+    if (SigLoadSignatures(new_de_ctx,
+                          suri->sig_file, suri->sig_file_exclusive) != 0) {
         DetectEngineCtxFree(new_de_ctx);
         DetectEngineDeReference(&old_de_ctx);
         return -1;
@@ -2682,10 +2698,17 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+
         case DETECT_SM_LIST_CIP_MATCH:
             return "cip";
         case DETECT_SM_LIST_ENIP_MATCH:
             return "enip";
+
+
+        case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
+            return "template_buffer";
+
+
         case DETECT_SM_LIST_POSTMATCH:
             return "post-match";
 

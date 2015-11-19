@@ -102,6 +102,8 @@
 
 #include "output-json.h"
 
+#include "output-json-template.h"
+
 #include "stream-tcp.h"
 
 #include "source-nfq.h"
@@ -896,6 +898,9 @@ void RegisterAllModules()
     TmModuleJsonNetFlowLogRegister();
     /* json stats */
     TmModuleJsonStatsLogRegister();
+
+    /* Template JSON logger. */
+    TmModuleJsonTemplateLogRegister();
 
     /* log api */
     TmModulePacketLoggerRegister();
@@ -1972,14 +1977,20 @@ static int ConfigGetCaptureValue(SCInstance *suri)
      * back on a sane default. */
     char *temp_default_packet_size;
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
+        int lthread;
+        int nlive;
         switch (suri->run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_NETMAP:
             case RUNMODE_PFRING:
-                /* FIXME this don't work effficiently in multiinterface */
-                /* find payload for interface and use it */
-                default_packet_size = GetIfaceMaxPacketSize(suri->pcap_dev);
+                nlive = LiveGetDeviceCount();
+                for (lthread = 0; lthread < nlive; lthread++) {
+                    char *live_dev = LiveGetDeviceName(lthread);
+                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(live_dev);
+                    if (iface_max_packet_size > default_packet_size)
+                        default_packet_size = iface_max_packet_size;
+                }
                 if (default_packet_size)
                     break;
                 /* fall through */
@@ -2221,6 +2232,11 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
+        ConfDump();
+        exit(EXIT_SUCCESS);
+    }
+
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig(suri.daemon, suri.verbose);
@@ -2229,9 +2245,8 @@ int main(int argc, char **argv)
 
     UtilCpuPrintSummary();
 
-    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
-        ConfDump();
-        exit(EXIT_SUCCESS);
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
     }
 
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
@@ -2315,10 +2330,6 @@ int main(int argc, char **argv)
         StatsSetupPostConfig();
     }
 
-    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
     if(suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
@@ -2362,6 +2373,7 @@ int main(int argc, char **argv)
     }
 
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
+    PacketPoolPostRunmodes();
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
@@ -2374,7 +2386,7 @@ int main(int argc, char **argv)
 
     if (suri.delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload(NULL);
+        DetectEngineReload(NULL, &suri);
 
         if (suri.sig_file != NULL)
             UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
@@ -2407,10 +2419,10 @@ int main(int argc, char **argv)
         }
 
         if (sigusr2_count > 0) {
-            DetectEngineReload(conf_filename);
+            DetectEngineReload(conf_filename, &suri);
             sigusr2_count--;
         } else if (DetectEngineReloadIsStart()) {
-            DetectEngineReload(conf_filename);
+            DetectEngineReload(conf_filename, &suri);
             DetectEngineReloadSetDone();
         }
 

@@ -164,6 +164,10 @@ void DetectLuaRegister(void)
 #define DATATYPE_DNS_REQUEST                (1<<16)
 #define DATATYPE_DNS_RESPONSE               (1<<17)
 
+#define DATATYPE_TLS                        (1<<18)
+
+#define DATATYPE_SSH                        (1<<19)
+
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
 {
@@ -188,12 +192,18 @@ int DetectLuajitSetupStatesPool(int num, int reloads)
     pthread_mutex_lock(&luajit_states_lock);
 
     if (luajit_states == NULL) {
-        int cnt = 0;
-        char *conf_val = NULL;
+        intmax_t cnt = 0;
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "luajit-states") == 0) {
+                    ConfGetChildValueInt(denode, "luajit-states", &cnt);
+                }
+            }
+        }
 
-        if ((ConfGet("detect-engine.luajit-states", &conf_val)) == 1) {
-            cnt = (int)atoi(conf_val);
-        } else {
+        if (cnt == 0) {
             int cpus = UtilCpuGetNumProcessorsOnline();
             if (cpus == 0) {
                 cpus = 10;
@@ -301,7 +311,7 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, flow_lock, /* no packet in the ctx */NULL);
+            f, flow_lock, /* no packet in the ctx */NULL, 0);
 
     /* prepare data to pass to script */
     lua_getglobal(tluajit->luastate, "match");
@@ -402,8 +412,14 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
+    uint8_t flags = 0;
+    if (p->flowflags & FLOW_PKT_TOSERVER)
+        flags = STREAM_TOSERVER;
+    else if (p->flowflags & FLOW_PKT_TOCLIENT)
+        flags = STREAM_TOCLIENT;
+
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p);
+            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -533,7 +549,8 @@ static int DetectLuaAppMatchCommon (ThreadVars *t, DetectEngineThreadCtx *det_ct
 
     /* setup extension data for use in lua c functions */
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT, NULL);
+            f, /* flow is locked */LUA_FLOW_LOCKED_BY_PARENT,
+            NULL, flags);
 
     if (tluajit->alproto != ALPROTO_UNKNOWN) {
         int alproto = f->alproto;
@@ -993,6 +1010,18 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
                 SCLogError(SC_ERR_LUA_ERROR, "alloc error");
                 goto error;
             }
+        } else if (strncmp(k, "tls", 3) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_TLS;
+
+            ld->flags |= DATATYPE_TLS;
+
+        } else if (strncmp(k, "ssh", 3) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_SSH;
+
+            ld->flags |= DATATYPE_SSH;
+
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1088,6 +1117,10 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         } else if (luajit->flags & DATATYPE_DNS_RESPONSE) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
         }
+    } else if (luajit->alproto == ALPROTO_TLS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    } else if (luajit->alproto == ALPROTO_SSH) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));

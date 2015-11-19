@@ -51,11 +51,14 @@
 #include "util-buffer.h"
 #include "util-byte.h"
 
-#include "output.h"
-#include "output-json.h"
-
 #include "log-file.h"
 #include "util-logopenfile.h"
+
+#include "output.h"
+#include "output-json.h"
+#include "output-json-http.h"
+#include "output-json-smtp.h"
+#include "output-json-email-common.h"
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
@@ -74,99 +77,6 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
-static json_t *LogFileMetaGetUri(const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    json_t *js = NULL;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-            if (tx_ud != NULL && tx_ud->request_uri_normalized != NULL) {
-                char *s = bstr_util_strdup_to_c(tx_ud->request_uri_normalized);
-                if (s != NULL) {
-                    js = json_string(s);
-                    SCFree(s);
-                    if (js != NULL)
-                        return js;
-                }
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static json_t *LogFileMetaGetHost(const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    json_t *js = NULL;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL && tx->request_hostname != NULL) {
-            char *s = bstr_util_strdup_to_c(tx->request_hostname);
-            if (s != NULL) {
-                js = json_string(s);
-                SCFree(s);
-                if (js != NULL)
-                    return js;
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static json_t *LogFileMetaGetReferer(const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    json_t *js = NULL;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "Referer");
-            if (h != NULL) {
-                char *s = bstr_util_strdup_to_c(h->value);
-                if (s != NULL) {
-                    js = json_string(s);
-                    SCFree(s);
-                    if (js != NULL)
-                        return js;
-                }
-            }
-        }
-    }
-
-    return NULL;
-}
-
-static json_t *LogFileMetaGetUserAgent(const Packet *p, const File *ff)
-{
-    HtpState *htp_state = (HtpState *)p->flow->alstate;
-    json_t *js = NULL;
-    if (htp_state != NULL) {
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, ff->txid);
-        if (tx != NULL) {
-            htp_header_t *h = NULL;
-            h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                                "User-Agent");
-            if (h != NULL) {
-                char *s = bstr_util_strdup_to_c(h->value);
-                if (s != NULL) {
-                    js = json_string(s);
-                    SCFree(s);
-                    if (js != NULL)
-                        return js;
-                }
-            }
-        }
-    }
-
-    return NULL;
-}
-
 /**
  *  \internal
  *  \brief Write meta data on a single line json record
@@ -175,33 +85,32 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
 {
     MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = CreateJSONHeader((Packet *)p, 0, "fileinfo"); //TODO const
+    json_t *hjs = NULL;
     if (unlikely(js == NULL))
         return;
 
     /* reset */
     MemBufferReset(buffer);
 
-    json_t *hjs = json_object();
-    if (unlikely(hjs == NULL)) {
-        json_decref(js);
-        return;
-    }
-
-    json_object_set_new(hjs, "app_proto", json_string(AppProtoToString(p->flow->alproto)));
     switch (p->flow->alproto) {
         case ALPROTO_HTTP:
-            json_object_set_new(hjs, "url", LogFileMetaGetUri(p, ff));
-            json_object_set_new(hjs, "hostname", LogFileMetaGetHost(p, ff));
-            json_object_set_new(hjs, "http_refer", LogFileMetaGetReferer(p, ff));
-            json_object_set_new(hjs, "http_user_agent", LogFileMetaGetUserAgent(p, ff));
-            json_object_set_new(js, "http", hjs);
+            hjs = JsonHttpAddMetadata(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "http", hjs);
+            break;
+        case ALPROTO_SMTP:
+            hjs = JsonSMTPAddMetadata(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "smtp", hjs);
+            hjs = JsonEmailAddMetadata(p->flow, ff->txid);
+            if (hjs)
+                json_object_set_new(js, "email", hjs);
             break;
     }
 
 
     json_t *fjs = json_object();
     if (unlikely(fjs == NULL)) {
-        json_decref(hjs);
         json_decref(js);
         return;
     }
@@ -219,14 +128,11 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             if (ff->flags & FILE_MD5) {
                 size_t x;
                 int i;
-                char *s = SCMalloc(256);
-                if (likely(s != NULL)) {
-                    for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
-                        i += snprintf(&s[i], 255-i, "%02x", ff->md5[x]);
-                    }
-                    json_object_set_new(fjs, "md5", json_string(s));
-                    SCFree(s);
+                char s[256];
+                for (i = 0, x = 0; x < sizeof(ff->md5); x++) {
+                    i += snprintf(&s[i], 255-i, "%02x", ff->md5[x]);
                 }
+                json_object_set_new(fjs, "md5", json_string(s));
             }
 #endif
             break;
@@ -252,7 +158,16 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     json_object_set_new(js, "fileinfo", fjs);
     OutputJSONBuffer(js, aft->filelog_ctx->file_ctx, buffer);
     json_object_del(js, "fileinfo");
-    json_object_del(js, "http");
+
+    switch (p->flow->alproto) {
+        case ALPROTO_HTTP:
+            json_object_del(js, "http");
+            break;
+        case ALPROTO_SMTP:
+            json_object_del(js, "smtp");
+            json_object_del(js, "email");
+            break;
+    }
 
     json_object_clear(js);
     json_decref(js);
