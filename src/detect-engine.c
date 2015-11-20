@@ -1837,7 +1837,7 @@ static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
 {
     TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
 
-    SCLogInfo("loader %d", loader_id);
+    SCLogDebug("loader %d", loader_id);
     if (DetectEngineMultiTenantLoadTenant(ctx->tenant_id, ctx->yaml, loader_id) != 0) {
         return -1;
     }
@@ -1944,7 +1944,7 @@ void DetectEngineMultiTenantSetup(void)
 
         char *handler = NULL;
         if (ConfGet("multi-detect.selector", &handler) == 1) {
-            SCLogInfo("selector %s", handler);
+            SCLogInfo("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
                 master->tenant_selector = TENANT_SELECTOR_VLAN;
@@ -1974,8 +1974,6 @@ void DetectEngineMultiTenantSetup(void)
                     if (vlan_id_node == NULL)
                         goto bad_mapping;
 
-                    SCLogInfo("vlan %s %s", tenant_id_node->val, vlan_id_node->val);
-
                     uint32_t tenant_id = 0;
                     if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
                                 tenant_id_node->val) == -1)
@@ -1997,6 +1995,7 @@ void DetectEngineMultiTenantSetup(void)
                     if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
                         goto error;
                     }
+                    SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
                 } else {
                     SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
                     goto bad_mapping;
@@ -2133,7 +2132,7 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
 
     master->tenant_selector = selector;
 
-    SCLogInfo("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
+    SCLogDebug("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
     SCMutexUnlock(&master->lock);
     return 0;
 }
