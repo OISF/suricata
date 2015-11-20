@@ -1998,12 +1998,10 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                   det_ctx);
     }
 
-    if (det_ctx->TenantGetId != NULL) {
-        /* in MT mode, but no tenants registered yet */
-        if (det_ctx->mt_det_ctxs_cnt == 0) {
-            return TM_ECODE_OK;
-        }
-
+    /* if in MT mode _and_ we have tenants registered, use
+     * MT logic. */
+    if (det_ctx->mt_det_ctxs_cnt > 0 && det_ctx->TenantGetId != NULL)
+    {
         uint32_t tenant_id = p->tenant_id;
         if (tenant_id == 0)
             tenant_id = det_ctx->TenantGetId(det_ctx, p);
@@ -2021,7 +2019,8 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                 SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
             }
         } else {
-            return TM_ECODE_OK;
+            /* use default if no tenants are registered for this packet */
+            de_ctx = det_ctx->de_ctx;
         }
     } else {
         de_ctx = det_ctx->de_ctx;

@@ -2285,12 +2285,17 @@ int main(int argc, char **argv)
     if (!suri.disabled_detect) {
         SCClassConfInit();
         SCReferenceConfInit();
-        DetectEngineMultiTenantSetup();
         SetupDelayedDetect(&suri);
-        if (!suri.delayed_detect) {
-            de_ctx = DetectEngineCtxInit();
-        } else {
+        int mt_enabled = 0;
+        (void)ConfGetBool("multi-detect.enabled", &mt_enabled);
+        int default_tenant = 0;
+        if (mt_enabled)
+            (void)ConfGetBool("multi-detect.default", &default_tenant);
+        DetectEngineMultiTenantSetup();
+        if (suri.delayed_detect || (mt_enabled && !default_tenant)) {
             de_ctx = DetectEngineCtxInitMinimal();
+        } else {
+            de_ctx = DetectEngineCtxInit();
         }
         if (de_ctx == NULL) {
             SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
@@ -2303,7 +2308,7 @@ int main(int argc, char **argv)
             CudaVarsSetDeCtx(de_ctx);
 #endif /* __SC_CUDA_SUPPORT__ */
 
-        if (!suri.delayed_detect) {
+        if (!de_ctx->minimal) {
             if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
             if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
