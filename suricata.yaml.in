@@ -1511,8 +1511,11 @@ profiling:
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
-    # Limit the number of items printed at exit.
+    # Limit the number of items printed at exit (ignored for json).
     limit: 100
+
+    # output to json
+    json: true
 
   # per keyword profiling
   keywords:
