@@ -591,22 +591,16 @@ legacy:
 # might end up taking too much time in the content inspection code.
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  On not specifying a value, we use no limits on the recursion.
-detect-engine:
-  - profile: medium
-  - custom-values:
-      toclient-src-groups: 2
-      toclient-dst-groups: 2
-      toclient-sp-groups: 2
-      toclient-dp-groups: 3
-      toserver-src-groups: 2
-      toserver-dst-groups: 4
-      toserver-sp-groups: 2
-      toserver-dp-groups: 25
-  - sgh-mpm-context: auto
-  - inspection-recursion-limit: 3000
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
-  #- delayed-detect: yes
+  #delayed-detect: yes
 
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
@@ -706,8 +700,8 @@ cuda:
 # ac, ac-bs and ac-gfbs.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
-# signature groups, specified by the conf - "detect-engine.sgh-mpm-context".
-# Selecting "ac" as the mpm would require "detect-engine.sgh-mpm-context"
+# signature groups, specified by the conf - "detect.sgh-mpm-context".
+# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
 # to be set to "single", because of ac's memory requirements, unless the
 # ruleset is small enough to fit in one's memory, in which case one can
 # use "full" with "ac".  Rest of the mpms can be run in "full" mode.
