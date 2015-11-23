@@ -2099,46 +2099,41 @@ int DetectEngineMultiTenantSetup(void)
         int mapping_cnt = 0;
         if (mappings_root_node != NULL) {
             TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
-                if (strcmp(mapping_node->val, "vlan") == 0) {
-                    ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
-                    if (tenant_id_node == NULL)
-                        goto bad_mapping;
-                    ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
-                    if (vlan_id_node == NULL)
-                        goto bad_mapping;
+                ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+                if (tenant_id_node == NULL)
+                    goto bad_mapping;
+                ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+                if (vlan_id_node == NULL)
+                    goto bad_mapping;
 
-                    uint32_t tenant_id = 0;
-                    if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
-                                tenant_id_node->val) == -1)
-                    {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
-                                "of %s is invalid", tenant_id_node->val);
-                        goto bad_mapping;
-                    }
-
-                    uint16_t vlan_id = 0;
-                    if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
-                                vlan_id_node->val) == -1)
-                    {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                                "of %s is invalid", vlan_id_node->val);
-                        goto bad_mapping;
-                    }
-                    if (vlan_id == 0 || vlan_id >= 4095) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                                "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
-                        goto bad_mapping;
-                    }
-
-                    if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
-                        goto error;
-                    }
-                    SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
-                    mapping_cnt++;
-                } else {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
+                uint32_t tenant_id = 0;
+                if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                            tenant_id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                            "of %s is invalid", tenant_id_node->val);
                     goto bad_mapping;
                 }
+
+                uint16_t vlan_id = 0;
+                if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+                            vlan_id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                            "of %s is invalid", vlan_id_node->val);
+                    goto bad_mapping;
+                }
+                if (vlan_id == 0 || vlan_id >= 4095) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                            "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
+                    goto bad_mapping;
+                }
+
+                if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+                    goto error;
+                }
+                SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
+                mapping_cnt++;
                 continue;
 
             bad_mapping:
@@ -2171,10 +2166,6 @@ int DetectEngineMultiTenantSetup(void)
 
         if (tenants_root_node != NULL) {
             TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
-                if (strcmp(tenant_node->val, "tenant") != 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.tenants expects a list of 'tenant's. Not %s", tenant_node->val);
-                    goto bad_tenant;
-                }
                 ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
                 if (id_node == NULL) {
                     goto bad_tenant;
