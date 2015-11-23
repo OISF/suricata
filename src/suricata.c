@@ -2291,7 +2291,11 @@ int main(int argc, char **argv)
         int default_tenant = 0;
         if (mt_enabled)
             (void)ConfGetBool("multi-detect.default", &default_tenant);
-        DetectEngineMultiTenantSetup();
+        if (DetectEngineMultiTenantSetup() == -1) {
+            SCLogError(SC_ERR_INITIALIZATION, "initializing multi-detect "
+                    "detection engine contexts failed.");
+            exit(EXIT_FAILURE);
+        }
         if (suri.delayed_detect || (mt_enabled && !default_tenant)) {
             de_ctx = DetectEngineCtxInitMinimal();
         } else {

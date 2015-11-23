@@ -79,7 +79,7 @@ int DetectEngineReload(const char *filename, SCInstance *suri);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
 int DetectEngineMultiTenantEnabled(void);
-void DetectEngineMultiTenantSetup(void);
+int DetectEngineMultiTenantSetup(void);
 
 int DetectEngineReloadStart(void);
 int DetectEngineReloadIsStart(void);

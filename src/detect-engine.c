@@ -2043,7 +2043,7 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
  *  Tenants and mappings are optional, and can also dynamically be added
  *  and removed from the unix socket.
  */
-void DetectEngineMultiTenantSetup(void)
+int DetectEngineMultiTenantSetup(void)
 {
     enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
@@ -2156,11 +2156,11 @@ void DetectEngineMultiTenantSetup(void)
                 SCLogNotice("no tenant traffic mappings defined, "
                         "tenants won't be used until mappings are added");
             } else {
-                if (failure_fatal)
-                    SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
-                else {
+                if (failure_fatal) {
                     SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
                     goto error;
+                } else {
+                    SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
                 }
             }
         }
@@ -2176,11 +2176,13 @@ void DetectEngineMultiTenantSetup(void)
                     goto bad_tenant;
                 }
                 ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
-                if (id_node == NULL)
+                if (id_node == NULL) {
                     goto bad_tenant;
+                }
                 ConfNode *yaml_node = ConfNodeLookupChild(tenant_node, "yaml");
-                if (yaml_node == NULL)
+                if (yaml_node == NULL) {
                     goto bad_tenant;
+                }
 
                 uint32_t tenant_id = 0;
                 if (ByteExtractStringUint32(&tenant_id, 10, strlen(id_node->val),
@@ -2201,7 +2203,8 @@ void DetectEngineMultiTenantSetup(void)
                     goto bad_tenant;
                 }
 
-                if (DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val) != 0) {
+                int r = DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val);
+                if (r < 0) {
                     /* error logged already */
                     goto bad_tenant;
                 }
@@ -2214,13 +2217,15 @@ void DetectEngineMultiTenantSetup(void)
         }
 
         /* wait for our loaders to complete their tasks */
-        if (DetectLoadersSync() != 0)
+        if (DetectLoadersSync() != 0) {
             goto error;
+        }
     } else {
         SCLogDebug("multi-detect not enabled (multi tenancy)");
     }
+    return 0;
 error:
-    return;
+    return -1;
 }
 
 static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
