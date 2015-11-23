@@ -2067,6 +2067,15 @@ void DetectEngineMultiTenantSetup(void)
 
             if (strcmp(handler, "vlan") == 0) {
                 master->tenant_selector = TENANT_SELECTOR_VLAN;
+
+                int vlanbool = 0;
+                if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "vlan tracking is disabled, "
+                            "can't use multi-detect selector 'vlan'");
+                    SCMutexUnlock(&master->lock);
+                    goto error;
+                }
+
             } else if (strcmp(handler, "direct") == 0) {
                 master->tenant_selector = TENANT_SELECTOR_DIRECT;
             } else {
