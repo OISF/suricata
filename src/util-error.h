@@ -301,6 +301,7 @@ typedef enum {
     SC_ERR_NO_JSON_SUPPORT,
     SC_ERR_INVALID_RULE_ARGUMENT, /**< Generic error code for invalid
                                    * rule argument. */
+    SC_ERR_MT_NO_MAPPING,
 } SCError;
 
 const char *SCErrorToString(SCError);

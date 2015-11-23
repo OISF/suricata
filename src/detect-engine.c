@@ -2045,7 +2045,11 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
  */
 void DetectEngineMultiTenantSetup(void)
 {
+    enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
+
+    int unix_socket = 0;
+    (void)ConfGetBool("unix-command.enabled", &unix_socket);
 
     int failure_fatal = 0;
     (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
@@ -2066,7 +2070,7 @@ void DetectEngineMultiTenantSetup(void)
             SCLogInfo("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
-                master->tenant_selector = TENANT_SELECTOR_VLAN;
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
 
                 int vlanbool = 0;
                 if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
@@ -2077,7 +2081,7 @@ void DetectEngineMultiTenantSetup(void)
                 }
 
             } else if (strcmp(handler, "direct") == 0) {
-                master->tenant_selector = TENANT_SELECTOR_DIRECT;
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_DIRECT;
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
                                                  "multi-detect.selector", handler);
@@ -2092,6 +2096,7 @@ void DetectEngineMultiTenantSetup(void)
         ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
         ConfNode *mapping_node = NULL;
 
+        int mapping_cnt = 0;
         if (mappings_root_node != NULL) {
             TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
                 if (strcmp(mapping_node->val, "vlan") == 0) {
@@ -2129,6 +2134,7 @@ void DetectEngineMultiTenantSetup(void)
                         goto error;
                     }
                     SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
+                    mapping_cnt++;
                 } else {
                     SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
                     goto bad_mapping;
@@ -2138,6 +2144,24 @@ void DetectEngineMultiTenantSetup(void)
             bad_mapping:
                 if (failure_fatal)
                     goto error;
+            }
+        }
+
+        if (tenant_selector == TENANT_SELECTOR_VLAN && mapping_cnt == 0) {
+            /* no mappings are valid when we're in unix socket mode,
+             * they can be added on the fly. Otherwise warn/error
+             * depending on failure_fatal */
+
+            if (unix_socket) {
+                SCLogNotice("no tenant traffic mappings defined, "
+                        "tenants won't be used until mappings are added");
+            } else {
+                if (failure_fatal)
+                    SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                else {
+                    SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                    goto error;
+                }
             }
         }
 
