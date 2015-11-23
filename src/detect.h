@@ -28,6 +28,8 @@
 
 #include "flow.h"
 
+#include "app-layer-events.h"
+
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 
@@ -882,6 +884,9 @@ typedef struct DetectEngineThreadCtx_ {
      *  thread safety issues */
     void **keyword_ctxs_array;
     int keyword_ctxs_size;
+
+    AppLayerDecoderEvents *decoder_events;
+    uint16_t events;
 
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
