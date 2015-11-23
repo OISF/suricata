@@ -345,7 +345,7 @@ static int MemBufferCallback(const char *str, size_t size, void *data)
         MemBufferExpand(&memb, OUTPUT_BUFFER_SIZE);
     }
 #endif
-    MemBufferWriteString(memb, "%s", str);
+    MemBufferWriteRaw(memb, str, size);
     return 0;
 }
 
