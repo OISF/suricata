@@ -2110,6 +2110,11 @@ void DetectEngineMultiTenantSetup(void)
                                 "of %s is invalid", vlan_id_node->val);
                         goto bad_mapping;
                     }
+                    if (vlan_id == 0 || vlan_id >= 4095) {
+                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                                "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
+                        goto bad_mapping;
+                    }
 
                     if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
                         goto error;
