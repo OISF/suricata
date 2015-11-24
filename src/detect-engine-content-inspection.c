@@ -521,8 +521,12 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                     r = 1;
                 break;
             case DETECT_URILEN_RA:
-                if (buffer_len > urilend->urilen1 &&
-                    buffer_len < urilend->urilen2) {
+                /* Note that when using a range we are inclusive of
+                 * the values, unlike greater than or less than which
+                 * are exclusive. This is to match Snort's
+                 * behaviour. */
+                if (buffer_len >= urilend->urilen1 &&
+                    buffer_len <= urilend->urilen2) {
                     r = 1;
                 }
                 break;
