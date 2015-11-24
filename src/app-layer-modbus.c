@@ -43,6 +43,7 @@
 #include "util-misc.h"
 
 #include "stream.h"
+#include "stream-tcp.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -163,7 +164,11 @@ typedef struct ModbusHeader_ ModbusHeader;
 /* Modbus Default unreplied Modbus requests are considered a flood */
 #define MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD 500
 
+/* Modbus default stream reassembly depth */
+#define MODBUS_CONFIG_DEFAULT_STREAM_DEPTH 0
+
 static uint32_t request_flood = MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD;
+static uint32_t stream_depth = MODBUS_CONFIG_DEFAULT_STREAM_DEPTH;
 
 int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type) {
     *event_id = SCMapEnumNameToValue(event_name, modbus_decoder_event_table);
@@ -1377,6 +1382,11 @@ static void ModbusStateFree(void *state)
     SCReturn;
 }
 
+static void ModbusSetupTcpSession(TcpSession* ssn)
+{
+    StreamTcpSetReassemblyDepth(ssn, stream_depth);
+}
+
 static uint16_t ModbusProbingParser(uint8_t     *input,
                                     uint32_t    input_len,
                                     uint32_t    *offset)
@@ -1437,7 +1447,8 @@ void RegisterModbusParsers(void)
             }
         }
 
-        ConfNode *p = ConfGetNode("app-layer.protocols.modbus.request-flood");
+        ConfNode *p = NULL;
+        p = ConfGetNode("app-layer.protocols.modbus.request-flood");
         if (p != NULL) {
             uint32_t value;
             if (ParseSizeStringU32(p->val, &value) < 0) {
@@ -1447,6 +1458,17 @@ void RegisterModbusParsers(void)
             }
         }
         SCLogInfo("Modbus request flood protection level: %u", request_flood);
+
+        p = ConfGetNode("app-layer.protocols.modbus.stream-depth");
+        if (p != NULL) {
+            uint32_t value;
+            if (ParseSizeStringU32(p->val, &value) < 0) {
+                SCLogError(SC_ERR_MODBUS_CONFIG, "invalid value for stream-depth %s", p->val);
+            } else {
+                stream_depth = value;
+            }
+        }
+        SCLogInfo("Modbus stream depth: %u", stream_depth);
     } else {
         SCLogInfo("Protocol detection and parser disabled for %s protocol.", proto_name);
         return;
@@ -1457,6 +1479,7 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOCLIENT, ModbusParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateAlloc, ModbusStateFree);
 
+        AppLayerParserRegisterSetupTcpSession(IPPROTO_TCP, ALPROTO_MODBUS, ModbusSetupTcpSession);
         AppLayerParserRegisterGetEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetEvents);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusHasEvents);
         AppLayerParserRegisterDetectStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS, NULL,
