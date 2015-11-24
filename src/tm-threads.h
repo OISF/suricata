@@ -84,14 +84,14 @@ void TmSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
 void TmSlotSetFuncAppendDelayed(ThreadVars *, TmModule *, void *, int delayed);
 TmSlot *TmSlotGetSlotForTM(int);
 
-ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
+ThreadVars *TmThreadCreate(const char *, char *, char *, char *, char *, char *,
                            void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreatePacketHandler(char *, char *, char *, char *, char *,
+ThreadVars *TmThreadCreatePacketHandler(const char *, char *, char *, char *, char *,
                                         char *);
-ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
-ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
+ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, char *module,
                                      int mucond);
-ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
+ThreadVars *TmThreadCreateCmdThreadByName(const char *name, char *module,
                                      int mucond);
 TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);
