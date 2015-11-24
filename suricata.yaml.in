@@ -1350,6 +1350,8 @@ app-layer:
       # How many unreplied Modbus requests are considered a flood.
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
+      # Stream reassembly size for modbus, default is 0
+      stream-size: 0
 
       enabled: no
       detection-ports:
