@@ -126,7 +126,7 @@ SslConfig ssl_config;
 #define TLS_HB_REQUEST              1
 #define TLS_HB_RESPONSE             2
 
-#define HAS_SPACE(n) (((input) + (n) - (initial_input)) > (input_len)) ?  0 : 1
+#define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
 static void SSLParserReset(SSLState *ssl_state)
 {
