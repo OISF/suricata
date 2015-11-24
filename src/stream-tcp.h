@@ -123,6 +123,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag,
                         StreamSegmentCallback CallbackFunc,
                         void *data);
 void StreamTcpReassembleConfigEnableOverlapCheck(void);
+void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size);
 
 /** ------- Inline functions: ------ */
 

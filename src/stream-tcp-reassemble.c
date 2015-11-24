@@ -1770,14 +1770,14 @@ int StreamTcpReassembleDepthReached(Packet *p)
  *
  *  \retval size Part of the size that fits in the depth, 0 if none
  */
-static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
+static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream,
         uint32_t seq, uint32_t size)
 {
     SCEnter();
 
     /* if the configured depth value is 0, it means there is no limit on
        reassembly depth. Otherwise carry on my boy ;) */
-    if (stream_config.reassembly_depth == 0) {
+    if (ssn->reassembly_depth == 0) {
         SCReturnUInt(size);
     }
 
@@ -1790,25 +1790,25 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
      * checking and just reject the rest of the packets including
      * retransmissions. Saves us the hassle of dealing with sequence
      * wraps as well */
-    if (SEQ_GEQ((StreamTcpReassembleGetRaBaseSeq(stream)+1),(stream->isn + stream_config.reassembly_depth))) {
+    if (SEQ_GEQ((StreamTcpReassembleGetRaBaseSeq(stream)+1),(stream->isn + ssn->reassembly_depth))) {
         stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
         SCReturnUInt(0);
     }
 
     SCLogDebug("full Depth not yet reached: %"PRIu32" <= %"PRIu32,
             (StreamTcpReassembleGetRaBaseSeq(stream)+1),
-            (stream->isn + stream_config.reassembly_depth));
+            (stream->isn + ssn->reassembly_depth));
 
-    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + stream_config.reassembly_depth))) {
+    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + ssn->reassembly_depth))) {
         /* packet (partly?) fits the depth window */
 
-        if (SEQ_LEQ((seq + size),(stream->isn + stream_config.reassembly_depth))) {
+        if (SEQ_LEQ((seq + size),(stream->isn + ssn->reassembly_depth))) {
             /* complete fit */
             SCReturnUInt(size);
         } else {
             stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
             /* partial fit, return only what fits */
-            uint32_t part = (stream->isn + stream_config.reassembly_depth) - seq;
+            uint32_t part = (stream->isn + ssn->reassembly_depth) - seq;
 #if DEBUG
             BUG_ON(part > size);
 #else
@@ -1903,7 +1903,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
-    uint32_t size = StreamTcpReassembleCheckDepth(stream, TCP_GET_SEQ(p), p->payload_len);
+    uint32_t size = StreamTcpReassembleCheckDepth(ssn, stream, TCP_GET_SEQ(p), p->payload_len);
     SCLogDebug("ssn %p: check depth returned %"PRIu32, ssn, size);
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
@@ -7286,7 +7286,7 @@ static int StreamTcpReassembleTest45 (void)
     ssn.state = TCP_ESTABLISHED;
 
     /* set the default value of reassembly depth, as there is no config file */
-    stream_config.reassembly_depth = httplen1 + 1;
+    ssn.reassembly_depth = httplen1 + 1;
 
     TcpStream *s = NULL;
     s = &ssn.server;

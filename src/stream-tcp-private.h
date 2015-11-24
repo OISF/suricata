@@ -222,6 +222,7 @@ typedef struct TcpSession_ {
     uint8_t tcp_packet_flags;
     /* coccinelle: TcpSession:flags:STREAMTCP_FLAG */
     uint16_t flags;
+    uint32_t reassembly_depth;      /**< reassembly depth for the stream */
     TcpStream server;
     TcpStream client;
     struct StreamMsg_ *toserver_smsg_head;  /**< list of stream msgs (for detection inspection) */
