@@ -659,6 +659,8 @@ TcpSession *StreamTcpNewSession (Packet *p, int id)
         }
 
         ssn->state = TCP_NONE;
+        ssn->client.reassembly_depth = stream_config.reassembly_depth;
+        ssn->server.reassembly_depth = stream_config.reassembly_depth;
         ssn->flags = stream_config.ssn_init_flags;
         ssn->tcp_packet_flags = p->tcph ? p->tcph->th_flags : 0;
 
@@ -5966,6 +5968,14 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     }
     FLOWLOCK_UNLOCK(p->flow);
     return cnt;
+}
+
+void StreamTcpSetReassemblyDepth(TcpSession *ssn, uint32_t size)
+{
+    ssn->server.reassembly_depth = size;
+    ssn->client.reassembly_depth = size;
+
+    return;
 }
 
 #ifdef UNITTESTS
