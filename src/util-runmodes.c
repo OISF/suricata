@@ -102,8 +102,9 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
  */
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name,
+                              const char *thread_name,
                               const char *live_dev)
 {
     char tname[TM_THREAD_NAME_MAX];
@@ -305,8 +306,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 /**
  */
 static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev, void *aconf,
                               unsigned char single_mode)
 {
@@ -401,8 +402,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
@@ -436,8 +437,8 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
@@ -471,9 +472,9 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
 /**
  */
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
-                        char *recv_mod_name,
-                        char *verdict_mod_name,
-                        char *decode_mod_name)
+                        const char *recv_mod_name,
+                        const char *verdict_mod_name,
+                        const char *decode_mod_name)
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
@@ -628,9 +629,9 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 /**
  */
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
-        char *recv_mod_name,
-        char *verdict_mod_name,
-        char *decode_mod_name)
+        const char *recv_mod_name,
+        const char *verdict_mod_name,
+        const char *decode_mod_name)
 {
     char tname[TM_THREAD_NAME_MAX];
     ThreadVars *tv = NULL;

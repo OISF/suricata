@@ -207,7 +207,7 @@ int RunModeErfFileAutoFp(void)
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
 
         ThreadVars *tv_detect_ncpu =
             TmThreadCreatePacketHandler(tname,
