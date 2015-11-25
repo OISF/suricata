@@ -102,6 +102,7 @@
 
 #include "output-json.h"
 
+#include "output-json-modbus.h"
 #include "output-json-template.h"
 
 #include "stream-tcp.h"
@@ -912,6 +913,8 @@ void RegisterAllModules()
     /* json stats */
     TmModuleJsonStatsLogRegister();
 
+    /* Modbus JSON logger. */
+    TmModuleJsonModbusLogRegister();
     /* Template JSON logger. */
     TmModuleJsonTemplateLogRegister();
 
