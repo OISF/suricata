@@ -1,3 +1,56 @@
+3.0RC1 -- 2015-11-25
+
+Bug #1150: TLS store disabled by TLS EVE logging
+Bug #1210: global counters in stats.log
+Bug #1423: Unix domain log file writer should automatically reconnect if receiving program is restarted.
+Bug #1466: Rule reload - Rules won't reload if rule files are listed in an included file.
+Bug #1467: Specifying an IPv6 entry before an IPv4 entry in host-os-policy causes ASAN heap-buffer-overflow.
+Bug #1472: Should 'goodsigs' be 'goodtotal' when checking if signatures were loaded in detect.c?
+Bug #1475: app-layer-modbus: AddressSanitizer error (heap-buffer-overflow)
+Bug #1481: Leading whitespace in flowbits variable names
+Bug #1482: suricata 2.1 beta4: StoreStateTxFileOnly crashes
+Bug #1485: hostbits - leading and trailing spaces are treated as part of the name and direction.
+Bug #1488: stream_size <= and >= modifiers function as < and > (equality is not functional)
+Bug #1491: pf_ring is not able to capture packets when running under non-root account
+Bug #1493: config test (-T) doesn't fail on missing files
+Bug #1494: off by one on rulefile count
+Bug #1500: suricata.log
+Bug #1508: address var parsing issue
+Bug #1517: Order dependent, ambiguous YAML in multi-detect.
+Bug #1518: multitenancy - selector vlan - vlan id range
+Bug #1521: multitenancy - global vlan tracking relation to selector
+Bug #1523: Decoded base64 payload short by 16 characters
+Bug #1530: multitenant mapping relation
+Bug #1531: multitenancy - confusing tenant id and vlan id output
+Bug #1556: MTU setting on NIC interface not considered by af-packet
+Bug #1557: stream: retransmission not detected
+Bug #1565: defrag: evasion issue
+Bug #1597: dns parser issue (master)
+Bug #1601: tls: server name logging
+Feature #1116: ips packet stats in stats.log
+Feature #1137: Support IP lists in threshold.config
+Feature #1228: Suricata stats.log in JSON format
+Feature #1265: Replace response on Suricata dns decoder when dns error please
+Feature #1281: long snort ruleset support for "SC_ERR_NOT_SUPPORTED(225): content length greater than 255 unsupported"
+Feature #1282: support for base64_decode from snort's ruleset
+Feature #1342: Support Cisco erspan traffic
+Feature #1374: Write pre-aggregated counters for all threads
+Feature #1408: multi tenancy for detection
+Feature #1440: Load rules file from a folder or with a star pattern rather then adding them manually to suricata.yaml
+Feature #1454: Proposal to add Lumberjack/CEE formatting option to EVE JSON syslog output for compatibility with rsyslog parsing
+Feature #1492: Add HUP coverage to output json-log
+Feature #1498: color output
+Feature #1499: json output for engine messages
+Feature #1502: Expose tls fields to lua
+Feature #1514: SSH softwareversion regex should allow colon
+Feature #1527: Add ability to compile as a Position-Independent Executable (PIE)
+Feature #1568: TLS lua output support
+Feature #1569: SSH lua support
+Feature #1582: Redis output support
+Feature #1586: Add flow memcap counter
+Feature #1599: rule profiling: json output
+Optimization #1269: Convert SM List from linked list to array
+
 2.1beta4 -- 2015-05-08
 
 Bug #1314: http-events performance issues
