@@ -612,6 +612,11 @@ static void ModbusParseReadResponse(ModbusTransaction   *tx,
             goto error;
     }
 
+    tx->data = SCMalloc(count);
+    if (tx->data) {
+        memcpy(tx->data, input + *offset, count);
+    }
+
     /* Except from Read/Write Multiple Registers function (code 23)         */
     /* The length of all Read Data function responses is (3 bytes + count)  */
     /* Modbus Application Protocol Specification V1.1b3 from 6.1 to 6.4     */
