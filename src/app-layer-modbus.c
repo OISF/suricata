@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2014 ANSSI
+ * Copyright (C) 2017 Open Information Security Foundation
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -622,10 +623,26 @@ static void ModbusParseReadResponse(ModbusTransaction   *tx,
                 (count != CEIL(tx->read.quantity)))
             goto error;
     } else {
-        if (    (count == MODBUS_MIN_COUNT)         ||
+        if (    (count <= MODBUS_MIN_COUNT)         ||
                 (count > MODBUS_MAX_COUNT)          ||
                 (count != (2 * (tx->read.quantity))))
             goto error;
+    }
+
+    if (*offset + count > input_len) {
+        goto error;
+    }
+
+    /* Sanity check on data not already set:  ModbusParseReadRequest is not
+     * setting tx->data. */
+    if (tx->data == NULL) {
+        /* count is between 1 and MODBUS_MAX_COUNT (250) */
+        tx->data = SCMalloc(count);
+        if (tx->data) {
+            memcpy(tx->data, input + *offset, count);
+        }
+    } else {
+        SCLogError(SC_ERR_UNREACHABLE_CODE_REACHED, "TX data should have been null.");
     }
 
     /* Except from Read/Write Multiple Registers function (code 23)         */
