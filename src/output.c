@@ -69,6 +69,7 @@
 #include "output-json.h"
 #include "output-json-template.h"
 #include "output-lua.h"
+#include "output-json-modbus.h"
 
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
@@ -1089,4 +1090,7 @@ void OutputRegisterLoggers(void)
 
     /* Template JSON logger. */
     JsonTemplateLogRegister();
+
+    /* modbus log */
+    JsonModbusLogRegister();
 }

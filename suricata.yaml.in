@@ -154,6 +154,8 @@ outputs:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
       types:
+        - modbus:
+            array-as-dict: yes       # log values as an integer indexed dict (ELK compliant)
         - alert:
             # payload: yes             # enable dumping payload in Base64
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
