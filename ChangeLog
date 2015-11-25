@@ -1,3 +1,9 @@
+2.0.10 -- 2015-11-25
+
+Bug #1554: stored: false in files log when files were actually stored
+Bug #1596: dns parser issue
+Feature #1581: support LINKTYPE_NULL
+
 2.0.9 -- 2015-09-25
 
 Bug #1558: stream: retransmission not detected (2.0.x)
