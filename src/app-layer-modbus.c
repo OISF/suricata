@@ -72,6 +72,32 @@ SCEnumCharMap modbus_decoder_event_table[ ] = {
     { NULL,                         -1 },
 };
 
+SCEnumCharMap modbus_function_name_table[ ] = {
+    { "none", MODBUS_FUNC_NONE },
+    { "readcoils", MODBUS_FUNC_READCOILS },
+    { "readdiscinputs", MODBUS_FUNC_READDISCINPUTS },
+    { "readholdregs", MODBUS_FUNC_READHOLDREGS },
+    { "readinputregs", MODBUS_FUNC_READINPUTREGS },
+    { "writesinglecoil", MODBUS_FUNC_WRITESINGLECOIL },
+    { "writesinglereg", MODBUS_FUNC_WRITESINGLEREG },
+    { "readexcstatus", MODBUS_FUNC_READEXCSTATUS },
+    { "diagnostic", MODBUS_FUNC_DIAGNOSTIC },
+    { "getcomevtcounter", MODBUS_FUNC_GETCOMEVTCOUNTER },
+    { "getcomevtlog", MODBUS_FUNC_GETCOMEVTLOG },
+    { "writemultcoils", MODBUS_FUNC_WRITEMULTCOILS },
+    { "writemultregs", MODBUS_FUNC_WRITEMULTREGS },
+    { "reportserverid", MODBUS_FUNC_REPORTSERVERID },
+    { "readfilerecord", MODBUS_FUNC_READFILERECORD },
+    { "writefilerecord", MODBUS_FUNC_WRITEFILERECORD },
+    { "maskwritereg", MODBUS_FUNC_MASKWRITEREG },
+    { "readwritemultregs", MODBUS_FUNC_READWRITEMULTREGS },
+    { "readfifoqueue", MODBUS_FUNC_READFIFOQUEUE },
+    { "encapinttrans", MODBUS_FUNC_ENCAPINTTRANS },
+    { "mask", MODBUS_FUNC_MASK },
+    { "errormask", MODBUS_FUNC_ERRORMASK },
+    { NULL, -1 }
+};
+
 /* Modbus Application Protocol (MBAP) header. */
 struct ModbusHeader_ {
     uint16_t     transactionId;
@@ -307,6 +333,11 @@ void ModbusStateTxFree(void *state, uint64_t tx_id) {
         break;
     }
     SCReturn;
+}
+
+const char * ModbusGetFunctionName(uint8_t function)
+{
+    return SCMapEnumValueToName(function, modbus_function_name_table);
 }
 
 /** \internal
