@@ -601,6 +601,13 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
+void AppLayerParserManualSetTransactionInspectId(AppLayerParserState *pstate,
+                                                 const uint32_t tx_id,
+                                                 const uint8_t flags)
+{
+    pstate->inspect_id[0] = tx_id;
+}
+
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                            const uint8_t ipproto, const AppProto alproto,
                                            void *alstate, const uint8_t flags)

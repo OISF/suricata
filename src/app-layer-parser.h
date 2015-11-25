@@ -164,6 +164,9 @@ void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
 int AppLayerParserGetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
                               void *tx, uint32_t logger);
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
+void AppLayerParserManualSetTransactionInspectId(AppLayerParserState *pstate,
+                                                 const uint32_t tx_id,
+                                                 const uint8_t flags);
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                 const uint8_t ipproto, const AppProto alproto, void *alstate,
                                 const uint8_t flags);
