@@ -127,6 +127,7 @@ typedef struct ModbusState_ {
 void RegisterModbusParsers(void);
 void ModbusParserRegisterTests(void);
 const char * ModbusGetFunctionName(uint8_t function);
+const char * ModbusGetSubFunctionName(uint8_t function);
 
 /* Modbus Application Data Unit (ADU) length range. */
 #define MODBUS_MIN_ADU_LEN  2
