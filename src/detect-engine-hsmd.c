@@ -53,6 +53,36 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http stat msg match -- searches for one pattern per signature.
+ *
+ * \param det_ctx      Detection engine thread ctx.
+ * \param stat_msg     Stat msg to inspect.
+ * \param stat_msg_len Stat msg length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *stat_msg, const uint32_t stat_msg_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsmd_ctx_tc == NULL);
+
+    if (stat_msg_len >= det_ctx->sgh->mpm_hsmd_ctx_tc->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
+                    &det_ctx->pmq, stat_msg, stat_msg_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against http stat msg.
@@ -71,9 +101,8 @@ int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
 
     cnt = HttpStatMsgPatternSearch(det_ctx,
-                                   (uint8_t *)bstr_ptr(tx->response_message),
+                                   (const uint8_t *)bstr_ptr(tx->response_message),
                                    bstr_len(tx->response_message), flags);
-
 end:
     SCReturnInt(cnt);
 }
