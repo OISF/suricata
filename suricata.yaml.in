@@ -240,6 +240,8 @@ outputs:
         #- dnp3
         @rust_config_comment@- nfs
         - ssh
+        - modbus:
+            array-as-dict: yes       # log values as an integer indexed dict (ELK compliant)
         - stats:
             totals: yes       # stats for all threads merged together
             threads: no       # per thread stats
