@@ -98,6 +98,25 @@ SCEnumCharMap modbus_function_name_table[ ] = {
     { NULL, -1 }
 };
 
+SCEnumCharMap modbus_subfunction_name_table[ ] = {
+    { "query_data", MODBUS_SUBFUNC_QUERY_DATA },
+    { "restart_com", MODBUS_SUBFUNC_RESTART_COM },
+    { "diag_regs", MODBUS_SUBFUNC_DIAG_REGS },
+    { "change_delimiter", MODBUS_SUBFUNC_CHANGE_DELIMITER },
+    { "listen_mode", MODBUS_SUBFUNC_LISTEN_MODE },
+    { "clear_regs", MODBUS_SUBFUNC_CLEAR_REGS },
+    { "bus_msg_count", MODBUS_SUBFUNC_BUS_MSG_COUNT },
+    { "com_err_count", MODBUS_SUBFUNC_COM_ERR_COUNT },
+    { "except_err_count", MODBUS_SUBFUNC_EXCEPT_ERR_COUNT },
+    { "server_msg_count", MODBUS_SUBFUNC_SERVER_MSG_COUNT },
+    { "server_no_rsp_count", MODBUS_SUBFUNC_SERVER_NO_RSP_COUNT },
+    { "server_nak_count", MODBUS_SUBFUNC_SERVER_NAK_COUNT },
+    { "server_busy_count", MODBUS_SUBFUNC_SERVER_BUSY_COUNT },
+    { "server_char_count", MODBUS_SUBFUNC_SERVER_CHAR_COUNT },
+    { "clear_count", MODBUS_SUBFUNC_CLEAR_COUNT },
+    { NULL, -1 }
+};
+
 /* Modbus Application Protocol (MBAP) header. */
 struct ModbusHeader_ {
     uint16_t     transactionId;
@@ -340,6 +359,10 @@ const char * ModbusGetFunctionName(uint8_t function)
     return SCMapEnumValueToName(function, modbus_function_name_table);
 }
 
+const char * ModbusGetSubFunctionName(uint8_t function)
+{
+    return SCMapEnumValueToName(function, modbus_subfunction_name_table);
+}
 /** \internal
  *  \brief Extract 8bits data from pointer the received input data
  *
