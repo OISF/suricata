@@ -532,6 +532,13 @@ while ( $successcnt < $loopnum ) {
             &clean_logs($fuzzedfilename,$file_was_fuzzed);
             print "******************Next Packet or Exit *******************\n";
         }
+
+        if ($successcnt >= $loopnum) {
+            last;
+        }
+    }
+    if ($successcnt >= $loopnum) {
+        last;
     }
 }
 
