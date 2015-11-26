@@ -599,15 +599,14 @@ sub clean_logs {
         #system("$rmcmd");
     }
 
-    if ( unlink(<$logdir . unified*>) > 0 ) {
-        print "clean_logs: removed unified logs for next run \n";
+    foreach my $file (glob "$logdir/unified2.* $logdir/*.log $logdir/*.json") {
+        #print $file . "\n";
+        if (unlink($file) <= 0) {
+            print "clean_logs: failed to delete log file $file\n";
+        }
     }
-    else {
-        print "clean_logs: failed to delete unified logs\n:";
-    }
-    print "******************Log Cleanup Complete**********************\n";
-    return;
 
+    return;
 }
 
 sub keep_logs {
