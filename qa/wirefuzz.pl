@@ -64,6 +64,7 @@ my @tmpfiles;
 my @files;
 my $suricatabin;
 my $loopnum;
+my $loopnum_per_file = 0;
 my $rules;
 my $rules_exclusive = 0;
 my $logdir;
@@ -81,7 +82,7 @@ my $keeplogs;
 my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
+GetOptions( \%config, qw(n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
 
 &parseopts();
 
@@ -151,14 +152,31 @@ sub parseopts {
         &printhelp();
     }
 
+    if ( $config{n} && $config{N} ) {
+        print "ERROR: can't mix -n and -N\n";
+        exit(1);
+    }
+
     #number of times to loop
     if ( $config{n} ) {
         $loopnum = $config{n};
+        $loopnum_per_file = 1;
         print "parseopts: looping through the pcaps " . $loopnum . " times or until we have an error\n";
     }
     else {
-        print "parseopts: looping through the pcaps forever or until we have an error\n";
         $loopnum = "infinity";
+    }
+
+    if ( $config{N} ) {
+        $loopnum = $config{N};
+        print "parseopts: looping through the pcaps " . $loopnum . " times or until we have an error\n";
+    }
+    else {
+        $loopnum = "infinity";
+    }
+
+    if ( $loopnum == "infinity") {
+        print "parseopts: looping through the pcaps forever or until we have an error\n";
     }
 
     #rules file do we have a path and does it exist
@@ -286,6 +304,7 @@ sub printhelp {
         -h or help <this output>
         -r=<filemask for pcaps to read>
         -n=<(optional) number of iterations or if not specified will run until error>
+        -N=<(optional) number of iterations of all files in the test set>
         -s=<(optional) path to ids rules file will be passed as -s to suricata>
         -S=<(optional) path to ids rules file will be passed as -S to suricata>
         -e=<(optional) editcap error ratio to introduce if not specified will not fuzz. Valid range for this is 0.00 - 1.0>
@@ -473,7 +492,9 @@ while ( $successcnt < $loopnum ) {
                 $knownerr = 1;
             }
             if ( $knownerr eq 1 ) {
-                $successcnt++;
+                if ($loopnum_per_file == 1) {
+                    $successcnt++;
+                }
                 print "suricata: we have run with success " . $successcnt . " times\n";
                 if( $keeplogs eq "yes" ) {
                     &keep_logs($fuzzedfilename);
@@ -521,7 +542,10 @@ while ( $successcnt < $loopnum ) {
                 print "Stream mem counter could not be found in output\n";
             }
 
-            $successcnt++;
+            if ($loopnum_per_file == 1) {
+                $successcnt++;
+            }
+
             print "suricata: we have run with success " . $successcnt . " times\n";
             print "******************Suricata Complete**********************\n";
             if( $keeplogs eq "yes" ) {
@@ -536,6 +560,9 @@ while ( $successcnt < $loopnum ) {
         if ($successcnt >= $loopnum) {
             last;
         }
+    }
+    if ($loopnum_per_file == 0) {
+        $successcnt++;
     }
     if ($successcnt >= $loopnum) {
         last;
