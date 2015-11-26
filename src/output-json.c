@@ -356,6 +356,9 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
                             json_string(file_ctx->sensor_name));
     }
 
+    if (file_ctx->prefix)
+        MemBufferWriteRaw(buffer, file_ctx->prefix, file_ctx->prefix_len);
+
     int r = json_dump_callback(js, MemBufferCallback, buffer,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
 #ifdef JSON_ESCAPE_SLASH
@@ -496,6 +499,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
         if (prefix != NULL)
         {
+            SCLogInfo("Using prefix '%s' for JSON message", prefix);
             json_ctx->file_ctx->prefix = SCStrdup(prefix);
             if (json_ctx->file_ctx->prefix == NULL)
             {
@@ -503,6 +507,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
                     "Failed to allocate memory for eve-log.prefix setting.");
                 exit(EXIT_FAILURE);
             }
+            json_ctx->file_ctx->prefix_len = strlen(prefix);
         }
 
         if (json_ctx->json_out == LOGFILE_TYPE_FILE ||
