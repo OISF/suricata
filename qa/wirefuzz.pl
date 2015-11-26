@@ -531,17 +531,6 @@ while ( $successcnt < $loopnum ) {
             exit;
         }
         else {
-            if ( $out =~ /Max memuse of stream engine \d+ \(in use (\d+)\)/ ) {
-                if ($1 != 0) {
-                    $report = $logdir . $fuzzedfilename . "-OUT.txt";
-                    &generate_report($report, $fullcmd, $out, $err, $exit, "none");
-                    print "Stream leak detected " . $1 . " was still in use at exit see " . $report . " for more details\n";
-                    exit;
-                }
-            } else {
-                print "Stream mem counter could not be found in output\n";
-            }
-
             if ($loopnum_per_file == 1) {
                 $successcnt++;
             }
