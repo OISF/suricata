@@ -499,7 +499,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
         const char *prefix = ConfNodeLookupChildValue(conf, "prefix");
         if (prefix != NULL)
         {
-            SCLogInfo("Using prefix '%s' for JSON message", prefix);
+            SCLogInfo("Using prefix '%s' for JSON messages", prefix);
             json_ctx->file_ctx->prefix = SCStrdup(prefix);
             if (json_ctx->file_ctx->prefix == NULL)
             {
