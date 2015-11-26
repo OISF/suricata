@@ -2,7 +2,7 @@
 #Author:William Metcalf <william.metcalf@gmail.com>
 #File:wirefuzz.pl
 
-#Copyright (C) 2010 Open Information Security Foundation
+#Copyright (C) 2010-2015 Open Information Security Foundation
 
 #You can copy, redistribute or modify this Program under the terms of
 #the GNU General Public License version 2 as published by the Free
@@ -55,7 +55,7 @@ use Capture::Tiny 'capture';
 use List::Util 'shuffle';
 use Devel::GDB;
 use File::Find;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use File::Basename;
 
 #globals
@@ -65,6 +65,7 @@ my @files;
 my $suricatabin;
 my $loopnum;
 my $rules;
+my $rules_exclusive = 0;
 my $logdir;
 my $configfile;
 my $editeratio;
@@ -80,7 +81,7 @@ my $keeplogs;
 my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s x=s k y z=s h help) );
+GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
 
 &parseopts();
 
@@ -164,6 +165,16 @@ sub parseopts {
     if ( $config{s} && -e $config{s} ) {
         $rules = $config{s};
         print "parseopts: telling suricata to use rules file " . $rules . "\n";
+    }
+    else {
+        print("parseopts: rules file not specified or doesn't exist\n");
+    }
+
+    # exclusive rules file: do we have a path and does it exist
+    if ( $config{S} && -e $config{S} ) {
+        $rules = $config{S};
+        $rules_exclusive = 1;
+        print "parseopts: telling suricata to use rules file exclusively " . $rules . "\n";
     }
     else {
         print("parseopts: rules file not specified or doesn't exist\n");
@@ -276,6 +287,7 @@ sub printhelp {
         -r=<filemask for pcaps to read>
         -n=<(optional) number of iterations or if not specified will run until error>
         -s=<(optional) path to ids rules file will be passed as -s to suricata>
+        -S=<(optional) path to ids rules file will be passed as -S to suricata>
         -e=<(optional) editcap error ratio to introduce if not specified will not fuzz. Valid range for this is 0.00 - 1.0>
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
@@ -426,7 +438,11 @@ while ( $successcnt < $loopnum ) {
             . $fuzzedfile . " -l "
             . $logdir;
         if ( defined $rules ) {
-            $fullcmd = $fullcmd . " -s " . $rules;
+            if ($rules_exclusive == 1) {
+                $fullcmd = $fullcmd . " -S " . $rules;
+            } else {
+                $fullcmd = $fullcmd . " -s " . $rules;
+            }
         }
         print "suricata: $fullcmd \n";
         my $starttime = time();
