@@ -496,13 +496,13 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
     switch (exception) {
         case MODBUS_ERROR_CODE_ILLEGAL_FUNCTION:
         case MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE:
+        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
             break;
         case MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE:
             if (tx->function == MODBUS_FUNC_DIAGNOSTIC) {
                 break;
             }
             /* Fallthrough */
-        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
             if (    (tx->type & MODBUS_TYP_ACCESS_FUNCTION_MASK)    ||
                     (tx->function == MODBUS_FUNC_READFIFOQUEUE)     ||
                     (tx->function == MODBUS_FUNC_ENCAPINTTRANS)) {
@@ -515,6 +515,12 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                 break;
             }
             /* Fallthrough */
+        case MODBUS_ERROR_CODE_ACKNOWLEDGE:
+        case MODBUS_ERROR_CODE_SERVER_DEVICE_BUSY:
+        case MODBUS_ERROR_CODE_GATEWAY_PATH_UNAVAILABLE:
+        case MODBUS_ERROR_CODE_GATEWAY_FAIL_TO_RESPOND:
+            if (tx->category != MODBUS_CAT_PUBLIC_ASSIGNED)
+                break;
         default:
             ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_EXCEPTION_CODE);
             break;
