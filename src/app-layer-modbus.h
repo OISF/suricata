@@ -86,6 +86,7 @@ typedef struct ModbusTransaction_ {
     uint16_t    transactionId;
     uint16_t    length;
     uint8_t     function;
+    uint8_t     exception;
     uint8_t     category;
     uint8_t     type;
     uint8_t     replied;                    /**< bool indicating request is replied to. */
