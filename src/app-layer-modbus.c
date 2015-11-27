@@ -117,6 +117,19 @@ SCEnumCharMap modbus_subfunction_name_table[ ] = {
     { NULL, -1 }
 };
 
+SCEnumCharMap modbus_exception_name_table[ ] = {
+    { "illegal_function", MODBUS_ERROR_CODE_ILLEGAL_FUNCTION },
+    { "illegal_data_address", MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS },
+    { "illegal_data_value", MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE },
+    { "server_device_failure", MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE },
+    { "acknowledge", MODBUS_ERROR_CODE_ACKNOWLEDGE },
+    { "server_device_busy", MODBUS_ERROR_CODE_SERVER_DEVICE_BUSY },
+    { "memory_parity_error", MODBUS_ERROR_CODE_MEMORY_PARITY_ERROR },
+    { "gateway_path_unavailable", MODBUS_ERROR_CODE_GATEWAY_PATH_UNAVAILABLE },
+    { "gateway_fail_to_respond", MODBUS_ERROR_CODE_GATEWAY_FAIL_TO_RESPOND },
+    { NULL, -1 },
+};
+
 /* Modbus Application Protocol (MBAP) header. */
 struct ModbusHeader_ {
     uint16_t     transactionId;
@@ -363,6 +376,12 @@ const char * ModbusGetSubFunctionName(uint8_t function)
 {
     return SCMapEnumValueToName(function, modbus_subfunction_name_table);
 }
+
+const char * ModbusGetExceptionName(uint8_t exception)
+{
+    return SCMapEnumValueToName(exception, modbus_exception_name_table);
+}
+
 /** \internal
  *  \brief Extract 8bits data from pointer the received input data
  *
