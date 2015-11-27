@@ -153,6 +153,13 @@ static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
                             json_string(ModbusGetSubFunctionName(modbustx->subFunction))
                            );
     }
+
+    if (modbustx->exception) {
+        json_object_set_new(modbusjs, "exception",
+                            json_string(ModbusGetExceptionName(modbustx->exception))
+                           );
+    }
+
     if (modbustx->type & MODBUS_TYP_READ) {
         json_t *read = json_object();
         if (read) {
