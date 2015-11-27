@@ -482,13 +482,17 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
     switch (exception) {
         case MODBUS_ERROR_CODE_ILLEGAL_FUNCTION:
         case MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE:
+        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
+        case MODBUS_ERROR_CODE_GATEWAY_FAIL_TO_RESPOND:
+        case MODBUS_ERROR_CODE_SERVER_DEVICE_BUSY:
+        case MODBUS_ERROR_CODE_ACKNOWLEDGE:
             break;
         case MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE:
+        case MODBUS_ERROR_CODE_GATEWAY_PATH_UNAVAILABLE:
             if (tx->function == MODBUS_FUNC_DIAGNOSTIC) {
                 break;
             }
             /* Fallthrough */
-        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
             if (    (tx->type & MODBUS_TYP_ACCESS_FUNCTION_MASK)    ||
                     (tx->function == MODBUS_FUNC_READFIFOQUEUE)     ||
                     (tx->function == MODBUS_FUNC_ENCAPINTTRANS)) {
