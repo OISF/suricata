@@ -2696,8 +2696,7 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     if (SEQ_LT(stream->last_ack, (rd->ra_base_seq + 1))) {
-                        payload_len = (stream->last_ack - seg->seq);
-                        SCLogDebug("payload_len %u", payload_len);
+                        return 1;
                     } else {
                         payload_len = (stream->last_ack - seg->seq) - payload_offset;
                         SCLogDebug("payload_len %u", payload_len);
@@ -2752,12 +2751,18 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         /* copy the data into the buffer */
         uint16_t copy_size = sizeof(rd->data) - rd->data_len;
+        if (copy_size + payload_offset > seg->payload_len) {
+            copy_size = seg->payload_len - payload_offset;
+        }
         if (copy_size > payload_len) {
             copy_size = payload_len;
         }
         if (SCLogDebugEnabled()) {
             BUG_ON(copy_size > sizeof(rd->data));
+            BUG_ON(copy_size+payload_offset > seg->payload_len);
+            BUG_ON(copy_size+payload_offset > seg->pool_size);
         }
+
         SCLogDebug("copy_size is %"PRIu16"", copy_size);
         memcpy(rd->data + rd->data_len, seg->payload + payload_offset, copy_size);
         rd->data_len += copy_size;
@@ -3141,7 +3146,7 @@ static int DoRawReassemble(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, 
             if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
 
                 if (SEQ_LT(stream->last_ack, rd->ra_base_seq)) {
-                    payload_len = (stream->last_ack - seg->seq);
+                    return 1;
                 } else {
                     payload_len = (stream->last_ack - seg->seq) - payload_offset;
                 }
@@ -3189,6 +3194,9 @@ static int DoRawReassemble(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, 
 
         /* copy the data into the smsg */
         uint32_t copy_size = rd->smsg->data_size - rd->smsg_offset;
+        if (copy_size + payload_offset > seg->payload_len) {
+            copy_size = seg->payload_len - payload_offset;
+        }
         if (copy_size > payload_len) {
             copy_size = payload_len;
         }
