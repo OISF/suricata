@@ -487,13 +487,12 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t exception = 0;
 
     /* Exception code (1 byte) */
-    if (ModbusExtractUint8(modbus, &exception, input, input_len, offset))
+    if (ModbusExtractUint8(modbus, &tx->exception, input, input_len, offset))
         SCReturn;
 
-    switch (exception) {
+    switch (tx->exception) {
         case MODBUS_ERROR_CODE_ILLEGAL_FUNCTION:
         case MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE:
         case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
