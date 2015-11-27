@@ -198,6 +198,8 @@ int ModbusHasEvents(void *state) {
 int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
     ModbusState         *modbus = tx->modbus;
+    ModbusTransaction   *ntx    = NULL;
+    int r = 1;
 
     if (tx->replied == 1)
         return 1;
@@ -207,7 +209,18 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
         ((modbus->transaction_max - tx->tx_num) > request_flood))
         return 1;
 
-    return 0;
+    /* Check if we have a hole: next transaction is over but this one not.
+     * Stream did continue but we miss an answer so we won't see the answer
+     * and we can assume the current transaction is done.
+     */
+    while((ntx = TAILQ_NEXT(tx, next)) != NULL) {
+        if (ntx->replied != 1) {
+            r = 0;
+            break;
+        }
+    }
+
+    return r;
 }
 
 /** \brief Get value for 'complete' status in Modbus
