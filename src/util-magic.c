@@ -103,7 +103,7 @@ error:
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen)
+char *MagicGlobalLookup(const uint8_t *buf, uint32_t buflen)
 {
     const char *result = NULL;
     char *magic = NULL;
@@ -132,7 +132,7 @@ char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen)
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen)
+char *MagicThreadLookup(magic_t *ctx, const uint8_t *buf, uint32_t buflen)
 {
     const char *result = NULL;
     char *magic = NULL;
