@@ -24,6 +24,16 @@
 #ifndef __OUTPUT_JSON_COUNTERS_H__
 #define __OUTPUT_JSON_COUNTERS_H__
 
+enum {
+    LAST_RELOAD = 0,
+    RULESET,
+    BOTH
+};
+
 void TmModuleJsonStatsLogRegister (void);
+#ifdef HAVE_LIBJANSSON
+TmEcode OutputTenancyStatsLastReload(json_t **jdata);
+TmEcode OutputTenancyStatsRuleset(json_t **jdata);
+#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */
