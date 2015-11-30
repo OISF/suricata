@@ -338,6 +338,8 @@ typedef struct Flow_
 
     uint32_t flags;
 
+    uint8_t reverted;
+
     /* time stamp of last update (last packet). Set/updated under the
      * flow and flow hash row locks, safe to read under either the
      * flow lock or flow hash row lock. */
