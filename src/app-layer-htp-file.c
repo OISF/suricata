@@ -84,6 +84,7 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
     uint8_t flags = 0;
     FileContainer *files = NULL;
     FileContainer *files_opposite = NULL;
+    const StreamingBufferConfig *sbcfg = NULL;
 
     SCLogDebug("data %p data_len %"PRIu32, data, data_len);
 
@@ -121,6 +122,9 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TC)) {
             flags |= FILE_NOSTORE;
         }
+
+        sbcfg = &s->cfg->response.sbcfg;
+
     } else {
         if (s->files_ts == NULL) {
             s->files_ts = FileContainerAlloc();
@@ -150,6 +154,8 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TS)) {
             flags |= FILE_NOSTORE;
         }
+
+        sbcfg = &s->cfg->request.sbcfg;
     }
 
     /* if the previous file is in the same txid, we reset the file part of the
@@ -177,7 +183,7 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         }
     }
 
-    if (FileOpenFile(files, filename, filename_len,
+    if (FileOpenFile(files, sbcfg, filename, filename_len,
                 data, data_len, flags) == NULL)
     {
         retval = -1;
@@ -630,11 +636,12 @@ static int HTPFileParserTest03(void)
         goto end;
     }
 
-    if (http_state->files_ts->head->chunks_head == NULL ||
-        http_state->files_ts->head->chunks_head->len != 11)
+    if (http_state->files_ts->head == NULL ||
+        FileSize(http_state->files_ts->head) != 11)
     {
-        if (http_state->files_ts->head->chunks_head != NULL)
-            printf("filedata len not 11 but %u: ", http_state->files_ts->head->chunks_head->len);
+        if (http_state->files_ts->head != NULL)
+            printf("filedata len not 11 but %"PRIu64": ",
+                    FileSize(http_state->files_ts->head));
         goto end;
     }
 
@@ -883,31 +890,18 @@ static int HTPFileParserTest05(void)
     if (http_state->files_ts->head->next != http_state->files_ts->tail)
         goto end;
 
-    if (http_state->files_ts->head->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->head->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len);
+    if (StreamingBufferCompareRawData(http_state->files_ts->head->sb,
+                (uint8_t *)"filecontent", 11) != 1)
+    {
         goto end;
     }
 
-    if (memcmp("filecontent", http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len) != 0) {
+    if (StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
+                (uint8_t *)"FILECONTENT", 11) != 1)
+    {
         goto end;
     }
 
-    if (http_state->files_ts->tail->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->tail->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->tail->chunks_head->data,
-                http_state->files_ts->tail->chunks_head->len);
-        goto end;
-    }
-
-    if (memcmp("FILECONTENT", http_state->files_ts->tail->chunks_head->data,
-                http_state->files_ts->tail->chunks_head->len) != 0) {
-        goto end;
-    }
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -1008,31 +1002,18 @@ static int HTPFileParserTest06(void)
     if (http_state->files_ts->head->next != http_state->files_ts->tail)
         goto end;
 
-    if (http_state->files_ts->head->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->head->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len);
+    if (StreamingBufferCompareRawData(http_state->files_ts->head->sb,
+                (uint8_t *)"filecontent", 11) != 1)
+    {
         goto end;
     }
 
-    if (memcmp("filecontent", http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len) != 0) {
+    if (StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
+                (uint8_t *)"FILECONTENT", 11) != 1)
+    {
         goto end;
     }
 
-    if (http_state->files_ts->tail->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->tail->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->tail->chunks_head->data,
-                http_state->files_ts->tail->chunks_head->len);
-        goto end;
-    }
-
-    if (memcmp("FILECONTENT", http_state->files_ts->tail->chunks_head->data,
-                http_state->files_ts->tail->chunks_head->len) != 0) {
-        goto end;
-    }
     result = 1;
 end:
     if (alp_tctx != NULL)
@@ -1117,16 +1098,9 @@ static int HTPFileParserTest07(void)
         goto end;
     }
 
-    if (http_state->files_ts->head->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->head->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len);
-        goto end;
-    }
-
-    if (memcmp("FILECONTENT", http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len) != 0) {
+    if (StreamingBufferCompareRawData(http_state->files_ts->tail->sb,
+                (uint8_t *)"FILECONTENT", 11) != 1)
+    {
         goto end;
     }
 
@@ -1595,16 +1569,9 @@ static int HTPFileParserTest11(void)
         goto end;
     }
 
-    if (http_state->files_ts->head->chunks_head->len != 11) {
-        printf("expected 11 but file is %u bytes instead: ",
-                http_state->files_ts->head->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len);
-        goto end;
-    }
-
-    if (memcmp("FILECONTENT", http_state->files_ts->head->chunks_head->data,
-                http_state->files_ts->head->chunks_head->len) != 0) {
+    if (StreamingBufferCompareRawData(http_state->files_ts->head->sb,
+                (uint8_t *)"FILECONTENT", 11) != 1)
+    {
         goto end;
     }
 

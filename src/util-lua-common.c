@@ -605,7 +605,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushnumber(luastate, file->file_id);
     lua_pushnumber(luastate, file->txid);
     lua_pushlstring(luastate, (char *)file->name, file->name_len);
-    lua_pushnumber(luastate, file->size);
+    lua_pushnumber(luastate, FileSize(file));
     lua_pushstring (luastate, file->magic);
     lua_pushstring(luastate, md5ptr);
     return 6;

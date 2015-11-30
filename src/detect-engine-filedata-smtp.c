@@ -82,7 +82,7 @@ static inline int SMTPCreateSpace(DetectEngineThreadCtx *det_ctx, uint16_t size)
     return 0;
 }
 
-static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
+static const uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
                                                DetectEngineCtx *de_ctx,
                                                DetectEngineThreadCtx *det_ctx,
                                                Flow *f, File *curr_file,
@@ -92,10 +92,10 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
 {
     SCEnter();
     int index = 0;
-    uint8_t *buffer = NULL;
+    const uint8_t *buffer = NULL;
     *buffer_len = 0;
     *stream_start_offset = 0;
-    FileData *curr_chunk = NULL;
+    uint64_t file_size = FileSize(curr_file);
 
     if (det_ctx->smtp_buffers_list_len == 0) {
         if (SMTPCreateSpace(det_ctx, 1) < 0)
@@ -130,23 +130,21 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     SCLogDebug("smtp_config.content_limit %u, smtp_config.content_inspect_min_size %u",
                 smtp_config.content_limit, smtp_config.content_inspect_min_size);
 
-    SCLogDebug("file %p size %"PRIu64", state %d", curr_file, curr_file->content_len_so_far, curr_file->state);
+    SCLogDebug("file %p size %"PRIu64", state %d", curr_file, file_size, curr_file->state);
 
     /* no new data */
-    if (curr_file->content_inspected == curr_file->content_len_so_far) {
+    if (curr_file->content_inspected == file_size) {
         SCLogDebug("no new data");
         goto end;
     }
 
-    curr_chunk = curr_file->chunks_head;
-    if (curr_chunk == NULL) {
-        SCLogDebug("no data chunks to inspect for this transaction");
+    if (file_size == 0) {
+        SCLogDebug("no data to inspect for this transaction");
         goto end;
     }
 
-    if ((smtp_config.content_limit == 0 ||
-         curr_file->content_len_so_far < smtp_config.content_limit) &&
-        curr_file->content_len_so_far < smtp_config.content_inspect_min_size &&
+    if ((smtp_config.content_limit == 0 || file_size < smtp_config.content_limit) &&
+        file_size < smtp_config.content_inspect_min_size &&
         !(flags & STREAM_EOF) && !(curr_file->state > FILE_STATE_OPENED)) {
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
@@ -154,51 +152,16 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         goto end;
     }
 
-    int first = 1;
-    curr_chunk = curr_file->chunks_head;
-    while (curr_chunk != NULL) {
-        /* see if we can filter out chunks */
-        if (curr_file->content_inspected > 0) {
-            if (curr_chunk->stream_offset < curr_file->content_inspected) {
-                if ((curr_file->content_inspected - curr_chunk->stream_offset) > smtp_config.content_inspect_window) {
-                    curr_chunk = curr_chunk->next;
-                    continue;
-                } else {
-                    /* include this one */
-                }
-            } else {
-                /* include this one */
-            }
-        }
+    StreamingBufferGetDataAtOffset(curr_file->sb,
+            &det_ctx->smtp[index].buffer, &det_ctx->smtp[index].buffer_len,
+            curr_file->content_inspected);
 
-        if (first) {
-            det_ctx->smtp[index].offset = curr_chunk->stream_offset;
-            first = 0;
-        }
-
-        /* see if we need to grow the buffer */
-        if (det_ctx->smtp[index].buffer == NULL || (det_ctx->smtp[index].buffer_len + curr_chunk->len) > det_ctx->smtp[index].buffer_size) {
-            void *ptmp;
-            det_ctx->smtp[index].buffer_size += curr_chunk->len * 2;
-
-            if ((ptmp = SCRealloc(det_ctx->smtp[index].buffer, det_ctx->smtp[index].buffer_size)) == NULL) {
-                SCFree(det_ctx->smtp[index].buffer);
-                det_ctx->smtp[index].buffer = NULL;
-                det_ctx->smtp[index].buffer_size = 0;
-                det_ctx->smtp[index].buffer_len = 0;
-                goto end;
-            }
-            det_ctx->smtp[index].buffer = ptmp;
-        }
-        memcpy(det_ctx->smtp[index].buffer + det_ctx->smtp[index].buffer_len, curr_chunk->data, curr_chunk->len);
-        det_ctx->smtp[index].buffer_len += curr_chunk->len;
-
-        curr_chunk = curr_chunk->next;
-    }
+    det_ctx->smtp[index].offset = curr_file->content_inspected;
 
     /* updat inspected tracker */
-    curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
-    SCLogDebug("curr_file->content_inspected now %"PRIu64, curr_file->content_inspected);
+    curr_file->content_inspected = FileSize(curr_file);
+
+    SCLogDebug("content_inspected %u, offset %u", (uint)curr_file->content_inspected, (uint)det_ctx->smtp[index].offset);
 
     buffer = det_ctx->smtp[index].buffer;
     *buffer_len = det_ctx->smtp[index].buffer_len;
@@ -222,7 +185,7 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
     int match = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
-    uint8_t *buffer = 0;
+    const uint8_t *buffer = 0;
 
     if (ffc != NULL) {
         File *file = ffc->head;
@@ -241,7 +204,7 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
         det_ctx->inspection_recursion_counter = 0;
         match = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_FILEDATA],
                                               f,
-                                              buffer,
+                                              (uint8_t *)buffer,
                                               buffer_len,
                                               stream_start_offset,
                                               DETECT_ENGINE_CONTENT_INSPECTION_MODE_FD_SMTP, NULL);
@@ -310,7 +273,7 @@ int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
     uint32_t cnt = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
-    uint8_t *buffer = NULL;
+    const uint8_t *buffer = NULL;
 
     if (ffc != NULL) {
         File *file = ffc->head;
@@ -324,7 +287,7 @@ int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
             if (buffer_len == 0)
                 goto end;
 
-            cnt += SMTPFiledataPatternSearch(det_ctx, buffer, buffer_len, flags);
+            cnt += SMTPFiledataPatternSearch(det_ctx, (uint8_t *)buffer, buffer_len, flags);
         }
     }
 end:
@@ -411,7 +374,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg, mimemsg_len);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, mimemsg, mimemsg_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         SCMutexUnlock(&f.m);

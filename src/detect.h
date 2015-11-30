@@ -696,7 +696,7 @@ typedef struct HttpReassembledBody_ {
 } HttpReassembledBody;
 
 typedef struct FiledataReassembledBody_ {
-    uint8_t *buffer;
+    const uint8_t *buffer;
     uint32_t buffer_size;   /**< size of the buffer itself */
     uint32_t buffer_len;    /**< data len in the buffer */
     uint64_t offset;        /**< data offset */

@@ -303,7 +303,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
             break;
     }
     fprintf(fp, "\"stored\": %s, ", ff->flags & FILE_STORED ? "true" : "false");
-    fprintf(fp, "\"size\": %"PRIu64" ", ff->size);
+    fprintf(fp, "\"size\": %"PRIu64" ", FileSize(ff));
     fprintf(fp, "}\n");
     fflush(fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);

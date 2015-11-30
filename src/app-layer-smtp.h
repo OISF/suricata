@@ -27,6 +27,7 @@
 #include "decode-events.h"
 #include "util-decode-mime.h"
 #include "queue.h"
+#include "util-streaming-buffer.h"
 
 enum {
     SMTP_DECODER_EVENT_INVALID_REPLY,
@@ -92,6 +93,8 @@ typedef struct SMTPConfig {
     uint32_t content_limit;
     uint32_t content_inspect_min_size;
     uint32_t content_inspect_window;
+
+    StreamingBufferConfig sbcfg;
 } SMTPConfig;
 
 typedef struct SMTPState_ {
