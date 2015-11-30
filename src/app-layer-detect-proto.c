@@ -345,7 +345,8 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
             SCLogDebug("toserver - Probing parser found for source port %"PRIu16, f->sp);
 
             /* found based on source port, so use sp registration */
-            pe2 = pp_port_sp->sp;
+            pe2 = pp_port_sp->dp;
+            f->reverted = 1;
         } else {
             SCLogDebug("toserver - No probing parser registered for source port %"PRIu16,
                     f->sp);
@@ -356,7 +357,7 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         alproto_masks = &f->probing_parser_toclient_alproto_masks;
         if (pp_port_dp != NULL) {
             SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, f->dp);
-
+ 
             /* found based on destination port, so use dp registration */
             pe1 = pp_port_dp->dp;
         } else {
@@ -368,7 +369,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         if (pp_port_sp != NULL) {
             SCLogDebug("toclient - Probing parser found for source port %"PRIu16, f->sp);
 
-            pe2 = pp_port_sp->sp;
+            /* found based on source port, so use sp registration */
+            pe2 = pp_port_sp->dp;
+            f->reverted = 1;
         } else {
             SCLogDebug("toclient - No probing parser registered for source port %"PRIu16,
                         f->sp);
