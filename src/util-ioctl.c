@@ -90,8 +90,8 @@ int GetIfaceMTU(const char *pcap_dev)
 
     if (ioctl(fd, SIOCGIFMTU, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when trying to get MTU via ioctl: %d",
-                errno);
+                "Failure when trying to get MTU via ioctl for '%s': %s (%d)",
+                pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     }
@@ -169,8 +169,8 @@ int GetIfaceOffloading(const char *pcap_dev)
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl: %s (%d)",
-                  strerror(errno), errno);
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     } else {
@@ -188,8 +188,8 @@ int GetIfaceOffloading(const char *pcap_dev)
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl: %s (%d)",
-                  strerror(errno), errno);
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     } else {
@@ -221,8 +221,8 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when opening socket for ioctl: %d",
-                errno);
+                "Failure when opening socket for ioctl: %s (%d)",
+                strerror(errno), errno);
         return -1;
     }
 
@@ -232,8 +232,8 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         if (errno != ENOTSUP) {
             SCLogWarning(SC_ERR_SYSCALL,
-                         "Failure when trying to get number of RSS queue ioctl: %d",
-                         errno);
+                         "Failure when trying to get number of RSS queue ioctl for '%s': %s (%d)",
+                         pcap_dev, strerror(errno), errno);
         }
         close(fd);
         return 0;
