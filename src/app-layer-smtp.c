@@ -561,12 +561,14 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             state->parser_state |= SMTP_PARSER_STATE_FIRST_REPLY_SEEN;
             if (reply_code == SMTP_REPLY_220)
                 SCReturnInt(0);
-            else
+            else {
                 AppLayerDecoderEventsSetEvent(f, SMTP_DECODER_EVENT_INVALID_REPLY);
+                SCReturnInt(0);
+            }
         } else {
             /* decoder event - unable to match reply with request */
             SCLogDebug("unable to match reply with request");
-            SCReturnInt(-1);
+            SCReturnInt(0);
         }
     }
 
