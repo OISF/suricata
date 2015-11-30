@@ -92,7 +92,8 @@ int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, Outpu
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 
 static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
-        Packet *p, const File *ff, const FileData *ffd, uint8_t flags)
+        Packet *p, const File *ff,
+        const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     OutputFiledataLogger *logger = list;
     OutputLoggerThreadStore *store = store_list;
@@ -103,7 +104,7 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
 
         SCLogDebug("logger %p", logger);
         PACKET_PROFILING_TMM_START(p, logger->module_id);
-        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, ffd, flags);
+        logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, data, data_len, flags);
         PACKET_PROFILING_TMM_END(p, logger->module_id);
 
         file_logged = 1;
@@ -172,73 +173,50 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
 
             /* if we have no data chunks left to log, we should still
              * close the logger(s) */
-            if (ff->chunks_head == NULL && (file_trunc || file_close)) {
-                CallLoggers(tv, store, p, ff, NULL, OUTPUT_FILEDATA_FLAG_CLOSE);
+            if (FileSize(ff) == ff->content_stored &&
+                (file_trunc || file_close)) {
+                CallLoggers(tv, store, p, ff, NULL, 0, OUTPUT_FILEDATA_FLAG_CLOSE);
                 ff->flags |= FILE_STORED;
                 continue;
             }
 
-            FileData *ffd;
-            for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
-                uint8_t flags = 0;
-                int file_logged = 0;
-                FileData *write_ffd = ffd;
+            /* store */
 
-                SCLogDebug("ffd %p", ffd);
+            /* if file_id == 0, this is the first store of this file */
+            if (ff->file_id == 0) {
+                /* new file */
+                ff->file_id = SC_ATOMIC_ADD(file_id, 1);
+                flags |= OUTPUT_FILEDATA_FLAG_OPEN;
+            } else {
+                /* existing file */
+            }
 
-                /* special case: on stream end we may inform the
-                 * loggers that the file is truncated. In this
-                 * case we already logged the current ffd, which
-                 * is the last in our list. */
-                if (ffd->stored == 1) {
-                    if (!(file_close == 1 && ffd->next == NULL)) {
-                        continue;
-                    }
+            /* if file needs to be closed or truncated, inform
+             * loggers */
+            if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
+                ff->state = FILE_STATE_TRUNCATED;
+            }
 
-                    // call writer with NULL ffd, so it can 'close'
-                    // so really a 'close' msg
-                    write_ffd = NULL;
-                    flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
-                    SCLogDebug("OUTPUT_FILEDATA_FLAG_CLOSE set");
-                }
+            /* tell the logger we're closing up */
+            if (ff->state >= FILE_STATE_CLOSED)
+                flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
 
-                /* store */
+            /* do the actual logging */
+            const uint8_t *data = NULL;
+            uint32_t data_len = 0;
 
-                /* if file_id == 0, this is the first store of this file */
-                if (ff->file_id == 0) {
-                    /* new file */
-                    ff->file_id = SC_ATOMIC_ADD(file_id, 1);
-                    flags |= OUTPUT_FILEDATA_FLAG_OPEN;
-                } else {
-                    /* existing file */
-                }
+            StreamingBufferGetDataAtOffset(ff->sb,
+                    &data, &data_len,
+                    ff->content_stored);
 
-                /* if file needs to be closed or truncated, inform
-                 * loggers */
-                if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
-                    ff->state = FILE_STATE_TRUNCATED;
-                    SCLogDebug("ff->state = FILE_STATE_TRUNCATED set");
-                }
+            int file_logged = CallLoggers(tv, store, p, ff, data, data_len, flags);
+            if (file_logged) {
+                ff->content_stored += data_len;
 
-                /* for the last data chunk we have, also tell the logger
-                 * we're closing up */
-                if (ffd->next == NULL && ff->state >= FILE_STATE_CLOSED) {
-                    flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
-                    SCLogDebug("OUTPUT_FILEDATA_FLAG_CLOSE set");
-                }
-
-                SCLogDebug("ff %p ffd %p flags %02x", ff, write_ffd, flags);
-                /* do the actual logging */
-                file_logged = CallLoggers(tv, store, p, ff, write_ffd, flags);
-
-                if (file_logged) {
-                    ffd->stored = 1;
-
-                    /* all done */
-                    if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
-                        ff->flags |= FILE_STORED;
-                        break;
-                    }
+                /* all done */
+                if (flags & OUTPUT_FILEDATA_FLAG_CLOSE) {
+                    ff->flags |= FILE_STORED;
+                    break;
                 }
             }
         }

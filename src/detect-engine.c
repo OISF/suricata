@@ -1699,11 +1699,6 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     /* SMTP */
     if (det_ctx->smtp != NULL) {
         SCLogDebug("det_ctx smtp %u", det_ctx->smtp_buffers_size);
-        for (i = 0; i < det_ctx->smtp_buffers_size; i++) {
-            if (det_ctx->smtp[i].buffer != NULL)
-                SCFree(det_ctx->smtp[i].buffer);
-            SCLogDebug("det_ctx->smtp[i].buffer_size %u", det_ctx->smtp[i].buffer_size);
-        }
         SCFree(det_ctx->smtp);
     }
 

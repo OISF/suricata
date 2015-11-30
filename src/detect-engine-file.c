@@ -88,6 +88,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         File *file = ffc->head;
         for (; file != NULL; file = file->next) {
             SCLogDebug("file");
+
             if (file->state == FILE_STATE_NONE) {
                 SCLogDebug("file state FILE_STATE_NONE");
                 continue;
@@ -109,13 +110,14 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
-            if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file->chunks_head == NULL) {
+            uint64_t file_size = FileSize(file);
+            if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file_size == 0) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
-            if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file->chunks_head == NULL) {
+            if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file_size == 0) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;

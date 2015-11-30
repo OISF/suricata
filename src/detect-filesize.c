@@ -94,30 +94,32 @@ static int DetectFilesizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, F
 
     DetectFilesizeData *fsd = (DetectFilesizeData *)m->ctx;
     int ret = 0;
-    SCLogDebug("file size %"PRIu64", check %"PRIu64, file->size, fsd->size1);
+    uint64_t file_size = FileSize(file);
+
+    SCLogDebug("file size %"PRIu64", check %"PRIu64, file_size, fsd->size1);
 
     if (file->state == FILE_STATE_CLOSED) {
         switch (fsd->mode) {
             case DETECT_FILESIZE_EQ:
-                if (file->size == fsd->size1)
+                if (file_size == fsd->size1)
                     ret = 1;
                 break;
             case DETECT_FILESIZE_LT:
-                if (file->size < fsd->size1)
+                if (file_size < fsd->size1)
                     ret = 1;
                 break;
             case DETECT_FILESIZE_GT:
-                if (file->size > fsd->size1)
+                if (file_size > fsd->size1)
                     ret = 1;
                 break;
             case DETECT_FILESIZE_RA:
-                if (file->size > fsd->size1 && file->size < fsd->size2)
+                if (file_size > fsd->size1 && file_size < fsd->size2)
                     ret = 1;
                 break;
         }
     /* truncated, error: only see if what we have meets the GT condition */
     } else if (file->state > FILE_STATE_CLOSED) {
-        if (fsd->mode == DETECT_FILESIZE_GT && file->size > fsd->size1)
+        if (fsd->mode == DETECT_FILESIZE_GT && file_size > fsd->size1)
             ret = 1;
     }
     SCReturnInt(ret);

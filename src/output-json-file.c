@@ -151,7 +151,7 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
     if (ff->flags & FILE_STORED) {
         json_object_set_new(fjs, "file_id", json_integer(ff->file_id));
     }
-    json_object_set_new(fjs, "size", json_integer(ff->size));
+    json_object_set_new(fjs, "size", json_integer(FileSize(ff)));
     json_object_set_new(fjs, "tx_id", json_integer(ff->txid));
 
     /* originally just 'file', but due to bug 1127 naming it fileinfo */
