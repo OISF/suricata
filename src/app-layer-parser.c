@@ -115,6 +115,9 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    /* each app-layer has its own value */
+    uint32_t stream_depth;
+
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
      * STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -185,11 +188,22 @@ int AppLayerParserSetup(void)
 {
     SCEnter();
 
+    AppProto alproto = 0;
+    int flow_proto = 0;
+
     memset(&alp_ctx, 0, sizeof(alp_ctx));
 
     /* set the default tx handler if none was set explicitly */
     if (AppLayerGetActiveTxIdFuncPtr == NULL) {
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveDetectLog);
+    }
+
+    /* lets set a default value for stream_depth */
+    for (flow_proto = 0; flow_proto < FLOW_PROTO_DEFAULT; flow_proto++) {
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            alp_ctx.ctxs[flow_proto][alproto].stream_depth =
+                stream_config.reassembly_depth;
+        }
     }
 
     SCReturnInt(0);
@@ -1153,6 +1167,20 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
         StreamTcpReassembleTriggerRawReassembly(f->protoctx);
 
     SCReturn;
+}
+
+void AppLayerParserSetStreamDepth(uint8_t ipproto, AppProto alproto, uint32_t stream_depth)
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].stream_depth = stream_depth;
+
+    SCReturn;
+}
+
+uint32_t AppLayerParserGetStreamDepth(uint8_t ipproto, AppProto alproto)
+{
+    SCReturnInt(alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].stream_depth);
 }
 
 /***** Cleanup *****/
