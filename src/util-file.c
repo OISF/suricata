@@ -28,6 +28,7 @@
 #include "debug.h"
 #include "flow.h"
 #include "stream.h"
+#include "stream-tcp.h"
 #include "runmodes.h"
 #include "util-hash.h"
 #include "util-debug.h"
@@ -66,6 +67,16 @@ static int g_file_force_sha256 = 0;
  */
 static int g_file_force_tracking = 0;
 
+/** \brief switch to use g_file_store_reassembly_depth
+ *         to reassembly files
+ */
+static int g_file_store_enable = 0;
+
+/** \brief stream_config.reassembly_depth equivalent
+ *         for files
+ */
+static uint32_t g_file_store_reassembly_depth = 0;
+
 /* prototypes */
 static void FileFree(File *);
 
@@ -97,6 +108,20 @@ void FileForceSha256Enable(void)
 int FileForceFilestore(void)
 {
     return g_file_force_filestore;
+}
+
+void FileReassemblyDepthEnable(uint32_t size)
+{
+    g_file_store_enable = 1;
+    g_file_store_reassembly_depth = size;
+}
+
+uint32_t FileReassemblyDepth(void)
+{
+    if (g_file_store_enable == 1)
+        return g_file_store_reassembly_depth;
+    else
+        return stream_config.reassembly_depth;
 }
 
 int FileForceMagic(void)
