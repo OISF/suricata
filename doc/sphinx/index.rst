@@ -7,7 +7,7 @@ Suricata User Guide
 ===================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
    what-is-suricata
    rules
