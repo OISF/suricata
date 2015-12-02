@@ -43,8 +43,21 @@ def main():
     text = r.json()["wiki_page"]["text"]
     text = text.replace("\r", "")
 
+    inpre = False
+
     with open("%s.rst" % output, "w") as fileobj:
         for line in StringIO(text):
+
+            if line.startswith("<pre>"):
+                inpre = True
+                line = "\n::\n\n"
+
+            if line.startswith("</pre>"):
+                inpre = False
+                line = ""
+
+            if inpre and line:
+                line = "  %s" % line
 
             # Images.
             line = re.sub(
@@ -64,6 +77,12 @@ def main():
             if line.startswith("h3."):
                 line = re.sub("^h3\.\s+", "", line)
                 line += "~" * (len(line) - 1) + "\n"
+
+            # *bold* -> **bold**
+            line = re.sub(r"(^|\s)\*([\w:]+)\*", r"\1**\2**", line)
+
+            # _italic_ -> *italic*
+            line = re.sub(r"\s_(\w+)_\s", r" *\1* ", line)
 
             fileobj.write(line.encode("utf-8"))
 
