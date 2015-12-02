@@ -505,7 +505,9 @@ next_record:
         DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
         SCLogDebug("DNS %p", dns_tcp_header);
 
-        if (ntohs(dns_tcp_header->len) == (input_len-2)) {
+        if (ntohs(dns_tcp_header->len) == 0) {
+            goto bad_data;
+        } else if (ntohs(dns_tcp_header->len) == (input_len-2)) {
             /* we have all data, so process w/o buffering */
             if (DNSReponseParseData(f, dns_state, input+2, input_len-2) < 0)
                 goto bad_data;
