@@ -10,3 +10,4 @@ Rules
    payload-keywords
    http-keywords
    flow-keywords
+   flowint
