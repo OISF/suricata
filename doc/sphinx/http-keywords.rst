@@ -11,7 +11,6 @@ specific parts of the network traffic. For instance, to check
 specifically on the request URI, cookies, or the HTTP request or
 response body, etc.
 
-
 Use ``http_method`` to match on the HTTP request method, ``http_uri``
 or ``http_raw_uri`` to match on the request URI, ``http_stat_code`` to
 match on the response status code and ``http_stat_msg`` to match on the
