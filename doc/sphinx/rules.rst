@@ -7,5 +7,6 @@ Rules
 
    meta
    header-keywords
-   http-keywords
    payload-keywords
+   http-keywords
+   flow-keywords
