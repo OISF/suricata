@@ -4,6 +4,7 @@ Payload Keywords
 .. toctree::
    :maxdepth: 2
 
+   pcre
    fast-pattern
 
 Payload keywords inspect the content of the payload of a packet or
