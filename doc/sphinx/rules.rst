@@ -6,5 +6,6 @@ Rules
    :maxdepth: 2
 
    meta
+   header-keywords
    http-keywords
    payload-keywords
