@@ -788,10 +788,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         if ((fqdn_len = DNSResponseGetNameByOffset(input, input_len,
                         data - input, fqdn, sizeof(fqdn))) == 0)
         {
-#if DEBUG
-            PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-            BUG_ON(1);
-#endif
+            DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
             goto insufficient_data;
         }
         //PrintRawDataFp(stdout, fqdn, fqdn_len);
@@ -806,10 +803,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         if ((fqdn_len = DNSResponseGetNameByOffset(input, input_len,
                         offset, fqdn, sizeof(fqdn))) == 0)
         {
-#if DEBUG
-            PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-            BUG_ON(1);
-#endif
+            DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
             goto insufficient_data;
         }
         //PrintRawDataFp(stdout, fqdn, fqdn_len);
@@ -886,11 +880,9 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             }
 
             if ((name_len = DNSResponseGetNameByOffset(input, input_len,
-                            data - input + skip, name, sizeof(name))) == 0) {
-#if DEBUG
-                PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-                BUG_ON(1);
-#endif
+                            data - input + skip, name, sizeof(name))) == 0)
+            {
+                DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
                 goto insufficient_data;
             }
 
@@ -910,10 +902,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
             if ((pname_len = DNSResponseGetNameByOffset(input, input_len,
                             data - input, pname, sizeof(pname))) == 0)
             {
-#if DEBUG
-                PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-                BUG_ON(1);
-#endif
+                DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
                 goto insufficient_data;
             }
 
@@ -929,10 +918,7 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
                 if ((pmail_len = DNSResponseGetNameByOffset(input, input_len,
                                 sdata - input, pmail, sizeof(pmail))) == 0)
                 {
-#if DEBUG
-                    PrintRawDataFp(stdout, (uint8_t *)input, input_len);
-                    BUG_ON(1);
-#endif
+                    DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
                     goto insufficient_data;
                 }
                 SCLogDebug("pmail_len %u", pmail_len);
