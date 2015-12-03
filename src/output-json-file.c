@@ -108,6 +108,8 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
             break;
     }
 
+    json_object_set_new(js, "app_proto",
+            json_string(AppProtoToString(p->flow->alproto)));
 
     json_t *fjs = json_object();
     if (unlikely(fjs == NULL)) {
