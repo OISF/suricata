@@ -1171,7 +1171,7 @@ rule-files:
  - smtp-events.rules    # available in suricata sources under rules dir
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
- - modbus-events.rules  # available in suricata sources under rules dir
+# - modbus-events.rules  # available in suricata sources under rules dir
  - app-layer-events.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
@@ -1350,7 +1350,7 @@ app-layer:
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
 
-      enabled: yes
+      enabled: no
       detection-ports:
         dp: 502
       # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
