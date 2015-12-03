@@ -2301,6 +2301,9 @@ int StreamTcpReassembleInlineAppLayer(ThreadVars *tv,
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof(data) - data_len;
+            if (copy_size + payload_offset > seg->payload_len) {
+                copy_size = seg->payload_len - payload_offset;
+            }
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
@@ -2610,6 +2613,9 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data) - smsg_offset;
+            if (copy_size + payload_offset > seg->payload_len) {
+                copy_size = seg->payload_len - payload_offset;
+            }
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
@@ -3030,8 +3036,8 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     if (SEQ_LT(stream->last_ack, (ra_base_seq + 1))) {
-                        payload_len = (stream->last_ack - seg->seq);
-                        SCLogDebug("payload_len %u", payload_len);
+                        seg = seg->next;
+                        continue;
                     } else {
                         payload_len = (stream->last_ack - seg->seq) - payload_offset;
                         SCLogDebug("payload_len %u", payload_len);
@@ -3070,6 +3076,9 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof(data) - data_len;
+            if (copy_size + payload_offset > seg->payload_len) {
+                copy_size = seg->payload_len - payload_offset;
+            }
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
@@ -3325,7 +3334,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
 
                     if (SEQ_LT(stream->last_ack, ra_base_seq)) {
-                        payload_len = (stream->last_ack - seg->seq);
+                        seg = seg->next;
+                        continue;
                     } else {
                         payload_len = (stream->last_ack - seg->seq) - payload_offset;
                     }
@@ -3373,6 +3383,9 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data) - smsg_offset;
+            if (copy_size + payload_offset > seg->payload_len) {
+                copy_size = seg->payload_len - payload_offset;
+            }
             if (copy_size > payload_len) {
                 copy_size = payload_len;
             }
