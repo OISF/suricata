@@ -64,7 +64,7 @@ Suricata has its own specific pcre modifiers. These are:
   uri_buffer just like uricontent and content combined with http_uri.U
   can be combined with /R. Note that R is relative to the previous
   match so both matches have to be in the HTTP-uri buffer. Read more
-  about [[HTTP-uri normalization]].
+  about [[**FIXME** HTTP-uri normalization]].
 
 .. image:: pcre/pcre3.png
 
@@ -77,7 +77,7 @@ Suricata has its own specific pcre modifiers. These are:
 * ``I``: Makes pcre match on the HTTP-raw-uri. It matches on the same
   buffer as http_raw_uri.  I can be combined with /R. Note that R is
   relative to the previous match so both matches have to be in the
-  HTTP-raw-uri buffer. Read more about [[HTTP-uri normalization]].
+  HTTP-raw-uri buffer. Read more about [[**FIXME** HTTP-uri normalization]].
 
 .. image:: pcre/pcre7.png
 

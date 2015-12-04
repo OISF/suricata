@@ -11,7 +11,7 @@ your console:
 
   sudo nano local.rules
 
-Write your rule, see [[Suricata Rules]] and save it.
+Write your rule, see :doc:`rules` and save it.
 
 Open yaml
   

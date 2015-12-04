@@ -285,7 +285,7 @@ another ('def'), see example:
 
 The replace modifier has to contain as many characters as the content
 it replaces.  It can only be used with individual packets. It will not
-work for [[Normalized Buffers]] like HTTP uri or a content match in
+work for [[**FIXME** Normalized Buffers]] like HTTP uri or a content match in
 the reassembled stream.
 
 The checksums will be recalculated by Suricata and changed after the
@@ -294,8 +294,7 @@ replace keyword is being used.
 pcre
 ----
 
-For information about pcre check the [[pcre (Perl Compatible Regular
-Expressions)]] page.
+For information about pcre check the :doc:`pcre` page.
 
 fast_pattern
 ------------

@@ -2,7 +2,7 @@ Lua Scripting
 =============
 
 In order to enable Lua scripting, please reference this page before
-continuing [[Installation from GIT with luajit]].
+continuing [[**FIXME** Installation from GIT with luajit]].
 
 Syntax:
   
