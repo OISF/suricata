@@ -19,3 +19,4 @@ Rules
    tls-keywords
    normalized-buffers
    rule-profiling
+   modbus-keyword
