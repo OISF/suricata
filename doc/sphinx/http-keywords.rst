@@ -5,9 +5,9 @@ HTTP Keywords
 
 There are additional content modifiers that can provide
 protocol-specific capabilities at the application layer (if you are
-unfamiliar with content modifiers, please visit the page [[Payload
-keywords]]). These keywords make sure the signature checks only
-specific parts of the network traffic. For instance, to check
+unfamiliar with content modifiers, please visit the page
+:doc:`payload-keywords` These keywords make sure the signature checks
+only specific parts of the network traffic. For instance, to check
 specifically on the request URI, cookies, or the HTTP request or
 response body, etc.
 
@@ -108,8 +108,8 @@ mentioned content modifiers like ``depth``, ``distance``, ``offset``,
 ``nocase`` and ``within``.
 
 To learn more about the difference between ``http_uri`` and
-``http_raw_uri``, please read the information about [[HTTP-uri
-normalization]].
+``http_raw_uri``, please read the information about [[**FIXME**
+HTTP-uri normalization]].
 
 Example of the URI in a HTTP request:
 
@@ -236,7 +236,7 @@ Example of the purpose of ``http_client_body``:
 .. image:: http-keywords/client_body1.png
 
 Note: how much of the request/client body is inspected is controlled
-in the [[suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
+in the [[**FIXME** suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
 via the ``request-body-limit`` setting.
 
 http_stat_code
@@ -283,7 +283,7 @@ response body is *gzip* encoded, it is first uncompressed for
 inspection.
 
 Note: how much of the response/server body is inspected is controlled
-in your [[suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
+in your [[**FIXME** suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
 via the ``response-body-limit`` setting.
 
 file_data
@@ -309,7 +309,7 @@ content match individually. If the response body is *gzip* encoded, it
 is first uncompressed for inspection.
 
 Note: how much of the response/server body is inspected is controlled
-in your [[suricata.yaml#Configure-Libhtp]], in the "libhtp" section
+in your [[**FIXME** suricata.yaml#Configure-Libhtp]], in the "libhtp" section
 via the ``response-body-limit`` setting.
 
 **NOTE:** In 2.0.x, ``file_data`` is only supported for HTTP server
@@ -352,8 +352,7 @@ normalized or the raw buffer by appending ``norm`` or ``raw``::
 pcre
 ----
 
-For information about the ``pcre`` keyword, check the [[pcre (Perl
-Compatible Regular Expressions)]] page.
+For information about the ``pcre`` keyword, check the :doc:`pcre` page.
 
 fast_pattern
 ------------
