@@ -3,7 +3,7 @@ Suricata Rules
 
 .. toctree::
 
-   rules-intro
+   intro
    meta
    header-keywords
    payload-keywords
