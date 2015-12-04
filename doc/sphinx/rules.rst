@@ -20,3 +20,5 @@ Rules
    normalized-buffers
    rule-profiling
    modbus-keyword
+   dnp3-keywords
+   
