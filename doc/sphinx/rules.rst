@@ -14,3 +14,4 @@ Rules
    file-keywords
    thresholding
    rule-lua-scripting
+   adding-your-own-rules
