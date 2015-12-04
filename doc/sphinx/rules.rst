@@ -17,3 +17,4 @@ Rules
    adding-your-own-rules
    live-rule-swap
    tls-keywords
+   normalized-buffers
