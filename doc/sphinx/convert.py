@@ -50,7 +50,11 @@ def main():
 
             if line.startswith("<pre>"):
                 inpre = True
-                line = "\n::\n\n"
+                line = line.replace("<pre>", "\n::\n\n  ")
+                if line.find("</pre>") > -1:
+                    print("Removing </pre> from end of line.")
+                    line = line.replace("</pre>", "")
+                    inpre = False
 
             if line.startswith("</pre>"):
                 inpre = False
