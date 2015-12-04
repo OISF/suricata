@@ -12,3 +12,4 @@ Rules
    flow-keywords
    flowint
    file-keywords
+   thresholding
