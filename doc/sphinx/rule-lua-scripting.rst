@@ -1,4 +1,4 @@
-Lua scripting
+Lua Scripting
 =============
 
 In order to enable Lua scripting, please reference this page before
