@@ -15,3 +15,4 @@ Rules
    thresholding
    rule-lua-scripting
    adding-your-own-rules
+   live-rule-swap
