@@ -11,3 +11,4 @@ Rules
    http-keywords
    flow-keywords
    flowint
+   file-keywords
