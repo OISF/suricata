@@ -2,11 +2,11 @@ Rule Thresholding
 =================
 
 Thresholding can be configured per rule and also globally, see
-[[Global-Thresholds]].
+[[**FIXME** Global-Thresholds]].
 
 *Note: mixing rule and global thresholds is not supported in 1.3 and
 before. See bug #425.* For the state of the support in 1.4 see
-[[Global-Thresholds#Global-thresholds-vs-rule-thresholds]].
+[[**FIXME** Global-Thresholds#Global-thresholds-vs-rule-thresholds]].
 
 threshold
 ---------
@@ -61,7 +61,7 @@ If a signature sets a flowbit, flowint, etc. those actions are still
 performed for each of the matches.
 
   *Rule actions drop (IPS mode) and reject are applied to each packet
-   (not only the one that meets the limit condition).*
+  (not only the one that meets the limit condition).*
 
 type "both"
 ~~~~~~~~~~~
