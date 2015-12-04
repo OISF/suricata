@@ -3,7 +3,7 @@ Suricata Rules
 
 .. toctree::
 
-   rules-intro
+   intro
    meta
    header-keywords
    payload-keywords
@@ -21,4 +21,3 @@ Suricata Rules
    rule-profiling
    modbus-keyword
    dnp3-keywords
-

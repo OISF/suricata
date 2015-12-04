@@ -6,4 +6,4 @@ Suricata User Guide
    :titlesonly:
 
    what-is-suricata
-   rules
+   rules/index.rst
