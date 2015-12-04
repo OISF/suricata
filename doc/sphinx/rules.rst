@@ -18,4 +18,4 @@ Rules
    live-rule-swap
    tls-keywords
    normalized-buffers
-   
+   rule-profiling
