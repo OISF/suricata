@@ -79,9 +79,9 @@ Suricata has its own specific pcre modifiers. These are:
   relative to the previous match so both matches have to be in the
   HTTP-raw-uri buffer. Read more about [[**FIXME** HTTP-uri normalization]].
 
-.. image:: pcre/pcre7.png
+** FIXME - image is missing on wiki: .. image:: pcre/pcre7.png
 
-.. image:: pcre/pcre8.png
+** FIXME - image is missing on wiki: .. image:: pcre/pcre8.png
 
 * ``P``: Makes pcre match on the HTTP- request-body. So, it matches on
   the same buffer as http_client_body. P can be combined with /R. Note
