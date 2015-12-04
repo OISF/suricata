@@ -13,3 +13,4 @@ Rules
    flowint
    file-keywords
    thresholding
+   rule-lua-scripting
