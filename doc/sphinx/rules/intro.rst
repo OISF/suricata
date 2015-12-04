@@ -17,7 +17,7 @@ A rule/signature consists of the following:
 
 Example of a signature:
 
-.. image:: rules/intro_sig.png 
+.. image:: intro/intro_sig.png 
 
 Action
 ------
@@ -27,7 +27,7 @@ For more information read 'Action Order' in the
 
 Example:
 
-.. image:: rules/action.png
+.. image:: intro/action.png
 
 In this example the red, bold-faced part is the action.
 
@@ -45,7 +45,7 @@ match if it concerns http-traffic.
 
 Example:
 
-.. image:: rules/protocol.png
+.. image:: intro/protocol.png
 
 In this example the red, bold-faced part is the protocol.
 
@@ -83,11 +83,11 @@ You can not write a signature using EXTERNAL_NET because it stands for
 
 Example of source and destination in a signature:
 
-.. image:: rules/Source.png
+.. image:: intro/Source.png
 
 The red, bold-faced part is the source.
 
-.. image:: rules/destination.png
+.. image:: intro/destination.png
 
 The red, bold-faced part is the destination.
 
@@ -120,10 +120,10 @@ Example::
 
 Example of ports in a signature:
 
-.. image:: rules/Source-port.png
+.. image:: intro/Source-port.png
 
 
-.. image:: rules/Dest_port.png
+.. image:: intro/Dest_port.png
 
 In this example, the red, bold-faced part is the port.
 
@@ -145,14 +145,14 @@ Example::
 
 Example 1     tcp-session
 
-.. image:: rules/TCP-session.png
+.. image:: intro/TCP-session.png
 
 In this example there will only be a match if the signature has the
 same order/direction as the payload.
 
 Example of direction in a signature:
 
-.. image:: rules/Direction.png
+.. image:: intro/Direction.png
 
 In this example the red, bold-faced part is the direction.
 
