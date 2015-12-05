@@ -355,10 +355,11 @@ void FlowInitConfig(char quiet)
     FlowQueueInit(&flow_spare_q);
     FlowQueueInit(&flow_recycle_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;

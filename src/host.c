@@ -141,10 +141,11 @@ void HostInitConfig(char quiet)
     SC_ATOMIC_INIT(host_prune_idx);
     HostQueueInit(&host_spare_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     host_config.hash_rand   = (int)( HOST_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     host_config.hash_size   = HOST_DEFAULT_HASHSIZE;
     host_config.memcap      = HOST_DEFAULT_MEMCAP;
     host_config.prealloc    = HOST_DEFAULT_PREALLOC;
