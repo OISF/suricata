@@ -116,10 +116,16 @@ int RunModeFilePcapSingle(void)
 
     TmThreadSetCPU(tv, DETECT_CPU_SET);
 
+#ifndef AFLFUZZ_PCAP_RUNMODE
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
+#else
+    /* in afl mode we don't spawn a new thread, but run the pipeline
+     * in the main thread */
+    tv->tm_func(tv);
+#endif
 
     return 0;
 }
