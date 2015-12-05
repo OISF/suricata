@@ -4,7 +4,7 @@ var spawn = require("child_process").spawn;
 var server = require("gulp-webserver")
 
 gulp.task("watch", function(cb) {
-    watch("*.rst", function() {
+    watch(["*.rst", "*/*.rst"], function() {
 	console.log("Changed.");
 	spawn("make", ["html"], {
 	    stdio: "inherit",
