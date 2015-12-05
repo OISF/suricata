@@ -228,6 +228,8 @@
 #endif
 #endif
 
+#define AFLFUZZ_NO_RANDOM 1
+
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
 #define xstr(s) str(s)
