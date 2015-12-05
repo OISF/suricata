@@ -6,4 +6,5 @@ Suricata User Guide
    :titlesonly:
 
    what-is-suricata
+   command-line-options
    rules/index.rst
