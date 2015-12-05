@@ -132,10 +132,11 @@ void DefragInitConfig(char quiet)
     SC_ATOMIC_INIT(defragtracker_prune_idx);
     DefragTrackerQueueInit(&defragtracker_spare_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     defrag_config.hash_rand   = (int)(DEFRAG_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     defrag_config.hash_size   = DEFRAG_DEFAULT_HASHSIZE;
     defrag_config.memcap      = DEFRAG_DEFAULT_MEMCAP;
     defrag_config.prealloc    = DEFRAG_DEFAULT_PREALLOC;
