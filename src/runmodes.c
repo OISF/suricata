@@ -65,6 +65,10 @@ char *thread_name_workers = "W";
 char *thread_name_verdict = "TX";
 char *thread_name_flow_mgr = "FM";
 char *thread_name_flow_rec = "FR";
+char *thread_name_unix_socket = "US";
+char *thread_name_detect_loader = "DL";
+char *thread_name_counter_stats = "CS";
+char *thread_name_counter_wakeup = "CW";
 
 /**
  * \brief Holds description for a runmode.
