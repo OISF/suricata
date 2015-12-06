@@ -37,6 +37,7 @@
 #include "util-signal.h"
 #include "unix-manager.h"
 #include "output.h"
+#include "runmodes.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3
@@ -805,7 +806,7 @@ void StatsSpawnThreads(void)
     ThreadVars *tv_mgmt = NULL;
 
     /* spawn the stats wakeup thread */
-    tv_wakeup = TmThreadCreateMgmtThread("StatsWakeupThread",
+    tv_wakeup = TmThreadCreateMgmtThread(thread_name_counter_wakeup,
                                          StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE, "TmThreadCreateMgmtThread "
@@ -820,7 +821,7 @@ void StatsSpawnThreads(void)
     }
 
     /* spawn the stats mgmt thread */
-    tv_mgmt = TmThreadCreateMgmtThread("StatsMgmtThread",
+    tv_mgmt = TmThreadCreateMgmtThread(thread_name_counter_stats,
                                        StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE,
