@@ -9206,7 +9206,7 @@ static int SigTestDetectAlertCounter(void)
     }
 
     SigGroupBuild(de_ctx);
-    tv.name = "detect_test";
+    strlcpy(tv.name, "detect_test", sizeof(tv.name));
     DetectEngineThreadCtxInit(&tv, de_ctx, (void *)&det_ctx);
 
     /* init counters */
