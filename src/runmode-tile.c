@@ -213,7 +213,7 @@ int RunModeTileMpipeWorkers(void)
             exit(EXIT_FAILURE);
         }
 
-        snprintf(tname, sizeof(tname), "Worker%d", pipe+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, pipe+1);
 
         /* create the threads */
         ThreadVars *tv_worker =
