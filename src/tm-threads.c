@@ -1042,7 +1042,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->perf_public_ctx.m, NULL);
 
-    tv->name = name;
+    strlcpy(tv->name, name, sizeof(tv->name));
+
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
@@ -1658,7 +1659,6 @@ void TmThreadFree(ThreadVars *tv)
     }
 
     TmThreadsUnregisterThread(tv->id);
-    SCFree(tv->name);
     SCFree(tv);
 }
 
