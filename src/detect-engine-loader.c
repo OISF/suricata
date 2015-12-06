@@ -26,6 +26,7 @@
 #include "conf.h"
 #include "debug.h"
 #include "detect.h"
+#include "runmodes.h"
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-threads.h"
@@ -267,10 +268,10 @@ void DetectLoaderThreadSpawn()
     for (i = 0; i < num_loaders; i++) {
         ThreadVars *tv_loader = NULL;
 
-        char name[32] = "";
-        snprintf(name, sizeof(name), "DetectLoader%02d", i+1);
+        char name[TM_THREAD_NAME_MAX] = "";
+        snprintf(name, sizeof(name), "%s#%02d", thread_name_detect_loader, i+1);
 
-        tv_loader = TmThreadCreateCmdThreadByName("DetectLoader",
+        tv_loader = TmThreadCreateCmdThreadByName(name,
                 "DetectLoader", 1);
         BUG_ON(tv_loader == NULL);
 
