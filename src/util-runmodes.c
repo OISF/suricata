@@ -148,11 +148,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         /* create the threads */
         for (thread = 0; thread < threads_count; thread++) {
             snprintf(tname, sizeof(tname), "%s#%02d", thread_name, thread+1);
-            char *thread_name = SCStrdup(tname);
-            if (unlikely(thread_name == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-                exit(EXIT_FAILURE);
-            }
             ThreadVars *tv_receive =
                 TmThreadCreatePacketHandler(tname,
                         "packetpool", "packetpool",
@@ -220,11 +215,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
 
-                char *thread_name = SCStrdup(tname);
-                if (unlikely(thread_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-                    exit(EXIT_FAILURE);
-                }
                 ThreadVars *tv_receive =
                     TmThreadCreatePacketHandler(tname,
                             "packetpool", "packetpool",
@@ -333,7 +323,6 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     /* create the threads */
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
-        char *n_thread_name = NULL;
         char visual_devname[11] = "";
         int shortening_result;
         ThreadVars *tv = NULL;

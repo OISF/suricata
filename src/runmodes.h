@@ -67,6 +67,10 @@ extern char *thread_name_workers;
 extern char *thread_name_verdict;
 extern char *thread_name_flow_mgr;
 extern char *thread_name_flow_rec;
+extern char *thread_name_unix_socket;
+extern char *thread_name_detect_loader;
+extern char *thread_name_counter_stats;
+extern char *thread_name_counter_wakeup;
 
 char *RunmodeGetActive(void);
 const char *RunModeGetMainMode(void);
