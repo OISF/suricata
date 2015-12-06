@@ -213,16 +213,11 @@ int RunModeTileMpipeWorkers(void)
             exit(EXIT_FAILURE);
         }
 
-        snprintf(tname, sizeof(tname), "Worker%d", pipe+1);
-        thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            printf("ERROR: SCStrdup failed for ReceiveMpipe\n");
-            exit(EXIT_FAILURE);
-        }
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, pipe+1);
 
         /* create the threads */
         ThreadVars *tv_worker =
-             TmThreadCreatePacketHandler(thread_name,
+             TmThreadCreatePacketHandler(tname,
                                          "packetpool", "packetpool",
                                          "packetpool", "packetpool", 
                                          "pktacqloop");

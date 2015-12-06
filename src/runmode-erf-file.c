@@ -71,7 +71,7 @@ int RunModeErfFileSingle(void)
 
     /* Basically the same setup as PCAP files. */
 
-    ThreadVars *tv = TmThreadCreatePacketHandler("ErfFile",
+    ThreadVars *tv = TmThreadCreatePacketHandler(thread_name_single,
         "packetpool", "packetpool",
         "packetpool", "packetpool",
         "pktacqloop");
@@ -166,7 +166,7 @@ int RunModeErfFileAutoFp(void)
 
     /* create the threads */
     ThreadVars *tv =
-        TmThreadCreatePacketHandler("ReceiveErfFile",
+        TmThreadCreatePacketHandler(thread_name_autofp,
                                     "packetpool", "packetpool",
                                     queues, "flow",
                                     "pktacqloop");
@@ -202,20 +202,15 @@ int RunModeErfFileAutoFp(void)
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            printf("ERROR: Can't allocate thread name\n");
-            exit(EXIT_FAILURE);
-        }
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "packetpool", "packetpool",
                                         "varslot");

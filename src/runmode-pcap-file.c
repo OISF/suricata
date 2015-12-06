@@ -76,15 +76,8 @@ int RunModeFilePcapSingle(void)
 
     snprintf(tname, sizeof(tname), "%s#01", thread_name_single);
 
-    char *thread_name = SCStrdup(tname);
-    if (unlikely(thread_name == NULL))
-    {
-        SCLogError(SC_ERR_RUNMODE, "failed to strdup thread name");
-        exit(EXIT_FAILURE);
-    }
-
     /* create the threads */
-    ThreadVars *tv = TmThreadCreatePacketHandler(thread_name,
+    ThreadVars *tv = TmThreadCreatePacketHandler(tname,
                                                  "packetpool", "packetpool",
                                                  "packetpool", "packetpool",
                                                  "pktacqloop");
@@ -196,15 +189,9 @@ int RunModeFilePcapAutoFp(void)
 
     snprintf(tname, sizeof(tname), "%s#01", thread_name_autofp);
 
-    char *thread_name = SCStrdup(tname);
-    if (unlikely(thread_name == NULL)) {
-        SCLogError(SC_ERR_RUNMODE, "failed to strdup thread name");
-        exit(EXIT_FAILURE);
-    }
-
     /* create the threads */
     ThreadVars *tv_receivepcap =
-        TmThreadCreatePacketHandler(thread_name,
+        TmThreadCreatePacketHandler(tname,
                                     "packetpool", "packetpool",
                                     queues, "flow",
                                     "pktacqloop");
@@ -240,16 +227,10 @@ int RunModeFilePcapAutoFp(void)
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
-
-        thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "failed to strdup thread name");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
 
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "packetpool", "packetpool",
                                         "varslot");
