@@ -174,7 +174,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 int j = 0;
 
                 if (hash == NULL) {
-                    SCLogWarning(SC_ERR_MEM_ALLOC, "Can not allocate fingerprint string");
+                    // TODO maybe an event here?
                 } else {
                     for (j = 0; j < hash_len; j++, p += 3) {
                         snprintf(p, 4, j == hash_len - 1 ? "%02x" : "%02x:", hash[j]);
@@ -182,7 +182,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                     SCFree(hash);
                     ssl_state->server_connp.cert0_fingerprint = SCStrdup(out);
                     if (ssl_state->server_connp.cert0_fingerprint == NULL) {
-                        SCLogWarning(SC_ERR_MEM_ALLOC, "Can not allocate fingerprint string");
+                        // TODO do we need an event here?
                     }
                 }
 
