@@ -125,6 +125,12 @@ int RunModeFilePcapSingle(void)
     /* in afl mode we don't spawn a new thread, but run the pipeline
      * in the main thread */
     tv->tm_func(tv);
+    int afl_runmode_exit_immediately = 0;
+    (void)ConfGetBool("afl.exit_after_pcap", &afl_runmode_exit_immediately);
+    if (afl_runmode_exit_immediately) {
+        SCLogNotice("exit because of afl-runmode-exit-after-pcap commandline option");
+        exit(EXIT_SUCCESS);
+    }
 #endif
 
     return 0;
