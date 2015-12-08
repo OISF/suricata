@@ -231,6 +231,7 @@
 #define AFLFUZZ_NO_RANDOM 1
 #define AFLFUZZ_DISABLE_MGTTHREADS 1
 #define AFLFUZZ_PCAP_RUNMODE 1
+#define AFLFUZZ_CONF_TEST 1
 
 /* we need this to stringify the defines which are supplied at compiletime see:
    http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
