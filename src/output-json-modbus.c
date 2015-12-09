@@ -41,6 +41,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-modbus.h"
 
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -64,12 +65,12 @@ typedef struct LogModbusLogThread_ {
     MemBuffer          *buffer;
 } LogModbusLogThread;
 
-static json_t *JsonModbusLogRegisters(LogModbusLogThread *thread,
-    ModbusTransaction *modbustx, uint8_t quantity)
+static json_t *JsonModbusLogRegisters(ModbusTransaction *modbustx,
+                                      uint8_t quantity, uint8_t use_dict)
 {
     uint16_t val;
     int i = 0;
-    if (thread->modbuslog_ctx->flags & LOG_MODBUS_USE_DICT) {
+    if (use_dict) {
         char key[6];
         json_t *data_dict = json_object();
         if (data_dict == NULL)
@@ -99,12 +100,12 @@ end:
     return NULL;
 }
 
-static json_t *JsonModbusLogBits(LogModbusLogThread *thread,
-    ModbusTransaction *modbustx, uint8_t quantity)
+static json_t *JsonModbusLogBits(ModbusTransaction *modbustx,
+                                 uint8_t quantity, uint8_t use_dict)
 {
     uint16_t val;
     int i = 0;
-    if (thread->modbuslog_ctx->flags & LOG_MODBUS_USE_DICT) {
+    if (use_dict & LOG_MODBUS_USE_DICT) {
         char key[6];
         json_t *data_dict = json_object();
         if (data_dict == NULL)
@@ -133,25 +134,9 @@ end:
     return NULL;
 }
 
-
-static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static void JsonModbusLog(json_t *modbusjs, ModbusTransaction *modbustx,
+                          uint8_t use_dict)
 {
-    ModbusTransaction *modbustx = tx;
-    LogModbusLogThread *thread = thread_data;
-    MemBuffer *buffer = thread->buffer;
-    json_t *js, *modbusjs;
-
-    js = CreateJSONHeader((Packet *)p, 0, "modbus");
-    if (unlikely(js == NULL)) {
-        return TM_ECODE_FAILED;
-    }
-
-    modbusjs = json_object();
-    if (unlikely(modbusjs == NULL)) {
-        goto error;
-    }
-
     const char *str_value = ModbusGetFunctionName(modbustx->function);
 
     json_object_set_new(modbusjs, "transaction_id", json_integer(modbustx->transactionId));
@@ -176,11 +161,11 @@ static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
             if (modbustx->read.quantity && modbustx->data) {
                 json_t *value = NULL;
                 if (modbustx->type  & MODBUS_TYP_BIT_ACCESS_MASK) {
-                    value = JsonModbusLogBits(thread, modbustx,
-                                              modbustx->read.quantity);
+                    value = JsonModbusLogBits(modbustx, modbustx->read.quantity,
+                                              use_dict);
                 } else {
-                    value = JsonModbusLogRegisters(thread, modbustx,
-                                               modbustx->read.quantity);
+                    value = JsonModbusLogRegisters(modbustx, modbustx->read.quantity,
+                                                   use_dict);
                 }
                 if (value) {
                     json_object_set_new(type_read, "value", value);
@@ -201,11 +186,11 @@ static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
                        modbustx->write.count && modbustx->data) {
                 json_t *value;
                 if (modbustx->type  & MODBUS_TYP_BIT_ACCESS_MASK) {
-                    value = JsonModbusLogBits(thread, modbustx,
-                                              modbustx->write.quantity);
+                    value = JsonModbusLogBits(modbustx, modbustx->write.quantity,
+                                              use_dict);
                 } else {
-                    value = JsonModbusLogRegisters(thread, modbustx,
-                                                   modbustx->write.quantity);
+                    value = JsonModbusLogRegisters(modbustx, modbustx->write.quantity,
+                                                   use_dict);
                 }
                 if (value) {
                     json_object_set_new(type_write, "value", value);
@@ -231,6 +216,32 @@ static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
     }
 
     json_object_set_new(modbusjs, "replied", json_integer(modbustx->replied));
+}
+
+static int JsonModbusLogger(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+{
+    ModbusTransaction *modbustx = tx;
+    LogModbusLogThread *thread = thread_data;
+    MemBuffer *buffer = thread->buffer;
+    uint8_t use_dict = 0;
+    json_t *js, *modbusjs;
+
+    js = CreateJSONHeader((Packet *)p, 0, "modbus");
+    if (unlikely(js == NULL)) {
+        return TM_ECODE_FAILED;
+    }
+
+    modbusjs = json_object();
+    if (unlikely(modbusjs == NULL)) {
+        goto error;
+    }
+
+    if (thread->modbuslog_ctx->flags & LOG_MODBUS_USE_DICT) {
+        use_dict = 1;
+    }
+
+    JsonModbusLog(modbusjs, modbustx, use_dict);
 
     json_object_set_new(js, "modbus", modbusjs);
 
@@ -246,6 +257,27 @@ error:
     }
     json_decref(js);
     return TM_ECODE_FAILED;
+}
+
+json_t *JsonModbusAddMetadata(const Flow *f, uint64_t tx_id)
+{
+    ModbusState *modbus_state = (ModbusState *)FlowGetAppState(f);
+
+    if (modbus_state) {
+        ModbusTransaction *modbustx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_MODBUS, modbus_state, tx_id);
+
+        if (modbustx) {
+            json_t *mjs = json_object();
+            if (unlikely(mjs == NULL))
+                return NULL;
+
+            JsonModbusLog(mjs, modbustx, 0);
+
+            return mjs;
+        }
+    }
+
+    return NULL;
 }
 
 static void OutputModbusLogDeInitCtxSub(OutputCtx *output_ctx)
