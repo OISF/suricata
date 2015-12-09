@@ -19,5 +19,8 @@
 #define __OUTPUT_JSON_MODBUS_H__
 
 void TmModuleJsonModbusLogRegister(void);
+#ifdef HAVE_LIBJANSSON
+json_t *JsonModbusAddMetadata(const Flow *f, uint64_t tx_id);
+#endif
 
 #endif /* __OUTPUT_JSON_MODBUS_H__ */
