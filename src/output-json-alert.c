@@ -57,6 +57,7 @@
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
+#include "output-json-modbus.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -78,12 +79,13 @@
 #define LOG_JSON_SSH            0x20
 #define LOG_JSON_SMTP           0x40
 #define LOG_JSON_TAGGED_PACKETS 0x80
+#define LOG_JSON_MODBUS         0x100
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
-    uint8_t flags;
+    uint16_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
 } AlertJsonOutputCtx;
@@ -265,6 +267,18 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
                         json_object_set_new(js, "email", hjs);
+                }
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_MODBUS) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                if (proto == ALPROTO_MODBUS) {
+                    hjs = JsonModbusAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "modbus", hjs);
                 }
             }
         }
@@ -584,6 +598,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
+        const char *modbus = ConfNodeLookupChildValue(conf, "modbus");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -603,6 +618,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (smtp != NULL) {
             if (ConfValIsTrue(smtp)) {
                 json_output_ctx->flags |= LOG_JSON_SMTP;
+            }
+        }
+        if (modbus != NULL) {
+            if (ConfValIsTrue(modbus)) {
+                json_output_ctx->flags |= LOG_JSON_MODBUS;
             }
         }
         if (payload_printable != NULL) {

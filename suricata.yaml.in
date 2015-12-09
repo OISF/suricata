@@ -165,6 +165,7 @@ outputs:
             tls: yes                 # enable dumping of tls fields
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
+            modbus: yes              # enable dumping of modbus fields
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.
