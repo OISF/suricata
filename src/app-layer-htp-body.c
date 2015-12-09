@@ -222,7 +222,7 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         window = state->cfg->request_inspect_window;
     }
 
-    if (body->body_inspected < (min_size > window) ? min_size : window) {
+    if (body->body_inspected < ((min_size > window) ? min_size : window)) {
         SCReturn;
     }
 

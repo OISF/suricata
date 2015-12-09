@@ -1827,6 +1827,7 @@ end:
     DetectEngineCleanHCBDBuffers(det_ctx);
     DetectEngineCleanHSBDBuffers(det_ctx);
     DetectEngineCleanHHDBuffers(det_ctx);
+    DetectEngineCleanSMTPBuffers(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
