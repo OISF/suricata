@@ -25,51 +25,17 @@
 #define __UTIL_MPM_H__
 #include "suricata-common.h"
 
-#define MPM_ENDMATCH_SINGLE     0x01    /**< A single match is sufficient. No
-                                             depth, offset, etc settings. */
-#define MPM_ENDMATCH_OFFSET     0x02    /**< has offset setting */
-#define MPM_ENDMATCH_DEPTH      0x04    /**< has depth setting */
-#define MPM_ENDMATCH_NOSEARCH   0x08    /**< if this matches, no search is
-                                             required (for this pattern) */
 
-#define HASHSIZE_LOWEST         2048    /**< Lowest hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_LOW            4096    /**< Low hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_MEDIUM         8192    /**< Medium hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_HIGH           16384   /**< High hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_HIGHER         32768   /**< Higher hash size for the multi
-                                             pattern matcher algorithms */
-#define HASHSIZE_MAX            65536   /**< Max hash size for the multi
-                                             pattern matcher algorithms */
-#define BLOOMSIZE_LOW           512     /*<* Low bloomfilter size for the multi
-                                            pattern matcher algorithms */
-#define BLOOMSIZE_MEDIUM        1024    /**< Medium bloomfilter size for the multi
-                                             pattern matcher algorithms */
-#define BLOOMSIZE_HIGH          2048    /**< High bloomfilter size for the multi
-                                             pattern matcher algorithms */
+#define MPM_INIT_HASH_SIZE 65536
 
 enum {
     MPM_NOTSET = 0,
-
-    /* wumanber as the name suggests */
-    MPM_WUMANBER,
-    /* bndmq 2 gram */
-    MPM_B2G,
-    /* bndmq 3 gram */
-    MPM_B3G,
-    MPM_B2GC,
-    MPM_B2GM,
 
     /* aho-corasick */
     MPM_AC,
 #ifdef __SC_CUDA_SUPPORT__
     MPM_AC_CUDA,
 #endif
-    /* aho-corasick-goto-failure state based */
-    MPM_AC_GFBS,
     MPM_AC_BS,
     MPM_AC_TILE,
     /* table size */
@@ -85,10 +51,6 @@ enum {
 /* Internal Pattern Index: 0 to pattern_cnt-1 */
 typedef uint32_t MpmPatternIndex;
 
-typedef struct MpmMatchBucket_ {
-    uint32_t len;
-} MpmMatchBucket;
-
 typedef struct MpmThreadCtx_ {
     void *ctx;
 
@@ -101,16 +63,8 @@ typedef struct MpmThreadCtx_ {
  *         thread has this and passes a pointer to it to the pattern matcher.
  *         The actual pattern matcher will fill the structure. */
 typedef struct PatternMatcherQueue_ {
-    uint32_t *pattern_id_array;     /** array with pattern id's that had a
-                                        pattern match. These will be inspected
-                                        futher by the detection engine. */
-    uint32_t pattern_id_array_cnt;  /**< Number currently stored */
-    uint32_t pattern_id_array_size; /**< Allocated size in bytes */
-
-    uint8_t *pattern_id_bitarray;   /** bitarray with pattern id matches */
-    uint32_t pattern_id_bitarray_size; /**< size in bytes */
-
     /* used for storing rule id's */
+
     /* Array of rule IDs found. */
     SigIntId *rule_id_array;
     /* Number of rule IDs in the array. */
@@ -119,6 +73,27 @@ typedef struct PatternMatcherQueue_ {
     uint32_t rule_id_array_size;
 
 } PatternMatcherQueue;
+
+typedef struct MpmPattern_ {
+    /* length of the pattern */
+    uint16_t len;
+    /* flags decribing the pattern */
+    uint8_t flags;
+    /* holds the original pattern that was added */
+    uint8_t *original_pat;
+    /* case sensitive */
+    uint8_t *cs;
+    /* case INsensitive */
+    uint8_t *ci;
+    /* pattern id */
+    uint32_t id;
+
+    /* sid(s) for this pattern */
+    uint32_t sids_size;
+    SigIntId *sids;
+
+    struct MpmPattern_ *next;
+} MpmPattern;
 
 typedef struct MpmCtx_ {
     void *ctx;
@@ -138,20 +113,22 @@ typedef struct MpmCtx_ {
 
     uint32_t memory_cnt;
     uint32_t memory_size;
+
+    uint32_t max_pat_id;
+
+    /* hash used during ctx initialization */
+    MpmPattern **init_hash;
 } MpmCtx;
 
 /* if we want to retrieve an unique mpm context from the mpm context factory
  * we should supply this as the key */
 #define MPM_CTX_FACTORY_UNIQUE_CONTEXT -1
 
-#define MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD 0x01
-
 typedef struct MpmCtxFactoryItem_ {
-    char *name;
+    const char *name;
     MpmCtx *mpm_ctx_ts;
     MpmCtx *mpm_ctx_tc;
     int32_t id;
-    uint8_t flags;
 } MpmCtxFactoryItem;
 
 typedef struct MpmCtxFactoryContainer_ {
@@ -169,12 +146,15 @@ typedef struct MpmCtxFactoryContainer_ {
 #define MPM_PATTERN_FLAG_OFFSET     0x08
 /** one byte pattern (used in b2g) */
 #define MPM_PATTERN_ONE_BYTE        0x10
+/** the ctx uses it's own internal id instead of
+ *  what is passed through the API */
+#define MPM_PATTERN_CTX_OWNS_ID     0x20
 
 typedef struct MpmTableElmt_ {
     char *name;
     uint8_t max_pattern_length;
     void (*InitCtx)(struct MpmCtx_ *);
-    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *, uint32_t);
+    void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
     void (*DestroyCtx)(struct MpmCtx_ *);
     void (*DestroyThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
 
@@ -192,7 +172,7 @@ typedef struct MpmTableElmt_ {
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*Prepare)(struct MpmCtx_ *);
-    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, const uint8_t *, uint16_t);
     void (*Cleanup)(struct MpmThreadCtx_ *);
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
@@ -240,14 +220,13 @@ void MpmCudaEnvironmentSetup();
 
 struct DetectEngineCtx_;
 
-int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *, uint8_t);
-void MpmFactoryReClaimMpmCtx(struct DetectEngineCtx_ *, MpmCtx *);
-MpmCtx *MpmFactoryGetMpmCtxForProfile(struct DetectEngineCtx_ *, int32_t, int);
+int32_t MpmFactoryRegisterMpmCtxProfile(struct DetectEngineCtx_ *, const char *);
+void MpmFactoryReClaimMpmCtx(const struct DetectEngineCtx_ *, MpmCtx *);
+MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, int);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
-int32_t MpmFactoryIsMpmCtxAvailable(struct DetectEngineCtx_ *, MpmCtx *);
+int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
-int PmqSetup(PatternMatcherQueue *, uint32_t);
-void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
+int PmqSetup(PatternMatcherQueue *);
 void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
@@ -255,12 +234,8 @@ void PmqFree(PatternMatcherQueue *);
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
 
-int MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
-                   uint8_t *bitarray, SigIntId *sids, uint32_t sids_size);
 void MpmInitCtx(MpmCtx *mpm_ctx, uint16_t matcher);
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t, uint32_t);
-uint32_t MpmGetHashSize(const char *);
-uint32_t MpmGetBloomSize(const char *);
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t);
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
@@ -268,6 +243,12 @@ int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
 int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                     uint16_t offset, uint16_t depth,
                     uint32_t pid, SigIntId sid, uint8_t flags);
+
+void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p);
+
+int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                            uint16_t offset, uint16_t depth, uint32_t pid,
+                            SigIntId sid, uint8_t flags);
 
 /* Resize Signature ID array. Only called from MpmAddSids(). */
 int MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
@@ -304,21 +285,5 @@ MpmAddSids(PatternMatcherQueue *pmq, SigIntId *sids, uint32_t sids_size)
         *ptr++ = *sids++;
     } while (ptr != end);
     pmq->rule_id_array_cnt += sids_size;
-}
-
-/* Resize Pattern ID array. Only called from MpmAddPid(). */
-int MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size);
-
-static inline void
-MpmAddPid(PatternMatcherQueue *pmq, uint32_t patid)
-{
-    uint32_t new_size = pmq->pattern_id_array_cnt + 1;
-    if (new_size > pmq->pattern_id_array_size)  {
-        if (MpmAddPidResize(pmq, new_size) == 0)
-            return;
-    }
-    pmq->pattern_id_array[pmq->pattern_id_array_cnt] = patid;
-    pmq->pattern_id_array_cnt = new_size;
-    SCLogDebug("pattern_id_array_cnt %u", pmq->pattern_id_array_cnt);
 }
 #endif /* __UTIL_MPM_H__ */

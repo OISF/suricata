@@ -43,6 +43,7 @@
 #include "detect-engine-apt-event.h"
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
+#include "detect-http-method.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -419,12 +420,12 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
     return;
 }
 
-int SigMatchListSMBelongsTo(Signature *s, SigMatch *key_sm)
+int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
     int list = 0;
 
     for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
-        SigMatch *sm = s->sm_lists[list];
+        const SigMatch *sm = s->sm_lists[list];
         while (sm != NULL) {
             if (sm == key_sm)
                 return list;
@@ -1205,6 +1206,9 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
+
+    if (!DetectHttpMethodValidateRule(s))
+        SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
     //    if (s->flags & SIG_FLAG_STATE_MATCH) {
@@ -2985,7 +2989,6 @@ int SigTestBidirec04 (void)
        with source 192.168.1.1 80, all the sids should match */
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* only sid 2 should match with a packet going to 192.168.1.1 port 80 */
@@ -2998,7 +3001,6 @@ int SigTestBidirec04 (void)
         PACKET_RECYCLE(p);
     }
     FlowShutdown();
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:

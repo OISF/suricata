@@ -367,13 +367,9 @@ util-memrchr.c util-memrchr.h \
 util-misc.c util-misc.h \
 util-mpm-ac-bs.c util-mpm-ac-bs.h \
 util-mpm-ac.c util-mpm-ac.h \
-util-mpm-ac-gfbs.c util-mpm-ac-gfbs.h \
 util-mpm-ac-tile.c util-mpm-ac-tile.h \
 util-mpm-ac-tile-small.c \
-util-mpm-b2g.c util-mpm-b2g.h \
-util-mpm-b3g.c util-mpm-b3g.h \
 util-mpm.c util-mpm.h \
-util-mpm-wumanber.c util-mpm-wumanber.h \
 util-optimize.h \
 util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
@@ -385,6 +381,7 @@ util-profiling.c util-profiling.h \
 util-profiling-locks.c util-profiling-locks.h \
 util-profiling-rules.c \
 util-profiling-keywords.c \
+util-profiling-rulegroups.c \
 util-proto-name.c util-proto-name.h \
 util-radix-tree.c util-radix-tree.h \
 util-random.c util-random.h \
