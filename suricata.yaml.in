@@ -127,6 +127,7 @@ outputs:
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
             # smtp: yes              # enable dumping of smtp fields
+            # modbus: yes            # enable dumping of modbus fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
