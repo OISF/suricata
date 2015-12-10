@@ -841,9 +841,6 @@ void RegisterAllModules()
     /* nflog */
     TmModuleReceiveNFLOGRegister();
     TmModuleDecodeNFLOGRegister();
-
-    /* dnp3 */
-    TmModuleJsonDNP3LogRegister();
 }
 
 static TmEcode LoadYamlConfig(SCInstance *suri)
