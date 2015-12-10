@@ -163,12 +163,23 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
          htud->response_body.content_len_so_far < htp_state->cfg->response_body_limit) &&
         htud->response_body.content_len_so_far < htp_state->cfg->response_inspect_min_size &&
         !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
-        !(flags & STREAM_EOF)) {
+        !(flags & STREAM_EOF))
+    {
         SCLogDebug("we still haven't seen the entire response body.  "
                    "Let's defer body inspection till we see the "
                    "entire body.");
         goto end;
     }
+
+    uint64_t to_inspect = htud->response_body.content_len_so_far - htud->response_body.body_inspected;
+    if (to_inspect < htp_state->cfg->response_inspect_window &&
+        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOCLIENT) > HTP_RESPONSE_BODY) &&
+        !(flags & STREAM_EOF))
+    {
+        SCLogDebug("defer until we have enough data for the window setting");
+        goto end;
+    }
+
 
     int first = 1;
     while (cur != NULL) {

@@ -31,6 +31,6 @@
 int HtpBodyAppendChunk(HtpTxUserData *, HtpBody *, uint8_t *, uint32_t);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
-void HtpBodyPrune(HtpBody *);
+void HtpBodyPrune(HtpState *, HtpBody *, int direction);
 
 #endif /* __APP_LAYER_HTP_BODY_H__ */

@@ -163,6 +163,15 @@ static uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
         goto end;
     }
 
+    uint64_t to_inspect = htud->request_body.content_len_so_far - htud->request_body.body_inspected;
+    if (to_inspect < htp_state->cfg->request_inspect_window &&
+        !(AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, STREAM_TOSERVER) > HTP_REQUEST_BODY) &&
+        !(flags & STREAM_EOF))
+    {
+        SCLogDebug("defer until we have enough data for the window setting");
+        goto end;
+    }
+
     int first = 1;
     while (cur != NULL) {
         /* see if we can filter out chunks */

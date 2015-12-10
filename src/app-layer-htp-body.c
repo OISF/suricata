@@ -83,7 +83,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         SCReturnInt(0);
     }
 
-    if (body->first == NULL) {
+    if (body->content_len_so_far == 0) {
         /* New chunk */
         bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
@@ -102,6 +102,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         body->first = body->last = bd;
 
         body->content_len_so_far = len;
+
     } else {
         bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
@@ -117,12 +118,15 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         }
         memcpy(bd->data, data, len);
 
-        body->last->next = bd;
+        if (body->first == NULL) {
+            body->first = bd;
+        } else {
+            body->last->next = bd;
+        }
         body->last = bd;
 
         body->content_len_so_far += len;
     }
-    SCLogDebug("Body %p; data %p, len %"PRIu32, body, bd->data, (uint32_t)bd->len);
 
     SCReturnInt(0);
 
@@ -197,7 +201,7 @@ void HtpBodyFree(HtpBody *body)
  *
  * \retval none
  */
-void HtpBodyPrune(HtpBody *body)
+void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
 {
     SCEnter();
 
@@ -205,7 +209,29 @@ void HtpBodyPrune(HtpBody *body)
         SCReturn;
     }
 
-    if (body->body_parsed == 0) {
+    if (body->content_len_so_far == 0) {
+        SCReturn;
+    }
+
+    /* get the configured inspect sizes. Default to response values */
+    uint32_t min_size = state->cfg->response_inspect_min_size;
+    uint32_t window = state->cfg->response_inspect_window;
+
+    if (direction == STREAM_TOSERVER) {
+        min_size = state->cfg->request_inspect_min_size;
+        window = state->cfg->request_inspect_window;
+    }
+
+    uint64_t max_window = ((min_size > window) ? min_size : window);
+    uint64_t in_flight = body->content_len_so_far - body->body_inspected;
+
+    /* Special case. If body_inspected is not being updated, we make sure that
+     * we prune the body. We allow for some extra size/room as we may be called
+     * multiple times on uninspected body chunk additions if a large block of
+     * data was ack'd at once. Want to avoid pruning before inspection. */
+    if (in_flight > (max_window * 3)) {
+        body->body_inspected = body->content_len_so_far - max_window;
+    } else if (body->body_inspected < max_window) {
         SCReturn;
     }
 
