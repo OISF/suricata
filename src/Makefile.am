@@ -366,6 +366,8 @@ util-logopenfile.h util-logopenfile.c \
 util-logopenfile-tile.h util-logopenfile-tile.c \
 util-lua.c util-lua.h \
 util-lua-common.c util-lua-common.h \
+util-lua-dnp3.c util-lua-dnp3.h \
+util-lua-dnp3-objects.c util-lua-dnp3-objects.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
 util-lua-tls.c util-lua-tls.h \
