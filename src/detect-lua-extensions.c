@@ -69,6 +69,7 @@
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
 #include "util-lua-smtp.h"
+#include "util-lua-dnp3.h"
 
 static const char luaext_key_ld[] = "suricata:luajitdata";
 static const char luaext_key_det_ctx[] = "suricata:det_ctx";
@@ -580,6 +581,7 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterTlsFunctions(lua_state);
     LuaRegisterSshFunctions(lua_state);
     LuaRegisterSmtpFunctions(lua_state);
+    LuaRegisterDNP3Functions(lua_state);
     return 0;
 }
 
