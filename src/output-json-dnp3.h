@@ -22,6 +22,6 @@
 
 json_t *JsonDNP3LogRequest(DNP3Transaction *);
 json_t *JsonDNP3LogResponse(DNP3Transaction *);
-void TmModuleJsonDNP3LogRegister(void);
+void JsonDNP3LogRegister(void);
 
 #endif /* __OUTPUT_JSON_DNP3_H__ */

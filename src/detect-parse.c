@@ -1604,6 +1604,9 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_DNP3_DATA_MATCH]) {
         sig->flags |= SIG_FLAG_STATE_MATCH;
     }
+    if (sig->sm_lists[DETECT_SM_LIST_DNP3_LUA_MATCH]) {
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    }
 
     /* Template. */
     if (sig->sm_lists[DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH]) {

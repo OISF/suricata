@@ -2536,6 +2536,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "dnp3_data";
         case DETECT_SM_LIST_DNP3_MATCH:
             return "dnp3";
+        case DETECT_SM_LIST_DNP3_LUA_MATCH:
+            return "dnp3 lua";
 
         case DETECT_SM_LIST_CIP_MATCH:
             return "cip";
