@@ -415,32 +415,19 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonDNP3LogRegister(void)
+void JsonDNP3LogRegister(void)
 {
-    tmm_modules[TMM_JSONDNP3LOG].name = "JsonDNP3Log";
-    tmm_modules[TMM_JSONDNP3LOG].ThreadInit = JsonDNP3LogThreadInit;
-    tmm_modules[TMM_JSONDNP3LOG].ThreadDeinit = JsonDNP3LogThreadDeinit;
-    tmm_modules[TMM_JSONDNP3LOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONDNP3LOG].cap_flags = 0;
-    tmm_modules[TMM_JSONDNP3LOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* Register as en eve sub-module. */
-    OutputRegisterTxSubModule("eve-log", "JsonDNP3Log", "eve-log.dnp3",
-        OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger);
+    OutputRegisterTxSubModule(LOGGER_JSON_DNP3, "eve-log", "JsonDNP3Log",
+        "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger,
+        JsonDNP3LogThreadInit, JsonDNP3LogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonDNP3LogRegister (void)
 {
     SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonDNP3LogRegister (void)
-{
-    tmm_modules[TMM_JSONDNP3LOG].name = "JsonDNP3Log";
-    tmm_modules[TMM_JSONDNP3LOG].ThreadInit = OutputJsonThreadInit;
 }
 
 #endif
