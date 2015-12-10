@@ -1812,6 +1812,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
     }
 
+    /* see if we can get rid of htp body chunks */
+    HtpBodyPrune(hstate, &tx_ud->request_body, STREAM_TOSERVER);
+
     SCLogDebug("tx_ud->request_body.content_len_so_far %"PRIu64, tx_ud->request_body.content_len_so_far);
     SCLogDebug("hstate->cfg->request_body_limit %u", hstate->cfg->request_body_limit);
 
@@ -1863,9 +1866,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
 end:
-    /* see if we can get rid of htp body chunks */
-    HtpBodyPrune(hstate, &tx_ud->request_body, STREAM_TOSERVER);
-
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
@@ -1911,6 +1911,9 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         tx_ud->operation = HTP_BODY_RESPONSE;
     }
 
+    /* see if we can get rid of htp body chunks */
+    HtpBodyPrune(hstate, &tx_ud->response_body, STREAM_TOCLIENT);
+
     SCLogDebug("tx_ud->response_body.content_len_so_far %"PRIu64, tx_ud->response_body.content_len_so_far);
     SCLogDebug("hstate->cfg->response_body_limit %u", hstate->cfg->response_body_limit);
 
@@ -1931,9 +1934,6 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
     }
-
-    /* see if we can get rid of htp body chunks */
-    HtpBodyPrune(hstate, &tx_ud->response_body, STREAM_TOCLIENT);
 
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
