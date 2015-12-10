@@ -107,20 +107,24 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     }
     switch (proto) {
         case IPPROTO_TCP:
-            json_object_set_new(djs, "tcpseq", json_integer(TCP_GET_SEQ(p)));
-            json_object_set_new(djs, "tcpack", json_integer(TCP_GET_ACK(p)));
-            json_object_set_new(djs, "tcpwin", json_integer(TCP_GET_WINDOW(p)));
-            json_object_set_new(djs, "syn", TCP_ISSET_FLAG_SYN(p) ? json_true() : json_false());
-            json_object_set_new(djs, "ack", TCP_ISSET_FLAG_ACK(p) ? json_true() : json_false());
-            json_object_set_new(djs, "psh", TCP_ISSET_FLAG_PUSH(p) ? json_true() : json_false());
-            json_object_set_new(djs, "rst", TCP_ISSET_FLAG_RST(p) ? json_true() : json_false());
-            json_object_set_new(djs, "urg", TCP_ISSET_FLAG_URG(p) ? json_true() : json_false());
-            json_object_set_new(djs, "fin", TCP_ISSET_FLAG_FIN(p) ? json_true() : json_false());
-            json_object_set_new(djs, "tcpres", json_integer(TCP_GET_RAW_X2(p->tcph)));
-            json_object_set_new(djs, "tcpurgp", json_integer(TCP_GET_URG_POINTER(p)));
+            if (PKT_IS_TCP(p)) {
+                json_object_set_new(djs, "tcpseq", json_integer(TCP_GET_SEQ(p)));
+                json_object_set_new(djs, "tcpack", json_integer(TCP_GET_ACK(p)));
+                json_object_set_new(djs, "tcpwin", json_integer(TCP_GET_WINDOW(p)));
+                json_object_set_new(djs, "syn", TCP_ISSET_FLAG_SYN(p) ? json_true() : json_false());
+                json_object_set_new(djs, "ack", TCP_ISSET_FLAG_ACK(p) ? json_true() : json_false());
+                json_object_set_new(djs, "psh", TCP_ISSET_FLAG_PUSH(p) ? json_true() : json_false());
+                json_object_set_new(djs, "rst", TCP_ISSET_FLAG_RST(p) ? json_true() : json_false());
+                json_object_set_new(djs, "urg", TCP_ISSET_FLAG_URG(p) ? json_true() : json_false());
+                json_object_set_new(djs, "fin", TCP_ISSET_FLAG_FIN(p) ? json_true() : json_false());
+                json_object_set_new(djs, "tcpres", json_integer(TCP_GET_RAW_X2(p->tcph)));
+                json_object_set_new(djs, "tcpurgp", json_integer(TCP_GET_URG_POINTER(p)));
+            }
             break;
         case IPPROTO_UDP:
-            json_object_set_new(djs, "udplen", json_integer(UDP_GET_LEN(p)));
+            if (PKT_IS_UDP(p)) {
+                json_object_set_new(djs, "udplen", json_integer(UDP_GET_LEN(p)));
+            }
             break;
         case IPPROTO_ICMP:
             if (PKT_IS_ICMPV4(p)) {
