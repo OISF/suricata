@@ -17,9 +17,10 @@
 
 #include "suricata-common.h"
 #include "stream.h"
-#include "app-layer-dnp3.h"
+#include "detect.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-dnp3.h"
+#include "app-layer-dnp3.h"
 
 static int DetectEngineInspectDNP3Obj(DetectDNP3 *detect,
     DNP3ObjectList *objects)
@@ -95,4 +96,34 @@ int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
     SCReturnInt(r);
+}
+
+int DetectEngineInspectDNP3Lua(ThreadVars *tv, DetectEngineCtx *de_ctx,
+    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+    void *alstate, void *txv, uint64_t tx_id)
+{
+    SCEnter();
+    int match = 0;
+
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_DNP3_LUA_MATCH];
+    if (smd != NULL) {
+        while (1) {
+            match = sigmatch_table[smd->type]
+                .AppLayerTxMatch(tv, det_ctx, f, flags, alstate, txv, s,
+                    smd->ctx);
+            if (match == 0) {
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            }
+            if (match == 2) {
+                return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+            }
+
+            if (smd->is_last) {
+                break;
+            }
+            smd++;
+        }
+    }
+
+    SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH);
 }
