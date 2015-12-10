@@ -15,18 +15,13 @@
  * 02110-1301, USA.
  */
 
-#ifndef __DETECT_ENGINE_DNP3_H__
-#define __DETECT_ENGINE_DNP3_H__
+#ifndef __UTIL_LUA_DNP3_H__
+#define __UTIL_LUA_DNP3_H__
 
-int DetectEngineInspectDNP3(ThreadVars *, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
-    uint64_t);
-int DetectEngineInspectDNP3Data(ThreadVars *, DetectEngineCtx *,
-    DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
-    uint64_t);
-int DetectEngineInspectDNP3Lua(ThreadVars *, DetectEngineCtx *,
-    DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
-    uint64_t);
-void DetectEngineInspectDNP3RegisterTests(void);
+#ifdef HAVE_LUA
 
-#endif /* !__DETECT_ENGINE_DNP3_H__ */
+int LuaRegisterDNP3Functions(lua_State *);
+
+#endif /* HAVE_LUA */
+
+#endif /* !__UTIL_LUA_DNP3_H__ */
