@@ -1195,14 +1195,15 @@ app-layer:
 
            # Can be specified in kb, mb, gb.  Just a number indicates
            # it's in bytes.
-           request-body-limit: 3072
-           response-body-limit: 3072
+           request-body-limit: 100kb
+           response-body-limit: 100kb
 
            # inspection limits
            request-body-minimal-inspect-size: 32kb
            request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 32kb
-           response-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 40kb
+           response-body-inspect-window: 16kb
+
            # Take a random value for inspection sizes around the specified value.
            # This lower the risk of some evasion technics but could lead
            # detection change between runs. It is set to 'yes' by default.
