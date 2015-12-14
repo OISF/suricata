@@ -538,7 +538,7 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
  *  \note filename is not a string, so it's not nul terminated.
  */
 File *FileOpenFile(FileContainer *ffc, const uint8_t *name, uint16_t name_len,
-        const uint8_t *data, uint32_t data_len, uint8_t flags)
+        const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -601,7 +601,7 @@ File *FileOpenFile(FileContainer *ffc, const uint8_t *name, uint16_t name_len,
 }
 
 static int FileCloseFilePtr(File *ff, const uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -677,7 +677,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
  *  \retval -1 error
  */
 int FileCloseFile(FileContainer *ffc, const uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
