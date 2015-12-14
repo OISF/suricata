@@ -137,7 +137,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     if ((smtp_config.content_limit == 0 ||
          curr_file->content_len_so_far < smtp_config.content_limit) &&
         curr_file->content_len_so_far < smtp_config.content_inspect_min_size &&
-        !(flags & STREAM_EOF)) {
+        !(flags & STREAM_EOF) && !(curr_file->state > FILE_STATE_OPENED)) {
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
                    "entire content.");
