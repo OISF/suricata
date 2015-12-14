@@ -1108,6 +1108,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int build_info = 0;
     int conf_test = 0;
     int engine_analysis = 0;
+    int set_log_directory = 0;
     int ret = TM_ECODE_OK;
 
 #ifdef UNITTESTS
@@ -1580,6 +1581,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                         "exist. Shutting down the engine.", optarg, optarg);
                 return TM_ECODE_FAILED;
             }
+            set_log_directory = 1;
+
             break;
         case 'q':
 #ifdef NFQ
@@ -1711,6 +1714,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
     if (suri->disabled_detect && suri->sig_file != NULL) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
+        return TM_ECODE_FAILED;
+    }
+
+    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
+        SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
         return TM_ECODE_FAILED;
     }
 
