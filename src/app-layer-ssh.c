@@ -52,6 +52,8 @@
 #include "util-byte.h"
 #include "util-memcmp.h"
 
+SC_ATOMIC_DECLARE(uint64_t, ssh_state_cnt);
+
 /** \internal
  *  \brief Function to parse the SSH version string of the client
  *
@@ -471,6 +473,8 @@ static void *SSHStateAlloc(void)
     if (unlikely(s == NULL))
         return NULL;
 
+    SC_ATOMIC_ADD(ssh_state_cnt, 1);
+
     memset(s, 0, sizeof(SshState));
     return s;
 }
@@ -512,6 +516,18 @@ static int SSHRegisterPatternsForProtocolDetection(void)
     return 0;
 }
 
+static uint64_t SSHStateGetStateCnt(void)
+{
+    uint64_t x = SC_ATOMIC_GET(ssh_state_cnt);
+    return x;
+}
+
+static void SSHRegisterCounter(void)
+{
+    SC_ATOMIC_INIT(ssh_state_cnt);
+    StatsRegisterGlobalCounter("app-layer.ssh", SSHStateGetStateCnt);
+}
+
 /** \brief Function to register the SSH protocol parsers and other functions
  */
 void RegisterSSHParsers(void)
@@ -532,6 +548,7 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
+        SSHRegisterCounter();
     } else {
 //        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
 //                  "still on.", proto_name);
