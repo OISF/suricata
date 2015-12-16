@@ -259,7 +259,9 @@ typedef struct ICMPV4Vars_
  *
  *  \warning use only _after_ the decoder has processed the packet
  */
-#define ICMPV4_DEST_UNREACH_IS_VALID(p) (((p)->icmpv4h != NULL) && \
+#define ICMPV4_DEST_UNREACH_IS_VALID(p) ( \
+    (!((p)->flags & PKT_IS_INVALID)) && \
+    ((p)->icmpv4h != NULL) && \
     (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && \
     (ICMPV4_GET_EMB_IPV4((p)) != NULL) && \
     ((ICMPV4_GET_EMB_TCP((p)) != NULL) || \
