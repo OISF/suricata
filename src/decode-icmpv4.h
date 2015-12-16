@@ -179,8 +179,6 @@ typedef struct ICMPV4Vars_
 {
     uint16_t  id;
     uint16_t  seq;
-    uint32_t  mtu;
-    uint32_t  error_ptr;
 
     /** Pointers to the embedded packet headers */
     IPV4Hdr *emb_ipv4h;
@@ -203,8 +201,6 @@ typedef struct ICMPV4Vars_
     (p)->level4_comp_csum = -1; \
     (p)->icmpv4vars.id = 0; \
     (p)->icmpv4vars.seq = 0; \
-    (p)->icmpv4vars.mtu = 0; \
-    (p)->icmpv4vars.error_ptr = 0; \
     (p)->icmpv4vars.emb_ipv4h = NULL; \
     (p)->icmpv4vars.emb_tcph = NULL; \
     (p)->icmpv4vars.emb_udph = NULL; \
