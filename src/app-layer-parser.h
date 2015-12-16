@@ -154,8 +154,8 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
                                           void *local_data);
 
 
-uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate);
-void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate);
+uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate, uint8_t direction);
+void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate, uint8_t direction);
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                 const uint8_t ipproto, const AppProto alproto, void *alstate,

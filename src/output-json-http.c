@@ -365,7 +365,7 @@ static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, ui
     json_object_set_new(js, "http", hjs);
 }
 
-static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -591,11 +591,11 @@ void TmModuleJsonHttpLogRegister (void)
 
     /* register as separate module */
     OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,
-            ALPROTO_HTTP, JsonHttpLogger);
+            ALPROTO_HTTP, JsonHttpLogger, 0);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "eve-log.http", OutputHttpLogInitSub,
-            ALPROTO_HTTP, JsonHttpLogger);
+            ALPROTO_HTTP, JsonHttpLogger, 0);
 }
 
 #else
