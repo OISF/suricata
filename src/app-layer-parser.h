@@ -146,6 +146,9 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
+void AppLayerParserRegisterTxLogStateFuncs(uint8_t ipproto, AppProto alproto,
+    int (*GetTxIsLogged)(void *tx, uint8_t direction),
+    void (*SetTxIsLogged)(void *tx, uint8_t direction));
 
 /***** Get and transaction functions *****/
 
@@ -184,6 +187,9 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
+int AppLayerParserSupportsTxLogState(uint8_t ipproto, AppProto alproto);
+int AppLayerParserGetTxIsLogged(uint8_t ipproto, AppProto alproto, void *tx, uint8_t direction);
+void AppLayerParserSetTxIsLogged(uint8_t ipproto, AppProto alproto, void *tx, uint8_t direction);
 
 /***** General *****/
 

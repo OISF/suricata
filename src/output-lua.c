@@ -91,7 +91,7 @@ typedef struct LogLuaThreadCtx_ {
  *
  * NOTE: The flow (f) also referenced by p->flow is locked.
  */
-static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 

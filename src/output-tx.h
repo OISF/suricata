@@ -29,7 +29,7 @@
 #include "decode.h"
 
 /** packet logger function pointer type */
-typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f, uint8_t flags, void *state, void *tx, uint64_t tx_id);
 
 /** packet logger condition function pointer type,
  *  must return true for packets that should be logged
