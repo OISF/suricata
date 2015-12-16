@@ -243,12 +243,13 @@ static int LogDropLogNetFilter (ThreadVars *tv, const Packet *p, void *data)
                     UDP_GET_DST_PORT(p), UDP_GET_LEN(p));
             break;
         case IPPROTO_ICMP:
+        case IPPROTO_ICMPV6:
             if (PKT_IS_ICMPV4(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV4_GET_TYPE(p),
                         ICMPV4_GET_CODE(p), ICMPV4_GET_ID(p), ICMPV4_GET_SEQ(p));
-            } else if(PKT_IS_ICMPV6(p)) {
-                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu16" CODE=%"PRIu16""
+            } else if (PKT_IS_ICMPV6(p)) {
+                fprintf(dlt->file_ctx->fp, " TYPE=%"PRIu8" CODE=%"PRIu8
                         " ID=%"PRIu16" SEQ=%"PRIu16"", ICMPV6_GET_TYPE(p),
                         ICMPV6_GET_CODE(p), ICMPV6_GET_ID(p), ICMPV6_GET_SEQ(p));
             }
