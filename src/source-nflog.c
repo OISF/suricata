@@ -330,6 +330,7 @@ TmEcode ReceiveNFLOGThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->datalen = T_DATA_SIZE;
 #undef T_DATA_SIZE
 
+    LiveDeviceIfaceWasSeen(ntv->livedev);
     *data = (void *)ntv;
 
     nflconfig->DerefFunc(nflconfig);
