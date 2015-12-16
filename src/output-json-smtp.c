@@ -82,7 +82,7 @@ static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_
     return sjs;
 }
 
-static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
