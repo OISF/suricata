@@ -896,7 +896,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         /** If the client has a wscale option the server had it too,
          *  so set the wscale for the server to max. Otherwise none
          *  will have the wscale opt just like it should. */
-        if (p->tcpvars.ws != NULL) {
+        if (TCP_HAS_WSCALE(p)) {
             ssn->client.wscale = TCP_GET_WSCALE(p);
             ssn->server.wscale = TCP_WSCALE_MAX;
         }
@@ -912,7 +912,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
         /* Set the timestamp value for both streams, if packet has timestamp
          * option enabled.*/
-        if (p->tcpvars.ts != NULL) {
+        if (TCP_HAS_TS(p)) {
             ssn->server.last_ts = TCP_GET_TSVAL(p);
             ssn->client.last_ts = TCP_GET_TSECR(p);
             SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
@@ -963,10 +963,9 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
         /* Set the stream timestamp value, if packet has timestamp option
          * enabled. */
-        if (p->tcpvars.ts != NULL) {
+        if (TCP_HAS_TS(p)) {
             ssn->client.last_ts = TCP_GET_TSVAL(p);
-            SCLogDebug("ssn %p: p->tcpvars.ts %p, %02x", ssn, p->tcpvars.ts,
-                    ssn->client.last_ts);
+            SCLogDebug("ssn %p: %02x", ssn, ssn->client.last_ts);
 
             if (ssn->client.last_ts == 0)
                 ssn->client.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
@@ -976,7 +975,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         }
 
         ssn->server.window = TCP_GET_WINDOW(p);
-        if (p->tcpvars.ws != NULL) {
+        if (TCP_HAS_WSCALE(p)) {
             ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
             ssn->server.wscale = TCP_GET_WSCALE(p);
         }
@@ -1041,7 +1040,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
         /* Set the timestamp value for both streams, if packet has timestamp
          * option enabled.*/
-        if (p->tcpvars.ts != NULL) {
+        if (TCP_HAS_TS(p)) {
             ssn->client.last_ts = TCP_GET_TSVAL(p);
             ssn->server.last_ts = TCP_GET_TSECR(p);
             SCLogDebug("ssn %p: ssn->server.last_ts %" PRIu32" "
@@ -1089,11 +1088,11 @@ static inline void StreamTcp3whsSynAckToStateQueue(Packet *p, TcpStateQueue *q)
     if (TCP_GET_SACKOK(p) == 1)
         q->flags |= STREAMTCP_QUEUE_FLAG_SACK;
 
-    if (p->tcpvars.ws != NULL) {
+    if (TCP_HAS_WSCALE(p)) {
         q->flags |= STREAMTCP_QUEUE_FLAG_WS;
         q->wscale = TCP_GET_WSCALE(p);
     }
-    if (p->tcpvars.ts != NULL) {
+    if (TCP_HAS_TS(p)) {
         q->flags |= STREAMTCP_QUEUE_FLAG_TS;
         q->ts = TCP_GET_TSVAL(p);
     }
@@ -1363,7 +1362,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             /* Set the timestamp values used to validate the timestamp of
              * received packets. */
-            if ((p->tcpvars.ts != NULL) &&
+            if ((TCP_HAS_TS(p)) &&
                     (ssn->server.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
             {
                 ssn->client.last_ts = TCP_GET_TSVAL(p);
@@ -1386,7 +1385,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             /** check for the presense of the ws ptr to determine if we
              *  support wscale at all */
             if ((ssn->flags & STREAMTCP_FLAG_SERVER_WSCALE) &&
-                    (p->tcpvars.ws != NULL))
+                    (TCP_HAS_WSCALE(p)))
             {
                 ssn->server.wscale = TCP_GET_WSCALE(p);
             } else {
@@ -1462,10 +1461,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             /* Set the stream timestamp value, if packet has timestamp
              * option enabled. */
-            if (p->tcpvars.ts != NULL) {
+            if (TCP_HAS_TS(p)) {
                 ssn->server.last_ts = TCP_GET_TSVAL(p);
-                SCLogDebug("ssn %p: p->tcpvars.ts %p, %02x", ssn,
-                        p->tcpvars.ts, ssn->server.last_ts);
+                SCLogDebug("ssn %p: %02x", ssn, ssn->server.last_ts);
 
                 if (ssn->server.last_ts == 0)
                     ssn->server.flags |= STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP;
@@ -1474,7 +1472,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             }
 
             ssn->server.window = TCP_GET_WINDOW(p);
-            if (p->tcpvars.ws != NULL) {
+            if (TCP_HAS_WSCALE(p)) {
                 ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
                 ssn->server.wscale = TCP_GET_WSCALE(p);
             } else {
@@ -1551,7 +1549,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
         /* Set the timestamp values used to validate the timestamp of
          * received packets.*/
-        if (p->tcpvars.ts != NULL &&
+        if (TCP_HAS_TS(p) &&
                 (ssn->client.flags & STREAMTCP_STREAM_FLAG_TIMESTAMP))
         {
             ssn->flags |= STREAMTCP_FLAG_TIMESTAMP;
@@ -5370,7 +5368,7 @@ static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
         StreamTcpSetOSPolicy(receiver_stream, p);
     }
 
-    if (p->tcpvars.ts != NULL) {
+    if (TCP_HAS_TS(p)) {
         uint32_t ts = TCP_GET_TSVAL(p);
         uint32_t last_pkt_ts = sender_stream->last_pkt_ts;
         uint32_t last_ts = sender_stream->last_ts;
@@ -5512,7 +5510,7 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
         StreamTcpSetOSPolicy(receiver_stream, p);
     }
 
-    if (p->tcpvars.ts != NULL) {
+    if (TCP_HAS_TS(p)) {
         uint32_t ts = TCP_GET_TSVAL(p);
 
         if (sender_stream->flags & STREAMTCP_STREAM_FLAG_ZERO_TIMESTAMP) {
@@ -6466,8 +6464,6 @@ static int StreamTcpTest07 (void)
     StreamTcpThread stt;
     TCPHdr tcph;
     uint8_t payload[1] = {0x42};
-    TCPVars tcpvars;
-    TCPOpt ts;
     uint32_t data[2];
     PacketQueue pq;
 
@@ -6477,8 +6473,6 @@ static int StreamTcpTest07 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof(StreamTcpThread));
     memset(&tcph, 0, sizeof(TCPHdr));
-    memset(&tcpvars, 0, sizeof(TCPVars));
-    memset(&ts, 0, sizeof(TCPOpt));
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
@@ -6500,11 +6494,9 @@ static int StreamTcpTest07 (void)
     data[0] = htonl(10);
     data[1] = htonl(11);
 
-    ts.type = TCP_OPT_TS;
-    ts.len = 10;
-    ts.data = (uint8_t *)data;
-    tcpvars.ts = &ts;
-    p->tcpvars = tcpvars;
+    p->tcpvars.ts.type = TCP_OPT_TS;
+    p->tcpvars.ts.len = 10;
+    p->tcpvars.ts.data = (uint8_t *)data;
 
     p->payload = payload;
     p->payload_len = 1;
@@ -6519,7 +6511,7 @@ static int StreamTcpTest07 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
 
     data[0] = htonl(2);
-    p->tcpvars.ts->data = (uint8_t *)data;
+    p->tcpvars.ts.data = (uint8_t *)data;
 
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
         if (((TcpSession *) (p->flow->protoctx))->client.next_seq != 11) {
@@ -6558,8 +6550,6 @@ static int StreamTcpTest08 (void)
     StreamTcpThread stt;
     TCPHdr tcph;
     uint8_t payload[1] = {0x42};
-    TCPVars tcpvars;
-    TCPOpt ts;
     uint32_t data[2];
 
     memset(p, 0, SIZE_OF_PACKET);
@@ -6569,8 +6559,6 @@ static int StreamTcpTest08 (void)
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof(StreamTcpThread));
     memset(&tcph, 0, sizeof(TCPHdr));
-    memset(&tcpvars, 0, sizeof(TCPVars));
-    memset(&ts, 0, sizeof(TCPOpt));
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
@@ -6592,11 +6580,9 @@ static int StreamTcpTest08 (void)
     data[0] = htonl(10);
     data[1] = htonl(11);
 
-    ts.type = TCP_OPT_TS;
-    ts.len = 10;
-    ts.data = (uint8_t *)data;
-    tcpvars.ts = &ts;
-    p->tcpvars = tcpvars;
+    p->tcpvars.ts.type = TCP_OPT_TS;
+    p->tcpvars.ts.len = 10;
+    p->tcpvars.ts.data = (uint8_t *)data;
 
     p->payload = payload;
     p->payload_len = 1;
@@ -6611,7 +6597,7 @@ static int StreamTcpTest08 (void)
     p->flowflags = FLOW_PKT_TOSERVER;
 
     data[0] = htonl(12);
-    p->tcpvars.ts->data = (uint8_t *)data;
+    p->tcpvars.ts.data = (uint8_t *)data;
 
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
