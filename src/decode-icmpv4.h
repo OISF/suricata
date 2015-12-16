@@ -236,13 +236,6 @@ typedef struct ICMPV4Vars_
 
 /* If message is Error */
 
-/** macro for icmpv4 "unused" access */
-#define ICMPV4_GET_UNUSED(p)       (p)->icmpv4h->icmpv4b.icmpv4e.unused
-/** macro for icmpv4 "error_ptr" access */
-#define ICMPV4_GET_ERROR_PTR(p)    (p)->icmpv4h->icmpv4b.icmpv4e.error_ptr
-/** macro for icmpv4 "mtu" access */
-#define ICMPV4_GET_MTU(p)          (p)->icmpv4h->icmpv4b.icmpv4e.mtu
-
 /** macro for icmpv4 embedded "protocol" access */
 #define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip4_proto
 /** macro for icmpv4 embedded "ipv4h" header access */
@@ -281,9 +274,6 @@ typedef struct ICMPV4Vars_
         ICMPV4_GET_TYPE((p)) == ICMP_REDIRECT || \
         ICMPV4_GET_TYPE((p)) == ICMP_TIME_EXCEEDED || \
         ICMPV4_GET_TYPE((p)) == ICMP_PARAMETERPROB)
-
-typedef struct ICMPV4Cache_ {
-} ICMPV4Cache;
 
 void DecodeICMPV4RegisterTests(void);
 
