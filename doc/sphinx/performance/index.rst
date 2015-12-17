@@ -5,3 +5,4 @@ Performance
 
    high-performance-config
    tuning-considerations
+   statistics
