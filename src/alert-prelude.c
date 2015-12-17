@@ -752,8 +752,8 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     }
 
     ret = SetupAnalyzer(prelude_client_get_analyzer(client));
-    if(ret < 0) {
-              SCLogDebug("Unable to setup prelude client analyzer.");
+    if (ret < 0) {
+        SCLogDebug("Unable to setup prelude client analyzer.");
         prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
