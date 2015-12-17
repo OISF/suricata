@@ -9,3 +9,4 @@ Suricata User Guide
    command-line-options
    snort-compatibility
    rules/index.rst
+   oinkmaster
