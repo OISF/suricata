@@ -7,3 +7,4 @@ Performance
    tuning-considerations
    statistics
    packet-profiling
+   rule-profiling
