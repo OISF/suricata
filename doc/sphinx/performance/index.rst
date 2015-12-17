@@ -8,3 +8,4 @@ Performance
    statistics
    packet-profiling
    rule-profiling
+   runmodes
