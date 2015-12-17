@@ -10,3 +10,4 @@ Performance
    rule-profiling
    runmodes
    tcmalloc
+   ignoring-traffic
