@@ -11,3 +11,4 @@ Suricata User Guide
    rules/index.rst
    oinkmaster
    make-sense-alerts
+   performance/index.rst
