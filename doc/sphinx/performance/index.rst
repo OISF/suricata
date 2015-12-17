@@ -9,3 +9,4 @@ Performance
    packet-profiling
    rule-profiling
    runmodes
+   tcmalloc
