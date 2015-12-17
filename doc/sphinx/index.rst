@@ -10,4 +10,4 @@ Suricata User Guide
    snort-compatibility
    rules/index.rst
    oinkmaster
-   
+   make-sense-alerts
