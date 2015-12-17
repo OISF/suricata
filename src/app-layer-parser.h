@@ -27,6 +27,7 @@
 
 #include "app-layer-events.h"
 #include "detect-engine-state.h"
+#include "output.h"
 #include "util-file.h"
 
 #define APP_LAYER_PARSER_EOF                    0x01
@@ -146,6 +147,9 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
+void AppLayerParserRegisterOutputTxStateFuncs(uint8_t ipproto, AppProto alproto,
+    OutputTxState *(*GetTxOutputState)(void *tx),
+    void (*SetTxOutputState)(void *tx, OutputTxState *));
 
 /***** Get and transaction functions *****/
 
@@ -184,6 +188,9 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
+int AppLayerParserSupportsTxOutputState(uint8_t ipproto, AppProto alproto);
+OutputTxState *AppLayerParserGetTxOutputState(uint8_t ipproto, AppProto alproto, void *tx);
+int AppLayerParserSetTxOutputState(uint8_t ipproto, AppProto alproto, void *tx, OutputTxState *s);
 
 /***** General *****/
 

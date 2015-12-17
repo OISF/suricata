@@ -25,6 +25,7 @@
 #define __OUTPUT_H__
 
 #include "suricata.h"
+#include "conf.h"
 #include "tm-threads.h"
 
 #define DEFAULT_LOG_MODE_APPEND     "yes"
@@ -64,6 +65,13 @@ typedef struct OutputModule_ {
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
+
+#define OUTPUT_TX_STATE_FLAG_TOSERVER_LOGGED 0x01
+#define OUTPUT_TX_STATE_FLAG_TOCLIENT_LOGGED 0x02
+
+typedef struct OutputTxState_ {
+    uint8_t flags;
+} OutputTxState;
 
 void OutputRegisterModule(const char *, const char *, OutputCtx *(*)(ConfNode *));
 

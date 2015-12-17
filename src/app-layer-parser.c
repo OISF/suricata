@@ -68,6 +68,8 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
+#include "output-tx.h"
+
 #include "runmodes.h"
 
 static GetActiveTxIdFunc AppLayerGetActiveTxIdFuncPtr = NULL;
@@ -110,6 +112,9 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateHasTxDetectState)(void *alstate);
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
+
+    void (*SetTxOutputState)(void *tx, OutputTxState *);
+    OutputTxState *(*GetTxOutputState)(void *tx);
 
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
@@ -486,6 +491,18 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+void AppLayerParserRegisterOutputTxStateFuncs(uint8_t ipproto, AppProto alproto,
+    OutputTxState *(*GetTxOutputState)(void *tx),
+    void (*SetTxOutputState)(void *tx, OutputTxState *))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxOutputState = GetTxOutputState;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxOutputState = SetTxOutputState;
+
+    SCReturn;
+}
+
 /***** Get and transaction functions *****/
 
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
@@ -854,6 +871,32 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
         SCReturnInt(-EBUSY);
     r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(alstate, tx, s);
     SCReturnInt(r);
+}
+
+int AppLayerParserSupportsTxOutputState(uint8_t ipproto, AppProto alproto)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxOutputState != NULL)
+        return TRUE;
+    return FALSE;
+}
+
+OutputTxState *AppLayerParserGetTxOutputState(uint8_t ipproto, AppProto alproto,
+    void *tx)
+{
+    SCEnter();
+    OutputTxState *s;
+    s = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxOutputState(tx);
+    SCReturnPtr(s, "OutputTxState");
+}
+
+int AppLayerParserSetTxOutputState(uint8_t ipproto, AppProto alproto,
+    void *tx, OutputTxState *s)
+{
+    SCEnter();
+    if ((alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxOutputState(tx) != NULL))
+        SCReturnInt(-EBUSY);
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxOutputState(tx, s);
+    SCReturnInt(1);
 }
 
 /***** General *****/

@@ -87,6 +87,37 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     return 0;
 }
 
+static OutputTxState *OutputTxGetState(uint8_t proto, AppProto alproto,
+    void *tx)
+{
+    OutputTxState *state = NULL;
+
+    if (!AppLayerParserSupportsTxOutputState(proto, alproto)) {
+        return NULL;
+    }
+
+    state = AppLayerParserGetTxOutputState(proto, alproto, tx);
+    if (state == NULL) {
+        state = SCCalloc(1, sizeof(*state));
+        if (state != NULL) {
+            AppLayerParserSetTxOutputState(proto, alproto, tx, state);
+        }
+    }
+
+    return state;
+}
+
+static int OutputTxIsLogged(OutputTxState *state, uint8_t direction)
+{
+    if (direction & STREAM_TOSERVER) {
+        return state->flags & OUTPUT_TX_STATE_FLAG_TOSERVER_LOGGED;
+    }
+    else if (direction & STREAM_TOCLIENT) {
+        return state->flags & OUTPUT_TX_STATE_FLAG_TOCLIENT_LOGGED;
+    }
+    return 0;
+}
+
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
     BUG_ON(thread_data == NULL);
@@ -147,6 +178,8 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
             continue;
         }
 
+        OutputTxState *tx_state = OutputTxGetState(p->proto, alproto, tx);
+
         if (!(AppLayerParserStateIssetFlag(f->alparser, APP_LAYER_PARSER_EOF)))
         {
                 tx_progress = AppLayerParserGetStateProgress(p->proto, alproto,
@@ -166,6 +199,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
             break;
         }
 
+#if 0
         /* Prevent the processing of one direction getting farther
          * ahead than the other.
          *
@@ -184,6 +218,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         if (ts_ready && tx_id > tx_id_ts) {
             break;
         }
+#endif
 
         // call each logger here (pseudo code)
         logger = list;
@@ -210,14 +245,27 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
                     "ts_ready: %d; tc_ready: %d; tx_id: %"PRIu64"; "
                     "tx_id_ts: %"PRIu64"; tx_id_tc: %"PRIu64,
                     ts_ready, tc_ready, tx_id, tx_id_ts, tx_id_tc);
-                if (ts_ready && tx_id_ts <= tx_id) {
-                    logger->LogFunc(tv, store->thread_data, p, f,
-                        STREAM_TOSERVER, alstate, tx, tx_id);
+                if (!OutputTxIsLogged(tx_state, STREAM_TOSERVER)) {
+                    if (ts_ready) {
+                        logger->LogFunc(tv, store->thread_data, p, f,
+                            STREAM_TOSERVER, alstate, tx, tx_id);
+                        ts_logged = 1;
+                    }
+                }
+                else {
+                    /* Already logged, but perhaps bookkeeping is required. */
                     ts_logged = 1;
                 }
-                if (tc_ready && tx_id_tc <= tx_id) {
-                    logger->LogFunc(tv, store->thread_data, p, f,
-                        STREAM_TOCLIENT, alstate, tx, tx_id);
+                    
+                if (!OutputTxIsLogged(tx_state, STREAM_TOCLIENT)) {
+                    if (tc_ready) {
+                        logger->LogFunc(tv, store->thread_data, p, f,
+                            STREAM_TOCLIENT, alstate, tx, tx_id);
+                        tc_logged = 1;
+                    }
+                }
+                else {
+                    /* Already logged, but perhaps bookkeeping is required. */
                     tc_logged = 1;
                 }
                 PACKET_PROFILING_TMM_END(p, logger->module_id);
@@ -233,11 +281,29 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
         if (ts_logged) {
             SCLogDebug("updating log tx_id_ts %ju", tx_id);
-            AppLayerParserSetTransactionLogId(f->alparser, STREAM_TOSERVER);
+            if (tx_state != NULL) {
+                tx_state->flags |= OUTPUT_TX_STATE_FLAG_TOSERVER_LOGGED;
+                if (tx_id == tx_id_ts) {
+                    AppLayerParserSetTransactionLogId(f->alparser,
+                        STREAM_TOSERVER);
+                }
+            }
+            else {
+                AppLayerParserSetTransactionLogId(f->alparser, STREAM_TOSERVER);
+            }                
         }
         if (tc_logged) {
             SCLogDebug("updating log tx_id_tc %ju", tx_id);
-            AppLayerParserSetTransactionLogId(f->alparser, STREAM_TOCLIENT);
+            if (tx_state != NULL) {
+                tx_state->flags |= OUTPUT_TX_STATE_FLAG_TOCLIENT_LOGGED;
+                if (tx_id == tx_id_tc) {
+                    AppLayerParserSetTransactionLogId(f->alparser,
+                        STREAM_TOCLIENT);
+                }
+            }
+            else {
+                AppLayerParserSetTransactionLogId(f->alparser, STREAM_TOCLIENT);
+            }
         }
     }
 
