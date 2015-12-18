@@ -657,6 +657,8 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
     if (unlikely(idmef_analyzer_new(&aun->analyzer) < 0)) {
         SCLogError(SC_ERR_INITIALIZATION,
                    "Error creating idmef analyzer for Prelude.");
+
+        SCFree(aun);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -664,6 +666,9 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
     if (unlikely(SetupAnalyzer(aun->analyzer) < 0)) {
         SCLogError(SC_ERR_INITIALIZATION,
                    "Error configuring idmef analyzer for Prelude.");
+
+        idmef_analyzer_destroy(aun->analyzer);
+        SCFree(aun);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
