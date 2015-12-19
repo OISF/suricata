@@ -538,7 +538,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 }
 
 #ifdef HAVE_LIBHIREDIS
-static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_len)
+static int  LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t string_len)
 {
     if (file_ctx->redis == NULL) {
         SCConfLogReopenRedis(file_ctx);
