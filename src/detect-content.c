@@ -65,12 +65,6 @@ void DetectContentRegister (void)
     sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
 }
 
-/* pass on the content_max_id */
-uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx)
-{
-    return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
-}
-
 /**
  *  \brief Parse a content string, ie "abc|DE|fgh"
  *
@@ -2545,7 +2539,7 @@ static int SigTest76TestBug134(void)
     char sig[] = "alert tcp any any -> any 515 "
             "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
             " depth:50; offset:0; sid:900091; rev:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
     }
@@ -2572,7 +2566,7 @@ static int SigTest77TestBug139(void)
     char sig[] = "alert udp any any -> any 53 (msg:\"dns testing\";"
                     " content:\"|00 00|\"; depth:5; offset:13; sid:9436601;"
                     " rev:1;)";
-    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
         goto end;
     }

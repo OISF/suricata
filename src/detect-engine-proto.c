@@ -162,7 +162,7 @@ error:
  *  \param proto protocol (such as IPPROTO_TCP) to look for
  *  \retval 0 protocol not in the set
  *  \retval 1 protocol is in the set */
-int DetectProtoContainsProto(DetectProto *dp, int proto)
+int DetectProtoContainsProto(const DetectProto *dp, int proto)
 {
     if (dp->flags & DETECT_PROTO_ANY)
         return 1;
