@@ -858,6 +858,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
+        SCFree(utd);
         if (failure_fatal) {
             exit(EXIT_FAILURE);
         } else {
