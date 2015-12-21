@@ -1,3 +1,12 @@
+3.0RC3 -- 2015-12-21
+
+Bug #1632: Fail to download large file with browser
+Bug #1634: Fix non thread safeness of Prelude analyzer
+Bug #1640: drop log crashes
+Bug #1645: Race condition in unix manager
+Bug #1647: FlowGetKey flow-hash.c:240 segmentation fault (master)
+Bug #1650: DER parsing issue (master)
+
 3.0RC2 -- 2015-12-08
 
 Bug #1551: --enable-profiling-locks broken
