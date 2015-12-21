@@ -160,7 +160,7 @@ error:
 void
 OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-    TxLogger TxLogFunc)
+    TxLogger TxLogFunc, int directional)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -176,6 +176,7 @@ OutputRegisterTxModule(const char *name, const char *conf_name,
     module->InitFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
     module->alproto = alproto;
+    module->directional = directional;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Tx logger \"%s\" registered.", name);
@@ -188,7 +189,7 @@ error:
 void
 OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc)
+    AppProto alproto, TxLogger TxLogFunc, int directional)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -205,6 +206,7 @@ OutputRegisterTxSubModule(const char *parent_name, const char *name,
     module->InitSubFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
     module->alproto = alproto;
+    module->directional = directional;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Tx logger \"%s\" registered.", name);

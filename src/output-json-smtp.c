@@ -83,7 +83,7 @@ static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_
     return sjs;
 }
 
-static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
     JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
@@ -268,15 +268,12 @@ void TmModuleJsonSmtpLogRegister (void) {
     tmm_modules[TMM_JSONSMTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log",
-                               OutputSmtpLogInit, ALPROTO_SMTP,
-                               JsonSmtpLogger);
+    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log", OutputSmtpLogInit,
+        ALPROTO_SMTP, JsonSmtpLogger, 0);
 
     /* also register as child of eve-log */
-    OutputRegisterTxSubModule("eve-log", "JsonSmtpLog",
-                                  "eve-log.smtp",
-                                  OutputSmtpLogInitSub, ALPROTO_SMTP,
-                                  JsonSmtpLogger);
+    OutputRegisterTxSubModule("eve-log", "JsonSmtpLog", "eve-log.smtp",
+        OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger, 0);
 }
 
 #else

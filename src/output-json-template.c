@@ -53,7 +53,7 @@ typedef struct LogTemplateLogThread_ {
 } LogTemplateLogThread;
 
 static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
-    const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+    const Packet *p, Flow *f, uint8_t flags, void *state, void *tx, uint64_t tx_id)
 {
     TemplateTransaction *templatetx = tx;
     LogTemplateLogThread *thread = thread_data;
@@ -193,7 +193,7 @@ void TmModuleJsonTemplateLogRegister(void)
 
     /* Register as an eve sub-module. */
     OutputRegisterTxSubModule("eve-log", "JsonTemplateLog", "eve-log.template",
-        OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonTemplateLogger);
+        OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonTemplateLogger, 0);
 
     SCLogNotice("Template JSON logger registered.");
 }

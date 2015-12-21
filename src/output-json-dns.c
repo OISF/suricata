@@ -250,7 +250,7 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
 }
 
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -426,9 +426,9 @@ void TmModuleJsonDnsLogRegister (void)
     tmm_modules[TMM_JSONDNSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
-            ALPROTO_DNS, JsonDnsLogger);
+            ALPROTO_DNS, JsonDnsLogger, 0);
     OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub,
-            ALPROTO_DNS, JsonDnsLogger);
+            ALPROTO_DNS, JsonDnsLogger, 0);
 }
 
 #else

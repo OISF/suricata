@@ -25,6 +25,7 @@
 #define __OUTPUT_H__
 
 #include "suricata.h"
+#include "conf.h"
 #include "tm-threads.h"
 
 #define DEFAULT_LOG_MODE_APPEND     "yes"
@@ -56,8 +57,21 @@ typedef struct OutputModule_ {
     AppProto alproto;
     enum OutputStreamingType stream_type;
 
+    /* If module is a tx logger, and directional is true, the
+     * TxLogFunc will be called per direction when each direction is
+     * complete rather than waiting for both sides of the Tx to be
+     * complete. */
+    int directional;
+
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
+
+#define OUTPUT_TX_STATE_FLAG_TOSERVER_LOGGED 0x01
+#define OUTPUT_TX_STATE_FLAG_TOCLIENT_LOGGED 0x02
+
+typedef struct OutputTxState_ {
+    uint8_t flags;
+} OutputTxState;
 
 void OutputRegisterModule(const char *, const char *, OutputCtx *(*)(ConfNode *));
 
@@ -70,10 +84,10 @@ void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
 
 void OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-    TxLogger TxLogFunc);
+    TxLogger TxLogFunc, int directional);
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc);
+    AppProto alproto, TxLogger TxLogFunc, int directional);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);

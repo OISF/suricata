@@ -61,7 +61,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 void LogHttpLogExitPrintStats(ThreadVars *, void *);
 static void LogHttpLogDeInitCtx(OutputCtx *);
 
-int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
+int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, uint8_t flags, void *state, void *tx, uint64_t tx_id);
 
 void TmModuleLogHttpLogRegister (void)
 {
@@ -74,7 +74,7 @@ void TmModuleLogHttpLogRegister (void)
     tmm_modules[TMM_LOGHTTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "http-log", LogHttpLogInitCtx,
-            ALPROTO_HTTP, LogHttpLogger);
+            ALPROTO_HTTP, LogHttpLogger, 0);
 }
 
 #define LOG_HTTP_MAXN_NODES 64
@@ -515,7 +515,8 @@ end:
 
 }
 
-int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
+int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+    uint8_t flags, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
 
