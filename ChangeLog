@@ -1,3 +1,14 @@
+2.0.11 -- 2015-12-21
+
+Bug #1572: 2.0.8 FlowGetKey flow-hash.c:240 segmentation fault (icmp destination unreachable)
+Bug #1637: drop log crashes
+Bug #1639: 2.0.x: Fix non thread safeness of Prelude analyzer
+Bug #1649: DER parsing issue
+Bug #1651: HTTP body tracking using excessive memory
+Bug #1652: SMTP parsing issue (2.0.x)
+Bug #1653: DNS over TCP parsing issue (2.0.x)
+Bug #1654: TCP reassembly bug (2.0.x)
+
 2.0.10 -- 2015-11-25
 
 Bug #1554: stored: false in files log when files were actually stored
