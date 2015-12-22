@@ -511,6 +511,12 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
         SCReturnInt(-2);
     }
 
+    /* check if file reassembly size is less than file size */
+    if (FileReassemblyDepth() != 0 &&
+        FileReassemblyDepth() < ffc->tail->size) {
+        SCReturnInt(-2);
+    }
+
     SCLogDebug("appending %"PRIu32" bytes", data_len);
 
     FileData *ffd = FileDataAlloc(data, data_len);
