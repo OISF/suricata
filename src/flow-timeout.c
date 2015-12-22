@@ -220,7 +220,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         } else {
             p->tcph->th_seq = htonl(ssn->client.next_seq);
             p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                    ssn->server.seg_list_tail->payload_len);
+                                    TCP_SEG_LEN(ssn->server.seg_list_tail));
         }
 
         /* to client */
@@ -234,7 +234,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         } else {
             p->tcph->th_seq = htonl(ssn->server.next_seq);
             p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                    ssn->client.seg_list_tail->payload_len);
+                                    TCP_SEG_LEN(ssn->client.seg_list_tail));
         }
     }
 

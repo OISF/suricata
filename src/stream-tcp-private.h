@@ -27,6 +27,7 @@
 #include "decode.h"
 #include "util-pool.h"
 #include "util-pool-thread.h"
+#include "util-streaming-buffer.h"
 
 #define STREAMTCP_QUEUE_FLAG_TS     0x01
 #define STREAMTCP_QUEUE_FLAG_WS     0x02
@@ -51,7 +52,7 @@ typedef struct StreamTcpSackRecord_ {
 } StreamTcpSackRecord;
 
 typedef struct TcpSegment_ {
-    uint8_t *payload;
+    StreamingBufferSegment sbseg;
     uint16_t payload_len;       /**< actual size of the payload */
     uint16_t pool_size;         /**< size of the memory */
     uint32_t seq;
@@ -60,6 +61,11 @@ typedef struct TcpSegment_ {
     /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
     uint8_t flags;
 } TcpSegment;
+
+#define TCP_SEG_LEN(seg)        (seg)->payload_len
+#define TCP_SEG_OFFSET(seg)     (seg)->sbseg.stream_offset
+
+#define SEG_SEQ_RIGHT_EDGE(seg) ((seg)->seq + TCP_SEG_LEN((seg)))
 
 typedef struct TcpStream_ {
     uint16_t flags:12;              /**< Flag specific to the stream e.g. Timestamp */
@@ -79,8 +85,12 @@ typedef struct TcpStream_ {
                                          This will be used to validate the last_ts, when connection has been idle for
                                          longer time.(RFC 1323)*/
     /* reassembly */
-    uint32_t ra_app_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
-    uint32_t ra_raw_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t base_seq;              /**< seq where we are left with reassebly */
+    uint64_t base_seq_offset;       /**< offset from the start of the stream (== 0) of the current
+                                     *   base seq */
+    StreamingBuffer *sb;
+    uint64_t app_progress;
+    uint64_t raw_progress;
 
     TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
     TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/
@@ -176,12 +186,6 @@ enum
 /*
  * Per SEGMENT flags
  */
-/** Flag to indicate that the current segment has been processed by the
- *  reassembly code and should be deleted after app layer protocol has been
- *  detected. */
-#define SEGMENTTCP_FLAG_RAW_PROCESSED       0x01
-/** App Layer reassembly code is done with this segment */
-#define SEGMENTTCP_FLAG_APPLAYER_PROCESSED  0x02
 /** Log API (streaming) has processed this segment */
 #define SEGMENTTCP_FLAG_LOGAPI_PROCESSED    0x04
 
@@ -203,8 +207,7 @@ enum
 
 #define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
     do { \
-        (stream)->ra_raw_base_seq = (seq); \
-        (stream)->ra_app_base_seq = (seq); \
+        (stream)->base_seq = (seq) + 1;    \
     } while(0); \
 }
 
