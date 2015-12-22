@@ -641,9 +641,10 @@ void StreamTcpFreeConfig(char quiet)
 /** \brief The function is used to to fetch a TCP session from the
  *         ssn_pool, when a TCP SYN is received.
  *
- *  \param quiet Packet P, which has been recieved for the new TCP session.
+ *  \param p packet starting the new TCP session.
+ *  \param id thread pool id
  *
- *  \retval TcpSession A new TCP session with field initilaized to 0/NULL.
+ *  \retval ssn new TCP session.
  */
 TcpSession *StreamTcpNewSession (Packet *p, int id)
 {
