@@ -25,6 +25,7 @@
 #define __STREAM_TCP_UTIL_H__
 
 #include "stream-tcp-private.h"
+#include "stream-tcp-reassemble.h"
 
 void StreamTcpUTInit(TcpReassemblyThreadCtx **);
 void StreamTcpUTDeinit(TcpReassemblyThreadCtx *);

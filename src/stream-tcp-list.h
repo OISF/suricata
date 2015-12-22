@@ -21,16 +21,15 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __STREAM_TCP_INLINE_H__
-#define __STREAM_TCP_INLINE_H__
+#ifndef __STREAM_TCP_LIST_H__
+#define __STREAM_TCP_LIST_H__
 
 #include "stream-tcp-private.h"
 
-int StreamTcpInlineMode(void);
-int StreamTcpInlineSegmentCompare(TcpStream *, Packet *, TcpSegment *);
-void StreamTcpInlineSegmentReplacePacket(TcpStream *, Packet *, TcpSegment *);
+void PrintList(TcpSegment *);
 
-void StreamTcpInlineRegisterTests(void);
+#ifdef UNITTESTS
+void StreamTcpListRegisterTests(void);
+#endif
 
-#endif /* __STREAM_TCP_INLINE_H__ */
-
+#endif /* __STREAM_TCP_LIST_H__ */

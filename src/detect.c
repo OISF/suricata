@@ -665,6 +665,8 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
                 ssn->toserver_smsg_tail = NULL;
 
                 SCLogDebug("to_server smsg %p at stream eof", smsg);
+                if (smsg)
+                    SCLogDebug("to_server smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
             } else {
                 smsg = ssn->toclient_smsg_head;
                 /* deref from the ssn */
@@ -672,6 +674,8 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
                 ssn->toclient_smsg_tail = NULL;
 
                 SCLogDebug("to_client smsg %p at stream eof", smsg);
+                if (smsg)
+                    SCLogDebug("to_client smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
             }
         } else {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -694,7 +698,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
                 ssn->toserver_smsg_head = NULL;
                 ssn->toserver_smsg_tail = NULL;
 
-                SCLogDebug("to_server smsg %p", smsg);
+                SCLogDebug("to_server smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
             } else {
                 StreamMsg *head = ssn->toclient_smsg_head;
                 if (unlikely(head == NULL))
@@ -713,12 +717,22 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags)
                 ssn->toclient_smsg_head = NULL;
                 ssn->toclient_smsg_tail = NULL;
 
-                SCLogDebug("to_client smsg %p", smsg);
+                SCLogDebug("to_client smsg %p, size %u, SEQ %u", smsg, smsg->data_len, smsg->seq);
             }
         }
     }
 
 end:
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        StreamMsg *m = smsg;
+        while(m) {
+            SCLogDebug("m %p size %u, SEQ %u", m, m->data_len, m->seq);
+            PrintRawDataFp(stdout, m->data, m->data_len);
+            m = m->next;
+        }
+    }
+#endif
     SCReturnPtr(smsg, "StreamMsg");
 }
 

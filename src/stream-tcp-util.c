@@ -77,6 +77,7 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
 
     s->isn = isn;
     STREAMTCP_SET_RA_BASE_SEQ(s, isn);
+    s->base_seq = isn+1;
 }
 
 void StreamTcpUTClearStream(TcpStream *s)
@@ -109,16 +110,15 @@ int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
 
     s->seq = seq;
-    s->payload_len = len;
-    memcpy(s->payload, payload, len);
+    TCP_SEG_LEN(s) = len;
 
-    Packet *p = UTHBuildPacketReal(s->payload, s->payload_len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal(payload, len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         return -1;
     }
     p->tcph->th_seq = htonl(seq);
 
-    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p) < 0)
+    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, TCP_GET_SEQ(p), p->payload, p->payload_len) < 0)
         return -1;
 
     UTHFreePacket(p);
@@ -133,16 +133,17 @@ int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx
     }
 
     s->seq = seq;
-    s->payload_len = len;
-    memset(s->payload, byte, len);
+    TCP_SEG_LEN(s) = len;
+    uint8_t buf[len];
+    memset(buf, byte, len);
 
-    Packet *p = UTHBuildPacketReal(s->payload, s->payload_len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    Packet *p = UTHBuildPacketReal(buf, len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
     if (p == NULL) {
         return -1;
     }
     p->tcph->th_seq = htonl(seq);
 
-    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p) < 0)
+    if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, s, p, TCP_GET_SEQ(p), p->payload, p->payload_len) < 0)
         return -1;
     UTHFreePacket(p);
     return 0;

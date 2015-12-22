@@ -67,6 +67,8 @@ typedef struct TcpStreamCnf_ {
 
     uint8_t flags;
     uint8_t max_synack_queued;
+
+    StreamingBufferConfig sbcnf;
 } TcpStreamCnf;
 
 typedef struct StreamTcpThread_ {
@@ -185,34 +187,8 @@ enum {
     STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 2,
 };
 
-static inline int StreamNeedsReassembly(TcpSession *ssn, int direction)
-{
-    /* server tcp state */
-    if (direction) {
-        if (ssn->server.seg_list != NULL &&
-            (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-             !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
-        } else if (ssn->toclient_smsg_head != NULL) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-        } else {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
-        }
-    } else {
-        if (ssn->client.seg_list != NULL &&
-            (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-             !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
-        } else if (ssn->toserver_smsg_head != NULL) {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
-        } else {
-            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
-        }
-    }
-}
-
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-void StreamTcpExitPrintStats(ThreadVars *, void *);
+int StreamNeedsReassembly(TcpSession *ssn, int direction);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 void StreamTcpRegisterTests (void);

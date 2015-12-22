@@ -266,7 +266,7 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
                 continue;
             }
 
-            if (SEQ_GT(seg->seq + seg->payload_len, stream->last_ack)) {
+            if (SEQ_GT(seg->seq + TCP_SEG_LEN(seg), stream->last_ack)) {
                 SCLogDebug("seg not (fully) acked yet");
                 break;
             }
@@ -278,7 +278,11 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
             if (close && seg->next == NULL)
                 flags |= OUTPUT_STREAMING_FLAG_CLOSE;
 
-            Streamer(cbdata, f, seg->payload, (uint32_t)seg->payload_len, 0, flags);
+            const uint8_t *seg_data;
+            uint32_t seg_datalen;
+            StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+
+            Streamer(cbdata, f, seg_data, seg_datalen, 0, flags);
 
             seg->flags |= SEGMENTTCP_FLAG_LOGAPI_PROCESSED;
 
