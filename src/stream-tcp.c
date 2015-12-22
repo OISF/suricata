@@ -153,6 +153,8 @@ void StreamTcpStreamCleanup(TcpStream *stream)
     if (stream != NULL) {
         StreamTcpSackFreeList(stream);
         StreamTcpReturnStreamSegments(stream);
+        StreamingBufferFree(stream->sb);
+        stream->sb = NULL;
     }
 }
 
@@ -569,7 +571,8 @@ void StreamTcpInitConfig(char quiet)
     if (ConfGetBool("stream.reassembly.raw", &enable_raw) == 1) {
         if (!enable_raw) {
             stream_config.ssn_init_flags = STREAMTCP_FLAG_DISABLE_RAW;
-            stream_config.segment_init_flags = SEGMENTTCP_FLAG_RAW_PROCESSED;
+// TODO how to handle this now?
+//            stream_config.segment_init_flags = SEGMENTTCP_FLAG_RAW_PROCESSED;
         }
     } else {
         enable_raw = 1;
@@ -2261,9 +2264,9 @@ static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq)
     uint32_t ack = seq;
 
     if (stream->seg_list_tail != NULL) {
-        if (SEQ_GT((stream->seg_list_tail->seq + stream->seg_list_tail->payload_len), ack))
+        if (SEQ_GT((stream->seg_list_tail->seq + TCP_SEG_LEN(stream->seg_list_tail)), ack))
         {
-            ack = stream->seg_list_tail->seq + stream->seg_list_tail->payload_len;
+            ack = stream->seg_list_tail->seq + TCP_SEG_LEN(stream->seg_list_tail);
         }
     }
 
@@ -5790,7 +5793,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     for (; seg != NULL &&
             (stream_inline || SEQ_LT(seg->seq, stream->last_ack));)
     {
-        ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
+        const uint8_t *seg_data;
+        uint32_t seg_datalen;
+        StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+
+        ret = CallbackFunc(p, data, seg_data, seg_datalen);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             return -1;
@@ -5816,6 +5823,10 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
 }
 
 #ifdef UNITTESTS
+
+#define SET_ISN(stream, setseq)             \
+    (stream)->isn = (setseq);               \
+    (stream)->base_seq = (setseq) + 1
 
 /**
  *  \test   Test the allocation of TCP session for a given packet from the
@@ -5877,28 +5888,32 @@ static int StreamTcpTest02 (void)
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
+    int ret = 0;
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
     uint8_t payload[4];
+    TcpReassemblyThreadCtx *ra_ctx = NULL;;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx ra_ctx;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&ra_ctx, 0, sizeof(TcpReassemblyThreadCtx));
     memset(p, 0, SIZE_OF_PACKET);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
+
+    ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
+    if (ra_ctx == NULL) {
+        goto end;
+    }
     FLOW_INITIALIZE(&f);
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-    int ret = 0;
-    stt.ra_ctx = &ra_ctx;
+    stt.ra_ctx = ra_ctx;
 
     StreamTcpInitConfig(TRUE);
 
@@ -8224,12 +8239,10 @@ static int StreamTcpTest23(void)
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     uint8_t packet[1460] = "";
     ThreadVars tv;
-    int result = 1;
     PacketQueue pq;
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(p == NULL);
 
     memset(&pq,0,sizeof(PacketQueue));
     memset(&ssn, 0, sizeof (TcpSession));
@@ -8256,54 +8269,35 @@ static int StreamTcpTest23(void)
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = packet;
-    ssn.client.ra_app_base_seq = ssn.client.ra_raw_base_seq = ssn.client.last_ack = 3184324453UL;
+    SET_ISN(&ssn.client, 3184324452UL);
 
     p->tcph->th_seq = htonl(3184324453UL);
     p->tcph->th_ack = htonl(3373419609UL);
     p->payload_len = 2;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling: ");
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324455UL);
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 2;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling: ");
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324453UL);
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 6;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling: ");
-        result &= 0;
-//        goto end;
-    }
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
-    if(ssn.client.seg_list_tail != NULL && ssn.client.seg_list_tail->payload_len != 4) {
-        printf("failed in segment reassmebling: ");
-        result &= 0;
-    }
+    FAIL_IF(ssn.client.seg_list_tail == NULL);
+    FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 2);
 
-end:
     StreamTcpReturnStreamSegments(&ssn.client);
     StreamTcpFreeConfig(TRUE);
-    if (SC_ATOMIC_GET(st_memuse) == 0) {
-        result &= 1;
-    } else {
-        printf("smemuse.stream_memuse %"PRIu64"\n", SC_ATOMIC_GET(st_memuse));
-    }
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /** \test   Test the stream mem leaks conditions. */
@@ -8311,14 +8305,12 @@ static int StreamTcpTest24(void)
 {
     TcpSession ssn;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF (p == NULL);
     Flow f;
     TCPHdr tcph;
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     uint8_t packet[1460] = "";
     ThreadVars tv;
-    int result = 1;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
@@ -8345,54 +8337,36 @@ static int StreamTcpTest24(void)
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload = packet;
-    ssn.client.ra_app_base_seq = ssn.client.ra_raw_base_seq = ssn.client.last_ack = 3184324453UL;
+    //ssn.client.ra_app_base_seq = ssn.client.ra_raw_base_seq = ssn.client.last_ack = 3184324453UL;
+    SET_ISN(&ssn.client, 3184324453UL);
 
     p->tcph->th_seq = htonl(3184324455UL);
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 4;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling\n");
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324459UL);
     p->tcph->th_ack = htonl(3373419633UL);
     p->payload_len = 2;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling\n");
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324459UL);
     p->tcph->th_ack = htonl(3373419657UL);
     p->payload_len = 4;
 
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1) {
-        printf("failed in segment reassmebling\n");
-        result &= 0;
-        goto end;
-    }
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
 
-    if(ssn.client.seg_list_tail != NULL && ssn.client.seg_list_tail->payload_len != 2) {
-        printf("failed in segment reassmebling\n");
-        result &= 0;
-    }
+    FAIL_IF(ssn.client.seg_list_tail == NULL);
+    FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 4);
 
-end:
     StreamTcpReturnStreamSegments(&ssn.client);
     StreamTcpFreeConfig(TRUE);
-    if (SC_ATOMIC_GET(st_memuse) == 0) {
-        result &= 1;
-    } else {
-        printf("smemuse.stream_memuse %"PRIu64"\n", SC_ATOMIC_GET(st_memuse));
-    }
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return result;
+    PASS;
 }
 
 /**
@@ -9707,9 +9681,9 @@ static int StreamTcpTest37(void)
         goto end;
     }
 
-    if (((TcpSession *)p->flow->protoctx)->client.ra_raw_base_seq != 3) {
-        printf("the ssn->client.next_seq should be 3, but it is %"PRIu32"\n",
-                ((TcpSession *)p->flow->protoctx)->client.ra_raw_base_seq);
+    if (((TcpSession *)p->flow->protoctx)->client.raw_progress != 3) {
+        printf("the ssn->client.raw_progress should be 3, but it is %"PRIu64"\n",
+                ((TcpSession *)p->flow->protoctx)->client.raw_progress);
         goto end;
     }
 
