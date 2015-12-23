@@ -44,6 +44,7 @@
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-validate.h"
 
 /** \brief Do the content inspection & validation for a signature
  *
@@ -93,6 +94,70 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
     return r;
 }
 
+/**
+ * \brief DNS query match -- searches for one pattern per signature.
+ *
+ * \param det_ctx   Detection engine thread ctx.
+ * \param hrh       Buffer to inspect.
+ * \param hrh_len   buffer length.
+ * \param flags     Flags
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                      const uint8_t *buffer, const uint32_t buffer_len,
+                                      const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
+
+    if (buffer_len >= det_ctx->sgh->mpm_dnsquery_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
+/**
+ *  \brief Run the pattern matcher against the queries
+ *
+ *  \param f locked flow
+ *  \param dns_state initialized dns state
+ *
+ *  \warning Make sure the flow/state is locked
+ *  \todo what should we return? Just the fact that we matched?
+ */
+uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                  DNSState *dns_state, uint8_t flags, void *txv,
+                                  uint64_t tx_id)
+{
+    SCEnter();
+
+    DNSTransaction *tx = (DNSTransaction *)txv;
+    DNSQueryEntry *query = NULL;
+    uint8_t *buffer;
+    uint16_t buffer_len;
+    uint32_t cnt = 0;
+
+    TAILQ_FOREACH(query, &tx->query_list, next) {
+        SCLogDebug("tx %p query %p", tx, query);
+
+        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
+        buffer_len = query->len;
+
+        cnt += DnsQueryPatternSearch(det_ctx,
+                buffer, buffer_len,
+                flags);
+    }
+
+    SCReturnUInt(cnt);
+}
 
 /** \brief Do the content inspection & validation for a signature
  *
