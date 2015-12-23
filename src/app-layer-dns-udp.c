@@ -425,6 +425,9 @@ void RegisterDNSUDPParsers(void)
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
+        AppLayerParserRegisterTxLogStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
+            DNSGetTxIsLogged, DNSSetTxIsLogged);
+
         DNSUDPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
