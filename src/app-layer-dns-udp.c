@@ -425,6 +425,11 @@ void RegisterDNSUDPParsers(void)
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
+        /* Register for directional logging state tracking. Allows
+         * transactions to be logged as each direction completes. */
+        AppLayerParserRegisterTxLogStateFuncs(IPPROTO_UDP, ALPROTO_DNS,
+            DNSGetTxIsLogged, DNSSetTxIsLogged);
+
         DNSUDPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"

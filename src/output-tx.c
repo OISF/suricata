@@ -155,7 +155,7 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         }
 
         if (!(ts_ready || tc_ready)) {
-            SCLogNotice("progress not for enough, not logging");
+            SCLogDebug("Neither ts or tc ready, not logging");
             break;
         }
 

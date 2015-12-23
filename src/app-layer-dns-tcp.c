@@ -667,6 +667,11 @@ void RegisterDNSTCPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
+
+        /* Register for directional logging state tracking. Allows
+         * transactions to be logged as each direction completes. */
+        AppLayerParserRegisterTxLogStateFuncs(IPPROTO_TCP, ALPROTO_DNS,
+            DNSGetTxIsLogged, DNSSetTxIsLogged);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

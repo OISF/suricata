@@ -158,11 +158,16 @@ typedef struct DNSAnswerEntry_ {
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
-    uint8_t replied;                                /**< bool indicating request is
-                                                         replied to. */
-    uint8_t reply_lost;
     uint8_t rcode;                                  /**< response code (e.g. "no error" / "no such name") */
-    uint8_t recursion_desired;                      /**< server said "recursion desired" */
+
+    uint8_t replied:1;          /**< Flag indicating request is replied to. */
+    uint8_t reply_lost:1;       /**< Flag indicating if reply was lost .*/
+    uint8_t recursion_desired:1; /**< Flag indicating server said
+                                  * "recursion desired". */
+    uint8_t request_logged:1; /**< Set after request has been logged. */
+    uint8_t response_logged:1; /**< Set after response has been
+                                * logged. */
+    uint8_t padding:3;
 
     TAILQ_HEAD(, DNSQueryEntry_) query_list;        /**< list for query/queries */
     TAILQ_HEAD(, DNSAnswerEntry_) answer_list;      /**< list for answers */
@@ -172,6 +177,8 @@ typedef struct DNSTransaction_ {
 
     TAILQ_ENTRY(DNSTransaction_) next;
     DetectEngineState *de_state;
+
+
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
@@ -235,6 +242,9 @@ void *DNSStateAlloc(void);
 void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
 int DNSHasEvents(void *state);
+
+int DNSGetTxIsLogged(void *vtx, uint8_t direction);
+void DNSSetTxIsLogged(void *vtx, uint8_t direction);
 
 int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
 int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);
