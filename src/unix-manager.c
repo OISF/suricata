@@ -334,7 +334,7 @@ int UnixCommandAccept(UnixCommand *this)
         close(client);
         return 0;
     } else {
-        SCLogInfo("Unix socket: client version: \"%s\"",
+        SCLogDebug("Unix socket: client version: \"%s\"",
                 json_string_value(version));
     }
 
