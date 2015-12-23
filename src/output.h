@@ -56,6 +56,12 @@ typedef struct OutputModule_ {
     AppProto alproto;
     enum OutputStreamingType stream_type;
 
+    /* If module is a tx logger, and directional is true, the
+     * TxLogFunc will be called per direction when each direction is
+     * complete rather than waiting for both sides of the Tx to be
+     * complete. */
+    int directional;
+
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
@@ -70,10 +76,10 @@ void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
 
 void OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-    TxLogger TxLogFunc);
+    TxLogger TxLogFunc, int directional);
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc);
+    AppProto alproto, TxLogger TxLogFunc, int directional);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);

@@ -133,10 +133,9 @@ struct AppLayerParserState_ {
     /* Indicates the current transaction that is being inspected.
      * We have a var per direction. */
     uint64_t inspect_id[2];
-    /* Indicates the current transaction being logged.  Unlike inspect_id,
-     * we don't need a var per direction since we don't log a transaction
-     * unless we have the entire transaction. */
-    uint64_t log_id;
+    /* Indicates the current transaction being logged.  
+     * We have a var per direction. */
+    uint64_t log_id[2];
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
@@ -519,19 +518,27 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
     SCReturn;
 }
 
-uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate)
+uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate,
+    uint8_t direction)
 {
     SCEnter();
+    uint64_t retval = 0;
 
-    SCReturnCT((pstate == NULL) ? 0 : pstate->log_id, "uint64_t");
+    if (pstate != NULL) {
+        retval = pstate->log_id[direction & STREAM_TOSERVER ? 0 : 1];
+    }
+
+    SCReturnCT(retval, "uint64_t");
 }
 
-void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
+void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate,
+    uint8_t direction)
 {
     SCEnter();
 
-    if (pstate != NULL)
-        pstate->log_id++;
+    if (pstate != NULL) {
+        pstate->log_id[direction & STREAM_TOSERVER ? 0 : 1]++;
+    }
 
     SCReturn;
 }
@@ -633,7 +640,7 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
 uint64_t AppLayerTransactionGetActiveDetectLog(Flow *f, uint8_t flags)
 {
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[FlowGetProtoMapping(f->proto)][f->alproto];
-    uint64_t log_id = f->alparser->log_id;
+    uint64_t log_id = f->alparser->log_id[flags & STREAM_TOSERVER ? 0 : 1];
     uint64_t inspect_id = f->alparser->inspect_id[flags & STREAM_TOSERVER ? 0 : 1];
     if (p->logger == TRUE) {
         return (log_id < inspect_id) ? log_id : inspect_id;
@@ -655,7 +662,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     AppLayerParserProtoCtx *p = &alp_ctx.ctxs[f->protomap][f->alproto];
 
     if (p->logger == TRUE) {
-        uint64_t log_id = f->alparser->log_id;
+        uint64_t log_id = f->alparser->log_id[flags & STREAM_TOSERVER ? 0 : 1];
         SCLogDebug("returning %"PRIu64, log_id);
         return log_id;
     }
@@ -802,7 +809,7 @@ uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto,
 
     uint64_t active_id;
 
-    uint64_t log_id = pstate->log_id;
+    uint64_t log_id = pstate->log_id[direction & STREAM_TOSERVER ? 0 : 1];
     uint64_t inspect_id = pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1];
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].logger == TRUE) {
         active_id = (log_id < inspect_id) ? log_id : inspect_id;
@@ -1179,11 +1186,12 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
     SCLogDebug("AppLayerParser parser state information for parser state p(%p). "
                "p->inspect_id[0](%"PRIu64"), "
                "p->inspect_id[1](%"PRIu64"), "
-               "p->log_id(%"PRIu64"), "
+               "p->log_id[0](%"PRIu64"), "
+               "p->log_id[1](%"PRIu64"), "
                "p->version(%"PRIu8"), "
                "p->decoder_events(%p).",
-               pstate, p->inspect_id[0], p->inspect_id[1], p->log_id,
-               p->version, p->decoder_events);
+        pstate, p->inspect_id[0], p->inspect_id[1], p->log_id[0],
+        p->log_id[1], p->version, p->decoder_events);
 
     SCReturn;
 }
