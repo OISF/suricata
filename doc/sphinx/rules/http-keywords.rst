@@ -286,6 +286,19 @@ Note: how much of the response/server body is inspected is controlled
 in your [[**FIXME** suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
 via the ``response-body-limit`` setting.
 
+http_host and http_raw_host
+----------------
+
+With the ``http_host`` content modifier, it is possible to
+match specifically and only the normalized hostname. 
+The ``http_raw_host`` inspects the raw hostname.
+
+The keyword can be used in combination with most of the content modifiers
+like ``distance``, ``offset``, ``within``, etc.
+
+The ``nocase`` keyword ist not allowed anymore. Keep in mind that you need
+to specify a lowercase pattern.
+
 file_data
 ---------
 
