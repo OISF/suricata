@@ -287,7 +287,7 @@ in your [[**FIXME** suricata.yaml#Configure-Libhtp]], in the "libhtp" section,
 via the ``response-body-limit`` setting.
 
 http_host and http_raw_host
-----------------
+---------------------------
 
 With the ``http_host`` content modifier, it is possible to
 match specifically and only the normalized hostname. 
