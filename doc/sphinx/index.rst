@@ -15,3 +15,4 @@ Suricata User Guide
    reputation/index.rst
    initscripts
    setting-up-ipsinline-for-linux
+   public-data-sets
