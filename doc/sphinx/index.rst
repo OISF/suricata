@@ -16,3 +16,4 @@ Suricata User Guide
    initscripts
    setting-up-ipsinline-for-linux
    public-data-sets
+   capture-hardware/index.rst
