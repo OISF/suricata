@@ -13,3 +13,4 @@ Suricata User Guide
    make-sense-alerts
    performance/index.rst
    reputation/ipreputation/ip-reputation.rst
+   initscripts
