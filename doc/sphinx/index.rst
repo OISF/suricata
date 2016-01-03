@@ -14,3 +14,4 @@ Suricata User Guide
    performance/index.rst
    reputation/index.rst
    initscripts
+   setting-up-ipsinline-for-linux
