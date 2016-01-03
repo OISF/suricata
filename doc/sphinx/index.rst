@@ -15,5 +15,6 @@ Suricata User Guide
    reputation/index.rst
    initscripts
    setting-up-ipsinline-for-linux
+   file-extraction/file-extraction.rst
    public-data-sets
    capture-hardware/index.rst
