@@ -12,3 +12,4 @@ Suricata User Guide
    oinkmaster
    make-sense-alerts
    performance/index.rst
+   reputation/ipreputation/ip-reputation.rst
