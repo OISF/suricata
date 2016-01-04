@@ -213,10 +213,8 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
     ModbusState         *modbus = tx->modbus;
 
-    printf("ModbusGetAlstateProgress direction %d\n", direction);
 
     if (tx->replied == 1){
-        printf("ModbusGetAlstateProgress return 1\n");
         return 1;
     }
 
@@ -225,16 +223,12 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
         ((modbus->transaction_max - tx->tx_num) > request_flood))
         return 1;
 
-    printf("ModbusGetAlstateProgress return 0\n");
     return 0;
 }
 
 /** \brief Get value for 'complete' status in Modbus
  */
 int ModbusGetAlstateProgressCompletionStatus(uint8_t direction) {
-
-    printf("ModbusGetAlstateProgressCompletionStatus direction %d\n", direction);
-
     return 1;
 }
 
@@ -1235,8 +1229,6 @@ static int ModbusParseRequest(Flow                  *f,
     ModbusTransaction   *tx;
     ModbusHeader        header;
 
-    printf("ModbusParseRequest\n");
-
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     } else if (input == NULL || input_len == 0) {
@@ -1299,8 +1291,6 @@ static int ModbusParseResponse(Flow                 *f,
     ModbusHeader        header;
     ModbusState         *modbus = (ModbusState *) state;
     ModbusTransaction   *tx;
-
-    printf("ModbusParseResponse\n");
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
@@ -1396,7 +1386,6 @@ static uint16_t ModbusProbingParser(uint8_t     *input,
     ModbusHeader *header = (ModbusHeader *) input;
 
     /* Modbus header is 7 bytes long */
-    printf("ModbusProbingParser %d\n", input_len);
     if (input_len < sizeof(ModbusHeader))
         return ALPROTO_UNKNOWN;
 

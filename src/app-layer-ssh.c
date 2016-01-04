@@ -421,7 +421,7 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->cli_hdr;
-    printf("SSHParseRequest %d\n", input_len);
+
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
     } else if (input == NULL || input_len == 0) {
@@ -445,7 +445,6 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
 {
     SshState *ssh_state = (SshState *)state;
     SshHeader *ssh_header = &ssh_state->srv_hdr;
-    printf("SSHParseResponse %d\n", input_len);
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
