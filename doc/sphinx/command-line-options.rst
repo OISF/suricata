@@ -51,8 +51,9 @@ this:
   --runmode (in combination with the command line opion -i or -r) 
                               With the --runmode option you can 
                               set the runmode that you would like to use. This command line option can override the    
-                              yaml runmode option. For more information about runmodes see: [[Runmodes]].
-  
+                              yaml runmode option.
+
+For more information about runmodes see: :doc:`performance/runmodes`
 
 Unit Tests
 ~~~~~~~~~~
