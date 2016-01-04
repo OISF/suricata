@@ -3,8 +3,11 @@ Setting up IPS/inline for Linux
 
 In this guide will be explained how to work with Suricata in layer3 inline mode and how to set iptables for that purpose.
 
-First start with compiling Suricata with NFQ support. For instructions see [[**FIXME** Ubuntu Installation]].
-For more information about NFQ and iptables, see :ref:`suricata-yaml-nfq`.
+First start with compiling Suricata with NFQ support. For instructions
+see `Ubuntu Installation
+<https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Ubuntu_Installation>`_.
+For more information about NFQ and iptables, see
+:ref:`suricata-yaml-nfq`.
 
 To check if you have NFQ enabled in your Suricata, enter the following command:
 

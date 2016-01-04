@@ -18,9 +18,11 @@ http://people.redhat.com/sgrubb/libcap-ng/ChangeLog
   make install
 
 Download, configure, compile, and install Suricata for your particular
-setup. See [[**FIXME** Suricata Installation]] Depending on your environment,
-you may need to add the --with-libpcap_ng-libraries and
---with-libpcap_ng-includes options during the configure step. e.g:
+setup. See `Suricata Installation
+<https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation>`_. Depending
+on your environment, you may need to add the
+--with-libpcap_ng-libraries and --with-libpcap_ng-includes options
+during the configure step. e.g:
 
 ::
 

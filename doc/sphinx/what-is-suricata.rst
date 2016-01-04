@@ -64,5 +64,3 @@ Ristic of Mod Security fame for the OISF. This integrates and provides
 very advanced processing of HTTP streams for Suricata. The HTP library
 is required by the engine, but may also be used independently in a
 range of applications and tools.
-
-[[**FIXME** Major Features|Next]]
