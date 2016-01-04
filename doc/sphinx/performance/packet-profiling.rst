@@ -27,8 +27,8 @@ sure you enter the following during the configuring stage:
   ./configure --enable-profiling
 
 Find a folder in which you have pcaps. If you do not have pcaps yet,
-you can get these with Wireshark. See [[Sniffing Packets with
-Wireshark]].
+you can get these with Wireshark. See `Sniffing Packets with Wireshark
+<https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Sniffing_Packets_with_Wireshark>`_.
 
 Go to the directory of your pcaps. For example:
   
