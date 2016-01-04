@@ -450,12 +450,12 @@ int SCHInfoTestInvalidIPV4Address02(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux", "192.168.1.566", SC_HINFO_IS_IPV4) != -1) {
         goto end;
     }
-    if (SCHInfoAddHostOSInfo("linux", "192.168.1", SC_HINFO_IS_IPV4 != -1)) {
+    if (SCHInfoAddHostOSInfo("linux", "192.168.1", SC_HINFO_IS_IPV4) != -1) {
         goto end;
     }
     if (SCHInfoAddHostOSInfo("linux", "192.", SC_HINFO_IS_IPV4) != -1) {
@@ -488,7 +488,7 @@ int SCHInfoTestInvalidIPV6Address03(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux", "2362:7322", SC_HINFO_IS_IPV6) != -1) {
         goto end;
@@ -530,7 +530,7 @@ int SCHInfoTestValidIPV4Address04(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) == -1) {
         goto end;
@@ -643,7 +643,7 @@ int SCHInfoTestValidIPV4Address05(void)
     SCHInfoCreateContextBackup();
 
     struct in_addr in;
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux", "192.168.1.1", SC_HINFO_IS_IPV4) == -1) {
         goto end;
@@ -783,7 +783,7 @@ int SCHInfoTestValidIPV6Address06(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux",
                              "2351:2512:6211:6246:235A:6242:2352:62AD",
@@ -919,7 +919,7 @@ int SCHInfoTestValidIPV6Address07(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux",
                              "2351:2512:6211:6246:235A:6242:2352:62AD",
@@ -1076,7 +1076,7 @@ int SCHInfoTestValidIPV6Address08(void)
     SCHInfoCreateContextBackup();
 
     struct in6_addr in6;
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux",
                              "2351:2512:6211:6246:235A:6242:2352:62AD",
@@ -1248,10 +1248,10 @@ int SCHInfoTestValidIPV4Address09(void)
 {
     SCHInfoCreateContextBackup();
 
-    int result = 1;
+    int result = 0;
 
     if (SCHInfoAddHostOSInfo("linux", "192.168.1.0", SC_HINFO_IS_IPV4) == -1) {
-                goto end;
+        goto end;
     }
     if (SCHInfoAddHostOSInfo("windows", "192.192.1.2", SC_HINFO_IS_IPV4) == -1) {
         goto end;
@@ -1319,22 +1319,26 @@ int SCHInfoTestValidIPV4Address09(void)
         goto end;
     }
 
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") ==
+    /* 192.168.1.100 should match "macos" as its more specific than
+     * "solaris". */
+    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
         SCMapEnumNameToValue("macos", sc_hinfo_os_policy_map)) {
         goto end;
     }
 
+    /* Remove the 192.168.1.0/20 -> macos entry. */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
     }
     SCRadixRemoveKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, sc_hinfo_tree, 20);
 
-    if (SCHInfoGetHostOSFlavour("192.168.1.100") ==
+    if (SCHInfoGetHostOSFlavour("192.168.1.100") !=
         SCMapEnumNameToValue("solaris", sc_hinfo_os_policy_map)) {
         goto end;
     }
 
+    /* Remove the 192.168.1.0/16 -> solaris entry. */
     bzero(&servaddr, sizeof(servaddr));
     if (inet_pton(AF_INET, "192.168.0.0", &servaddr.sin_addr) <= 0) {
         goto end;
@@ -1481,7 +1485,7 @@ host-os-policy:\n\
   vista: [0.0.0.5]\n\
 \n";
 
-    int result = 1;
+    int result = 0;
 
     SCHInfoCreateContextBackup();
 
@@ -1527,7 +1531,7 @@ host-os-policy:\n\
   vista: [0.0.0.5]\n\
 \n";
 
-    int result = 1;
+    int result = 0;
 
     SCHInfoCreateContextBackup();
 

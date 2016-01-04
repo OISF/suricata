@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,133 +24,85 @@
 #ifndef _DETECT_CIPSERVICE_H
 #define	_DETECT_CIPSERVICE_H
 
-
-/**
- * Byte extraction utilities
- */
-void ENIPExtractUint8(uint8_t *res, uint8_t  *input, uint16_t *offset);
-void ENIPExtractUint16(uint16_t *res,  uint8_t *input, uint16_t *offset) ;
-void ENIPExtractUint32(uint32_t *res, uint8_t *input, uint16_t *offset);
-void ENIPExtractUint64(uint64_t *res, uint8_t *input, uint16_t *offset) ;
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
+#include "flow.h"
+#include "queue.h"
+#include "app-layer-enip-common.h"
 
 #define ENIP_PORT 44818 //standard EtherNet/IP port
 
 /**
  * CIP Service rule data structure
  */
-typedef struct DetectCipServiceData_ {
-    uint8_t cipservice;   /* cip service type */
-    uint16_t cipclass;   /* cip service type */
-    uint16_t cipattribute;   /* cip service type */
-    uint8_t tokens;		/* number of parameters*/
+typedef struct DetectCipServiceData_
+{
+    uint8_t cipservice; /* cip service type */
+    uint16_t cipclass; /* cip service type */
+    uint16_t cipattribute; /* cip service type */
+    uint8_t matchattribute;         /* whether to match on attribute*/
+    uint8_t tokens; /* number of parameters*/
 } DetectCipServiceData;
 
 /**
  * ENIP Command rule data structure
  */
-typedef struct DetectEnipCommandData_ {
-	u_int16_t enipcommand;   /**< enip command */
+typedef struct DetectEnipCommandData_
+{
+    u_int16_t enipcommand; /* enip command */
 } DetectEnipCommandData;
-
 
 void DetectCipServiceRegister(void);
 void DetectEnipCommandRegister(void);
 
 /**
- * ENIP encapsulation header
- */
-typedef struct _ENIP_ENCAP_HEADER
-{
-    u_int16_t command;
-    u_int16_t length;
-    u_int32_t session;
-    u_int32_t status;
-    u_int64_t context;
-    u_int32_t option;
-} ENIP_ENCAP_HEADER;
-
-
-/**
- * ENIP encapsulation data header
- */
-typedef struct _ENIP_ENCAP_DATA_HEADER
-{
-	u_int32_t interface_handle;
-	u_int16_t timeout;
-	u_int16_t item_count;
-} ENIP_ENCAP_DATA_HEADER;
-
-
-/**
- * ENIP encapsulation address header
- */
-typedef struct _ENIP_ENCAP_ADDRESS_ITEM
-{
-	u_int16_t type;
-	u_int16_t length;
-	u_int16_t conn_id;
-	u_int16_t sequence_num;
-} ENIP_ENCAP_ADDRESS_ITEM;
-
-
-/**
- * ENIP encapsulation data item
- */
-typedef struct _ENIP_ENCAP_DATA_ITEM
-{
-	u_int16_t type;
-	u_int16_t length;
-    u_int16_t sequence_count;
-} ENIP_ENCAP_DATA_ITEM;
-
-
-/**
  * link list node for storing CIP service data
  */
-typedef struct _CIP_SERVICE_DATA
+typedef struct CIPServiceData_
 {
-	uint8_t service; 	//cip service
-	union {
-	        struct {
-	            uint8_t path_size; 		//cip path size
-	        	uint16_t path_offset;	//offset to cip path
-	        } request;
-	        struct {
-	            u_int8_t status;
-	        } response;
-	    };
-	struct _CIP_SERVICE_DATA* next;
-} CIP_SERVICE_DATA;
+    uint8_t service; //cip service
+    union
+    {
+        struct
+        {
+            uint8_t path_size; //cip path size
+            uint16_t path_offset; //offset to cip path
+        } request;
+        struct
+        {
+            u_int8_t status;
+        } response;
+    };
+    struct CIPServiceData* next;
+} CIPServiceData;
+
 
 
 /**
  * ENIP data structure
  */
-typedef struct _ENIP_DATA
+typedef struct ENIPData_
 {
-	int direction;
-	ENIP_ENCAP_HEADER header;	//encapsulation header
-	ENIP_ENCAP_DATA_HEADER encap_data_header; //encapsulation data header
-	ENIP_ENCAP_ADDRESS_ITEM encap_addr_item; //encapsulated address item
-	ENIP_ENCAP_DATA_ITEM encap_data_item; //encapsulated data item
+    int direction;
+    ENIPEncapHdr header; //encapsulation header
+    ENIPEncapDataHdr encap_data_header; //encapsulation data header
+    ENIPEncapAddresItem encap_addr_item; //encapsulated address item
+    ENIPEncapDataItem encap_data_item; //encapsulated data item
 
-	CIP_SERVICE_DATA* service_head; //head of cip service data list
-	CIP_SERVICE_DATA* service_tail; //tail of cip service data list
+    CIPServiceData* service_head; //head of cip service data list
+    CIPServiceData* service_tail; //tail of cip service data list
 
-} ENIP_DATA;
-
-
-
-/**
- * Ccompare cip service data to cip servicerule
- */
-int CIPServiceMatch(Packet *p, ENIP_DATA *enip_data, DetectCipServiceData *cipserviced );
+} ENIPData;
 
 
 /**
- * Create cip service structures
+ * Add new CIPServiceData node to link list
  */
-CIP_SERVICE_DATA *CreateCIPServiceData(ENIP_DATA *enip_data);
+CIPServiceData *CreateCIPServiceData(ENIPData *enip_data);
+
+
+
+
 
 
 #endif	/* _DETECT_CIPSERVICE_H */

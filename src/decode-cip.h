@@ -1,4 +1,4 @@
-/* Copyright (C) 2012 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -14,7 +14,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
  */
-
 /**
  * \file
  *
@@ -57,52 +56,56 @@
 #define PATH_ATTR_8BIT      	0x30
 #define PATH_ATTR_16BIT      	0x31 //possible value
 
-
-typedef struct _CIP_REQUEST_HEADER
+/**
+ * CIP Request Header
+ */
+typedef struct CIPReqHdr_
 {
     u_int8_t service;
     u_int8_t path_size;
-} CIP_REQUEST_HEADER;
+} CIPReqHdr;
 
-typedef struct _CIP_RESPONSE_HEADER
+/**
+ * CIP Response Header
+ */
+typedef struct CIPRespHdr_
 {
     u_int8_t service;
     u_int8_t pad;
     u_int8_t status;
     u_int8_t status_size;
-} CIP_RESPONSE_HEADER;
-
+} CIPRespHdr;
 
 /**
  * Decode CIP
  */
-int DecodeCIP(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
+int DecodeCIP(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 /**
  * Decode CIP Response
  */
-int DecodeCIPResponse(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
+int DecodeCIPResponse(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 /**
  * Decode CIP Request
  */
-int DecodeCIPRequest(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
+int DecodeCIPRequest(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 /**
  * Decode CIP Request Path
  */
-int DecodeCIPRequestPath(Packet *p, CIP_SERVICE_DATA *node, uint16_t offset, DetectCipServiceData *cipserviced);
-
+int DecodeCIPRequestPath(Packet *p, CIPServiceData *node, uint16_t offset,
+        DetectCipServiceData *cipserviced);
 
 /**
  * Decode CIP Request MultiService Packet
  */
-int DecodeCIPRequestMSP(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
+int DecodeCIPRequestMSP(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 /**
  * Decode CIP Response MultiService Packet
  */
-int DecodeCIPResponseMSP(Packet *p, ENIP_DATA *enip_data, uint16_t offset);
+int DecodeCIPResponseMSP(Packet *p, ENIPData *enip_data, uint16_t offset);
 
 #endif	/* _DETECT_CIP_H */
 

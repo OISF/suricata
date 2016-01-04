@@ -1087,17 +1087,17 @@ static int DetectIsdataatTestParse16(void)
     }
 
     s = de_ctx->sig_list;
-    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH] == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL) {
         printf("dns_query list empty: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH]->type != DETECT_ISDATAAT) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH]->type != DETECT_ISDATAAT) {
         printf("last dns_query body sm not isdataat: ");
         goto end;
     }
 
-    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH]->ctx;
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ||
          !(data->flags & ISDATAAT_NEGATED) ) {

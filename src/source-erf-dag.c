@@ -442,7 +442,7 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             break;
         case TYPE_ETH:
             if (dr->lctr) {
-                StatsAddUI64(tv, ewtn->drops, ntohs(dr->lctr));
+                StatsAddUI64(ewtn->tv, ewtn->drops, ntohs(dr->lctr));
             }
             break;
         default:
@@ -535,7 +535,7 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         p->ts.tv_sec++;
     }
 
-    StatsIncr(tv, ewtn->packets);
+    StatsIncr(ewtn->tv, ewtn->packets);
     ewtn->bytes += wlen;
 
     if (TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p) != TM_ECODE_OK) {

@@ -119,9 +119,14 @@ SslConfig ssl_config;
 #define SSLV3_RECORD_HDR_LEN 5
 #define SSLV3_MESSAGE_HDR_LEN 4
 
+#define SSLV3_CLIENT_HELLO_VERSION_LEN 2
+#define SSLV3_CLIENT_HELLO_RANDOM_LEN 32
+
 /* TLS heartbeat protocol types */
 #define TLS_HB_REQUEST              1
 #define TLS_HB_RESPONSE             2
+
+#define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
 static void SSLParserReset(SSLState *ssl_state)
 {
@@ -143,11 +148,101 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
     switch (ssl_state->curr_connp->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
+
+            /* skip version */
+            input += SSLV3_CLIENT_HELLO_VERSION_LEN;
+
+            /* skip random */
+            input += SSLV3_CLIENT_HELLO_RANDOM_LEN;
+
+            if (!(HAS_SPACE(1)))
+                goto end;
+
+            /* skip session id */
+            uint8_t session_id_length = *(input++);
+
+            input += session_id_length;
+
+            if (!(HAS_SPACE(2)))
+                goto end;
+
+            /* skip cipher suites */
+            uint16_t cipher_suites_length = ntohs(*(uint16_t *)input);
+            input += 2;
+
+            input += cipher_suites_length;
+
+            if (!(HAS_SPACE(1)))
+                goto end;
+
+            /* skip compression methods */
+            uint8_t compression_methods_length = *(input++);
+
+            input += compression_methods_length;
+
+            if (!(HAS_SPACE(2)))
+                goto end;
+
+            uint16_t extensions_len = ntohs(*(uint16_t *)input);
+            input += 2;
+
+            uint16_t processed_len = 0;
+            while (processed_len < extensions_len)
+            {
+                if (!(HAS_SPACE(2)))
+                    goto end;
+
+                uint16_t ext_type = ntohs(*(uint16_t *)input);
+                input += 2;
+
+                if (!(HAS_SPACE(2)))
+                    goto end;
+
+                uint16_t ext_len = ntohs(*(uint16_t *)input);
+                input += 2;
+
+
+                switch (ext_type) {
+                    case SSL_EXTENSION_SNI:
+                    {
+                        /* skip sni_list_length and sni_type */
+                        input += 3;
+
+                        if (!(HAS_SPACE(2)))
+                            goto end;
+
+                        uint16_t sni_len = ntohs(*(uint16_t *)input);
+                        input += 2;
+
+                        size_t sni_strlen = sni_len + 1;
+                        ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
+
+                        if (unlikely(ssl_state->curr_connp->sni == NULL))
+                            goto end;
+
+                        if (!(HAS_SPACE(sni_len)))
+                            goto end;
+
+                        memcpy(ssl_state->curr_connp->sni, input,
+                               sni_strlen - 1);
+                        ssl_state->curr_connp->sni[sni_strlen-1] = 0;
+
+                        input += sni_len;
+                        break;
+                    }
+                    default:
+                    {
+                        input += ext_len;
+                        break;
+                    }
+                }
+                processed_len += ext_len + 4;
+            }
+end:
             break;
 
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
-
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
@@ -1141,6 +1236,8 @@ void SSLStateFree(void *p)
         SCFree(ssl_state->client_connp.cert0_issuerdn);
     if (ssl_state->client_connp.cert0_fingerprint)
         SCFree(ssl_state->client_connp.cert0_fingerprint);
+    if (ssl_state->client_connp.sni)
+        SCFree(ssl_state->client_connp.sni);
 
     if (ssl_state->server_connp.trec)
         SCFree(ssl_state->server_connp.trec);
@@ -1150,6 +1247,8 @@ void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
+    if (ssl_state->server_connp.sni)
+        SCFree(ssl_state->server_connp.sni);
 
     /* Free certificate chain */
     while ((item = TAILQ_FIRST(&ssl_state->server_connp.certs))) {

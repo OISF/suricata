@@ -44,9 +44,13 @@ host-mode: auto
 #  user: suri
 #  group: suri
 
+# Some logging module will use that name in event as identifier. The default
+# value is the hostname
+#sensor-name: suricata
+
 # Default pid file.
 # Will use this file if no --pidfile in command options.
-#pid-file: /var/run/suricata.pid
+#pid-file: @e_rundir@suricata.pid
 
 # Daemon working directory
 # Suricata will change directory to this one if provided
@@ -92,7 +96,7 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -100,6 +104,18 @@ outputs:
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #redis:
+      #  server: 127.0.0.1
+      #  port: 6379
+      #  mode: list ## possible values: list (default), channel
+      #  key: suricata ## key or channel to use (default to suricata)
+      # Redis pipelining set up. This will enable to only do a query every
+      # 'batch-size' events. This should lower the latency induced by network
+      # connection at the cost of some memory. There is no flushing implemented
+      # so this setting as to be reserved to high traffic suricata.
+      #  pipelining:
+      #    enabled: yes ## set enable to yes to enable query pipelining
+      #    batch-size: 10 ## number of entry to keep in buffer
       types:
         - alert:
             # payload: yes           # enable dumping payload in Base64
@@ -108,6 +124,7 @@ outputs:
             # http: yes              # enable dumping of http fields
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
+            # smtp: yes              # enable dumping of smtp fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -139,7 +156,19 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop:
         #    alerts: no       # log alerts that caused drops
-        - smtp
+        - smtp:
+            #extended: yes # enable this for extended logging information
+            # this includes: bcc, message-id, subject, x_mailer, user-agent
+            # custom fields logging from the list:
+            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
+            #  x-originating-ip, in-reply-to, references, importance, priority,
+            #  sensitivity, organization, content-md5, date
+            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
+            # output md5 of fields: body, subject
+            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
+            # to yes
+            #md5: [body, subject]
+
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -152,7 +181,7 @@ outputs:
 
   # alert output for use with Barnyard2
   - unified2-alert:
-      enabled: yes
+      enabled: no
       filename: unified2.alert
 
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
@@ -161,6 +190,10 @@ outputs:
 
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
+
+      # Include payload of packets related to alerts. Defaults to true, set to
+      # false if payload is not required.
+      #payload: yes
 
       # HTTP X-Forwarded-For support by adding the unified2 extra header or
       # overwriting the source or destination IP address (depending on flow
@@ -200,7 +233,11 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
       #extended: yes # Log extended information like fingerprint
-      certs-log-dir: certs # directory to store the certificates files
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: no
+      #certs-log-dir: certs # directory to store the certificates files
 
   # a line based log of DNS requests and/or replies (no alerts)
   - dns-log:
@@ -278,6 +315,7 @@ outputs:
       filename: stats.log
       totals: yes       # stats for all threads merged together
       threads: no       # per thread stats
+      #null-values: yes  # print counters that have value 0
 
   # a line based alerts log similar to fast.log into syslog
   - syslog:
@@ -412,10 +450,22 @@ af-packet:
     #  * cluster_round_robin: round robin load balancing
     #  * cluster_flow: all packets of a given flow are send to the same socket
     #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
+    #  * cluster_qm: all packets linked by network card to a RSS queue are sent to the same
+    #  socket. Requires at least Linux 3.14.
+    #  * cluster_random: packets are sent randomly to sockets but with an equipartition.
+    #  Requires at least Linux 3.14.
+    #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
+    #  to the next. Requires at least Linux 3.10.
+    # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
+    # with capture card using RSS (require cpu affinity tuning and system irq tuning)
     cluster-type: cluster_flow
     # In some fragmentation case, the hash can not be computed. If "defrag" is set
     # to yes, the kernel will do the needed defragmentation before sending the packets.
     defrag: yes
+    # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
+    # full then kernel will send the packet on the next socket with room available. This option
+    # can minimize packet drop and increase the treated bandwith on single intensive flow.
+    #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
     # Ring size will be computed with respect to max_pending_packets and number
@@ -462,9 +512,21 @@ af-packet:
   - interface: default
     #threads: auto
     #use-mmap: yes
+    #rollover: yes
 
-# netmap support
+# Netmap support
+#
+# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
+# built-in netmap support or compile and install netmap module and appropriate
+# NIC driver on your Linux system.
+# To reach maximum throughput disable all receive-, segmentation-,
+# checksum- offloadings on NIC.
+# Disabling Tx checksum offloading is *required* for connecting OS endpoint
+# with NIC endpoint.
+# You can find more information at https://github.com/luigirizzo/netmap
+#
 netmap:
+   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
  - interface: eth2
    # Number of receive threads. "auto" uses number of RSS queues on interface.
    threads: auto
@@ -473,6 +535,12 @@ netmap:
    # interface will be copied to the copy-iface interface. If 'tap' is set, the
    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
    # will not be copied.
+   # To specify the OS as the copy-iface (so the OS can route packets, or forward
+   # to a service running on the same machine) add a plus sign at the end
+   # (e.g. "copy-iface: eth0+"). Don't forget to set up a symmetrical eth0+ -> eth0
+   # for return packets. Hardware checksumming must be *off* on the interface if
+   # using an OS endpoint (e.g. 'ifconfig eth0 -rxcsum -txcsum -rxcsum6 -txcsum6' for FreeBSD
+   # or 'ethtool -K eth0 tx off rx off' for Linux).
    #copy-mode: tap
    #copy-iface: eth3
    # Set to yes to disable promiscuous mode
@@ -872,6 +940,15 @@ host:
   prealloc: 1000
   memcap: 16777216
 
+# IP Pair table:
+#
+# Used by xbits 'ippair' tracking.
+#
+#ippair:
+#  hash-size: 4096
+#  prealloc: 1000
+#  memcap: 16777216
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
 logging:
@@ -901,13 +978,16 @@ logging:
   outputs:
   - console:
       enabled: yes
+      # type: json
   - file:
       enabled: no
-      filename: /var/log/suricata.log
+      filename: @e_logdir@suricata.log
+      # type: json
   - syslog:
       enabled: no
       facility: local5
       format: "[%i] <%d> -- "
+      # type: json
 
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:
@@ -1092,7 +1172,7 @@ rule-files:
  - smtp-events.rules    # available in suricata sources under rules dir
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
- - modbus-events.rules  # available in suricata sources under rules dir
+# - modbus-events.rules  # available in suricata sources under rules dir
  - app-layer-events.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
@@ -1245,6 +1325,9 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        body-md5: no
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
         content-limit: 1000
@@ -1268,7 +1351,7 @@ app-layer:
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
 
-      enabled: yes
+      enabled: no
       detection-ports:
         dp: 502
       # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
@@ -1358,14 +1441,14 @@ app-layer:
 
            # Can be specified in kb, mb, gb.  Just a number indicates
            # it's in bytes.
-           request-body-limit: 3072
-           response-body-limit: 3072
+           request-body-limit: 100kb
+           response-body-limit: 100kb
 
            # inspection limits
            request-body-minimal-inspect-size: 32kb
            request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 32kb
-           response-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 40kb
+           response-body-inspect-window: 16kb
 
            # auto will use http-body-inline mode in IPS mode, yes or no set it statically
            http-body-inline: auto
@@ -1429,8 +1512,11 @@ profiling:
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
-    # Limit the number of items printed at exit.
+    # Limit the number of items printed at exit (ignored for json).
     limit: 100
+
+    # output to json
+    json: true
 
   # per keyword profiling
   keywords:

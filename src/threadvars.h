@@ -71,6 +71,9 @@ typedef struct ThreadVars_ {
     /** no of times the thread has been restarted on failure */
     uint8_t restarted;
 
+    /** TmModule::flags for each module part of this thread */
+    uint8_t tmm_flags;
+
     /** local id */
     int id;
 

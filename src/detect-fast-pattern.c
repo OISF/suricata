@@ -134,7 +134,7 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH, 3);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH, 3);
 
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_DNSQUERY_MATCH, 2);
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2);
 
 #if 0
     SCFPSupportSMList *tmp = sm_fp_support_smlist_list;
@@ -225,7 +225,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH] == NULL) {
+        s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
@@ -252,7 +252,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERY_MATCH]);
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "

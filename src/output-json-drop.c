@@ -114,20 +114,24 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     }
     switch (proto) {
         case IPPROTO_TCP:
-            json_object_set_new(djs, "tcpseq", json_integer(TCP_GET_SEQ(p)));
-            json_object_set_new(djs, "tcpack", json_integer(TCP_GET_ACK(p)));
-            json_object_set_new(djs, "tcpwin", json_integer(TCP_GET_WINDOW(p)));
-            json_object_set_new(djs, "syn", TCP_ISSET_FLAG_SYN(p) ? json_true() : json_false());
-            json_object_set_new(djs, "ack", TCP_ISSET_FLAG_ACK(p) ? json_true() : json_false());
-            json_object_set_new(djs, "psh", TCP_ISSET_FLAG_PUSH(p) ? json_true() : json_false());
-            json_object_set_new(djs, "rst", TCP_ISSET_FLAG_RST(p) ? json_true() : json_false());
-            json_object_set_new(djs, "urg", TCP_ISSET_FLAG_URG(p) ? json_true() : json_false());
-            json_object_set_new(djs, "fin", TCP_ISSET_FLAG_FIN(p) ? json_true() : json_false());
-            json_object_set_new(djs, "tcpres", json_integer(TCP_GET_RAW_X2(p->tcph)));
-            json_object_set_new(djs, "tcpurgp", json_integer(TCP_GET_URG_POINTER(p)));
+            if (PKT_IS_TCP(p)) {
+                json_object_set_new(djs, "tcpseq", json_integer(TCP_GET_SEQ(p)));
+                json_object_set_new(djs, "tcpack", json_integer(TCP_GET_ACK(p)));
+                json_object_set_new(djs, "tcpwin", json_integer(TCP_GET_WINDOW(p)));
+                json_object_set_new(djs, "syn", TCP_ISSET_FLAG_SYN(p) ? json_true() : json_false());
+                json_object_set_new(djs, "ack", TCP_ISSET_FLAG_ACK(p) ? json_true() : json_false());
+                json_object_set_new(djs, "psh", TCP_ISSET_FLAG_PUSH(p) ? json_true() : json_false());
+                json_object_set_new(djs, "rst", TCP_ISSET_FLAG_RST(p) ? json_true() : json_false());
+                json_object_set_new(djs, "urg", TCP_ISSET_FLAG_URG(p) ? json_true() : json_false());
+                json_object_set_new(djs, "fin", TCP_ISSET_FLAG_FIN(p) ? json_true() : json_false());
+                json_object_set_new(djs, "tcpres", json_integer(TCP_GET_RAW_X2(p->tcph)));
+                json_object_set_new(djs, "tcpurgp", json_integer(TCP_GET_URG_POINTER(p)));
+            }
             break;
         case IPPROTO_UDP:
-            json_object_set_new(djs, "udplen", json_integer(UDP_GET_LEN(p)));
+            if (PKT_IS_UDP(p)) {
+                json_object_set_new(djs, "udplen", json_integer(UDP_GET_LEN(p)));
+            }
             break;
         case IPPROTO_ICMP:
             if (PKT_IS_ICMPV4(p)) {
@@ -152,14 +156,14 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
             if ((pa->action & (ACTION_REJECT|ACTION_REJECT_DST|ACTION_REJECT_BOTH)) ||
                ((pa->action & ACTION_DROP) && EngineModeIsIPS()))
             {
-                AlertJsonHeader(pa, js);
+                AlertJsonHeader(p, pa, js);
                 logged = 1;
             }
         }
         if (logged == 0) {
             if (p->alerts.drop.action != 0) {
                 const PacketAlert *pa = &p->alerts.drop;
-                AlertJsonHeader(pa, js);
+                AlertJsonHeader(p, pa, js);
             }
         }
     }
@@ -261,7 +265,7 @@ static OutputCtx *JsonDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME) < 0) {
+    if (SCConfLogOpenGeneric(conf, drop_ctx->file_ctx, DEFAULT_LOG_FILENAME, 1) < 0) {
         JsonDropOutputCtxFree(drop_ctx);
         return NULL;
     }

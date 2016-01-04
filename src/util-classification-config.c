@@ -54,7 +54,7 @@ uint32_t SCClassConfClasstypeHashFunc(HashTable *ht, void *data, uint16_t datale
 char SCClassConfClasstypeHashCompareFunc(void *data1, uint16_t datalen1,
                                          void *data2, uint16_t datalen2);
 void SCClassConfClasstypeHashFree(void *ch);
-static char *SCClassConfGetConfFilename(void);
+static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx);
 
 void SCClassConfInit(void)
 {
@@ -124,7 +124,7 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
      * instead use an input stream against a buffer containing the
      * classification strings */
     if (fd == NULL) {
-        filename = SCClassConfGetConfFilename();
+        filename = SCClassConfGetConfFilename(de_ctx);
         if ( (fd = fopen(filename, "r")) == NULL) {
 #ifdef UNITTESTS
             if (RunmodeIsUnittests())
@@ -160,12 +160,26 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
  * \retval log_filename Pointer to a string containing the path for the
  *                      Classification Config file.
  */
-static char *SCClassConfGetConfFilename(void)
+static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *log_filename = NULL;
+    char config_value[256] = "";
 
-    if (ConfGet("classification-file", &log_filename) != 1) {
-        log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
+    if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        snprintf(config_value, sizeof(config_value),
+                 "%s.classification-file", de_ctx->config_prefix);
+
+        /* try loading prefix setting, fall back to global if that
+         * fails. */
+        if (ConfGet(config_value, &log_filename) != 1) {
+            if (ConfGet("classification-file", &log_filename) != 1) {
+                log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
+            }
+        }
+    } else {
+        if (ConfGet("classification-file", &log_filename) != 1) {
+            log_filename = (char *)SC_CLASS_CONF_DEF_CONF_FILEPATH;
+        }
     }
 
     return log_filename;

@@ -179,8 +179,6 @@ typedef struct ICMPV4Vars_
 {
     uint16_t  id;
     uint16_t  seq;
-    uint32_t  mtu;
-    uint32_t  error_ptr;
 
     /** Pointers to the embedded packet headers */
     IPV4Hdr *emb_ipv4h;
@@ -203,8 +201,6 @@ typedef struct ICMPV4Vars_
     (p)->level4_comp_csum = -1; \
     (p)->icmpv4vars.id = 0; \
     (p)->icmpv4vars.seq = 0; \
-    (p)->icmpv4vars.mtu = 0; \
-    (p)->icmpv4vars.error_ptr = 0; \
     (p)->icmpv4vars.emb_ipv4h = NULL; \
     (p)->icmpv4vars.emb_tcph = NULL; \
     (p)->icmpv4vars.emb_udph = NULL; \
@@ -236,13 +232,6 @@ typedef struct ICMPV4Vars_
 
 /* If message is Error */
 
-/** macro for icmpv4 "unused" access */
-#define ICMPV4_GET_UNUSED(p)       (p)->icmpv4h->icmpv4b.icmpv4e.unused
-/** macro for icmpv4 "error_ptr" access */
-#define ICMPV4_GET_ERROR_PTR(p)    (p)->icmpv4h->icmpv4b.icmpv4e.error_ptr
-/** macro for icmpv4 "mtu" access */
-#define ICMPV4_GET_MTU(p)          (p)->icmpv4h->icmpv4b.icmpv4e.mtu
-
 /** macro for icmpv4 embedded "protocol" access */
 #define ICMPV4_GET_EMB_PROTO(p)    (p)->icmpv4vars.emb_ip4_proto
 /** macro for icmpv4 embedded "ipv4h" header access */
@@ -259,7 +248,9 @@ typedef struct ICMPV4Vars_
  *
  *  \warning use only _after_ the decoder has processed the packet
  */
-#define ICMPV4_DEST_UNREACH_IS_VALID(p) (((p)->icmpv4h != NULL) && \
+#define ICMPV4_DEST_UNREACH_IS_VALID(p) ( \
+    (!((p)->flags & PKT_IS_INVALID)) && \
+    ((p)->icmpv4h != NULL) && \
     (ICMPV4_GET_TYPE((p)) == ICMP_DEST_UNREACH) && \
     (ICMPV4_GET_EMB_IPV4((p)) != NULL) && \
     ((ICMPV4_GET_EMB_TCP((p)) != NULL) || \
@@ -279,9 +270,6 @@ typedef struct ICMPV4Vars_
         ICMPV4_GET_TYPE((p)) == ICMP_REDIRECT || \
         ICMPV4_GET_TYPE((p)) == ICMP_TIME_EXCEEDED || \
         ICMPV4_GET_TYPE((p)) == ICMP_PARAMETERPROB)
-
-typedef struct ICMPV4Cache_ {
-} ICMPV4Cache;
 
 void DecodeICMPV4RegisterTests(void);
 

@@ -222,7 +222,16 @@ void HtpBodyPrune(HtpState *state, HtpBody *body, int direction)
         window = state->cfg->request_inspect_window;
     }
 
-    if (body->body_inspected < (min_size > window) ? min_size : window) {
+    uint64_t max_window = ((min_size > window) ? min_size : window);
+    uint64_t in_flight = body->content_len_so_far - body->body_inspected;
+
+    /* Special case. If body_inspected is not being updated, we make sure that
+     * we prune the body. We allow for some extra size/room as we may be called
+     * multiple times on uninspected body chunk additions if a large block of
+     * data was ack'd at once. Want to avoid pruning before inspection. */
+    if (in_flight > (max_window * 3)) {
+        body->body_inspected = body->content_len_so_far - max_window;
+    } else if (body->body_inspected < max_window) {
         SCReturn;
     }
 

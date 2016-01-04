@@ -27,5 +27,9 @@
 
 void TmModuleLogTlsLogRegister (void);
 
+int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
+                             Port* sp, char* dstip, size_t dstip_len,
+                             Port* dp, int ipproto);
+
 #endif /* __LOG_TLSLOG_H__ */
 

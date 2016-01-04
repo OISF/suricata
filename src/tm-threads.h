@@ -132,6 +132,8 @@ void TmThreadDisablePacketThreads(void);
 void TmThreadDisableReceiveThreads(void);
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
+uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags);
+
 /**
  *  \brief Process the rest of the functions (if any) and queue.
  */

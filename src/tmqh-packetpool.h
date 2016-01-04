@@ -38,7 +38,7 @@ typedef struct PktPoolLockedStack_{
 } __attribute__((aligned(CLS))) PktPoolLockedStack;
 
 typedef struct PktPool_ {
-    /* link listed of free packets local to this thread. 
+    /* link listed of free packets local to this thread.
      * No mutex is needed.
      */
     Packet *head;
@@ -51,8 +51,13 @@ typedef struct PktPool_ {
     Packet *pending_head;
     Packet *pending_tail;
     uint32_t pending_count;
-    
-    /* All members above this point are accessed locally by only one thread, so 
+
+#ifdef DEBUG_VALIDATION
+    int initialized;
+    int destroyed;
+#endif /* DEBUG_VALIDATION */
+
+    /* All members above this point are accessed locally by only one thread, so
      * these should live on their own cache line.
      */
 
@@ -60,7 +65,6 @@ typedef struct PktPool_ {
      * to this thread.
      */
     PktPoolLockedStack return_stack;
-
 } PktPool;
 
 Packet *TmqhInputPacketpool(ThreadVars *);
@@ -74,5 +78,6 @@ void PacketPoolReturnPacket(Packet *p);
 void PacketPoolInit(void);
 void PacketPoolInitEmpty(void);
 void PacketPoolDestroy(void);
+void PacketPoolPostRunmodes(void);
 
 #endif /* __TMQH_PACKETPOOL_H__ */

@@ -482,7 +482,8 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer, uint32_
         SCFree(a);
         return NULL;
     }
-    strlcpy(a->str, (const char*)d_ptr, length+1);
+    memcpy(a->str, (const char*)d_ptr, length);
+    a->str[length] = 0;
 
     d_ptr += length;
 
@@ -583,8 +584,8 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer, u
         SCFree(a);
         return NULL;
     }
-    strlcpy(a->str, (const char*)d_ptr, length+1);
-    a->str[length] = '\0';
+    memcpy(a->str, (const char*)d_ptr, length);
+    a->str[length] = 0;
 
     d_ptr += length;
 

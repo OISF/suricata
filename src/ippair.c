@@ -47,6 +47,10 @@ static IPPair *IPPairGetUsedIPPair(void);
 /** queue with spare ippairs */
 static IPPairQueue ippair_spare_q;
 
+/** size of the ippair object. Maybe updated in IPPairInitConfig to include
+ *  the storage APIs additions. */
+static uint16_t g_ippair_size = sizeof(IPPair);
+
 uint32_t IPPairSpareQueueGetSize(void)
 {
     return IPPairQueueLen(&ippair_spare_q);
@@ -60,19 +64,17 @@ void IPPairMoveToSpare(IPPair *h)
 
 IPPair *IPPairAlloc(void)
 {
-    size_t size = sizeof(IPPair) + IPPairStorageSize();
-
-    if (!(IPPAIR_CHECK_MEMCAP(size))) {
+    if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
         return NULL;
     }
 
-    (void) SC_ATOMIC_ADD(ippair_memuse, size);
+    (void) SC_ATOMIC_ADD(ippair_memuse, g_ippair_size);
 
-    IPPair *h = SCMalloc(size);
+    IPPair *h = SCMalloc(g_ippair_size);
     if (unlikely(h == NULL))
         goto error;
 
-    memset(h, 0x00, size);
+    memset(h, 0x00, g_ippair_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -90,7 +92,7 @@ void IPPairFree(IPPair *h)
         SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(ippair_memuse, (sizeof(IPPair) + IPPairStorageSize()));
+        (void) SC_ATOMIC_SUB(ippair_memuse, g_ippair_size);
     }
 }
 
@@ -125,6 +127,8 @@ void IPPairClearMemory(IPPair *h)
 void IPPairInitConfig(char quiet)
 {
     SCLogDebug("initializing ippair engine...");
+    if (IPPairStorageSize() > 0)
+        g_ippair_size = sizeof(IPPair) + IPPairStorageSize();
 
     memset(&ippair_config,  0, sizeof(ippair_config));
     //SC_ATOMIC_INIT(flow_flags);
@@ -209,11 +213,11 @@ void IPPairInitConfig(char quiet)
 
     /* pre allocate ippairs */
     for (i = 0; i < ippair_config.prealloc; i++) {
-        if (!(IPPAIR_CHECK_MEMCAP(sizeof(IPPair)))) {
+        if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
             SCLogError(SC_ERR_IPPAIR_INIT, "preallocating ippairs failed: "
                     "max ippair memcap reached. Memcap %"PRIu64", "
                     "Memuse %"PRIu64".", ippair_config.memcap,
-                    ((uint64_t)SC_ATOMIC_GET(ippair_memuse) + (uint64_t)sizeof(IPPair)));
+                    ((uint64_t)SC_ATOMIC_GET(ippair_memuse) + g_ippair_size));
             exit(EXIT_FAILURE);
         }
 
@@ -226,8 +230,8 @@ void IPPairInitConfig(char quiet)
     }
 
     if (quiet == FALSE) {
-        SCLogInfo("preallocated %" PRIu32 " ippairs of size %" PRIuMAX "",
-                ippair_spare_q.len, (uintmax_t)sizeof(IPPair));
+        SCLogInfo("preallocated %" PRIu32 " ippairs of size %" PRIu16 "",
+                ippair_spare_q.len, g_ippair_size);
         SCLogInfo("ippair memory usage: %llu bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(ippair_memuse), ippair_config.memcap);
     }
@@ -382,7 +386,7 @@ static IPPair *IPPairGetNew(Address *a, Address *b)
     h = IPPairDequeue(&ippair_spare_q);
     if (h == NULL) {
         /* If we reached the max memcap, we get a used ippair */
-        if (!(IPPAIR_CHECK_MEMCAP(sizeof(IPPair)))) {
+        if (!(IPPAIR_CHECK_MEMCAP(g_ippair_size))) {
             /* declare state of emergency */
             //if (!(SC_ATOMIC_GET(ippair_flags) & IPPAIR_EMERGENCY)) {
             //    SC_ATOMIC_OR(ippair_flags, IPPAIR_EMERGENCY);

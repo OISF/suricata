@@ -66,6 +66,8 @@ const char lua_ext_key_p[] = "suricata:lua:pkt:ptr";
 const char lua_ext_key_flow[] = "suricata:lua:flow:ptr";
 /* key for flow lock hint bool */
 const char lua_ext_key_flow_lock_hint[] = "suricata:lua:flow:lock_hint";
+/* key for direction */
+const char lua_ext_key_direction[] = "suricata:lua:direction";
 
 /* key for pa (packet alert) pointer */
 const char lua_ext_key_pa[] = "suricata:lua:pkt:alert:ptr";
@@ -197,6 +199,22 @@ void LuaStateSetStreamingBuffer(lua_State *luastate, LuaStreamingBuffer *b)
 {
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_streaming_buffer);
     lua_pushlightuserdata(luastate, (void *)b);
+    lua_settable(luastate, LUA_REGISTRYINDEX);
+}
+
+/** \brief get packet pointer from the lua state */
+int LuaStateGetDirection(lua_State *luastate)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_direction);
+    lua_gettable(luastate, LUA_REGISTRYINDEX);
+    int dir = lua_toboolean(luastate, -1);
+    return dir;
+}
+
+void LuaStateSetDirection(lua_State *luastate, int direction)
+{
+    lua_pushlightuserdata(luastate, (void *)&lua_ext_key_direction);
+    lua_pushboolean(luastate, direction);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 

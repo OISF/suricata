@@ -608,7 +608,7 @@ uint32_t SigGroupHeadHashFunc(HashListTable *ht, void *data, uint16_t datalen)
     uint32_t hash = 0;
     uint32_t b = 0;
 
-    SCLogDebug("hashing sgh %p (mpm_content_maxlen %u)", sgh, sgh->mpm_content_maxlen);
+    SCLogDebug("hashing sgh %p (mpm_content_minlen %u)", sgh, sgh->mpm_content_minlen);
 
     for (b = 0; b < sgh->init->sig_size; b++)
         hash += sgh->init->sig_array[b];
@@ -998,6 +998,17 @@ void SigGroupHeadFreeMpmArrays(DetectEngineCtx *de_ctx)
     return;
 }
 
+static uint16_t SignatureGetMpmPatternLen(Signature *s, int list)
+{
+    if (s->sm_lists[list] != NULL && s->mpm_sm != NULL &&
+        SigMatchListSMBelongsTo(s, s->mpm_sm) == list)
+    {
+        DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
+        return cd->content_len;
+    }
+    return 0;
+}
+
 /**
  * \brief Add a Signature to a SigGroupHead.
  *
@@ -1025,28 +1036,18 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
     /* enable the sig in the bitarray */
     (*sgh)->init->sig_array[s->num / 8] |= 1 << (s->num % 8);
 
-    /* update maxlen for mpm */
+    /* update minlen for mpm */
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         /* check with the precalculated values from the sig */
-        if (s->mpm_content_maxlen > 0) {
-            if ((*sgh)->mpm_content_maxlen == 0)
-                (*sgh)->mpm_content_maxlen = s->mpm_content_maxlen;
+        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
+        if (mpm_content_minlen > 0) {
+            if ((*sgh)->mpm_content_minlen == 0)
+                (*sgh)->mpm_content_minlen = mpm_content_minlen;
 
-            if ((*sgh)->mpm_content_maxlen > s->mpm_content_maxlen)
-                (*sgh)->mpm_content_maxlen = s->mpm_content_maxlen;
+            if ((*sgh)->mpm_content_minlen > mpm_content_minlen)
+                (*sgh)->mpm_content_minlen = mpm_content_minlen;
 
-            SCLogDebug("(%p)->mpm_content_maxlen %u", *sgh, (*sgh)->mpm_content_maxlen);
-        }
-    }
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-        if (s->mpm_uricontent_maxlen > 0) {
-            if ((*sgh)->mpm_uricontent_maxlen == 0)
-                (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
-
-            if ((*sgh)->mpm_uricontent_maxlen > s->mpm_uricontent_maxlen)
-                (*sgh)->mpm_uricontent_maxlen = s->mpm_uricontent_maxlen;
-
-            SCLogDebug("(%p)->mpm_uricontent_maxlen %u", *sgh, (*sgh)->mpm_uricontent_maxlen);
+            SCLogDebug("(%p)->mpm_content_minlen %u", *sgh, (*sgh)->mpm_content_minlen);
         }
     }
     return 0;
@@ -1103,23 +1104,16 @@ int SigGroupHeadCopySigs(DetectEngineCtx *de_ctx, SigGroupHead *src, SigGroupHea
     for (idx = 0; idx < src->init->sig_size; idx++)
         (*dst)->init->sig_array[idx] = (*dst)->init->sig_array[idx] | src->init->sig_array[idx];
 
-    if (src->mpm_content_maxlen != 0) {
-        if ((*dst)->mpm_content_maxlen == 0)
-            (*dst)->mpm_content_maxlen = src->mpm_content_maxlen;
+    if (src->mpm_content_minlen != 0) {
+        if ((*dst)->mpm_content_minlen == 0)
+            (*dst)->mpm_content_minlen = src->mpm_content_minlen;
 
-        if ((*dst)->mpm_content_maxlen > src->mpm_content_maxlen)
-            (*dst)->mpm_content_maxlen = src->mpm_content_maxlen;
+        if ((*dst)->mpm_content_minlen > src->mpm_content_minlen)
+            (*dst)->mpm_content_minlen = src->mpm_content_minlen;
 
-        SCLogDebug("src (%p)->mpm_content_maxlen %u", src, src->mpm_content_maxlen);
-        SCLogDebug("dst (%p)->mpm_content_maxlen %u", (*dst), (*dst)->mpm_content_maxlen);
-        BUG_ON((*dst)->mpm_content_maxlen == 0);
-    }
-    if (src->mpm_uricontent_maxlen != 0) {
-        if ((*dst)->mpm_uricontent_maxlen == 0)
-            (*dst)->mpm_uricontent_maxlen = src->mpm_uricontent_maxlen;
-
-        if ((*dst)->mpm_uricontent_maxlen > src->mpm_uricontent_maxlen)
-            (*dst)->mpm_uricontent_maxlen = src->mpm_uricontent_maxlen;
+        SCLogDebug("src (%p)->mpm_content_minlen %u", src, src->mpm_content_minlen);
+        SCLogDebug("dst (%p)->mpm_content_minlen %u", (*dst), (*dst)->mpm_content_minlen);
+        BUG_ON((*dst)->mpm_content_minlen == 0);
     }
     return 0;
 
@@ -1225,7 +1219,7 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     for (u = 0; u < (sgh->init->sig_size * 8); u++) {
         if (sgh->init->sig_array[u / 8] & (1 << (u % 8))) {
             SCLogDebug("%" PRIu32, u);
-            printf("s->num %"PRIu16" ", u);
+            printf("s->num %"PRIu32" ", u);
         }
     }
 
@@ -1603,6 +1597,42 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     }
 
     return;
+}
+
+/**
+ *  \brief Get size of the shortest mpm pattern.
+ *
+ *  \param de_ctx detection engine ctx for the signatures
+ *  \param sgh sig group head to set the flag in
+ *  \param list sm_list to consider
+ */
+uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
+                                   SigGroupHead *sgh, int list)
+{
+    Signature *s = NULL;
+    uint32_t sig = 0;
+    uint16_t min = USHRT_MAX;
+
+    if (sgh == NULL)
+        return 0;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        uint16_t mpm_content_minlen = SignatureGetMpmPatternLen(s, DETECT_SM_LIST_PMATCH);
+        if (mpm_content_minlen > 0) {
+            if (mpm_content_minlen < min)
+                min = mpm_content_minlen;
+            SCLogDebug("mpm_content_minlen %u", mpm_content_minlen);
+        }
+    }
+
+    if (min == USHRT_MAX)
+        min = 0;
+    SCLogDebug("min mpm size %u", min);
+    return min;
 }
 
 /**

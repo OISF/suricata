@@ -31,8 +31,14 @@
 #include <pfring.h>
 #endif
 
+typedef enum {
+    PFRING_CONF_FLAGS_CLUSTER = 0x1
+} PfringIfaceConfigFlags;
+
 typedef struct PfringIfaceConfig_
 {
+    uint32_t flags;
+
     /* cluster param */
     int cluster_id;
 #ifdef HAVE_PFRING

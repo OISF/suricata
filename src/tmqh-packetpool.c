@@ -38,6 +38,8 @@
 #include "stream-tcp-reassemble.h"
 
 #include "tm-queuehandlers.h"
+#include "tm-threads.h"
+#include "tm-modules.h"
 
 #include "pkt-var.h"
 
@@ -50,6 +52,7 @@
 
 /* Number of freed packet to save for one pool before freeing them. */
 #define MAX_PENDING_RETURN_PACKETS 32
+static uint32_t max_pending_return_packets = MAX_PENDING_RETURN_PACKETS;
 
 #ifdef TLS
 __thread PktPool thread_pkt_pool;
@@ -241,7 +244,10 @@ static void PacketPoolGetReturnedPackets(PktPool *pool)
 Packet *PacketPoolGetPacket(void)
 {
     PktPool *pool = GetThreadPacketPool();
-
+#ifdef DEBUG_VALIDATION
+    BUG_ON(pool->initialized == 0);
+    BUG_ON(pool->destroyed == 1);
+#endif /* DEBUG_VALIDATION */
     if (pool->head) {
         /* Stack is not empty. */
         Packet *p = pool->head;
@@ -286,6 +292,12 @@ void PacketPoolReturnPacket(Packet *p)
         PacketFree(p);
         return;
     }
+#ifdef DEBUG_VALIDATION
+    BUG_ON(pool->initialized == 0);
+    BUG_ON(pool->destroyed == 1);
+    BUG_ON(my_pool->initialized == 0);
+    BUG_ON(my_pool->destroyed == 1);
+#endif /* DEBUG_VALIDATION */
 
     if (pool == my_pool) {
         /* Push back onto this thread's own stack, so no locking. */
@@ -304,7 +316,7 @@ void PacketPoolReturnPacket(Packet *p)
             p->next = my_pool->pending_head;
             my_pool->pending_head = p;
             my_pool->pending_count++;
-            if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > MAX_PENDING_RETURN_PACKETS) {
+            if (SC_ATOMIC_GET(pool->return_stack.sync_now) || my_pool->pending_count > max_pending_return_packets) {
                 /* Return the entire list of pending packets. */
                 SCMutexLock(&pool->return_stack.mutex);
                 my_pool->pending_tail->next = pool->return_stack.head;
@@ -338,6 +350,12 @@ void PacketPoolInitEmpty(void)
 
     PktPool *my_pool = GetThreadPacketPool();
 
+#ifdef DEBUG_VALIDATION
+    BUG_ON(my_pool->initialized);
+    my_pool->initialized = 1;
+    my_pool->destroyed = 0;
+#endif /* DEBUG_VALIDATION */
+
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
     SCCondInit(&my_pool->return_stack.cond, NULL);
     SC_ATOMIC_INIT(my_pool->return_stack.sync_now);
@@ -352,6 +370,12 @@ void PacketPoolInit(void)
 #endif
 
     PktPool *my_pool = GetThreadPacketPool();
+
+#ifdef DEBUG_VALIDATION
+    BUG_ON(my_pool->initialized);
+    my_pool->initialized = 1;
+    my_pool->destroyed = 0;
+#endif /* DEBUG_VALIDATION */
 
     SCMutexInit(&my_pool->return_stack.mutex, NULL);
     SCCondInit(&my_pool->return_stack.cond, NULL);
@@ -371,12 +395,18 @@ void PacketPoolInit(void)
     }
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
             max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
+
 }
 
 void PacketPoolDestroy(void)
 {
     Packet *p = NULL;
     PktPool *my_pool = GetThreadPacketPool();
+
+#ifdef DEBUG_VALIDATION
+    BUG_ON(my_pool->destroyed);
+#endif /* DEBUG_VALIDATION */
+
     if (my_pool && my_pool->pending_pool != NULL) {
         p = my_pool->pending_head;
         while (p) {
@@ -385,7 +415,9 @@ void PacketPoolDestroy(void)
             p = next_p;
             my_pool->pending_count--;
         }
+#ifdef DEBUG_VALIDATION
         BUG_ON(my_pool->pending_count);
+#endif /* DEBUG_VALIDATION */
         my_pool->pending_pool = NULL;
         my_pool->pending_head = NULL;
         my_pool->pending_tail = NULL;
@@ -396,6 +428,11 @@ void PacketPoolDestroy(void)
     }
 
     SC_ATOMIC_DESTROY(my_pool->return_stack.sync_now);
+
+#ifdef DEBUG_VALIDATION
+    my_pool->initialized = 0;
+    my_pool->destroyed = 1;
+#endif /* DEBUG_VALIDATION */
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *tv)
@@ -528,4 +565,35 @@ void TmqhReleasePacketsToPacketPool(PacketQueue *pq)
         TmqhOutputPacketpool(NULL, p);
 
     return;
+}
+
+/**
+ *  \brief Set the max_pending_return_packets value
+ *
+ *  Set it to the max pending packets value, devided by the number
+ *  of lister threads. Normally, in autofp these are the stream/detect/log
+ *  worker threads.
+ *
+ *  The max_pending_return_packets value needs to stay below the packet
+ *  pool size of the 'producers' (normally pkt capture threads but also
+ *  flow timeout injection ) to avoid a deadlock where all the 'workers'
+ *  keep packets in their return pools, while the capture thread can't
+ *  continue because its pool is empty.
+ */
+void PacketPoolPostRunmodes(void)
+{
+    extern intmax_t max_pending_packets;
+
+    uint32_t threads = TmThreadCountThreadsByTmmFlags(TM_FLAG_DETECT_TM);
+    if (threads == 0)
+        return;
+    if (threads > max_pending_packets)
+        return;
+
+    uint32_t packets = (max_pending_packets / threads) - 1;
+    if (packets < max_pending_return_packets)
+        max_pending_return_packets = packets;
+
+    SCLogDebug("detect threads %u, max packets %u, max_pending_return_packets %u",
+            threads, (uint)threads, max_pending_return_packets);
 }
