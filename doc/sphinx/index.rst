@@ -12,6 +12,7 @@ Suricata User Guide
    oinkmaster
    make-sense-alerts
    performance/index.rst
+   configuration/index.rst
    reputation/index.rst
    initscripts
    setting-up-ipsinline-for-linux
