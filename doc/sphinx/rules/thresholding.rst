@@ -2,11 +2,11 @@ Rule Thresholding
 =================
 
 Thresholding can be configured per rule and also globally, see
-[[**FIXME** Global-Thresholds]].
+:doc:`../configuration/global-thresholds`.
 
 *Note: mixing rule and global thresholds is not supported in 1.3 and
 before. See bug #425.* For the state of the support in 1.4 see
-[[**FIXME** Global-Thresholds#Global-thresholds-vs-rule-thresholds]].
+:ref:`global-thresholds-vs-rule-thresholds`
 
 threshold
 ---------
