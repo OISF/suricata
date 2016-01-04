@@ -8,6 +8,8 @@ Suricata. This document will explain each option.
 At the top of the YAML-file you will find % YAML 1.1.  Suricata reads
 the file and identifies the file as YAML.
 
+.. _suricata-yaml-max-pending-packets:
+
 Max-pending-packets
 -------------------
 
@@ -63,6 +65,8 @@ It is possible to set the user and group to run Suricata as:
     user: suri
     group: suri
 
+
+.. _suricata-yaml-action-order:
 
 Action-order
 ------------
@@ -952,6 +956,8 @@ seconds.
 Flow and Stream handling
 ------------------------
 
+.. _suricata-yaml-flow-settings:
+
 Flow Settings
 ~~~~~~~~~~~~~
 
@@ -1212,6 +1218,8 @@ Limit for the maximum number of asn1 frames to decode (default 256):
 ::
 
    asn1_max_frames: 256
+
+.. _suricata-yaml-configure-libhtp:
 
 Configure HTTP (libhtp)
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -1691,6 +1699,8 @@ You can set the direction of the classification configuration.
 ::
   
       classification-file: /etc/suricata/classification.config
+
+.. _suricata-yaml-rule-vars:
 
 Rule-vars
 ~~~~~~~~~

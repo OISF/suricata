@@ -82,7 +82,10 @@ Please make sure you choose the appropriate interface name (eth0,eth1,eth5...)
 Output
 ~~~~~~
 
-For file extraction two separate output modules were created: "file-log" and "file-store". They need to be enabled in the [[suricata.yaml]]. For "file-store", the "files" drop dir must be configured.
+For file extraction two separate output modules were created:
+"file-log" and "file-store". They need to be enabled in the
+:doc:`../configuration/suricata-yaml`. For "file-store", the "files"
+drop dir must be configured.
 
   
 ::

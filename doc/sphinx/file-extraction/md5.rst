@@ -1,3 +1,5 @@
+.. _md5:
+
 Storing MD5s checksums
 ======================
 
