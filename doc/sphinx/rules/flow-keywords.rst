@@ -9,12 +9,13 @@ is going to perform, the second part is the name of the flowbit.
 
 There are multiple packets that belong to one flow. Suricata keeps
 those flows in memory. For more information see
-[[**FIXME** suricata.yaml#Flow]].  Flowbits can make sure an alert will be
-generated when for example two different packets match.  An alert will
-only be generated when both packets match. So, when the second packet
-matches, Suricata has to know if the first packet was a match
-too. Flowbits marks the flow if a packet matches so Suricata 'knows'
-it should generate an alert when the second packet matches as well.
+:ref:`suricata-yaml-flow-settings`.  Flowbits can make sure an alert
+will be generated when for example two different packets match.  An
+alert will only be generated when both packets match. So, when the
+second packet matches, Suricata has to know if the first packet was a
+match too. Flowbits marks the flow if a packet matches so Suricata
+'knows' it should generate an alert when the second packet matches as
+well.
 
 Flowbits have different actions. These are:
 

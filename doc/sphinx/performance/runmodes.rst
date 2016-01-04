@@ -10,10 +10,10 @@ another one the output-module.  A packet can be processed by more than
 one thread. The packet will be passed on to the next thread through a
 queue. Packets will be processed by one thread at a time, but there
 can be multiple packets being processed at a time by the engine. (see
-[[**FIXME** suricata.yaml#max-pending-packets]]) A thread can have one or more
-thread-modules. If they have more modules, they can only be active on
-a a time.  The way threads, modules and queues are arranged together
-is called the Runmode.
+:ref:`suricata-yaml-max-pending-packets`) A thread can have one or
+more thread-modules. If they have more modules, they can only be
+active on a a time.  The way threads, modules and queues are arranged
+together is called the Runmode.
 
 Different runmodes
 ~~~~~~~~~~~~~~~~~~

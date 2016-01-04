@@ -2,7 +2,8 @@ File Keywords
 =============
 
 Suricata comes with several rule keywords to match on various file
-properties. They depend on properly configured [[**FIXME** File Extraction]].
+properties. They depend on properly configured
+:doc:`../file-extraction/file-extraction`.
 
 filename
 --------
@@ -73,7 +74,7 @@ the rule and the scope will be per file.
 filemd5
 -------
 
-Match file [[**FIXME** MD5]] against list of MD5 checksums.
+Match file :ref:`MD5 <md5>` against list of MD5 checksums.
 
 Syntax::
 

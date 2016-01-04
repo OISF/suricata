@@ -5,11 +5,11 @@ Rules Introduction
 
 Signatures play a very important role in Suricata. In most occasions
 people are using existing rulesets. The most used are `Emerging
-Threats <http://www.emergingthreats.net/>`_, `Emerging Threats
-Pro <http://www.emergingthreatspro.com/>`_ and Sourcefire's
-`VRT <http://www.snort.org/vrt/>`_. A way to install rules is described
-in [[**FIXME** Rule Management with Oinkmaster]].  This Suricata Rules document
-explains all about signatures; how to read-, adjust-and create them.
+Threats <http://www.emergingthreats.net/>`_, `Emerging Threats Pro
+<http://www.emergingthreatspro.com/>`_ and Sourcefire's `VRT
+<http://www.snort.org/vrt/>`_. A way to install rules is described in
+:doc:`../oinkmaster`.  This Suricata Rules document explains all about
+signatures; how to read-, adjust-and create them.
 
 A rule/signature consists of the following:
 
@@ -22,8 +22,8 @@ Example of a signature:
 Action
 ------
 
-For more information read 'Action Order' in the
-[[**FIXME** suricata.yaml#Action-order]] wiki.
+For more information read 'Action Order' see
+:ref:`suricata-yaml-action-order`.
 
 Example:
 
@@ -54,11 +54,11 @@ Source and destination
 
 In source you can assign IP-addresses; IPv4 and IPv6 combined as well
 as separated. You can also set variables such as HOME_NET. (For more
-information see 'Rule-vars' at [[**FIXME** Suricata.yaml#Rule-vars]] in the user
-guide.)  In the Yaml-file you can set IP-addresses for variables such
-as EXTERNAL_NET and HOME_NET. These settings will be used when you use
-these variables in a rule.  In source and destination you can make use
-of signs like ! And [ ].
+information see :ref:`suricata-yaml-rule-vars`. In the Yaml-file you
+can set IP-addresses for variables such as EXTERNAL_NET and
+HOME_NET. These settings will be used when you use these variables in
+a rule.  In source and destination you can make use of signs like !
+And [ ].
 
 For example::
 
@@ -180,4 +180,4 @@ following headlines:
 * :doc:`http-keywords`
 * :doc:`dns-keywords`
 * :doc:`flow-keywords`
-* **FIXME** [[IPReputationRules|IP Reputation keyword]]
+* :doc:`../reputation/ipreputation/ip-reputation-rules`
