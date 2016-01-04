@@ -181,7 +181,7 @@ outputs:
 
   # alert output for use with Barnyard2
   - unified2-alert:
-      enabled: yes
+      enabled: no
       filename: unified2.alert
 
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
@@ -315,6 +315,7 @@ outputs:
       filename: stats.log
       totals: yes       # stats for all threads merged together
       threads: no       # per thread stats
+      #null-values: yes  # print counters that have value 0
 
   # a line based alerts log similar to fast.log into syslog
   - syslog:
@@ -1171,7 +1172,7 @@ rule-files:
  - smtp-events.rules    # available in suricata sources under rules dir
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
- - modbus-events.rules  # available in suricata sources under rules dir
+# - modbus-events.rules  # available in suricata sources under rules dir
  - app-layer-events.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
@@ -1350,7 +1351,7 @@ app-layer:
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
 
-      enabled: yes
+      enabled: no
       detection-ports:
         dp: 502
       # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
@@ -1440,14 +1441,14 @@ app-layer:
 
            # Can be specified in kb, mb, gb.  Just a number indicates
            # it's in bytes.
-           request-body-limit: 3072
-           response-body-limit: 3072
+           request-body-limit: 100kb
+           response-body-limit: 100kb
 
            # inspection limits
            request-body-minimal-inspect-size: 32kb
            request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 32kb
-           response-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 40kb
+           response-body-inspect-window: 16kb
 
            # auto will use http-body-inline mode in IPS mode, yes or no set it statically
            http-body-inline: auto
@@ -1511,8 +1512,11 @@ profiling:
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
-    # Limit the number of items printed at exit.
+    # Limit the number of items printed at exit (ignored for json).
     limit: 100
+
+    # output to json
+    json: true
 
   # per keyword profiling
   keywords:

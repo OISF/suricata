@@ -38,10 +38,6 @@
 
 #ifdef PROFILING
 
-#ifndef MIN
-#define MIN(a, b) (((a) < (b)) ? (a) : (b))
-#endif
-
 /**
  * Extra data for rule profiling.
  */
@@ -85,6 +81,7 @@ extern int profiling_output_to_file;
 int profiling_rules_enabled = 0;
 static char *profiling_file_name = "";
 static const char *profiling_file_mode = "a";
+static int profiling_rule_json = 0;
 
 /**
  * Sort orders for dumping profiled rules.
@@ -181,6 +178,13 @@ void SCProfilingRulesGlobalInit(void)
                 }
 
                 profiling_output_to_file = 1;
+            }
+            if (ConfNodeChildValueIsTrue(conf, "json")) {
+#ifdef HAVE_LIBJANSSON
+                profiling_rule_json = 1;
+#else
+                SCLogWarning(SC_ERR_NO_JSON_SUPPORT, "no json support compiled in, using plain output");
+#endif
             }
         }
     }
@@ -284,6 +288,134 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
         return s0->max > s1->max ? -1 : 1;
 }
 
+#ifdef HAVE_LIBJANSSON
+
+static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64_t total_ticks)
+{
+    char timebuf[64];
+    uint32_t i;
+    struct timeval tval;
+
+    json_t *js = json_object();
+    if (js == NULL)
+        return;
+    json_t *jsa = json_array();
+    if (jsa == NULL) {
+        json_decref(js);
+        return;
+    }
+
+    gettimeofday(&tval, NULL);
+    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    json_object_set_new(js, "timestamp", json_string(timebuf));
+
+    for (i = 0; i < count; i++) {
+        /* Stop dumping when we hit our first rule with 0 checks.  Due
+         * to sorting this will be the beginning of all the rules with
+         * 0 checks. */
+        if (summary[i].checks == 0)
+            break;
+
+        json_t *jsm = json_object();
+        if (jsm) {
+            json_object_set_new(jsm, "signature_id", json_integer(summary[i].sid));
+            json_object_set_new(jsm, "gid", json_integer(summary[i].gid));
+            json_object_set_new(jsm, "rev", json_integer(summary[i].rev));
+
+            json_object_set_new(jsm, "checks", json_integer(summary[i].checks));
+            json_object_set_new(jsm, "matches", json_integer(summary[i].matches));
+
+            json_object_set_new(jsm, "ticks_total", json_integer(summary[i].ticks));
+            json_object_set_new(jsm, "ticks_max", json_integer(summary[i].max));
+            json_object_set_new(jsm, "ticks_avg", json_integer(summary[i].avgticks));
+            json_object_set_new(jsm, "ticks_avg_match", json_integer(summary[i].avgticks_match));
+            json_object_set_new(jsm, "ticks_avg_nomatch", json_integer(summary[i].avgticks_no_match));
+
+            double percent = (long double)summary[i].ticks /
+                (long double)total_ticks * 100;
+            json_object_set_new(jsm, "percent", json_integer(percent));
+            json_array_append(jsa, jsm);
+        }
+    }
+    json_object_set_new(js, "rules", jsa);
+
+    char *js_s = json_dumps(js,
+            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+#ifdef JSON_ESCAPE_SLASH
+            JSON_ESCAPE_SLASH
+#else
+            0
+#endif
+            );
+
+    if (unlikely(js_s == NULL))
+        return;
+    fprintf(fp, "%s", js_s);
+    free(js_s);
+    json_decref(js);
+}
+
+#endif /* HAVE_LIBJANSSON */
+
+static void DumpText(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64_t total_ticks)
+{
+    uint32_t i;
+    struct timeval tval;
+    struct tm *tms;
+    gettimeofday(&tval, NULL);
+    struct tm local_tm;
+    tms = SCLocalTime(tval.tv_sec, &local_tm);
+
+    fprintf(fp, "  ----------------------------------------------"
+            "----------------------------\n");
+    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
+            tms->tm_hour,tms->tm_min, tms->tm_sec);
+    fprintf(fp, "  ----------------------------------------------"
+            "----------------------------\n");
+    fprintf(fp, "   %-8s %-12s %-8s %-8s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Num", "Rule", "Gid", "Rev", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
+    fprintf(fp, "  -------- "
+        "------------ "
+        "-------- "
+        "-------- "
+        "------------ "
+        "------ "
+        "-------- "
+        "-------- "
+        "----------- "
+        "----------- "
+        "----------- "
+        "-------------- "
+        "\n");
+    for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
+
+        /* Stop dumping when we hit our first rule with 0 checks.  Due
+         * to sorting this will be the beginning of all the rules with
+         * 0 checks. */
+        if (summary[i].checks == 0)
+            break;
+
+        double percent = (long double)summary[i].ticks /
+            (long double)total_ticks * 100;
+        fprintf(fp,
+            "  %-8"PRIu32" %-12u %-8"PRIu32" %-8"PRIu32" %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
+            i + 1,
+            summary[i].sid,
+            summary[i].gid,
+            summary[i].rev,
+            summary[i].ticks,
+            percent,
+            summary[i].checks,
+            summary[i].matches,
+            summary[i].max,
+            summary[i].avgticks,
+            summary[i].avgticks_match,
+            summary[i].avgticks_no_match);
+    }
+
+    fprintf(fp,"\n");
+}
+
 /**
  * \brief Dump rule profiling information to file
  *
@@ -298,8 +430,6 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
     if (rules_ctx == NULL)
         return;
 
-    struct timeval tval;
-    struct tm *tms;
     if (profiling_output_to_file == 1) {
         fp = fopen(profiling_file_name, profiling_file_mode);
 
@@ -383,59 +513,15 @@ SCProfilingRuleDump(SCProfileDetectCtx *rules_ctx)
                     SCProfileSummarySortByAvgTicksNoMatch);
             break;
     }
-
-    gettimeofday(&tval, NULL);
-    struct tm local_tm;
-    tms = SCLocalTime(tval.tv_sec, &local_tm);
-
-    fprintf(fp, "  ----------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
-            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
-            tms->tm_hour,tms->tm_min, tms->tm_sec);
-    fprintf(fp, "  ----------------------------------------------"
-            "----------------------------\n");
-    fprintf(fp, "   %-8s %-12s %-8s %-8s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Num", "Rule", "Gid", "Rev", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
-    fprintf(fp, "  -------- "
-        "------------ "
-        "-------- "
-        "-------- "
-        "------------ "
-        "------ "
-        "-------- "
-        "-------- "
-        "----------- "
-        "----------- "
-        "----------- "
-        "-------------- "
-        "\n");
-    for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
-
-        /* Stop dumping when we hit our first rule with 0 checks.  Due
-         * to sorting this will be the beginning of all the rules with
-         * 0 checks. */
-        if (summary[i].checks == 0)
-            break;
-
-        double percent = (long double)summary[i].ticks /
-            (long double)total_ticks * 100;
-        fprintf(fp,
-            "  %-8"PRIu32" %-12u %-8"PRIu32" %-8"PRIu32" %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
-            i + 1,
-            summary[i].sid,
-            summary[i].gid,
-            summary[i].rev,
-            summary[i].ticks,
-            percent,
-            summary[i].checks,
-            summary[i].matches,
-            summary[i].max,
-            summary[i].avgticks,
-            summary[i].avgticks_match,
-            summary[i].avgticks_no_match);
+#ifdef HAVE_LIBJANSSON
+    if (profiling_rule_json) {
+        DumpJson(fp, summary, count, total_ticks);
+    } else
+#endif
+    {
+        DumpText(fp, summary, count, total_ticks);
     }
 
-    fprintf(fp,"\n");
     if (fp != stdout)
         fclose(fp);
     SCFree(summary);

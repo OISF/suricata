@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,20 +15,11 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- *
- */
+#ifndef __DETECT_BASE64_DATA_H__
+#define __DETECT_BASE64_DATA_H__
 
-#ifndef __APP_LAYER_HTP_FILE_H__
-#define __APP_LAYER_HTP_FILE_H__
+void DetectBase64DataRegister(void);
+int DetectBase64DataDoMatch(DetectEngineCtx *, DetectEngineThreadCtx *,
+    Signature *, Flow *);
 
-int HTPFileOpen(HtpState *, uint8_t *, uint16_t, uint8_t *, uint32_t, uint64_t, uint8_t);
-int HTPFileStoreChunk(HtpState *, uint8_t *, uint32_t, uint8_t);
-int HTPFileClose(HtpState *, uint8_t *, uint32_t, uint8_t, uint8_t);
-
-void HTPFileParserRegisterTests(void);
-
-#endif /* __APP_LAYER_HTP_FILE_H__ */
+#endif /* __DETECT_BASE64_DATA_H__ */

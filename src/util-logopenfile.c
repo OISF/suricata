@@ -519,8 +519,10 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 
     SCMutexDestroy(&lf_ctx->fp_mutex);
 
-    if (lf_ctx->prefix != NULL)
+    if (lf_ctx->prefix != NULL) {
         SCFree(lf_ctx->prefix);
+        lf_ctx->prefix_len = 0;
+    }
 
     if(lf_ctx->filename != NULL)
         SCFree(lf_ctx->filename);
@@ -536,7 +538,7 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
 }
 
 #ifdef HAVE_LIBHIREDIS
-static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_len)
+static int  LogFileWriteRedis(LogFileCtx *file_ctx, const char *string, size_t string_len)
 {
     if (file_ctx->redis == NULL) {
         SCConfLogReopenRedis(file_ctx);
@@ -615,24 +617,27 @@ static int  LogFileWriteRedis(LogFileCtx *file_ctx, char *string, size_t string_
 }
 #endif
 
-int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len)
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
 {
     if (file_ctx->type == LOGFILE_TYPE_SYSLOG) {
-        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s", string);
+        syslog(file_ctx->syslog_setup.alert_syslog_level, "%s",
+                (const char *)MEMBUFFER_BUFFER(buffer));
     } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
     {
+        /* append \n for files only */
+        MemBufferWriteString(buffer, "\n");
         SCMutexLock(&file_ctx->fp_mutex);
-        MemBufferWriteString(buffer, "%s\n", string);
         file_ctx->Write((const char *)MEMBUFFER_BUFFER(buffer),
-            MEMBUFFER_OFFSET(buffer), file_ctx);
+                        MEMBUFFER_OFFSET(buffer), file_ctx);
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #ifdef HAVE_LIBHIREDIS
     else if (file_ctx->type == LOGFILE_TYPE_REDIS) {
         SCMutexLock(&file_ctx->fp_mutex);
-        LogFileWriteRedis(file_ctx, string, string_len);
+        LogFileWriteRedis(file_ctx, (const char *)MEMBUFFER_BUFFER(buffer),
+                MEMBUFFER_OFFSET(buffer));
         SCMutexUnlock(&file_ctx->fp_mutex);
     }
 #endif

@@ -102,6 +102,7 @@ typedef struct LogFileCtx_ {
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
+    size_t prefix_len;
 
     /** Generic size_limit and size_current
      * They must be common to the threads accesing the same file */
@@ -130,7 +131,7 @@ typedef struct LogFileCtx_ {
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
-int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer, char *string, size_t string_len);
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
 int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);

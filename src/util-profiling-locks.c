@@ -24,12 +24,12 @@
  *
  */
 
-#ifdef PROFILING
-#ifdef PROFILE_LOCKING
-
 #include "suricata-common.h"
 #include "util-profiling-locks.h"
 #include "util-hashlist.h"
+
+#ifdef PROFILING
+#ifdef PROFILE_LOCKING
 
 __thread ProfilingLock locks[PROFILING_MAX_LOCKS];
 __thread int locks_idx = 0;

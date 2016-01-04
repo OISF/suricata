@@ -90,8 +90,8 @@ int GetIfaceMTU(const char *pcap_dev)
 
     if (ioctl(fd, SIOCGIFMTU, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when trying to get MTU via ioctl: %d",
-                errno);
+                "Failure when trying to get MTU via ioctl for '%s': %s (%d)",
+                pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     }
@@ -157,6 +157,7 @@ int GetIfaceOffloading(const char *pcap_dev)
     int fd;
     struct ethtool_value ethv;
     int ret = 0;
+    char *lro = "unset", *gro = "unset";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
@@ -169,16 +170,14 @@ int GetIfaceOffloading(const char *pcap_dev)
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl: %s (%d)",
-                  strerror(errno), errno);
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     } else {
         if (ethv.data) {
-            SCLogInfo("Generic Receive Offload is set on %s", pcap_dev);
+            gro = "SET";
             ret = 1;
-        } else {
-            SCLogInfo("Generic Receive Offload is unset on %s", pcap_dev);
         }
     }
 
@@ -188,21 +187,19 @@ int GetIfaceOffloading(const char *pcap_dev)
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl: %s (%d)",
-                  strerror(errno), errno);
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  pcap_dev, strerror(errno), errno);
         close(fd);
         return -1;
     } else {
         if (ethv.data & ETH_FLAG_LRO) {
-            SCLogInfo("Large Receive Offload is set on %s", pcap_dev);
+            lro = "SET";
             ret = 1;
-        } else {
-            SCLogInfo("Large Receive Offload is unset on %s", pcap_dev);
         }
     }
 
     close(fd);
-
+    SCLogInfo("NIC offloading on %s: GRO: %s, LRO: %s", pcap_dev, gro, lro);
     return ret;
 #else
     /* ioctl is not defined, let's pretend returning 0 is ok */
@@ -221,8 +218,8 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         SCLogWarning(SC_ERR_SYSCALL,
-                "Failure when opening socket for ioctl: %d",
-                errno);
+                "Failure when opening socket for ioctl: %s (%d)",
+                strerror(errno), errno);
         return -1;
     }
 
@@ -232,8 +229,8 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         if (errno != ENOTSUP) {
             SCLogWarning(SC_ERR_SYSCALL,
-                         "Failure when trying to get number of RSS queue ioctl: %d",
-                         errno);
+                         "Failure when trying to get number of RSS queue ioctl for '%s': %s (%d)",
+                         pcap_dev, strerror(errno), errno);
         }
         close(fd);
         return 0;

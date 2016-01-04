@@ -1073,7 +1073,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv)
             }
         /* no packets */
         } else if (r == 0 && AFPPeersListStarted()) {
-            SCLogInfo("Starting to read on %s", ptv->tv->name);
+            SCLogDebug("Starting to read on %s", ptv->tv->name);
             return 1;
         } else if (r < 0) { /* only exit on error */
             SCLogWarning(SC_ERR_AFP_READ, "poll failed with retval %d", r);
@@ -1154,7 +1154,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         AFPPeersListReachedInc();
     }
     if (ptv->afp_state == AFP_STATE_UP) {
-        SCLogInfo("Thread %s using socket %d", tv->name, ptv->socket);
+        SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
         AFPSynchronizeStart(ptv);
     }
 
@@ -1570,8 +1570,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         ptv->frame_offset = 0;
     }
 
-    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
-
+    SCLogDebug("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
 
     ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
     switch (ptv->datalink) {
@@ -1702,9 +1701,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->cluster_id = 1;
     /* We only set cluster info if the number of reader threads is greater than 1 */
     if (afpconfig->threads > 1) {
-            ptv->cluster_id = afpconfig->cluster_id;
-            ptv->cluster_type = afpconfig->cluster_type;
-            ptv->threads = afpconfig->threads;
+        ptv->cluster_id = afpconfig->cluster_id;
+        ptv->cluster_type = afpconfig->cluster_type;
+        ptv->threads = afpconfig->threads;
     }
 #endif
     ptv->flags = afpconfig->flags;
@@ -1719,23 +1718,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->capture_kernel_drops = StatsRegisterCounter("capture.kernel_drops",
             ptv->tv);
 #endif
-
-    char *active_runmode = RunmodeGetActive();
-
-    if (active_runmode && !strcmp("workers", active_runmode)) {
-        ptv->flags |= AFP_ZERO_COPY;
-        SCLogInfo("Enabling zero copy mode");
-    } else {
-        /* If we are using copy mode we need a lock */
-        ptv->flags |= AFP_SOCK_PROTECT;
-    }
-
-    /* If we are in RING mode, then we can use ZERO copy
-     * by using the data release mechanism */
-    if (ptv->flags & AFP_RING_MODE) {
-        ptv->flags |= AFP_ZERO_COPY;
-        SCLogInfo("Enabling zero copy mode by using data release call");
-    }
 
     ptv->copy_mode = afpconfig->copy_mode;
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
@@ -1860,18 +1842,21 @@ TmEcode DecodeAFP(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     }
 
     /* call the decoder */
-    switch(p->datalink) {
-        case LINKTYPE_LINUX_SLL:
-            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
-            break;
+    switch (p->datalink) {
         case LINKTYPE_ETHERNET:
             DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        case LINKTYPE_LINUX_SLL:
+            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_PPP:
             DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_RAW:
             DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        case LINKTYPE_NULL:
+            DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module DecodeAFP", p->datalink);

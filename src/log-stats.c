@@ -51,6 +51,7 @@
 
 #define LOG_STATS_TOTALS  (1<<0)
 #define LOG_STATS_THREADS (1<<1)
+#define LOG_STATS_NULLS   (1<<2)
 
 TmEcode LogStatsLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogStatsLogThreadDeinit(ThreadVars *, void *);
@@ -106,6 +107,9 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
     if (aft->statslog_ctx->flags & LOG_STATS_TOTALS) {
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
+                continue;
+
+            if (!(aft->statslog_ctx->flags & LOG_STATS_NULLS) && st->stats[u].value == 0)
                 continue;
 
             char line[1024];
@@ -238,6 +242,7 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
     if (conf != NULL) {
         const char *totals = ConfNodeLookupChildValue(conf, "totals");
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
+        const char *nulls = ConfNodeLookupChildValue(conf, "null-values");
         SCLogDebug("totals %s threads %s", totals, threads);
 
         if (totals != NULL && ConfValIsFalse(totals)) {
@@ -245,6 +250,9 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
         }
         if (threads != NULL && ConfValIsTrue(threads)) {
             statslog_ctx->flags |= LOG_STATS_THREADS;
+        }
+        if (nulls != NULL && ConfValIsTrue(nulls)) {
+            statslog_ctx->flags |= LOG_STATS_NULLS;
         }
         SCLogDebug("statslog_ctx->flags %08x", statslog_ctx->flags);
     }

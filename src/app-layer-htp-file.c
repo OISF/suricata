@@ -77,7 +77,7 @@
  *  \retval -2 not handling files on this flow
  */
 int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
-        uint8_t *data, uint32_t data_len, uint16_t txid, uint8_t direction)
+        uint8_t *data, uint32_t data_len, uint64_t txid, uint8_t direction)
 {
     int retval = 0;
     uint8_t flags = 0;

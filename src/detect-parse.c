@@ -1319,6 +1319,21 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
+    if (s->sm_lists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
+        int list;
+        uint16_t idx = s->sm_lists[DETECT_SM_LIST_BASE64_DATA]->idx;
+        for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+            if (list != DETECT_SM_LIST_BASE64_DATA &&
+                s->sm_lists[list] != NULL) {
+                if (s->sm_lists[list]->idx > idx) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Rule buffer "
+                        "cannot be reset after base64_data.");
+                    SCReturnInt(0);
+                }
+            }
+        }
+    }
+
 #ifdef HAVE_LUA
     DetectLuaPostSetup(s);
 #endif
