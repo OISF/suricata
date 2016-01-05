@@ -41,7 +41,7 @@ Make sure your Suricata is compiled/installed with libjansson support enabled:
     CUDA enabled:                            no
   ...
 
-If it isn't check out the [[**FIXME** Suricata_installation]] page to install or compile Suricata for your distribution.
+If it isn't check out the `Suricata Installation <https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricata_Installation>`_ page to install or compile Suricata for your distribution.
 **NOTE:** you will need these packages installed -> **libjansson4** and *libjansson-dev* before compilation.
 
 Configure suricata
