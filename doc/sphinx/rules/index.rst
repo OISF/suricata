@@ -18,6 +18,6 @@ Suricata Rules
    dns-keywords
    tls-keywords
    normalized-buffers
-   rule-profiling
    modbus-keyword
    dnp3-keywords
+
