@@ -1,3 +1,5 @@
+.. _filemd5-listing:
+
 Filemd5 and white or black listing with MD5 hashes
 ==================================================
 

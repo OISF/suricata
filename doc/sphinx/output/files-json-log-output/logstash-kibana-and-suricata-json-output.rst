@@ -2,14 +2,17 @@ Logstash Kibana and Suricata JSON output
 ========================================
 
 With the release of Suricata 2.0rc1 , Suricata introduces all JSON output capability. 
+
 What is JSON - http://en.wikipedia.org/wiki/JSON
 
-
 One way to handle easily Suricata's JSON log outputs is through Kibana - http://kibana.org/ :
-> Kibana is a highly scalable interface for Logstash (http://logstash.net/) and ElasticSearch (http://www.elasticsearch.org/) that allows you to efficiently search, graph, analyze and otherwise make sense of a mountain of logs.
-> 
+  
+::
+
+  Kibana is a highly scalable interface for Logstash (http://logstash.net/) and ElasticSearch (http://www.elasticsearch.org/) that allows you to efficiently search, graph, analyze and otherwise make sense of a mountain of logs. 
 
 The installation is very simple/basic start up with minor specifics for ubuntu. You can be up and running, looking through the logs in under 5 min.
+
 The downloads can be found here - http://www.elasticsearch.org/overview/elkdownloads/
 
 This is what yo need to do.
@@ -38,7 +41,7 @@ Make sure your Suricata is compiled/installed with libjansson support enabled:
     CUDA enabled:                            no
   ...
 
-If it isn't check out the [[Suricata_installation]] page to install or compile Suricata for your distribution. 
+If it isn't check out the [[**FIXME** Suricata_installation]] page to install or compile Suricata for your distribution. 
 **NOTE:** you will need these packages installed -> **libjansson4** and *libjansson-dev* before compilation. 
 
 Configure suricata
@@ -78,14 +81,12 @@ Install ELK (elasticsearch, logstash, kibana)
 ---------------------------------------------
 
 First install the dependencies 
-(
-**NOTE:**
-ELK recommends running with Oracle Java - how to -> 
-http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/setup-service.html#_installing_the_oracle_jdk
-)
+
+**NOTE:** ELK recommends running with Oracle Java - how to:
+
+* http://www.elasticsearch.org/guide/en/elasticsearch/reference/current/setup-service.html#_installing_the_oracle_jdk
 
 Otherwise you can install the openjdk:
-
   
 ::
 
@@ -95,7 +96,9 @@ Otherwise you can install the openjdk:
 Then download and install the software.
 
 Make sure you download the latest versions - 
-http://www.elasticsearch.org/overview/elkdownloads/
+
+* http://www.elasticsearch.org/overview/elkdownloads/
+
 The installation process is simple (for example):
   
 ::
@@ -112,7 +115,7 @@ The installation process is simple (for example):
 Logstash configuration
 ----------------------
 
-Create and save a *logstash.conf* file with the following content in the /etc/logstash/conf.d/ directory :
+Create and save a **logstash.conf** file with the following content in the /etc/logstash/conf.d/ directory :
   
 ::
 
@@ -197,7 +200,7 @@ Configure the start-up services
 Enjoy
 -----
 
-That's all. Now make sure Suricata is running and you have logs written in your JSON log files and you point your browser towards ->
+That's all. Now make sure Suricata is running and you have logs written in your JSON log files and you point your browser towards
   
 ::
 
@@ -210,9 +213,9 @@ Some ready to use templates can be found here:
 * https://github.com/pevma/Suricata-Logstash-Templates
 
 From here on if you would like to customize and familiarize yourself more with the interface you should read the documentation about Kibana and Logstash.
-Please have in mind that this is a very quick(under 5 min) tutorial. You should customize and review the proper way for you of using it as a service and/or consider using *httpS web interface and reversy proxy with some authentication*.
+Please have in mind that this is a very quick(under 5 min) tutorial. You should customize and review the proper way for you of using it as a service and/or consider using **httpS web interface and reversy proxy with some authentication**.
 
-Some possible customization of the output of Logstash and Kibana - >
+Some possible customization of the output of Logstash and Kibana
 
 
 

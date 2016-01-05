@@ -1,3 +1,5 @@
+.. _script-follow-json:
+
 Script FollowJSON
 =================
 
