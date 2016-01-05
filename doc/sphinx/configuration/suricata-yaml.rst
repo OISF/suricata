@@ -276,9 +276,9 @@ integration with tools like logstash.
           #- drop
           - ssh
 
-For more advanced configuration options, see [[**FIXME** EveJSONOutput]].
-.. FIXME jsonformat ref
-The format is documented in :ref:`Eve JSON Format <Eve JSON Format>` 
+For more advanced configuration options, see :ref:`Eve JSON Output <eve-json-output>`.
+
+The format is documented in :ref:`Eve JSON Format <eve-json-format>`.
 
 Log output for use with Barnyard (unified.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -350,7 +350,7 @@ This log keeps track of all HTTP-traffic events. It contains the HTTP
 request, hostname, URI and the User-Agent. This information will be
 stored in the http.log (default name, in the suricata log
 directory). This logging can also be performed through the use of the
-[[**FIXME** EveJSONFormat|Eve-log capability]].
+:ref:`Eve-log capability <eve-json-format>`.
 
 Example of a HTTP-log line with non-extended logging:
   
@@ -384,7 +384,7 @@ This log keeps track of all DNS events (queries and replies). It
 contains the type of DNS activity that has been performed, the
 requested / replied domain name and relevant data suck as client,
 server, ttl, resource record data. This logging can also be performed
-through the use of the [[EveJSONFormat|Eve-log capability]] which
+through the use of the :ref:`Eve-log capability <eve-json-format>` which
 offers easier parsing.
 
 Example of the apperance of a DNS log of a query with a preceding reply:
