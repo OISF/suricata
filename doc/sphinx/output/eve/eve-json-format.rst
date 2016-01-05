@@ -1,3 +1,5 @@
+.. _eve-json-format:
+
 Eve JSON Format
 ===============
 

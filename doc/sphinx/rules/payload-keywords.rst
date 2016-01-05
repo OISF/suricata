@@ -228,9 +228,7 @@ The first example illustrates a signature which searches for byte 512
 of the payload. The second example illustrates a signature searching
 for byte 50 after the last match.
 
-You can also use the negation (!) before isdataat. Suricata does not
-support using it yet, but will support it in future versions of the
-engine. For more information see **fixme: what is this supposed to link to**.
+You can also use the negation (!) before isdataat.
 
 .. image:: payload-keywords/isdataat1.png
 
