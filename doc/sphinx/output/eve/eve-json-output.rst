@@ -1,3 +1,5 @@
+.. _eve-json-output:
+
 Eve JSON Output
 ===============
 
