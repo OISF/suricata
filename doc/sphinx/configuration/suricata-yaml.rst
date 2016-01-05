@@ -277,8 +277,8 @@ integration with tools like logstash.
           - ssh
 
 For more advanced configuration options, see [[**FIXME** EveJSONOutput]].
-
-The format is documented in [[**FIXME **EveJSONFormat]]
+.. FIXME jsonformat ref
+The format is documented in :ref:`Eve JSON Format <Eve JSON Format>` 
 
 Log output for use with Barnyard (unified.log)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -613,7 +613,7 @@ At all of these options, you can add (or change) a value.  Most
 signatures have the adjustment to focus on one direction, meaning
 focusing exclusively on the server, or exclusively on the client.
 
-If you take a look at example 4, _the Detection-engine grouping tree_,
+If you take a look at example 4, *the Detection-engine grouping tree*,
 you see it has many branches. At the end of each branch, there is
 actually a 'sig group head'.  Within that sig group head there is a
 container which contains a list with signatures that are significant
@@ -1572,7 +1572,7 @@ Add the numbers of the options repeat_mark and route_queue to the NFQ-rule::
      route_queue: 2               #Here you can assign the queue-number of the tool that Suricata has to
                                   #send the packets to after processing them.
 
-*Example 1 NFQ                * 
+*Example 1 NFQ1*
 
 mode: accept
 
