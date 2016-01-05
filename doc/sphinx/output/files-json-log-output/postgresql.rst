@@ -67,14 +67,14 @@ Log out and log in again (with the "filejson" user) to test if everything is ok:
 
 
 
-Optionally you could create and import the MD5 white list data if you wish - generally the same guidance as described in:
-[[Filemd5 and white/black listing with MD5]]
+Optionally you could create and import the MD5 white list data if you wish - generally the same guidance as described in :ref:`FileMD5 and white/black listing with md5 <filemd5-listing>`
 
 Some more general info and basic commands/queries:
 http://jazstudios.blogspot.se/2010/06/postgresql-login-commands.html
 http://www.thegeekstuff.com/2009/05/15-advanced-postgresql-commands-with-examples/
 
 
-now you can go ahead and execute the script - [[Script FollowJSON]]
+now you can go ahead and execute the script - :ref:`Script FollowJSON <script-follow-json>`
 
 Peter Manev
+

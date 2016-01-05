@@ -29,8 +29,8 @@ For MySQL make sure you create a db and a table:
 
 
 
-OPTIONALLY - if you would like you can add in the MD5 whitelist table and import the data as described here ( [[Filemd5 and white/black listing with MD5]] )
+OPTIONALLY - if you would like you can add in the MD5 whitelist table and import the data as described here :ref:`FileMD5 and white/black listing with md5 <filemd5-listing>`
 
-now you can go ahead and execute the script - [[Script FollowJSON]]
+now you can go ahead and execute the script - :ref:`Script FollowJSON <script-follow-json>`
 
 Peter Manev
