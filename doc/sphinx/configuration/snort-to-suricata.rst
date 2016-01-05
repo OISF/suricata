@@ -81,7 +81,7 @@ snort.conf
 
 suricata.yaml
 
-Suricata's checksum handling works _on-demand_. The stream engine
+Suricata's checksum handling works *on-demand*. The stream engine
 checks TCP and IP checksum by default:
   
 ::
