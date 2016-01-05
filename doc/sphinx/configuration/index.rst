@@ -7,5 +7,4 @@ Configuration
    global-thresholds
    snort-to-suricata
    log-rotation
-   lua-output
    multi-tenant
