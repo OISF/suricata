@@ -81,6 +81,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_DNP3:
             proto_name = "dnp3";
             break;
+        case ALPROTO_DHCP:
+            proto_name = "dhcp";
+            break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;

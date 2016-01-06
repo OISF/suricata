@@ -16,6 +16,7 @@ app-layer.c app-layer.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-detect-proto.c app-layer-detect-proto.h \
+app-layer-dhcp.c app-layer-dhcp.h \
 app-layer-dnp3.c app-layer-dnp3.h \
 app-layer-dnp3-objects.c app-layer-dnp3-objects.h \
 app-layer-dns-common.c app-layer-dns-common.h \
@@ -281,6 +282,7 @@ output-file.c output-file.h \
 output-filedata.c output-filedata.h \
 output-flow.c output-flow.h \
 output-json-alert.c output-json-alert.h \
+output-json-dhcp.c output-json-dhcp.h \
 output-json-dns.c output-json-dns.h \
 output-json-dnp3.c output-json-dnp3.h \
 output-json-dnp3-objects.c output-json-dnp3-objects.h \
