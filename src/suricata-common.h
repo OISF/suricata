@@ -409,6 +409,7 @@ typedef enum {
     LOGGER_PRELUDE,
     LOGGER_PCAP,
     LOGGER_JSON_DNP3,
+    LOGGER_JSON_DHCP,
     LOGGER_JSON_VARS,
     LOGGER_SIZE,
 } LoggerId;

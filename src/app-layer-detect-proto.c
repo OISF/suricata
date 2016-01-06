@@ -697,6 +697,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                         printf("            alproto: ALPROTO_MODBUS\n");
                     else if (pp_pe->alproto == ALPROTO_ENIP)
                         printf("            alproto: ALPROTO_ENIP\n");
+                    else if (pp_pe->alproto == ALPROTO_DHCP)
+                        printf("            alproto: ALPROTO_DHCP\n");
                     else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                         printf("            alproto: ALPROTO_TEMPLATE\n");
                     else if (pp_pe->alproto == ALPROTO_DNP3)
@@ -754,6 +756,8 @@ static void AppLayerProtoDetectPrintProbingParsers(AppLayerProtoDetectProbingPar
                     printf("            alproto: ALPROTO_MODBUS\n");
                 else if (pp_pe->alproto == ALPROTO_ENIP)
                     printf("            alproto: ALPROTO_ENIP\n");
+                else if (pp_pe->alproto == ALPROTO_DHCP)
+                    printf("            alproto: ALPROTO_DHCP\n");
                 else if (pp_pe->alproto == ALPROTO_TEMPLATE)
                     printf("            alproto: ALPROTO_TEMPLATE\n");
                 else if (pp_pe->alproto == ALPROTO_DNP3)
