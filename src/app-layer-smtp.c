@@ -767,7 +767,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
          * the reply received */
         SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
 
-        if (smtp_config.decode_mime) {
+        if (smtp_config.decode_mime && state->curr_tx->mime_state != NULL) {
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
