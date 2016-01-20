@@ -329,6 +329,10 @@ static void *DetectFilemagicThreadInit(void *data)
             // check if filename is missing .mgc and try adding .mgc
             if(strncmp(filename + strlen(filename) - strlen(".mgc"), ".mgc", strlen(".mgc"))) {
                 filename_mgc = SCMalloc((strlen(filename) + strlen(".mgc") + 1));
+                if (unlikely(filename_mgc == NULL)) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for magic file check");
+                    goto error;
+                }
                 strlcpy(filename_mgc, filename, strlen(filename) + 1);
                 strlcat(filename_mgc, ".mgc", strlen(filename) + strlen(".mgc") + 1);
                 if ( (fd = fopen(filename_mgc, "r")) == NULL) {
