@@ -74,6 +74,15 @@ typedef struct StreamingBufferConfig_ {
 
 #define STREAMING_BUFFER_CONFIG_INITIALIZER { 0, 0, 0, NULL, NULL, NULL, NULL, }
 
+/**
+ *  \brief block of continues data
+ */
+typedef struct StreamingBufferBlock_ {
+    uint64_t offset;
+    uint32_t len;
+    struct StreamingBufferBlock_ *next;
+} StreamingBufferBlock;
+
 typedef struct StreamingBuffer_ {
     const StreamingBufferConfig *cfg;
     uint64_t stream_offset; /**< offset of the start of the memory block */
@@ -81,15 +90,18 @@ typedef struct StreamingBuffer_ {
     uint8_t *buf;           /**< memory block for reassembly */
     uint32_t buf_size;      /**< size of memory block */
     uint32_t buf_offset;    /**< how far we are in buf_size */
+
+    StreamingBufferBlock *block_list;
+    StreamingBufferBlock *block_list_tail;
 #ifdef DEBUG
     uint32_t buf_size_max;
 #endif
 } StreamingBuffer;
 
 #ifndef DEBUG
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, };
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, NULL, NULL};
 #else
-#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, 0 };
+#define STREAMING_BUFFER_INITIALIZER(cfg) { (cfg), 0, NULL, 0, 0, NULL, NULL, 0 };
 #endif
 
 typedef struct StreamingBufferSegment_ {
@@ -117,6 +129,15 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
 void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
                                    const StreamingBufferSegment *seg,
                                    const uint8_t **data, uint32_t *data_len);
+
+void StreamingBufferSBBGetData(const StreamingBuffer *sb,
+                               const StreamingBufferBlock *sbb,
+                               const uint8_t **data, uint32_t *data_len);
+
+void StreamingBufferSBBGetDataAtOffset(const StreamingBuffer *sb,
+                                       const StreamingBufferBlock *sbb,
+                                       const uint8_t **data, uint32_t *data_len,
+                                       uint64_t offset);
 
 int StreamingBufferSegmentCompareRawData(const StreamingBuffer *sb,
                                          const StreamingBufferSegment *seg,
