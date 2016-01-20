@@ -46,6 +46,7 @@ int MagicInit(void)
     SCEnter();
 
     char *filename = NULL;
+    char *filename_mgc = NULL;
     FILE *fd = NULL;
 
     SCMutexInit(&g_magic_lock, NULL);
@@ -62,8 +63,21 @@ int MagicInit(void)
         SCLogInfo("using magic-file %s", filename);
 
         if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+            // check if filename is missing .mgc and try adding .mgc
+            if(strncmp(filename + strlen(filename) - strlen(".mgc"), ".mgc", strlen(".mgc"))) {
+                filename_mgc = SCMalloc((strlen(filename) + strlen(".mgc") + 1));
+                strlcpy(filename_mgc, filename, strlen(filename) + 1);
+                strlcat(filename_mgc, ".mgc", strlen(filename) + strlen(".mgc") + 1);
+                if ( (fd = fopen(filename_mgc, "r")) == NULL) {
+                    SCLogWarning(SC_ERR_FOPEN, "Error opening file with additional mgc: \"%s\": %s", filename_mgc, strerror(errno));
+                    SCFree(filename_mgc);
+                    goto error;
+                }
+                SCFree(filename_mgc);
+            } else {
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                goto error;
+            }
         }
         fclose(fd);
     }
