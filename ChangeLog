@@ -1,3 +1,7 @@
+3.0 -- 2016-01-27
+
+Bug #1673: smtp: crash during mime parsing
+
 3.0RC3 -- 2015-12-21
 
 Bug #1632: Fail to download large file with browser
