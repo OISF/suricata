@@ -46,6 +46,7 @@
 #include "util-atomic.h"
 #include "util-file.h"
 #include "util-time.h"
+#include "util-misc.h"
 
 #include "output.h"
 
@@ -474,6 +475,21 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 #endif
     }
     SCLogInfo("storing files in %s", g_logfile_base_dir);
+
+    const char *filestore_size_str = ConfNodeLookupChildValue(conf, "size");
+    if (filestore_size_str != NULL && strcmp(filestore_size_str, "no")) {
+        uint32_t filestore_size = 0;
+        if (ParseSizeStringU32(filestore_size_str,
+                               &filestore_size) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
+                       "file-store.size "
+                       "from conf file - %s.  Killing engine",
+                       filestore_size_str);
+            exit(EXIT_FAILURE);
+        } else {
+            FileReassemblyDepthEnable(filestore_size);
+        }
+    }
 
     SCReturnPtr(output_ctx, "OutputCtx");
 }

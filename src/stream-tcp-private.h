@@ -81,6 +81,7 @@ typedef struct TcpStream_ {
     /* reassembly */
     uint32_t ra_app_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
     uint32_t ra_raw_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t reassembly_depth;      /**< reassembly depth for the stream */
 
     TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
     TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/

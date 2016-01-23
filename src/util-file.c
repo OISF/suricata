@@ -28,6 +28,7 @@
 #include "debug.h"
 #include "flow.h"
 #include "stream.h"
+#include "stream-tcp.h"
 #include "runmodes.h"
 #include "util-hash.h"
 #include "util-debug.h"
@@ -51,6 +52,16 @@ static int g_file_force_md5 = 0;
  */
 static int g_file_force_tracking = 0;
 
+/** \brief switch to use g_file_store_reassembly_depth
+ *         to reassembly files
+ */
+static int g_file_store_enable = 0;
+
+/** \brief stream_config.reassembly_depth equivalent
+ *         for files
+ */
+static uint32_t g_file_store_reassembly_depth = 0;
+
 /* prototypes */
 static void FileFree(File *);
 static void FileDataFree(FileData *);
@@ -63,6 +74,20 @@ void FileForceMagicEnable(void)
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
+}
+
+void FileReassemblyDepthEnable(uint32_t size)
+{
+    g_file_store_enable = 1;
+    g_file_store_reassembly_depth = size;
+}
+
+uint32_t FileReassemblyDepth(void)
+{
+    if (g_file_store_enable == 1)
+        return g_file_store_reassembly_depth;
+    else
+        return stream_config.reassembly_depth;
 }
 
 int FileForceMagic(void)
@@ -483,6 +508,12 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
 
         ffc->tail->state = FILE_STATE_TRUNCATED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
+        SCReturnInt(-2);
+    }
+
+    /* check if file reassembly size is less than file size */
+    if (FileReassemblyDepth() != 0 &&
+        FileReassemblyDepth() < ffc->tail->size) {
         SCReturnInt(-2);
     }
 
