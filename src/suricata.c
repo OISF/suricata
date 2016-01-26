@@ -75,6 +75,7 @@
 #include "alert-fastlog.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
+#include "alert-pcap.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "output-json-alert.h"
@@ -196,6 +197,8 @@
 #endif
 #include "util-storage.h"
 #include "host-storage.h"
+
+#include "timemachine.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -856,6 +859,8 @@ void RegisterAllModules()
     TmModuleAlertFastLogRegister();
     /* debug log */
     TmModuleAlertDebugLogRegister();
+    /* pcap alert log */
+    TmModuleAlertPcapLogRegister();
     /* prelue log */
     TmModuleAlertPreludeRegister();
     /* syslog log */
@@ -913,7 +918,6 @@ void RegisterAllModules()
     /* nflog */
     TmModuleReceiveNFLOGRegister();
     TmModuleDecodeNFLOGRegister();
-
 }
 
 TmEcode LoadYamlConfig(char *conf_filename)

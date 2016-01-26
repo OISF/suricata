@@ -48,6 +48,7 @@ typedef enum {
     TMM_ALERTPRELUDE,
     TMM_ALERTDEBUGLOG,
     TMM_ALERTSYSLOG,
+    TMM_ALERTPCAP,
     TMM_LOGDROPLOG,
     TMM_ALERTSYSLOG4,
     TMM_ALERTSYSLOG6,
@@ -111,6 +112,7 @@ typedef enum {
 
     TMM_LUALOG,
     TMM_TLSSTORE,
+    TMM_TIMEMACHINE,    
     TMM_SIZE,
 } TmmId;
 
