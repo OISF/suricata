@@ -34,6 +34,8 @@
 
 #define SSH_FLAG_STATE_LOGGED                0x04
 
+#define SSH_FLAG_STATE_LOGGED_LUA            0x08
+
 /* MSG_CODE */
 #define SSH_MSG_NEWKEYS                      21
 

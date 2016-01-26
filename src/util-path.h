@@ -27,6 +27,6 @@
 
 int PathIsAbsolute(const char *);
 int PathIsRelative(const char *);
-int MakePath(char*, mode_t);
+int MakePath(const char*, mode_t);
 
 #endif /* __UTIL_PATH_H__ */

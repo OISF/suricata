@@ -65,10 +65,10 @@ typedef struct TimeMachineHeap_ {
 } TimeMachineHeap;
 
 /* prototypes */
-TimeMachineHeap* TimeMachineHeapNew(TimeMachineData*, TimeMachineHeapConf*);
+TimeMachineHeap* TimeMachineHeapNew(TimeMachineThreadVars*, TimeMachineHeapConf*);
 void TimeMachineHeapDestroy(TimeMachineHeap*);
 
-uint32_t TimeMachineHeapExpand(TimeMachineData*, TimeMachineHeap*);
-int TimeMachineHeapCanExpand(TimeMachineData*);
+uint32_t TimeMachineHeapExpand(TimeMachineThreadVars*, TimeMachineHeap*, uint32_t);
+int TimeMachineHeapCanExpand(TimeMachineThreadVars*);
 
 #endif /* __TIMEMACHINE_HEAP_H__ */

@@ -174,6 +174,7 @@ void FlowInit(Flow *f, const Packet *p)
 
     f->protomap = FlowGetProtoMapping(f->proto);
 
+    TAILQ_INIT(&f->tm_pkts);
     SCReturn;
 }
 

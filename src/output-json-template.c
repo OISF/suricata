@@ -180,6 +180,10 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
 
 void TmModuleJsonTemplateLogRegister(void)
 {
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
+        return;
+    }
+
     tmm_modules[TMM_JSONTEMPLATELOG].name = "JsonTemplateLog";
     tmm_modules[TMM_JSONTEMPLATELOG].ThreadInit = JsonTemplateLogThreadInit;
     tmm_modules[TMM_JSONTEMPLATELOG].ThreadDeinit = JsonTemplateLogThreadDeinit;

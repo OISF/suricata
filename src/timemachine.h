@@ -28,49 +28,38 @@
 #ifndef __TIMEMACHINE_H__
 #define __TIMEMACHINE_H__
 
-typedef struct TimeMachineData_ TimeMachineData;
-typedef struct TimeMachineThreadData_ TimeMachineThreadData;
-typedef struct TimeMachineFlow_ TimeMachineFlow;
-typedef struct TimeMachineFlows_ TimeMachineFlows;
-typedef struct TimeMachineFlowNode_ TimeMachineFlowNode;
+typedef struct TimeMachineConfig_ TimeMachineConfig;
 typedef struct TimeMachineHeap_ TimeMachineHeap;
 typedef struct TimeMachineHeapConf_ TimeMachineHeapConf;
 typedef struct TimeMachineMemPool_ TimeMachineMemPool;
 typedef struct TimeMachineMemPools_ TimeMachineMemPools;
-typedef struct TimeMachineOutput_ TimeMachineOutput;
 typedef struct TimeMachinePacket_ TimeMachinePacket;
 typedef struct TimeMachinePackets_ TimeMachinePackets;
+typedef struct TimeMachineThreadVars_ TimeMachineThreadVars;
 
-/* main time machine struct to hold config data */
-struct TimeMachineData_ {
+struct TimeMachineConfig_ {
+    uint8_t                             enabled;
     uint64_t                            max_memory;
-    uint64_t                            current_memory;
-    uint32_t                            min_payload; 
+    uint32_t                            min_payload;
     uint32_t                            heap_prealloc_count;
     uint32_t                            heap_expand_by;
-    uint32_t                            heap_count;
-    uint32_t                            output_count;
-    uint32_t                            output_timeout;
-        
-    SCMutex                             tm_lock;  
 
+    uint32_t                            heap_confs_count;    
     TAILQ_HEAD(,TimeMachineHeapConf_)   heap_confs;
-    int                                 threads; 
 };
 
-struct TimeMachineThreadData_ {
-    TimeMachineData                     *tm_data;
-
-    uint32_t                            heap_count;
+struct TimeMachineThreadVars_ {
+    uint64_t                            current_memory;
+    
+    uint16_t                            heap_count;
     TAILQ_HEAD(,TimeMachineHeap_)       heaps;
-    
-    uint32_t                            flow_count;
-    TimeMachineFlows                    *flows;
-    
-    uint32_t                            output_count;    
-    TAILQ_HEAD(,TimeMachineOutput_)     outputs;
 };
 
-void TmModuleTimeMachineRegister(void);
+TimeMachineConfig timemachine_config;
+
+void TimeMachineInitConfig();
+
+TimeMachineThreadVars* TimeMachineThreadVarsAlloc();
+void TimeMachineThreadVarsFree(TimeMachineThreadVars*);
 
 #endif /* __TIMEMACHINE_H__ */

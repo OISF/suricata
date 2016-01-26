@@ -9,6 +9,7 @@ bin_PROGRAMS = suricata
 suricata_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
+alert-pcap.c alert-pcap.h \
 alert-prelude.c alert-prelude.h \
 alert-syslog.c alert-syslog.h \
 alert-unified2-alert.c alert-unified2-alert.h \
@@ -71,6 +72,8 @@ detect-ack.c detect-ack.h \
 detect-app-layer-event.c detect-app-layer-event.h \
 detect-app-layer-protocol.c detect-app-layer-protocol.h \
 detect-asn1.c detect-asn1.h \
+detect-base64-data.c detect-base64-data.h \
+detect-base64-decode.c detect-base64-decode.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
@@ -302,9 +305,7 @@ suricata.c suricata.h \
 threads.c threads.h threads-arch-tile.h \
 threads-debug.h threads-profile.h \
 timemachine.c timemachine.h \
-timemachine-flow.c timemachine-flow.h \
 timemachine-heap.c timemachine-heap.h \
-timemachine-output.c timemachine-output.h \
 timemachine-packet.c timemachine-packet.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
@@ -361,6 +362,7 @@ util-lua-common.c util-lua-common.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
 util-lua-tls.c util-lua-tls.h \
+util-lua-ssh.c util-lua-ssh.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \

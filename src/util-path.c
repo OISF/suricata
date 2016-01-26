@@ -73,7 +73,7 @@ int PathIsRelative(const char *path)
  *
  *  \retval 0 if the path was created successfully 
  */
-int MakePath(char* file_path, mode_t mode) {
+int MakePath(const char* file_path, mode_t mode) {
     char* p;
     for (p=strchr(file_path+1, '/'); p; p=strchr(p+1, '/')) {
         *p='\0';

@@ -730,6 +730,7 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
      * received a TM as arg, if it didn't exist */
     slot->tm_id = TmModuleGetIDForTM(tm);
 
+    tv->tmm_flags |= tm->flags;
     tv->cap_flags |= tm->cap_flags;
 
     if (tv->tm_slots == NULL) {
@@ -2031,6 +2032,29 @@ ThreadVars *TmThreadsGetCallingThread(void)
     SCMutexUnlock(&tv_root_lock);
 
     return NULL;
+}
+
+/**
+ * \brief returns a count of all the threads that match the flag
+ */
+uint32_t TmThreadCountThreadsByTmmFlags(uint8_t flags)
+{
+    ThreadVars *tv = NULL;
+    int i = 0;
+    uint32_t cnt = 0;
+
+    SCMutexLock(&tv_root_lock);
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv != NULL) {
+            if ((tv->tmm_flags & flags) == flags)
+                cnt++;
+
+            tv = tv->next;
+        }
+    }
+    SCMutexUnlock(&tv_root_lock);
+    return cnt;
 }
 
 typedef struct Thread_ {

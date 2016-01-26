@@ -1427,21 +1427,13 @@ void RegisterModbusParsers(void)
                                           STREAM_TOSERVER,
                                           ModbusProbingParser);
         } else {
-            /* if we have no config, we enable the default port 502 */
+            /* If there is no app-layer section for Modbus, silently
+             * leave it disabled. */
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                                                 proto_name, ALPROTO_MODBUS,
                                                 0, sizeof(ModbusHeader),
                                                 ModbusProbingParser)) {
-                SCLogWarning(SC_ERR_MODBUS_CONFIG, "no Modbus TCP config found, "
-                                                "enabling Modbus detection on "
-                                                "port 502.");
-
-                AppLayerProtoDetectPPRegister(IPPROTO_TCP,
-                                              "502",
-                                              ALPROTO_MODBUS,
-                                              0, sizeof(ModbusHeader),
-                                              STREAM_TOSERVER,
-                                              ModbusProbingParser);
+                return;
             }
         }
 

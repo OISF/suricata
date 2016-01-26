@@ -60,6 +60,8 @@
 #include "detect-engine-event.h"
 #include "decode.h"
 
+#include "detect-base64-decode.h"
+#include "detect-base64-data.h"
 #include "detect-ipopts.h"
 #include "detect-flags.h"
 #include "detect-fragbits.h"
@@ -1254,6 +1256,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
 
+    det_ctx->base64_decoded_len = 0;
+
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         SCReturnInt(0);
@@ -1823,6 +1827,7 @@ end:
     DetectEngineCleanHCBDBuffers(det_ctx);
     DetectEngineCleanHSBDBuffers(det_ctx);
     DetectEngineCleanHHDBuffers(det_ctx);
+    DetectEngineCleanSMTPBuffers(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
@@ -1994,12 +1999,10 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                   det_ctx);
     }
 
-    if (det_ctx->TenantGetId != NULL) {
-        /* in MT mode, but no tenants registered yet */
-        if (det_ctx->mt_det_ctxs_cnt == 0) {
-            return TM_ECODE_OK;
-        }
-
+    /* if in MT mode _and_ we have tenants registered, use
+     * MT logic. */
+    if (det_ctx->mt_det_ctxs_cnt > 0 && det_ctx->TenantGetId != NULL)
+    {
         uint32_t tenant_id = p->tenant_id;
         if (tenant_id == 0)
             tenant_id = det_ctx->TenantGetId(det_ctx, p);
@@ -2017,7 +2020,8 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
                 SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
             }
         } else {
-            return TM_ECODE_OK;
+            /* use default if no tenants are registered for this packet */
+            de_ctx = det_ctx->de_ctx;
         }
     } else {
         de_ctx = det_ctx->de_ctx;
@@ -5130,6 +5134,8 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectModbusRegister();
     DetectAppLayerProtocolRegister();
+    DetectBase64DecodeRegister();
+    DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplateBufferRegister();
 }

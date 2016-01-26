@@ -21,6 +21,7 @@
  */
 
 #include "suricata-common.h"
+#include "conf.h"
 #include "detect.h"
 #include "app-layer-template.h"
 
@@ -29,6 +30,10 @@ static void DetectTemplateBufferRegisterTests(void);
 
 void DetectTemplateBufferRegister(void)
 {
+    if (ConfGetNode("app-layer.protocols.template") == NULL) {
+        return;
+    }
+
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
         "Template content modififier to match on the template buffers";

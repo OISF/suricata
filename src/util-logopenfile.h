@@ -26,6 +26,11 @@
 
 #include "conf.h"            /* ConfNode   */
 #include "tm-modules.h"      /* LogFileCtx */
+#include "util-buffer.h"
+
+#ifdef HAVE_LIBHIREDIS
+#include "hiredis/hiredis.h"
+#endif
 
 typedef struct {
     uint16_t fileno;
@@ -34,13 +39,43 @@ typedef struct {
 enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
-                   LOGFILE_TYPE_UNIX_STREAM };
+                   LOGFILE_TYPE_UNIX_STREAM,
+                   LOGFILE_TYPE_REDIS };
+
+typedef struct SyslogSetup_ {
+    int alert_syslog_level;
+} SyslogSetup;
+
+#ifdef HAVE_LIBHIREDIS
+enum RedisMode { REDIS_LIST, REDIS_CHANNEL };
+
+typedef struct RedisSetup_ {
+    enum RedisMode mode;
+    const char *command;
+    char *key;
+    int  batch_size;
+    int  batch_count;
+    char *server;
+    int  port;
+    time_t tried;
+} RedisSetup;
+#endif
 
 /** Global structure for Output Context */
 typedef struct LogFileCtx_ {
     union {
         FILE *fp;
         PcieFile *pcie_fp;
+#ifdef HAVE_LIBHIREDIS
+        redisContext *redis;
+#endif
+    };
+
+    union {
+        SyslogSetup syslog_setup;
+#ifdef HAVE_LIBHIREDIS
+        RedisSetup redis_setup;
+#endif
     };
 
     int (*Write)(const char *buffer, int buffer_len, struct LogFileCtx_ *fp);
@@ -56,6 +91,9 @@ typedef struct LogFileCtx_ {
     /** The name of the file */
     char *filename;
 
+    /** Suricata sensor name */
+    char *sensor_name;
+
     /** Handle auto-connecting / reconnecting sockets */
     int is_sock;
     int sock_type;
@@ -64,6 +102,7 @@ typedef struct LogFileCtx_ {
     /**< Used by some alert loggers like the unified ones that append
      * the date onto the end of files. */
     char *prefix;
+    size_t prefix_len;
 
     /** Generic size_limit and size_current
      * They must be common to the threads accesing the same file */
@@ -92,8 +131,10 @@ typedef struct LogFileCtx_ {
 
 LogFileCtx *LogFileNewCtx(void);
 int LogFileFreeCtx(LogFileCtx *);
+int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer);
 
 int SCConfLogOpenGeneric(ConfNode *conf, LogFileCtx *, const char *, int);
+int SCConfLogOpenRedis(ConfNode *conf, LogFileCtx *log_ctx);
 int SCConfLogReopen(LogFileCtx *);
 
 #endif /* __UTIL_LOGOPENFILE_H__ */

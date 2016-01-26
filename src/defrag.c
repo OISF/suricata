@@ -337,6 +337,10 @@ Defrag4Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;
         }
+
+        if (!frag->more_frags) {
+            break;
+        }
     }
 
     SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u",
@@ -459,6 +463,10 @@ Defrag6Reassemble(ThreadVars *tv, DefragTracker *tracker, Packet *p)
                 goto error_remove_tracker;
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;
+        }
+
+        if (!frag->more_frags) {
+            break;
         }
     }
 
@@ -747,6 +755,7 @@ insert:
     new->data_len = data_len - ltrim;
     new->ip_hdr_offset = ip_hdr_offset;
     new->frag_hdr_offset = frag_hdr_offset;
+    new->more_frags = more_frags;
 #ifdef DEBUG
     new->pcap_cnt = pcap_cnt;
 #endif
@@ -2328,6 +2337,198 @@ end:
     return ret;
 }
 
+static int DefragTrackerReuseTest(void)
+{
+    int ret = 0;
+    int id = 1;
+    Packet *p1 = NULL;
+    DefragTracker *tracker1 = NULL, *tracker2 = NULL;
+
+    DefragInit();
+
+    /* Build a packet, its not a fragment but shouldn't matter for
+     * this test. */
+    p1 = BuildTestPacket(id, 0, 0, 'A', 8);
+    if (p1 == NULL) {
+        goto end;
+    }
+
+    /* Get a tracker. It shouldn't look like its already in use. */
+    tracker1 = DefragGetTracker(NULL, NULL, p1);
+    if (tracker1 == NULL) {
+        goto end;
+    }
+    if (tracker1->seen_last) {
+        goto end;
+    }
+    if (tracker1->remove) {
+        goto end;
+    }
+    DefragTrackerRelease(tracker1);
+
+    /* Get a tracker again, it should be the same one. */
+    tracker2 = DefragGetTracker(NULL, NULL, p1);
+    if (tracker2 == NULL) {
+        goto end;
+    }
+    if (tracker2 != tracker1) {
+        goto end;
+    }
+    DefragTrackerRelease(tracker1);
+
+    /* Now mark the tracker for removal. It should not be returned
+     * when we get a tracker for a packet that may have the same
+     * attributes. */
+    tracker1->remove = 1;
+
+    tracker2 = DefragGetTracker(NULL, NULL, p1);
+    if (tracker2 == NULL) {
+        goto end;
+    }
+    if (tracker2 == tracker1) {
+        goto end;
+    }
+    if (tracker2->remove) {
+        goto end;
+    }
+
+    ret = 1;
+end:
+    if (p1 != NULL) {
+        SCFree(p1);
+    }
+    DefragDestroy();
+    return ret;
+}
+
+/**
+ * IPV4: Test the case where you have a packet fragmented in 3 parts
+ * and send like:
+ * - Offset: 2; MF: 1
+ * - Offset: 0; MF: 1
+ * - Offset: 1; MF: 0
+ *
+ * Only the fragments with offset 0 and 1 should be reassembled.
+ */
+static int DefragMfIpv4Test(void)
+{
+    int retval = 0;
+    int ip_id = 9;
+    Packet *p = NULL;
+
+    DefragInit();
+
+    Packet *p1 = BuildTestPacket(ip_id, 2, 1, 'C', 8);
+    Packet *p2 = BuildTestPacket(ip_id, 0, 1, 'A', 8);
+    Packet *p3 = BuildTestPacket(ip_id, 1, 0, 'B', 8);
+    if (p1 == NULL || p2 == NULL || p3 == NULL) {
+        goto end;
+    }
+
+    p = Defrag(NULL, NULL, p1, NULL);
+    if (p != NULL) {
+        goto end;
+    }
+
+    p = Defrag(NULL, NULL, p2, NULL);
+    if (p != NULL) {
+        goto end;
+    }
+
+    /* This should return a packet as MF=0. */
+    p = Defrag(NULL, NULL, p3, NULL);
+    if (p == NULL) {
+        goto end;
+    }
+
+    /* Expected IP length is 20 + 8 + 8 = 36 as only 2 of the
+     * fragments should be in the re-assembled packet. */
+    if (IPV4_GET_IPLEN(p) != 36) {
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (p1 != NULL) {
+        SCFree(p1);
+    }
+    if (p2 != NULL) {
+        SCFree(p2);
+    }
+    if (p3 != NULL) {
+        SCFree(p3);
+    }
+    if (p != NULL) {
+        SCFree(p);
+    }
+    DefragDestroy();
+    return retval;
+}
+
+/**
+ * IPV6: Test the case where you have a packet fragmented in 3 parts
+ * and send like:
+ * - Offset: 2; MF: 1
+ * - Offset: 0; MF: 1
+ * - Offset: 1; MF: 0
+ *
+ * Only the fragments with offset 0 and 1 should be reassembled.
+ */
+static int DefragMfIpv6Test(void)
+{
+    int retval = 0;
+    int ip_id = 9;
+    Packet *p = NULL;
+
+    DefragInit();
+
+    Packet *p1 = IPV6BuildTestPacket(ip_id, 2, 1, 'C', 8);
+    Packet *p2 = IPV6BuildTestPacket(ip_id, 0, 1, 'A', 8);
+    Packet *p3 = IPV6BuildTestPacket(ip_id, 1, 0, 'B', 8);
+    if (p1 == NULL || p2 == NULL || p3 == NULL) {
+        goto end;
+    }
+
+    p = Defrag(NULL, NULL, p1, NULL);
+    if (p != NULL) {
+        goto end;
+    }
+
+    p = Defrag(NULL, NULL, p2, NULL);
+    if (p != NULL) {
+        goto end;
+    }
+
+    /* This should return a packet as MF=0. */
+    p = Defrag(NULL, NULL, p3, NULL);
+    if (p == NULL) {
+        goto end;
+    }
+
+    /* For IPv6 the expected length is just the length of the payload
+     * of 2 fragments, so 16. */
+    if (IPV6_GET_PLEN(p) != 16) {
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (p1 != NULL) {
+        SCFree(p1);
+    }
+    if (p2 != NULL) {
+        SCFree(p2);
+    }
+    if (p3 != NULL) {
+        SCFree(p3);
+    }
+    if (p != NULL) {
+        SCFree(p);
+    }
+    DefragDestroy();
+    return retval;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -2373,9 +2574,11 @@ DefragRegisterTests(void)
 
     UtRegisterTest("DefragVlanTest", DefragVlanTest, 1);
     UtRegisterTest("DefragVlanQinQTest", DefragVlanQinQTest, 1);
-
+    UtRegisterTest("DefragTrackerReuseTest", DefragTrackerReuseTest, 1);
     UtRegisterTest("DefragTimeoutTest",
         DefragTimeoutTest, 1);
+    UtRegisterTest("DefragMfIpv4Test", DefragMfIpv4Test, 1);
+    UtRegisterTest("DefragMfIpv6Test", DefragMfIpv6Test, 1);
 #endif /* UNITTESTS */
 }
 

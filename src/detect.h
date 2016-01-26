@@ -126,6 +126,8 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_MODBUS_MATCH,
 
+    DETECT_SM_LIST_BASE64_DATA,
+
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
@@ -687,6 +689,9 @@ typedef struct DetectEngineCtx_ {
      *  we can't lookup by proto, address, port as we don't have these */
     struct SigGroupHead_ *decoder_event_sgh;
 
+    /* Maximum size of the buffer for decoded base64 data. */
+    uint32_t base64_decode_max_len;
+
     /** Store rule file and line so that parsers can use them in errors. */
     char *rule_file;
     int rule_line;
@@ -882,6 +887,10 @@ typedef struct DetectEngineThreadCtx_ {
      *  thread safety issues */
     void **keyword_ctxs_array;
     int keyword_ctxs_size;
+
+    uint8_t *base64_decoded;
+    int base64_decoded_len;
+    int base64_decoded_len_max;
 
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
@@ -1221,6 +1230,8 @@ enum {
     DETECT_AL_MODBUS,
 
     DETECT_XBITS,
+    DETECT_BASE64_DECODE,
+    DETECT_BASE64_DATA,
 
     DETECT_TEMPLATE,
     DETECT_AL_TEMPLATE_BUFFER,

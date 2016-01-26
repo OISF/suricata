@@ -40,6 +40,8 @@
 #include "output.h"
 #include "app-layer-htp.h"
 #include "app-layer.h"
+#include "app-layer-ssl.h"
+#include "app-layer-ssh.h"
 #include "app-layer-parser.h"
 #include "util-privs.h"
 #include "util-buffer.h"
@@ -57,6 +59,8 @@
 #include "util-lua-common.h"
 #include "util-lua-http.h"
 #include "util-lua-dns.h"
+#include "util-lua-tls.h"
+#include "util-lua-ssh.h"
 
 #define MODULE_NAME "LuaLog"
 
@@ -225,6 +229,166 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
 {
     if (p->alerts.cnt > 0)
         return TRUE;
+    return FALSE;
+}
+
+/** \internal
+ *  \brief Packet Logger for lua scripts, for tls
+ *
+ *  A single call to this function will run one script for a single
+ *  packet. If it is called, it means that the registered condition
+ *  function has returned TRUE.
+ *
+ *  The script is called once for each packet.
+ */
+static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
+    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+
+    SCMutexUnlock(&td->lua_ctx->m);
+    FLOWLOCK_WRLOCK(p->flow);
+
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
+    if (ssl_state != NULL)
+        ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED_LUA;
+
+    FLOWLOCK_UNLOCK(p->flow);
+    SCReturnInt(0);
+}
+
+static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
+{
+    if (p->flow == NULL) {
+        return FALSE;
+    }
+
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+        return FALSE;
+    }
+
+    if (!(PKT_IS_TCP(p))) {
+        return FALSE;
+    }
+
+    FLOWLOCK_RDLOCK(p->flow);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
+    if (proto != ALPROTO_TLS)
+        goto dontlog;
+
+    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
+    if (ssl_state == NULL) {
+        SCLogDebug("no tls state, so no request logging");
+        goto dontlog;
+    }
+
+    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL)
+        goto dontlog;
+
+    /* We only log the state once */
+    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED_LUA)
+        goto dontlog;
+
+    FLOWLOCK_UNLOCK(p->flow);
+    return TRUE;
+dontlog:
+    FLOWLOCK_UNLOCK(p->flow);
+    return FALSE;
+}
+
+/** \internal
+ *  \brief Packet Logger for lua scripts, for ssh
+ *
+ *  A single call to this function will run one script for a single
+ *  packet. If it is called, it means that the registered condition
+ *  function has returned TRUE.
+ *
+ *  The script is called once for each packet.
+ */
+static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p)
+{
+    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
+
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    SCMutexLock(&td->lua_ctx->m);
+
+    lua_getglobal(td->lua_ctx->luastate, "log");
+
+    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
+    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+
+    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
+    if (retval != 0) {
+        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
+    }
+
+    SCMutexUnlock(&td->lua_ctx->m);
+    FLOWLOCK_WRLOCK(p->flow);
+
+    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+    if (ssh_state != NULL)
+        ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED_LUA;
+
+    FLOWLOCK_UNLOCK(p->flow);
+    SCReturnInt(0);
+}
+
+static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
+{
+    if (p->flow == NULL) {
+        return FALSE;
+    }
+
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+        return FALSE;
+    }
+
+    if (!(PKT_IS_TCP(p))) {
+        return FALSE;
+    }
+
+    FLOWLOCK_RDLOCK(p->flow);
+    uint16_t proto = FlowGetAppProtocol(p->flow);
+    if (proto != ALPROTO_SSH)
+        goto dontlog;
+
+    SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
+    if (ssh_state == NULL) {
+        SCLogDebug("no ssh state, so no request logging");
+        goto dontlog;
+    }
+
+    if (ssh_state->cli_hdr.software_version == NULL ||
+        ssh_state->srv_hdr.software_version == NULL)
+        goto dontlog;
+
+    /* We only log the state once */
+    if (ssh_state->cli_hdr.flags & SSH_FLAG_STATE_LOGGED_LUA)
+        goto dontlog;
+
+    FLOWLOCK_UNLOCK(p->flow);
+    return TRUE;
+dontlog:
+    FLOWLOCK_UNLOCK(p->flow);
     return FALSE;
 }
 
@@ -517,6 +681,10 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
             options->alproto = ALPROTO_HTTP;
         else if (strcmp(k,"protocol") == 0 && strcmp(v, "dns") == 0)
             options->alproto = ALPROTO_DNS;
+        else if (strcmp(k,"protocol") == 0 && strcmp(v, "tls") == 0)
+            options->alproto = ALPROTO_TLS;
+        else if (strcmp(k,"protocol") == 0 && strcmp(v, "ssh") == 0)
+            options->alproto = ALPROTO_SSH;
         else if (strcmp(k, "type") == 0 && strcmp(v, "packet") == 0)
             options->packet = 1;
         else if (strcmp(k, "filter") == 0 && strcmp(v, "alerts") == 0)
@@ -617,6 +785,8 @@ static lua_State *LuaScriptSetup(const char *filename)
      * if the tx is registered in the state at runtime though. */
     LuaRegisterHttpFunctions(luastate);
     LuaRegisterDnsFunctions(luastate);
+    LuaRegisterTlsFunctions(luastate);
+    LuaRegisterSshFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
@@ -760,11 +930,17 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
+        } else if (opts.alproto == ALPROTO_TLS) {
+            om->PacketLogFunc = LuaPacketLoggerTls;
+            om->PacketConditionFunc = LuaPacketConditionTls;
         } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_DNS;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
             AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
+        } else if (opts.alproto == ALPROTO_SSH) {
+            om->PacketLogFunc = LuaPacketLoggerSsh;
+            om->PacketConditionFunc = LuaPacketConditionSsh;
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
             om->PacketConditionFunc = LuaPacketConditionAlerts;

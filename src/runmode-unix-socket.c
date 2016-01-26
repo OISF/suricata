@@ -346,13 +346,15 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
         unix_manager_file_task_running = 1;
         this->running = 1;
         if (ConfSet("pcap-file.file", cfile->filename) != 1) {
-            SCLogInfo("Can not set working file to '%s'", cfile->filename);
+            SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                       "Can not set working file to '%s'", cfile->filename);
             PcapFilesFree(cfile);
             return TM_ECODE_FAILED;
         }
         if (cfile->output_dir) {
             if (ConfSet("default-log-dir", cfile->output_dir) != 1) {
-                SCLogInfo("Can not set output dir to '%s'", cfile->output_dir);
+                SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                           "Can not set output dir to '%s'", cfile->output_dir);
                 PcapFilesFree(cfile);
                 return TM_ECODE_FAILED;
             }
@@ -361,7 +363,8 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             char tstr[16] = "";
             snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
             if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
-                SCLogInfo("Can not set working tenant-id to '%s'", tstr);
+                SCLogError(SC_ERR_INVALID_ARGUMENTS,
+                           "Can not set working tenant-id to '%s'", tstr);
                 PcapFilesFree(cfile);
                 return TM_ECODE_FAILED;
             }

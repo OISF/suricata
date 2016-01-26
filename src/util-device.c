@@ -42,7 +42,7 @@ static int live_devices_stats = 1;
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDevice(char *dev)
+int LiveRegisterDevice(const char *dev)
 {
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
@@ -113,7 +113,7 @@ char *LiveGetDeviceName(int number)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-LiveDevice *LiveGetDevice(char *name)
+LiveDevice *LiveGetDevice(const char *name)
 {
     int i = 0;
     LiveDevice *pd;
@@ -136,12 +136,12 @@ LiveDevice *LiveGetDevice(char *name)
 
 
 
-int LiveBuildDeviceList(char * runmode)
+int LiveBuildDeviceList(const char *runmode)
 {
     return LiveBuildDeviceListCustom(runmode, "interface");
 }
 
-int LiveBuildDeviceListCustom(char * runmode, char * itemname)
+int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
 {
     ConfNode *base = ConfGetNode(runmode);
     ConfNode *child;

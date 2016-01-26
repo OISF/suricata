@@ -873,7 +873,7 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id
  *  \param fc file store
  *  \param file_id the file's id
  */
-void FileStoreFileById(FileContainer *fc, uint16_t file_id)
+void FileStoreFileById(FileContainer *fc, uint32_t file_id)
 {
     File *ptr = NULL;
 
@@ -888,7 +888,7 @@ void FileStoreFileById(FileContainer *fc, uint16_t file_id)
     }
 }
 
-void FileStoreAllFilesForTx(FileContainer *fc, uint16_t tx_id)
+void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
 {
     File *ptr = NULL;
 

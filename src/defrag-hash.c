@@ -96,22 +96,11 @@ static void DefragTrackerInit(DefragTracker *dt, Packet *p)
     dt->vlan_id[1] = p->vlan_id[1];
     dt->policy = DefragGetOsPolicy(p);
     dt->host_timeout = DefragPolicyGetHostTimeout(p);
+    dt->remove = 0;
+    dt->seen_last = 0;
 
     TAILQ_INIT(&dt->frags);
     (void) DefragTrackerIncrUsecnt(dt);
-}
-
-static DefragTracker *DefragTrackerNew(Packet *p)
-{
-    DefragTracker *dt = DefragTrackerAlloc();
-    if (dt == NULL)
-        goto error;
-
-    DefragTrackerInit(dt, p);
-    return dt;
-
-error:
-    return NULL;
 }
 
 void DefragTrackerRelease(DefragTracker *t)
@@ -467,7 +456,7 @@ static DefragTracker *DefragTrackerGetNew(Packet *p)
             /* freed a tracker, but it's unlocked */
         } else {
             /* now see if we can alloc a new tracker */
-            dt = DefragTrackerNew(p);
+            dt = DefragTrackerAlloc();
             if (dt == NULL) {
                 return NULL;
             }
@@ -526,7 +515,7 @@ DefragTracker *DefragGetTrackerFromHash (Packet *p)
     dt = hb->head;
 
     /* see if this is the tracker we are looking for */
-    if (DefragTrackerCompare(dt, p) == 0) {
+    if (dt->remove || DefragTrackerCompare(dt, p) == 0) {
         DefragTracker *pdt = NULL; /* previous tracker */
 
         while (dt) {

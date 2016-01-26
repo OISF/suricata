@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,22 +15,19 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Tom DeCanio <td@npulsetech.com>
- */
+#ifndef __DETECT_BASE64_DECODE_H__
+#define __DETECT_BASE64_DECODE_H__
 
-#ifndef __OUTPUT_JSON_HTTP_H__
-#define __OUTPUT_JSON_HTTP_H__
+#include "app-layer-template.h"
 
-void TmModuleJsonHttpLogRegister (void);
+typedef struct DetectBase64Decode_ {
+    uint32_t bytes;
+    uint32_t offset;
+    uint8_t relative;
+} DetectBase64Decode;
 
-#ifdef HAVE_LIBJANSSON
-void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx);
-void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx);
-json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id);
-#endif /* HAVE_LIBJANSSON */
+void DetectBase64DecodeRegister(void);
+int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *, Signature *,
+    const SigMatch *, uint8_t *, uint32_t);
 
-#endif /* __OUTPUT_JSON_HTTP_H__ */
-
+#endif /* __DETECT_BASE64_DECODE_H__ */

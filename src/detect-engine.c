@@ -102,13 +102,17 @@
 static uint32_t detect_engine_ctx_id = 1;
 
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
-        ThreadVars *tv, DetectEngineCtx *new_de_ctx);
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt);
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 
 static DetectEngineMasterCtx g_master_de_ctx = { SCMUTEX_INITIALIZER, 0, NULL, NULL, TENANT_SELECTOR_UNKNOWN, NULL,};
 
-static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv);
+static uint32_t TenantIdHash(HashTable *h, void *data, uint16_t data_len);
+static char TenantIdCompare(void *d1, uint16_t d1_len, void *d2, uint16_t d2_len);
+static void TenantIdFree(void *d);
+static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p);
+static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p);
 
 /* 2 - for each direction */
 DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
@@ -553,7 +557,6 @@ int DetectEngineReloadIsDone(void)
 static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 {
     SCEnter();
-
     int i = 0;
     int no_of_detect_tvs = 0;
     ThreadVars *tv = NULL;
@@ -623,10 +626,8 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
             old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
             detect_tvs[i] = tv;
-            if (new_de_ctx != NULL)
-                new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx);
-            else
-                new_det_ctx[i] = DetectEngineThreadCtxInitForMT(tv);
+
+            new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx, 1);
             if (new_det_ctx[i] == NULL) {
                 SCLogError(SC_ERR_LIVE_RULE_SWAP, "Detect engine thread init "
                            "failure in live rule swap.  Let's get out of here");
@@ -1280,6 +1281,114 @@ static void DetectEngineThreadCtxDeinitKeywords(DetectEngineCtx *de_ctx, DetectE
     }
 }
 
+/** NOTE: master MUST be locked before calling this */
+static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThreadCtx *det_ctx)
+{
+    DetectEngineMasterCtx *master = &g_master_de_ctx;
+    DetectEngineTenantMapping *map_array = NULL;
+    uint32_t map_array_size = 0;
+    uint32_t map_cnt = 0;
+    int max_tenant_id = 0;
+    DetectEngineCtx *list = master->list;
+    HashTable *mt_det_ctxs_hash = NULL;
+
+    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
+        SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
+                                          "set using multi-detect.selector");
+        return TM_ECODE_FAILED;
+    }
+
+    uint32_t tcnt = 0;
+    while (list) {
+        if (list->tenant_id > max_tenant_id)
+            max_tenant_id = list->tenant_id;
+
+        list = list->next;
+        tcnt++;
+    }
+
+    mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
+    if (mt_det_ctxs_hash == NULL) {
+        goto error;
+    }
+
+    if (max_tenant_id == 0) {
+        SCLogInfo("no tenants left, or none registered yet");
+    } else {
+        max_tenant_id++;
+
+        DetectEngineTenantMapping *map = master->tenant_mapping_list;
+        while (map) {
+            map_cnt++;
+            map = map->next;
+        }
+
+        if (map_cnt > 0) {
+            map_array_size = map_cnt + 1;
+
+            map_array = SCCalloc(map_array_size, sizeof(*map_array));
+            if (map_array == NULL)
+                goto error;
+
+            /* fill the array */
+            map_cnt = 0;
+            map = master->tenant_mapping_list;
+            while (map) {
+                BUG_ON(map_cnt > map_array_size);
+                map_array[map_cnt].traffic_id = map->traffic_id;
+                map_array[map_cnt].tenant_id = map->tenant_id;
+                map_cnt++;
+                map = map->next;
+            }
+
+        }
+
+        /* set up hash for tenant lookup */
+        list = master->list;
+        while (list) {
+            SCLogInfo("tenant-id %u", list->tenant_id);
+            if (list->tenant_id != 0) {
+                DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list, 0);
+                if (mt_det_ctx == NULL)
+                    goto error;
+                BUG_ON(HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0);
+            }
+            list = list->next;
+        }
+    }
+
+    det_ctx->mt_det_ctxs_hash = mt_det_ctxs_hash;
+    mt_det_ctxs_hash = NULL;
+
+    det_ctx->mt_det_ctxs_cnt = max_tenant_id;
+
+    det_ctx->tenant_array = map_array;
+    det_ctx->tenant_array_size = map_array_size;
+
+    switch (master->tenant_selector) {
+        case TENANT_SELECTOR_UNKNOWN:
+            SCLogDebug("TENANT_SELECTOR_UNKNOWN");
+            break;
+        case TENANT_SELECTOR_VLAN:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
+            SCLogDebug("TENANT_SELECTOR_VLAN");
+            break;
+        case TENANT_SELECTOR_DIRECT:
+            det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
+            SCLogDebug("TENANT_SELECTOR_DIRECT");
+            break;
+    }
+
+    return TM_ECODE_OK;
+error:
+    if (map_array != NULL)
+        SCFree(map_array);
+    if (mt_det_ctxs_hash != NULL)
+        HashTableFree(mt_det_ctxs_hash);
+
+    return TM_ECODE_FAILED;
+}
+
 /** \internal
  *  \brief Helper for DetectThread setup functions
  */
@@ -1338,6 +1447,16 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
         return TM_ECODE_FAILED;
     }
 
+    /* Allocate space for base64 decoded data. */
+    if (de_ctx->base64_decode_max_len) {
+        det_ctx->base64_decoded = SCMalloc(de_ctx->base64_decode_max_len);
+        if (det_ctx->base64_decoded == NULL) {
+            return TM_ECODE_FAILED;
+        }
+        det_ctx->base64_decoded_len_max = de_ctx->base64_decode_max_len;
+        det_ctx->base64_decoded_len = 0;
+    }
+
     DetectEngineThreadCtxInitKeywords(de_ctx, det_ctx);
 #ifdef PROFILING
     SCProfilingRuleThreadSetup(de_ctx->profile_ctx, det_ctx);
@@ -1367,12 +1486,6 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
  */
 TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
 {
-    if (DetectEngineMultiTenantEnabled()) {
-        DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForMT(tv);
-        *data = (void *)mt_det_ctx;
-        return (mt_det_ctx == NULL) ? TM_ECODE_FAILED : TM_ECODE_OK;
-    }
-
     /* first register the counter. In delayed detect mode we exit right after if the
      * rules haven't been loaded yet. */
     uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
@@ -1422,6 +1535,11 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
     /* pass thread data back to caller */
     *data = (void *)det_ctx;
 
+    if (DetectEngineMultiTenantEnabled()) {
+        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK)
+            return TM_ECODE_FAILED;
+    }
+
     return TM_ECODE_OK;
 }
 
@@ -1429,10 +1547,13 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data)
  * \internal
  * \brief initialize a det_ctx for reload cases
  * \param new_de_ctx the new detection engine
+ * \param mt flag to indicate if MT should be set up for this det_ctx
+ *           this should only be done for the 'root' det_ctx
+ *
  * \retval det_ctx detection engine thread ctx or NULL in case of error
  */
 static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
-        ThreadVars *tv, DetectEngineCtx *new_de_ctx)
+        ThreadVars *tv, DetectEngineCtx *new_de_ctx, int mt)
 {
     DetectEngineThreadCtx *det_ctx = SCMalloc(sizeof(DetectEngineThreadCtx));
     if (unlikely(det_ctx == NULL))
@@ -1466,6 +1587,14 @@ static DetectEngineThreadCtx *DetectEngineThreadCtxInitForReload(
     det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
     det_ctx->counter_match_list = counter_match_list;
 #endif
+
+    if (mt && DetectEngineMultiTenantEnabled()) {
+        if (DetectEngineThreadCtxInitForMT(tv, det_ctx) != TM_ECODE_OK) {
+            DetectEngineDeReference(&det_ctx->de_ctx);
+            SCFree(det_ctx);
+            return NULL;
+        }
+    }
 
     return det_ctx;
 }
@@ -1540,6 +1669,11 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
             SCLogDebug("det_ctx->hcbd[i].buffer_size %u", det_ctx->hcbd[i].buffer_size);
         }
         SCFree(det_ctx->hcbd);
+    }
+
+    /* Decoded base64 data. */
+    if (det_ctx->base64_decoded != NULL) {
+        SCFree(det_ctx->base64_decoded);
     }
 
     if (det_ctx->de_ctx != NULL) {
@@ -1822,7 +1956,7 @@ static int DetectLoaderFuncLoadTenant(void *vctx, int loader_id)
 {
     TenantLoaderCtx *ctx = (TenantLoaderCtx *)vctx;
 
-    SCLogInfo("loader %d", loader_id);
+    SCLogDebug("loader %d", loader_id);
     if (DetectEngineMultiTenantLoadTenant(ctx->tenant_id, ctx->yaml, loader_id) != 0) {
         return -1;
     }
@@ -1909,9 +2043,13 @@ int DetectEngineReloadTenantBlocking(uint32_t tenant_id, const char *yaml, int r
  *  Tenants and mappings are optional, and can also dynamically be added
  *  and removed from the unix socket.
  */
-void DetectEngineMultiTenantSetup(void)
+int DetectEngineMultiTenantSetup(void)
 {
+    enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
+
+    int unix_socket = 0;
+    (void)ConfGetBool("unix-command.enabled", &unix_socket);
 
     int failure_fatal = 0;
     (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
@@ -1929,12 +2067,21 @@ void DetectEngineMultiTenantSetup(void)
 
         char *handler = NULL;
         if (ConfGet("multi-detect.selector", &handler) == 1) {
-            SCLogInfo("selector %s", handler);
+            SCLogInfo("multi-tenant selector type %s", handler);
 
             if (strcmp(handler, "vlan") == 0) {
-                master->tenant_selector = TENANT_SELECTOR_VLAN;
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_VLAN;
+
+                int vlanbool = 0;
+                if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "vlan tracking is disabled, "
+                            "can't use multi-detect selector 'vlan'");
+                    SCMutexUnlock(&master->lock);
+                    goto error;
+                }
+
             } else if (strcmp(handler, "direct") == 0) {
-                master->tenant_selector = TENANT_SELECTOR_DIRECT;
+                tenant_selector = master->tenant_selector = TENANT_SELECTOR_DIRECT;
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "unknown value %s "
                                                  "multi-detect.selector", handler);
@@ -1949,48 +2096,67 @@ void DetectEngineMultiTenantSetup(void)
         ConfNode *mappings_root_node = ConfGetNode("multi-detect.mappings");
         ConfNode *mapping_node = NULL;
 
+        int mapping_cnt = 0;
         if (mappings_root_node != NULL) {
             TAILQ_FOREACH(mapping_node, &mappings_root_node->head, next) {
-                if (strcmp(mapping_node->val, "vlan") == 0) {
-                    ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
-                    if (tenant_id_node == NULL)
-                        goto bad_mapping;
-                    ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
-                    if (vlan_id_node == NULL)
-                        goto bad_mapping;
+                ConfNode *tenant_id_node = ConfNodeLookupChild(mapping_node, "tenant-id");
+                if (tenant_id_node == NULL)
+                    goto bad_mapping;
+                ConfNode *vlan_id_node = ConfNodeLookupChild(mapping_node, "vlan-id");
+                if (vlan_id_node == NULL)
+                    goto bad_mapping;
 
-                    SCLogInfo("vlan %s %s", tenant_id_node->val, vlan_id_node->val);
-
-                    uint32_t tenant_id = 0;
-                    if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
-                                tenant_id_node->val) == -1)
-                    {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
-                                "of %s is invalid", tenant_id_node->val);
-                        goto bad_mapping;
-                    }
-
-                    uint16_t vlan_id = 0;
-                    if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
-                                vlan_id_node->val) == -1)
-                    {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
-                                "of %s is invalid", vlan_id_node->val);
-                        goto bad_mapping;
-                    }
-
-                    if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
-                        goto error;
-                    }
-                } else {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.mappings expects a list of 'vlan's. Not %s", mapping_node->val);
+                uint32_t tenant_id = 0;
+                if (ByteExtractStringUint32(&tenant_id, 10, strlen(tenant_id_node->val),
+                            tenant_id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "tenant-id  "
+                            "of %s is invalid", tenant_id_node->val);
                     goto bad_mapping;
                 }
+
+                uint16_t vlan_id = 0;
+                if (ByteExtractStringUint16(&vlan_id, 10, strlen(vlan_id_node->val),
+                            vlan_id_node->val) == -1)
+                {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                            "of %s is invalid", vlan_id_node->val);
+                    goto bad_mapping;
+                }
+                if (vlan_id == 0 || vlan_id >= 4095) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "vlan-id  "
+                            "of %s is invalid. Valid range 1-4094.", vlan_id_node->val);
+                    goto bad_mapping;
+                }
+
+                if (DetectEngineTentantRegisterVlanId(tenant_id, (uint32_t)vlan_id) != 0) {
+                    goto error;
+                }
+                SCLogInfo("vlan %u connected to tenant-id %u", vlan_id, tenant_id);
+                mapping_cnt++;
                 continue;
 
             bad_mapping:
                 if (failure_fatal)
                     goto error;
+            }
+        }
+
+        if (tenant_selector == TENANT_SELECTOR_VLAN && mapping_cnt == 0) {
+            /* no mappings are valid when we're in unix socket mode,
+             * they can be added on the fly. Otherwise warn/error
+             * depending on failure_fatal */
+
+            if (unix_socket) {
+                SCLogNotice("no tenant traffic mappings defined, "
+                        "tenants won't be used until mappings are added");
+            } else {
+                if (failure_fatal) {
+                    SCLogError(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                    goto error;
+                } else {
+                    SCLogWarning(SC_ERR_MT_NO_MAPPING, "no multi-detect mappings defined");
+                }
             }
         }
 
@@ -2000,16 +2166,14 @@ void DetectEngineMultiTenantSetup(void)
 
         if (tenants_root_node != NULL) {
             TAILQ_FOREACH(tenant_node, &tenants_root_node->head, next) {
-                if (strcmp(tenant_node->val, "tenant") != 0) {
-                    SCLogWarning(SC_ERR_INVALID_VALUE, "multi-detect.tenants expects a list of 'tenant's. Not %s", tenant_node->val);
+                ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
+                if (id_node == NULL) {
                     goto bad_tenant;
                 }
-                ConfNode *id_node = ConfNodeLookupChild(tenant_node, "id");
-                if (id_node == NULL)
-                    goto bad_tenant;
                 ConfNode *yaml_node = ConfNodeLookupChild(tenant_node, "yaml");
-                if (yaml_node == NULL)
+                if (yaml_node == NULL) {
                     goto bad_tenant;
+                }
 
                 uint32_t tenant_id = 0;
                 if (ByteExtractStringUint32(&tenant_id, 10, strlen(id_node->val),
@@ -2030,7 +2194,8 @@ void DetectEngineMultiTenantSetup(void)
                     goto bad_tenant;
                 }
 
-                if (DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val) != 0) {
+                int r = DetectLoaderSetupLoadTenant(tenant_id, yaml_node->val);
+                if (r < 0) {
                     /* error logged already */
                     goto bad_tenant;
                 }
@@ -2043,22 +2208,18 @@ void DetectEngineMultiTenantSetup(void)
         }
 
         /* wait for our loaders to complete their tasks */
-        if (DetectLoadersSync() != 0)
-            goto error;
-
-        if (DetectEngineMTApply() < 0) {
-            SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        if (DetectLoadersSync() != 0) {
             goto error;
         }
-
     } else {
         SCLogDebug("multi-detect not enabled (multi tenancy)");
     }
+    return 0;
 error:
-    return;
+    return -1;
 }
 
-uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
+static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p)
 {
     const DetectEngineThreadCtx *det_ctx = ctx;
     uint32_t x = 0;
@@ -2118,7 +2279,7 @@ static int DetectEngineTentantRegisterSelector(enum DetectEngineTenantSelectors 
 
     master->tenant_selector = selector;
 
-    SCLogInfo("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
+    SCLogDebug("tenant handler %u %u %u registered", selector, tenant_id, traffic_id);
     SCMutexUnlock(&master->lock);
     return 0;
 }
@@ -2181,7 +2342,7 @@ int DetectEngineTentantUnregisterPcapFile(uint32_t tenant_id)
     return DetectEngineTentantUnregisterSelector(TENANT_SELECTOR_DIRECT, tenant_id, 0);
 }
 
-uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
+static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p)
 {
     return p->pcap_v.tenant_id;
 }
@@ -2340,7 +2501,7 @@ static int reloads = 0;
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectEngineReload(const char *filename)
+int DetectEngineReload(const char *filename, SCInstance *suri)
 {
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
@@ -2377,7 +2538,8 @@ int DetectEngineReload(const char *filename)
         DetectEngineDeReference(&old_de_ctx);
         return -1;
     }
-    if (SigLoadSignatures(new_de_ctx, NULL, 0) != 0) {
+    if (SigLoadSignatures(new_de_ctx,
+                          suri->sig_file, suri->sig_file_exclusive) != 0) {
         DetectEngineCtxFree(new_de_ctx);
         DetectEngineDeReference(&old_de_ctx);
         return -1;
@@ -2422,135 +2584,6 @@ static void TenantIdFree(void *d)
     DetectEngineThreadCtxFree(d);
 }
 
-/** NOTE: master MUST be locked before calling this */
-static DetectEngineThreadCtx *DetectEngineThreadCtxInitForMT(ThreadVars *tv)
-{
-    DetectEngineMasterCtx *master = &g_master_de_ctx;
-    DetectEngineTenantMapping *map_array = NULL;
-    uint32_t map_array_size = 0;
-    uint32_t map_cnt = 0;
-    int max_tenant_id = 0;
-    DetectEngineCtx *list = master->list;
-    HashTable *mt_det_ctxs_hash = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-
-    if (master->tenant_selector == TENANT_SELECTOR_UNKNOWN) {
-        SCLogError(SC_ERR_MT_NO_SELECTOR, "no tenant selector set: "
-                                          "set using multi-detect.selector");
-        return NULL;
-    }
-
-    uint32_t tcnt = 0;
-    while (list) {
-        if (list->tenant_id > max_tenant_id)
-            max_tenant_id = list->tenant_id;
-
-        list = list->next;
-        tcnt++;
-    }
-
-    mt_det_ctxs_hash = HashTableInit(tcnt * 2, TenantIdHash, TenantIdCompare, TenantIdFree);
-    if (mt_det_ctxs_hash == NULL) {
-        goto error;
-    }
-
-    if (max_tenant_id == 0) {
-        SCLogInfo("no tenants left, or none registered yet");
-    } else {
-        max_tenant_id++;
-
-        DetectEngineTenantMapping *map = master->tenant_mapping_list;
-        while (map) {
-            map_cnt++;
-            map = map->next;
-        }
-
-        if (map_cnt > 0) {
-            map_array_size = map_cnt + 1;
-
-            map_array = SCCalloc(map_array_size, sizeof(*map_array));
-            if (map_array == NULL)
-                goto error;
-
-            /* fill the array */
-            map_cnt = 0;
-            map = master->tenant_mapping_list;
-            while (map) {
-                BUG_ON(map_cnt > map_array_size);
-                map_array[map_cnt].traffic_id = map->traffic_id;
-                map_array[map_cnt].tenant_id = map->tenant_id;
-                map_cnt++;
-                map = map->next;
-            }
-
-        }
-
-        /* set up hash for tenant lookup */
-        list = master->list;
-        while (list) {
-            if (list->tenant_id != 0) {
-                DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list);
-                if (mt_det_ctx == NULL)
-                    goto error;
-                BUG_ON(HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0);
-            }
-            list = list->next;
-        }
-    }
-
-    det_ctx = SCCalloc(1, sizeof(DetectEngineThreadCtx));
-    if (det_ctx == NULL) {
-        goto error;
-    }
-    det_ctx->mt_det_ctxs_hash = mt_det_ctxs_hash;
-    mt_det_ctxs_hash = NULL;
-
-    /* first register the counter. In delayed detect mode we exit right after if the
-     * rules haven't been loaded yet. */
-    uint16_t counter_alerts = StatsRegisterCounter("detect.alert", tv);
-#ifdef PROFILING
-    uint16_t counter_mpm_list = StatsRegisterAvgCounter("detect.mpm_list", tv);
-    uint16_t counter_nonmpm_list = StatsRegisterAvgCounter("detect.nonmpm_list", tv);
-    uint16_t counter_fnonmpm_list = StatsRegisterAvgCounter("detect.fnonmpm_list", tv);
-    uint16_t counter_match_list = StatsRegisterAvgCounter("detect.match_list", tv);
-#endif
-    /** alert counter setup */
-    det_ctx->counter_alerts = counter_alerts;
-#ifdef PROFILING
-    det_ctx->counter_mpm_list = counter_mpm_list;
-    det_ctx->counter_nonmpm_list = counter_nonmpm_list;
-    det_ctx->counter_fnonmpm_list = counter_fnonmpm_list;
-    det_ctx->counter_match_list = counter_match_list;
-#endif
-    det_ctx->mt_det_ctxs_cnt = max_tenant_id;
-
-    det_ctx->tenant_array = map_array;
-    det_ctx->tenant_array_size = map_array_size;
-
-    switch (master->tenant_selector) {
-        case TENANT_SELECTOR_UNKNOWN:
-            SCLogDebug("TENANT_SELECTOR_UNKNOWN");
-            break;
-        case TENANT_SELECTOR_VLAN:
-            det_ctx->TenantGetId = DetectEngineTentantGetIdFromVlanId;
-            SCLogDebug("TENANT_SELECTOR_VLAN");
-            break;
-        case TENANT_SELECTOR_DIRECT:
-            det_ctx->TenantGetId = DetectEngineTentantGetIdFromPcap;
-            SCLogDebug("TENANT_SELECTOR_DIRECT");
-            break;
-    }
-
-    return det_ctx;
-error:
-    if (map_array != NULL)
-        SCFree(map_array);
-    if (mt_det_ctxs_hash != NULL)
-        HashTableFree(mt_det_ctxs_hash);
-
-    return NULL;
-}
-
 int DetectEngineMTApply(void)
 {
     DetectEngineMasterCtx *master = &g_master_de_ctx;
@@ -2563,13 +2596,25 @@ int DetectEngineMTApply(void)
     }
 
     DetectEngineCtx *minimal_de_ctx = NULL;
-    /* if we have no tenants, we need a minimal on */
+    /* if we have no tenants, we need a minimal one */
     if (master->list == NULL) {
         minimal_de_ctx = master->list = DetectEngineCtxInitMinimal();
         SCLogDebug("no tenants, using minimal %p", minimal_de_ctx);
     } else if (master->list->next == NULL && master->list->tenant_id == 0) {
         minimal_de_ctx = master->list;
         SCLogDebug("no tenants, using original %p", minimal_de_ctx);
+
+    /* the default de_ctx should be in the list with tenant_id 0 */
+    } else {
+        DetectEngineCtx *list = master->list;
+        for ( ; list != NULL; list = list->next) {
+            SCLogInfo("list %p tenant %u", list, list->tenant_id);
+
+            if (list->tenant_id == 0) {
+                minimal_de_ctx = list;
+                break;
+            }
+        }
     }
 
     /* update the threads */
@@ -2644,6 +2689,9 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
+
+        case DETECT_SM_LIST_BASE64_DATA:
+            return "base64_data";
 
         case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
             return "template_buffer";

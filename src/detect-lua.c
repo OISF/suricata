@@ -166,6 +166,8 @@ void DetectLuaRegister(void)
 
 #define DATATYPE_TLS                        (1<<18)
 
+#define DATATYPE_SSH                        (1<<19)
+
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
 {
@@ -190,12 +192,18 @@ int DetectLuajitSetupStatesPool(int num, int reloads)
     pthread_mutex_lock(&luajit_states_lock);
 
     if (luajit_states == NULL) {
-        int cnt = 0;
-        char *conf_val = NULL;
+        intmax_t cnt = 0;
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "luajit-states") == 0) {
+                    ConfGetChildValueInt(denode, "luajit-states", &cnt);
+                }
+            }
+        }
 
-        if ((ConfGet("detect-engine.luajit-states", &conf_val)) == 1) {
-            cnt = (int)atoi(conf_val);
-        } else {
+        if (cnt == 0) {
             int cpus = UtilCpuGetNumProcessorsOnline();
             if (cpus == 0) {
                 cpus = 10;
@@ -1008,6 +1016,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
 
             ld->flags |= DATATYPE_TLS;
 
+        } else if (strncmp(k, "ssh", 3) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_SSH;
+
+            ld->flags |= DATATYPE_SSH;
+
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1104,6 +1118,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSRESPONSE_MATCH);
         }
     } else if (luajit->alproto == ALPROTO_TLS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    } else if (luajit->alproto == ALPROTO_SSH) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",

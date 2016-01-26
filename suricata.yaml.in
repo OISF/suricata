@@ -44,9 +44,13 @@ host-mode: auto
 #  user: suri
 #  group: suri
 
+# Some logging module will use that name in event as identifier. The default
+# value is the hostname
+#sensor-name: suricata
+
 # Default pid file.
 # Will use this file if no --pidfile in command options.
-#pid-file: /var/run/suricata.pid
+#pid-file: @e_rundir@suricata.pid
 
 # Daemon working directory
 # Suricata will change directory to this one if provided
@@ -92,7 +96,7 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
       filename: eve.json
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
@@ -100,6 +104,18 @@ outputs:
       #facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+      #redis:
+      #  server: 127.0.0.1
+      #  port: 6379
+      #  mode: list ## possible values: list (default), channel
+      #  key: suricata ## key or channel to use (default to suricata)
+      # Redis pipelining set up. This will enable to only do a query every
+      # 'batch-size' events. This should lower the latency induced by network
+      # connection at the cost of some memory. There is no flushing implemented
+      # so this setting as to be reserved to high traffic suricata.
+      #  pipelining:
+      #    enabled: yes ## set enable to yes to enable query pipelining
+      #    batch-size: 10 ## number of entry to keep in buffer
       types:
         - alert:
             # payload: yes           # enable dumping payload in Base64
@@ -108,6 +124,7 @@ outputs:
             # http: yes              # enable dumping of http fields
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
+            # smtp: yes              # enable dumping of smtp fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -139,7 +156,19 @@ outputs:
             force-md5: no     # force logging of md5 checksums
         #- drop:
         #    alerts: no       # log alerts that caused drops
-        - smtp
+        - smtp:
+            #extended: yes # enable this for extended logging information
+            # this includes: bcc, message-id, subject, x_mailer, user-agent
+            # custom fields logging from the list:
+            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
+            #  x-originating-ip, in-reply-to, references, importance, priority,
+            #  sensitivity, organization, content-md5, date
+            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
+            # output md5 of fields: body, subject
+            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
+            # to yes
+            #md5: [body, subject]
+
         - ssh
         - stats:
             totals: yes       # stats for all threads merged together
@@ -152,7 +181,7 @@ outputs:
 
   # alert output for use with Barnyard2
   - unified2-alert:
-      enabled: yes
+      enabled: no
       filename: unified2.alert
 
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
@@ -161,6 +190,10 @@ outputs:
 
       # Sensor ID field of unified2 alerts.
       #sensor-id: 0
+
+      # Include payload of packets related to alerts. Defaults to true, set to
+      # false if payload is not required.
+      #payload: yes
 
       # HTTP X-Forwarded-For support by adding the unified2 extra header or
       # overwriting the source or destination IP address (depending on flow
@@ -268,6 +301,19 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+  # This generates pcap files only once an alert has fired on a given packet.  This
+  # will continue to log the rest of the stream until the flow is no longer valid to
+  # the following directory by default:
+  #
+  # $alert-pcap-directory/YYYY-MM-DD/SRCIP-DSTIP/SRCIP[:port]-DSTIP[:port].PROTO.pcap
+  #  
+  # In cases where TimeMachine is enabled, it will also attempt to log all data contained
+  # in memory by TimeMachine prior to the packet containing the alert.
+  - alert-pcap:
+      enabled: yes
+      directory: alerts
+      timeout: 300
+      
   # alert output to prelude (http://www.prelude-technologies.com/) only
   # available if Suricata has been compiled with --enable-prelude
   - alert-prelude:
@@ -282,6 +328,7 @@ outputs:
       filename: stats.log
       totals: yes       # stats for all threads merged together
       threads: no       # per thread stats
+      #null-values: yes  # print counters that have value 0
 
   # a line based alerts log similar to fast.log into syslog
   - syslog:
@@ -358,6 +405,7 @@ outputs:
       #scripts-dir: /etc/suricata/lua-output/
       scripts:
       #   - script1.lua
+<<<<<<< HEAD
 
   # Timemachine keeps a list of connections and packets in memory for almost
   # all packets and connections seen.  This can be useful when an alert fires 
@@ -406,6 +454,9 @@ outputs:
               name: normal
               max-packet-size: 1500
 
+=======
+      
+>>>>>>> timemachine-v1.1
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 magic-file: @e_magic_file@
@@ -804,6 +855,48 @@ flow:
   #managers: 1 # default to one flow manager
   #recyclers: 1 # default to one flow recycler thread
 
+# Timemachine keeps a list of connections and packets in memory for almost
+# all packets and connections seen.  This can be useful when an alert fires 
+# further in a stream (e.g. a string in an HTTP response), however there may
+# be useful information at the beginning of the stream (like the HTTP request).
+#
+# Since timemachine maintains a list of packets, on alarm generation, an output
+# module could subsequently log all previous packets to disk then continue logging
+# the rest of the output stream.
+timemachine:
+  enabled: no
+
+  # Default max packet size (packets greater than this will be truncated)
+  packet-size: 1540
+
+  # The maximum memory per thread to use for time machine.  The current 
+  # memory calculation per thread is roughly calculated  as the sum of
+  # max-packet-size * count of heap spaces for each heap within a thread
+  max-memory: 256mb
+
+  # The amount of pre-allocated heap space to generate (note: this
+  # does not account for max-memory requirements) (this can be overriden
+  # per heap)
+  heap-prealloc-count: 5000
+      
+  # Timemachine creates a heap of "existing" packets and re-uses those 
+  # pre-created packets for speed.  This has a downside where not all 
+  # memory is used because the packets are a predefined size.  Since we do 
+  # this, we go ahead and break the heap into different configerable sizes.
+  heaps: 
+      -   
+          name: micro
+          max-packet-size: 200
+      -
+          name: small
+          max-packet-size: 400
+      -
+          name: medium
+          max-packet-size: 800
+      -
+          name: normal
+          max-packet-size: 1540
+              
 # This option controls the use of vlan ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)
 # setups where both sides of a flow are not tagged with the same vlan
@@ -994,7 +1087,7 @@ logging:
       # type: json
   - file:
       enabled: no
-      filename: /var/log/suricata.log
+      filename: @e_logdir@suricata.log
       # type: json
   - syslog:
       enabled: no
@@ -1185,7 +1278,7 @@ rule-files:
  - smtp-events.rules    # available in suricata sources under rules dir
  - dns-events.rules     # available in suricata sources under rules dir
  - tls-events.rules     # available in suricata sources under rules dir
- - modbus-events.rules  # available in suricata sources under rules dir
+# - modbus-events.rules  # available in suricata sources under rules dir
  - app-layer-events.rules  # available in suricata sources under rules dir
 
 classification-file: @e_sysconfdir@classification.config
@@ -1338,6 +1431,9 @@ app-layer:
 
         # Extract URLs and save in state data structure
         extract-urls: yes
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        body-md5: no
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
         content-limit: 1000
@@ -1361,7 +1457,7 @@ app-layer:
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
 
-      enabled: yes
+      enabled: no
       detection-ports:
         dp: 502
       # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
@@ -1451,14 +1547,14 @@ app-layer:
 
            # Can be specified in kb, mb, gb.  Just a number indicates
            # it's in bytes.
-           request-body-limit: 3072
-           response-body-limit: 3072
+           request-body-limit: 100kb
+           response-body-limit: 100kb
 
            # inspection limits
            request-body-minimal-inspect-size: 32kb
            request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 32kb
-           response-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 40kb
+           response-body-inspect-window: 16kb
 
            # auto will use http-body-inline mode in IPS mode, yes or no set it statically
            http-body-inline: auto
@@ -1522,8 +1618,11 @@ profiling:
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
-    # Limit the number of items printed at exit.
+    # Limit the number of items printed at exit (ignored for json).
     limit: 100
+
+    # output to json
+    json: true
 
   # per keyword profiling
   keywords:
