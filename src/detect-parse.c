@@ -1320,9 +1320,8 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 
     if (s->sm_lists[DETECT_SM_LIST_BASE64_DATA] != NULL) {
-        int list;
         uint16_t idx = s->sm_lists[DETECT_SM_LIST_BASE64_DATA]->idx;
-        for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+        for (int list = 0; list < DETECT_SM_LIST_DETECT_MAX; list++) {
             if (list != DETECT_SM_LIST_BASE64_DATA &&
                 s->sm_lists[list] != NULL) {
                 if (s->sm_lists[list]->idx > idx) {
