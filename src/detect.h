@@ -116,7 +116,6 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_AMATCH,
     DETECT_SM_LIST_DMATCH,
-    DETECT_SM_LIST_TMATCH,
 
     DETECT_SM_LIST_FILEMATCH,
 
@@ -130,8 +129,14 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
 
+    /* Demarcation between detection and post-detection lists. All
+     * detection lists must come before this. */
+    DETECT_SM_LIST_DETECT_MAX,
+
     /* list for post match actions: flowbit set, flowint increment, etc */
-    DETECT_SM_LIST_POSTMATCH,
+    DETECT_SM_LIST_POSTMATCH = DETECT_SM_LIST_DETECT_MAX,
+
+    DETECT_SM_LIST_TMATCH, /**< post-detection tagging */
 
     /* lists for alert thresholding and suppression */
     DETECT_SM_LIST_SUPPRESS,

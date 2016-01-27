@@ -186,6 +186,10 @@ end:
     return retval;
 }
 
+/**
+ * \test Test that the rule fails to load if the detection list is
+ *     changed after base64_data.
+ */
 static int DetectBase64DataSetupTest03(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -221,6 +225,38 @@ end:
     return retval;
 }
 
+/**
+ * \test Test that the list can be changed to post-detection lists
+ *     after the base64 keyword.
+ */
+static int DetectBase64DataSetupTest04(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int retval = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+        "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("SigInit failed: ");
+        goto end;
+    }
+
+    retval = 1;
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    return retval;
+}
+
 #endif
 
 static void DetectBase64DataRegisterTests(void)
@@ -231,6 +267,8 @@ static void DetectBase64DataRegisterTests(void)
     UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02,
         1);
     UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03,
+        1);
+    UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04,
         1);
 #endif /* UNITTESTS */
 }
