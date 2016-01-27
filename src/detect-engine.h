@@ -75,11 +75,11 @@ void DetectEnginePruneFreeList(void);
 int DetectEngineMoveToFreeList(DetectEngineCtx *de_ctx);
 DetectEngineCtx *DetectEngineReference(DetectEngineCtx *);
 void DetectEngineDeReference(DetectEngineCtx **de_ctx);
-int DetectEngineReload(const char *filename);
+int DetectEngineReload(const char *filename, SCInstance *suri);
 int DetectEngineEnabled(void);
 int DetectEngineMTApply(void);
 int DetectEngineMultiTenantEnabled(void);
-void DetectEngineMultiTenantSetup(void);
+int DetectEngineMultiTenantSetup(void);
 
 int DetectEngineReloadStart(void);
 int DetectEngineReloadIsStart(void);

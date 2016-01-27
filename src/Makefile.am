@@ -33,6 +33,7 @@ app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
+app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
 app-layer-tls-handshake.c app-layer-tls-handshake.h \
@@ -60,6 +61,7 @@ decode-teredo.c decode-teredo.h \
 decode-udp.c decode-udp.h \
 decode-vlan.c decode-vlan.h \
 decode-mpls.c decode-mpls.h \
+decode-template.c decode-template.h \
 defrag-config.c defrag-config.h \
 defrag.c defrag.h \
 defrag-hash.c defrag-hash.h \
@@ -69,6 +71,8 @@ detect-ack.c detect-ack.h \
 detect-app-layer-event.c detect-app-layer-event.h \
 detect-app-layer-protocol.c detect-app-layer-protocol.h \
 detect-asn1.c detect-asn1.h \
+detect-base64-data.c detect-base64-data.h \
+detect-base64-decode.c detect-base64-decode.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
@@ -121,6 +125,7 @@ detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-tag.c detect-engine-tag.h \
+detect-engine-template.c detect-engine-template.h \
 detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-uri.c detect-engine-uri.h \
 detect-fast-pattern.c detect-fast-pattern.h \
@@ -192,6 +197,8 @@ detect-ssl-state.c detect-ssl-state.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
+detect-template.c detect-template.h \
+detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
 detect-tls-version.c detect-tls-version.h \
@@ -248,6 +255,7 @@ output-json-smtp.c output-json-smtp.h \
 output-json-ssh.c output-json-ssh.h \
 output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
+output-json-template.c output-json-template.h \
 output-lua.c output-lua.h \
 output-packet.c output-packet.h \
 output-stats.c output-stats.h \
@@ -349,6 +357,8 @@ util-lua.c util-lua.h \
 util-lua-common.c util-lua-common.h \
 util-lua-dns.c util-lua-dns.h \
 util-lua-http.c util-lua-http.h \
+util-lua-tls.c util-lua-tls.h \
+util-lua-ssh.c util-lua-ssh.h \
 util-magic.c util-magic.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \
@@ -472,9 +482,14 @@ cuda-ptxdump.h: $(PTXS)
 CLEANFILES = $(PTXS) cuda-ptxdump.h
 endif
 
+# default CFLAGS
+AM_CFLAGS = ${OPTIMIZATION_CFLAGS} ${GCC_CFLAGS} ${CLANG_CFLAGS} ${SECCFLAGS} ${PCAP_CFLAGS} -Wall -Wno-unused-parameter -std=gnu99 -DLOCAL_STATE_DIR=\"$(localstatedir)\"
+# different flags for different cases
+if DEBUG
+AM_CFLAGS += -ggdb -O0
+endif
 
-#suricata_CFLAGS = -Wall -fno-strict-aliasing 
-AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
+AM_LDFLAGS = ${SECLDFLAGS}
 
 if BUILD_UNITTESTS
 check-am:

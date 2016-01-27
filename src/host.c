@@ -48,6 +48,10 @@ static Host *HostGetUsedHost(void);
 /** queue with spare hosts */
 static HostQueue host_spare_q;
 
+/** size of the host object. Maybe updated in HostInitConfig to include
+ *  the storage APIs additions. */
+static uint16_t g_host_size = sizeof(Host);
+
 uint32_t HostSpareQueueGetSize(void)
 {
     return HostQueueLen(&host_spare_q);
@@ -61,19 +65,16 @@ void HostMoveToSpare(Host *h)
 
 Host *HostAlloc(void)
 {
-    size_t size = sizeof(Host) + HostStorageSize();
-
-    if (!(HOST_CHECK_MEMCAP(size))) {
+    if (!(HOST_CHECK_MEMCAP(g_host_size))) {
         return NULL;
     }
+    (void) SC_ATOMIC_ADD(host_memuse, g_host_size);
 
-    (void) SC_ATOMIC_ADD(host_memuse, size);
-
-    Host *h = SCMalloc(size);
+    Host *h = SCMalloc(g_host_size);
     if (unlikely(h == NULL))
         goto error;
 
-    memset(h, 0x00, size);
+    memset(h, 0x00, g_host_size);
 
     SCMutexInit(&h->m, NULL);
     SC_ATOMIC_INIT(h->use_cnt);
@@ -91,7 +92,7 @@ void HostFree(Host *h)
         SC_ATOMIC_DESTROY(h->use_cnt);
         SCMutexDestroy(&h->m);
         SCFree(h);
-        (void) SC_ATOMIC_SUB(host_memuse, (sizeof(Host) + HostStorageSize()));
+        (void) SC_ATOMIC_SUB(host_memuse, g_host_size);
     }
 }
 
@@ -130,6 +131,8 @@ void HostClearMemory(Host *h)
 void HostInitConfig(char quiet)
 {
     SCLogDebug("initializing host engine...");
+    if (HostStorageSize() > 0)
+        g_host_size = sizeof(Host) + HostStorageSize();
 
     memset(&host_config,  0, sizeof(host_config));
     //SC_ATOMIC_INIT(flow_flags);
@@ -214,11 +217,11 @@ void HostInitConfig(char quiet)
 
     /* pre allocate hosts */
     for (i = 0; i < host_config.prealloc; i++) {
-        if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
+        if (!(HOST_CHECK_MEMCAP(g_host_size))) {
             SCLogError(SC_ERR_HOST_INIT, "preallocating hosts failed: "
                     "max host memcap reached. Memcap %"PRIu64", "
                     "Memuse %"PRIu64".", host_config.memcap,
-                    ((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)sizeof(Host)));
+                    ((uint64_t)SC_ATOMIC_GET(host_memuse) + g_host_size));
             exit(EXIT_FAILURE);
         }
 
@@ -231,8 +234,8 @@ void HostInitConfig(char quiet)
     }
 
     if (quiet == FALSE) {
-        SCLogInfo("preallocated %" PRIu32 " hosts of size %" PRIuMAX "",
-                host_spare_q.len, (uintmax_t)sizeof(Host));
+        SCLogInfo("preallocated %" PRIu32 " hosts of size %" PRIu16 "",
+                host_spare_q.len, g_host_size);
         SCLogInfo("host memory usage: %llu bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(host_memuse), host_config.memcap);
     }
@@ -386,7 +389,7 @@ static Host *HostGetNew(Address *a)
     h = HostDequeue(&host_spare_q);
     if (h == NULL) {
         /* If we reached the max memcap, we get a used host */
-        if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
+        if (!(HOST_CHECK_MEMCAP(g_host_size))) {
             /* declare state of emergency */
             //if (!(SC_ATOMIC_GET(host_flags) & HOST_EMERGENCY)) {
             //    SC_ATOMIC_OR(host_flags, HOST_EMERGENCY);

@@ -35,10 +35,10 @@ void TmModuleOutputJsonRegister (void);
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
+json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event_type, uint32_t tx_id);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
-
 
 enum JsonFormat { COMPACT, INDENT };
 

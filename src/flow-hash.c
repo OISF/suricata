@@ -35,6 +35,7 @@
 #include "flow-util.h"
 #include "flow-private.h"
 #include "flow-manager.h"
+#include "flow-storage.h"
 #include "app-layer-parser.h"
 
 #include "util-time.h"
@@ -472,7 +473,7 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
     f = FlowDequeue(&flow_spare_q);
     if (f == NULL) {
         /* If we reached the max memcap, we get a used flow */
-        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
+        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow) + FlowStorageSize()))) {
             /* declare state of emergency */
             if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
                 SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);
@@ -485,6 +486,11 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
 
             f = FlowGetUsedFlow(tv, dtv);
             if (f == NULL) {
+                /* max memcap reached, so increments the counter */
+                if (tv != NULL && dtv != NULL) {
+                    StatsIncr(tv, dtv->counter_flow_memcap);
+                }
+
                 /* very rare, but we can fail. Just giving up */
                 return NULL;
             }
@@ -494,6 +500,9 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
             /* now see if we can alloc a new flow */
             f = FlowAlloc();
             if (f == NULL) {
+                if (tv != NULL && dtv != NULL) {
+                    StatsIncr(tv, dtv->counter_flow_memcap);
+                }
                 return NULL;
             }
 

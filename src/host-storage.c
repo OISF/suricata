@@ -32,15 +32,65 @@ unsigned int HostStorageSize(void)
     return StorageGetSize(STORAGE_HOST);
 }
 
-void *HostGetStorageById(Host *h, int id)
-{
-    return StorageGetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
+/** \defgroup hoststorage Host storage API
+ *
+ * The Host storage API is a per-host storage. It is a mean to extend
+ * the Host structure with arbitrary data.
+ *
+ * You have first to register the storage via HostStorageRegister() during
+ * the init of your module. Then you can attach data via HostSetStorageById()
+ * and access them via HostGetStorageById().
+ * @{
+ */
+
+/**
+ * \brief Register a Host storage
+ *
+ * \param name the name of the storage
+ * \param size integer coding the size of the stored value (sizeof(void *) is best choice here)
+ * \param Alloc allocation function for the storage (can be null)
+ * \param Free free function for the new storage
+ *
+ * \retval The ID of the newly register storage that will be used to access data
+ *
+ * It has to be called once during the init of the sub system
+ */
+
+int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
+    return StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
 }
+
+/**
+ * \brief Store a pointer in a given Host storage
+ *
+ * \param h a pointer to the Host
+ * \param id the id of the storage (return of HostStorageRegister() call)
+ * \param ptr pointer to the data to store
+ */
 
 int HostSetStorageById(Host *h, int id, void *ptr)
 {
     return StorageSetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id, ptr);
 }
+
+/**
+ * \brief Get a value from a given Host storage
+ *
+ * \param h a pointer to the Host
+ * \param id the id of the storage (return of HostStorageRegister() call)
+ *
+ */
+
+void *HostGetStorageById(Host *h, int id)
+{
+    return StorageGetById((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST, id);
+}
+
+/**
+ * @}
+ */
+
+/* Start of "private" function */
 
 void *HostAllocStorageById(Host *h, int id)
 {
@@ -58,9 +108,6 @@ void HostFreeStorage(Host *h)
         StorageFreeAll((Storage *)((void *)h + sizeof(Host)), STORAGE_HOST);
 }
 
-int HostStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
-    return StorageRegister(STORAGE_HOST, name, size, Alloc, Free);
-}
 
 #ifdef UNITTESTS
 

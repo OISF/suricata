@@ -48,12 +48,15 @@
 #include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
 #include "util-syslog.h"
+#include "util-logopenfile.h"
 
 #include "output.h"
 #include "output-json.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
+#include "output-json-smtp.h"
+#include "output-json-email-common.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -61,7 +64,6 @@
 #include "util-proto-name.h"
 #include "util-optimize.h"
 #include "util-buffer.h"
-#include "util-logopenfile.h"
 #include "util-crypt.h"
 
 #define MODULE_NAME "JsonAlertLog"
@@ -74,6 +76,7 @@
 #define LOG_JSON_HTTP 8
 #define LOG_JSON_TLS 16
 #define LOG_JSON_SSH 32
+#define LOG_JSON_SMTP 64
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -99,31 +102,6 @@ static int AlertJsonDumpStreamSegmentCallback(const Packet *p, void *data, uint8
     MemBufferWriteRaw(payload, buf, buflen);
 
     return 1;
-}
-
-/** Handle the case where no JSON support is compiled in.
- *
- */
-static void AlertJsonHttp(const Flow *f, json_t *js)
-{
-    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
-    if (htp_state) {
-        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
-        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
-
-        if (tx) {
-            json_t *hjs = json_object();
-            if (unlikely(hjs == NULL))
-                return;
-
-            JsonHttpLogJSONBasic(hjs, tx);
-            JsonHttpLogJSONExtended(hjs, tx);
-
-            json_object_set_new(js, "http", hjs);
-        }
-    }
-
-    return;
 }
 
 static void AlertJsonTls(const Flow *f, json_t *js)
@@ -168,6 +146,11 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
         action = "blocked";
     }
 
+    /* Add tx_id to root element for correlation with other events. */
+    json_object_del(js, "tx_id");
+    if (pa->flags & PACKET_ALERT_FLAG_TX)
+        json_object_set_new(js, "tx_id", json_integer(pa->tx_id));
+
     json_t *ajs = json_object();
     if (ajs == NULL) {
         json_decref(js);
@@ -184,9 +167,6 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
             json_string((pa->s->class_msg) ? pa->s->class_msg : ""));
     json_object_set_new(ajs, "severity", json_integer(pa->s->prio));
 
-    if (pa->flags & PACKET_ALERT_FLAG_TX)
-        json_object_set_new(ajs, "tx_id", json_integer(pa->tx_id));
-
     if (p->tenant_id > 0)
         json_object_set_new(ajs, "tenant_id", json_integer(p->tenant_id));
 
@@ -198,6 +178,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
     AlertJsonOutputCtx *json_output_ctx = aft->json_output_ctx;
+    json_t *hjs = NULL;
 
     int i;
 
@@ -225,8 +206,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
-                if (proto == ALPROTO_HTTP)
-                    AlertJsonHttp(p->flow, js);
+                if (proto == ALPROTO_HTTP) {
+                    hjs = JsonHttpAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "http", hjs);
+                }
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -253,6 +237,26 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 /* http alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_SMTP) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* http alert */
+                if (proto == ALPROTO_SMTP) {
+                    hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "smtp", hjs);
+
+                    hjs = JsonEmailAddMetadata(p->flow, pa->tx_id);
+                    if (hjs)
+                        json_object_set_new(js, "email", hjs);
+                }
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -607,6 +611,7 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *http = ConfNodeLookupChildValue(conf, "http");
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
+        const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -621,6 +626,11 @@ static OutputCtx *JsonAlertLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
         if (http != NULL) {
             if (ConfValIsTrue(http)) {
                 json_output_ctx->flags |= LOG_JSON_HTTP;
+            }
+        }
+        if (smtp != NULL) {
+            if (ConfValIsTrue(smtp)) {
+                json_output_ctx->flags |= LOG_JSON_SMTP;
             }
         }
         if (payload_printable != NULL) {

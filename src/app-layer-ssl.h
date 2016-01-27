@@ -81,10 +81,13 @@ enum {
 /* flags for file storage */
 #define SSL_AL_FLAG_STATE_STORED                0x40000
 
+#define SSL_AL_FLAG_STATE_LOGGED_LUA            0x80000
+
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
-
+/* extensions */
+#define SSL_EXTENSION_SNI                       0x0000
 
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
@@ -131,6 +134,9 @@ typedef struct SSLStateConnp_ {
     char *cert0_subject;
     char *cert0_issuerdn;
     char *cert0_fingerprint;
+
+    /* ssl server name indication extension */
+    char *sni;
 
     uint8_t *cert_input;
     uint32_t cert_input_len;

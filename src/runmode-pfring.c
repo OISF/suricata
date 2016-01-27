@@ -109,6 +109,7 @@ void *OldParsePfringConfig(const char *iface)
     }
 
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
+    pfconf->flags = 0;
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
 #ifdef HAVE_PFRING
@@ -143,6 +144,7 @@ void *OldParsePfringConfig(const char *iface)
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
     } else {
         pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+        pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
         SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
     }
 
@@ -263,6 +265,7 @@ void *ParsePfringConfig(const char *iface)
     /* command line value has precedence */
     if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
         pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+        pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
         SCLogDebug("Going to use command-line provided cluster-id %" PRId32,
                    pfconf->cluster_id);
     } else {
@@ -278,6 +281,7 @@ void *ParsePfringConfig(const char *iface)
                        "Could not get cluster-id from config");
         } else {
             pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+            pfconf->flags |= PFRING_CONF_FLAGS_CLUSTER;
             SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
         }
     }

@@ -58,6 +58,7 @@
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-mpm-ac.h"
 #endif
+#include "util-validate.h"
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           each other. */
@@ -83,7 +84,7 @@ int SignatureHasPacketContent(Signature *s)
         SCReturnInt(0);
     }
 
-    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
+    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(1);
     }
 
@@ -117,7 +118,7 @@ int SignatureHasStreamContent(Signature *s)
         SCReturnInt(0);
     }
 
-    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
+    if (!(s->proto.proto[IPPROTO_TCP / 8] & 1 << (IPPROTO_TCP % 8))) {
         SCReturnInt(0);
     }
 
@@ -170,7 +171,7 @@ uint16_t PatternMatchDefaultMatcher(void)
  done:
 #ifdef __tile__
     if (mpm_algo_val == MPM_AC)
-      mpm_algo_val = MPM_AC_TILE;
+        mpm_algo_val = MPM_AC_TILE;
 #endif
 
     return mpm_algo_val;
@@ -184,15 +185,13 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
     uint32_t ret = 0;
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
-        if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
-            SCReturnInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
     } else {
-        if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
-            SCReturnInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
@@ -231,8 +230,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     } else {
         mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
     }
-
-    if (mpm_ctx == NULL)
+    if (unlikely(mpm_ctx == NULL))
         SCReturnInt(0);
 
 #ifdef __SC_CUDA_SUPPORT__
@@ -269,16 +267,13 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_uri_ctx_ts == NULL)
-            SCReturnUInt(0U);
 
-        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_uri_ctx_ts,
-                   &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_uri_ctx_ts,
+                &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
 
     //PrintRawDataFp(stdout, uri, uri_len);
 
@@ -300,16 +295,13 @@ uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hcbd_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, body, body_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcbd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, body, body_len);
 
     SCReturnUInt(ret);
 }
@@ -329,16 +321,13 @@ uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        BUG_ON(1);
-    } else {
-        if (det_ctx->sgh->mpm_hsbd_ctx_tc == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, body, body_len);
-    }
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsbd_ctx_tc == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
+        Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
+                &det_ctx->pmq, body, body_len);
 
     SCReturnUInt(ret);
 }
@@ -359,15 +348,13 @@ uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hhd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, headers, headers_len);
     } else {
-        if (det_ctx->sgh->mpm_hhd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
@@ -393,15 +380,13 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hrhd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_headers, raw_headers_len);
     } else {
-        if (det_ctx->sgh->mpm_hrhd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
@@ -426,16 +411,13 @@ uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hmd_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, raw_method, raw_method_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, raw_method, raw_method_len);
 
     SCReturnUInt(ret);
 }
@@ -456,15 +438,13 @@ uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
     if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hcd_ctx_ts == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_ts == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, cookie, cookie_len);
     } else {
-        if (det_ctx->sgh->mpm_hcd_ctx_tc == NULL)
-            SCReturnUInt(0);
+        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_tc == NULL);
 
         ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
@@ -489,16 +469,13 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hrud_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, uri, uri_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, uri, uri_len);
 
     SCReturnUInt(ret);
 }
@@ -518,16 +495,13 @@ uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        BUG_ON(1);
-    } else {
-        if (det_ctx->sgh->mpm_hsmd_ctx_tc == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, stat_msg, stat_msg_len);
-    }
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsmd_ctx_tc == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
+        Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
+                &det_ctx->pmq, stat_msg, stat_msg_len);
 
     SCReturnUInt(ret);
 }
@@ -547,16 +521,13 @@ uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        BUG_ON(1);
-    } else {
-        if (det_ctx->sgh->mpm_hscd_ctx_tc == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
-                   &det_ctx->pmq, stat_code, stat_code_len);
-    }
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
+        Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
+                &det_ctx->pmq, stat_code, stat_code_len);
 
     SCReturnUInt(ret);
 }
@@ -576,16 +547,13 @@ uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_huad_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, ua, ua_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, ua, ua_len);
 
     SCReturnUInt(ret);
 }
@@ -606,16 +574,13 @@ uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hhhd_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, hh, hh_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hhhd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hhhd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, hh, hh_len);
 
     SCReturnUInt(ret);
 }
@@ -636,16 +601,13 @@ uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret;
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL)
-            SCReturnUInt(0);
 
-        ret = mpm_table[det_ctx->sgh->mpm_hrhhd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hrhhd_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, hrh, hrh_len);
-    } else {
-        BUG_ON(1);
-    }
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL);
+
+    ret = mpm_table[det_ctx->sgh->mpm_hrhhd_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_hrhhd_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, hrh, hrh_len);
 
     SCReturnUInt(ret);
 }
@@ -668,14 +630,12 @@ uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret = 0;
 
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL)
-            SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, buffer, buffer_len);
-    }
+    ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, buffer, buffer_len);
 
     SCReturnUInt(ret);
 }
@@ -755,14 +715,12 @@ uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret = 0;
 
-    if (flags & STREAM_TOSERVER) {
-        if (det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL)
-            SCReturnUInt(0);
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
-                   &det_ctx->pmq, buffer, buffer_len);
-    }
+    ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
+        Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
+                &det_ctx->pmq, buffer, buffer_len);
 
     SCReturnUInt(ret);
 }
@@ -862,10 +820,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
 {
     /* content */
     if (!(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_tcp_ctx_ts, sh);
         if (sh->mpm_proto_tcp_ctx_ts != NULL &&
-            !sh->mpm_proto_tcp_ctx_ts->global) {
+            !sh->mpm_proto_tcp_ctx_ts->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_tcp_ctx_ts, sh);
             mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].
                 DestroyCtx(sh->mpm_proto_tcp_ctx_ts);
             SCFree(sh->mpm_proto_tcp_ctx_ts);
@@ -873,10 +832,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_tcp_ctx_ts = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_tcp_ctx_tc, sh);
         if (sh->mpm_proto_tcp_ctx_tc != NULL &&
-            !sh->mpm_proto_tcp_ctx_tc->global) {
+            !sh->mpm_proto_tcp_ctx_tc->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_tcp_ctx_tc, sh);
             mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].
                 DestroyCtx(sh->mpm_proto_tcp_ctx_tc);
             SCFree(sh->mpm_proto_tcp_ctx_tc);
@@ -884,10 +844,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_tcp_ctx_tc = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_udp_ctx_ts, sh);
         if (sh->mpm_proto_udp_ctx_ts != NULL &&
-            !sh->mpm_proto_udp_ctx_ts->global) {
+            !sh->mpm_proto_udp_ctx_ts->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_udp_ctx_ts, sh);
             mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].
                 DestroyCtx(sh->mpm_proto_udp_ctx_ts);
             SCFree(sh->mpm_proto_udp_ctx_ts);
@@ -895,10 +856,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_udp_ctx_ts = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_udp_ctx_tc, sh);
         if (sh->mpm_proto_udp_ctx_tc != NULL &&
-            !sh->mpm_proto_udp_ctx_tc->global) {
+                !sh->mpm_proto_udp_ctx_tc->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_udp_ctx_tc, sh);
             mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].
                 DestroyCtx(sh->mpm_proto_udp_ctx_tc);
             SCFree(sh->mpm_proto_udp_ctx_tc);
@@ -906,10 +868,11 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
         /* ready for reuse */
         sh->mpm_proto_udp_ctx_tc = NULL;
 
-        SCLogDebug("destroying mpm_ctx %p (sh %p)",
-                   sh->mpm_proto_other_ctx, sh);
         if (sh->mpm_proto_other_ctx != NULL &&
-            !sh->mpm_proto_other_ctx->global) {
+                !sh->mpm_proto_other_ctx->global)
+        {
+            SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                    sh->mpm_proto_other_ctx, sh);
             mpm_table[sh->mpm_proto_other_ctx->mpm_type].
                 DestroyCtx(sh->mpm_proto_other_ctx);
             SCFree(sh->mpm_proto_other_ctx);
@@ -921,8 +884,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
     /* uricontent */
     if ((sh->mpm_uri_ctx_ts != NULL) && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         if (sh->mpm_uri_ctx_ts != NULL) {
-            SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx_ts, sh);
             if (!sh->mpm_uri_ctx_ts->global) {
+                SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx_ts, sh);
                 mpm_table[sh->mpm_uri_ctx_ts->mpm_type].DestroyCtx(sh->mpm_uri_ctx_ts);
                 SCFree(sh->mpm_uri_ctx_ts);
             }
@@ -935,8 +898,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
     if ((sh->mpm_stream_ctx_ts != NULL || sh->mpm_stream_ctx_tc != NULL) &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
         if (sh->mpm_stream_ctx_ts != NULL) {
-            SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_ts, sh);
             if (!sh->mpm_stream_ctx_ts->global) {
+                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_ts, sh);
                 mpm_table[sh->mpm_stream_ctx_ts->mpm_type].DestroyCtx(sh->mpm_stream_ctx_ts);
                 SCFree(sh->mpm_stream_ctx_ts);
             }
@@ -944,8 +907,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
             sh->mpm_stream_ctx_ts = NULL;
         }
         if (sh->mpm_stream_ctx_tc != NULL) {
-            SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_tc, sh);
             if (!sh->mpm_stream_ctx_tc->global) {
+                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx_tc, sh);
                 mpm_table[sh->mpm_stream_ctx_tc->mpm_type].DestroyCtx(sh->mpm_stream_ctx_tc);
                 SCFree(sh->mpm_stream_ctx_tc);
             }
@@ -2380,315 +2343,312 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         has_co_hrhhd ||
         has_co_dnsquery)
     {
-
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
-        //if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-         if (sh->mpm_proto_tcp_ctx_ts != NULL) {
-             if (sh->mpm_proto_tcp_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_ts);
-                 sh->mpm_proto_tcp_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].
-                             Prepare(sh->mpm_proto_tcp_ctx_ts);
-                     }
-                 }
-             }
-         }
-         if (sh->mpm_proto_tcp_ctx_tc != NULL) {
-             if (sh->mpm_proto_tcp_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_tc);
-                 sh->mpm_proto_tcp_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].
-                             Prepare(sh->mpm_proto_tcp_ctx_tc);
-                     }
-                 }
-             }
-         }
+        if (sh->mpm_proto_tcp_ctx_ts != NULL) {
+            if (sh->mpm_proto_tcp_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_ts);
+                sh->mpm_proto_tcp_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_proto_tcp_ctx_ts->mpm_type].
+                            Prepare(sh->mpm_proto_tcp_ctx_ts);
+                    }
+                }
+            }
+        }
+        if (sh->mpm_proto_tcp_ctx_tc != NULL) {
+            if (sh->mpm_proto_tcp_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_tcp_ctx_tc);
+                sh->mpm_proto_tcp_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_proto_tcp_ctx_tc->mpm_type].
+                            Prepare(sh->mpm_proto_tcp_ctx_tc);
+                    }
+                }
+            }
+        }
 
-         if (sh->mpm_proto_udp_ctx_ts != NULL) {
-             if (sh->mpm_proto_udp_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_udp_ctx_ts);
-                 sh->mpm_proto_udp_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].
-                             Prepare(sh->mpm_proto_udp_ctx_ts);
-                     }
-                 }
-             }
-         }
-         if (sh->mpm_proto_udp_ctx_tc != NULL) {
-             if (sh->mpm_proto_udp_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_udp_ctx_tc);
-                 sh->mpm_proto_udp_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].
-                             Prepare(sh->mpm_proto_udp_ctx_tc);
-                     }
-                 }
-             }
-         }
+        if (sh->mpm_proto_udp_ctx_ts != NULL) {
+            if (sh->mpm_proto_udp_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_udp_ctx_ts);
+                sh->mpm_proto_udp_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_proto_udp_ctx_ts->mpm_type].
+                            Prepare(sh->mpm_proto_udp_ctx_ts);
+                    }
+                }
+            }
+        }
+        if (sh->mpm_proto_udp_ctx_tc != NULL) {
+            if (sh->mpm_proto_udp_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_udp_ctx_tc);
+                sh->mpm_proto_udp_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_proto_udp_ctx_tc->mpm_type].
+                            Prepare(sh->mpm_proto_udp_ctx_tc);
+                    }
+                }
+            }
+        }
 
-         if (sh->mpm_proto_other_ctx != NULL) {
-             if (sh->mpm_proto_other_ctx->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_other_ctx);
-                 sh->mpm_proto_other_ctx = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_proto_other_ctx->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_proto_other_ctx->mpm_type].
-                             Prepare(sh->mpm_proto_other_ctx);
-                     }
-                 }
-             }
-         }
+        if (sh->mpm_proto_other_ctx != NULL) {
+            if (sh->mpm_proto_other_ctx->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_other_ctx);
+                sh->mpm_proto_other_ctx = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_proto_other_ctx->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_proto_other_ctx->mpm_type].
+                            Prepare(sh->mpm_proto_other_ctx);
+                    }
+                }
+            }
+        }
 
-         if (sh->mpm_stream_ctx_ts != NULL) {
-             if (sh->mpm_stream_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_stream_ctx_ts);
-                 sh->mpm_stream_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_stream_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_stream_ctx_ts->mpm_type].Prepare(sh->mpm_stream_ctx_ts);
-                 }
-             }
-         }
-         if (sh->mpm_stream_ctx_tc != NULL) {
-             if (sh->mpm_stream_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_stream_ctx_tc);
-                 sh->mpm_stream_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_stream_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_stream_ctx_tc->mpm_type].Prepare(sh->mpm_stream_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_stream_ctx_ts != NULL) {
+            if (sh->mpm_stream_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_stream_ctx_ts);
+                sh->mpm_stream_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_stream_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_stream_ctx_ts->mpm_type].Prepare(sh->mpm_stream_ctx_ts);
+                }
+            }
+        }
+        if (sh->mpm_stream_ctx_tc != NULL) {
+            if (sh->mpm_stream_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_stream_ctx_tc);
+                sh->mpm_stream_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_stream_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_stream_ctx_tc->mpm_type].Prepare(sh->mpm_stream_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_uri_ctx_ts != NULL) {
-             if (sh->mpm_uri_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_uri_ctx_ts);
-                 sh->mpm_uri_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare(sh->mpm_uri_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_uri_ctx_ts != NULL) {
+            if (sh->mpm_uri_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_uri_ctx_ts);
+                sh->mpm_uri_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_uri_ctx_ts->mpm_type].Prepare(sh->mpm_uri_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hcbd_ctx_ts != NULL) {
-             if (sh->mpm_hcbd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcbd_ctx_ts);
-                 sh->mpm_hcbd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare(sh->mpm_hcbd_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_hcbd_ctx_ts != NULL) {
+            if (sh->mpm_hcbd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcbd_ctx_ts);
+                sh->mpm_hcbd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hcbd_ctx_ts->mpm_type].Prepare(sh->mpm_hcbd_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hsbd_ctx_tc != NULL) {
-             if (sh->mpm_hsbd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsbd_ctx_tc);
-                 sh->mpm_hsbd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare(sh->mpm_hsbd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hsbd_ctx_tc != NULL) {
+            if (sh->mpm_hsbd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsbd_ctx_tc);
+                sh->mpm_hsbd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hsbd_ctx_tc->mpm_type].Prepare(sh->mpm_hsbd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
-             if (sh->mpm_smtp_filedata_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
-                 sh->mpm_smtp_filedata_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare != NULL) {
-                         mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare(sh->mpm_smtp_filedata_ctx_ts);
-                     }
-                 }
-             }
-         }
+        if (sh->mpm_smtp_filedata_ctx_ts != NULL) {
+            if (sh->mpm_smtp_filedata_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_smtp_filedata_ctx_ts);
+                sh->mpm_smtp_filedata_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare != NULL) {
+                        mpm_table[sh->mpm_smtp_filedata_ctx_ts->mpm_type].Prepare(sh->mpm_smtp_filedata_ctx_ts);
+                    }
+                }
+            }
+        }
 
-         if (sh->mpm_hhd_ctx_ts != NULL) {
-             if (sh->mpm_hhd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_ts);
-                 sh->mpm_hhd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhd_ctx_ts);
-                 }
-             }
-         }
-         if (sh->mpm_hhd_ctx_tc != NULL) {
-             if (sh->mpm_hhd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_tc);
-                 sh->mpm_hhd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare(sh->mpm_hhd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hhd_ctx_ts != NULL) {
+            if (sh->mpm_hhd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_ts);
+                sh->mpm_hhd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhd_ctx_ts);
+                }
+            }
+        }
+        if (sh->mpm_hhd_ctx_tc != NULL) {
+            if (sh->mpm_hhd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhd_ctx_tc);
+                sh->mpm_hhd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hhd_ctx_tc->mpm_type].Prepare(sh->mpm_hhd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_hrhd_ctx_ts != NULL) {
-             if (sh->mpm_hrhd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_ts);
-                 sh->mpm_hrhd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhd_ctx_ts);
-                 }
-             }
-         }
-         if (sh->mpm_hrhd_ctx_tc != NULL) {
-             if (sh->mpm_hrhd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_tc);
-                 sh->mpm_hrhd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare(sh->mpm_hrhd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hrhd_ctx_ts != NULL) {
+            if (sh->mpm_hrhd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_ts);
+                sh->mpm_hrhd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hrhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhd_ctx_ts);
+                }
+            }
+        }
+        if (sh->mpm_hrhd_ctx_tc != NULL) {
+            if (sh->mpm_hrhd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhd_ctx_tc);
+                sh->mpm_hrhd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hrhd_ctx_tc->mpm_type].Prepare(sh->mpm_hrhd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_hmd_ctx_ts != NULL) {
-             if (sh->mpm_hmd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hmd_ctx_ts);
-                 sh->mpm_hmd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare(sh->mpm_hmd_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_hmd_ctx_ts != NULL) {
+            if (sh->mpm_hmd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hmd_ctx_ts);
+                sh->mpm_hmd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hmd_ctx_ts->mpm_type].Prepare(sh->mpm_hmd_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hcd_ctx_ts != NULL) {
-             if (sh->mpm_hcd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_ts);
-                 sh->mpm_hcd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare(sh->mpm_hcd_ctx_ts);
-                 }
-             }
-         }
-         if (sh->mpm_hcd_ctx_tc != NULL) {
-             if (sh->mpm_hcd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_tc);
-                 sh->mpm_hcd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare(sh->mpm_hcd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hcd_ctx_ts != NULL) {
+            if (sh->mpm_hcd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_ts);
+                sh->mpm_hcd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hcd_ctx_ts->mpm_type].Prepare(sh->mpm_hcd_ctx_ts);
+                }
+            }
+        }
+        if (sh->mpm_hcd_ctx_tc != NULL) {
+            if (sh->mpm_hcd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hcd_ctx_tc);
+                sh->mpm_hcd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hcd_ctx_tc->mpm_type].Prepare(sh->mpm_hcd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_hrud_ctx_ts != NULL) {
-             if (sh->mpm_hrud_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrud_ctx_ts);
-                 sh->mpm_hrud_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare(sh->mpm_hrud_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_hrud_ctx_ts != NULL) {
+            if (sh->mpm_hrud_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrud_ctx_ts);
+                sh->mpm_hrud_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hrud_ctx_ts->mpm_type].Prepare(sh->mpm_hrud_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hsmd_ctx_tc != NULL) {
-             if (sh->mpm_hsmd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsmd_ctx_tc);
-                 sh->mpm_hsmd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare(sh->mpm_hsmd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hsmd_ctx_tc != NULL) {
+            if (sh->mpm_hsmd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hsmd_ctx_tc);
+                sh->mpm_hsmd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare(sh->mpm_hsmd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_hscd_ctx_tc != NULL) {
-             if (sh->mpm_hscd_ctx_tc->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hscd_ctx_tc);
-                 sh->mpm_hscd_ctx_tc = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare(sh->mpm_hscd_ctx_tc);
-                 }
-             }
-         }
+        if (sh->mpm_hscd_ctx_tc != NULL) {
+            if (sh->mpm_hscd_ctx_tc->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hscd_ctx_tc);
+                sh->mpm_hscd_ctx_tc = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare(sh->mpm_hscd_ctx_tc);
+                }
+            }
+        }
 
-         if (sh->mpm_huad_ctx_ts != NULL) {
-             if (sh->mpm_huad_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_huad_ctx_ts);
-                 sh->mpm_huad_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare(sh->mpm_huad_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_huad_ctx_ts != NULL) {
+            if (sh->mpm_huad_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_huad_ctx_ts);
+                sh->mpm_huad_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_huad_ctx_ts->mpm_type].Prepare(sh->mpm_huad_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hhhd_ctx_ts != NULL) {
-             if (sh->mpm_hhhd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhhd_ctx_ts);
-                 sh->mpm_hhhd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhhd_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_hhhd_ctx_ts != NULL) {
+            if (sh->mpm_hhhd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hhhd_ctx_ts);
+                sh->mpm_hhhd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hhhd_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_hrhhd_ctx_ts != NULL) {
-             if (sh->mpm_hrhhd_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhhd_ctx_ts);
-                 sh->mpm_hrhhd_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhhd_ctx_ts);
-                 }
-             }
-         }
+        if (sh->mpm_hrhhd_ctx_ts != NULL) {
+            if (sh->mpm_hrhhd_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_hrhhd_ctx_ts);
+                sh->mpm_hrhhd_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_hrhhd_ctx_ts->mpm_type].Prepare(sh->mpm_hrhhd_ctx_ts);
+                }
+            }
+        }
 
-         if (sh->mpm_dnsquery_ctx_ts != NULL) {
-             if (sh->mpm_dnsquery_ctx_ts->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
-                 sh->mpm_dnsquery_ctx_ts = NULL;
-             } else {
-                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-                     if (mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare(sh->mpm_dnsquery_ctx_ts);
-                 }
-             }
-         }
-        //} /* if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) */
+        if (sh->mpm_dnsquery_ctx_ts != NULL) {
+            if (sh->mpm_dnsquery_ctx_ts->pattern_cnt == 0) {
+                MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_dnsquery_ctx_ts);
+                sh->mpm_dnsquery_ctx_ts = NULL;
+            } else {
+                if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                    if (mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare != NULL)
+                        mpm_table[sh->mpm_dnsquery_ctx_ts->mpm_type].Prepare(sh->mpm_dnsquery_ctx_ts);
+                }
+            }
+        }
     } else {
         MpmFactoryReClaimMpmCtx(de_ctx, sh->mpm_proto_other_ctx);
         sh->mpm_proto_other_ctx = NULL;

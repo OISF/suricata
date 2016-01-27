@@ -62,7 +62,7 @@
 
 static inline int HHDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
 {
-    if (size >= USHRT_MAX)
+    if (size >= (USHRT_MAX - BUFFER_STEP))
         return -1;
 
     void *ptmp;

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -54,11 +54,81 @@
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
 
+static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_t tx_id)
+{
+    json_t *sjs = json_object();
+    SMTPTransaction *tx = vtx;
+    SMTPString *rcptto_str;
+    if (sjs == NULL) {
+        return NULL;
+    }
+    if (((SMTPState *)state)->helo) {
+        json_object_set_new(sjs, "helo",
+                            json_string((const char *)((SMTPState *)state)->helo));
+    }
+    if (tx->mail_from) {
+        json_object_set_new(sjs, "mail_from",
+                            json_string((const char *)tx->mail_from));
+    }
+    if (!TAILQ_EMPTY(&tx->rcpt_to_list)) {
+        json_t *js_rcptto = json_array();
+        if (likely(js_rcptto != NULL)) {
+            TAILQ_FOREACH(rcptto_str, &tx->rcpt_to_list, next) {
+                json_array_append_new(js_rcptto, json_string((char *)rcptto_str->str));
+            }
+            json_object_set_new(sjs, "rcpt_to", js_rcptto);
+        }
+    }
+
+    return sjs;
+}
+
 static int JsonSmtpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *state, void *tx, uint64_t tx_id)
 {
     SCEnter();
-    int r = JsonEmailLogger(tv, thread_data, p, f, state, tx, tx_id);
-    SCReturnInt(r);
+    JsonEmailLogThread *jhl = (JsonEmailLogThread *)thread_data;
+    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
+
+    json_t *sjs;
+    json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "smtp", tx_id);
+    if (unlikely(js == NULL))
+        return TM_ECODE_OK;
+
+    /* reset */
+    MemBufferReset(buffer);
+
+    sjs = JsonSmtpDataLogger(f, state, tx, tx_id);
+    if (sjs) {
+        json_object_set_new(js, "smtp", sjs);
+    }
+
+    if (JsonEmailLogJson(jhl, js, p, f, state, tx, tx_id) == TM_ECODE_OK) {
+        OutputJSONBuffer(js, jhl->emaillog_ctx->file_ctx, buffer);
+    }
+    json_object_del(js, "email");
+    if (sjs) {
+        json_object_del(js, "smtp");
+    }
+
+    json_object_clear(js);
+    json_decref(js);
+
+    SCReturnInt(TM_ECODE_OK);
+
+}
+
+json_t *JsonSMTPAddMetadata(const Flow *f, uint64_t tx_id)
+{
+    SMTPState *smtp_state = (SMTPState *)FlowGetAppState(f);
+    if (smtp_state) {
+        SMTPTransaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_SMTP, smtp_state, tx_id);
+
+        if (tx) {
+            return JsonSmtpDataLogger(f, smtp_state, tx, tx_id);
+        }
+    }
+
+    return NULL;
 }
 
 static void OutputSmtpLogDeInitCtx(OutputCtx *output_ctx)
@@ -135,6 +205,8 @@ static OutputCtx *OutputSmtpLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     email_ctx->file_ctx = ojc->file_ctx;
 
+    OutputEmailInitConf(conf, email_ctx);
+
     output_ctx->data = email_ctx;
     output_ctx->DeInit = OutputSmtpLogDeInitCtxSub;
 
@@ -154,7 +226,7 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for SMTPLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

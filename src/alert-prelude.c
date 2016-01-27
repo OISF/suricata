@@ -115,6 +115,7 @@ typedef struct AlertPreludeCtx_ {
 typedef struct AlertPreludeThread_ {
     /** Pointer to the global context */
     AlertPreludeCtx *ctx;
+    idmef_analyzer_t *analyzer;
 } AlertPreludeThread;
 
 
@@ -131,24 +132,56 @@ static int SetupAnalyzer(idmef_analyzer_t *analyzer)
     SCEnter();
 
     ret = idmef_analyzer_new_model(analyzer, &string);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer model: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_MODEL);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_MODEL);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer model: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_class(analyzer, &string);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer class: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_CLASS);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_CLASS);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer class: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_manufacturer(analyzer, &string);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer manufacturer: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, ANALYZER_MANUFACTURER);
+    }
+    ret = prelude_string_set_constant(string, ANALYZER_MANUFACTURER);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer manufacturer: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     ret = idmef_analyzer_new_version(analyzer, &string);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating analyzer version: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
-    prelude_string_set_constant(string, VERSION);
+    }
+    ret = prelude_string_set_constant(string, VERSION);
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error setting analyzer version: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
+        SCReturnInt(ret);
+    }
 
     SCReturnInt(0);
 }
@@ -606,9 +639,9 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
 
     SCEnter();
 
-    if(unlikely(initdata == NULL))
-    {
-        SCLogDebug("Error getting context for Prelude.  \"initdata\" argument NULL");
+    if (unlikely(initdata == NULL)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error getting context for Prelude.  \"initdata\" argument NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -617,8 +650,27 @@ static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data
         SCReturnInt(TM_ECODE_FAILED);
     memset(aun, 0, sizeof(AlertPreludeThread));
 
-    /** Use the Ouput Context */
+    /* Use the Ouput Context */
     aun->ctx = ((OutputCtx *)initdata)->data;
+
+    /* Create a per-thread idmef analyzer */
+    if (unlikely(idmef_analyzer_new(&aun->analyzer) < 0)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error creating idmef analyzer for Prelude.");
+
+        SCFree(aun);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    /* Setup the per-thread idmef analyzer */
+    if (unlikely(SetupAnalyzer(aun->analyzer) < 0)) {
+        SCLogError(SC_ERR_INITIALIZATION,
+                   "Error configuring idmef analyzer for Prelude.");
+
+        idmef_analyzer_destroy(aun->analyzer);
+        SCFree(aun);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     *data = (void *)aun;
     SCReturnInt(TM_ECODE_OK);
@@ -641,6 +693,7 @@ static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
     }
 
     /* clear memory */
+    idmef_analyzer_destroy(aun->analyzer);
     memset(aun, 0, sizeof(AlertPreludeThread));
     SCFree(aun);
 
@@ -703,7 +756,12 @@ static OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
         SCReturnPtr(NULL, "AlertPreludeCtx");
     }
 
-    SetupAnalyzer(prelude_client_get_analyzer(client));
+    ret = SetupAnalyzer(prelude_client_get_analyzer(client));
+    if (ret < 0) {
+        SCLogDebug("Unable to setup prelude client analyzer.");
+        prelude_client_destroy(client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
+        SCReturnPtr(NULL, "AlertPreludeCtx");
+    }
 
     ret = prelude_client_start(client);
     if (unlikely(ret < 0)) {
@@ -855,7 +913,7 @@ static int AlertPreludeLogger(ThreadVars *tv, void *thread_data, const Packet *p
         goto err;
     idmef_alert_set_create_time(alert, time);
 
-    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(prelude_client_get_analyzer(apn->ctx->client)), IDMEF_LIST_PREPEND);
+    idmef_alert_set_analyzer(alert, idmef_analyzer_ref(apn->analyzer), IDMEF_LIST_PREPEND);
 
     /* finally, send event */
     prelude_client_send_idmef(apn->ctx->client, idmef);

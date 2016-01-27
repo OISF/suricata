@@ -62,7 +62,7 @@ typedef struct FileData_ {
 typedef struct File_ {
     uint16_t flags;
     uint64_t txid;                  /**< tx this file is part of */
-    unsigned int file_id;
+    uint32_t file_id;
     uint8_t *name;
     uint16_t name_len;
     int16_t state;
@@ -169,7 +169,7 @@ void FileDisableFilesize(Flow *f, uint8_t direction);
  */
 void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id);
 
-void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id);
+void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint64_t tx_id);
 void FilePrune(FileContainer *ffc);
 
 
@@ -184,8 +184,8 @@ int FileForceMd5(void);
 void FileForceTrackingEnable(void);
 
 void FileStoreAllFiles(FileContainer *);
-void FileStoreAllFilesForTx(FileContainer *, uint16_t);
-void FileStoreFileById(FileContainer *fc, uint16_t);
+void FileStoreAllFilesForTx(FileContainer *, uint64_t);
+void FileStoreFileById(FileContainer *fc, uint32_t);
 
 void FileTruncateAllOpenFiles(FileContainer *);
 
