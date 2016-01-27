@@ -213,8 +213,10 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
     ModbusState         *modbus = tx->modbus;
 
-    if (tx->replied == 1)
+
+    if (tx->replied == 1){
         return 1;
+    }
 
     /* Check flood limit */
     if ((modbus->givenup == 1)  &&
