@@ -208,7 +208,8 @@
     fi
     echo -n "installation for $host OS... "
 
-    e_magic_file="/usr/share/file/magic"
+    e_magic_file=""
+    e_magic_file_comment="#"
     case "$host" in
         *-*-*freebsd*)
             LUA_PC_NAME="lua-5.1"
@@ -216,14 +217,12 @@
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
-            e_magic_file="/usr/share/misc/magic"
             ;;
         *-*-openbsd*)
             LUA_PC_NAME="lua51"
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-            e_magic_file="/usr/local/share/misc/magic.mgc"
             ;;
         *darwin*|*Darwin*)
             LUA_PC_NAME="lua-5.1"
@@ -1803,6 +1802,7 @@ if test "$WINDOWS_PATH" = "yes"; then
   e_sysconfdir="$e_winbase\\\\"
   e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
   e_magic_file="$e_winbase\\\\magic.mgc"
+  e_magic_file_comment=""
   e_logdir="$e_winbase\\\\log"
   e_logfilesdir="$e_logdir\\\\files"
   e_logcertsdir="$e_logdir\\\\certs"
@@ -1824,6 +1824,7 @@ AC_SUBST(e_sysconfrulesdir)
 AC_SUBST(e_localstatedir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
+AC_SUBST(e_magic_file_comment)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)

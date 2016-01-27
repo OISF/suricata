@@ -395,7 +395,7 @@ outputs:
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
-magic-file: @e_magic_file@
+@e_magic_file_comment@magic-file: @e_magic_file@
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
