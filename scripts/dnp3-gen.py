@@ -31,7 +31,7 @@ integer_types = [
     "uint32_t",
 ]
 
-template = """/* Copyright (C) 2015 Open Information Security Foundation
+util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,7 +64,7 @@ template = """/* Copyright (C) 2015 Open Information Security Foundation
 #include <lauxlib.h>
 
 /**
- * \brief Push an object point item onto the stack.
+ * \\brief Push an object point item onto the stack.
  */
 void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
     DNP3ObjectItem *item)
@@ -74,7 +74,7 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
         case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
             DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = item->item;
 {% for field in object["fields"] %}
-{% if field["datatype"] in ["uint64_t", "uint32_t", ["uint16_t"], "uint8_t"] %}
+{% if f.is_integer_type(field["datatype"]) %}
             lua_pushliteral(luastate, "{{field["name"]}}");
             lua_pushinteger(luastate, point->{{field["name"]}});
             lua_settable(luastate, -3);
@@ -97,13 +97,77 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
 
 """
 
-def generate_util_lua_dnp3_objects(objects):
-    filename = "src/util-lua-dnp3-objects.c";
+output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * DO NOT EDIT. THIS FILE IS AUTO-GENERATED.
+ */
+
+#include "suricata-common.h"
+
+#include "app-layer-dnp3.h"
+#include "app-layer-dnp3-objects.h"
+
+void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
+    DNP3ObjectItem *item)
+{
+
+    switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
+{% for object in objects %}
+        case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
+            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = item->item;
+{% for field in object["fields"] %}
+{% if f.is_integer_type(field["datatype"]) %}
+            json_object_set_new(js, "{{field["name"]}}",
+                json_integer(point->{{field["name"]}}));
+{% endif %}
+{% endfor %}
+            break;
+        }
+{% endfor %}
+        default:
+            SCLogDebug("Unknown object: %d:%d", object->group,
+                object->variation);
+            break;
+    }
+
+}
+"""
+
+def is_integer_type(datatype):
+    integer_types = [
+        "uint64_t",
+        "uint32_t",
+        "uint16_t",
+        "uint8_t",
+        "int64_t",
+        "int32_t",
+        "int16_t",
+        "int8_t",
+    ]
+    return datatype in integer_types
+
+def generate(template, filename, context):
     print("Generating %s." % (filename))
     env = jinja2.Environment(trim_blocks=True)
-    t = env.from_string(template)
+    output = env.from_string(template).render(context)
     with open(filename, "w") as fileobj:
-        fileobj.write(t.render({"objects": objects}))
+        fileobj.write(output)
 
 def parse_name(name):
     m = re.search("G(\d+)V(\d+)", name)
@@ -136,7 +200,23 @@ def parse_objects():
 def main():
 
     objects = parse_objects()
-    generate_util_lua_dnp3_objects(objects)
+
+    context = {
+        # The object list.
+        "objects": objects,
+
+        # Functions to make available in the template.
+        "f": {
+            "is_integer_type": is_integer_type
+        }
+    }
+
+    generate(util_lua_dnp3_objects_c_template,
+             "src/util-lua-dnp3-objects.c",
+             context)
+    generate(output_json_dnp3_objects_template,
+             "src/output-json-dnp3-objects.c",
+             context)
 
 if __name__ == "__main__":
     sys.exit(main())
