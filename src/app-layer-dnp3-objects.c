@@ -221,7 +221,6 @@ static int DNP3DecodeObjectG1V1(const uint8_t **buf, uint32_t *len,
                 goto error;
             }
 
-            object->prefix = prefix;
             object->value = (octet >> j) & 0x1;
 
             if (!DNP3AddItem(items, object, index, prefix_code, prefix)) {
@@ -856,6 +855,7 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
             rc = DNP3DecodeObjectG20V1(buf, len, prefix_code, start, count,
                 items);
             break;
+        case DNP3_OBJECT_CODE(20, 2):
         case DNP3_OBJECT_CODE(22, 2):
             rc = DNP3DecodeObjectG22V2(buf, len, prefix_code, start, count,
                 items);
@@ -869,6 +869,7 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
             break;
         case DNP3_OBJECT_CODE(30, 2):
         case DNP3_OBJECT_CODE(32, 2):
+        case DNP3_OBJECT_CODE(40, 2):
             rc = DNP3DecodeObjectG30V2(buf, len, prefix_code, start, count,
                 items);
             break;

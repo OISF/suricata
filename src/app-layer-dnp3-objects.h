@@ -21,14 +21,14 @@
 #define DNP3_OBJECT_CODE(group, variation) (group << 8 | variation)
 
 typedef struct DNP3ObjectG1V1_ {
-    uint32_t prefix;
+
     uint8_t value:1;
 } DNP3ObjectG1V1,
     DNP3ObjectG80V1;
 
 typedef struct DNP3ObjectG1V2_ {
-    uint32_t prefix;
 
+    /* BSTR8. */
     uint8_t  online:1;
     uint8_t  restart:1;
     uint8_t  comm_lost:1;
@@ -41,8 +41,8 @@ typedef struct DNP3ObjectG1V2_ {
     DNP3ObjectG2V1;
 
 typedef struct DNP3ObjectG2V2_ {
-    uint32_t prefix;
 
+    /* BSTR8. */
     uint8_t  online:1;
     uint8_t  restart:1;
     uint8_t  comm_lost:1;
@@ -56,8 +56,8 @@ typedef struct DNP3ObjectG2V2_ {
 } DNP3ObjectG2V2;
 
 typedef struct DNP3ObjectG3V2_ {
-    uint32_t prefix;
 
+    /* BSTR8. */
     uint8_t  online:1;
     uint8_t  restart:1;
     uint8_t  comm_lost:1;
@@ -70,8 +70,8 @@ typedef struct DNP3ObjectG3V2_ {
 
 /* Identical layout to G1V2. */
 typedef struct DNP3ObjectG10V2_ {
-    uint32_t prefix;
 
+    /* BSTR8. */
     uint8_t  online:1;
     uint8_t  restart:1;
     uint8_t  comm_lost:1;
@@ -83,7 +83,6 @@ typedef struct DNP3ObjectG10V2_ {
 } DNP3ObjectG10V2;
 
 typedef struct DNP3ObjectG12V1_ {
-    uint32_t prefix;
 
     uint8_t  op_type:4;
     uint8_t  qu:1;
@@ -97,7 +96,6 @@ typedef struct DNP3ObjectG12V1_ {
 } DNP3ObjectG12V1;
 
 typedef struct DNP3ObjectG12V2_ {
-    uint32_t prefix;
 
     uint8_t  op_type;
     uint8_t  qu;
@@ -111,7 +109,6 @@ typedef struct DNP3ObjectG12V2_ {
 } DNP3ObjectG12V2;
 
 typedef struct DNP3ObjectG20V1_ {
-    uint32_t prefix;
 
     uint8_t  online:1;
     uint8_t  restart:1;
@@ -128,7 +125,6 @@ typedef struct DNP3ObjectG20V1_ {
     DNP3ObjectG22V1;
 
 typedef struct DNP3ObjectG22V2_ {
-    uint32_t prefix;
 
     /* BSTR8. */
     uint8_t online:1;
@@ -140,11 +136,12 @@ typedef struct DNP3ObjectG22V2_ {
     uint8_t discontinuity:1;
     uint8_t reserved:1;
 
+    /* UINT16. */
     uint16_t count;
-} DNP3ObjectG22V2;
+} DNP3ObjectG22V2,
+    DNP3ObjectG20V2;
 
 typedef struct DNP3ObjectG30V1_ {
-    uint32_t prefix;
 
     /* BSTR8. */
     uint8_t  online:1;
@@ -162,7 +159,6 @@ typedef struct DNP3ObjectG30V1_ {
     DNP3ObjectG40V1;
 
 typedef struct DNP3ObjectG30V2_ {
-    uint32_t prefix;
 
     uint8_t online:1;
     uint8_t restart:1;
@@ -175,15 +171,14 @@ typedef struct DNP3ObjectG30V2_ {
 
     int16_t value;
 } DNP3ObjectG30V2,
-    DNP3ObjectG32V2;
+    DNP3ObjectG32V2,
+    DNP3ObjectG40V2;
 
 typedef struct DNP3ObjectG30V4_ {
-    uint32_t prefix;
     int16_t  value;
 } DNP3ObjectG30V4;
 
 typedef struct DNP3ObjectG30V5_ {
-    uint32_t prefix;
 
     uint8_t online:1;
     uint8_t restart:1;
@@ -198,7 +193,6 @@ typedef struct DNP3ObjectG30V5_ {
 } DNP3ObjectG30V5;
 
 typedef struct DNP3ObjectG32V3_ {
-    uint32_t prefix;
 
     uint8_t  online:1;
     uint8_t  restart:1;
@@ -214,7 +208,6 @@ typedef struct DNP3ObjectG32V3_ {
 } DNP3ObjectG32V3;
 
 typedef struct DNP3ObjectG32V7_ {
-    uint32_t prefix;
 
     uint8_t  online:1;
     uint8_t  restart:1;
@@ -230,14 +223,12 @@ typedef struct DNP3ObjectG32V7_ {
 } DNP3ObjectG32V7;
 
 typedef struct DNP3ObjectG50V1_ {
-    uint32_t prefix;
 
     uint64_t timestamp;
 } DNP3ObjectG50V1,
     DNP3ObjectG50V3;
 
 typedef struct DNP3ObjectG52V1_ {
-    uint32_t prefix;
 
     uint16_t delay_ms;
 } DNP3ObjectG52V1,
