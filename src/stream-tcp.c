@@ -4642,8 +4642,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             if (StreamTcpBypassEnabled() && PacketHasBypassCallback(p)) {
                 PacketBypassCallback(p);
             }
-        } else if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-                    (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        }
+
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
+             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
@@ -4653,6 +4655,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
+            /* we can call bypass callback, if enabled */
+            if (StreamTcpBypassEnabled() && PacketHasBypassCallback(p)) {
+                PacketBypassCallback(p);
+            }
         }
     }
 
