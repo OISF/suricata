@@ -4652,11 +4652,13 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
              (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             /* we can call offloading callback, if enabled */
-            if (p->livedev && p->livedev->offload_callback && stream_config.offload) {
+            if (stream_config.offload && p->livedev && p->livedev->offload_callback) {
                 p->livedev->offload_callback(p);
             }
-        } else if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
-                    (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        }
+
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
+             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
@@ -4666,6 +4668,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
+            /* we can call offloading callback, if enabled */
+            if (stream_config.offload && p->livedev && p->livedev->offload_callback) {
+                p->livedev->offload_callback(p);
+            }
         }
     }
 
