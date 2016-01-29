@@ -58,14 +58,23 @@ int MagicInit(void)
     }
 
     (void)ConfGet("magic-file", &filename);
-    if (filename != NULL) {
-        SCLogInfo("using magic-file %s", filename);
 
-        if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+
+    if (filename != NULL) {
+        if (strlen(filename) == 0) {
+            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
+            SCLogInfo("using system default magic-file");
+            filename = NULL;
         }
-        fclose(fd);
+        else {
+            SCLogInfo("using magic-file %s", filename);
+
+            if ( (fd = fopen(filename, "r")) == NULL) {
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                goto error;
+            }
+            fclose(fd);
+        }
     }
 
     if (magic_load(g_magic_ctx, filename) != 0) {
