@@ -29,6 +29,8 @@
 #include <sechash.h>
 #endif
 
+#include "util-md5.h"
+
 #define FILE_TRUNCATED  0x0001
 #define FILE_NOMAGIC    0x0002
 #define FILE_NOMD5      0x0004
@@ -72,7 +74,7 @@ typedef struct File_ {
     FileData *chunks_tail;
     struct File_ *next;
 #ifdef HAVE_NSS
-    HASHContext *md5_ctx;
+    SCMD5Context *md5_ctx;
     uint8_t md5[MD5_LENGTH];
 #endif
 #ifdef DEBUG

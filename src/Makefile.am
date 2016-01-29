@@ -360,6 +360,7 @@ util-lua-http.c util-lua-http.h \
 util-lua-tls.c util-lua-tls.h \
 util-lua-ssh.c util-lua-ssh.h \
 util-magic.c util-magic.h \
+util-md5.c util-md5.h \
 util-memcmp.c util-memcmp.h \
 util-memcpy.h \
 util-mem.h \

@@ -36,6 +36,14 @@
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
+#define HASH_Create MD5_NewContext
+#define HASH_Destroy MD5_DestroyContext
+#define HASH_Begin MD5_Begin
+#define HASH_End MD5_End
+#define HASH_Update MD5_Update
+
+extern int g_detect_disabled;
+
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
  */
@@ -545,6 +553,10 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         ff->flags |= FILE_NOMAGIC;
     }
     if (flags & FILE_NOMD5) {
+        SCLogDebug("not doing md5 for this file");
+        ff->flags |= FILE_NOMD5;
+    }
+    if (g_detect_disabled && (g_file_force_md5 == 0)) {
         SCLogDebug("not doing md5 for this file");
         ff->flags |= FILE_NOMD5;
     }
