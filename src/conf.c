@@ -722,8 +722,12 @@ ConfNode *ConfNodeLookupChild(const ConfNode *node, const char *name)
 {
     ConfNode *child;
 
+    if (node == NULL || name == NULL) {
+        return NULL;
+    }
+
     TAILQ_FOREACH(child, &node->head, next) {
-        if (strcmp(child->name, name) == 0)
+        if (child->name != NULL && strcmp(child->name, name) == 0)
             return child;
     }
 
@@ -1050,6 +1054,7 @@ static int ConfTestGetBool(void)
 
 static int ConfNodeLookupChildTest(void)
 {
+    int retval = 0;
     char *test_vals[] = { "one", "two", "three" };
     size_t u;
 
@@ -1065,35 +1070,44 @@ static int ConfNodeLookupChildTest(void)
 
     child = ConfNodeLookupChild(parent, "one");
     if (child == NULL)
-        return 0;
+        goto end;
     if (strcmp(child->name, "one") != 0)
-        return 0;
+        goto end;
     if (strcmp(child->val, "one") != 0)
-        return 0;
+        goto end;
 
     child = ConfNodeLookupChild(parent, "two");
     if (child == NULL)
-        return 0;
+        goto end;
     if (strcmp(child->name, "two") != 0)
-        return 0;
+        goto end;
     if (strcmp(child->val, "two") != 0)
-        return 0;
+        goto end;
 
     child = ConfNodeLookupChild(parent, "three");
     if (child == NULL)
-        return 0;
+        goto end;
     if (strcmp(child->name, "three") != 0)
-        return 0;
+        goto end;
     if (strcmp(child->val, "three") != 0)
-        return 0;
+        goto end;
 
     child = ConfNodeLookupChild(parent, "four");
     if (child != NULL)
-        return 0;
+        goto end;
 
-    ConfNodeFree(parent);
+    if (ConfNodeLookupChild(NULL, NULL) != NULL) {
+        goto end;
+    }
 
-    return 1;
+    retval = 1;
+
+end:
+    if (parent != NULL) {
+        ConfNodeFree(parent);
+    }
+
+    return retval;
 }
 
 static int ConfNodeLookupChildValueTest(void)

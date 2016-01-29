@@ -334,7 +334,7 @@ int UnixCommandAccept(UnixCommand *this)
         close(client);
         return 0;
     } else {
-        SCLogInfo("Unix socket: client version: \"%s\"",
+        SCLogDebug("Unix socket: client version: \"%s\"",
                 json_string_value(version));
     }
 
@@ -858,6 +858,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
         if (ConfGetBool("engine.init-failure-fatal", &failure_fatal) != 1) {
             SCLogDebug("ConfGetBool could not load the value.");
         }
+        SCFree(utd);
         if (failure_fatal) {
             exit(EXIT_FAILURE);
         } else {
