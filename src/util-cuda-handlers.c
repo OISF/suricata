@@ -23,9 +23,10 @@
 
 /* compile in, only if we have a CUDA enabled device on the machine, with the
  * toolkit and the driver installed */
-#ifdef __SC_CUDA_SUPPORT__
 
 #include "suricata-common.h"
+
+#ifdef __SC_CUDA_SUPPORT__
 
 #include "util-error.h"
 #include "util-debug.h"

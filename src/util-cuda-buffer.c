@@ -45,9 +45,9 @@
  * to be reallocated to other writers.
  */
 
-#ifdef __SC_CUDA_SUPPORT__
 
 #include "suricata-common.h"
+#ifdef __SC_CUDA_SUPPORT__
 #include "suricata.h"
 
 #include "util-atomic.h"

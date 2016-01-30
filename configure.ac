@@ -1233,7 +1233,7 @@
                 [  --with-cuda-nvcc=DIR  cuda nvcc compiler directory],
                 [with_cuda_nvcc="$withval"],[with_cuda_nvcc=no])
 
-        AC_DEFINE([SC_CUDA_SUPPORT__],[1],(CUDA support enabled))
+        AC_DEFINE([__SC_CUDA_SUPPORT__],[1],(CUDA support enabled))
 
         if test "$with_cuda_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_cuda_includes}"
@@ -1290,6 +1290,7 @@
         fi
     ])
     AM_CONDITIONAL([BUILD_CUDA], [test "x$enable_cuda" = "xyes"])
+    AM_CONDITIONAL([__SC_CUDA_SUPPORT__], [test "x$enable_cuda" = "xyes"])
 
 
   # Check for libcap-ng
