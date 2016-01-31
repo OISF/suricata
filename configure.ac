@@ -411,7 +411,7 @@
     ])
 
     AC_ARG_ENABLE(coccinelle,
-           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check])],[enable_coccinelle="$enableval"],[enable_coccinelle=yes])
+           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check]),[enable_coccinelle="$enableval"],[enable_coccinelle=yes])
     AS_IF([test "x$enable_coccinelle" = "xyes"], [
         AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
         if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
@@ -426,7 +426,7 @@
 
   # disable detection
     AC_ARG_ENABLE(detection,
-           AS_HELP_STRING([--disable-detection], [Disable Detection Modules])], [enable_detection="$enableval"],[enable_detection=yes])
+           AS_HELP_STRING([--disable-detection], [Disable Detection Modules]), [enable_detection="$enableval"],[enable_detection=yes])
     AS_IF([test "x$enable_detection" = "xno"], [
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
