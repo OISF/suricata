@@ -113,17 +113,24 @@
         exit 1
     fi
 
+    AC_ARG_ENABLE(python,
+           AS_HELP_STRING([--enable-python], [Enable python]),,[enable_python=yes])
     AC_PATH_PROG(HAVE_PYTHON_CONFIG, python, "no")
+    if test "x$enable_python" = "xno" ; then
+        echo
+        echo "   Warning! python disabled, you will not be      "
+        echo "   able to install surictasc unix socket client   "
+        echo
+        enable_python="no"
+    fi
     if test "$HAVE_PYTHON_CONFIG" = "no"; then
         echo
         echo "   Warning! python not found, you will not be     "
         echo "   able to install surictasc unix socket client   "
         echo
         enable_python="no"
-    else
-        enable_python="yes"
     fi
-    AM_CONDITIONAL([HAVE_PYTHON], [test "$HAVE_PYTHON_CONFIG" != "no"])
+    AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
     AC_PATH_PROG(HAVE_WGET, wget, "no")
     if test "$HAVE_WGET" = "no"; then
