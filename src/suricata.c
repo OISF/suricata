@@ -590,6 +590,7 @@ void usage(const char *progname)
     printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
+    printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
 #ifdef HAVE_LIBCAP_NG
     printf("\t--user <user>                        : run suricata as this user after init\n");
     printf("\t--group <group>                      : run suricata as this group after init\n");
@@ -1126,6 +1127,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+        {"simulate-ips", 0, 0 , 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1311,6 +1313,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     usage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
+            } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
+                SCLogInfo("Setting IPS mode");
+                EngineModeSetIPS();
             } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
