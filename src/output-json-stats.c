@@ -327,6 +327,14 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
         SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
 
+        if ((totals != NULL && ConfValIsFalse(totals)) &&
+                (threads != NULL && ConfValIsFalse(threads))) {
+            SCFree(stats_ctx);
+            SCLogError(SC_ERR_JSON_STATS_LOG_NEGATED,
+                    "Cannot disable both totals and threads in stats logging");
+            return NULL;
+        }
+
         if (totals != NULL && ConfValIsFalse(totals)) {
             stats_ctx->flags &= ~JSON_STATS_TOTALS;
         }

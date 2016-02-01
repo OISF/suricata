@@ -245,6 +245,14 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
         const char *nulls = ConfNodeLookupChildValue(conf, "null-values");
         SCLogDebug("totals %s threads %s", totals, threads);
 
+        if ((totals != NULL && ConfValIsFalse(totals)) &&
+                (threads != NULL && ConfValIsFalse(threads))) {
+            LogFileFreeCtx(file_ctx);
+            SCLogError(SC_ERR_STATS_LOG_NEGATED,
+                    "Cannot disable both totals and threads in stats logging");
+            return NULL;
+        }
+
         if (totals != NULL && ConfValIsFalse(totals)) {
             statslog_ctx->flags &= ~LOG_STATS_TOTALS;
         }
