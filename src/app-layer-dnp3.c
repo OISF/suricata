@@ -1549,7 +1549,7 @@ void RegisterDNP3Parsers(void)
     } while (0);
 
 /**
- * Test CRC checking on partial and full blocks.
+ * \test Test CRC checking on partial and full blocks.
  */
 static int DNP3ParserTestCheckCRC(void)
 {
@@ -1595,7 +1595,7 @@ end:
 }
 
 /**
- * Test validation of all CRCs in user data.
+ * \test Test validation of all CRCs in user data.
  */
 static int DNP3CheckUserDataCRCsTest(void)
 {
@@ -1673,6 +1673,13 @@ end:
     return result;
 }
 
+/**
+ * \test Test the link layer length calculation.
+ *
+ * Test the calculation that converts the link provided in the DNP3
+ * header to the actual length of the frame. That is the length with
+ * CRCs as the length in the header does not include CRCs.
+ */
 static int DNP3CalculateLinkLengthTest(void)
 {
     /* These are invalid. */
@@ -1703,6 +1710,10 @@ end:
     return 0;
 }
 
+/**
+ * \test The conversion of length with CRCs to the length without
+ *     CRCs.
+ */
 static int DNP3CalculateTransportLengthWithoutCRCsTest(void)
 {
     int retval = 0;
@@ -1729,6 +1740,9 @@ end:
     return retval;
 }
 
+/**
+ * \test Test the validation of the link header CRC.
+ */
 static int DNP3ParserCheckLinkHeaderCRC(void)
 {
     int result = 0;
@@ -1761,7 +1775,7 @@ end:
 }
 
 /**
- * Test removal of CRCs from user data.
+ * \test Test removal of CRCs from user data.
  */
 static int DNP3ReassembleApplicationLayerTest01(void)
 {
@@ -1916,7 +1930,7 @@ end:
 }
 
 /**
- * Test the probing parser.
+ * \test Test the probing parser.
  */
 static int DNP3ProbingParserTest(void)
 {
@@ -1953,7 +1967,7 @@ end:
 }
 
 /**
- * Test a basic request/response.
+ * \test Test a basic request/response.
  */
 int DNP3ParserTestRequestResponse(void)
 {
@@ -2042,8 +2056,9 @@ end:
 }
 
 /**
- * Test an unsolicited response from an outstation. This is kind of
- * like a request initiated from the "server".
+ * \test Test an unsolicited response from an outstation.
+ *
+ * This is kind of like a request initiated from the "server".
  */
 static int DNP3ParserTestUnsolicitedResponseConfirm(void)
 {
@@ -2120,7 +2135,7 @@ end:
 }
 
 /**
- * Test flood state.
+ * \test Test flood state.
  */
 int DNP3ParserTestFlooded(void)
 {
@@ -2211,6 +2226,13 @@ end:
     return result;
 }
 
+/**
+ * \test Test parsing of partial frames.
+ *
+ * As DNP3 operates over TCP, it is possible that a partial DNP3 frame
+ * is received. Test that the partial frame will be buffered until the
+ * remainder is seen.
+ */
 static int DNP3ParserTestPartialFrame(void)
 {
     DNP3State *state = NULL;
@@ -2340,7 +2362,7 @@ end:
 }
 
 /**
- * Test the scenario where a input data may contain more than one DNP3 frame.
+ * \test Test multiple DNP3 frames in one TCP read.
  */
 static int DNP3ParserTestMultiFrame(void)
 {
@@ -2398,6 +2420,55 @@ end:
     return result;
 }
 
+/**
+ * \test Test the parsing of a request PDU.
+ *
+ * The PDU under test contains a single read request object:
+ * - Group: 1
+ * - Variation: 0
+ * - Count: 0
+ */
+static int DNP3ParserTestParsePDU01(void)
+{
+    int retval = 0;
+
+    /* Frame to be tested. This frame is a DNP3 request with one read
+     * request data object, group 1, variation 0. */
+    const uint8_t pkt[] = {
+        0x05, 0x64,
+        0x0b, 0xc4, 0x17, 0x00, 0xef, 0xff, 0xc4, 0x8f,
+        0xe1, 0xc8, 0x01, 0x01, 0x00, 0x06, 0x77, 0x6e
+    };
+
+    DNP3State *dnp3state = DNP3StateAlloc();
+    int pdus = DNP3HandleRequestLinkLayer(dnp3state, pkt, sizeof(pkt));
+    if (pdus < 1) {
+        goto end;
+    }
+    DNP3Transaction *dnp3tx = DNP3GetTx(dnp3state, 0);
+    if (dnp3tx == NULL) {
+        goto end;
+    }
+    if (!dnp3tx->has_request) {
+        goto end;
+    }
+    if (TAILQ_EMPTY(&dnp3tx->request_objects)) {
+        goto end;
+    }
+    DNP3Object *object = TAILQ_FIRST(&dnp3tx->request_objects);
+    if (object->group != 1 || object->variation != 0) {
+        goto end;
+    }
+    if (object->count != 0) {
+        goto end;
+    }
+
+    retval = 1;
+end:
+    DNP3StateFree(dnp3state);
+    return retval;
+}
+
 #endif
 
 void DNP3ParserRegisterTests(void)
@@ -2421,5 +2492,8 @@ void DNP3ParserRegisterTests(void)
     UtRegisterTest("DNP3ParserTestPartialFrame", DNP3ParserTestPartialFrame, 1);
     UtRegisterTest("DNP3ParserTestMultiFrame", DNP3ParserTestMultiFrame, 1);
     UtRegisterTest("DNP3ParserTestFlooded", DNP3ParserTestFlooded, 1);
+
+    /* Some object decode tests. */
+    UtRegisterTest("DNP3ParserTestParsePDU01", DNP3ParserTestParsePDU01, 1);
 #endif
 }
