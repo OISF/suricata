@@ -76,6 +76,7 @@ detect-base64-decode.c detect-base64-decode.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-bytejump.c detect-bytejump.h \
 detect-bytetest.c detect-bytetest.h \
+detect-bypass.c detect-bypass.h \
 detect.c detect.h \
 detect-classtype.c detect-classtype.h \
 detect-content.c detect-content.h \

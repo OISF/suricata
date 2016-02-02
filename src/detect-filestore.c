@@ -292,6 +292,13 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
+    /* filestore and offload keywords can't work together */
+    if (s->flags & SIG_FLAG_BYPASS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "filestore can't work with offload keyword");
+        return -1;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
