@@ -1805,6 +1805,7 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
             /* complete fit */
             SCReturnUInt(size);
         } else {
+            stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
             /* partial fit, return only what fits */
             uint32_t part = (stream->isn + stream_config.reassembly_depth) - seq;
 #if DEBUG
