@@ -49,7 +49,7 @@ typedef struct StatsCounter_ {
     uint64_t (*Func)(void);
 
     /* name of the counter */
-    const char *name;
+    char *name;
 
     /* the next perfcounter for this tv's tm instance */
     struct StatsCounter_ *next;

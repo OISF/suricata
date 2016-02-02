@@ -38,7 +38,6 @@
 
 
 /* Need to get the DEvents[] array */
-#define DETECT_EVENTS
 
 #include "detect-engine-event.h"
 #include "util-unittest.h"

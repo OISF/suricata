@@ -489,6 +489,7 @@ static void *StatsWakeupThread(void *arg)
 static void StatsReleaseCounter(StatsCounter *pc)
 {
     if (pc != NULL) {
+        SCFree(pc->name);
         SCFree(pc);
     }
 
@@ -544,7 +545,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
     /* assign a unique id to this StatsCounter.  The id is local to this
      * thread context.  Please note that the id start from 1, and not 0 */
     pc->id = ++(pctx->curr_id);
-    pc->name = name;
+    pc->name = SCStrdup(name);
     pc->type = type_q;
     pc->Func = Func;
 
