@@ -181,6 +181,7 @@ detect-msg.c detect-msg.h \
 detect-noalert.c detect-noalert.h \
 detect-nocase.c detect-nocase.h \
 detect-offset.c detect-offset.h \
+detect-offload.c detect-offload.h \
 detect-parse.c detect-parse.h \
 detect-pcre.c detect-pcre.h \
 detect-pkt-data.c detect-pkt-data.h \

@@ -270,6 +270,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_OFFLOAD                (1<<22)
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -1222,6 +1223,8 @@ enum {
 
     DETECT_TEMPLATE,
     DETECT_AL_TEMPLATE_BUFFER,
+
+    DETECT_OFFLOAD,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
