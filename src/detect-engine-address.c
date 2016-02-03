@@ -892,6 +892,18 @@ error:
 }
 
 /**
+ * A list of variables we try to resolve.
+ * Used by DetectAddressParse2() to detect loops in variables declaration
+ */
+typedef struct ResolvedVariable_ {
+    char *var_name;
+    TAILQ_ENTRY(ResolvedVariable_) next;
+} ResolvedVariable;
+
+static TAILQ_HEAD(, ResolvedVariable_) resolved_variables_list =
+    TAILQ_HEAD_INITIALIZER(resolved_variables_list);
+
+/**
  * \brief Parses an address string and updates the 2 address heads with the
  *        address data.
  *
@@ -925,6 +937,28 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     char address[8196] = "";
     char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
+    ResolvedVariable *p_item;
+    int ret = -1;
+
+    // Check previously declared variables that must be resolved.
+    // If one already exists, it means a loop in a variables declaration.
+    // For instance, if one declares "HOME_NET" as "!$HOME_NET" or
+    // creates a looped chain of variables.
+    TAILQ_FOREACH(p_item, &resolved_variables_list, next) {
+        if (!strcmp(p_item->var_name, s)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Found a loop in a variables "
+                     "declaration. This is likely a misconfiguration.");
+            goto finish;
+        }
+    }
+
+    p_item = SCMalloc(sizeof(ResolvedVariable));
+    if (unlikely(p_item == NULL)) {
+        return -1;
+    }
+
+    p_item->var_name = s;
+    TAILQ_INSERT_TAIL(&resolved_variables_list, p_item, next);
 
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
@@ -933,7 +967,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "Hit the address buffer"
                        " limit for the supplied address.  Invalidating sig.  "
                        "Please file a bug report on this.");
-            goto error;
+            goto finish;
         }
         address[x] = s[u];
         x++;
@@ -957,7 +991,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     SCLogDebug("normal block");
 
                     if (DetectAddressParse2(de_ctx, gh, ghn, address, (negate + n_set) % 2) < 0)
-                        goto error;
+                        goto finish;
                 } else {
                     /* negated block
                      *
@@ -970,7 +1004,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
 
                     if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0) < 0)
-                        goto error;
+                        goto finish;
 
                     DetectAddress *tmp_ad;
                     DetectAddress *tmp_ad2;
@@ -993,7 +1027,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     }
 #endif
                     if (DetectAddressMergeNot(&tmp_gh, &tmp_ghn) < 0)
-                        goto error;
+                        goto finish;
 
                     SCLogDebug("merged succesfully");
 
@@ -1003,7 +1037,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         tmp_ad2 = DetectAddressCopy(tmp_ad);
                         if (tmp_ad2 == NULL) {
                             SCLogDebug("DetectAddressCopy failed");
-                            goto error;
+                            goto finish;
                         }
                         DetectAddressPrint(tmp_ad2);
                         DetectAddressInsert(NULL, ghn, tmp_ad2);
@@ -1015,7 +1049,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                         tmp_ad2 = DetectAddressCopy(tmp_ad);
                         if (tmp_ad2 == NULL) {
                             SCLogDebug("DetectAddressCopy failed");
-                            goto error;
+                            goto finish;
                         }
                         DetectAddressPrint(tmp_ad2);
                         DetectAddressInsert(NULL, ghn, tmp_ad2);
@@ -1036,20 +1070,20 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
-                    goto error;
+                    goto finish;
                 if (strlen(rule_var_address) == 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
                             "to nothing. This is likely a misconfiguration. "
                             "Note that a negated address needs to be quoted, "
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
-                    goto error;
+                    goto finish;
                 }
                 SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (unlikely(temp_rule_var_address == NULL))
-                        goto error;
+                        goto finish;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
                 }
@@ -1065,11 +1099,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 if (!((negate + n_set) % 2)) {
                     SCLogDebug("DetectAddressSetup into gh, %s", address);
                     if (DetectAddressSetup(gh, address) < 0)
-                        goto error;
+                        goto finish;
                 } else {
                     SCLogDebug("DetectAddressSetup into ghn, %s", address);
                     if (DetectAddressSetup(ghn, address) < 0)
-                        goto error;
+                        goto finish;
                 }
                 n_set = 0;
             }
@@ -1088,27 +1122,27 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
-                    goto error;
+                    goto finish;
                 if (strlen(rule_var_address) == 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
                             "to nothing. This is likely a misconfiguration. "
                             "Note that a negated address needs to be quoted, "
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
-                    goto error;
+                    goto finish;
                 }
                 SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
                     if (unlikely(temp_rule_var_address == NULL))
-                        goto error;
+                        goto finish;
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2) < 0) {
                     SCLogDebug("DetectAddressParse2 hates us");
-                    goto error;
+                    goto finish;
                 }
                 d_set = 0;
                 if (temp_rule_var_address != rule_var_address)
@@ -1118,13 +1152,13 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     SCLogDebug("DetectAddressSetup into gh, %s", address);
                     if (DetectAddressSetup(gh, address) < 0) {
                         SCLogDebug("DetectAddressSetup gh fail");
-                        goto error;
+                        goto finish;
                     }
                 } else {
                     SCLogDebug("DetectAddressSetup into ghn, %s", address);
                     if (DetectAddressSetup(ghn, address) < 0) {
                         SCLogDebug("DetectAddressSetup ghn fail");
-                        goto error;
+                        goto finish;
                     }
                 }
             }
@@ -1135,18 +1169,23 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
         SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
                 "properly closed in \"%s\", %d missing closing brackets (]). "
                 "Note: problem might be in a variable.", s, depth);
-        goto error;
+        goto finish;
     } else if (depth < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
                 "properly opened in \"%s\", %d missing opening brackets ([). "
                 "Note: problem might be in a variable.", s, depth*-1);
-        goto error;
+        goto finish;
     }
 
-    return 0;
+    ret = 0;
 
-error:
-    return -1;
+finish:
+    while ((p_item = TAILQ_FIRST(&resolved_variables_list))) {
+        TAILQ_REMOVE(&resolved_variables_list, p_item, next);
+        SCFree(p_item);
+    }
+
+    return ret;
 }
 
 /**
