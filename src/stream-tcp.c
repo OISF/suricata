@@ -5920,8 +5920,8 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
 /**
  * \brief Run callback function on each TCP segment
  *
- * This function is used by StreamMsgForEach() which
- * should be used directly.
+ * \note when stream engine is running in inline mode all segments are used,
+ *       in IDS/non-inline mode only ack'd segments are iterated.
  *
  * \return -1 in case of error, the number of segment in case of success
  *
@@ -5949,8 +5949,12 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     } else {
         stream = &(ssn->client);
     }
+
+    /* for IDS, return ack'd segments. For IPS all. */
     TcpSegment *seg = stream->seg_list;
-    for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
+    for (; seg != NULL &&
+            (stream_inline || SEQ_LT(seg->seq, stream->last_ack));)
+    {
         ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
