@@ -1053,6 +1053,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
                 }
+
+                if (!strcmp(s, temp_rule_var_address) || strstr(temp_rule_var_address, s)) {
+                    goto recursive_error;
+                }
+
                 DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2);
                 d_set = 0;
@@ -1105,6 +1110,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
+
+                if (!strcmp(s, temp_rule_var_address) || strstr(temp_rule_var_address, s)) {
+                    goto recursive_error;
+                }
+
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2) < 0) {
                     SCLogDebug("DetectAddressParse2 hates us");
@@ -1144,6 +1154,10 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     }
 
     return 0;
+
+recursive_error:
+    SCLogError(SC_ERR_INVALID_SIGNATURE, "recursive variable "
+             "declaration detected. This is a misconfiguration.");
 
 error:
     return -1;
