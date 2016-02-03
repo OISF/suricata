@@ -373,13 +373,15 @@ void SCAsn1CtxDestroy(Asn1Ctx *ac)
     if (ac == NULL)
         return;
 
-    uint16_t i = 0;
-    for (; i < ac->cur_frame; i++) {
+    for (uint16_t i = 0; i < asn1_max_frames_config; i++) {
         Asn1Node *node = ASN1CTX_GET_NODE(ac, i);
-        if (node !=  NULL) {
-            SCFree(node);
+        if (node == NULL) {
+            break;
         }
+        SCFree(node);
     }
+
+    SCFree(ac->asn1_stack);
     SCFree(ac);
 }
 
