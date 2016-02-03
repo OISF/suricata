@@ -969,6 +969,10 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     DetectAddressHead tmp_gh = { NULL, NULL, NULL };
                     DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
 
+                    if (strstr(s, address)) {
+                        goto recursive_error;
+                    }
+
                     if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0) < 0)
                         goto error;
 
@@ -1032,7 +1036,6 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                 o_set = 0;
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
-
                 rule_var_address = SCRuleVarsGetConfVar(de_ctx, address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
@@ -1053,6 +1056,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
                 }
+
+                if (!strcmp(s, temp_rule_var_address) || strstr(temp_rule_var_address, s)) {
+                    goto recursive_error;
+                }
+
                 DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2);
                 d_set = 0;
@@ -1105,6 +1113,11 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
+
+                if (!strcmp(s, temp_rule_var_address)) {
+                    goto recursive_error;
+                }
+
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
                                     (negate + n_set) % 2) < 0) {
                     SCLogDebug("DetectAddressParse2 hates us");
@@ -1144,6 +1157,10 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     }
 
     return 0;
+
+recursive_error:
+    SCLogError(SC_ERR_INVALID_SIGNATURE, "recursive variable "
+             "declaration detected. This is a misconfiguration.");
 
 error:
     return -1;
