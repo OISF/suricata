@@ -259,7 +259,7 @@
 
   # disable TLS on user request
     AC_ARG_ENABLE(threading-tls,
-           AS_HELP_STRING([--disable-threading-tls], [Disable TLS (thread local storage)])], [enable_tls="$enableval"],[enable_tls=yes])
+           AS_HELP_STRING([--disable-threading-tls], [Disable TLS (thread local storage)]), [enable_tls="$enableval"],[enable_tls=yes])
     AS_IF([test "x$enable_tls" = "xyes"], [
         # check if our target supports thread local storage
         AC_MSG_CHECKING(for thread local storage __thread support)
