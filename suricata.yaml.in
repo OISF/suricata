@@ -149,7 +149,15 @@ outputs:
             # custom allows additional http fields to be included in eve-log
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
-        - dns
+            custom: [X-Flash-Version, X-Authenticated-User]
+        - dns:
+            # control logging of queries and answers
+            # default yes, no to disable
+            query: yes     # enable logging of DNS queries
+            answer: yes    # enable logging of DNS answers
+            # control which RR tyeps are logged
+            # all enabled if custom not specified
+            #custom: [a, aaaa, cname, mx, ns, ptr, txt]
         - tls:
             extended: yes     # enable this for extended logging information
         - files:
