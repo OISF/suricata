@@ -322,13 +322,20 @@ static void *DetectFilemagicThreadInit(void *data)
 
     (void)ConfGet("magic-file", &filename);
     if (filename != NULL) {
-        SCLogInfo("using magic-file %s", filename);
-
-        if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+        if (strlen(filename) == 0) {
+            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
+            SCLogInfo("using system default magic-file");
+            filename = NULL;
         }
-        fclose(fd);
+        else {
+            SCLogInfo("using magic-file %s", filename);
+
+            if ( (fd = fopen(filename, "r")) == NULL) {
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                goto error;
+            }
+            fclose(fd);
+        }
     }
 
     if (magic_load(t->ctx, filename) != 0) {
