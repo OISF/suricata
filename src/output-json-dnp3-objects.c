@@ -31,8 +31,8 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {
             DNP3ObjectG1V1 *point = item->item;
-            json_object_set_new(js, "value",
-                json_integer(point->value));
+            json_object_set_new(js, "state",
+                json_integer(point->state));
             break;
         }
         case DNP3_OBJECT_CODE(1, 2): {
@@ -135,6 +135,12 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 json_integer(point->local_forced));
             json_object_set_new(js, "chatter_filter",
                 json_integer(point->chatter_filter));
+            json_object_set_new(js, "state",
+                json_integer(point->state));
+            break;
+        }
+        case DNP3_OBJECT_CODE(10, 1): {
+            DNP3ObjectG10V1 *point = item->item;
             json_object_set_new(js, "state",
                 json_integer(point->state));
             break;
@@ -543,8 +549,8 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(80, 1): {
             DNP3ObjectG80V1 *point = item->item;
-            json_object_set_new(js, "value",
-                json_integer(point->value));
+            json_object_set_new(js, "state",
+                json_integer(point->state));
             break;
         }
         default:
