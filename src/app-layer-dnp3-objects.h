@@ -251,6 +251,19 @@ typedef struct DNP3ObjectG52V1_ {
 } DNP3ObjectG52V1,
     DNP3ObjectG52V2;
 
+typedef struct DNP3ObjectG70V3_ {
+    uint16_t filename_offset;
+    uint16_t filename_size;
+    uint64_t created;
+    uint16_t permissions;
+    uint32_t authentication_key;
+    uint32_t file_size;
+    uint16_t operational_mode;
+    uint16_t maximum_block_size;
+    uint16_t request_id;
+    char filename[0xffff];
+} DNP3ObjectG70V3;
+
 int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
     uint32_t *len, uint8_t prefix_code, uint32_t start,
     uint32_t count, DNP3ObjectItemList *);

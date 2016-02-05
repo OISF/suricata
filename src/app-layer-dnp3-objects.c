@@ -825,6 +825,87 @@ error:
     return 0;
 }
 
+static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
+    uint8_t prefix_code, uint32_t start, uint32_t count,
+    DNP3ObjectItemList *items)
+{
+    DNP3ObjectG70V3 *object = NULL;
+    uint32_t prefix;
+    uint32_t index = start;
+
+    while (count--) {
+        object = SCCalloc(1, sizeof(*object));
+        if (unlikely(object == NULL)) {
+            goto error;
+        }
+
+        if (!DNP3ReadPrefix(buf, len, prefix_code, &prefix)) {
+            goto error;
+        }
+
+#if 0
+        if (!DNP3ReadUint16(buf, len, &object->value0)) {
+            goto error;
+        }
+#endif
+
+        if (!DNP3ReadUint16(buf, len, &object->filename_offset)) {
+            goto error;
+        }
+        
+        if (!DNP3ReadUint16(buf, len, &object->filename_size)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint48(buf, len, &object->created)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint16(buf, len, &object->permissions)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint32(buf, len, &object->authentication_key)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint32(buf, len, &object->file_size)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint16(buf, len, &object->operational_mode)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint16(buf, len, &object->maximum_block_size)) {
+            goto error;
+        }
+
+        if (!DNP3ReadUint16(buf, len, &object->request_id)) {
+            goto error;
+        }
+
+        if (object->filename_size) {
+            memcpy(object->filename, *buf, object->filename_size);
+            *buf += object->filename_size;
+            *len -= object->filename_size;
+        }
+
+        if (!DNP3AddItem(items, object, index, prefix_code, prefix)) {
+            goto error;
+        }
+
+        index++;
+    }
+
+    return 1;
+error:
+    if (object != NULL) {
+        SCFree(object);
+    }
+    return 0;
+}
+
 /**
  * \brief Generic decoder for objects matching DNP3Object_UINT16.
  */
@@ -966,6 +1047,10 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
         case DNP3_OBJECT_CODE(60, 4):
             /* No data. */
             rc = 1;
+            break;
+        case DNP3_OBJECT_CODE(70, 3):
+            rc = DNP3DecodeObjectG70V3(buf, len, prefix_code, start, count,
+                items);
             break;
         default:
             return DNP3_DECODER_EVENT_UNKNOWN_OBJECT;
