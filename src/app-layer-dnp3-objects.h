@@ -22,8 +22,10 @@
 
 typedef struct DNP3ObjectG1V1_ {
 
-    uint8_t value:1;
+    /* UINT1. */
+    uint8_t state:1;
 } DNP3ObjectG1V1,
+    DNP3ObjectG10V1,
     DNP3ObjectG80V1;
 
 typedef struct DNP3ObjectG1V2_ {
