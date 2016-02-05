@@ -418,6 +418,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
+    LuaStateSetThreadVars(tluajit->luastate, tv);
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
             p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
 
