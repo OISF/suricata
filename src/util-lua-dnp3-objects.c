@@ -39,8 +39,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {
             DNP3ObjectG1V1 *point = item->item;
-            lua_pushliteral(luastate, "value");
-            lua_pushinteger(luastate, point->value);
+            lua_pushliteral(luastate, "state");
+            lua_pushinteger(luastate, point->state);
             lua_settable(luastate, -3);
             break;
         }
@@ -183,6 +183,13 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_pushliteral(luastate, "chatter_filter");
             lua_pushinteger(luastate, point->chatter_filter);
             lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "state");
+            lua_pushinteger(luastate, point->state);
+            lua_settable(luastate, -3);
+            break;
+        }
+        case DNP3_OBJECT_CODE(10, 1): {
+            DNP3ObjectG10V1 *point = item->item;
             lua_pushliteral(luastate, "state");
             lua_pushinteger(luastate, point->state);
             lua_settable(luastate, -3);
@@ -755,8 +762,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(80, 1): {
             DNP3ObjectG80V1 *point = item->item;
-            lua_pushliteral(luastate, "value");
-            lua_pushinteger(luastate, point->value);
+            lua_pushliteral(luastate, "state");
+            lua_pushinteger(luastate, point->state);
             lua_settable(luastate, -3);
             break;
         }
