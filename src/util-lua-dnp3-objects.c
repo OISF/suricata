@@ -378,6 +378,37 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_settable(luastate, -3);
             break;
         }
+        case DNP3_OBJECT_CODE(21, 2): {
+            DNP3ObjectG21V2 *point = item->item;
+            lua_pushliteral(luastate, "online");
+            lua_pushinteger(luastate, point->online);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "restart");
+            lua_pushinteger(luastate, point->restart);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "comm_lost");
+            lua_pushinteger(luastate, point->comm_lost);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "remote_forced");
+            lua_pushinteger(luastate, point->remote_forced);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "local_forced");
+            lua_pushinteger(luastate, point->local_forced);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "rollover");
+            lua_pushinteger(luastate, point->rollover);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "discontinuity");
+            lua_pushinteger(luastate, point->discontinuity);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "reserved");
+            lua_pushinteger(luastate, point->reserved);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "count");
+            lua_pushinteger(luastate, point->count);
+            lua_settable(luastate, -3);
+            break;
+        }
         case DNP3_OBJECT_CODE(22, 1): {
             DNP3ObjectG22V1 *point = item->item;
             lua_pushliteral(luastate, "online");
