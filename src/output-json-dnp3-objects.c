@@ -595,6 +595,30 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 json_integer(point->delay_ms));
             break;
         }
+        case DNP3_OBJECT_CODE(70, 3): {
+            DNP3ObjectG70V3 *point = item->item;
+            json_object_set_new(js, "filename_offset",
+                json_integer(point->filename_offset));
+            json_object_set_new(js, "filename_size",
+                json_integer(point->filename_size));
+            json_object_set_new(js, "created",
+                json_integer(point->created));
+            json_object_set_new(js, "permissions",
+                json_integer(point->permissions));
+            json_object_set_new(js, "authentication_key",
+                json_integer(point->authentication_key));
+            json_object_set_new(js, "file_size",
+                json_integer(point->file_size));
+            json_object_set_new(js, "operational_mode",
+                json_integer(point->operational_mode));
+            json_object_set_new(js, "maximum_block_size",
+                json_integer(point->maximum_block_size));
+            json_object_set_new(js, "request_id",
+                json_integer(point->request_id));
+            json_object_set_new(js, "filename",
+                json_string(point->filename));
+            break;
+        }
         case DNP3_OBJECT_CODE(80, 1): {
             DNP3ObjectG80V1 *point = item->item;
             json_object_set_new(js, "state",
