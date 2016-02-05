@@ -30,6 +30,8 @@
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "util-lua.h"
+
 /**
  * \brief Push an object point item onto the stack.
  */
@@ -826,6 +828,41 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             DNP3ObjectG52V2 *point = item->item;
             lua_pushliteral(luastate, "delay_ms");
             lua_pushinteger(luastate, point->delay_ms);
+            lua_settable(luastate, -3);
+            break;
+        }
+        case DNP3_OBJECT_CODE(70, 3): {
+            DNP3ObjectG70V3 *point = item->item;
+            lua_pushliteral(luastate, "filename_offset");
+            lua_pushinteger(luastate, point->filename_offset);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "filename_size");
+            lua_pushinteger(luastate, point->filename_size);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "created");
+            lua_pushinteger(luastate, point->created);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "permissions");
+            lua_pushinteger(luastate, point->permissions);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "authentication_key");
+            lua_pushinteger(luastate, point->authentication_key);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "file_size");
+            lua_pushinteger(luastate, point->file_size);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "operational_mode");
+            lua_pushinteger(luastate, point->operational_mode);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "maximum_block_size");
+            lua_pushinteger(luastate, point->maximum_block_size);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "request_id");
+            lua_pushinteger(luastate, point->request_id);
+            lua_settable(luastate, -3);
+            lua_pushliteral(luastate, "filename");
+            LuaPushStringBuffer(luastate, (uint8_t *)point->filename,
+                strlen(point->filename));
             lua_settable(luastate, -3);
             break;
         }
