@@ -732,6 +732,13 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
             lua_settable(luastate, -3);
             break;
         }
+        case DNP3_OBJECT_CODE(34, 1): {
+            DNP3ObjectG34V1 *point = item->item;
+            lua_pushliteral(luastate, "deadband_value");
+            lua_pushinteger(luastate, point->deadband_value);
+            lua_settable(luastate, -3);
+            break;
+        }
         case DNP3_OBJECT_CODE(40, 1): {
             DNP3ObjectG40V1 *point = item->item;
             lua_pushliteral(luastate, "online");
