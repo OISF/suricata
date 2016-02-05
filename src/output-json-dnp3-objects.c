@@ -97,6 +97,12 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 json_integer(point->timestamp));
             break;
         }
+        case DNP3_OBJECT_CODE(3, 1): {
+            DNP3ObjectG3V1 *point = item->item;
+            json_object_set_new(js, "state",
+                json_integer(point->state));
+            break;
+        }
         case DNP3_OBJECT_CODE(3, 2): {
             DNP3ObjectG3V2 *point = item->item;
             json_object_set_new(js, "online",
