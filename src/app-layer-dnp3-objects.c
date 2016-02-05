@@ -20,6 +20,14 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 
+/**
+ * Generic object definition for objects consisting of a single
+ * UINT16.
+ */
+typedef struct DNP3Object_UINT16_ {
+    uint16_t value0;
+} DNP3Object_UINT16;
+
 DNP3ObjectItemList *DNP3ObjectItemListAlloc(void)
 {
     DNP3ObjectItemList *items = SCCalloc(1, sizeof(*items));
@@ -817,11 +825,14 @@ error:
     return 0;
 }
 
-static int DNP3DecodeObjectG52V1(const uint8_t **buf, uint32_t *len,
+/**
+ * \brief Generic decoder for objects matching DNP3Object_UINT16.
+ */
+static int DNP3DecodeObject_UINT16(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
     DNP3ObjectItemList *items)
 {
-    DNP3ObjectG52V1 *object = NULL;
+    DNP3Object_UINT16 *object = NULL;
     uint32_t prefix;
     uint32_t index = start;
 
@@ -835,7 +846,7 @@ static int DNP3DecodeObjectG52V1(const uint8_t **buf, uint32_t *len,
             goto error;
         }
 
-        if (!DNP3ReadUint16(buf, len, &object->delay_ms)) {
+        if (!DNP3ReadUint16(buf, len, &object->value0)) {
             goto error;
         }
 
@@ -871,6 +882,14 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
         start, count);
 
     switch (DNP3_OBJECT_CODE(group, variation)) {
+
+        case DNP3_OBJECT_CODE(34, 1):
+        case DNP3_OBJECT_CODE(52, 1):
+        case DNP3_OBJECT_CODE(52, 2):
+            rc = DNP3DecodeObject_UINT16(buf, len, prefix_code, start, count,
+                items);
+            break;
+
         case DNP3_OBJECT_CODE(1, 1):
         case DNP3_OBJECT_CODE(10, 1):
         case DNP3_OBJECT_CODE(80, 1):
@@ -938,11 +957,6 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
         case DNP3_OBJECT_CODE(50, 1):
         case DNP3_OBJECT_CODE(50, 3):
             rc = DNP3DecodeObjectG50V1(buf, len, prefix_code, start, count,
-                items);
-            break;
-        case DNP3_OBJECT_CODE(52, 1):
-        case DNP3_OBJECT_CODE(52, 2):
-            rc = DNP3DecodeObjectG52V1(buf, len, prefix_code, start, count,
                 items);
             break;
         case DNP3_OBJECT_CODE(60, 0):

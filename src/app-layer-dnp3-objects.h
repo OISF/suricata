@@ -233,6 +233,12 @@ typedef struct DNP3ObjectG32V7_ {
     uint64_t timestamp;
 } DNP3ObjectG32V7;
 
+typedef struct DNP3ObjectG34V1_ {
+
+    /* UINT16. */
+    uint16_t deadband_value;
+} DNP3ObjectG34V1;
+
 typedef struct DNP3ObjectG50V1_ {
 
     uint64_t timestamp;
