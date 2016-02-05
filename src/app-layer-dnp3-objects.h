@@ -146,7 +146,8 @@ typedef struct DNP3ObjectG22V2_ {
     /* UINT16. */
     uint16_t count;
 } DNP3ObjectG22V2,
-    DNP3ObjectG20V2;
+    DNP3ObjectG20V2,
+    DNP3ObjectG21V2;
 
 typedef struct DNP3ObjectG30V1_ {
 
