@@ -521,6 +521,12 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 json_integer(point->timestamp));
             break;
         }
+        case DNP3_OBJECT_CODE(34, 1): {
+            DNP3ObjectG34V1 *point = item->item;
+            json_object_set_new(js, "deadband_value",
+                json_integer(point->deadband_value));
+            break;
+        }
         case DNP3_OBJECT_CODE(40, 1): {
             DNP3ObjectG40V1 *point = item->item;
             json_object_set_new(js, "online",
