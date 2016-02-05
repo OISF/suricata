@@ -275,6 +275,28 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
                 json_integer(point->count));
             break;
         }
+        case DNP3_OBJECT_CODE(21, 2): {
+            DNP3ObjectG21V2 *point = item->item;
+            json_object_set_new(js, "online",
+                json_integer(point->online));
+            json_object_set_new(js, "restart",
+                json_integer(point->restart));
+            json_object_set_new(js, "comm_lost",
+                json_integer(point->comm_lost));
+            json_object_set_new(js, "remote_forced",
+                json_integer(point->remote_forced));
+            json_object_set_new(js, "local_forced",
+                json_integer(point->local_forced));
+            json_object_set_new(js, "rollover",
+                json_integer(point->rollover));
+            json_object_set_new(js, "discontinuity",
+                json_integer(point->discontinuity));
+            json_object_set_new(js, "reserved",
+                json_integer(point->reserved));
+            json_object_set_new(js, "count",
+                json_integer(point->count));
+            break;
+        }
         case DNP3_OBJECT_CODE(22, 1): {
             DNP3ObjectG22V1 *point = item->item;
             json_object_set_new(js, "online",
