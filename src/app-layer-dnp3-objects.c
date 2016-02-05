@@ -338,6 +338,52 @@ error:
     return 0;
 }
 
+static int DNP3DecodeObjectG3V1(const uint8_t **buf, uint32_t *len,
+    uint8_t prefix_code, uint32_t start, uint32_t count,
+    DNP3ObjectItemList *items)
+{
+    DNP3ObjectG3V1 *object = NULL;
+    int bytes = (count / 4) + 1;
+    uint32_t prefix;
+    uint8_t octet;
+    int index = start;
+
+    if (!DNP3ReadPrefix(buf, len, prefix_code, &prefix)) {
+        goto error;
+    }
+
+    for (int i = 0; i < bytes; i++) {
+
+        if (!DNP3ReadUint8(buf, len, &octet)) {
+            goto error;
+        }
+
+        for (int j = 0; j < 4 && count; j += 2) {
+
+            object = SCCalloc(1, sizeof(*object));
+            if (unlikely(object == NULL)) {
+                goto error;
+            }
+
+            object->state = (octet >> j) & 0x2;
+
+            if (!DNP3AddItem(items, object, index, prefix_code, prefix)) {
+                goto error;
+            }
+
+            count--;
+            index++;
+        }
+    }
+
+    return 1;
+error:
+    if (object != NULL) {
+        SCFree(object);
+    }
+    return 0;
+}
+
 static int DNP3DecodeObjectG3V2(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
     DNP3ObjectItemList *items)
@@ -838,6 +884,10 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
             break;
         case DNP3_OBJECT_CODE(2, 2):
             rc = DNP3DecodeObjectG2V2(buf, len, prefix_code, start, count,
+                items);
+            break;
+        case DNP3_OBJECT_CODE(3, 1):
+            rc = DNP3DecodeObjectG3V1(buf, len, prefix_code, start, count,
                 items);
             break;
         case DNP3_OBJECT_CODE(3, 2):

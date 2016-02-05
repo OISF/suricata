@@ -55,6 +55,11 @@ typedef struct DNP3ObjectG2V2_ {
     uint64_t timestamp;
 } DNP3ObjectG2V2;
 
+typedef struct DNP3ObjectG3V1_ {
+    /* UINT2. */
+    uint8_t state:2;
+} DNP3ObjectG3V1;
+
 typedef struct DNP3ObjectG3V2_ {
 
     /* BSTR8. */
