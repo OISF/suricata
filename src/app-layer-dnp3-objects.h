@@ -188,6 +188,7 @@ typedef struct DNP3ObjectG30V4_ {
 
 typedef struct DNP3ObjectG30V5_ {
 
+    /* BSTR8. */
     uint8_t online:1;
     uint8_t restart:1;
     uint8_t comm_lost:1;
@@ -197,8 +198,10 @@ typedef struct DNP3ObjectG30V5_ {
     uint8_t reference_err:1;
     uint8_t reserved:1;
 
+    /* FLT32. */
     float value;
-} DNP3ObjectG30V5;
+} DNP3ObjectG30V5,
+    DNP3ObjectG32V5;
 
 typedef struct DNP3ObjectG32V3_ {
 

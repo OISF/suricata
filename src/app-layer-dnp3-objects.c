@@ -704,7 +704,7 @@ static int DNP3DecodeObjectG30V5(const uint8_t **buf, uint32_t *len,
         object->comm_lost = (octet >> 2) & 0x1;
         object->remote_forced = (octet >> 3) & 0x1;
         object->local_forced = (octet >> 4) & 0x1;
-        object->over_range = (octet >> 4) & 0x1;
+        object->over_range = (octet >> 5) & 0x1;
         object->reference_err = (octet >> 6) & 0x1;
         object->reserved = (octet >> 7) & 0x1;
 
@@ -915,6 +915,7 @@ int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
         case DNP3_OBJECT_CODE(30, 1):
         case DNP3_OBJECT_CODE(30, 5):
         case DNP3_OBJECT_CODE(32, 1):
+        case DNP3_OBJECT_CODE(32, 5):
         case DNP3_OBJECT_CODE(40, 1):
             rc = DNP3DecodeObjectG30V5(buf, len, prefix_code, start, count,
                 items);
