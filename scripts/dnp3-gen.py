@@ -63,6 +63,8 @@ util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Sec
 #include <lualib.h>
 #include <lauxlib.h>
 
+#include "util-lua.h"
+
 /**
  * \\brief Push an object point item onto the stack.
  */
@@ -82,6 +84,12 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
 {% if field["datatype"] in ["float"] %}
             lua_pushliteral(luastate, "{{field["name"]}}");
             lua_pushnumber(luastate, point->{{field["name"]}});
+            lua_settable(luastate, -3);
+{% endif %}
+{% if field["datatype"] == "char" %}
+            lua_pushliteral(luastate, "{{field["name"]}}");
+            LuaPushStringBuffer(luastate, (uint8_t *)point->{{field["name"]}},
+                strlen(point->{{field["name"]}}));
             lua_settable(luastate, -3);
 {% endif %}
 {% endfor %}
@@ -135,6 +143,10 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
 {% if f.is_integer_type(field["datatype"]) %}
             json_object_set_new(js, "{{field["name"]}}",
                 json_integer(point->{{field["name"]}}));
+{% endif %}
+{% if field["datatype"] == "char" %}
+            json_object_set_new(js, "{{field["name"]}}",
+                json_string(point->{{field["name"]}}));
 {% endif %}
 {% endfor %}
             break;
