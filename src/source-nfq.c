@@ -473,8 +473,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     }
 
     ret = nfq_get_timestamp(tb, &p->ts);
-    if (ret != 0) {
-        memset (&p->ts, 0, sizeof(struct timeval));
+    if (ret != 0 || p->ts.tv_sec == 0 ) {
         gettimeofday(&p->ts, NULL);
     }
 
