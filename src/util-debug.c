@@ -189,6 +189,7 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
 }
 
 #ifdef HAVE_LIBJANSSON
+#include <jansson.h>
 /**
  */
 int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,

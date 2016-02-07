@@ -26,6 +26,7 @@
 
 void TmModuleJsonSmtpLogRegister (void);
 #ifdef HAVE_LIBJANSSON
+#include <jansson.h>
 json_t *JsonSMTPAddMetadata(const Flow *f, uint64_t tx_id);
 #endif
 

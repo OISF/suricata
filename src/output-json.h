@@ -28,6 +28,7 @@ void TmModuleOutputJsonRegister (void);
 
 #ifdef HAVE_LIBJANSSON
 
+#include <jansson.h>
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
