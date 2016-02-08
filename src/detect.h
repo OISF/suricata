@@ -128,6 +128,10 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_BASE64_DATA,
 
+    DETECT_SM_LIST_DNP3_DATA_MATCH,
+    DETECT_SM_LIST_DNP3_MATCH,
+    DETECT_SM_LIST_DNP3_LUA_MATCH,
+
     DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
 
     /* list for post match actions: flowbit set, flowint increment, etc */
@@ -309,7 +313,8 @@ typedef struct DetectPort_ {
 #define SIG_MASK_REQUIRE_DNS_STATE          (1<<10)
 #define SIG_MASK_REQUIRE_FTP_STATE          (1<<11)
 #define SIG_MASK_REQUIRE_SMTP_STATE         (1<<12)
-#define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<13)
+#define SIG_MASK_REQUIRE_DNP3_STATE         (1<<13)
+#define SIG_MASK_REQUIRE_TEMPLATE_STATE     (1<<14)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint16_t
@@ -1228,6 +1233,11 @@ enum {
 
     DETECT_AL_DNS_QUERY,
     DETECT_AL_MODBUS,
+
+    DETECT_AL_DNP3DATA,
+    DETECT_AL_DNP3FUNC,
+    DETECT_AL_DNP3IND,
+    DETECT_AL_DNP3OBJ,
 
     DETECT_XBITS,
     DETECT_BASE64_DECODE,
