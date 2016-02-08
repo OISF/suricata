@@ -1526,6 +1526,9 @@ static DetectEngineState *DNP3GetTxDetectState(void *vtx)
     return tx->de_state;
 }
 
+/**
+ * \brief App-layer support.
+ */
 static int DNP3SetTxDetectState(void *state, void *vtx, DetectEngineState *s)
 {
     DNP3Transaction *tx = vtx;
