@@ -143,7 +143,7 @@ static json_t *JsonDNP3LogApplicationControl(uint8_t ac)
  */
 static json_t *JsonDNP3LogObjectItems(DNP3Object *object)
 {
-    DNP3ObjectPoint *item;
+    DNP3Point *item;
     json_t *jsitems;
 
     if (unlikely((jsitems = json_array()) == NULL)) {

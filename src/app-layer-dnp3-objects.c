@@ -28,9 +28,9 @@ typedef struct DNP3Object_UINT16_ {
     uint16_t value0;
 } DNP3Object_UINT16;
 
-DNP3ObjectPointList *DNP3ObjectPointListAlloc(void)
+DNP3PointList *DNP3PointListAlloc(void)
 {
-    DNP3ObjectPointList *items = SCCalloc(1, sizeof(*items));
+    DNP3PointList *items = SCCalloc(1, sizeof(*items));
     if (unlikely(items == NULL)) {
         return NULL;
     }
@@ -39,17 +39,17 @@ DNP3ObjectPointList *DNP3ObjectPointListAlloc(void)
 }
 
 /**
- * \brief Free a DNP3ObjectPointList.
+ * \brief Free a DNP3PointList.
  */
-void DNP3FreeObjectItemList(DNP3ObjectPointList *list)
+void DNP3FreeObjectPointList(DNP3PointList *list)
 {
-    DNP3ObjectPoint *item;
-    while ((item = TAILQ_FIRST(list)) != NULL) {
-        TAILQ_REMOVE(list, item, next);
-        if (item->item != NULL) {
-            SCFree(item->item);
+    DNP3Point *point;
+    while ((point = TAILQ_FIRST(list)) != NULL) {
+        TAILQ_REMOVE(list, point, next);
+        if (point->data != NULL) {
+            SCFree(point->data);
         }
-        SCFree(item);
+        SCFree(point);
     }
     SCFree(list);
 }
@@ -166,34 +166,34 @@ static inline int DNP3ReadPrefix(const uint8_t **buf, uint32_t *len,
 }
 
 /**
- * \brief Add an object to a DNP3ObjectPointList.
+ * \brief Add an object to a DNP3PointList.
  *
  * \retval 1 if successfull, 0 on failure.
  */
-static int DNP3AddItem(DNP3ObjectPointList *list, void *object,
+static int DNP3AddItem(DNP3PointList *list, void *object,
     uint32_t index, uint8_t prefix_code, uint32_t prefix)
 {
-    DNP3ObjectPoint *item = SCCalloc(1, sizeof(*item));
-    if (unlikely(item == NULL)) {
+    DNP3Point *point = SCCalloc(1, sizeof(*point));
+    if (unlikely(point == NULL)) {
         return 0;
     }
-    item->item = object;
-    TAILQ_INSERT_TAIL(list, item, next);
+    point->data = object;
+    TAILQ_INSERT_TAIL(list, point, next);
 
-    item->prefix = prefix;
-    item->index = index;
+    point->prefix = prefix;
+    point->index = index;
     switch (prefix_code) {
         case 0x00:
             break;
         case 0x01:
         case 0x02:
         case 0x03:
-            item->index = prefix;
+            point->index = prefix;
             break;
         case 0x04:
         case 0x05:
         case 0x06:
-            item->size = prefix;
+            point->size = prefix;
             break;
         default:
             break;
@@ -204,7 +204,7 @@ static int DNP3AddItem(DNP3ObjectPointList *list, void *object,
 
 static int DNP3DecodeObjectG1V1(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG1V1 *object = NULL;
     int bytes = (count / 8) + 1;
@@ -250,7 +250,7 @@ error:
 
 static int DNP3DecodeObjectG1V2(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG1V2 *object = NULL;
     uint32_t prefix;
@@ -297,7 +297,7 @@ error:
 
 static int DNP3DecodeObjectG2V2(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG2V2 *object = NULL;
     uint32_t prefix;
@@ -348,7 +348,7 @@ error:
 
 static int DNP3DecodeObjectG3V1(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG3V1 *object = NULL;
     int bytes = (count / 4) + 1;
@@ -394,7 +394,7 @@ error:
 
 static int DNP3DecodeObjectG3V2(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG3V2 *object = NULL;
     uint32_t prefix;
@@ -440,7 +440,7 @@ error:
 
 static int DNP3DecodeObjectG12V1(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG12V1 *object = NULL;
     uint32_t prefix;
@@ -501,7 +501,7 @@ error:
 
 static int DNP3DecodeObjectG20V1(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG20V1 *object = NULL;
     uint32_t prefix;
@@ -552,7 +552,7 @@ error:
 
 static int DNP3DecodeObjectG22V2(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG22V2 *object = NULL;
     uint32_t prefix;
@@ -603,7 +603,7 @@ error:
 
 static int DNP3DecodeObjectG30V2(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG30V2 *object = NULL;
     uint32_t prefix;
@@ -652,7 +652,7 @@ error:
 
 static int DNP3DecodeObjectG30V4(const uint8_t **buf, uint32_t *len,
     uint32_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG30V4 *object = NULL;
     uint32_t prefix;
@@ -686,7 +686,7 @@ error:
 }
 
 static int DNP3DecodeObjectG30V5(const uint8_t **buf, uint32_t *len,
-    uint32_t prefix_code, uint32_t start, uint32_t count, DNP3ObjectPointList *items)
+    uint32_t prefix_code, uint32_t start, uint32_t count, DNP3PointList *items)
 {
     DNP3ObjectG30V5 *object = NULL;
     uint32_t prefix;
@@ -735,7 +735,7 @@ error:
 
 static int DNP3DecodeObjectG32V3(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG32V7 *object = NULL;
     uint32_t prefix;
@@ -790,7 +790,7 @@ error:
 
 static int DNP3DecodeObjectG50V1(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG50V1 *object = NULL;
     uint32_t prefix;
@@ -827,7 +827,7 @@ error:
 
 static int DNP3DecodeObjectG70V3(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3ObjectG70V3 *object = NULL;
     uint32_t prefix;
@@ -911,7 +911,7 @@ error:
  */
 static int DNP3DecodeObject_UINT16(const uint8_t **buf, uint32_t *len,
     uint8_t prefix_code, uint32_t start, uint32_t count,
-    DNP3ObjectPointList *items)
+    DNP3PointList *items)
 {
     DNP3Object_UINT16 *object = NULL;
     uint32_t prefix;
@@ -954,7 +954,7 @@ error:
  */
 int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
     uint32_t *len, uint8_t prefix_code, uint32_t start,
-    uint32_t count, DNP3ObjectPointList *items)
+    uint32_t count, DNP3PointList *items)
 {
     int rc = 0;
 

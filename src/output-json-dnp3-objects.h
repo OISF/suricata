@@ -19,6 +19,6 @@
 #define __OUTPUT_JSON_DNP3_OBJECTS_H__
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
-    DNP3ObjectPoint *item);
+    DNP3Point *item);
 
 #endif /* __OUTPUT_JSON_DNP3_OBJECTS_H__ */

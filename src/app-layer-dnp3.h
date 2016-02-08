@@ -107,34 +107,35 @@ enum {
 };
 
 /**
- * DNP3 link header.
+ * \brief DNP3 link header.
  */
 typedef struct DNP3LinkHeader_ {
-    uint8_t  start_byte0;
-    uint8_t  start_byte1;
-    uint8_t  len;
-    uint8_t  control;
-    uint16_t dst;
-    uint16_t src;
-    uint16_t crc;
+    uint8_t  start_byte0; /**< First check byte. */
+    uint8_t  start_byte1; /**< Second check byte. */
+    uint8_t  len;         /**< Length of PDU without CRCs. */
+    uint8_t  control;     /**< Control flags. */
+    uint16_t dst;         /**< DNP3 destination address. */
+    uint16_t src;         /**< DNP3 source address. */
+    uint16_t crc;         /**< Link header CRC. */
 } __attribute__((__packed__)) DNP3LinkHeader;
 
 /**
- * DNP3 transport header.
+ * \brief DNP3 transport header.
  */
 typedef uint8_t DNP3TransportHeader;
 
 /**
- * DNP3 application header.
+ * \brief DNP3 application header.
  */
 typedef struct DNP3ApplicationHeader_ {
-    uint8_t control;
-    uint8_t function_code;
+    uint8_t control;        /**< Control flags. */
+    uint8_t function_code;  /**< Application function code. */
 } __attribute__((__packed__)) DNP3ApplicationHeader;
 
 /**
- * DNP3 internal indicators. Part of the application header for
- * responses only.
+ * \brief DNP3 internal indicators. 
+ * 
+ * Part of the application header for responses only.
  */
 typedef struct DNP3InternalInd_ {
     uint8_t iin1;
@@ -142,7 +143,7 @@ typedef struct DNP3InternalInd_ {
 } __attribute__((__packed__)) DNP3InternalInd;
 
 /**
- * A struct used for buffering incoming data prior to reassembly.
+ * \brief A struct used for buffering incoming data prior to reassembly.
  */
 typedef struct DNP3Buffer_ {
     uint8_t *buffer;
@@ -152,7 +153,7 @@ typedef struct DNP3Buffer_ {
 } DNP3Buffer;
 
 /**
- * DNP3 application object header.
+ * \brief DNP3 application object header.
  */
 typedef struct DNP3ObjHeader_ {
     uint8_t group;
@@ -161,20 +162,24 @@ typedef struct DNP3ObjHeader_ {
 } __attribute__((packed)) DNP3ObjHeader;
 
 /**
- * DNP3 object point.
+ * \brief DNP3 object point.
  *
  * Each DNP3 object can have 0 or more points representing the values
  * of the object.
  */
-typedef struct DNP3ObjectPoint_ {
-    uint32_t prefix;
-    uint32_t index;
-    uint32_t size;
-    void *item;
-    TAILQ_ENTRY(DNP3ObjectPoint_) next;
-} DNP3ObjectPoint;
+typedef struct DNP3Point_ {
+    uint32_t prefix;  /**< Prefix value for point. */
+    uint32_t index;   /**< Index of point. If the object is prefixed
+                       * with an index then this will be that
+                       * value. Otherwise this is the place the point
+                       * was in the list of points (starting at 0). */
+    uint32_t size;    /**< Size of point if the object prefix was a
+                       * size. */
+    void *data;       /**< Data for this point. */
+    TAILQ_ENTRY(DNP3Point_) next;
+} DNP3Point;
 
-typedef TAILQ_HEAD(DNP3ObjectPointList_, DNP3ObjectPoint_) DNP3ObjectPointList;
+typedef TAILQ_HEAD(DNP3PointList_, DNP3Point_) DNP3PointList;
 
 /**
  * \brief Struct to hold the list of decoded objects.
@@ -188,7 +193,7 @@ typedef struct DNP3Object_ {
     uint32_t  start;
     uint32_t  stop;
     uint32_t  count;
-    DNP3ObjectPointList *points; /**< List of points for this object. */
+    DNP3PointList *points; /**< List of points for this object. */
 
     TAILQ_ENTRY(DNP3Object_) next;
 } DNP3Object;
@@ -196,7 +201,7 @@ typedef struct DNP3Object_ {
 typedef TAILQ_HEAD(DNP3ObjectList_, DNP3Object_) DNP3ObjectList;
 
 /**
- * DNP3 transaction.
+ * \brief DNP3 transaction.
  */
 typedef struct DNP3Transaction_ {
     uint64_t tx_num; /**< Internal transaction ID. */
@@ -252,8 +257,12 @@ typedef struct DNP3State_ {
     uint32_t unreplied;        /**< Number of unreplied requests. */
     uint8_t flooded;           /**< Flag indicating flood. */
 
-    DNP3Buffer request_buffer;
-    DNP3Buffer response_buffer;
+    DNP3Buffer request_buffer;  /**< Request buffer for buffering
+                                 * incomplete request PDUs received
+                                 * over TCP. */
+    DNP3Buffer response_buffer; /**< Response buffer for buffering
+                                 * incomplete response PDUs received
+                                 * over TCP. */
 
 } DNP3State;
 

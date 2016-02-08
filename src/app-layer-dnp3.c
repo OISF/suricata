@@ -30,17 +30,29 @@
 #include "app-layer-dnp3.h"
 #include "app-layer-dnp3-objects.h"
 
-/** Default number of unreplied requests to be considered a flood. */
+/* Default number of unreplied requests to be considered a flood. */
 #define DNP3_DEFAULT_REQ_FLOOD_COUNT 500
 
 #define DNP3_DEFAULT_PORT "20000"
+
+/* Expected values for the start bytes. */
 #define DNP3_START_BYTE0  0x05
 #define DNP3_START_BYTE1  0x64
+
+/* Minimum length for a DNP3 frame. */
 #define DNP3_MIN_LEN      5
+
+/* Length of each CRC. */
 #define DNP3_CRC_LEN      2
+
+/* DNP3 block size. After the link header a CRC is inserted after
+ * after 16 bytes of data. */
 #define DNP3_BLOCK_SIZE   16
 
+/* Maximum transport layer sequence number. */
 #define DNP3_MAX_TRAN_SEQNO 64
+
+/* Maximum application layer sequence number. */
 #define DNP3_MAX_APP_SEQNO  16
 
 /* The number of bytes in the header that are counted as part of the
@@ -59,9 +71,6 @@ enum {
 
 /* Source addresses must be < 0xfff0. */
 #define DNP3_SRC_ADDR_MAX 0xfff0
-
-#define DNP3_OBJ_GROUP_MAX 256
-#define DNP3_OBJ_VAR_MAX 256
 
 #define DNP3_OBJ_TIME_SIZE   6  /* AKA UINT48. */
 #define DNP3_OBJ_G12_V1_SIZE 11
@@ -145,6 +154,13 @@ static const uint16_t crc_table[256] = {
     0x91af, 0xa7f1, 0xfd13, 0xcb4d, 0x48d7, 0x7e89, 0x246b, 0x1235
 };
 
+/**
+ * \brief Compute the CRC for a buffer.
+ *
+ * \param buf Buffer to create CRC from.
+ * \param len Length of buffer (number of bytes to use for CRC).
+
+ */
 static uint16_t DNP3ComputeCRC(const uint8_t *buf, uint32_t len)
 {
     const uint8_t *byte = buf;
@@ -188,6 +204,13 @@ static int DNP3CheckCRC(const uint8_t *block, uint32_t len)
     return 0;
 }
 
+/**
+ * \brief Check the CRC of the link header.
+ *
+ * \param header Point to the link header.
+ *
+ * \retval 1 if header CRC is OK, otherwise 0.
+ */
 static int DNP3CheckLinkHeaderCRC(const DNP3LinkHeader *header)
 {
     return DNP3CheckCRC((uint8_t *)header, sizeof(DNP3LinkHeader));
@@ -230,7 +253,7 @@ static int DNP3CheckUserDataCRCs(const uint8_t *data, uint32_t len)
  *
  * \retval 1 if valid, 0 if not.
  */
-static inline int DNP3CheckStartBytes(const DNP3LinkHeader *header)
+static int DNP3CheckStartBytes(const DNP3LinkHeader *header)
 {
     return header->start_byte0 == DNP3_START_BYTE0 &&
         header->start_byte1 == DNP3_START_BYTE1;
@@ -249,6 +272,9 @@ static int DNP3ContainsBanner(const uint8_t *input, uint32_t len)
     return memmem(input, len, banner, strlen(banner)) != NULL;
 }
 
+/**
+ * \brief DNP3 probing parser.
+ */
 static uint16_t DNP3ProbingParser(uint8_t *input, uint32_t len,
     uint32_t *offset)
 {
@@ -318,7 +344,7 @@ static int DNP3CalculateTransportLengthWithoutCRCs(uint32_t input_len)
  * \brief Reassemble the application layer by stripping the CRCs.
  *
  * Remove the CRCs from the user data blocks.  The output is the user
- * data with the CRCs remove as well as the transport header removed,
+ * data with the CRCs removed as well as the transport header removed,
  * but the input data still needs to include the transport header as
  * its part of the first user data block.
  *
@@ -403,6 +429,11 @@ static int DNP3ReassembleApplicationLayer(const uint8_t *input,
     return 1;
 }
 
+/**
+ * \brief Allocate a DNP3 state object.
+ *
+ * The DNP3 state object represents a single DNP3 TCP session.
+ */
 static void *DNP3StateAlloc(void)
 {
     SCEnter();
@@ -417,6 +448,11 @@ static void *DNP3StateAlloc(void)
     SCReturnPtr(dnp3, "void");
 }
 
+/**
+ * \brief Set a DNP3 application layer event.
+ *
+ * Sets an event on the current transaction object.
+ */
 static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
 {
     if (dnp3 && dnp3->curr) {
@@ -429,12 +465,18 @@ static void DNP3SetEvent(DNP3State *dnp3, uint8_t event)
     }
 }
 
-void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
+/**
+ * \brief Set a DNP3 application layer event on a transaction.
+ */
+static void DNP3SetEventTx(DNP3Transaction *tx, uint8_t event)
 {
     AppLayerDecoderEventsSetEventRaw(&tx->decoder_events, event);
     tx->dnp3->events++;
 }
 
+/**
+ * \brief Allocation a DNP3 transaction.
+ */
 static DNP3Transaction *DNP3TxAlloc(DNP3State *dnp3)
 {
     DNP3Transaction *tx = SCCalloc(1, sizeof(DNP3Transaction));
@@ -495,6 +537,10 @@ static uint32_t DNP3CalculateLinkLength(uint8_t length)
 
 /**
  * \brief Check if the link function code specifies user data.
+ *
+ * \param header Point to link header.
+ *
+ * \retval 1 if frame contains user data, otherwise 0.
  */
 static int DNP3IsUserData(const DNP3LinkHeader *header)
 {
@@ -508,11 +554,12 @@ static int DNP3IsUserData(const DNP3LinkHeader *header)
 }
 
 /**
- * \brief Check if the length of the header is long enough for the
- *     frame to contain user data.
+ * \brief Check if the frame has user data.
  *
- * XXX Probably don't need this. Should still pass to the user data layer,
- * and generate an event if there is not enough data.
+ * Check if the DNP3 frame actually has user data by checking if data
+ * exists after the headers.
+ *
+ * \retval 1 if user data exists, otherwise 0.
  */
 static int DNP3HasUserData(const DNP3LinkHeader *header)
 {
@@ -527,7 +574,7 @@ static int DNP3HasUserData(const DNP3LinkHeader *header)
 }
 
 /**
- * DNP3 buffer helper function - reset the buffer.
+ * \brief Reset a DNP3Buffer.
  */
 static void DNP3BufferReset(DNP3Buffer *buffer)
 {
@@ -536,10 +583,15 @@ static void DNP3BufferReset(DNP3Buffer *buffer)
 }
 
 /**
- * DNP3 buffer helper function - add data to the buffer, making the buffer
- * larger if needed.
+ * \brief Add data to a DNP3 buffer, enlarging the buffer if required.
+ *
+ * \param buffer Buffer to add data data.
+ * \param data Data to be added to buffer.
+ * \param len Size of data to be added to buffer.
+ *
+ * \param 1 if data was added successful, otherwise 0.
  */
-static int DNP3BufferAdd(DNP3Buffer *buffer, const uint8_t *buf, uint32_t len)
+static int DNP3BufferAdd(DNP3Buffer *buffer, const uint8_t *data, uint32_t len)
 {
     if (buffer->size == 0) {
         buffer->buffer = SCCalloc(1, len);
@@ -556,15 +608,19 @@ static int DNP3BufferAdd(DNP3Buffer *buffer, const uint8_t *buf, uint32_t len)
         buffer->buffer = tmp;
         buffer->size = buffer->len + len;
     }
-    memcpy(buffer->buffer + buffer->len, buf, len);
+    memcpy(buffer->buffer + buffer->len, data, len);
     buffer->len += len;
 
     return 1;
 }
 
 /**
- * DNP3 buffer helper function - pulls up the data to the beginning of the
- * buffer to make room at the end for more data.
+ * \brief Trim a DNP3 buffer.
+ *
+ * Trimming a buffer moves the data in the buffer up to the front of
+ * the buffer freeing up room at the end for more incoming data.
+ *
+ * \param buffer The buffer to trim.
  */
 static void DNP3BufferTrim(DNP3Buffer *buffer)
 {
@@ -579,21 +635,27 @@ static void DNP3BufferTrim(DNP3Buffer *buffer)
     }
 }
 
+/**
+ * \brief Free a DNP3 object.
+ */
 static void DNP3ObjectFree(DNP3Object *object)
 {
     if (object->points != NULL) {
-        DNP3FreeObjectItemList(object->points);
+        DNP3FreeObjectPointList(object->points);
     }
     SCFree(object);
 }
 
+/**
+ * \breif Allocate a DNP3 object.
+ */
 static DNP3Object *DNP3ObjectAlloc(void)
 {
     DNP3Object *object = SCCalloc(1, sizeof(*object));
     if (unlikely(object == NULL)) {
         return NULL;
     }
-    object->points = DNP3ObjectPointListAlloc();
+    object->points = DNP3PointListAlloc();
     if (object->points == NULL) {
         DNP3ObjectFree(object);
         return NULL;
@@ -1243,7 +1305,7 @@ error:
     SCReturnInt(-1);
 }
 
-AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id) {
+static AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id) {
     DNP3State *dnp3 = state;
     DNP3Transaction *tx;
     uint64_t tx_num = tx_id + 1;
@@ -1261,13 +1323,13 @@ AppLayerDecoderEvents *DNP3GetEvents(void *state, uint64_t tx_id) {
     return NULL;
 }
 
-int DNP3HasEvents(void *state) {
+static int DNP3HasEvents(void *state) {
     SCEnter();
     uint16_t events = (((DNP3State *)state)->events);
     SCReturnInt(events);
 }
 
-void *DNP3GetTx(void *alstate, uint64_t tx_id) {
+static void *DNP3GetTx(void *alstate, uint64_t tx_id) {
     SCEnter();
     DNP3State *dnp3 = (DNP3State *)alstate;
     DNP3Transaction *tx = NULL;
@@ -1287,7 +1349,7 @@ void *DNP3GetTx(void *alstate, uint64_t tx_id) {
     SCReturnPtr(NULL, "void");
 }
 
-uint64_t DNP3GetTxCnt(void *state) {
+static uint64_t DNP3GetTxCnt(void *state) {
     SCEnter();
     uint64_t count = ((uint64_t)((DNP3State *)state)->transaction_max);
     SCReturnUInt(count);
@@ -1296,7 +1358,7 @@ uint64_t DNP3GetTxCnt(void *state) {
 /**
  * \brief Free all the objects in a DNP3ObjectList.
  */
-static void DNP3TxFreeObjects(DNP3ObjectList *objects)
+static void DNP3TxFreeObjectList(DNP3ObjectList *objects)
 {
     DNP3Object *object;
 
@@ -1306,6 +1368,9 @@ static void DNP3TxFreeObjects(DNP3ObjectList *objects)
     }
 }
 
+/**
+ * \brief Free a DNP3 transaction.
+ */
 static void DNP3TxFree(DNP3Transaction *tx)
 {
     SCEnter();
@@ -1324,13 +1389,19 @@ static void DNP3TxFree(DNP3Transaction *tx)
         DetectEngineStateFree(tx->de_state);
     }
 
-    DNP3TxFreeObjects(&tx->request_objects);
-    DNP3TxFreeObjects(&tx->response_objects);
+    DNP3TxFreeObjectList(&tx->request_objects);
+    DNP3TxFreeObjectList(&tx->response_objects);
 
     SCFree(tx);
     SCReturn;
 }
 
+/**
+ * \brief Free a transaction by ID on a specific DNP3 state.
+ *
+ * This function is called by the app-layer to free a transaction on a
+ * specific DNP3 state object.
+ */
 static void DNP3StateTxFree(void *state, uint64_t tx_id)
 {
     SCEnter();
@@ -1371,6 +1442,9 @@ static void DNP3StateTxFree(void *state, uint64_t tx_id)
     SCReturn;
 }
 
+/**
+ * \brief Free a DNP3 state.
+ */
 static void DNP3StateFree(void *state)
 {
     SCEnter();
@@ -1393,6 +1467,9 @@ static void DNP3StateFree(void *state)
     SCReturn;
 }
 
+/**
+ * \brief Called by the app-layer to get the state progress.
+ */
 static int DNP3GetAlstateProgress(void *tx, uint8_t direction) {
     DNP3Transaction *dnp3tx = (DNP3Transaction *)tx;
     DNP3State *dnp3 = dnp3tx->dnp3;
@@ -1415,10 +1492,16 @@ static int DNP3GetAlstateProgress(void *tx, uint8_t direction) {
     SCReturnInt(retval);
 }
 
+/**
+ * \brief App-layer support.
+ */
 static int DNP3GetAlstateProgressCompletionStatus(uint8_t direction) {
     return 1;
 }
 
+/**
+ * \brief App-layer support.
+ */
 static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
     AppLayerEventType *event_type) {
 
@@ -1434,6 +1517,9 @@ static int DNP3StateGetEventInfo(const char *event_name, int *event_id,
     return 0;
 }
 
+/**
+ * \brief App-layer support.
+ */
 static DetectEngineState *DNP3GetTxDetectState(void *vtx)
 {
     DNP3Transaction *tx = vtx;

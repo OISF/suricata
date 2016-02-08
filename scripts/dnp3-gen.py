@@ -69,27 +69,27 @@ util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Sec
  * \\brief Push an object point item onto the stack.
  */
 void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3ObjectPoint *point)
+    DNP3Point *point)
 {
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
 {% for object in objects %}
         case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
-            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = point->point;
+            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *data = point->data;
 {% for field in object["fields"] %}
 {% if f.is_integer_type(field["datatype"]) %}
             lua_pushliteral(luastate, "{{field["name"]}}");
-            lua_pushinteger(luastate, point->{{field["name"]}});
+            lua_pushinteger(luastate, data->{{field["name"]}});
             lua_settable(luastate, -3);
 {% endif %}
 {% if field["datatype"] in ["float"] %}
             lua_pushliteral(luastate, "{{field["name"]}}");
-            lua_pushnumber(luastate, point->{{field["name"]}});
+            lua_pushnumber(luastate, data->{{field["name"]}});
             lua_settable(luastate, -3);
 {% endif %}
 {% if field["datatype"] == "char" %}
             lua_pushliteral(luastate, "{{field["name"]}}");
-            LuaPushStringBuffer(luastate, (uint8_t *)point->{{field["name"]}},
-                strlen(point->{{field["name"]}}));
+            LuaPushStringBuffer(luastate, (uint8_t *)data->{{field["name"]}},
+                strlen(data->{{field["name"]}}));
             lua_settable(luastate, -3);
 {% endif %}
 {% endfor %}
@@ -132,21 +132,21 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "app-layer-dnp3-objects.h"
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
-    DNP3ObjectPoint *point)
+    DNP3Point *point)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
 {% for object in objects %}
         case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
-            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = ->point;
+            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *data = point->data;
 {% for field in object["fields"] %}
 {% if f.is_integer_type(field["datatype"]) %}
             json_object_set_new(js, "{{field["name"]}}",
-                json_integer(point->{{field["name"]}}));
+                json_integer(data->{{field["name"]}}));
 {% endif %}
 {% if field["datatype"] == "char" %}
             json_object_set_new(js, "{{field["name"]}}",
-                json_string(point->{{field["name"]}}));
+                json_string(data->{{field["name"]}}));
 {% endif %}
 {% endfor %}
             break;

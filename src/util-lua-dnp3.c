@@ -41,7 +41,7 @@
 
 static void DNP3PushPoints(lua_State *luastate, DNP3Object *object)
 {
-    DNP3ObjectPoint *point;
+    DNP3Point *point;
     int i = 1;
 
     TAILQ_FOREACH(point, object->points, next) {
