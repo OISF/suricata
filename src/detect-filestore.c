@@ -63,6 +63,7 @@ static int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *,
         Flow *, uint8_t, File *, Signature *, SigMatch *);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFilestoreFree(void *);
+static void DetectFilestoreRegisterTests(void);
 
 /**
  * \brief Registration function for keyword: filestore
@@ -76,7 +77,7 @@ void DetectFilestoreRegister(void)
     sigmatch_table[DETECT_FILESTORE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
     sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
-    sigmatch_table[DETECT_FILESTORE].RegisterTests = NULL;
+    sigmatch_table[DETECT_FILESTORE].RegisterTests = DetectFilestoreRegisterTests;
     sigmatch_table[DETECT_FILESTORE].flags = SIGMATCH_OPTIONAL_OPT;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
@@ -292,6 +293,20 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
+    /* filestore and offload keywords can't work together */
+    if (s->flags & SIG_FLAG_OFFLOAD) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "filestore can't work with offload keyword");
+        return -1;
+    }
+
+    /* filestore can't work with stream.offload enabled */
+    if (StreamTcpOffloadEnabled()) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS,
+                   "filestore can't work with stream.offload enabled");
+        return -1;
+    }
+
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
@@ -413,4 +428,109 @@ static void DetectFilestoreFree(void *ptr)
     if (ptr != NULL) {
         SCFree(ptr);
     }
+}
+
+#ifdef UNITTESTS
+static int DetectFilestoreTest01(void)
+{
+    TcpSession ssn;
+    Packet *p = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "User-Agent: www.openinfosecfoundation.org\r\n"
+        "Host: This is dummy message body\r\n"
+        "Content-Type: text/html\r\n"
+        "\r\n";
+    uint32_t http_len = sizeof(http_buf) - 1;
+    int result = 1;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_IPV4;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(offload; filestore; "
+                               "content:\"message\"; http_host; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    http_state = f.alstate;
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have\n");
+        goto end;
+    }
+
+    result = 0;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+#endif /* UNITTESTS */
+
+void DetectFilestoreRegisterTests(void)
+{
+#ifdef UNITTESTS
+    UtRegisterTest("DetectFilestoreTest01", DetectFilestoreTest01);
+#endif /* UNITTESTS */
 }
