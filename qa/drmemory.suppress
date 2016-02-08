@@ -14,3 +14,16 @@ name=useless warning, likely DrMemory bug
 *
 libpcre.so.3!pcre_get_substring
 
+LEAK
+name=libmagic minor leak 1
+libmagic.so.1!?
+libmagic.so.1!?
+libmagic.so.1!magic_load
+suricata!MagicInit
+
+LEAK
+name=libmagic minor leak 2
+libmagic.so.1!?
+libmagic.so.1!magic_load
+suricata!MagicInit
+
