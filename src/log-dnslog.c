@@ -166,7 +166,7 @@ static void LogAnswer(LogDnsLogThread *aft, char *timebuf, char *srcip, char *ds
 }
 
 static int LogDnsLogger(ThreadVars *tv, void *data, const Packet *p, Flow *f,
-    void *state, void *tx, uint64_t tx_id)
+    uint8_t flags, void *state, void *tx, uint64_t tx_id)
 {
     LogDnsLogThread *aft = (LogDnsLogThread *)data;
     DNSTransaction *dns_tx = (DNSTransaction *)tx;

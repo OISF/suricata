@@ -172,6 +172,8 @@ typedef struct DNSTransaction_ {
 
     TAILQ_ENTRY(DNSTransaction_) next;
     DetectEngineState *de_state;
+    uint8_t request_logged;
+    uint8_t response_logged;
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
@@ -235,6 +237,9 @@ void *DNSStateAlloc(void);
 void DNSStateFree(void *s);
 AppLayerDecoderEvents *DNSGetEvents(void *state, uint64_t id);
 int DNSHasEvents(void *state);
+
+int DNSGetTxIsLogged(void *vtx, uint8_t direction);
+void DNSSetTxIsLogged(void *vtx, uint8_t direction);
 
 int DNSValidateRequestHeader(DNSState *, const DNSHeader *dns_header);
 int DNSValidateResponseHeader(DNSState *, const DNSHeader *dns_header);
