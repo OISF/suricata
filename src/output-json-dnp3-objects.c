@@ -25,7 +25,7 @@
 #include "app-layer-dnp3-objects.h"
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
-    DNP3ObjectItem *item)
+    DNP3ObjectPoint *item)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {

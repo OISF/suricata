@@ -36,7 +36,7 @@
  * \brief Push an object point item onto the stack.
  */
 void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3ObjectItem *item)
+    DNP3ObjectPoint *item)
 {
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
         case DNP3_OBJECT_CODE(1, 1): {

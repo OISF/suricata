@@ -106,6 +106,9 @@ enum {
     DNP3_DECODER_EVENT_UNKNOWN_OBJECT,
 };
 
+/**
+ * DNP3 link header.
+ */
 typedef struct DNP3LinkHeader_ {
     uint8_t  start_byte0;
     uint8_t  start_byte1;
@@ -116,13 +119,23 @@ typedef struct DNP3LinkHeader_ {
     uint16_t crc;
 } __attribute__((__packed__)) DNP3LinkHeader;
 
+/**
+ * DNP3 transport header.
+ */
 typedef uint8_t DNP3TransportHeader;
 
+/**
+ * DNP3 application header.
+ */
 typedef struct DNP3ApplicationHeader_ {
     uint8_t control;
     uint8_t function_code;
 } __attribute__((__packed__)) DNP3ApplicationHeader;
 
+/**
+ * DNP3 internal indicators. Part of the application header for
+ * responses only.
+ */
 typedef struct DNP3InternalInd_ {
     uint8_t iin1;
     uint8_t iin2;
@@ -147,18 +160,24 @@ typedef struct DNP3ObjHeader_ {
     uint8_t qualifier;
 } __attribute__((packed)) DNP3ObjHeader;
 
-typedef struct DNP3ObjectItem_ {
+/**
+ * DNP3 object point.
+ *
+ * Each DNP3 object can have 0 or more points representing the values
+ * of the object.
+ */
+typedef struct DNP3ObjectPoint_ {
     uint32_t prefix;
     uint32_t index;
     uint32_t size;
     void *item;
-    TAILQ_ENTRY(DNP3ObjectItem_) next;
-} DNP3ObjectItem;
+    TAILQ_ENTRY(DNP3ObjectPoint_) next;
+} DNP3ObjectPoint;
 
-typedef TAILQ_HEAD(DNP3ObjectItemList_, DNP3ObjectItem_) DNP3ObjectItemList;
+typedef TAILQ_HEAD(DNP3ObjectPointList_, DNP3ObjectPoint_) DNP3ObjectPointList;
 
 /**
- * Struct to hold the list of decoded objects.
+ * \brief Struct to hold the list of decoded objects.
  */
 typedef struct DNP3Object_ {
     uint8_t   group;
@@ -169,7 +188,8 @@ typedef struct DNP3Object_ {
     uint32_t  start;
     uint32_t  stop;
     uint32_t  count;
-    DNP3ObjectItemList *items;
+    DNP3ObjectPointList *points; /**< List of points for this object. */
+
     TAILQ_ENTRY(DNP3Object_) next;
 } DNP3Object;
 

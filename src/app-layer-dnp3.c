@@ -581,8 +581,8 @@ static void DNP3BufferTrim(DNP3Buffer *buffer)
 
 static void DNP3ObjectFree(DNP3Object *object)
 {
-    if (object->items != NULL) {
-        DNP3FreeObjectItemList(object->items);
+    if (object->points != NULL) {
+        DNP3FreeObjectItemList(object->points);
     }
     SCFree(object);
 }
@@ -593,8 +593,8 @@ static DNP3Object *DNP3ObjectAlloc(void)
     if (unlikely(object == NULL)) {
         return NULL;
     }
-    object->items = DNP3ObjectItemListAlloc();
-    if (object->items == NULL) {
+    object->points = DNP3ObjectPointListAlloc();
+    if (object->points == NULL) {
         DNP3ObjectFree(object);
         return NULL;
     }
@@ -736,7 +736,7 @@ static int DNP3DecodeApplicationObjects(DNP3Transaction *tx, const uint8_t *buf,
 
         int event = DNP3DecodeObject(header->group, header->variation, &buf,
             &len, object->prefix_code, object->start, object->count,
-            object->items);
+            object->points);
         if (event) {
             DNP3SetEventTx(tx, DNP3_DECODER_EVENT_UNKNOWN_OBJECT);
             goto done;

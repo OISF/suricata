@@ -41,10 +41,10 @@
 
 static void DNP3PushPoints(lua_State *luastate, DNP3Object *object)
 {
-    DNP3ObjectItem *point;
+    DNP3ObjectPoint *point;
     int i = 1;
 
-    TAILQ_FOREACH(point, object->items, next) {
+    TAILQ_FOREACH(point, object->points, next) {
         lua_pushinteger(luastate, i++);
         lua_newtable(luastate);
 

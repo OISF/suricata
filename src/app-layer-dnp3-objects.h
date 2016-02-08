@@ -266,8 +266,8 @@ typedef struct DNP3ObjectG70V3_ {
 
 int DNP3DecodeObject(int group, int variation, const uint8_t **buf,
     uint32_t *len, uint8_t prefix_code, uint32_t start,
-    uint32_t count, DNP3ObjectItemList *);
-DNP3ObjectItemList *DNP3ObjectItemListAlloc(void);
-void DNP3FreeObjectItemList(DNP3ObjectItemList *);
+    uint32_t count, DNP3ObjectPointList *);
+DNP3ObjectPointList *DNP3ObjectPointListAlloc(void);
+void DNP3FreeObjectItemList(DNP3ObjectPointList *);
 
 #endif /* __APP_LAYER_DNP3_OBJECTS_H__ */

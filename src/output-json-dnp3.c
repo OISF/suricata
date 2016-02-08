@@ -143,14 +143,14 @@ static json_t *JsonDNP3LogApplicationControl(uint8_t ac)
  */
 static json_t *JsonDNP3LogObjectItems(DNP3Object *object)
 {
-    DNP3ObjectItem *item;
+    DNP3ObjectPoint *item;
     json_t *jsitems;
 
     if (unlikely((jsitems = json_array()) == NULL)) {
         return NULL;
     }
 
-    TAILQ_FOREACH(item, object->items, next) {
+    TAILQ_FOREACH(item, object->points, next) {
         json_t *js = json_object();
         if (unlikely(js == NULL)) {
             break;
@@ -201,10 +201,10 @@ static json_t *JsonDNP3LogObjects(DNP3ObjectList *objects)
         json_object_set_new(objs, "stop", json_integer(object->stop));
         json_object_set_new(objs, "count", json_integer(object->count));
 
-        if (object->items != NULL && !TAILQ_EMPTY(object->items)) {
-            json_t *items = JsonDNP3LogObjectItems(object);
-            if (items != NULL) {
-                json_object_set_new(objs, "points", items);
+        if (object->points != NULL && !TAILQ_EMPTY(object->points)) {
+            json_t *points = JsonDNP3LogObjectItems(object);
+            if (points != NULL) {
+                json_object_set_new(objs, "points", points);
             }
         }
 

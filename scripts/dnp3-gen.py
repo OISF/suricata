@@ -69,12 +69,12 @@ util_lua_dnp3_objects_c_template = """/* Copyright (C) 2015 Open Information Sec
  * \\brief Push an object point item onto the stack.
  */
 void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
-    DNP3ObjectItem *item)
+    DNP3ObjectPoint *point)
 {
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
 {% for object in objects %}
         case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
-            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = item->item;
+            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = point->point;
 {% for field in object["fields"] %}
 {% if f.is_integer_type(field["datatype"]) %}
             lua_pushliteral(luastate, "{{field["name"]}}");
@@ -132,13 +132,13 @@ output_json_dnp3_objects_template = """/* Copyright (C) 2015 Open Information Se
 #include "app-layer-dnp3-objects.h"
 
 void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
-    DNP3ObjectItem *item)
+    DNP3ObjectPoint *point)
 {
 
     switch (DNP3_OBJECT_CODE(object->group, object->variation)) {
 {% for object in objects %}
         case DNP3_OBJECT_CODE({{object["group"]}}, {{object["variation"]}}): {
-            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = item->item;
+            DNP3ObjectG{{object["group"]}}V{{object["variation"]}} *point = ->point;
 {% for field in object["fields"] %}
 {% if f.is_integer_type(field["datatype"]) %}
             json_object_set_new(js, "{{field["name"]}}",
