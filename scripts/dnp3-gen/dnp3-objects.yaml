@@ -1,0 +1,2995 @@
+objects:
+
+  - group: 1
+    variation: 1
+    packed: true
+    fields:
+      - type: uint8
+        name: state
+        width: 1
+
+  - group: 1
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: online
+            width: 1
+          - type: uint8
+            name: restart
+            width: 1
+          - name: comm_lost
+            type: uint8
+            width: 1
+          - name: remote_forced
+            type: uint8
+            width: 1
+          - name: local_forced
+            type: uint8
+            width: 1
+          - name: chatter_filter
+            type: uint8
+            width: 1
+          - name: reserved
+            type: uint8
+            width: 1
+          - name: state
+            type: uint8
+            width: 1
+
+  - group: 2
+    variation: 1
+    fields:
+      - type: uint8
+        name: state
+        width: 1
+
+  - group: 2
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: online
+            width: 1
+          - type: uint8
+            name: restart
+            width: 1
+          - name: comm_lost
+            type: uint8
+            width: 1
+          - name: remote_forced
+            type: uint8
+            width: 1
+          - name: local_forced
+            type: uint8
+            width: 1
+          - name: chatter_filter
+            type: uint8
+            width: 1
+          - name: reserved
+            type: uint8
+            width: 1
+          - name: state
+            type: uint8
+            width: 1
+      - type: dnp3time
+        name: timestamp
+
+  - group: 2
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: online
+            width: 1
+          - type: uint8
+            name: restart
+            width: 1
+          - name: comm_lost
+            type: uint8
+            width: 1
+          - name: remote_forced
+            type: uint8
+            width: 1
+          - name: local_forced
+            type: uint8
+            width: 1
+          - name: chatter_filter
+            type: uint8
+            width: 1
+          - name: reserved
+            type: uint8
+            width: 1
+          - name: state
+            type: uint8
+            width: 1
+      - type: uint16
+        name: timestamp
+
+  - group: 3
+    variation: 1
+    packed: true
+    fields:
+      - type: uint8
+        name: state
+        width: 2
+
+  - group: 3
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: chatter_filter
+            width: 1
+          - name: state
+            width: 2
+
+  - group: 4
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: chatter_filter
+            width: 1
+          - name: state
+            width: 2
+
+  - group: 4
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: chatter_filter
+            width: 1
+          - name: state
+            width: 2
+      - type: dnp3time
+        name: timestamp
+
+  - group: 4
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: chatter_filter
+            width: 1
+          - name: state
+            width: 2
+      - type: uint16
+        name: relative_time_ms
+
+  - group: 10
+    variation: 1
+    packed: true
+    fields:
+      - type: uint8
+        name: state
+        width: 1
+
+  - group: 10
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+          - name: state
+            width: 1
+
+  - group: 11
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+          - name: state
+            width: 1
+
+  - group: 11
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+          - name: state
+            width: 1
+      - type: dnp3time
+        name: timestamp
+
+  - group: 12
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: op_type
+            type: uint8
+            width: 4
+          - name: qu
+            type: uint8
+            width: 1
+          - name: cr
+            type: uint8
+            width: 1
+          - name: tcc
+            type: uint8
+            width: 2
+      - name: count
+        type: uint8
+      - name: ontime
+        type: uint32
+      - name: offtime
+        type: uint32
+      - type: bstr8
+        fields:
+          - name: status_code
+            type: uint8
+            width: 7
+          - name: reserved
+            type: uint32
+            width: 1
+
+  - group: 12
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: op_type
+            type: uint8
+            width: 4
+          - name: qu
+            type: uint8
+            width: 1
+          - name: cr
+            type: uint8
+            width: 1
+          - name: tcc
+            type: uint8
+            width: 2
+      - name: count
+        type: uint8
+      - name: ontime
+        type: uint32
+      - name: offtime
+        type: uint32
+      - type: bstr8
+        fields:
+          - name: status_code
+            type: uint8
+            width: 7
+          - name: reserved
+            type: uint32
+            width: 1
+
+  - group: 12
+    variation: 3
+    packed: true
+    fields:
+      - type: uint8
+        name: point
+        width: 1
+
+  - group: 13
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            width: 7
+            name: status_code
+          - type: uint8
+            width: 1
+            name: commanded_state
+
+  - group: 13
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            width: 7
+            name: status_code
+          - type: uint8
+            width: 1
+            name: commanded_state
+      - type: dnp3time
+        name: timestamp
+
+  - group: 20
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 20
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 20
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 20
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 20
+    variation: 5
+    fields:
+      - type: uint32
+        name: count
+
+  - group: 20
+    variation: 6
+    fields:
+      - type: uint16
+        name: count
+
+  - group: 20
+    variation: 7
+    fields:
+      - type: uint32
+        name: count
+
+  - group: 20
+    variation: 8
+    fields:
+      - type: uint16
+        name: count
+
+  - group: 21
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 21
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 21
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 21
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 21
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 21
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 21
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 21
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 21
+    variation: 9
+    fields:
+      - type: uint32
+        name: count
+
+  - group: 21
+    variation: 10
+    fields:
+      - type: uint16
+        name: count
+
+  - group: 21
+    variation: 11
+    fields:
+      - type: uint32
+        name: count
+
+  - group: 21
+    variation: 12
+    fields:
+      - type: uint16
+        name: count
+
+  - group: 22
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 22
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 22
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 22
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 22
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 22
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 22
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 22
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 23
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 23
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 23
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+
+  - group: 23
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+
+  - group: 23
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 23
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 23
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint32
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 23
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: rollover
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: count
+      - type: dnp3time
+        name: timestamp
+
+  - group: 30
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 30
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 30
+    variation: 3
+    fields:
+      - type: int32
+        name: value
+
+  - group: 30
+    variation: 4
+    fields:
+      - type: int16
+        name: value
+
+  - group: 30
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 30
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 31
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 31
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 31
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 31
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 31
+    variation: 5
+    fields:
+      - type: int32
+        name: value
+
+  - group: 31
+    variation: 6
+    fields:
+      - type: int16
+        name: value
+
+  - group: 31
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 31
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 32
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 32
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 32
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 32
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 32
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 32
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 32
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 32
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      # XXX Spec says FLT32, pretty sure its FLT64 and OpenDNP uses a 64 bit
+      # float as well.
+      - type: flt64
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 33
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 33
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 33
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 33
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 33
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 33
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 33
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 33
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      # XXX Spec says FLT32, I think its FLT64.
+      - type: flt64
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 34
+    variation: 1
+    fields:
+      - type: uint16
+        name: deadband_value
+
+  - group: 34
+    variation: 2
+    fields:
+      - type: uint32
+        name: deadband_value
+
+  - group: 34
+    variation: 3
+    fields:
+      - type: flt32
+        name: deadband_value
+
+  - group: 40
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 40
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 40
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 40
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 41
+    variation: 1
+    fields:
+      - type: int32
+        name: value
+      - type: uint8
+        name: control_status
+
+  - group: 41
+    variation: 2
+    fields:
+      - type: int16
+        name: value
+      - type: uint8
+        name: control_status
+
+  - group: 41
+    variation: 3
+    fields:
+      - type: flt32
+        name: value
+      - type: uint8
+        name: control_status
+
+  - group: 41
+    variation: 4
+    fields:
+      - type: flt64
+        name: value
+      - type: uint8
+        name: control_status
+
+  - group: 42
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+
+  - group: 42
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+
+  - group: 42
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 42
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: int16
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 42
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+
+  - group: 42
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+
+  - group: 42
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt32
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 42
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: over_range
+            width: 1
+          - name: reference_err
+            width: 1
+          - name: reserved0
+            width: 1
+      - type: flt64
+        name: value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 43
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: int32
+        name: commanded_value
+
+  - group: 43
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: int16
+        name: commanded_value
+
+  - group: 43
+    variation: 3
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: int32
+        name: commanded_value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 43
+    variation: 4
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: int16
+        name: commanded_value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 43
+    variation: 5
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: flt32
+        name: commanded_value
+
+  - group: 43
+    variation: 6
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: flt64
+        name: commanded_value
+
+  - group: 43
+    variation: 7
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: flt32
+        name: commanded_value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 43
+    variation: 8
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            name: status_code
+            width: 7
+          - type: uint8
+            name: reserved0
+            width: 1
+      - type: flt64
+        name: commanded_value
+      - type: dnp3time
+        name: timestamp
+
+  - group: 50
+    variation: 1
+    fields:
+      - type: dnp3time
+        name: timestamp
+
+  - group: 50
+    variation: 2
+    fields:
+      - type: dnp3time
+        name: timestamp
+      - type: uint32
+        name: interval
+
+  - group: 50
+    variation: 3
+    fields:
+      - type: dnp3time
+        name: timestamp
+
+  - group: 50
+    variation: 4
+    fields:
+      - type: dnp3time
+        name: timestamp
+      - type: uint32
+        name: interval_count
+      - type: uint8
+        name: interval_units
+
+  - group: 51
+    variation: 1
+    fields:
+      - type: dnp3time
+        name: timestamp
+
+  - group: 51
+    variation: 2
+    fields:
+      - type: dnp3time
+        name: timestamp
+
+  - group: 52
+    variation: 1
+    fields:
+      - type: uint16
+        name: delay_secs
+
+  - group: 52
+    variation: 2
+    fields:
+      - type: uint16
+        name: delay_ms
+
+  # 1815-2012: New DNP3 implementation should avoid using this object.
+  - group: 70
+    variation: 1
+    fields:
+      - type: uint16
+        name: filename_size
+      - type: uint8
+        name: filetype_code
+      - type: uint8
+        name: attribute_code
+      - type: uint16
+        name: start_record
+      - type: uint16
+        name: end_record
+      - type: uint32
+        name: file_size
+      - type: dnp3time
+        name: created_timestamp
+      # XXX Actually bit flags.
+      - type: uint16
+        name: permission
+      - type: uint32
+        name: file_id
+      - type: uint32
+        name: owner_id
+      - type: uint32
+        name: group_id
+      - type: uint8
+        name: file_function_code
+      - type: uint8
+        name: status_code
+      - type: chararray
+        name: filename
+        size: 65535
+        len_field: filename_size
+      - type: uint16
+        name: data_size
+      - type: chararray
+        name: data
+        size: 65535
+        len_field: data_size
+
+  - group: 70
+    variation: 2
+    fields:
+      - type: uint16
+        name: username_offset
+      - type: uint16
+        name: username_size
+      - type: uint16
+        name: password_offset
+      - type: uint16
+        name: password_size
+      - type: uint32
+        name: authentication_key
+      - type: chararray
+        name: username
+        size: 65535
+        len_field: username_size
+      - type: chararray
+        name: password
+        size: 65535
+        len_field: password_size
+
+  - group: 70
+    variation: 3
+    fields:
+      - type: uint16
+        name: filename_offset
+      - type: uint16
+        name: filename_size
+      - type: dnp3time
+        name: created
+      # XXX Break out to bit flags.
+      - type: uint16
+        name: permissions
+      - type: uint32
+        name: authentication_key
+      - type: uint32
+        name: file_size
+      - type: uint16
+        name: operational_mode
+      - type: uint16
+        name: maximum_block_size
+      - type: uint16
+        name: request_id
+      - type: chararray
+        name: filename
+        size: 65535
+        len_field: filename_size
+
+  # Checked.
+  - group: 70
+    variation: 4
+    constraints:
+      require_size_prefix: true
+    extra_fields:
+      - type: uint8
+        name: optional_text_len
+    fields:
+      - type: uint32
+        name: file_handle
+      - type: uint32
+        name: file_size
+      - type: uint16
+        name: maximum_block_size
+      - type: uint16
+        name: request_id
+      - type: uint8
+        name: status_code
+      - type: chararray
+        name: optional_text
+        size: 0xff
+        len_from_prefix: true
+        len_field: optional_text_len
+
+  # Checked.
+  - group: 70
+    variation: 5
+    constraints:
+      require_size_prefix: true
+    extra_fields:
+      - type: uint8
+        name: file_data_len
+    fields:
+      - type: uint32
+        name: file_handle
+      - type: uint32
+        name: block_number # Includes "last" flag.
+      - type: chararray
+        name: file_data
+        size: 0xff
+        len_from_prefix: true
+        len_field: file_data_len
+
+  # Checked.
+  - group: 70
+    variation: 6
+    constraints:
+      require_size_prefix: true
+    extra_fields:
+      - type: uint8
+        name: optional_text_len
+    fields:
+      - type: uint32
+        name: file_handle
+      - type: uint32
+        name: block_number # Includes "last" flag.
+      - type: uint8
+        name: status_code
+      - type: chararray
+        name: optional_text
+        size: 0xff
+        len_from_prefix: true
+        len_field: optional_text_len
+
+  # Checked.
+  - group: 70
+    variation: 7
+    fields:
+      - type: uint16
+        name: filename_offset
+      - type: uint16
+        name: filename_size
+      - type: uint16
+        name: file_type
+      - type: uint32
+        name: file_size
+      - type: dnp3time
+        name: created_timestamp
+      - type: uint16
+        name: permissions
+      - type: uint16
+        name: request_id
+      - type: chararray
+        name: filename
+        size: 0xffff
+        len_field: filename_size
+
+  # Checked.
+  - group: 70
+    variation: 8
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: file_specification_len
+    fields:
+      - type: chararray
+        name: file_specification
+        size: 0xffff
+        len_from_prefix: true
+        len_field: file_specification_len
+
+  # Checked.
+  - group: 80
+    variation: 1
+    packed: true
+    fields:
+      - type: uint8
+        name: state
+        width: 1
+
+  # Checked.
+  - group: 81
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - type: uint8
+            width: 7
+            name: fill_percentage
+          - type: uint8
+            width: 1
+            name: overflow_state
+      - type: uint8
+        name: group
+      - type: uint8
+        name: variation
+
+  - group: 82
+    variation: 1
+    unimplemented: object header types not yet supported
+
+  - group: 83
+    variation: 1
+    fields:
+      - type: vstr4
+        name: vendor_code
+      - type: uint16
+        name: object_id
+      - type: uint16
+        name: length
+      - type: bytearray
+        name: data_objects
+        len_field: length
+
+  - group: 83
+    variation: 2
+    unimplemented: set objects not yet supported
+
+  - group: 85
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  - group: 86
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  # Checked.
+  - group: 86
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: rd
+            width: 1
+          - name: wr
+            width: 1
+          - name: st
+            width: 1
+          - name: ev
+            width: 1
+          - name: df
+            width: 1
+          - name: padding0
+            width: 1
+          - name: padding1
+            width: 1
+          - name: padding2
+            width: 1
+
+  - group: 86
+    variation: 3
+    unimplemented: set objects not yet supported
+
+  - group: 87
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  - group: 88
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  - group: 90
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  - group: 91
+    variation: 1
+    unimplemented: set objects not yet supported
+
+  - group: 100
+    variation: "*"
+    unimplemented: obsolete object type
+
+  - group: 101
+    variation: 1
+    unimplemented: bcd types not yet supported
+
+  - group: 101
+    variation: 2
+    unimplemented: bcd types not yet supported
+
+  - group: 101
+    variation: 3
+    unimplemented: bcd types not yet supported
+
+  # Checked.
+  - group: 102
+    variation: 1
+    fields:
+      - type: uint8
+        name: value
+
+  - group: 110
+    variation: "*"
+    unimplemented: variation all not yet supported
+
+  - group: 111
+    variation: "*"
+    unimplemented: variation all not yet supported
+
+  - group: 112
+    variation: "*"
+    unimplemented: variation all not yet supported
+
+  - group: 113
+    variation: "*"
+    unimplemented: variation all not yet supported
+
+  # Checked.
+  - group: 120
+    variation: 1
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: challenge_data_len
+    fields:
+      - type: uint32
+        name: csq
+      - type: uint16
+        name: usr
+      - type: uint8
+        name: mal
+      - type: uint8
+        name: reason
+      - type: bytearray
+        name: challenge_data
+        len_from_prefix: true
+        len_field: challenge_data_len
+
+  - group: 120
+    variation: 2
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: mac_value_len
+    fields:
+      - type: uint32
+        name: csq
+      - type: uint16
+        name: usr
+      - type: bytearray
+        name: mac_value
+        len_from_prefix: true
+        len_field: mac_value_len
+
+  # Checked.
+  - group: 120
+    variation: 3
+    fields:
+      - type: uint32
+        name: csq
+      - type: uint16
+        name: user_number
+
+  # Checked.
+  - group: 120
+    variation: 4
+    fields:
+      - type: uint16
+        name: user_number
+
+  # Checked.
+  - group: 120
+    variation: 5
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: mac_value_len
+    fields:
+      - type: uint32
+        name: ksq
+      - type: uint16
+        name: user_number
+      - type: uint8
+        name: key_wrap_alg
+      - type: uint8
+        name: key_status
+      - type: uint8
+        name: mal
+      - type: uint16
+        name: challenge_data_len
+      - type: bytearray
+        name: challenge_data
+        len_field: challenge_data_len
+      - type: bytearray
+        name: mac_value
+        len_from_prefix: true
+        len_field: mac_value_len
+
+  # Checked.
+  - group: 120
+    variation: 6
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: wrapped_key_data_len
+    fields:
+      - type: uint24
+        name: ksq
+      - type: uint16
+        name: usr
+      - type: bytearray
+        name: wrapped_key_data
+        len_from_prefix: true
+        len_field: wrapped_key_data_len
+
+  # Checked.
+  - group: 120
+    variation: 7
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: error_text_len
+    fields:
+      - type: uint32
+        name: sequence_number
+      - type: uint16
+        name: usr
+      - type: uint16
+        name: association_id
+      - type: uint8
+        name: error_code
+      - type: dnp3time
+        name: time_of_error
+      - type: chararray
+        name: error_text
+        size: 65535
+        len_from_prefix: true
+        len_field: error_text_len
+
+  # Checked.
+  - group: 120
+    variation: 8
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: certificate_len
+    fields:
+      - type: uint8
+        name: key_change_method
+      - type: uint8
+        name: certificate_type
+      - type: bytearray
+        name: certificate
+        len_from_prefix: true
+        len_field: certificate_len
+
+  # Checked.
+  - group: 120
+    variation: 9
+    extra_fields:
+      - type: uint16
+        name: mac_value_len
+    fields:
+      - type: bytearray
+        name: mac_value
+        len_from_prefix: true
+        len_field: mac_value_len
+
+  # Checked.
+  - group: 120
+    variation: 10
+    constraints:
+      require_prefix_code: 0x5
+    fields:
+      - type: uint8
+        name: key_change_method
+      - type: uint8
+        name: operation
+      - type: uint32
+        name: scs
+      - type: uint16
+        name: user_role
+      - type: uint16
+        name: user_role_expiry_interval
+      - type: uint16
+        name: username_len
+      - type: uint16
+        name: user_public_key_len
+      - type: uint16
+        name: certification_data_len
+      - type: chararray
+        name: username
+        size: 65535
+        len_field: username_len
+      - type: bytearray
+        name: user_public_key
+        len_field: user_public_key_len
+      - type: bytearray
+        name: certification_data
+        len_field: certification_data_len
+
+  # Checked.
+  - group: 120
+    variation: 11
+    constraints:
+      require_prefix_code: 0x5
+    fields:
+      - type: uint8
+        name: key_change_method
+      - type: uint16
+        name: username_len
+      - type: uint16
+        name: master_challenge_data_len
+      - type: chararray
+        size: 65535
+        name: username
+        len_field: username_len
+      - type: bytearray
+        name: master_challenge_data
+        len_field: master_challenge_data_len
+
+  # Checked.
+  - group: 120
+    variation: 12
+    constraints:
+      require_prefix_code: 0x5
+    fields:
+      - type: uint32
+        name: ksq
+      - type: uint16
+        name: user_number
+      - type: uint16
+        name: challenge_data_len
+      - type: bytearray
+        name: challenge_data
+        len_field: challenge_data_len
+
+  # Checked.
+  - group: 120
+    variation: 13
+    constraints:
+      require_prefix_code: 0x5
+    fields:
+      - type: uint32
+        name: ksq
+      - type: uint16
+        name: user_number
+      - type: uint16
+        name: encrypted_update_key_len
+      - type: bytearray
+        name: encrypted_update_key_data
+        len_field: encrypted_update_key_len
+
+  # Checked.
+  - group: 120
+    variation: 14
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint16
+        name: digital_signature_len
+    fields:
+      - type: bytearray
+        name: digital_signature
+        len_from_prefix: true
+        len_field: digital_signature_len
+
+  # Checked.
+  - group: 120
+    variation: 15
+    constraints:
+      require_prefix_code: 0x5
+    extra_fields:
+      - type: uint32
+        name: mac_len
+    fields:
+      - type: bytearray
+        name: mac
+        len_field: mac_len
+        len_from_prefix: true
+
+  # Checked.
+  - group: 121
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: association_id
+      - type: uint32
+        name: count_value
+
+  # Checked.
+  - group: 122
+    variation: 1
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: association_id
+      - type: uint32
+        name: count_value
+
+  # Checked.
+  - group: 122
+    variation: 2
+    fields:
+      - type: bstr8
+        fields:
+          - name: online
+            width: 1
+          - name: restart
+            width: 1
+          - name: comm_lost
+            width: 1
+          - name: remote_forced
+            width: 1
+          - name: local_forced
+            width: 1
+          - name: reserved0
+            width: 1
+          - name: discontinuity
+            width: 1
+          - name: reserved1
+            width: 1
+      - type: uint16
+        name: association_id
+      - type: uint32
+        name: count_value
+      - type: dnp3time
+        name: timestamp
