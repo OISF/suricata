@@ -248,6 +248,7 @@ OutputCtx *LogStatsLogInitCtx(ConfNode *conf)
         if ((totals != NULL && ConfValIsFalse(totals)) &&
                 (threads != NULL && ConfValIsFalse(threads))) {
             LogFileFreeCtx(file_ctx);
+            SCFree(statslog_ctx);
             SCLogError(SC_ERR_STATS_LOG_NEGATED,
                     "Cannot disable both totals and threads in stats logging");
             return NULL;
