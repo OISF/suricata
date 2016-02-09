@@ -260,6 +260,12 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_file_ctx->file_ctx = ojc->file_ctx;
 
     if (conf) {
+        const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
+        if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
+            FileForceFilestoreEnable();
+            SCLogInfo("forcing filestore of all files");
+        }
+
         const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
         if (force_magic != NULL && ConfValIsTrue(force_magic)) {
             FileForceMagicEnable();
