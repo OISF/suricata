@@ -879,9 +879,10 @@ flow-timeouts:
 #                               # This lower the risk of some evasion technics but could lead
 #                               # detection change between runs. It is set to 'yes' by default.
 #     randomize-chunk-range: 10 # If randomize-chunk-size is active, the value of chunk-size is
-#                               # a random value between (1 - randomize-chunk-range/100)*randomize-chunk-size
-#                               # and (1 + randomize-chunk-range/100)*randomize-chunk-size. Default value
-#                               # of randomize-chunk-range is 10.
+#                               # a random value between (1 - randomize-chunk-range/100)*toserver-chunk-size
+#                               # and (1 + randomize-chunk-range/100)*toserver-chunk-size and the same 
+#                               # calculation for toclient-chunk-size.
+#                               # Default value of randomize-chunk-range is 10.
 #
 #     raw: yes                  # 'Raw' reassembly enabled or disabled.
 #                               # raw is for content inspection by detection
