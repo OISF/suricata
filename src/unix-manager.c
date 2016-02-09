@@ -29,6 +29,8 @@
 #include "runmodes.h"
 #include "conf.h"
 
+#include "output-json-stats.h"
+
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-signal.h"
@@ -647,15 +649,101 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, void *data, int wait)
 {
     SCEnter();
     DetectEngineReloadStart();
 
-    while (DetectEngineReloadIsDone() == 0)
-        usleep(100);
+    if (wait) {
+        while (DetectEngineReloadIsDone() == 0)
+            usleep(100);
+    }
 
     json_object_set_new(server_msg, "message", json_string("done"));
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 1);
+}
+
+TmEcode UnixManagerNonBlockingReloadRules(json_t *cmd, json_t *server_msg, void *data)
+{
+    return UnixManagerReloadRulesWrapper(cmd, server_msg, data, 0);
+}
+
+TmEcode UnixManagerLastReloadCommand(json_t *cmd,
+                                     json_t *server_msg, void *data)
+{
+    SCEnter();
+    TmEcode retval = TM_ECODE_OK;
+    json_t *jdata = NULL;
+
+    retval = OutputTenancyStatsLastReload(&jdata);
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (retval == TM_ECODE_FAILED) {
+        json_object_set_new(server_msg, "message", jdata);
+        SCReturnInt(retval);
+    }
+
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(retval);
+}
+
+TmEcode UnixManagerRulesetStatsCommand(json_t *cmd,
+                                       json_t *server_msg, void *data)
+{
+    SCEnter();
+    json_t *jdata = NULL;
+    TmEcode retval = TM_ECODE_OK;
+
+    retval = OutputTenancyStatsRuleset(&jdata);
+    if (jdata == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    if (retval == TM_ECODE_FAILED) {
+        json_object_set_new(server_msg, "message", jdata);
+        SCReturnInt(retval);
+    }
+
+    json_object_set_new(server_msg, "message", jdata);
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode UnixManagerShowFailedRules(json_t *cmd,
+                                   json_t *server_msg, void *data)
+{
+    SCEnter();
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    SigString *sigs_str = de_ctx->sig_stat.failed_sigs;
+    json_t *js_sigs_array = json_array();
+
+    if (js_sigs_array == NULL) {
+        json_object_set_new(server_msg, "message", json_string("Unable to get info"));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    while (sigs_str != NULL) {
+        json_t *jdata = json_object();
+        if (jdata == NULL) {
+            json_object_set_new(server_msg, "message", json_string("Unable to get the sig"));
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        json_object_set_new(jdata, "rule", json_string(sigs_str->sig_str));
+        json_object_set_new(jdata, "filename", json_string(sigs_str->filename));
+        json_object_set_new(jdata, "line", json_integer(sigs_str->line));
+        json_array_append_new(js_sigs_array, jdata);
+
+        sigs_str = sigs_str->next;
+    }
+
+    json_object_set_new(server_msg, "message", js_sigs_array);
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -877,6 +965,10 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
     UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("non-blocking-reload-rules", UnixManagerNonBlockingReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("last-reload", UnixManagerLastReloadCommand, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
+    UnixManagerRegisterCommand("show-failed-rules", UnixManagerShowFailedRules, NULL, 0);
     UnixManagerRegisterCommand("register-tenant-handler", UnixSocketRegisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("unregister-tenant-handler", UnixSocketUnregisterTenantHandler, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("register-tenant", UnixSocketRegisterTenant, &command, UNIX_CMD_TAKE_ARGS);
