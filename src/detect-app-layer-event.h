@@ -27,6 +27,7 @@
 typedef struct DetectAppLayerEventData_ {
     AppProto alproto;
     int event_id;
+    int needs_detctx;
 
     char *arg;
 } DetectAppLayerEventData;
