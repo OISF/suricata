@@ -535,7 +535,7 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     }
 
     if (flags & FILE_STORE) {
-        ff->flags |= FILE_STORE;
+        FileStore(ff);
     } else if (flags & FILE_NOSTORE) {
         SCLogDebug("not storing this file");
         ff->flags |= FILE_NOSTORE;
@@ -882,7 +882,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->file_id == file_id) {
-                ptr->flags |= FILE_STORE;
+                FileStore(ptr);
             }
         }
     }
@@ -897,7 +897,7 @@ void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {
-                ptr->flags |= FILE_STORE;
+                FileStore(ptr);
             }
         }
     }
@@ -911,7 +911,7 @@ void FileStoreAllFiles(FileContainer *fc)
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            ptr->flags |= FILE_STORE;
+            FileStore(ptr);
         }
     }
 }
