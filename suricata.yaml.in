@@ -1131,7 +1131,7 @@ rule-files:
  - compromised.rules
  - drop.rules
  - dshield.rules
- - emerging-activex.rules
+# - emerging-activex.rules
  - emerging-attack_response.rules
  - emerging-chat.rules
  - emerging-current_events.rules
@@ -1139,11 +1139,11 @@ rule-files:
  - emerging-dos.rules
  - emerging-exploit.rules
  - emerging-ftp.rules
- - emerging-games.rules
- - emerging-icmp_info.rules
+# - emerging-games.rules
+# - emerging-icmp_info.rules
 # - emerging-icmp.rules
  - emerging-imap.rules
- - emerging-inappropriate.rules
+# - emerging-inappropriate.rules
  - emerging-malware.rules
  - emerging-misc.rules
  - emerging-mobile_malware.rules
@@ -1154,7 +1154,7 @@ rule-files:
  - emerging-rpc.rules
  - emerging-scada.rules
  - emerging-scan.rules
- - emerging-shellcode.rules
+# - emerging-shellcode.rules
  - emerging-smtp.rules
  - emerging-snmp.rules
  - emerging-sql.rules
@@ -1165,7 +1165,7 @@ rule-files:
  - emerging-voip.rules
  - emerging-web_client.rules
  - emerging-web_server.rules
- - emerging-web_specific_apps.rules
+# - emerging-web_specific_apps.rules
  - emerging-worm.rules
  - tor.rules
  - decoder-events.rules # available in suricata sources under rules dir
