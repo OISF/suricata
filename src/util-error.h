@@ -304,6 +304,7 @@ typedef enum {
     SC_ERR_MT_NO_MAPPING,
     SC_ERR_STATS_LOG_NEGATED, /** When totals and threads are both NO in yaml **/
     SC_ERR_JSON_STATS_LOG_NEGATED, /** When totals and threads are both NO in yaml **/
+    SC_ERR_DEPRECATED_CONF, /**< Deprecated configuration parameter. */
 } SCError;
 
 const char *SCErrorToString(SCError);
