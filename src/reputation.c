@@ -25,12 +25,12 @@
  * IP Reputation Module, initial API for IPV4 and IPV6 feed
  */
 
+#include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-ip.h"
 #include "util-radix-tree.h"
 #include "util-unittest.h"
-#include "suricata-common.h"
 #include "threads.h"
 #include "util-print.h"
 #include "host.h"
