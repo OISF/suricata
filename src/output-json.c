@@ -435,7 +435,17 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 {
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
 
+    /* First lookup a sensor-name value in this outputs configuration
+     * node (deprecated). If that fails, lookup the global one. */
     const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
+    if (sensor_name != NULL) {
+        SCLogWarning(SC_ERR_DEPRECATED_CONF,
+            "Found deprecated eve-log setting \"sensor-name\". "
+            "Please set sensor-name globally.");
+    }
+    else {
+        ConfGet("sensor-name", (char **)&sensor_name);
+    }
 
     if (unlikely(json_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");
