@@ -160,7 +160,7 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
             /** Get the first IP address from the chain */
             p_xff = memchr(xff_chain, ',', bstr_len(h_xff->value));
             if (p_xff != NULL) {
-                xff_chain[bstr_len(h_xff->value) - (p_xff - xff_chain)]=0;
+                *p_xff = 0;
             }
             p_xff = xff_chain;
         }
