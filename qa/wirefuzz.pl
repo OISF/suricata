@@ -99,7 +99,7 @@ sub parseopts {
         @tmpfiles = <$config{r}>;
         if(@tmpfiles eq 0){
             print "parseopts: Pcap filemask was invalid we couldn't find any matching files\n";
-            exit;
+            exit(1);
         } else {
             #escapes for filenames
             foreach my $file (@tmpfiles) {
@@ -144,7 +144,7 @@ sub parseopts {
         }
         else {
             print "parseopts: suricata bin file is not a text or a bin exiting.\n";
-            exit;
+            exit(1);
         }
     }
     else {
@@ -228,7 +228,7 @@ sub parseopts {
         }
         else {
             print "parseopts: error ratio specified but outside of range. Valid range is 0.00-1.0\n";
-            exit;
+            exit(1);
         }
     }
     else {
@@ -383,7 +383,7 @@ while ( $successcnt < $loopnum ) {
                 #this could still cause us to loop forever if all pcaps are bad but it's better than nothing.
                 if ( @files < 2 ) {
                     print "editcap: had an error and this was our only pcap:" . $editcaperr . "\n";
-                    exit;
+                    exit(1);
                 }
                 else {
                     print "editcap: had an error going to the next pcap:" . $editcaperr . "\n";
@@ -392,7 +392,7 @@ while ( $successcnt < $loopnum ) {
             }
             elsif ( $editcap_sys_signal eq 2 ) {
                 print "editcap: system() got a ctl+c we are bailing as well\n";
-                exit;
+                exit(1);
 
             }
             else {
@@ -519,7 +519,7 @@ while ( $successcnt < $loopnum ) {
                 }else{
                     &generate_report($report, $fullcmd, $out, $err, $exit, "none");
                 }
-                exit;
+                exit(1);
             }
         }
         elsif ( $suricata_sys_signal eq 2 ) {
