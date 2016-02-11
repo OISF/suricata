@@ -200,7 +200,7 @@ sub parseopts {
 
     #log dir does it exist
     if ( $config{l} && -e $config{l} ) {
-        $logdir = $config{l};
+        $logdir = $config{l} . "/";
         print "parseopts: using log dir " . $logdir . "\n";
     }
     else {
