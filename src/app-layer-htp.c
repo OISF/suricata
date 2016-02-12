@@ -1552,6 +1552,19 @@ next:
                     (uint8_t *) "\r\n\r\n", 4);
         }
     }
+
+    /* if we're parsing the multipart and we're not currently processing a
+     * file, we move the body pointer forward. */
+    if (form_end == NULL && !(htud->tsflags & HTP_FILENAME_SET) && header_start == NULL) {
+        if (chunks_buffer_len > expected_boundary_end_len) {
+            uint32_t move = chunks_buffer_len - expected_boundary_end_len + 1;
+
+            htud->request_body.body_parsed += move;
+            SCLogDebug("form not ready, file not set, parsing non-file "
+                    "record: moved %u", move);
+        }
+    }
+
 end:
     if (expected_boundary != NULL) {
         HTPFree(expected_boundary, expected_boundary_len);
