@@ -49,6 +49,10 @@
 #include <stdio.h>
 #endif
 
+#if HAVE_STDDEF_H
+#include <stddef.h>
+#endif
+
 #if HAVE_STDINT_h
 #include <stdint.h>
 #endif

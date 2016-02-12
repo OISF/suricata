@@ -147,6 +147,7 @@
     # Checks for libraries.
 
     # Checks for header files.
+    AC_CHECK_HEADERS([stddef.h])
     AC_CHECK_HEADERS([arpa/inet.h assert.h ctype.h errno.h fcntl.h inttypes.h])
     AC_CHECK_HEADERS([getopt.h])
     AC_CHECK_HEADERS([limits.h netdb.h netinet/in.h poll.h sched.h signal.h])
