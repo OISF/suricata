@@ -214,13 +214,13 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                         uint16_t sni_len = ntohs(*(uint16_t *)input);
                         input += 2;
 
+                        if (!(HAS_SPACE(sni_len)))
+                            goto end;
+
                         size_t sni_strlen = sni_len + 1;
                         ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
 
                         if (unlikely(ssl_state->curr_connp->sni == NULL))
-                            goto end;
-
-                        if (!(HAS_SPACE(sni_len)))
                             goto end;
 
                         memcpy(ssl_state->curr_connp->sni, input,
