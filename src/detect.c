@@ -3212,8 +3212,10 @@ void RulesDumpGrouping(const DetectEngineCtx *de_ctx)
                             0
 #endif
                             );
-    if (unlikely(js_s == NULL))
+    if (unlikely(js_s == NULL)) {
+        fclose(fp);
         return;
+    }
 
     json_object_clear(js);
     json_decref(js);
