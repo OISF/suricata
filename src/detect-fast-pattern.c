@@ -1038,7 +1038,6 @@ int DetectFastPatternTest14(void)
 
     FlowInitConfig(FLOW_QUIET);
 
-    de_ctx->mpm_matcher = MPM_B3G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
