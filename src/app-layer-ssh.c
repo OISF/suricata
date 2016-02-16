@@ -2109,13 +2109,13 @@ static int SSHParserTest19(void)
         goto end;
     }
 
-    char *name = SCMalloc(256);
+    char *name = SCCalloc(1, 256);
     if (name == NULL)
         goto end;
-    memset(name, 0x00, 256);
-    strlcpy(name, (char *)sshbuf3, strlen((char *)sshbuf3) - 1);
+    strlcpy(name, (char *)sshbuf3, 256);
+    name[strlen(name) - 1] = '\0'; // strip \r
 
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, name, strlen(name)) != 0) {
+    if (strcmp((char*)ssh_state->srv_hdr.software_version, name) != 0) {
         printf("Client version string not parsed correctly: ");
         goto end;
     }
