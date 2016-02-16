@@ -704,6 +704,9 @@ static int StatsOutput(ThreadVars *tv)
 
             uint32_t offset = (thread * stats_table.nstats) + c;
             StatsRecord *r = &stats_table.tstats[offset];
+            /* xfer previous value to pvalue and reset value */
+            r->pvalue = r->value;
+            r->value = 0;
             r->name = table[c].name;
             r->tm_name = sts->name;
 
