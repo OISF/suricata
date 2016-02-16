@@ -38,12 +38,11 @@
 
 
 /* Need to get the DEvents[] array */
-#define DETECT_EVENTS
 
 #include "detect-engine-event.h"
 #include "util-unittest.h"
 
-#define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+]+$"
+#define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+.]+$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -252,7 +251,12 @@ static void DetectEngineEventFree(void *ptr)
 */
 static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    return _DetectEngineEventSetup(de_ctx, s, rawstr, DETECT_DECODE_EVENT);
+    char drawstr[MAX_SUBSTRINGS * 2] = "decoder.";
+
+    /* decoder:$EVENT alias command develop as decode-event:decoder.$EVENT */
+    strlcat(drawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("decoder.") - 1);
+
+    return _DetectEngineEventSetup(de_ctx, s, drawstr, DETECT_DECODE_EVENT);
 }
 
 /**
@@ -279,7 +283,7 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
 int EngineEventTestParse01 (void)
 {
     DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("ipv4.pkt_too_small");
+    de = DetectEngineEventParse("decoder.ipv4.pkt_too_small");
     if (de) {
         DetectEngineEventFree(de);
         return 1;
@@ -295,7 +299,7 @@ int EngineEventTestParse01 (void)
 int EngineEventTestParse02 (void)
 {
     DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("PPP.pkt_too_small");
+    de = DetectEngineEventParse("decoder.PPP.pkt_too_small");
     if (de) {
         DetectEngineEventFree(de);
         return 1;
@@ -310,7 +314,7 @@ int EngineEventTestParse02 (void)
 int EngineEventTestParse03 (void)
 {
     DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("IPV6.PKT_TOO_SMALL");
+    de = DetectEngineEventParse("decoder.IPV6.PKT_TOO_SMALL");
     if (de) {
         DetectEngineEventFree(de);
         return 1;
@@ -325,7 +329,7 @@ int EngineEventTestParse03 (void)
 int EngineEventTestParse04 (void)
 {
     DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("IPV6.INVALID_EVENT");
+    de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
     if (de) {
         DetectEngineEventFree(de);
         return 1;
@@ -340,7 +344,7 @@ int EngineEventTestParse04 (void)
 int EngineEventTestParse05 (void)
 {
     DetectEngineEventData *de = NULL;
-    de = DetectEngineEventParse("IPV-6,INVALID_CHAR");
+    de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
     if (de) {
         DetectEngineEventFree(de);
         return 1;
@@ -368,7 +372,7 @@ int EngineEventTestParse06 (void)
 
     ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
-    de = DetectEngineEventParse("ppp.pkt_too_small");
+    de = DetectEngineEventParse("decoder.ppp.pkt_too_small");
     if (de == NULL)
         goto error;
 
