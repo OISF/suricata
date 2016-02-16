@@ -129,7 +129,6 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
 static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
 
     if (unlikely(p->flow == NULL)) {
@@ -161,7 +160,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     JsonTlsLogJSONBasic(tjs, ssl_state);
 
@@ -171,7 +170,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     json_object_set_new(js, "tls", tjs);
 
-    OutputJSONBuffer(js, tls_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, tls_ctx->file_ctx, &aft->buffer);
     json_object_clear(js);
     json_decref(js);
 

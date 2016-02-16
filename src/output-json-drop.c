@@ -85,7 +85,6 @@ typedef struct JsonDropLogThread_ {
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     uint16_t proto = 0;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
@@ -97,7 +96,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     if (PKT_IS_IPV4(p)) {
         json_object_set_new(djs, "len", json_integer(IPV4_GET_IPLEN(p)));
@@ -168,7 +167,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);

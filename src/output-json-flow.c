@@ -313,10 +313,9 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonFlowLogThread *jhl = (JsonFlowLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(jhl->buffer);
 
     json_t *js = CreateJSONHeaderFromFlow(f, "flow"); //TODO const
     if (unlikely(js == NULL))
@@ -324,7 +323,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     JsonFlowLogJSON(jhl, js, f);
 
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "http");
 
     json_object_clear(js);

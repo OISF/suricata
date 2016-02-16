@@ -73,8 +73,6 @@ typedef struct LogDnsLogThread_ {
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
-
     SCLogDebug("got a DNS request and now logging !!");
 
     json_t *djs = json_object();
@@ -83,7 +81,7 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     /* type */
     json_object_set_new(djs, "type", json_string("query"));
@@ -109,13 +107,12 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "dns");
 }
 
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = json_object();
     if (js == NULL)
         return;
@@ -179,9 +176,9 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(djs, "dns");
 
     return;
@@ -189,7 +186,6 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
 
 static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSQueryEntry *entry)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = json_object();
     if (js == NULL)
         return;
@@ -214,9 +210,9 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx,
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(djs, "dns");
 
     return;

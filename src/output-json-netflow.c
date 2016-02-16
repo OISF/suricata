@@ -289,26 +289,25 @@ static int JsonNetFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonNetFlowLogThread *jhl = (JsonNetFlowLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(jhl->buffer);
     json_t *js = CreateJSONHeaderFromFlow(f, "netflow", 0); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToServer(jhl, js, f);
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
     json_decref(js);
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(jhl->buffer);
     js = CreateJSONHeaderFromFlow(f, "netflow", 1); //TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
     JsonNetFlowLogJSONToClient(jhl, js, f);
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "netflow");
     json_object_clear(js);
     json_decref(js);

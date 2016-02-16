@@ -95,7 +95,6 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
 {
     SCEnter();
     JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     const char delta_suffix[] = "_delta";
 
     struct timeval tval;
@@ -185,8 +184,8 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
 
     json_object_set_new(js, "stats", js_stats);
 
-    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, buffer);
-    MemBufferReset(buffer);
+    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, &aft->buffer);
+    MemBufferReset(aft->buffer);
 
     json_object_clear(js_stats);
     json_object_del(js, "stats");

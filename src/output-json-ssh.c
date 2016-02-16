@@ -93,7 +93,6 @@ void JsonSshLogJSON(json_t *tjs, SshState *ssh_state)
 static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonSshLogThread *aft = (JsonSshLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     OutputSshCtx *ssh_ctx = aft->sshlog_ctx;
 
     if (unlikely(p->flow == NULL)) {
@@ -125,13 +124,13 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     JsonSshLogJSON(tjs, ssh_state);
 
     json_object_set_new(js, "ssh", tjs);
 
-    OutputJSONBuffer(js, ssh_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
     json_object_clear(js);
     json_decref(js);
 

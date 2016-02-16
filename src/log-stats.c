@@ -118,7 +118,7 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 
             /* since we can have many threads, the buffer might not be big enough.
              * Expand if necessary. */
-            if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
+            if (MEMBUFFER_OFFSET(aft->buffer) + len >= MEMBUFFER_SIZE(aft->buffer)) {
                 MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
             }
 
@@ -144,7 +144,7 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 
                 /* since we can have many threads, the buffer might not be big enough.
                  * Expand if necessary. */
-                if (MEMBUFFER_OFFSET(aft->buffer) + len > MEMBUFFER_SIZE(aft->buffer)) {
+                if (MEMBUFFER_OFFSET(aft->buffer) + len >= MEMBUFFER_SIZE(aft->buffer)) {
                     MemBufferExpand(&aft->buffer, OUTPUT_BUFFER_SIZE);
                 }
 

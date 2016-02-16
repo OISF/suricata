@@ -57,7 +57,6 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 {
     TemplateTransaction *templatetx = tx;
     LogTemplateLogThread *thread = thread_data;
-    MemBuffer *buffer = thread->buffer;
     json_t *js, *templatejs;
 
     SCLogNotice("Logging template transaction %"PRIu64".", templatetx->tx_id);
@@ -91,8 +90,8 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 
     json_object_set_new(js, "template", templatejs);
 
-    MemBufferReset(buffer);
-    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, buffer);
+    MemBufferReset(thread->buffer);
+    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
 
     json_decref(js);
     return TM_ECODE_OK;

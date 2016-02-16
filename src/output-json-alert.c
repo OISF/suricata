@@ -362,7 +362,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             }
         }
 
-        OutputJSONBuffer(js, aft->file_ctx, aft->json_buffer);
+        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
         json_object_del(js, "alert");
     }
     json_object_clear(js);
@@ -373,7 +373,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
 static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
-    MemBuffer *buffer = (MemBuffer *)aft->json_buffer;
     int i;
     char timebuf[64];
     json_t *js;
@@ -384,7 +383,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
     CreateIsoTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     for (i = 0; i < p->alerts.cnt; i++) {
-        MemBufferReset(buffer);
+        MemBufferReset(aft->json_buffer);
 
         const PacketAlert *pa = &p->alerts.alerts[i];
         if (unlikely(pa->s == NULL)) {
@@ -436,7 +435,7 @@ static int AlertJsonDecoderEvent(ThreadVars *tv, JsonAlertLogThread *aft, const 
 
         /* alert */
         json_object_set_new(js, "alert", ajs);
-        OutputJSONBuffer(js, aft->file_ctx, buffer);
+        OutputJSONBuffer(js, aft->file_ctx, &aft->json_buffer);
         json_object_clear(js);
         json_decref(js);
     }
