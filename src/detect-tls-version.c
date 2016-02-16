@@ -201,6 +201,7 @@ DetectTlsVersionData *DetectTlsVersionParse (char *str)
             temp = TLS_VERSION_12;
         } else {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
+            SCFree(orig);
             goto error;
         }
 
