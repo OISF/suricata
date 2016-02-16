@@ -1,4 +1,6 @@
 language: c
+env:
+  - CFLAGS="-Wall -Wextra -Werror -Wno-unused-parameter -Wno-unused-function"
 compiler:
   - gcc
   - clang
