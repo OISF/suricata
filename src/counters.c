@@ -105,6 +105,7 @@ void StatsReleaseCounters(StatsCounter *head);
  *  loggers. Initialized at first use. */
 static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
 static SCMutex stats_table_mutex = SCMUTEX_INITIALIZER;
+static int stats_loggers_active = 1;
 
 static uint16_t counters_global_id = 0;
 
@@ -234,9 +235,18 @@ static void StatsInitCtx(void)
     }
 
     if (!OutputStatsLoggersRegistered()) {
-        SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
-        stats_enabled = FALSE;
-        SCReturn;
+        stats_loggers_active = 0;
+
+        /* if the unix command socket is enabled we do the background
+         * stats sync just in case someone runs 'dump-counters' */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 0) {
+            SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
+            stats_enabled = FALSE;
+            SCReturn;
+        }
     }
 
     /* Store the engine start time */
@@ -760,7 +770,9 @@ static int StatsOutput(ThreadVars *tv)
     }
 
     /* invoke logger(s) */
-    OutputStatsLog(tv, td, &stats_table);
+    if (stats_loggers_active) {
+        OutputStatsLog(tv, td, &stats_table);
+    }
     return 1;
 }
 
