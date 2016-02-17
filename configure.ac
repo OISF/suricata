@@ -57,7 +57,7 @@
 
     case "$compiler" in
         clang)
-            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration"
+            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
             AC_MSG_CHECKING([clang __sync_bool_compare_and_swap support])
             AC_TRY_COMPILE([#include <stdio.h>],
                 [ unsigned int i = 0; (void)__sync_bool_compare_and_swap(&i, 1, 1);],
@@ -470,7 +470,7 @@
         LDFLAGS="${LDFLAGS} -L${with_libpcre_libraries}"
     fi
     PCRE=""
-    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no",-lpthread)
+    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
     if test "$PCRE" = "no"; then
         echo
         echo "   ERROR!  pcre library not found, go get it"
@@ -997,7 +997,7 @@
     AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
 
     LIBPCAP=""
-    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
+    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
     if test "$LIBPCAP" = "no"; then
         echo
         echo "   ERROR!  libpcap library not found, go get it"
