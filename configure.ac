@@ -1600,8 +1600,14 @@
                 LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
             fi
 
-            AC_DEFINE([HAVE_LUA],[1],[liblua available])
-            enable_lua="yes"
+            if test "$LUA" = "no"; then
+                AC_CHECK_LIB(lua, luaL_openlibs,, LUA="no")
+            fi
+
+            if test "$LUA" = "yes"; then
+                AC_DEFINE([HAVE_LUA],[1],[liblua available])
+                enable_lua="yes"
+            fi
         else
 	        echo
                 echo "   ERROR!  liblua headers not found, go get them"
