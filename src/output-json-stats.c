@@ -50,10 +50,6 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define JSON_STATS_TOTALS  (1<<0)
-#define JSON_STATS_THREADS (1<<1)
-#define JSON_STATS_DELTAS  (1<<2)
-
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
