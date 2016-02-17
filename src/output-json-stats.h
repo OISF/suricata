@@ -24,6 +24,11 @@
 #ifndef __OUTPUT_JSON_COUNTERS_H__
 #define __OUTPUT_JSON_COUNTERS_H__
 
+#include "output-stats.h"
+
+#ifdef HAVE_LIBJANSSON
+json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
+#endif
 void TmModuleJsonStatsLogRegister (void);
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */
