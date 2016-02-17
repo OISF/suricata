@@ -36,7 +36,10 @@
 #include "util-privs.h"
 #include "util-signal.h"
 #include "unix-manager.h"
+
 #include "output.h"
+#include "output-stats.h"
+#include "output-json-stats.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3
@@ -101,6 +104,7 @@ void StatsReleaseCounters(StatsCounter *head);
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
 static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
+static SCMutex stats_table_mutex = SCMUTEX_INITIALIZER;
 
 static uint16_t counters_global_id = 0;
 
@@ -359,7 +363,9 @@ static void *StatsMgmtThread(void *arg)
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
+        SCMutexLock(&stats_table_mutex);
         StatsOutput(tv_local);
+        SCMutexUnlock(&stats_table_mutex);
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             run = 0;
@@ -757,15 +763,25 @@ static int StatsOutput(ThreadVars *tv)
 }
 
 #ifdef BUILD_UNIX_SOCKET
-/**
- *  \todo reimplement this, probably based on stats-json
+/** \brief callback for getting stats into unix socket
  */
 TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    json_object_set_new(answer, "message",
-            json_string("not implemented"));
-    return TM_ECODE_FAILED;
+    json_t *message = NULL;
+    TmEcode r = TM_ECODE_OK;
+
+    SCMutexLock(&stats_table_mutex);
+    if (stats_table.start_time == 0) {
+        r = TM_ECODE_FAILED;
+        message = json_string("stats not yet synchronized");
+    } else {
+        message = StatsToJSON(&stats_table, 1);
+    }
+    SCMutexUnlock(&stats_table_mutex);
+
+    json_object_set_new(answer, "message", message);
+    return r;
 }
 #endif /* BUILD_UNIX_SOCKET */
 
