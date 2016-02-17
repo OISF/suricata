@@ -45,6 +45,7 @@
 #include "util-crypt.h"
 
 #include "output-json.h"
+#include "output-json-stats.h"
 
 #define MODULE_NAME "JsonStatsLog"
 
