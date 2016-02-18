@@ -6,7 +6,7 @@ var server = require("gulp-webserver")
 gulp.task("watch", function(cb) {
     watch(["*.rst", "*/*.rst"], function() {
 	console.log("Changed.");
-	spawn("make", ["html"], {
+	spawn("make", ["-f", "Makefile.sphinx", "html"], {
 	    stdio: "inherit",
 	    stderr: "inherit"
 	});

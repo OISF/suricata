@@ -1,3 +1,5 @@
+SUBDIRS = userguide
+
 EXTRA_DIST = \
 AUTHORS \
 GITGUIDE \
