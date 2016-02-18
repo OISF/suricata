@@ -77,4 +77,3 @@ http://www.thegeekstuff.com/2009/05/15-advanced-postgresql-commands-with-example
 now you can go ahead and execute the script - :ref:`Script FollowJSON <script-follow-json>`
 
 Peter Manev
-
