@@ -333,18 +333,13 @@ json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event
     return js;
 }
 
-/* helper struct for the callback */
-typedef struct MemBufferWrapper_ {
-    MemBuffer **buffer;
-} MemBufferWrapper;
-
-static int MemBufferCallback(const char *str, size_t size, void *data)
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
 {
-    MemBufferWrapper *wrapper = data;
+    OutputJSONMemBufferWrapper *wrapper = data;
     MemBuffer **memb = wrapper->buffer;
 
     if (MEMBUFFER_OFFSET(*memb) + size >= MEMBUFFER_SIZE(*memb)) {
-        MemBufferExpand(memb, OUTPUT_BUFFER_SIZE);
+        MemBufferExpand(memb, wrapper->expand_by);
     }
 
     MemBufferWriteRaw((*memb), str, size);
@@ -362,9 +357,12 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
 
-    MemBufferWrapper wrapper = { .buffer = buffer };
+    OutputJSONMemBufferWrapper wrapper = {
+        .buffer = buffer,
+        .expand_by = OUTPUT_BUFFER_SIZE
+    };
 
-    int r = json_dump_callback(js, MemBufferCallback, &wrapper,
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
 #ifdef JSON_ESCAPE_SLASH
                             JSON_ESCAPE_SLASH
