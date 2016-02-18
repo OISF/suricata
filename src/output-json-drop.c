@@ -59,7 +59,6 @@
 #define MODULE_NAME "JsonDropLog"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define LOG_DROP_ALERTS 1
 

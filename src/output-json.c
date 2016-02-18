@@ -109,8 +109,6 @@ void OutputJsonRegisterTests (void)
 
 #else /* implied we do have JSON support */
 
-#include <jansson.h>
-
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0

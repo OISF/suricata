@@ -69,7 +69,6 @@
 #define MODULE_NAME "JsonAlertLog"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define LOG_JSON_PAYLOAD 1
 #define LOG_JSON_PACKET 2
