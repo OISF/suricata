@@ -210,6 +210,10 @@
 #endif
 #endif /* !__CYGWIN__ */
 
+#ifdef HAVE_LIBJANSSON
+#include <jansson.h>
+#endif
+
 #if CPPCHECK==1
 #define BUG_ON(x) if (((x))) exit(1)
 #else
@@ -288,6 +292,10 @@
 
 #ifndef MIN
 #define MIN(x, y) (((x)<(y))?(x):(y))
+#endif
+
+#ifndef MAX
+#define MAX(x, y) (((x)<(y))?(y):(x))
 #endif
 
 typedef enum PacketProfileDetectId_ {
