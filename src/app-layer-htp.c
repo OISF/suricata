@@ -2127,7 +2127,7 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0)
+    if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
@@ -2164,7 +2164,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0)
+    if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
