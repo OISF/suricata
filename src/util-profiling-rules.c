@@ -341,12 +341,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
 
     char *js_s = json_dumps(js,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-            JSON_ESCAPE_SLASH
-#else
-            0
-#endif
-            );
+            JSON_ESCAPE_SLASH);
 
     if (unlikely(js_s == NULL))
         return;

@@ -290,12 +290,7 @@ int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
 
     int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
+            JSON_ESCAPE_SLASH);
     if (r != 0) {
         SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
         return -1;
