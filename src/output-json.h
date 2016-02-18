@@ -33,6 +33,14 @@ void TmModuleOutputJsonRegister (void);
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
+/* helper struct for OutputJSONMemBufferCallback */
+typedef struct OutputJSONMemBufferWrapper_ {
+    MemBuffer **buffer; /**< buffer to use & expand as needed */
+    size_t expand_by;   /**< expand by this size */
+} OutputJSONMemBufferWrapper;
+
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
+
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
