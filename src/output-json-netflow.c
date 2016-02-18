@@ -49,7 +49,6 @@
 #include "stream-tcp-private.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;

@@ -52,7 +52,6 @@
 #include "output-json-email-common.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {

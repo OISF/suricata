@@ -39,7 +39,6 @@
 #include "app-layer-template.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;

@@ -24,14 +24,20 @@
 #ifndef __OUTPUT_JSON_H__
 #define __OUTPUT_JSON_H__
 
-void TmModuleOutputJsonRegister (void);
-
-#ifdef HAVE_LIBJANSSON
-
-#include <jansson.h>
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
+
+void TmModuleOutputJsonRegister (void);
+
+#ifdef HAVE_LIBJANSSON
+/* helper struct for OutputJSONMemBufferCallback */
+typedef struct OutputJSONMemBufferWrapper_ {
+    MemBuffer **buffer; /**< buffer to use & expand as needed */
+    size_t expand_by;   /**< expand by this size */
+} OutputJSONMemBufferWrapper;
+
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
 
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);

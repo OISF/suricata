@@ -28,7 +28,6 @@ void TmModuleJsonTlsLogRegister (void);
 
 #ifdef HAVE_LIBJANSSON
 #include "app-layer-ssl.h"
-#include <jansson.h>
 
 void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state);
 void JsonTlsLogJSONExtended(json_t *js, SSLState *ssl_state);

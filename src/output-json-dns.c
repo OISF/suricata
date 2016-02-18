@@ -51,7 +51,6 @@
 #include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 /* we can do query logging as well, but it's disabled for now as the
  * TX id handling doesn't expect it */

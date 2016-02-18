@@ -50,7 +50,6 @@
 #include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 SC_ATOMIC_DECLARE(unsigned int, cert_id);
 

@@ -36,7 +36,10 @@
 #include "util-privs.h"
 #include "util-signal.h"
 #include "unix-manager.h"
+
 #include "output.h"
+#include "output-stats.h"
+#include "output-json-stats.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3
@@ -101,6 +104,8 @@ void StatsReleaseCounters(StatsCounter *head);
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
 static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
+static SCMutex stats_table_mutex = SCMUTEX_INITIALIZER;
+static int stats_loggers_active = 1;
 
 static uint16_t counters_global_id = 0;
 
@@ -230,9 +235,18 @@ static void StatsInitCtx(void)
     }
 
     if (!OutputStatsLoggersRegistered()) {
-        SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
-        stats_enabled = FALSE;
-        SCReturn;
+        stats_loggers_active = 0;
+
+        /* if the unix command socket is enabled we do the background
+         * stats sync just in case someone runs 'dump-counters' */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 0) {
+            SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
+            stats_enabled = FALSE;
+            SCReturn;
+        }
     }
 
     /* Store the engine start time */
@@ -280,6 +294,7 @@ static void StatsReleaseCtx()
     SCFree(stats_ctx);
     stats_ctx = NULL;
 
+    SCMutexLock(&stats_table_mutex);
     /* free stats table */
     if (stats_table.tstats != NULL) {
         SCFree(stats_table.tstats);
@@ -291,6 +306,7 @@ static void StatsReleaseCtx()
         stats_table.stats = NULL;
     }
     memset(&stats_table, 0, sizeof(stats_table));
+    SCMutexUnlock(&stats_table_mutex);
 
     return;
 }
@@ -359,7 +375,9 @@ static void *StatsMgmtThread(void *arg)
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
+        SCMutexLock(&stats_table_mutex);
         StatsOutput(tv_local);
+        SCMutexUnlock(&stats_table_mutex);
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             run = 0;
@@ -752,20 +770,32 @@ static int StatsOutput(ThreadVars *tv)
     }
 
     /* invoke logger(s) */
-    OutputStatsLog(tv, td, &stats_table);
+    if (stats_loggers_active) {
+        OutputStatsLog(tv, td, &stats_table);
+    }
     return 1;
 }
 
 #ifdef BUILD_UNIX_SOCKET
-/**
- *  \todo reimplement this, probably based on stats-json
+/** \brief callback for getting stats into unix socket
  */
 TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    json_object_set_new(answer, "message",
-            json_string("not implemented"));
-    return TM_ECODE_FAILED;
+    json_t *message = NULL;
+    TmEcode r = TM_ECODE_OK;
+
+    SCMutexLock(&stats_table_mutex);
+    if (stats_table.start_time == 0) {
+        r = TM_ECODE_FAILED;
+        message = json_string("stats not yet synchronized");
+    } else {
+        message = StatsToJSON(&stats_table, JSON_STATS_TOTALS|JSON_STATS_THREADS);
+    }
+    SCMutexUnlock(&stats_table_mutex);
+
+    json_object_set_new(answer, "message", message);
+    return r;
 }
 #endif /* BUILD_UNIX_SOCKET */
 

@@ -109,8 +109,6 @@ void OutputJsonRegisterTests (void)
 
 #else /* implied we do have JSON support */
 
-#include <jansson.h>
-
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
@@ -335,18 +333,13 @@ json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event
     return js;
 }
 
-/* helper struct for the callback */
-typedef struct MemBufferWrapper_ {
-    MemBuffer **buffer;
-} MemBufferWrapper;
-
-static int MemBufferCallback(const char *str, size_t size, void *data)
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
 {
-    MemBufferWrapper *wrapper = data;
+    OutputJSONMemBufferWrapper *wrapper = data;
     MemBuffer **memb = wrapper->buffer;
 
     if (MEMBUFFER_OFFSET(*memb) + size >= MEMBUFFER_SIZE(*memb)) {
-        MemBufferExpand(memb, OUTPUT_BUFFER_SIZE);
+        MemBufferExpand(memb, wrapper->expand_by);
     }
 
     MemBufferWriteRaw((*memb), str, size);
@@ -364,16 +357,14 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
         MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
     }
 
-    MemBufferWrapper wrapper = { .buffer = buffer };
+    OutputJSONMemBufferWrapper wrapper = {
+        .buffer = buffer,
+        .expand_by = OUTPUT_BUFFER_SIZE
+    };
 
-    int r = json_dump_callback(js, MemBufferCallback, &wrapper,
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
+            JSON_ESCAPE_SLASH);
     if (r != 0)
         return TM_ECODE_OK;
 

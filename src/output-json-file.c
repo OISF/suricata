@@ -65,7 +65,6 @@
 #include "stream-tcp-reassemble.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct OutputFileCtx_ {
     LogFileCtx *file_ctx;
