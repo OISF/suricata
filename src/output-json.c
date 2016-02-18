@@ -364,12 +364,7 @@ int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 
     int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
+            JSON_ESCAPE_SLASH);
     if (r != 0)
         return TM_ECODE_OK;
 

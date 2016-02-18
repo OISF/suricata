@@ -212,6 +212,9 @@
 
 #ifdef HAVE_LIBJANSSON
 #include <jansson.h>
+#ifndef JSON_ESCAPE_SLASH
+#define JSON_ESCAPE_SLASH 0
+#endif
 #endif
 
 #if CPPCHECK==1
