@@ -54,7 +54,6 @@
 #include "output-json-email-common.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)

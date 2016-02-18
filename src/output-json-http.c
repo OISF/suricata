@@ -50,7 +50,6 @@
 #include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
