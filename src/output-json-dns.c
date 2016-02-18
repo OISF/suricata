@@ -161,7 +161,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
         } else if (entry->data_len == 0) {
             json_object_set_new(js, "rdata", json_string(""));
         } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME ||
-                    entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR) {
+                   entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR ||
+                   entry->type == DNS_RECORD_TYPE_NS) {
             if (entry->data_len != 0) {
                 char buffer[256] = "";
                 uint16_t copy_len = entry->data_len < (sizeof(buffer) - 1) ?
