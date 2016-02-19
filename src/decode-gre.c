@@ -262,6 +262,19 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
             break;
         }
 
+        case ETHERNET_TYPE_BRIDGE:
+            {
+                if (pq != NULL) {
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, DECODE_TUNNEL_ETHERNET, pq);
+                    if (tp != NULL) {
+                        PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
+                        PacketEnqueue(pq,tp);
+                    }
+                }
+                break;
+            }
+
         default:
             return TM_ECODE_OK;
     }
