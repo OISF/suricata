@@ -479,6 +479,19 @@
         exit 1
     fi
 
+    # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
+    # see https://redmine.openinfosecfoundation.org/issues/1693
+    PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
+    if test "$libpcre_buggy_found" = "yes"; then
+        echo
+        echo "   Warning! libpcre version 8.35 found"
+        echo "   This version has a known issue that could result in segfaults"
+        echo "   please upgrade to a newer version of pcre which you can get from"
+        echo "   www.pcre.org."
+        echo "   Continuing for now...."
+        echo
+    fi
+
     # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
     # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
     PCRE=""
