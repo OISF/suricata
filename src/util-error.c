@@ -314,6 +314,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_INVALID_RULE_ARGUMENT);
         CASE_CODE (SC_ERR_STATS_LOG_NEGATED);
         CASE_CODE (SC_ERR_JSON_STATS_LOG_NEGATED);
+        CASE_CODE (SC_ERR_DEPRECATED_CONF);
     }
 
     return "UNKNOWN_ERROR";

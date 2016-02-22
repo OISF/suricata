@@ -29,7 +29,6 @@
 
 void TmModuleJsonAlertLogRegister (void);
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
 #endif /* HAVE_LIBJANSSON */
 
