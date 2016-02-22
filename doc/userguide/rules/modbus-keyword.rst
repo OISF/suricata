@@ -84,4 +84,4 @@ stream reassembling as unlimited (stream.reassembly.depth: 0)
 (cf. http://www.modbus.org/docs/Modbus_Messaging_Implementation_Guide_V1_0b.pdf)
 
 Paper and presentation (in french) on Modbus support are available :
-http://www.ssi.gouv.fr/fr/anssi/publications/publications-scientifiques/articles-de-conferences/detection-d-intrusion-dans-les-systemes-industriels-suricata-et-le-cas-modbus.html
+http://www.ssi.gouv.fr/agence/publication/detection-dintrusion-dans-les-systemes-industriels-suricata-et-le-cas-modbus/
