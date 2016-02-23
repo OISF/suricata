@@ -709,7 +709,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->tv = tv;
 
     int r = NFQInitThread(ntv, (max_pending_packets * NFQ_BURST_FACTOR));
-    if (r < 0) {
+    if (r != 0) {
         SCLogError(SC_ERR_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 
         SCMutexUnlock(&nfq_init_lock);
