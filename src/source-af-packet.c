@@ -782,6 +782,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+        p->pkt_mode = PKT_MODE_AUTO;
 
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
@@ -1681,7 +1682,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
     strlcpy(ptv->iface, afpconfig->iface, AFP_IFACE_NAME_LENGTH);
     ptv->iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
 
-    ptv->livedev = LiveGetDevice(ptv->iface);
+    ptv->livedev = LiveGetDevice(ptv->iface, RUNMODE_AFP_DEV);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);

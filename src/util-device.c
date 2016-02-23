@@ -42,7 +42,7 @@ static int live_devices_stats = 1;
  *  \retval 0 on success.
  *  \retval -1 on failure.
  */
-int LiveRegisterDevice(const char *dev)
+int LiveRegisterDevice(char *dev, enum RunModes runmode)
 {
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
@@ -54,6 +54,8 @@ int LiveRegisterDevice(const char *dev)
         SCFree(pd);
         return -1;
     }
+    pd->runmode = runmode;
+
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
@@ -69,13 +71,15 @@ int LiveRegisterDevice(const char *dev)
  *
  *  \retval cnt the number of registered devices
  */
-int LiveGetDeviceCount(void)
+int LiveGetDeviceCount(enum RunModes runmode)
 {
     int i = 0;
     LiveDevice *pd;
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        i++;
+        if (runmode == pd->runmode) {
+            i++;
+        }
     }
 
     return i;
@@ -89,17 +93,19 @@ int LiveGetDeviceCount(void)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-char *LiveGetDeviceName(int number)
+char *LiveGetDeviceName(int number, enum RunModes runmode)
 {
     int i = 0;
     LiveDevice *pd;
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        if (i == number) {
+        if (i == number && runmode == pd->runmode) {
             return pd->dev;
         }
 
-        i++;
+        if (runmode == pd->runmode) {
+            i++;
+        }
     }
 
     return NULL;
@@ -113,7 +119,7 @@ char *LiveGetDeviceName(int number)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-LiveDevice *LiveGetDevice(const char *name)
+LiveDevice *LiveGetDevice(char *name, enum RunModes runmode)
 {
     int i = 0;
     LiveDevice *pd;
@@ -124,24 +130,24 @@ LiveDevice *LiveGetDevice(const char *name)
     }
 
     TAILQ_FOREACH(pd, &live_devices, next) {
-        if (!strcmp(name, pd->dev)) {
+        if (!strcmp(name, pd->dev) && runmode == pd->runmode) {
             return pd;
         }
 
-        i++;
+        if (runmode == pd->runmode) {
+            i++;
+        }
     }
 
     return NULL;
 }
 
-
-
-int LiveBuildDeviceList(const char *runmode)
+int LiveBuildDeviceList(char * runmode, enum RunModes run_mode)
 {
-    return LiveBuildDeviceListCustom(runmode, "interface");
+    return LiveBuildDeviceListCustom(runmode, "interface", run_mode);
 }
 
-int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
+int LiveBuildDeviceListCustom(char * runmode, char * itemname, enum RunModes run_mode)
 {
     ConfNode *base = ConfGetNode(runmode);
     ConfNode *child;
@@ -158,7 +164,7 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
                     break;
                 SCLogInfo("Adding %s %s from config file",
                           itemname, subchild->val);
-                LiveRegisterDevice(subchild->val);
+                LiveRegisterDevice(subchild->val, run_mode);
                 i++;
             }
         }

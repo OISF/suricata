@@ -399,7 +399,7 @@ int AFPConfigGeThreadsCount(void *conf)
 
 int AFPRunModeIsIPS()
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_AFP_DEV);
     int ldev;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
@@ -416,7 +416,7 @@ int AFPRunModeIsIPS()
     if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        char *live_dev = LiveGetDeviceName(ldev);
+        char *live_dev = LiveGetDeviceName(ldev, RUNMODE_AFP_DEV);
         if (live_dev == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
@@ -446,7 +446,7 @@ int AFPRunModeIsIPS()
     if (has_ids && has_ips) {
         SCLogInfo("AF_PACKET mode using IPS and IDS mode");
         for (ldev = 0; ldev < nlive; ldev++) {
-            char *live_dev = LiveGetDeviceName(ldev);
+            char *live_dev = LiveGetDeviceName(ldev, RUNMODE_AFP_DEV);
             if (live_dev == NULL) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
                 return 0;
@@ -501,7 +501,7 @@ int RunModeIdsAFPAutoFp(void)
                               AFPConfigGeThreadsCount,
                               "ReceiveAFP",
                               "DecodeAFP", "RxAFP",
-                              live_dev);
+                              live_dev, RUNMODE_AFP_DEV);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -543,7 +543,7 @@ int RunModeIdsAFPSingle(void)
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
                                     "DecodeAFP", "AFPacket",
-                                    live_dev);
+                                    live_dev, RUNMODE_AFP_DEV);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -588,7 +588,7 @@ int RunModeIdsAFPWorkers(void)
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
                                     "DecodeAFP", "AFPacket",
-                                    live_dev);
+                                    live_dev, RUNMODE_AFP_DEV);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
