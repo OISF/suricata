@@ -306,8 +306,12 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    size_t slen = strlen(regexstr);
-    char re[slen], op_str[64] = "";
+    /* take the size of the whole input as buffer size for the regex we will
+     * extract below. Add 1 to please Coverity's alloc_strlen test. */
+    size_t slen = strlen(regexstr) + 1;
+    char re[slen];
+
+    char op_str[64] = "";
     uint16_t pos = 0;
     uint8_t negate = 0;
 
@@ -591,7 +595,10 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char type_str[16] = "";
-    size_t cap_buffer_len = strlen(regexstr);
+
+    /* take the size of the whole input as buffer size for the string we will
+     * extract below. Add 1 to please Coverity's alloc_strlen test. */
+    size_t cap_buffer_len = strlen(regexstr) + 1;
     char capture_str[cap_buffer_len];
     memset(capture_str, 0x00, cap_buffer_len);
 
