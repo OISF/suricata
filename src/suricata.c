@@ -433,6 +433,7 @@ static int SetBpfString(int optind, char *argv[])
     if(strlen(bpf_filter) > 0) {
         if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
+            SCFree(bpf_filter);
             return TM_ECODE_FAILED;
         }
     }
