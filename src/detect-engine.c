@@ -1334,7 +1334,9 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
             map_cnt = 0;
             map = master->tenant_mapping_list;
             while (map) {
-                BUG_ON(map_cnt > map_array_size);
+                if (map_cnt >= map_array_size) {
+                    goto error;
+                }
                 map_array[map_cnt].traffic_id = map->traffic_id;
                 map_array[map_cnt].tenant_id = map->tenant_id;
                 map_cnt++;
@@ -1351,7 +1353,9 @@ static TmEcode DetectEngineThreadCtxInitForMT(ThreadVars *tv, DetectEngineThread
                 DetectEngineThreadCtx *mt_det_ctx = DetectEngineThreadCtxInitForReload(tv, list, 0);
                 if (mt_det_ctx == NULL)
                     goto error;
-                BUG_ON(HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0);
+                if (HashTableAdd(mt_det_ctxs_hash, mt_det_ctx, 0) != 0) {
+                    goto error;
+                }
             }
             list = list->next;
         }
