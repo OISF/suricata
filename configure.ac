@@ -484,11 +484,12 @@
     PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
     if test "$libpcre_buggy_found" = "yes"; then
         echo
-        echo "   Warning! libpcre version 8.35 found"
+        echo "   Warning! vulnerable libpcre version 8.35 found"
         echo "   This version has a known issue that could result in segfaults"
         echo "   please upgrade to a newer version of pcre which you can get from"
-        echo "   www.pcre.org."
-        echo "   Continuing for now...."
+        echo "   www.pcre.org. For more information, see issue #1693"
+        echo
+        echo "   Continuing for now with JIT disabled..."
         echo
     fi
 
@@ -538,6 +539,11 @@
         ],
         [ pcre_jit_available=yes ], [ pcre_jit_available=no ]
         )
+
+    # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
+    if test "$libpcre_buggy_found" = "yes"; then
+        pcre_jit_available="no, libpcre 8.35 blacklisted"
+    fi
 
     if test "x$pcre_jit_available" = "xyes"; then
        AC_MSG_RESULT(yes)
