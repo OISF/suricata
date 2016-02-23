@@ -419,10 +419,10 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
     int ldev;
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        char *live_dev_c = NULL;
+        const char *live_dev_c = NULL;
         if ((nlive <= 1) && (live_dev != NULL)) {
             aconf = ConfigParser(live_dev);
-            live_dev_c = SCStrdup(live_dev);
+            live_dev_c = live_dev;
             if (unlikely(live_dev_c == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
                 exit(EXIT_FAILURE);
@@ -461,7 +461,7 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
     if (live_dev != NULL) {
         aconf = ConfigParser(live_dev);
     } else {
-        char *live_dev_c = LiveGetDeviceName(0);
+        const char *live_dev_c = LiveGetDeviceName(0);
         aconf = ConfigParser(live_dev_c);
         /* \todo Set threads number in config to 1 */
     }
