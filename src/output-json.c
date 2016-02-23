@@ -435,7 +435,7 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
             "Please set sensor-name globally.");
     }
     else {
-        ConfGet("sensor-name", (char **)&sensor_name);
+        (void)ConfGet("sensor-name", (char **)&sensor_name);
     }
 
     if (unlikely(json_ctx == NULL)) {
