@@ -854,6 +854,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     de_ctx->id = detect_engine_ctx_id++;
     return de_ctx;
 error:
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
     return NULL;
 
 }
