@@ -7,7 +7,7 @@ suricata.yaml to off-load as much work from the CPU's as possible:
 ::
 
   detect-engine:
-    - profile: medium
+    - profile: custom
     - custom-values:
         toclient-src-groups: 200
         toclient-dst-groups: 200
