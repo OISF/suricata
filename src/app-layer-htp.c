@@ -1946,6 +1946,12 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         HtpBodyAppendChunk(tx_ud, &tx_ud->response_body, (uint8_t *)d->data, len);
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+    } else {
+        if (tx_ud->tcflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
+            tx_ud->tcflags &= ~HTP_FILENAME_SET;
+        }
     }
 
     /* set the new chunk flag */
