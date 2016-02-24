@@ -476,10 +476,6 @@ void FlowInitConfig(char quiet)
  *  \warning Not thread safe */
 static void FlowPrintStats (void)
 {
-#ifdef FLOWBITS_STATS
-    SCLogInfo("flowbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
-        flowbits_added, flowbits_removed, flowbits_memuse_max);
-#endif /* FLOWBITS_STATS */
     return;
 }
 

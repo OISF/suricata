@@ -68,16 +68,6 @@ static void FlowBitAdd(Flow *f, uint16_t idx)
         fb->idx = idx;
         fb->next = NULL;
         GenericVarAppend(&f->flowvar, (GenericVar *)fb);
-
-        //printf("FlowBitAdd: adding flowbit with idx %" PRIu32 "\n", idx);
-#ifdef FLOWBITS_STATS
-        SCMutexLock(&flowbits_mutex);
-        flowbits_added++;
-        flowbits_memuse += sizeof(FlowBit);
-        if (flowbits_memuse > flowbits_memuse_max)
-            flowbits_memuse_max = flowbits_memuse;
-        SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
     }
 }
 
@@ -89,19 +79,6 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
 
     GenericVarRemove(&f->flowvar, (GenericVar *)fb);
     FlowBitFree(fb);
-
-    //printf("FlowBitRemove: remove flowbit with idx %" PRIu32 "\n", idx);
-#ifdef FLOWBITS_STATS
-    SCMutexLock(&flowbits_mutex);
-    flowbits_removed++;
-    if (flowbits_memuse >= sizeof(FlowBit))
-        flowbits_memuse -= sizeof(FlowBit);
-    else {
-        printf("ERROR: flowbits memory usage going below 0!\n");
-        flowbits_memuse = 0;
-    }
-    SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
 }
 
 void FlowBitSetNoLock(Flow *f, uint16_t idx)
@@ -179,18 +156,6 @@ void FlowBitFree(FlowBit *fb)
         return;
 
     SCFree(fb);
-
-#ifdef FLOWBITS_STATS
-    SCMutexLock(&flowbits_mutex);
-    flowbits_removed++;
-    if (flowbits_memuse >= sizeof(FlowBit))
-        flowbits_memuse -= sizeof(FlowBit);
-    else {
-        printf("ERROR: flowbits memory usage going below 0!\n");
-        flowbits_memuse = 0;
-    }
-    SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
 }
 
 
