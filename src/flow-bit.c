@@ -88,6 +88,7 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
         return;
 
     GenericVarRemove(&f->flowvar, (GenericVar *)fb);
+    FlowBitFree(fb);
 
     //printf("FlowBitRemove: remove flowbit with idx %" PRIu32 "\n", idx);
 #ifdef FLOWBITS_STATS
