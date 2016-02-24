@@ -218,23 +218,6 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
-{
-    OutputDropLoggerDisable();
-
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(output_ctx);
-}
-
-static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
-{
-    OutputDropLoggerDisable();
-
-    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
-    SCFree(output_ctx);
-}
-
 static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
 {
     if (drop_ctx != NULL) {
@@ -242,6 +225,25 @@ static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
             LogFileFreeCtx(drop_ctx->file_ctx);
         SCFree(drop_ctx);
     }
+}
+
+static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    JsonDropOutputCtx *drop_ctx = output_ctx->data;
+    JsonDropOutputCtxFree(drop_ctx);
+    SCFree(output_ctx);
+}
+
+static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    JsonDropOutputCtx *drop_ctx = output_ctx->data;
+    SCFree(drop_ctx);
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+    SCFree(output_ctx);
 }
 
 #define DEFAULT_LOG_FILENAME "drop.json"
