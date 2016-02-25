@@ -490,7 +490,7 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t exception;
+    uint8_t exception = 0;
 
     /* Exception code (1 byte) */
     if (ModbusExtractUint8(modbus, &exception, input, input_len, offset))
@@ -596,7 +596,7 @@ static void ModbusParseReadResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t count;
+    uint8_t count = 0;
 
     /* Count (1 bytes) */
     if (ModbusExtractUint8(modbus, &count, input, input_len, offset))
@@ -646,8 +646,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
                                    uint16_t            *offset)
 {
     SCEnter();
-    uint16_t    quantity = 1, word;
-    uint8_t     byte, count = 1, type = tx->type;
+    uint16_t    quantity = 1, word = 0;
+    uint8_t     byte = 0, count = 1, type = tx->type;
 
     int i = 0;
 
@@ -773,7 +773,7 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
                                      uint16_t            *offset)
 {
     SCEnter();
-    uint16_t    address, quantity, word;
+    uint16_t    address = 0, quantity = 0, word = 0;
     uint8_t     type = tx->type;
 
     /* Starting Address (2 bytes) */
@@ -863,7 +863,7 @@ static int ModbusParseDiagnosticRequest(ModbusTransaction   *tx,
                                         uint16_t            *offset)
 {
     SCEnter();
-    uint16_t data;
+    uint16_t data = 0;
 
     /* Sub-function (2 bytes) */
     if (ModbusExtractUint16(modbus, &(tx->subFunction), input, input_len, offset))
@@ -961,7 +961,7 @@ static void ModbusParseRequestPDU(ModbusTransaction *tx,
 {
     SCEnter();
     uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
-    uint8_t     count;
+    uint8_t     count = 0;
 
     int i = 0;
 
@@ -1118,7 +1118,7 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
 {
     SCEnter();
     uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
-    uint8_t     count, error = FALSE, function, mei;
+    uint8_t     count = 0, error = FALSE, function = 0, mei = 0;
 
     /* Standard function codes used on MODBUS application layer protocol (1 byte) */
     if (ModbusExtractUint8(modbus, &function, input, input_len, &offset))
