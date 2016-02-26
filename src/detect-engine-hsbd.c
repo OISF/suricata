@@ -3339,7 +3339,7 @@ static int DetectEngineHttpServerBodyTest22(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 matched but shouldn't have\n");
+        printf("sid 1 matched but shouldn't have: ");
         goto end;
     }
 
@@ -3353,8 +3353,8 @@ static int DetectEngineHttpServerBodyTest22(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched but shouldn't have");
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 should have matched: ");
         goto end;
     }
 
