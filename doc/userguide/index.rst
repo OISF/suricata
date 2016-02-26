@@ -20,5 +20,6 @@ Suricata User Guide
    file-extraction/file-extraction.rst
    public-data-sets
    capture-hardware/index.rst
+   manpages/index.rst
    acknowledgements
    licenses/index.rst
