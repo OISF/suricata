@@ -115,7 +115,7 @@ In addition to the extended logging fields one can also choose to enable/add fro
               content-type, date, etags, last-modified, link, location,
               proxy-authenticate, referrer, refresh, retry-after, server,
               set-cookie, trailer, transfer-encoding, upgrade, vary, warning,
-              www-authenticate]
+              www-authenticate, x-flash-version, x-authenticated-user]
 
 
 The benefits here of using the extended logging is to see if this action for example was a POST or perhaps if a download of an executable actually returned any bytes.
