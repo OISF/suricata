@@ -259,8 +259,9 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'suricata', u'Suricata Documentation',
-     [author], 1)
+    # (master_doc, 'suricata', u'Suricata Documentation',
+    #  [author], 1)
+    ("manpages/suricata", "suricata", "Suricata", [], 1)
 ]
 
 # If true, show URL addresses after external links.
