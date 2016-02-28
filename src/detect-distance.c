@@ -70,12 +70,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* strip "'s */
-    if (distancestr[0] == '\"' && distancestr[strlen(distancestr) - 1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (distancestr[0] == '\"') {
         str = SCStrdup(distancestr + 1);
         if (unlikely(str == NULL))
             goto end;
-        str[strlen(distancestr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 
