@@ -240,7 +240,7 @@ static int DecodeVLANtest03 (void)
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
 
 
-    if(p->vlanh == NULL) {
+    if(p->vlanh[0] == NULL) {
         goto error;
     }
 

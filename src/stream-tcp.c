@@ -10253,7 +10253,7 @@ static int StreamTcpTest40(void)
 
     DecodeVLAN(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
 
-    if(p->vlanh == NULL) {
+    if(p->vlanh[0] == NULL) {
         SCFree(p);
         return 0;
     }
