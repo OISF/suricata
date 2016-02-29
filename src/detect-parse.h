@@ -67,5 +67,13 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
 const char *DetectListToHumanString(int list);
 const char *DetectListToString(int list);
 
+/* parse regex setup and free util funcs */
+
+void DetectSetupParseRegexes(const char *parse_str,
+                             pcre **parse_regex,
+                             pcre_extra **parse_regex_study);
+void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study);
+void DetectParseFreeRegexes(void);
+
 #endif /* __DETECT_PARSE_H__ */
 

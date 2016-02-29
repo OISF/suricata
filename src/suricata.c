@@ -2627,5 +2627,6 @@ int main(int argc, char **argv)
 #endif
     ConfDeInit();
 
+    DetectParseFreeRegexes();
     exit(engine_retval);
 }

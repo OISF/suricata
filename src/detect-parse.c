@@ -1956,6 +1956,69 @@ error:
     return NULL;
 }
 
+typedef struct DetectParseRegex_ {
+    pcre *regex;
+    pcre_extra *study;
+    struct DetectParseRegex_ *next;
+} DetectParseRegex;
+
+static DetectParseRegex *g_detect_parse_regex_list = NULL;
+
+void DetectParseFreeRegexes(void)
+{
+    DetectParseRegex *r = g_detect_parse_regex_list;
+    while (r) {
+        DetectParseRegex *next = r->next;
+
+        if (r->regex) {
+            pcre_free(r->regex);
+        }
+        if (r->study) {
+            pcre_free_study(r->study);
+        }
+        SCFree(r);
+        r = next;
+    }
+    g_detect_parse_regex_list = NULL;
+}
+
+/** \brief add regex and/or study to at exit free list
+ */
+void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study)
+{
+    DetectParseRegex *r = SCCalloc(1, sizeof(*r));
+    if (r == NULL) {
+        FatalError(SC_ERR_MEM_ALLOC, "failed to alloc memory for pcre free list");
+    }
+    r->regex = regex;
+    r->study = study;
+    r->next = g_detect_parse_regex_list;
+    g_detect_parse_regex_list = r;
+}
+
+void DetectSetupParseRegexes(const char *parse_str,
+                             pcre **parse_regex,
+                             pcre_extra **parse_regex_study)
+{
+    const char *eb;
+    int eo;
+    int opts = 0;
+
+    *parse_regex = pcre_compile(parse_str, opts, &eb, &eo, NULL);
+    if (*parse_regex == NULL) {
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
+                "offset %" PRId32 ": %s", parse_str, eo, eb);
+    }
+
+    *parse_regex_study = pcre_study(*parse_regex, 0, &eb);
+    if (eb != NULL) {
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+    }
+
+    DetectParseRegexAddToFreeList(*parse_regex, *parse_regex_study);
+    return;
+}
+
 /*
  * TESTS
  */
