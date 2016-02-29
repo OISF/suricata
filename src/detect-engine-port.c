@@ -1275,7 +1275,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead)
         /** work with a copy of the ad so we can easily clean up
          * the ghn group later.
          */
-        ad = DetectPortCopy(NULL, ag);
+        ad = DetectPortCopySingle(NULL, ag);
         if (ad == NULL) {
             goto error;
         }
