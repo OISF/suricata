@@ -37,7 +37,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#define DETECT_FAST_PATTERN_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"
+#define PARSE_REGEX "^(\\s*only\\s*)|\\s*([0-9]+)\\s*,\\s*([0-9]+)\\s*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
@@ -164,30 +164,7 @@ void DetectFastPatternRegister(void)
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_FAST_PATTERN].flags |= SIGMATCH_PAYLOAD;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(DETECT_FAST_PATTERN_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
-                   "offset %" PRId32 ": %s", DETECT_FAST_PATTERN_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
- error:
-    /* get some way to return an error code! */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 //static int DetectFastPatternParseArg(

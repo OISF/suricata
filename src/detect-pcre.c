@@ -97,9 +97,6 @@ void DetectPcreRegister (void)
 
     sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
     intmax_t val = 0;
 
     if (!ConfGetInt("pcre.match-limit", &val)) {
@@ -130,38 +127,26 @@ void DetectPcreRegister (void)
         }
     }
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
+    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
+    const char *eb;
+    int eo;
+    int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
 
-    opts |= PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
     parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_capture_regex == NULL)
+    if (parse_capture_regex == NULL)
     {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
-        goto error;
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
     }
 
     parse_capture_regex_study = pcre_study(parse_capture_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
     }
-    return;
 
-error:
-    /* XXX */
+    DetectParseRegexAddToFreeList(parse_capture_regex, parse_capture_regex_study);
     return;
 }
 

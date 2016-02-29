@@ -409,41 +409,10 @@ void DetectModbusRegister(void)
     sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
 
-    const char *eb;
-    int eo, opts = 0;
-
-    SCLogDebug("registering modbus rule option");
-
-    /* Function PARSE_REGEX */
-    function_parse_regex = pcre_compile(PARSE_REGEX_FUNCTION, opts, &eb, &eo, NULL);
-    if (function_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX_FUNCTION, eo, eb);
-        goto error;
-    }
-
-    function_parse_regex_study = pcre_study(function_parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    /* Access PARSE_REGEX */
-    access_parse_regex = pcre_compile(PARSE_REGEX_ACCESS, opts, &eb, &eo, NULL);
-    if (access_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   PARSE_REGEX_ACCESS, eo, eb);
-        goto error;
-    }
-
-    access_parse_regex_study = pcre_study(access_parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-error:
-    SCReturn;
+    DetectSetupParseRegexes(PARSE_REGEX_FUNCTION,
+            &function_parse_regex, &function_parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX_ACCESS,
+            &access_parse_regex, &access_parse_regex_study);
 }
 
 #ifdef UNITTESTS /* UNITTESTS */

@@ -100,10 +100,6 @@ void DetectByteExtractFree(void *);
  */
 void DetectByteExtractRegister(void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_BYTE_EXTRACT].name = "byte_extract";
     sigmatch_table[DETECT_BYTE_EXTRACT].Match = NULL;
     sigmatch_table[DETECT_BYTE_EXTRACT].AppLayerMatch = NULL;
@@ -113,22 +109,7 @@ void DetectByteExtractRegister(void)
 
     sigmatch_table[DETECT_BYTE_EXTRACT].flags |= SIGMATCH_PAYLOAD;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed "
-                   "at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
- error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,

@@ -78,42 +78,8 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-	SCLogDebug("registering ssl_state rule option");
-
-    /* PARSE_REGEX1 */
-    parse_regex1 = pcre_compile(PARSE_REGEX1, opts, &eb, &eo, NULL);
-    if (parse_regex1 == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   PARSE_REGEX1, eo, eb);
-        goto error;
-    }
-
-    parse_regex1_study = pcre_study(parse_regex1, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    /* PARSE_REGEX2 */
-    parse_regex2 = pcre_compile(PARSE_REGEX2, opts, &eb, &eo, NULL);
-    if (parse_regex2 == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   PARSE_REGEX2, eo, eb);
-        goto error;
-    }
-
-    parse_regex2_study = pcre_study(parse_regex2, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1, &parse_regex1_study);
+    DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2, &parse_regex2_study);
 }
 
 /**

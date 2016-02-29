@@ -134,58 +134,12 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    SCLogDebug("registering tls.subject rule option");
-
-    subject_parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (subject_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    subject_parse_regex_study = pcre_study(subject_parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    SCLogDebug("registering tls.issuerdn rule option");
-
-    issuerdn_parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (issuerdn_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    issuerdn_parse_regex_study = pcre_study(issuerdn_parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    SCLogDebug("registering tls.fingerprint rule option");
-
-    fingerprint_parse_regex = pcre_compile(PARSE_REGEX_FINGERPRINT, opts, &eb, &eo, NULL);
-    if (fingerprint_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX_FINGERPRINT, eo, eb);
-        goto error;
-    }
-
-    fingerprint_parse_regex_study = pcre_study(fingerprint_parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX,
+            &subject_parse_regex, &subject_parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX,
+            &issuerdn_parse_regex, &issuerdn_parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX_FINGERPRINT,
+            &fingerprint_parse_regex, &fingerprint_parse_regex_study);
 }
 
 /**
