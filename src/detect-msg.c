@@ -51,27 +51,33 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 {
     char *str = NULL;
     uint16_t len;
+    uint16_t pos = 0;
+    uint16_t slen = 0;
 
-    if (strlen(msgstr) == 0)
+    slen = strlen(msgstr);
+    if (slen == 0)
         goto error;
 
-    /* strip "'s */
-    if (msgstr[0] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
+    /* skip the first spaces */
+    while (pos < slen && isspace((unsigned char)msgstr[pos]))
+        pos++;
+
+    /* Strip leading and trailing "s. */
+    if (msgstr[pos] == '\"') {
         str = SCStrdup(msgstr+1);
         if (unlikely(str == NULL))
             goto error;
-        str[strlen(msgstr)-2] = '\0';
-    } else if (msgstr[1] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
-        /* XXX do this parsing in a better way */
-        str = SCStrdup(msgstr+2);
-        if (unlikely(str == NULL))
-            goto error;
-        str[strlen(msgstr)-3] = '\0';
-        //printf("DetectMsgSetup: format hack applied: \'%s\'\n", str);
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str)-1] = '\0';
+        }
     } else {
         SCLogError(SC_ERR_INVALID_VALUE, "format error \'%s\'", msgstr);
         goto error;
     }
+
+    /* make sure that we don't proceed with null pointer */
+    if (unlikely(str == NULL))
+        goto error;
 
     len = strlen(str);
     if (len == 0)

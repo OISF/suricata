@@ -61,12 +61,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* strip "'s */
-   if (offsetstr[0] == '\"' && offsetstr[strlen(offsetstr)-1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (offsetstr[0] == '\"') {
         str = SCStrdup(offsetstr+1);
         if (unlikely(str == NULL))
             goto end;
-        str[strlen(offsetstr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 

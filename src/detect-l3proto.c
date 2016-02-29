@@ -73,12 +73,14 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     char *str = optstr;
     char dubbed = 0;
 
-    /* strip "'s */
-    if (optstr[0] == '\"' && optstr[strlen(optstr) - 1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (optstr[0] == '\"') {
         str = SCStrdup(optstr + 1);
         if (unlikely(str == NULL))
             goto error;
-        str[strlen(optstr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 
