@@ -145,6 +145,8 @@ typedef struct DCERPCUuidEntry_ {
     TAILQ_ENTRY(DCERPCUuidEntry_) next;
 } DCERPCUuidEntry;
 
+typedef TAILQ_HEAD(DCERPCUuidEntryList_, DCERPCUuidEntry_) DCERPCUuidEntryList;
+
 typedef struct DCERPCBindBindAck_ {
     uint8_t numctxitems;
     uint8_t numctxitemsleft;
@@ -154,9 +156,9 @@ typedef struct DCERPCBindBindAck_ {
     uint16_t version;
     uint16_t versionminor;
     DCERPCUuidEntry *uuid_entry;
-    TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
+    DCERPCUuidEntryList uuid_list;
     /* the interface uuids that the server has accepted */
-    TAILQ_HEAD(, DCERPCUuidEntry_) accepted_uuid_list;
+    DCERPCUuidEntryList accepted_uuid_list;
     uint16_t uuid_internal_id;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;

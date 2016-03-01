@@ -77,6 +77,8 @@ enum {
     DCERPC_FIELD_MAX,
 };
 
+void DCERPCUuidListFree(DCERPCUuidEntryList *list);
+
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(/*Flow *f,*/ const void *buf, size_t len)
 {
@@ -875,22 +877,15 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    DCERPCUuidEntry *item;
     uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 16:
                 dcerpc->dcerpcbindbindack.numctxitems = 0;
                 if (input_len >= 12) {
-                    while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
-                        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
-                        SCFree(item);
-                    }
+                    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
                     if (dcerpc->dcerpchdr.type == BIND) {
-                        while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.accepted_uuid_list))) {
-                            TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.accepted_uuid_list, item, next);
-                            SCFree(item);
-                        }
+                        DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
                     }
                     dcerpc->dcerpcbindbindack.uuid_internal_id = 0;
                     dcerpc->dcerpcbindbindack.numctxitems = *(p + 8);
@@ -947,15 +942,9 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                     break;
                 /* fall through */
             case 24:
-                while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
-                    TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
-                    SCFree(item);
-                }
+                DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
                 if (dcerpc->dcerpchdr.type == BIND) {
-                    while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.accepted_uuid_list))) {
-                        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.accepted_uuid_list, item, next);
-                        SCFree(item);
-                    }
+                    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
                 }
                 dcerpc->dcerpcbindbindack.uuid_internal_id = 0;
                 dcerpc->dcerpcbindbindack.numctxitems = *(p++);
@@ -1970,19 +1959,20 @@ static void *DCERPCStateAlloc(void)
     SCReturnPtr((void *)s, "void");
 }
 
-void DCERPCCleanup(DCERPC *dcerpc)
+void DCERPCUuidListFree(DCERPCUuidEntryList *list)
 {
     DCERPCUuidEntry *entry;
 
-    while ((entry = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
-        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, entry, next);
+    while ((entry = TAILQ_FIRST(list))) {
+        TAILQ_REMOVE(list, entry, next);
         SCFree(entry);
     }
+}
 
-    while ((entry = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.accepted_uuid_list))) {
-        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.accepted_uuid_list, entry, next);
-        SCFree(entry);
-    }
+void DCERPCCleanup(DCERPC *dcerpc)
+{
+    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
+    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
 
     if (dcerpc->dcerpcrequest.stub_data_buffer != NULL) {
         SCFree(dcerpc->dcerpcrequest.stub_data_buffer);
