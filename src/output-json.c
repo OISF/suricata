@@ -175,7 +175,8 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
     json_object_set_new(js, "flow_id", json_integer(addr));
 }
 
-json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
+json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
+                         const char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -321,7 +322,8 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     return js;
 }
 
-json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event_type, uint32_t tx_id)
+json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive,
+                                 const char *event_type, uint64_t tx_id)
 {
     json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
     if (unlikely(js == NULL))
