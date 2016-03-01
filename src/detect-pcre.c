@@ -581,7 +581,7 @@ error:
     if (pd != NULL && pd->re != NULL)
         pcre_free(pd->re);
     if (pd != NULL && pd->sd != NULL)
-        pcre_free(pd->sd);
+        pcre_free_study(pd->sd);
     if (pd)
         SCFree(pd);
     return NULL;
@@ -807,7 +807,7 @@ void DetectPcreFree(void *ptr)
     if (pd->re != NULL)
         pcre_free(pd->re);
     if (pd->sd != NULL)
-        pcre_free(pd->sd);
+        pcre_free_study(pd->sd);
 
     SCFree(pd);
     return;
