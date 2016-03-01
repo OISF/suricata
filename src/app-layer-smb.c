@@ -42,6 +42,7 @@
 #include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
+#include "app-layer-dcerpc.h"
 
 #include "util-spm.h"
 #include "util-unittest.h"
@@ -1426,12 +1427,12 @@ static void *SMBStateAlloc(void)
 {
     SCEnter();
 
-    void *s = SCMalloc(sizeof(SMBState));
+    SMBState *s = (SMBState *)SCCalloc(1, sizeof(SMBState));
     if (unlikely(s == NULL)) {
         SCReturnPtr(NULL, "void");
     }
 
-    memset(s, 0, sizeof(SMBState));
+    DCERPCInit(&s->dcerpc);
 
     SCReturnPtr(s, "void");
 }
@@ -1444,23 +1445,7 @@ static void SMBStateFree(void *s)
     SCEnter();
     SMBState *sstate = (SMBState *) s;
 
-    DCERPCUuidEntry *item;
-
-    while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.uuid_list))) {
-	//printUUID("Free", item);
-	TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.uuid_list, item, next);
-	SCFree(item);
-    }
-    if (sstate->dcerpc.dcerpcrequest.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer_len = 0;
-    }
-    if (sstate->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcresponse.stub_data_buffer);
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
-    }
+    DCERPCCleanup(&sstate->dcerpc);
 
     SCFree(s);
     SCReturn;
