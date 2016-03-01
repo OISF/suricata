@@ -147,6 +147,8 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
     /* Invalid behavior or content */
     { "DUPLICATE_FIELDS",
       SMTP_DECODER_EVENT_DUPLICATE_FIELDS },
+    { "UNPARSABLE_CONTENT",
+      SMTP_DECODER_EVENT_UNPARSABLE_CONTENT },
 
     { NULL,                      -1 },
 };
@@ -1094,6 +1096,18 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
             if (smtp_config.decode_mime) {
+                if (tx->mime_state) {
+                    /* We have 2 chained mails and did not detect the end
+                     * of first one. So we start a new transaction. */
+                    tx->mime_state->state_flag = PARSE_ERROR;
+                    SMTPSetEvent(state, SMTP_DECODER_EVENT_UNPARSABLE_CONTENT);
+                    tx = SMTPTransactionCreate();
+                    if (tx == NULL)
+                        return -1;
+                    state->curr_tx = tx;
+                    TAILQ_INSERT_TAIL(&state->tx_list, tx, next);
+                    tx->tx_id = state->tx_cnt++;
+                }
                 tx->mime_state = MimeDecInitParser(f, SMTPProcessDataChunk);
                 if (tx->mime_state == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "MimeDecInitParser() failed to "
