@@ -144,6 +144,10 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
     { "MIME_LONG_BOUNDARY",
       SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG },
 
+    /* Invalid behavior or content */
+    { "DUPLICATE_FIELDS",
+      SMTP_DECODER_EVENT_DUPLICATE_FIELDS },
+
     { NULL,                      -1 },
 };
 
@@ -1005,11 +1009,19 @@ static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8
 
 static int SMTPParseCommandHELO(SMTPState *state)
 {
+    if (state->helo) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
+        return 0;
+    }
     return SMTPParseCommandWithParam(state, 4, &state->helo, &state->helo_len);
 }
 
 static int SMTPParseCommandMAILFROM(SMTPState *state)
 {
+    if (state->curr_tx->mail_from) {
+        SMTPSetEvent(state, SMTP_DECODER_EVENT_DUPLICATE_FIELDS);
+        return 0;
+    }
     return SMTPParseCommandWithParam(state, 9,
                                      &state->curr_tx->mail_from,
                                      &state->curr_tx->mail_from_len);
