@@ -64,5 +64,8 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
                                            uint8_t sm_type, uint8_t sm_list,
                                            AppProto alproto,  void (*CustomCallback)(Signature *s));
 
+const char *DetectListToHumanString(int list);
+const char *DetectListToString(int list);
+
 #endif /* __DETECT_PARSE_H__ */
 
