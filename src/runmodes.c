@@ -819,6 +819,10 @@ void RunModeInitializeOutputs(void)
         } else if (strcmp(output->val, "lua") == 0) {
             SCLogDebug("handle lua");
 
+            OutputModule *lua_module = OutputGetModuleByConfName(output->val);
+            BUG_ON(lua_module == NULL);
+            AddOutputToFreeList(lua_module, output_ctx);
+
             ConfNode *scripts = ConfNodeLookupChild(output_config, "scripts");
             BUG_ON(scripts == NULL); //TODO
 
@@ -843,6 +847,7 @@ void RunModeInitializeOutputs(void)
                     continue;
                 }
 
+                AddOutputToFreeList(m, sub_output_ctx);
                 SetupOutput(m->name, m, sub_output_ctx);
             }
 

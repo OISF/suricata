@@ -800,6 +800,12 @@ error:
     return NULL;
 }
 
+static void LogLuaSubFree(OutputCtx *oc) {
+    if (oc->data)
+        SCFree(oc->data);
+    SCFree(oc);
+}
+
 /** \brief initialize output for a script instance
  *
  *  Runs script 'setup' function.
@@ -841,7 +847,7 @@ static OutputCtx *OutputLuaLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     SCLogDebug("lua_ctx %p", lua_ctx);
 
     output_ctx->data = lua_ctx;
-    output_ctx->DeInit = NULL;
+    output_ctx->DeInit = LogLuaSubFree;
 
     return output_ctx;
 error:
@@ -851,10 +857,16 @@ error:
     return NULL;
 }
 
-static void LogLuaMasterFree(OutputCtx *oc) {
-    BUG_ON(oc == NULL);
+static void LogLuaMasterFree(OutputCtx *oc)
+{
     if (oc->data)
         SCFree(oc->data);
+
+    OutputModule *om, *tom;
+    TAILQ_FOREACH_SAFE(om, &oc->submodules, entries, tom) {
+        SCFree(om);
+    }
+    SCFree(oc);
 }
 
 /** \internal
@@ -995,6 +1007,7 @@ static void OutputLuaLogDoDeinit(LogLuaCtx *lua_ctx)
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'deinit' function: %s", lua_tostring(luastate, -1));
         return;
     }
+    lua_close(luastate);
 }
 
 /** \internal
