@@ -44,6 +44,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-reference.h"
 #include "app-layer-parser.h"
+#include "app-layer-dnp3.h"
 #include "app-layer-htp.h"
 #include "app-layer-htp-xff.h"
 #include "util-classification-config.h"
@@ -52,6 +53,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-dnp3.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
@@ -70,13 +72,14 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD 1
-#define LOG_JSON_PACKET 2
-#define LOG_JSON_PAYLOAD_BASE64 4
-#define LOG_JSON_HTTP 8
-#define LOG_JSON_TLS 16
-#define LOG_JSON_SSH 32
-#define LOG_JSON_SMTP 64
+#define LOG_JSON_PAYLOAD        0x01
+#define LOG_JSON_PACKET         0x02
+#define LOG_JSON_PAYLOAD_BASE64 0x04
+#define LOG_JSON_HTTP           0x08
+#define LOG_JSON_TLS            0x10
+#define LOG_JSON_SSH            0x20
+#define LOG_JSON_SMTP           0x40
+#define LOG_JSON_DNP3           0x80
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -135,6 +138,42 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     }
 
     return;
+}
+
+static void AlertJsonDnp3(const Flow *f, json_t *js)
+{
+    DNP3State *dnp3_state = (DNP3State *)FlowGetAppState(f);
+    json_t *dnp3js = NULL;
+    if (dnp3_state) {
+        uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
+        DNP3Transaction *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_DNP3,
+            dnp3_state, tx_id - 1);
+        if (tx) {
+            json_t *dnp3js = json_object();
+            if (unlikely(dnp3js == NULL)) {
+                goto error;
+            }
+            if (tx->has_request && tx->request_done) {
+                json_t *request = JsonDNP3LogRequest(tx);
+                if (request != NULL) {
+                    json_object_set_new(dnp3js, "request", request);
+                }
+            }
+            if (tx->has_response && tx->response_done) {
+                json_t *response = JsonDNP3LogResponse(tx);
+                if (response != NULL) {
+                    json_object_set_new(dnp3js, "response", response);
+                }
+            }
+            json_object_set_new(js, "dnp3", dnp3js);
+        }
+    }
+
+    return;
+error:
+    if (dnp3js != NULL) {
+        json_decref(dnp3js);
+    }
 }
 
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
@@ -257,7 +296,17 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (hjs)
                         json_object_set_new(js, "email", hjs);
                 }
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
 
+        if (json_output_ctx->flags & LOG_JSON_DNP3) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+                if (proto == ALPROTO_DNP3) {
+                    AlertJsonDnp3(p->flow, js);
+                }
                 FLOWLOCK_UNLOCK(p->flow);
             }
         }
@@ -564,6 +613,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
+        const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -598,6 +648,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 json_output_ctx->flags |= LOG_JSON_PACKET;
+            }
+        }
+        if (dnp3 != NULL) {
+            if (ConfValIsTrue(dnp3)) {
+                json_output_ctx->flags |= LOG_JSON_DNP3;
             }
         }
 

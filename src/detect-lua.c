@@ -168,6 +168,8 @@ void DetectLuaRegister(void)
 
 #define DATATYPE_SSH                        (1<<19)
 
+#define DATATYPE_DNP3                       (1<<20)
+
 #ifdef HAVE_LUAJIT
 static void *LuaStatePoolAlloc(void)
 {
@@ -1023,6 +1025,12 @@ static int DetectLuaSetupPrime(DetectEngineCtx *de_ctx, DetectLuaData *ld)
 
             ld->flags |= DATATYPE_SSH;
 
+        } else if (strncmp(k, "dnp3", 4) == 0 && strcmp(v, "true") == 0) {
+
+            ld->alproto = ALPROTO_DNP3;
+
+            ld->flags |= DATATYPE_DNP3;
+
         } else {
             SCLogError(SC_ERR_LUA_ERROR, "unsupported data type %s", k);
             goto error;
@@ -1122,6 +1130,8 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else if (luajit->alproto == ALPROTO_SSH) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    } else if (luajit->alproto == ALPROTO_DNP3) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_LUA_MATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
