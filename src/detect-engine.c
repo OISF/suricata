@@ -908,6 +908,9 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 #endif
     }
 
+    DetectPortCleanupList(de_ctx->tcp_whitelist);
+    DetectPortCleanupList(de_ctx->udp_whitelist);
+
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();
@@ -1128,6 +1131,55 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
 
     SCLogDebug("de_ctx->inspection_recursion_limit: %d",
                de_ctx->inspection_recursion_limit);
+
+    /* parse port grouping whitelisting settings */
+
+    char *ports = NULL;
+    (void)ConfGet("detect.grouping.tcp-whitelist", &ports);
+    if (ports) {
+        SCLogInfo("grouping: tcp-whitelist %s", ports);
+    } else {
+        ports = "53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080";
+        SCLogInfo("grouping: tcp-whitelist (default) %s", ports);
+
+    }
+    if (DetectPortParse(de_ctx, &de_ctx->tcp_whitelist, ports) != 0) {
+        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
+                "for detect.grouping.tcp-whitelist", ports);
+    }
+    DetectPort *x = de_ctx->tcp_whitelist;
+    for ( ; x != NULL;  x = x->next) {
+        if (x->port != x->port2) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
+                "for detect.grouping.tcp-whitelist: only single ports allowed", ports);
+            DetectPortCleanupList(de_ctx->tcp_whitelist);
+            de_ctx->tcp_whitelist = NULL;
+            break;
+        }
+    }
+
+    ports = NULL;
+    (void)ConfGet("detect.grouping.udp-whitelist", &ports);
+    if (ports) {
+        SCLogInfo("grouping: udp-whitelist %s", ports);
+    } else {
+        ports = "53, 135, 5060";
+        SCLogInfo("grouping: udp-whitelist (default) %s", ports);
+
+    }
+    if (DetectPortParse(de_ctx, &de_ctx->udp_whitelist, ports) != 0) {
+        SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
+                "forr detect.grouping.udp-whitelist", ports);
+    }
+    for (x = de_ctx->udp_whitelist; x != NULL;  x = x->next) {
+        if (x->port != x->port2) {
+            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "'%s' is not a valid value "
+                "for detect.grouping.udp-whitelist: only single ports allowed", ports);
+            DetectPortCleanupList(de_ctx->udp_whitelist);
+            de_ctx->udp_whitelist = NULL;
+            break;
+        }
+    }
 
     return 0;
 error:
