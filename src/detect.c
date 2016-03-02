@@ -2867,7 +2867,8 @@ int RuleMpmIsNegated(const Signature *s)
 }
 
 #ifdef HAVE_LIBJANSSON
-json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
+json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh,
+                                const int add_rules, const int add_mpm_stats)
 {
     uint32_t mpm_cnt = 0;
     uint32_t nonmpm_cnt = 0;
@@ -2908,12 +2909,7 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
         s = sgh->match_array[x];
         if (s == NULL)
             continue;
-#if 0
-        json_t *js_sig = json_object();
-        if (unlikely(js == NULL))
-            continue;
-        json_object_set_new(js_sig, "sig_id", json_integer(s->id));
-#endif
+
         int any = 0;
         if (s->proto.flags & DETECT_PROTO_ANY) {
             any++;
@@ -3026,7 +3022,14 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
         if (s->alproto != ALPROTO_UNKNOWN) {
             alstats[s->alproto]++;
         }
-//        json_array_append_new(js_array, js_sig);
+
+        if (add_rules) {
+            json_t *js_sig = json_object();
+            if (unlikely(js == NULL))
+                continue;
+            json_object_set_new(js_sig, "sig_id", json_integer(s->id));
+            json_array_append_new(js_array, js_sig);
+        }
     }
 
     json_object_set_new(js, "rules", js_array);
@@ -3059,35 +3062,37 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
         }
     }
 
-    json_t *mpm_js = json_object();
+    if (add_mpm_stats) {
+        json_t *mpm_js = json_object();
 
-    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
-        if (mpm_stats[i].cnt > 0) {
+        for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+            if (mpm_stats[i].cnt > 0) {
 
-            json_t *mpm_sizes_array = json_array();
-            for (x = 0; x < 256; x++) {
-                if (mpm_sizes[i][x] == 0)
-                    continue;
+                json_t *mpm_sizes_array = json_array();
+                for (x = 0; x < 256; x++) {
+                    if (mpm_sizes[i][x] == 0)
+                        continue;
 
-                json_t *e = json_object();
-                json_object_set_new(e, "size", json_integer(x));
-                json_object_set_new(e, "count", json_integer(mpm_sizes[i][x]));
-                json_array_append_new(mpm_sizes_array, e);
+                    json_t *e = json_object();
+                    json_object_set_new(e, "size", json_integer(x));
+                    json_object_set_new(e, "count", json_integer(mpm_sizes[i][x]));
+                    json_array_append_new(mpm_sizes_array, e);
+                }
+
+                json_t *buf = json_object();
+                json_object_set_new(buf, "total", json_integer(mpm_stats[i].cnt));
+                json_object_set_new(buf, "avg_strength", json_integer(mpm_stats[i].total / mpm_stats[i].cnt));
+                json_object_set_new(buf, "min_strength", json_integer(mpm_stats[i].min));
+                json_object_set_new(buf, "max_strength", json_integer(mpm_stats[i].max));
+
+                json_object_set_new(buf, "sizes", mpm_sizes_array);
+
+                json_object_set_new(mpm_js, DetectListToHumanString(i), buf);
             }
-
-            json_t *buf = json_object();
-            json_object_set_new(buf, "total", json_integer(mpm_stats[i].cnt));
-            json_object_set_new(buf, "avg_strength", json_integer(mpm_stats[i].total / mpm_stats[i].cnt));
-            json_object_set_new(buf, "min_strength", json_integer(mpm_stats[i].min));
-            json_object_set_new(buf, "max_strength", json_integer(mpm_stats[i].max));
-
-            json_object_set_new(buf, "sizes", mpm_sizes_array);
-
-            json_object_set_new(mpm_js, DetectListToHumanString(i), buf);
         }
-    }
 
-    json_object_set_new(stats, "mpm", mpm_js);
+        json_object_set_new(stats, "mpm", mpm_js);
+    }
     json_object_set_new(js, "stats", stats);
 
     json_object_set_new(js, "whitelist", json_integer(sgh->init->whitelist));
@@ -3096,7 +3101,8 @@ json_t *RulesGroupPrintSghStats(const SigGroupHead *sgh)
 }
 #endif /* HAVE_LIBJANSSON */
 
-void RulesDumpGrouping(const DetectEngineCtx *de_ctx)
+void RulesDumpGrouping(const DetectEngineCtx *de_ctx,
+                       const int add_rules, const int add_mpm_stats)
 {
 #ifdef HAVE_LIBJANSSON
     json_t *js = json_object();
@@ -3118,7 +3124,8 @@ void RulesDumpGrouping(const DetectEngineCtx *de_ctx)
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_ts = RulesGroupPrintSghStats(list->sh);
+                json_t *tcp_ts = RulesGroupPrintSghStats(list->sh,
+                        add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_ts);
                 json_array_append_new(ts_array, port);
 
@@ -3134,7 +3141,8 @@ void RulesDumpGrouping(const DetectEngineCtx *de_ctx)
                 json_object_set_new(port, "port", json_integer(list->port));
                 json_object_set_new(port, "port2", json_integer(list->port2));
 
-                json_t *tcp_tc = RulesGroupPrintSghStats(list->sh);
+                json_t *tcp_tc = RulesGroupPrintSghStats(list->sh,
+                        add_rules, add_mpm_stats);
                 json_object_set_new(port, "rulegroup", tcp_tc);
                 json_array_append_new(tc_array, port);
 
@@ -4027,7 +4035,17 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
      * after the initialization phase. */
     SigGroupHeadHashFree(de_ctx);
 
-    RulesDumpGrouping(de_ctx);
+    int dump_grouping = 0;
+    (void)ConfGetBool("detect.profiling.grouping.dump-to-disk", &dump_grouping);
+
+    if (dump_grouping) {
+        int add_rules = 0;
+        (void)ConfGetBool("detect.profiling.grouping.include-rules", &add_rules);
+        int add_mpm_stats = 0;
+        (void)ConfGetBool("detect.profiling.grouping.include-mpm-stats", &add_rules);
+
+        RulesDumpGrouping(de_ctx, add_rules, add_mpm_stats);
+    }
 
 #ifdef PROFILING
     SCProfilingSghInitCounters(de_ctx);
