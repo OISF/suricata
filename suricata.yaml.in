@@ -616,6 +616,10 @@ detect:
     # must have made it past pre-filter for that rule to trigger the
     # logging.
     #inspect-logging-threshold: 200
+    grouping:
+      dump-to-disk: false
+      include-rules: false      # very verbose
+      include-mpm-stats: false
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
