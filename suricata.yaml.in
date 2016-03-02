@@ -96,8 +96,9 @@ outputs:
   # Extensible Event Format (nicknamed EVE) event log in JSON format
   - eve-log:
       enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis|zeromq
       filename: eve.json
+      #zeromq: "tcp://localhost:5555" # location of zeromq client
       #prefix: "@cee: " # prefix to prepend to each log entry
       # the following are valid when type: syslog above
       #identity: "suricata"

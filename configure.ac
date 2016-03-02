@@ -1776,6 +1776,50 @@
         fi
     fi
 
+  # ZeroMQ
+    AC_ARG_ENABLE(zeromq,
+                AS_HELP_STRING([--enable-zeromq],[Enable ZeroMQ support]),
+                [ enable_zeromq=yes ],
+                [ enable_zeromq=no])
+    AC_ARG_WITH(izeromqincludes,
+                [  --with-zeromq-includes=DIR   zeromq include directory],
+                [with_zeromq_includes="$withval"],[with_zeromq_includes=no])
+    AC_ARG_WITH(zeromq_libraries,
+                [  --with-zeromq-libraries=DIR  zeromq library directory],
+                [with_zeromq_libraries="$withval"],[with_zeromq_libraries=no])
+
+    if test "$enable_zeromq" = "yes"; then
+
+        if test "$with_zeromq_includes" != "no"; then
+            CPPFLAGS="${CPPFLAGS} -I${with_zeromq_includes}"
+        fi
+
+        if test "$with_zeromq_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS} -L${with_zeromq_libraries}"
+        fi
+        LDFLAGS="${LDFLAGS} -lzmq"
+
+        AC_CHECK_HEADER(zmq.h,ZEROMQ="yes",ZEROMQ="no")
+        if test "$ZEROMQ" = "no"; then
+            echo
+            echo "  ERROR! zmq.h required by libzmq not found"
+            echo
+            exit 1
+        fi
+
+        if test "$ZEROMQ" = "yes"; then
+            AC_DEFINE([HAVE_ZEROMQ],[1],[libzmq available])
+            enable_zeromq="yes"
+        fi
+
+        if test "$ZEROMQ" = "no"; then
+            echo
+            echo "  ERROR! libzmq library not found"
+            echo
+            exit 1
+        fi
+    fi
+
 # get cache line size
     AC_PATH_PROG(HAVE_GETCONF_CMD, getconf, "no")
     if test "$HAVE_GETCONF_CMD" != "no"; then
@@ -1891,6 +1935,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   LUA support:                             ${enable_lua}
   libluajit:                               ${enable_luajit}
   libgeoip:                                ${enable_geoip}
+  ZeroMQ:                                  ${enable_zeromq}
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
