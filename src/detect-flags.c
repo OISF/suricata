@@ -522,6 +522,44 @@ static void DetectFlagsFree(void *de_ptr)
     if(de) SCFree(de);
 }
 
+int DetectFlagsSignatureNeedsSynPackets(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FLAGS:
+            {
+                const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
+
+                if (!(fl->modifier == MODIFIER_NOT) && (fl->flags & TH_SYN)) {
+                    return 1;
+                }
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
+int DetectFlagsSignatureNeedsSynOnlyPackets(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FLAGS:
+            {
+                const DetectFlagsData *fl = (const DetectFlagsData *)sm->ctx;
+
+                if (!(fl->modifier == MODIFIER_NOT) && (fl->flags == TH_SYN)) {
+                    return 1;
+                }
+                break;
+            }
+        }
+    }
+    return 0;
+}
+
 /*
  * ONLY TESTS BELOW THIS COMMENT
  */

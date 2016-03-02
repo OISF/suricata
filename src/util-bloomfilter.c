@@ -27,7 +27,8 @@
 #include "util-bloomfilter.h"
 #include "util-unittest.h"
 
-BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter, uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t)) {
+BloomFilter *BloomFilterInit(uint32_t size, uint8_t iter,
+                             uint32_t (*Hash)(const void *, uint16_t, uint8_t, uint32_t)) {
     BloomFilter *bf = NULL;
 
     if (size == 0 || iter == 0)
@@ -122,7 +123,7 @@ uint32_t BloomFilterMemorySize(BloomFilter *bf)
  */
 
 #ifdef UNITTESTS
-static uint32_t BloomFilterTestHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size)
+static uint32_t BloomFilterTestHash(const void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size)
 {
      uint8_t *d = (uint8_t *)data;
      uint32_t i;
