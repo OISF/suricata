@@ -3284,19 +3284,19 @@ int RulesGroupByProto(DetectEngineCtx *de_ctx)
     return 0;
 }
 
-int tcp_whitelisted[] = { 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080, -1 };
-int udp_whitelisted[] = { 53, 135, 5060, -1 };
-
-static int PortIsWhitelisted(const DetectPort *a, int ipproto)
+static int PortIsWhitelisted(const DetectEngineCtx *de_ctx,
+                             const DetectPort *a, int ipproto)
 {
-    int *w = tcp_whitelisted;
+    DetectPort *w = de_ctx->tcp_whitelist;
     if (ipproto == IPPROTO_UDP)
-        w = udp_whitelisted;
-    while (*w++ != -1) {
-        if (a->port >= *w && a->port2 <= *w) {
-            SCLogDebug("port group %u:%u whitelisted -> %d", a->port, a->port2, *w);
+        w = de_ctx->udp_whitelist;
+
+    while (w) {
+        if (a->port >= w->port && a->port2 <= w->port) {
+            SCLogInfo("port group %u:%u whitelisted -> %d", a->port, a->port2, w->port);
             return 1;
         }
+        w = w->next;
     }
 
     return 0;
@@ -3394,7 +3394,7 @@ static DetectPort *RulesGroupByPorts(DetectEngineCtx *de_ctx, int ipproto, uint3
 
         int wl = s->whitelist;
         while (p) {
-            int pwl = PortIsWhitelisted(p, ipproto) ? 111 : 0;
+            int pwl = PortIsWhitelisted(de_ctx, p, ipproto) ? 111 : 0;
             pwl = MAX(wl,pwl);
 
             DetectPort *lookup = DetectPortHashLookup(de_ctx, p);

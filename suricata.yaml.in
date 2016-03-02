@@ -602,6 +602,14 @@ detect:
   # is started. This will limit the downtime in IPS mode.
   #delayed-detect: yes
 
+  # the grouping values above control how many groups are created per
+  # direction. Port whitelisting forces that port to get it's own group.
+  # Very common ports will benefit, as well as ports with many expensive
+  # rules.
+  grouping:
+    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+    #udp-whitelist: 53, 135, 5060
+
   profiling:
     # Log the rules that made it past the prefilter stage, per packet
     # default is off. The threshold setting determines how many rules

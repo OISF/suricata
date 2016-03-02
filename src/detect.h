@@ -662,6 +662,9 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *dport_hash_table;
 
+    DetectPort *tcp_whitelist;
+    DetectPort *udp_whitelist;
+
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
