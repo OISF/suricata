@@ -199,11 +199,74 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 goto fail;
             }
         }
+        else if (event.type == YAML_DOCUMENT_END_EVENT) {
+            SCLogDebug("event.type=YAML_DOCUMENT_END_EVENT; state=%d", state);
+        }
+        else if (event.type == YAML_ALIAS_EVENT) {
+            char *anchor = (char *)event.data.alias.anchor;
+            SCLogDebug("event.type=YAML_ALIAS_EVENT; state=%d; anchor=%s; "
+                "inseq=%d", state, anchor, inseq);
+            ConfNode *anchor_node = ConfNodeLookupAnchor(anchor, NULL);
+            if (anchor_node == NULL) {
+                SCLogError(SC_ERR_CONF_YAML_ERROR,
+                    "YAML anchor not found: %s", anchor);
+                return -1;
+            }
+            else {
+                if (inseq) {
+                    ConfNode *seq_node = ConfNodeNew();
+                    seq_node->name = SCCalloc(1, DEFAULT_NAME_LEN);
+                    if (seq_node->name == NULL)
+                        return -1;
+                    snprintf(seq_node->name, DEFAULT_NAME_LEN, "%d", seq_idx++);
+                    if (anchor_node->val != NULL) {
+                        seq_node->val = SCStrdup(anchor_node->val);
+                        if (unlikely(seq_node->val == NULL)) {
+                            return -1;
+                        }
+                    }
+                    TAILQ_INSERT_TAIL(&parent->head, seq_node, next);
+                    ConfNode *child, *copy;
+                    TAILQ_FOREACH(child, &anchor_node->head, next) {
+                        copy = ConfNodeDeepCopy(child);
+                        if (copy == NULL)
+                            return -1;
+                        TAILQ_INSERT_TAIL(&seq_node->head, copy, next);
+                    }
+                }
+                else {
+                    if (state == CONF_KEY) {
+                        state = CONF_VAL;
+                    }
+                    else {
+                        ConfNode *child, *copy;
+                        if (anchor_node != NULL) {
+                            if (anchor_node->val != NULL) {
+                                node->val = SCStrdup(anchor_node->val);
+                                if (unlikely(node->val == NULL)) {
+                                    return -1;
+                                }
+                            }
+                            node->final = anchor_node->final;
+                            TAILQ_FOREACH(child, &anchor_node->head, next) {
+                                copy = ConfNodeDeepCopy(child);
+                                if (copy == NULL)
+                                    return -1;
+                                TAILQ_INSERT_TAIL(&node->head, copy, next);
+                            }
+                        }
+                        state = CONF_KEY;
+                    }
+                }
+            }
+        }
         else if (event.type == YAML_SCALAR_EVENT) {
             char *value = (char *)event.data.scalar.value;
             char *tag = (char *)event.data.scalar.tag;
+            char *anchor = (char *)event.data.scalar.anchor;
             SCLogDebug("event.type=YAML_SCALAR_EVENT; state=%d; value=%s; "
-                "tag=%s; inseq=%d", state, value, tag, inseq);
+                "tag=%s; anchor=%s; inseq=%d", state, value, tag, anchor, 
+                inseq);
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
@@ -249,6 +312,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                         goto next;
                     }
 
+                    /* Merge key. */
+                    if (strcmp(value, "<<") == 0) {
+                        state = CONF_VAL;
+                        continue;
+                    }
+
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
                             parent->val = SCStrdup(value);
@@ -292,6 +361,12 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     if ((tag != NULL) && (strcmp(tag, "!include") == 0)) {
                         SCLogInfo("Including configuration file %s at "
                             "parent node %s.", value, node->name);
+                        if (anchor != NULL) {
+                            node->anchor = SCStrdup(anchor);
+                            if (unlikely(node->anchor == NULL)) {
+                                goto fail;
+                            }
+                        }
                         if (ConfYamlHandleInclude(node, value) != 0)
                             goto fail;
                     }
@@ -299,6 +374,11 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                         if (node->val != NULL)
                             SCFree(node->val);
                         node->val = SCStrdup(value);
+                        if (anchor != NULL) {
+                            if (node->anchor != NULL)
+                                SCFree(node->anchor);
+                            node->anchor = SCStrdup(anchor);
+                        }
                     }
                     state = CONF_KEY;
                 }
@@ -316,7 +396,10 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
             return 0;
         }
         else if (event.type == YAML_MAPPING_START_EVENT) {
-            SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d", state);
+            char *tag = (char *)event.data.mapping_start.tag;
+            char *anchor = (char *)event.data.mapping_start.anchor;
+            SCLogDebug("event.type=YAML_MAPPING_START_EVENT; state=%d; tag=%s; "
+                "anchor=%s", state, tag, anchor);
             if (inseq) {
                 char sequence_node_name[DEFAULT_NAME_LEN];
                 snprintf(sequence_node_name, DEFAULT_NAME_LEN, "%d", seq_idx++);
@@ -346,6 +429,11 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     goto fail;
             }
             else {
+                if (anchor != NULL) {
+                    if (node->anchor != NULL)
+                        SCFree(node->anchor);
+                    node->anchor = SCStrdup(anchor);
+                }
                 if (ConfYamlParse(parser, node, inseq) != 0)
                     goto fail;
             }
@@ -930,6 +1018,82 @@ ConfYamlOverrideFinalTest(void)
     return 1;
 }
 
+static int
+ConfYamlAnchorAliasTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "anchor: &anchor foobar\n"
+        "alias: *anchor\n"
+        "parent1:\n"
+        "  child:\n"
+        "    foo: &foo-anchor bar\n"
+        "parent2:\n"
+        "  child:\n"
+        "    foo: *foo-anchor\n";
+
+    if (ConfYamlLoadString(config, strlen(config)) != 0) {
+        return 0;
+    }
+
+    char *alias_value;
+
+    if (!ConfGet("alias", &alias_value)) {
+        return 0;
+    }
+    if (strcmp(alias_value, "foobar") != 0) {
+        return 0;
+    }
+
+    if (!ConfGet("parent2.child.foo", &alias_value)) {
+        return 0;
+    }
+    if (strcmp(alias_value, "bar") != 0) {
+        return 0;
+    }
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
+static int
+ConfYamlAnchorAliasMergeTest(void)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+
+    char config[] =
+        "%YAML 1.1\n"
+        "---\n"
+        "anchor: &anchor\n"
+        "  foo: bar\n"
+        "alias:\n"
+        "  <<: *anchor\n";
+
+    if (ConfYamlLoadString(config, strlen(config)) != 0) {
+        return 0;
+    }
+
+    char *alias_value;
+    if (!ConfGet("alias.foo", &alias_value)) {
+        return 0;
+    }
+    if (strcmp(alias_value, "bar") != 0) {
+        return 0;
+    }
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void
@@ -945,5 +1109,8 @@ ConfYamlRegisterTests(void)
     UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
     UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest, 1);
     UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest, 1);
+    UtRegisterTest("ConfYamlAnchorAliasTest", ConfYamlAnchorAliasTest, 1);
+    UtRegisterTest("ConfYamlAnchorAliasMergeTest",
+        ConfYamlAnchorAliasMergeTest, 1);
 #endif /* UNITTESTS */
 }
