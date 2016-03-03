@@ -421,7 +421,7 @@ EXTRA_DIST = util-mpm-ac-cuda-kernel.cu ptxdump.py
 AM_CPPFLAGS = $(all_includes)
 
 # the library search path.
-suricata_LDFLAGS = $(all_libraries)
+suricata_LDFLAGS = $(all_libraries) ${SECLDFLAGS}
 suricata_LDADD = $(HTP_LDADD)
 
 # Rules to build CUDA ptx modules
