@@ -58,6 +58,8 @@ enum {
     ICMPV6_IPV6_UNKNOWN_VER,        /**< unknown version in icmpv6 packet */
     ICMPV6_IPV6_TRUNC_PKT,          /**< truncated icmpv6 packet */
     ICMPV6_MLD_MESSAGE_WITH_INVALID_HL, /**< invalid MLD that doesn't have HL 1 */
+    ICMPV6_UNASSIGNED_TYPE,         /**< unsassigned ICMPv6 type */
+    ICMPV6_EXPERIMENTATION_TYPE,    /**< uprivate experimentation ICMPv6 type */
 
     /* IPV6 EVENTS */
     IPV6_PKT_TOO_SMALL,             /**< ipv6 packet smaller than minimum size */
