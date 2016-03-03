@@ -321,9 +321,26 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             }
             break;
         default:
-            SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
-                       "implemented yet", ICMPV6_GET_TYPE(p));
-            ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
+            /* Various range taken from:
+             *   http://www.iana.org/assignments/icmpv6-parameters/icmpv6-parameters.xhtml#icmpv6-parameters-2
+             */
+            if ((ICMPV6_GET_TYPE(p) > 4) &&  (ICMPV6_GET_TYPE(p) < 100)) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
+            } else if ((ICMPV6_GET_TYPE(p) >= 100) &&  (ICMPV6_GET_TYPE(p) < 102)) {
+                ENGINE_SET_EVENT(p, ICMPV6_EXPERIMENTATION_TYPE);
+            } else  if ((ICMPV6_GET_TYPE(p) >= 102) &&  (ICMPV6_GET_TYPE(p) < 127)) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
+            } else if ((ICMPV6_GET_TYPE(p) >= 160) &&  (ICMPV6_GET_TYPE(p) < 200)) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
+            } else if ((ICMPV6_GET_TYPE(p) >= 200) &&  (ICMPV6_GET_TYPE(p) < 202)) {
+                ENGINE_SET_EVENT(p, ICMPV6_EXPERIMENTATION_TYPE);
+            } else if (ICMPV6_GET_TYPE(p) >= 202) {
+                ENGINE_SET_EVENT(p, ICMPV6_UNASSIGNED_TYPE);
+            } else {
+                SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
+                        "implemented yet", ICMPV6_GET_TYPE(p));
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
+            }
     }
 
     /* for a info message the header is just 4 bytes */
