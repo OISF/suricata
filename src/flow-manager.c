@@ -118,8 +118,11 @@ void FlowDisableFlowManagerThread(void)
     /* flow manager thread(s) is/are a part of mgmt threads */
     tv = tv_root[TVT_MGMT];
 
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
+    while (tv != NULL)
+    {
+        if (strncasecmp(tv->name, thread_name_flow_mgr,
+            strlen(thread_name_flow_mgr)) == 0)
+        {
             TmThreadsSetFlag(tv, THV_KILL);
             cnt++;
 
@@ -725,13 +728,14 @@ void FlowManagerThreadSpawn()
     StatsRegisterGlobalCounter("flow.memuse", FlowGetMemuse);
 
     uint32_t u;
-    for (u = 0; u < flowmgr_number; u++) {
+    for (u = 0; u < flowmgr_number; u++)
+    {
         ThreadVars *tv_flowmgr = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "FlowManagerThread%02u", u+1);
+        snprintf(name, sizeof(name), "%s#%02u", thread_name_flow_mgr, u+1);
 
-        tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowManagerThread",
+        tv_flowmgr = TmThreadCreateMgmtThreadByName(SCStrdup(name),
                 "FlowManager", 0);
         BUG_ON(tv_flowmgr == NULL);
 
@@ -885,13 +889,14 @@ void FlowRecyclerThreadSpawn()
 
 
     uint32_t u;
-    for (u = 0; u < flowrec_number; u++) {
+    for (u = 0; u < flowrec_number; u++)
+    {
         ThreadVars *tv_flowmgr = NULL;
 
         char name[32] = "";
-        snprintf(name, sizeof(name), "FlowRecyclerThread%02u", u+1);
+        snprintf(name, sizeof(name), "%s#%02u", thread_name_flow_rec, u+1);
 
-        tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowRecyclerThread",
+        tv_flowmgr = TmThreadCreateMgmtThreadByName(SCStrdup(name),
                 "FlowRecycler", 0);
         BUG_ON(tv_flowmgr == NULL);
 
@@ -939,8 +944,11 @@ void FlowDisableFlowRecyclerThread(void)
     /* flow recycler thread(s) is/are a part of mgmt threads */
     tv = tv_root[TVT_MGMT];
 
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowRecyclerThread") == 0) {
+    while (tv != NULL)
+    {
+        if (strncasecmp(tv->name, thread_name_flow_rec,
+            strlen(thread_name_flow_rec)) == 0)
+        {
             TmThreadsSetFlag(tv, THV_KILL);
             cnt++;
 

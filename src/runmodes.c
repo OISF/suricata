@@ -51,6 +51,14 @@
 
 int debuglog_enabled = 0;
 
+/* Runmode Global Thread Names */
+const char *thread_name_autofp = "RX";
+const char *thread_name_single = "W";
+const char *thread_name_workers = "W";
+const char *thread_name_verdict = "TX";
+const char *thread_name_flow_mgr = "FM";
+const char *thread_name_flow_rec = "FR";
+
 /**
  * \brief Holds description for a runmode.
  */

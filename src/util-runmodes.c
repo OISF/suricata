@@ -102,8 +102,9 @@ char *RunmodeAutoFpCreatePickupQueuesString(int n)
  */
 int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name,
+                              const char *thread_name,
                               const char *live_dev)
 {
     char tname[TM_THREAD_NAME_MAX];
@@ -147,7 +148,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         /* create the threads */
         for (thread = 0; thread < threads_count; thread++) {
-            snprintf(tname, sizeof(tname), "%s%d", thread_name, thread+1);
+            snprintf(tname, sizeof(tname), "%s#%02d", thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
             if (unlikely(thread_name == NULL)) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -191,6 +192,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         for (lthread = 0; lthread < nlive; lthread++) {
             char *live_dev = LiveGetDeviceName(lthread);
+            char visual_devname[11] = "";
+            int shortening_result;
             void *aconf;
             int threads_count;
 
@@ -209,8 +212,15 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
-                snprintf(tname, sizeof(tname), "%s%s%d", thread_name,
-                         live_dev, thread+1);
+                shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
+                if (shortening_result != 0) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
+                    exit(EXIT_FAILURE);
+                }
+
+                snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
+                         thread+1, visual_devname);
+
                 char *thread_name = SCStrdup(tname);
                 if (unlikely(thread_name == NULL)) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
@@ -249,7 +259,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -316,8 +326,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 /**
  */
 static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev, void *aconf,
                               unsigned char single_mode)
 {
@@ -335,14 +345,22 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
         char *n_thread_name = NULL;
+        char visual_devname[11] = "";
+        int shortening_result;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
 
+        shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
+        if (shortening_result != 0) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
+            exit(EXIT_FAILURE);
+        }
+
         if (single_mode) {
-            snprintf(tname, sizeof(tname), "%s", thread_name);
+            snprintf(tname, sizeof(tname), "%s#01-%s", thread_name, visual_devname);
         } else {
-            snprintf(tname, sizeof(tname), "%s%s%d",
-                     thread_name, live_dev, thread+1);
+            snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
+                     thread+1, visual_devname);
         }
         n_thread_name = SCStrdup(tname);
         if (unlikely(n_thread_name == NULL)) {
@@ -410,8 +428,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
 int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
@@ -445,8 +463,8 @@ int RunModeSetLiveCaptureWorkers(ConfigIfaceParserFunc ConfigParser,
 
 int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
-                              char *recv_mod_name,
-                              char *decode_mod_name, char *thread_name,
+                              const char *recv_mod_name,
+                              const char *decode_mod_name, const char *thread_name,
                               const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
@@ -480,9 +498,9 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
 /**
  */
 int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
-                        char *recv_mod_name,
-                        char *verdict_mod_name,
-                        char *decode_mod_name)
+                        const char *recv_mod_name,
+                        const char *verdict_mod_name,
+                        const char *decode_mod_name)
 {
     SCEnter();
     char tname[TM_THREAD_NAME_MAX];
@@ -519,7 +537,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
+        snprintf(tname, sizeof(tname), "%s-Q%s", thread_name_autofp, cur_queue);
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {
@@ -557,7 +575,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
     }
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_workers, thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
@@ -612,7 +630,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     /* create the threads */
     for (int i = 0; i < nqueue; i++) {
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Verdict%d", i);
+        snprintf(tname, sizeof(tname), "%s#%02d", thread_name_verdict, i);
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {
@@ -657,9 +675,9 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 /**
  */
 int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
-        char *recv_mod_name,
-        char *verdict_mod_name,
-        char *decode_mod_name)
+        const char *recv_mod_name,
+        const char *verdict_mod_name,
+        const char *decode_mod_name)
 {
     char tname[TM_THREAD_NAME_MAX];
     ThreadVars *tv = NULL;
@@ -676,7 +694,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname), "Worker-Q%s", cur_queue);
+        snprintf(tname, sizeof(tname), "%s-Q%s", thread_name_workers, cur_queue);
 
         char *thread_name = SCStrdup(tname);
         if (unlikely(thread_name == NULL)) {

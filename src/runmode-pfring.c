@@ -437,7 +437,7 @@ int RunModeIdsPfringAutoFp(void)
     ret = RunModeSetLiveCaptureAutoFp(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -474,7 +474,7 @@ int RunModeIdsPfringSingle(void)
     ret = RunModeSetLiveCaptureSingle(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_single,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -511,7 +511,7 @@ int RunModeIdsPfringWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_workers,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
