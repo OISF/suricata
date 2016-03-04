@@ -434,6 +434,8 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
         g_waldo_deinit = 1;
     }
     SCMutexUnlock(&g_waldo_mutex);
+
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 
