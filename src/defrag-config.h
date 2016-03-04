@@ -28,5 +28,6 @@
 void DefragSetDefaultTimeout(intmax_t timeout);
 void DefragPolicyLoadFromConfig(void);
 int DefragPolicyGetHostTimeout(Packet *p);
+void DefragTreeDestroy(void);
 
 #endif /* DEFRAG_CONFIG_H_ */
