@@ -191,6 +191,8 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
 
         logger = logger->next;
     }
+
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 
