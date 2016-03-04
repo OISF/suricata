@@ -45,6 +45,7 @@
 
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-var.h"
 
 /* prototypes */
 void DetectAddressPrint(DetectAddress *);
@@ -915,7 +916,7 @@ error:
  */
 static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
         DetectAddressHead *gh, DetectAddressHead *ghn,
-        char *s, int negate)
+        char *s, int negate, ResolvedVariablesList *var_list)
 {
     size_t x = 0;
     size_t u = 0;
@@ -925,6 +926,12 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     char address[8196] = "";
     char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
+
+    if (AddVariableToResolveList(var_list, s) == -1) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a address "
+                   "groups declaration. This is likely a misconfiguration.");
+        goto error;
+    }
 
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
@@ -956,7 +963,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     /* normal block */
                     SCLogDebug("normal block");
 
-                    if (DetectAddressParse2(de_ctx, gh, ghn, address, (negate + n_set) % 2) < 0)
+                    if (DetectAddressParse2(de_ctx, gh, ghn, address, (negate + n_set) % 2, var_list) < 0)
                         goto error;
                 } else {
                     /* negated block
@@ -969,7 +976,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     DetectAddressHead tmp_gh = { NULL, NULL, NULL };
                     DetectAddressHead tmp_ghn = { NULL, NULL, NULL };
 
-                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0) < 0)
+                    if (DetectAddressParse2(de_ctx, &tmp_gh, &tmp_ghn, address, 0, var_list) < 0)
                         goto error;
 
                     DetectAddress *tmp_ad;
@@ -1037,6 +1044,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
+
                 if (strlen(rule_var_address) == 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
                             "to nothing. This is likely a misconfiguration. "
@@ -1044,6 +1052,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
                     goto error;
                 }
+
                 SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
@@ -1053,8 +1062,12 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                              "[%s]", rule_var_address);
                 }
-                DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
-                                    (negate + n_set) % 2);
+
+
+                if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
+                                    (negate + n_set) % 2, var_list) < 0)
+                    goto error;
+
                 d_set = 0;
                 n_set = 0;
                 if (temp_rule_var_address != rule_var_address)
@@ -1089,6 +1102,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
+
                 if (strlen(rule_var_address) == 0) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
                             "to nothing. This is likely a misconfiguration. "
@@ -1096,6 +1110,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                             "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
                     goto error;
                 }
+
                 SCLogDebug("rule_var_address %s", rule_var_address);
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
@@ -1105,8 +1120,9 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
                     snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
                             "[%s]", rule_var_address);
                 }
+
                 if (DetectAddressParse2(de_ctx, gh, ghn, temp_rule_var_address,
-                                    (negate + n_set) % 2) < 0) {
+                                    (negate + n_set) % 2, var_list) < 0) {
                     SCLogDebug("DetectAddressParse2 hates us");
                     goto error;
                 }
@@ -1146,6 +1162,7 @@ static int DetectAddressParse2(const DetectEngineCtx *de_ctx,
     return 0;
 
 error:
+
     return -1;
 }
 
@@ -1368,6 +1385,8 @@ int DetectAddressTestConfVars(void)
 {
     SCLogDebug("Testing address conf vars for any misconfigured values");
 
+    ResolvedVariablesList var_list = TAILQ_HEAD_INITIALIZER(var_list);
+
     ConfNode *address_vars_node = ConfGetNode("vars.address-groups");
     if (address_vars_node == NULL) {
         return 0;
@@ -1394,13 +1413,18 @@ int DetectAddressTestConfVars(void)
             goto error;
         }
 
-        int r = DetectAddressParse2(NULL, gh, ghn, seq_node->val, /* start with negate no */0);
+        int r = DetectAddressParse2(NULL, gh, ghn, seq_node->val, /* start with negate no */0, &var_list);
+
+        CleanVariableResolveList(&var_list);
+
         if (r < 0) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                         "failed to parse address var \"%s\" with value \"%s\". "
                         "Please check it's syntax", seq_node->name, seq_node->val);
             goto error;
         }
+
+        CleanVariableResolveList(&var_list);
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
@@ -1453,7 +1477,7 @@ int DetectAddressParse(const DetectEngineCtx *de_ctx,
         goto error;
     }
 
-    r = DetectAddressParse2(de_ctx, gh, ghn, str, /* start with negate no */0);
+    r = DetectAddressParse2(de_ctx, gh, ghn, str, /* start with negate no */0, NULL);
     if (r < 0) {
         SCLogDebug("DetectAddressParse2 returned %d", r);
         goto error;
