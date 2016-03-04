@@ -128,3 +128,43 @@ void GenericVarRemove(GenericVar **list, GenericVar *gv)
         listgv = listgv->next;
     }
 }
+
+// Checks if a variable is already in a resolve list and if it's not, adds it.
+int AddVariableToResolveList(ResolvedVariablesList *list, char *var)
+{
+    ResolvedVariable *p_item;
+
+    if (list == NULL || var == NULL)
+        return 0;
+
+    TAILQ_FOREACH(p_item, list, next) {
+        if (!strcmp(p_item->var_name, var)) {
+            return -1;
+        }
+    }
+
+    p_item = SCMalloc(sizeof(ResolvedVariable));
+
+    if (unlikely(p_item == NULL)) {
+        return -1;
+    }
+
+    strlcpy(p_item->var_name, var, sizeof(p_item->var_name) - 1);
+    TAILQ_INSERT_TAIL(list, p_item, next);
+
+    return 0;
+}
+
+void CleanVariableResolveList(ResolvedVariablesList *var_list)
+{
+    if (var_list == NULL) {
+        return;
+    }
+
+    ResolvedVariable *p_item;
+
+    while ((p_item = TAILQ_FIRST(var_list))) {
+        TAILQ_REMOVE(var_list, p_item, next);
+        SCFree(p_item);
+    }
+}

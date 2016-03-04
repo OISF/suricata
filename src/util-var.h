@@ -57,9 +57,21 @@ typedef struct XBit_ {
     uint32_t expire;
 } XBit;
 
+// A list of variables we try to resolve while parsing configuration file.
+// Helps to detect recursive declarations.
+typedef struct ResolvedVariable_ {
+    char var_name[256];
+    TAILQ_ENTRY(ResolvedVariable_) next;
+} ResolvedVariable;
+
+typedef TAILQ_HEAD(, ResolvedVariable_) ResolvedVariablesList;
+
 void GenericVarFree(GenericVar *);
 void GenericVarAppend(GenericVar **, GenericVar *);
 void GenericVarRemove(GenericVar **, GenericVar *);
+
+int AddVariableToResolveList(ResolvedVariablesList *list, char *var);
+void CleanVariableResolveList(ResolvedVariablesList *var_list);
 
 #endif /* __UTIL_VAR_H__ */
 
