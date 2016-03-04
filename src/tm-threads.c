@@ -73,6 +73,8 @@ __thread uint64_t rwr_lock_cnt;
 /* prototypes */
 static int SetCPUAffinity(uint16_t cpu);
 
+static void TmThreadDeinitMC(ThreadVars *tv);
+
 /* root of the threadvars list */
 ThreadVars *tv_root[TVT_MAX] = { NULL };
 
@@ -1654,6 +1656,8 @@ void TmThreadFree(ThreadVars *tv)
 
     StatsThreadCleanup(tv);
 
+    TmThreadDeinitMC(tv);
+
     s = (TmSlot *)tv->tm_slots;
     while (s) {
         ps = s;
@@ -1777,6 +1781,19 @@ void TmThreadInitMC(ThreadVars *tv)
         exit(EXIT_FAILURE);
     }
 
+    return;
+}
+
+static void TmThreadDeinitMC(ThreadVars *tv)
+{
+    if (tv->ctrl_mutex) {
+        SCCtrlMutexDestroy(tv->ctrl_mutex);
+        SCFree(tv->ctrl_mutex);
+    }
+    if (tv->ctrl_cond) {
+        SCCtrlCondDestroy(tv->ctrl_cond);
+        SCFree(tv->ctrl_cond);
+    }
     return;
 }
 
