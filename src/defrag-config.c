@@ -160,3 +160,11 @@ void DefragPolicyLoadFromConfig(void)
         }
     }
 }
+
+void DefragTreeDestroy(void)
+{
+    if (defrag_tree != NULL) {
+        SCRadixReleaseRadixTree(defrag_tree);
+    }
+    defrag_tree = NULL;
+}
