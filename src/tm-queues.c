@@ -90,6 +90,12 @@ void TmqDebugList(void)
 
 void TmqResetQueues(void)
 {
+    uint16_t i;
+    for(i = 0; i < TMQ_MAX_QUEUES; i++) {
+        if (tmqs[i].name) {
+            SCFree(tmqs[i].name);
+        }
+    }
     memset(&tmqs, 0x00, sizeof(tmqs));
     tmq_id = 0;
 }
