@@ -62,6 +62,8 @@ void RunModeFilePcapRegister(void)
 int RunModeFilePcapSingle(void)
 {
     char *file = NULL;
+    char tname[TM_THREAD_NAME_MAX];
+
     if (ConfGet("pcap-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
         exit(EXIT_FAILURE);
@@ -72,8 +74,10 @@ int RunModeFilePcapSingle(void)
 
     PcapFileGlobalInit();
 
+    snprintf(tname, sizeof(tname), "%s#01", thread_name_single);
+
     /* create the threads */
-    ThreadVars *tv = TmThreadCreatePacketHandler("PcapFile",
+    ThreadVars *tv = TmThreadCreatePacketHandler(tname,
                                                  "packetpool", "packetpool",
                                                  "packetpool", "packetpool",
                                                  "pktacqloop");
@@ -183,9 +187,11 @@ int RunModeFilePcapAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
+    snprintf(tname, sizeof(tname), "%s#01", thread_name_autofp);
+
     /* create the threads */
     ThreadVars *tv_receivepcap =
-        TmThreadCreatePacketHandler("ReceivePcapFile",
+        TmThreadCreatePacketHandler(tname,
                                     "packetpool", "packetpool",
                                     queues, "flow",
                                     "pktacqloop");
@@ -217,20 +223,14 @@ int RunModeFilePcapAutoFp(void)
     }
 
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%d", thread+1);
+        snprintf(tname, sizeof(tname), "%s#%02u", thread_name_workers, thread+1);
         snprintf(qname, sizeof(qname), "pickup%d", thread+1);
 
         SCLogDebug("tname %s, qname %s", tname, qname);
-
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "failed to strdup thread name");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity to cpu %u", tname, cpu);
 
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "packetpool", "packetpool",
                                         "varslot");
