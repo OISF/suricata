@@ -109,7 +109,7 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
     void *ptmp;
     Tmq *tmq = TmqGetQueueByName(name);
     if (tmq == NULL) {
-        tmq = TmqCreateQueue(SCStrdup(name));
+        tmq = TmqCreateQueue(name);
         if (tmq == NULL)
             return -1;
     }
