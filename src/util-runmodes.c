@@ -148,13 +148,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         /* create the threads */
         for (thread = 0; thread < threads_count; thread++) {
             snprintf(tname, sizeof(tname), "%s%d", thread_name, thread+1);
-            char *thread_name = SCStrdup(tname);
-            if (unlikely(thread_name == NULL)) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-                exit(EXIT_FAILURE);
-            }
             ThreadVars *tv_receive =
-                TmThreadCreatePacketHandler(thread_name,
+                TmThreadCreatePacketHandler(tname,
                         "packetpool", "packetpool",
                         queues, "flow", "pktacqloop");
             if (tv_receive == NULL) {
@@ -211,13 +206,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             for (thread = 0; thread < threads_count; thread++) {
                 snprintf(tname, sizeof(tname), "%s%s%d", thread_name,
                          live_dev, thread+1);
-                char *thread_name = SCStrdup(tname);
-                if (unlikely(thread_name == NULL)) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-                    exit(EXIT_FAILURE);
-                }
                 ThreadVars *tv_receive =
-                    TmThreadCreatePacketHandler(thread_name,
+                    TmThreadCreatePacketHandler(tname,
                             "packetpool", "packetpool",
                             queues, "flow", "pktacqloop");
                 if (tv_receive == NULL) {
@@ -254,13 +244,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-            exit(EXIT_FAILURE);
-        }
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "packetpool", "packetpool",
                                         "varslot");
@@ -286,12 +271,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
-        char *thread_group_name = SCStrdup("Detect");
-        if (unlikely(thread_group_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-        tv_detect_ncpu->thread_group_name = thread_group_name;
+        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
@@ -334,7 +314,6 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     /* create the threads */
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
-        char *n_thread_name = NULL;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
 
@@ -344,12 +323,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
             snprintf(tname, sizeof(tname), "%s%s%d",
                      thread_name, live_dev, thread+1);
         }
-        n_thread_name = SCStrdup(tname);
-        if (unlikely(n_thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-            exit(EXIT_FAILURE);
-        }
-        tv = TmThreadCreatePacketHandler(n_thread_name,
+        tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
                 "pktacqloop");
@@ -521,13 +495,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "thread name creation failed");
-            exit(EXIT_FAILURE);
-        }
         ThreadVars *tv_receive =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                     "packetpool", "packetpool",
                     queues, "flow", "pktacqloop");
         if (tv_receive == NULL) {
@@ -562,13 +531,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
-            exit(EXIT_FAILURE);
-        }
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "verdict-queue", "simple",
                                         "varslot");
@@ -596,12 +560,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
         SetupOutputs(tv_detect_ncpu);
 
-        char *thread_group_name = SCStrdup("Detect");
-        if (unlikely(thread_group_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-        tv_detect_ncpu->thread_group_name = thread_group_name;
+        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
@@ -614,13 +573,8 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Verdict%d", i);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
         ThreadVars *tv_verdict =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         "verdict-queue", "simple",
                                         "packetpool", "packetpool",
                                         "varslot");
@@ -678,12 +632,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Worker-Q%s", cur_queue);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
-        tv = TmThreadCreatePacketHandler(thread_name,
+        tv = TmThreadCreatePacketHandler(tname,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
                 "pktacqloop");

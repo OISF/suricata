@@ -1044,7 +1044,9 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->perf_public_ctx.m, NULL);
 
-    tv->name = name;
+    tv->name = SCStrdup(name);
+    if (unlikely(tv->name == NULL))
+        goto error;
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
@@ -1658,6 +1660,13 @@ void TmThreadFree(ThreadVars *tv)
 
     TmThreadDeinitMC(tv);
 
+    if (tv->name) {
+        SCFree(tv->name);
+    }
+    if (tv->thread_group_name) {
+        SCFree(tv->thread_group_name);
+    }
+
     s = (TmSlot *)tv->tm_slots;
     while (s) {
         ps = s;
@@ -1667,6 +1676,24 @@ void TmThreadFree(ThreadVars *tv)
 
     TmThreadsUnregisterThread(tv->id);
     SCFree(tv);
+}
+
+void TmThreadSetGroupName(ThreadVars *tv, const char *name)
+{
+    char *thread_group_name = NULL;
+
+    if (name == NULL)
+        return;
+
+    if (tv == NULL)
+        return;
+
+    thread_group_name = SCStrdup(name);
+    if (unlikely(thread_group_name == NULL)) {
+        SCLogError(SC_ERR_RUNMODE, "error allocating memory");
+        return;
+    }
+    tv->thread_group_name = thread_group_name;
 }
 
 void TmThreadClearThreadsFamily(int family)

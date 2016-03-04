@@ -207,15 +207,8 @@ int RunModeErfFileAutoFp(void)
 
         SCLogDebug("tname %s, qname %s", tname, qname);
 
-        char *thread_name = SCStrdup(tname);
-        if (unlikely(thread_name == NULL)) {
-            printf("ERROR: Can't allocate thread name\n");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
-
         ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
+            TmThreadCreatePacketHandler(tname,
                                         qname, "flow",
                                         "packetpool", "packetpool",
                                         "varslot");
@@ -252,12 +245,7 @@ int RunModeErfFileAutoFp(void)
             }
         }
 
-        char *thread_group_name = SCStrdup("Detect");
-        if (unlikely(thread_group_name == NULL)) {
-            printf("Error allocating memory\n");
-            exit(EXIT_FAILURE);
-        }
-        tv_detect_ncpu->thread_group_name = thread_group_name;
+        TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
         /* add outputs as well */
         SetupOutputs(tv_detect_ncpu);
