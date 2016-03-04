@@ -427,12 +427,6 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  * */
 static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 {
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("Could not create new LogFilestoreCtx");
-        return NULL;
-    }
-
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
