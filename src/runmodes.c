@@ -360,6 +360,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     }
 
     /* Export the custom mode */
+    if (active_runmode) {
+        SCFree(active_runmode);
+    }
     active_runmode = SCStrdup(custom_mode);
     if (unlikely(active_runmode == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup active mode");
