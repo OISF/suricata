@@ -334,7 +334,7 @@ static void DumpJson(FILE *fp, SCProfileSummary *summary, uint32_t count, uint64
             double percent = (long double)summary[i].ticks /
                 (long double)total_ticks * 100;
             json_object_set_new(jsm, "percent", json_integer(percent));
-            json_array_append(jsa, jsm);
+            json_array_append_new(jsa, jsm);
         }
     }
     json_object_set_new(js, "rules", jsa);

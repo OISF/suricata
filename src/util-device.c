@@ -261,7 +261,7 @@ TmEcode LiveDeviceIfaceList(json_t *cmd, json_t *answer, void *data)
         return TM_ECODE_FAILED;
     }
     TAILQ_FOREACH(pd, &live_devices, next) {
-        json_array_append(jarray, json_string(pd->dev));
+        json_array_append_new(jarray, json_string(pd->dev));
         i++;
     }
 
