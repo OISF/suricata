@@ -217,6 +217,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
     }
 
     SCFree(fctx->queues);
+    SCFree(fctx);
 
     return;
 }
