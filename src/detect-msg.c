@@ -75,10 +75,6 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
         goto error;
     }
 
-    /* make sure that we don't proceed with null pointer */
-    if (unlikely(str == NULL))
-        goto error;
-
     len = strlen(str);
     if (len == 0)
         goto error;
