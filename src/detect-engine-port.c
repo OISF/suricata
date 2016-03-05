@@ -51,6 +51,7 @@
 #include "pkt-var.h"
 #include "host.h"
 #include "util-profiling.h"
+#include "util-var.h"
 
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
@@ -1025,7 +1026,7 @@ error:
  */
 static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                              DetectPort **head, DetectPort **nhead,
-                             char *s, int negate)
+                             char *s, int negate, ResolvedVariablesList *var_list)
 {
     size_t u = 0;
     size_t x = 0;
@@ -1036,6 +1037,12 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
     char address[1024] = "";
     char *rule_var_port = NULL;
     int r = 0;
+
+    if (AddVariableToResolveList(var_list, s) == -1) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Found a loop in a port "
+                   "groups declaration. This is likely a misconfiguration.");
+        goto error;
+    }
 
     SCLogDebug("head %p, *head %p, negate %d", head, *head, negate);
 
@@ -1065,7 +1072,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                 SCLogDebug("Parsed port from DetectPortParseDo - %s", address);
                 x = 0;
 
-                r = DetectPortParseDo(de_ctx, head, nhead, address, negate? negate: n_set);
+                r = DetectPortParseDo(de_ctx, head, nhead, address, negate? negate: n_set, var_list);
                 if (r == -1)
                     goto error;
 
@@ -1103,7 +1110,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                     temp_rule_var_port = alloc_rule_var_port;
                 }
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2);//negate? negate: n_set);
+                                  (negate + n_set) % 2, var_list);//negate? negate: n_set);
                 if (r == -1)
                     goto error;
 
@@ -1163,7 +1170,7 @@ static int DetectPortParseDo(const DetectEngineCtx *de_ctx,
                     temp_rule_var_port = alloc_rule_var_port;
                 }
                 r = DetectPortParseDo(de_ctx, head, nhead, temp_rule_var_port,
-                                  (negate + n_set) % 2);
+                                  (negate + n_set) % 2, var_list);
                 if (r == -1)
                     goto error;
 
@@ -1337,6 +1344,8 @@ int DetectPortTestConfVars(void)
 {
     SCLogDebug("Testing port conf vars for any misconfigured values");
 
+    ResolvedVariablesList var_list = TAILQ_HEAD_INITIALIZER(var_list);
+
     ConfNode *port_vars_node = ConfGetNode("vars.port-groups");
     if (port_vars_node == NULL) {
         return 0;
@@ -1361,9 +1370,15 @@ int DetectPortTestConfVars(void)
             goto error;
         }
 
-        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val, /* start with negate no */0);
+        int r = DetectPortParseDo(NULL, &gh, &ghn, seq_node->val, /* start with negate no */0, &var_list);
+
+        CleanVariableResolveList(&var_list);
+
         if (r < 0) {
             DetectPortCleanupList(gh);
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                        "failed to parse port var \"%s\" with value \"%s\". "
+                        "Please check it's syntax", seq_node->name, seq_node->val);
             goto error;
         }
 
@@ -1409,7 +1424,7 @@ int DetectPortParse(const DetectEngineCtx *de_ctx,
     /* negate port list */
     DetectPort *nhead = NULL;
 
-    r = DetectPortParseDo(de_ctx, head, &nhead, str,/* start with negate no */0);
+    r = DetectPortParseDo(de_ctx, head, &nhead, str,/* start with negate no */0, NULL);
     if (r < 0)
         goto error;
 
@@ -2786,7 +2801,7 @@ static int PortTestMatchDoubleNegation(void)
     int result = 0;
     DetectPort *head = NULL, *nhead = NULL;
 
-    if (DetectPortParseDo(NULL, &head, &nhead, "![!80]", 0) == -1)
+    if (DetectPortParseDo(NULL, &head, &nhead, "![!80]", 0, NULL) == -1)
         return result;
 
     result = (head != NULL);
