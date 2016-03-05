@@ -367,7 +367,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
     uint32_t b_ip2[4] = { ntohl(b->ip2.addr_data32[0]), ntohl(b->ip2.addr_data32[1]),
                           ntohl(b->ip2.addr_data32[2]), ntohl(b->ip2.addr_data32[3]) };
 
-    DetectPort *port = NULL;
     DetectAddress *tmp = NULL;
 
     /* default to NULL */
@@ -412,14 +411,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
         /* copy old b to a */
         SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
 
-        for (port = b->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx, &tmp_c->port, port);
-        for (port = a->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx, &b->port, port);
-
-        tmp_c->cnt += b->cnt;
-        b->cnt += a->cnt;
-
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> b_ip2
@@ -459,23 +450,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
         /* clean tmp list */
         SigGroupHeadClearSigs(tmp->sh);
 
-        for (port = a->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx,&tmp->port, port);
-        for (port = b->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx,&a->port, port);
-
-        for (port = tmp->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx,&b->port, port);
-        for (port = tmp->port; port != NULL; port = port->next)
-            DetectPortInsertCopy(de_ctx,&tmp_c->port, port);
-
-        tmp->cnt += a->cnt;
-        a->cnt = 0;
-        tmp_c->cnt += tmp->cnt;
-        a->cnt += b->cnt;
-        b->cnt += tmp->cnt;
-        tmp->cnt = 0;
-
     /* we have 2 or three parts:
      *
      * 2 part: [[abab]bbb] or [bbb[baba]]
@@ -501,11 +475,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
 
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&a->port, port);
-
-            a->cnt += b->cnt;
-
         } else if (AddressIPv6EqU32(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(b_ip1, a->ip.addr_data32);
             AddressCutIPv6CopySubOne(a_ip1, a->ip2.addr_data32);
@@ -519,18 +488,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
             SigGroupHeadClearSigs(tmp->sh);
 
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&tmp->port, a->port);
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&a->port, port);
-            for (port = tmp->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&b->port, port);
-
-            tmp->cnt += a->cnt;
-            a->cnt = 0;
-            a->cnt += b->cnt;
-            b->cnt += tmp->cnt;
-            tmp->cnt = 0;
         } else {
             AddressCutIPv6Copy(b_ip1, a->ip.addr_data32);
             AddressCutIPv6CopySubOne(a_ip1, a->ip2.addr_data32);
@@ -565,22 +522,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             /* clean tmp list */
             SigGroupHeadClearSigs(tmp->sh);
 
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&tmp->port, port);
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&tmp_c->port, port);
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&a->port, port);
-
-            for (port = tmp->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&b->port, port);
-
-            tmp->cnt += a->cnt;
-            a->cnt = 0;
-            tmp_c->cnt += b->cnt;
-            a->cnt += b->cnt;
-            b->cnt += tmp->cnt;
-            tmp->cnt = 0;
         }
     /* we have 2 or three parts:
      *
@@ -611,18 +552,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
             SigGroupHeadClearSigs(tmp->sh);
 
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&tmp->port, b->port);
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&b->port, port);
-            for (port = tmp->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&a->port, port);
-
-            tmp->cnt += b->cnt;
-            b->cnt = 0;
-            b->cnt += a->cnt;
-            a->cnt += tmp->cnt;
-            tmp->cnt = 0;
         } else if (AddressIPv6EqU32(a_ip2, b_ip2) == 1) {
             AddressCutIPv6Copy(a_ip1, a->ip.addr_data32);
             AddressCutIPv6CopySubOne(b_ip1, a->ip2.addr_data32);
@@ -633,10 +562,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             /* 'a' overlaps 'b' so a needs the 'a' sigs */
             SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
 
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&b->port, port);
-
-            b->cnt += a->cnt;
         } else {
             AddressCutIPv6Copy(a_ip1, a->ip.addr_data32);
             AddressCutIPv6CopySubOne(b_ip1, a->ip2.addr_data32);
@@ -660,13 +585,6 @@ int DetectAddressCutIPv6(DetectEngineCtx *de_ctx, DetectAddress *a,
             SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
             SigGroupHeadCopySigs(de_ctx, a->sh, &tmp_c->sh);
 
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&b->port, port);
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx,&tmp_c->port, port);
-
-            b->cnt += a->cnt;
-            tmp_c->cnt += a->cnt;
         }
     }
 

@@ -1953,12 +1953,14 @@ static void SetupDelayedDetect(SCInstance *suri)
     if (suri->offline) {
         suri->delayed_detect = 0;
     } else {
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "delayed-detect") == 0) {
-                    (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+        if (ConfGetBool("detect.delayed-detect", &suri->delayed_detect) != 1) {
+            ConfNode *denode = NULL;
+            ConfNode *decnf = ConfGetNode("detect-engine");
+            if (decnf != NULL) {
+                TAILQ_FOREACH(denode, &decnf->head, next) {
+                    if (strcmp(denode->val, "delayed-detect") == 0) {
+                        (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+                    }
                 }
             }
         }
@@ -2135,6 +2137,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
+        SCProfilingSghsGlobalInit();
         SCProfilingInit();
     }
 #endif /* PROFILING */

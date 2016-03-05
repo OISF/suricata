@@ -99,13 +99,6 @@ void DetectPortFree(DetectPort *dp)
     }
     dp->sh = NULL;
 
-    if (dp->dst_ph != NULL && !(dp->flags & PORT_GROUP_PORTS_COPY)) {
-        DetectPortCleanupList(dp->dst_ph);
-    }
-    dp->dst_ph = NULL;
-
-    //BUG_ON(dp->next != NULL);
-
     detect_port_memory -= sizeof(DetectPort);
     detect_port_free_cnt++;
     SCFree(dp);
@@ -289,7 +282,6 @@ int DetectPortInsert(DetectEngineCtx *de_ctx, DetectPort **head,
                 /* exact overlap/match */
                 if (cur != new) {
                     SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
-                    cur->cnt += new->cnt;
                     DetectPortFree(new);
                     return 0;
                 }
@@ -421,9 +413,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
         SigGroupHeadCopySigs(de_ctx,b->sh,&tmp_c->sh); /* copy old b to c */
         SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh); /* copy a to b */
 
-        tmp_c->cnt += b->cnt;
-        b->cnt += a->cnt;
-
     /**
      * We have 3 parts: [bbb[baba]aaa]
      * part a: b_port1 <-> a_port1 - 1
@@ -461,13 +450,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
         SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
 
-        tmp->cnt += a->cnt;
-        a->cnt = 0;
-        tmp_c->cnt += tmp->cnt;
-        a->cnt += b->cnt;
-        b->cnt += tmp->cnt;
-        tmp->cnt = 0;
-
     /**
      * We have 2 or three parts:
      *
@@ -497,7 +479,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             /** 'b' overlaps 'a' so 'a' needs the 'b' sigs */
             SigGroupHeadCopySigs(de_ctx,b->sh,&a->sh);
-            a->cnt += b->cnt;
 
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
@@ -514,12 +495,9 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
              *        clear a
              *        copy tmp to a */
             SigGroupHeadCopySigs(de_ctx,b->sh,&tmp->sh); /* store old a list */
-            tmp->cnt = b->cnt;
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-            b->cnt += a->cnt;
             SigGroupHeadClearSigs(a->sh); /* clean a list */
             SigGroupHeadCopySigs(de_ctx,tmp->sh,&a->sh);/* merge old a with b */
-            a->cnt = tmp->cnt;
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
         } else {
             SCLogDebug("3");
@@ -551,13 +529,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
             SigGroupHeadCopySigs(de_ctx,tmp->sh,&b->sh);/* merge old a with b */
 
             SigGroupHeadClearSigs(tmp->sh); /* clean tmp list */
-
-            tmp->cnt += a->cnt;
-            a->cnt = 0;
-            tmp_c->cnt += b->cnt;
-            a->cnt += b->cnt;
-            b->cnt += tmp->cnt;
-            tmp->cnt = 0;
         }
     /**
      * We have 2 or three parts:
@@ -594,12 +565,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             SigGroupHeadClearSigs(tmp->sh);
 
-            tmp->cnt += b->cnt;
-            b->cnt = 0;
-            b->cnt += a->cnt;
-            a->cnt += tmp->cnt;
-            tmp->cnt = 0;
-
         } else if (a_port2 == b_port2) {
             SCLogDebug("2");
 
@@ -611,8 +576,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             /** 'a' overlaps 'b' so 'b' needs the 'a' sigs */
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
-
-            b->cnt += a->cnt;
 
         } else {
             SCLogDebug("3");
@@ -634,9 +597,6 @@ static int DetectPortCut(DetectEngineCtx *de_ctx, DetectPort *a,
 
             SigGroupHeadCopySigs(de_ctx,a->sh,&b->sh);
             SigGroupHeadCopySigs(de_ctx,a->sh,&tmp_c->sh);
-
-            b->cnt += a->cnt;
-            tmp_c->cnt += a->cnt;
         }
     }
 
@@ -899,7 +859,6 @@ int DetectPortJoin(DetectEngineCtx *de_ctx, DetectPort *target,
     if (target == NULL || source == NULL)
         return -1;
 
-    target->cnt += source->cnt;
     SigGroupHeadCopySigs(de_ctx,source->sh,&target->sh);
 
     if (source->port < target->port)
@@ -1534,195 +1493,137 @@ int DetectPortIsValidRange(char *port)
 }
 /********************** End parsing routines ********************/
 
-
-/********************* Hash function routines *******************/
-#define PORT_HASH_SIZE 1024
+/* hash table */
 
 /**
- * \brief Generate a hash for a DetectPort group
+ * \brief The hash function to be the used by the hash table -
+ *        DetectEngineCtx->dport_hash_table.
  *
- * \param ht HashListTable
- * \param data Pointer to the DetectPort
- * \param datalen sizeof data (not used here atm)
+ * \param ht      Pointer to the hash table.
+ * \param data    Pointer to the DetectPort.
+ * \param datalen Not used in our case.
  *
- * \retval uint32_t the value of the generated hash
+ * \retval hash The generated hash value.
  */
-uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     DetectPort *p = (DetectPort *)data;
-    uint32_t hash = p->port * p->port2;
+    uint32_t hash = 0;
 
-    return hash % ht->array_size;
+    SCLogDebug("hashing sgh %p", p);
+
+    hash = (p->port << 16) | p->port2;
+
+    hash %= ht->array_size;
+    SCLogDebug("hash %"PRIu32, hash);
+    return hash;
 }
 
 /**
- * \brief Function that return if the two DetectPort groups are equal or not
+ * \brief The Compare function to be used by the DetectPort hash table -
+ *        DetectEngineCtx->dport_hash_table.
  *
- * \param data1 Pointer to the DetectPort 1
- * \param len1 sizeof data 1 (not used here atm)
- * \param data2 Pointer to the DetectPort 2
- * \param len2 sizeof data 2 (not used here atm)
+ * \param data1 Pointer to the first DetectPort.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second DetectPort.
+ * \param len2  Not used.
  *
- * \retval 1 if the DetectPort groups are equal
- * \retval 0 if not equal
+ * \retval 1 If the 2 DetectPort sent as args match.
+ * \retval 0 If the 2 DetectPort sent as args do not match.
  */
-char DetectPortCompareFunc(void *data1, uint16_t len1, void *data2,
-                           uint16_t len2)
+static char DetectPortCompareFunc(void *data1, uint16_t len1,
+                                  void *data2, uint16_t len2)
 {
-    DetectPort *p1 = (DetectPort *)data1;
-    DetectPort *p2 = (DetectPort *)data2;
+    DetectPort *dp1 = (DetectPort *)data1;
+    DetectPort *dp2 = (DetectPort *)data2;
 
-    if (p1->port2 == p2->port2 && p1->port == p2->port &&
-        p1->flags == p2->flags)
+    if (data1 == NULL || data2 == NULL)
+        return 0;
+
+    if (dp1->port == dp2->port && dp1->port2 == dp2->port2)
         return 1;
 
     return 0;
 }
 
-void DetectPortFreeFunc(void *p)
+static void DetectPortHashFreeFunc(void *ptr)
 {
-    DetectPort *dp = (DetectPort *)p;
-    DetectPortFree(dp);
+    DetectPort *p = ptr;
+    DetectPortFree(p);
 }
 
 /**
- * \brief Function that initialize the HashListTable of destination DetectPort
+ * \brief Initializes the hash table in the detection engine context to hold the
+ *        DetectPort hash.
  *
- * \param de_ctx Pointer to the current DetectionEngineContext
+ * \param de_ctx Pointer to the detection engine context.
  *
- * \retval 0 HashListTable initialization succes
- * \retval -1 Error
+ * \retval  0 On success.
+ * \retval -1 On failure.
  */
-int DetectPortDpHashInit(DetectEngineCtx *de_ctx)
+int DetectPortHashInit(DetectEngineCtx *de_ctx)
 {
-    de_ctx->dport_hash_table = HashListTableInit(PORT_HASH_SIZE,
-                               DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
+    de_ctx->dport_hash_table = HashListTableInit(4096, DetectPortHashFunc,
+                                                       DetectPortCompareFunc,
+                                                       DetectPortHashFreeFunc);
     if (de_ctx->dport_hash_table == NULL)
         goto error;
 
     return 0;
+
 error:
     return -1;
 }
 
 /**
- * \brief Function that free the HashListTable of destination DetectPort
+ * \brief Adds a DetectPort to the detection engine context DetectPort
+ *        hash table.
  *
- * \param de_ctx Pointer to the current DetectionEngineCtx
+ * \param de_ctx Pointer to the detection engine context.
+ * \param dp     Pointer to the DetectPort.
+ *
+ * \retval ret 0 on Successfully adding the DetectPort; -1 on failure.
  */
-void DetectPortDpHashFree(DetectEngineCtx *de_ctx)
+int DetectPortHashAdd(DetectEngineCtx *de_ctx, DetectPort *dp)
 {
-    if (de_ctx->dport_hash_table == NULL)
+    int ret = HashListTableAdd(de_ctx->dport_hash_table, (void *)dp, 0);
+    return ret;
+}
+
+/**
+ * \brief Used to lookup a DetectPort hash from the detection engine context
+ *        DetectPort hash table.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sgh    Pointer to the DetectPort.
+ *
+ * \retval rsgh On success a pointer to the DetectPort if the DetectPort is
+ *              found in the hash table; NULL on failure.
+ */
+DetectPort *DetectPortHashLookup(DetectEngineCtx *de_ctx, DetectPort *dp)
+{
+    SCEnter();
+
+    DetectPort *rdp = HashListTableLookup(de_ctx->dport_hash_table, (void *)dp, 0);
+
+    SCReturnPtr(rdp, "DetectPort");
+}
+
+/**
+ * \brief Frees the hash table - DetectEngineCtx->sgh_hash_table, allocated by
+ *        DetectPortInit() function.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ */
+void DetectPortHashFree(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->sgh_hash_table == NULL)
         return;
 
     HashListTableFree(de_ctx->dport_hash_table);
     de_ctx->dport_hash_table = NULL;
-}
 
-/**
- * \brief Function that reset the HashListTable of destination DetectPort
- * (Free and Initialize it)
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- */
-void DetectPortDpHashReset(DetectEngineCtx *de_ctx)
-{
-    DetectPortDpHashFree(de_ctx);
-    DetectPortDpHashInit(de_ctx);
-}
-
-/**
- * \brief Function that add a destination DetectPort into the hashtable
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- * \param p Pointer to the DetectPort to add
- */
-int DetectPortDpHashAdd(DetectEngineCtx *de_ctx, DetectPort *p)
-{
-    return HashListTableAdd(de_ctx->dport_hash_table, (void *)p, 0);
-}
-
-/**
- * \brief Function that search a destination DetectPort in the hashtable
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- * \param p Pointer to the DetectPort to search
- */
-DetectPort *DetectPortDpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p)
-{
-    DetectPort *rp = HashListTableLookup(de_ctx->dport_hash_table,
-                                         (void *)p, 0);
-    return rp;
-}
-
-/**
- * \brief Function that initialize the HashListTable of source DetectPort
- *
- * \param de_ctx Pointer to the current DetectionEngineContext
- *
- * \retval 0 HashListTable initialization succes
- * \retval -1 Error
- */
-int DetectPortSpHashInit(DetectEngineCtx *de_ctx)
-{
-    de_ctx->sport_hash_table = HashListTableInit(PORT_HASH_SIZE,
-                               DetectPortHashFunc, DetectPortCompareFunc, DetectPortFreeFunc);
-    if (de_ctx->sport_hash_table == NULL)
-        goto error;
-
-    return 0;
-error:
-    return -1;
-}
-
-/**
- * \brief Function that free the HashListTable of source DetectPort
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- */
-void DetectPortSpHashFree(DetectEngineCtx *de_ctx)
-{
-    if (de_ctx->sport_hash_table == NULL)
-        return;
-
-    HashListTableFree(de_ctx->sport_hash_table);
-    de_ctx->sport_hash_table = NULL;
-}
-
-/**
- * \brief Function that reset the HashListTable of source DetectPort
- * (Free and Initialize it)
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- */
-void DetectPortSpHashReset(DetectEngineCtx *de_ctx)
-{
-    DetectPortSpHashFree(de_ctx);
-    DetectPortSpHashInit(de_ctx);
-}
-
-/**
- * \brief Function that add a source DetectPort into the hashtable
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- * \param p Pointer to the DetectPort to add
- */
-int DetectPortSpHashAdd(DetectEngineCtx *de_ctx, DetectPort *p)
-{
-    return HashListTableAdd(de_ctx->sport_hash_table, (void *)p, 0);
-}
-
-/**
- * \brief Function that search a source DetectPort in the hashtable
- *
- * \param de_ctx Pointer to the current DetectionEngineCtx
- * \param p Pointer to the DetectPort to search
- */
-DetectPort *DetectPortSpHashLookup(DetectEngineCtx *de_ctx, DetectPort *p)
-{
-    DetectPort *rp = HashListTableLookup(de_ctx->sport_hash_table,
-                                         (void *)p, 0);
-    return rp;
+    return;
 }
 
 /*---------------------- Unittests -------------------------*/

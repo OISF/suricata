@@ -61,6 +61,18 @@
                                         ((c)->flags & DETECT_CONTENT_DEPTH) || \
                                         ((c)->flags & DETECT_CONTENT_OFFSET) ))
 
+/* if a pattern has no depth/offset limits, no relative specifiers and isn't
+ * chopped for the mpm, we can take the mpm and consider this pattern a match
+ * w/o futher inspection. Warning: this may still mean other patterns depend
+ * on this pattern that force match validation anyway. */
+#define DETECT_CONTENT_MPM_IS_CONCLUSIVE(c) \
+                                    !( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
+                                       ((c)->flags & DETECT_CONTENT_WITHIN)   || \
+                                       ((c)->flags & DETECT_CONTENT_DEPTH)    || \
+                                       ((c)->flags & DETECT_CONTENT_OFFSET)   || \
+                                       ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
+
+
 #include "util-spm-bm.h"
 
 typedef struct DetectContentData_ {

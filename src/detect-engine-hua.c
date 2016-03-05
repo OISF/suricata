@@ -57,6 +57,36 @@
 #include "app-layer-protos.h"
 
 #include "detect-engine-hua.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http user agent match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param ua         User-Agent to inspect.
+ * \param ua_len     User-Agent buffer length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *ua, const uint32_t ua_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
+
+    if (ua_len >= det_ctx->sgh->mpm_huad_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_huad_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_huad_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, ua, ua_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                              HtpState *htp_state, uint8_t flags,
@@ -74,9 +104,8 @@ int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
     }
     cnt = HttpUAPatternSearch(det_ctx,
-                              (uint8_t *)bstr_ptr(h->value),
+                              (const uint8_t *)bstr_ptr(h->value),
                               bstr_len(h->value), flags);
-
  end:
     return cnt;
 }

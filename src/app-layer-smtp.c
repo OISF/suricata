@@ -881,7 +881,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
     }
-    reply_code = smtp_reply_map[pmq->pattern_id_array[0]].enum_value;
+    reply_code = smtp_reply_map[pmq->rule_id_array[0]].enum_value;
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1297,8 +1297,7 @@ static void *SMTPLocalStorageAlloc(void)
     if (unlikely(pmq == NULL)) {
         exit(EXIT_FAILURE);
     }
-    PmqSetup(pmq,
-             sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 2);
+    PmqSetup(pmq);
 
     return pmq;
 }
@@ -1393,7 +1392,7 @@ static void SMTPSetMpmState(void)
         exit(EXIT_FAILURE);
     }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM, 0);
+    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 
     uint32_t i = 0;
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
@@ -1401,7 +1400,7 @@ static void SMTPSetMpmState(void)
         /* The third argument is 3, because reply code is always 3 bytes. */
         MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
                         0 /* defunct */, 0 /* defunct */,
-                        i /* pattern id */, 0, 0 /* no flags */);
+                        i /* pattern id */, i /* rule id */ , 0 /* no flags */);
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);

@@ -381,6 +381,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
 #ifdef PROFILING
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
+        SCProfilingSghsGlobalInit();
         SCProfilingInit();
 #endif /* PROFILING */
         DefragInit();
