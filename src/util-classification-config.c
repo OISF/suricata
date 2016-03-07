@@ -163,9 +163,9 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *log_filename = NULL;
-    char config_value[256] = "";
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        char config_value[256];
         snprintf(config_value, sizeof(config_value),
                  "%s.classification-file", de_ctx->config_prefix);
 

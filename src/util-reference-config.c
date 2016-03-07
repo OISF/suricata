@@ -162,9 +162,9 @@ static FILE *SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *
 static char *SCRConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *path = NULL;
-    char config_value[256] = "";
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        char config_value[256];
         snprintf(config_value, sizeof(config_value),
                  "%s.reference-config-file", de_ctx->config_prefix);
 

@@ -254,11 +254,13 @@ char *DetectLoadCompleteSigPath(const DetectEngineCtx *de_ctx, char *sig_file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
-    char varname[128] = "default-rule-path";
+    char varname[128];
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.default-rule-path",
                 de_ctx->config_prefix);
+    } else {
+        snprintf(varname, sizeof(varname), "default-rule-path");
     }
 
     /* Path not specified */

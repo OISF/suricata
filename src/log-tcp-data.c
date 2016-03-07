@@ -112,9 +112,10 @@ static int LogTcpDataLoggerDir(ThreadVars *tv, void *thread_data, const Flow *f,
 
         char name[PATH_MAX];
 
-        char tx[64] = "";
-        if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
+        char tx[64] = { 0 };
+        if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION) {
             snprintf(tx, sizeof(tx), "%"PRIu64, tx_id);
+        }
 
         snprintf(name, sizeof(name), "%s/%s/%s_%u-%s_%u-%s-%s.data",
                 td->log_dir,

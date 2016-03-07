@@ -224,7 +224,7 @@ static void JsonNetFlowLogJSONToServer(JsonNetFlowLogThread *aft, json_t *js, Fl
 
         TcpSession *ssn = f->protoctx;
 
-        char hexflags[3] = "";
+        char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->client.tcp_flags : 0);
         json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
@@ -273,7 +273,7 @@ static void JsonNetFlowLogJSONToClient(JsonNetFlowLogThread *aft, json_t *js, Fl
 
         TcpSession *ssn = f->protoctx;
 
-        char hexflags[3] = "";
+        char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->server.tcp_flags : 0);
         json_object_set_new(tjs, "tcp_flags", json_string(hexflags));

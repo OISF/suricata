@@ -728,7 +728,7 @@ void FlowManagerThreadSpawn()
     for (u = 0; u < flowmgr_number; u++) {
         ThreadVars *tv_flowmgr = NULL;
 
-        char name[32] = "";
+        char name[32];
         snprintf(name, sizeof(name), "FlowManagerThread%02u", u+1);
 
         tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowManagerThread",
@@ -888,7 +888,7 @@ void FlowRecyclerThreadSpawn()
     for (u = 0; u < flowrec_number; u++) {
         ThreadVars *tv_flowmgr = NULL;
 
-        char name[32] = "";
+        char name[32];
         snprintf(name, sizeof(name), "FlowRecyclerThread%02u", u+1);
 
         tv_flowmgr = TmThreadCreateMgmtThreadByName("FlowRecyclerThread",

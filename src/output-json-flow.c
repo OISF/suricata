@@ -246,7 +246,7 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
         TcpSession *ssn = f->protoctx;
 
-        char hexflags[3] = "";
+        char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->tcp_packet_flags : 0);
         json_object_set_new(tjs, "tcp_flags", json_string(hexflags));

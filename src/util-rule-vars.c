@@ -69,7 +69,7 @@ char *SCRuleVarsGetConfVar(const DetectEngineCtx *de_ctx,
     SCEnter();
 
     const char *conf_var_type_name = NULL;
-    char conf_var_full_name[2048] = "";
+    char conf_var_full_name[2048];
     char *conf_var_full_name_value = NULL;
 
     if (conf_var_name == NULL)

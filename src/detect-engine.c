@@ -2524,7 +2524,9 @@ int DetectEngineReload(const char *filename, SCInstance *suri)
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
 
-    char prefix[128] = "";
+    char prefix[128];
+    memset(prefix, 0, sizeof(prefix));
+
     if (filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
         if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {

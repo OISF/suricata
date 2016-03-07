@@ -360,7 +360,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             }
         }
         if (cfile->tenant_id > 0) {
-            char tstr[16] = "";
+            char tstr[16];
             snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
             if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENTS,

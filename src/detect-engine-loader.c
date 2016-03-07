@@ -267,7 +267,7 @@ void DetectLoaderThreadSpawn()
     for (i = 0; i < num_loaders; i++) {
         ThreadVars *tv_loader = NULL;
 
-        char name[32] = "";
+        char name[32];
         snprintf(name, sizeof(name), "DetectLoader%02d", i+1);
 
         tv_loader = TmThreadCreateCmdThreadByName("DetectLoader",

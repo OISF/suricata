@@ -198,7 +198,6 @@ extern int sc_log_module_initialized;
 
 extern int sc_log_module_cleaned;
 
-
 #define SCLog(x, ...)                                                           \
     do {                                                                        \
         if (sc_log_global_log_level >= x &&                                     \
@@ -208,7 +207,7 @@ extern int sc_log_module_cleaned;
                (sc_log_fd_filters_present == 0 ||                               \
                 SCLogMatchFDFilter(__FUNCTION__) == 1))                         \
         {                                                                       \
-            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = "";                      \
+            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
             snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
                                                                                 \
@@ -228,7 +227,7 @@ extern int sc_log_module_cleaned;
                (sc_log_fd_filters_present == 0 ||                               \
                 SCLogMatchFDFilter(__FUNCTION__) == 1))                         \
         {                                                                       \
-            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = "";                      \
+            char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN];                           \
                                                                                 \
             snprintf(_sc_log_msg, SC_LOG_MAX_LOG_MSG_LEN, __VA_ARGS__);         \
                                                                                 \
