@@ -49,7 +49,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Suricata'
-copyright = u'2015, OISF'
+copyright = u'2016, OISF'
 author = u'OISF'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -111,11 +111,13 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 if not on_rtd:
-    #html_theme = 'alabaster'
-    html_theme = 'sphinx_rtd_theme'
-    #html_theme = 'classic'
-    #html_theme = 'default'
-    #html_theme = 'nature'
+    # Attempt to use the read the docs theme.
+    try:
+        import sphinx_rtd_theme
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    except:
+        html_theme = 'default'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -290,3 +292,11 @@ texinfo_documents = [
 
 # If true, do not generate a @detailmenu in the "Top" node's menu.
 #texinfo_no_detailmenu = False
+
+rst_epilog = """
+.. |sysconfdir| replace:: %(sysconfdir)s
+.. |localstatedir| replace:: %(localstatedir)s
+""" % {
+    "sysconfdir": os.getenv("sysconfdir", "/etc"),
+    "localstatedir": os.getenv("localstatedir", "/var"),
+}
