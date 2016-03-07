@@ -191,3 +191,12 @@ OPTIONS
    change the default log directory::
 
      --set default-log-dir=/var/tmp
+
+FILES AND DIRECTORIES
+---------------------
+
+|sysconfdir|/suricata/suricata.yaml
+    Default location of the Suricata configuration file.
+
+|localstatedir|/log/suricata
+    Default Suricata log directory.
