@@ -481,16 +481,18 @@
 
     # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
     # see https://redmine.openinfosecfoundation.org/issues/1693
-    PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
-    if test "$libpcre_buggy_found" = "yes"; then
-        echo
-        echo "   Warning! vulnerable libpcre version 8.35 found"
-        echo "   This version has a known issue that could result in segfaults"
-        echo "   please upgrade to a newer version of pcre which you can get from"
-        echo "   www.pcre.org. For more information, see issue #1693"
-        echo
-        echo "   Continuing for now with JIT disabled..."
-        echo
+    if test "$with_libpcre_libraries" = "no"; then
+        PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
+        if test "$libpcre_buggy_found" = "yes"; then
+            echo
+            echo "   Warning! vulnerable libpcre version 8.35 found"
+            echo "   This version has a known issue that could result in segfaults"
+            echo "   please upgrade to a newer version of pcre which you can get from"
+            echo "   www.pcre.org. For more information, see issue #1693"
+            echo
+            echo "   Continuing for now with JIT disabled..."
+            echo
+        fi
     fi
 
     # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
