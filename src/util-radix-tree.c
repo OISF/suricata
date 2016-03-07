@@ -496,9 +496,6 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     SCRadixNode *parent = NULL;
     SCRadixNode *inter_node = NULL;
     SCRadixNode *bottom_node = NULL;
-
-    SCRadixPrefix *prefix = NULL;
-
     void *ptmp;
 
     uint8_t *stream = NULL;
@@ -519,14 +516,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     /* chop the ip address against a netmask */
     MaskIPNetblock(key_stream, netmask, key_bitlen);
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
-                                       netmask)) == NULL) {
-        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
-        return NULL;
-    }
-
     /* the very first element in the radix tree */
     if (tree->head == NULL) {
+        SCRadixPrefix *prefix = NULL;
+        if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
+                        netmask)) == NULL) {
+            SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+            return NULL;
+        }
         node = SCRadixCreateNode();
         if (node == NULL)
             return NULL;
@@ -558,8 +555,8 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     node = tree->head;
-    stream = prefix->stream;
-    bitlen = prefix->bitlen;
+    stream = key_stream;
+    bitlen = key_bitlen;
 
     /* we walk down the tree only when we satisfy 2 conditions.  The first one
      * being the incoming prefix is shorter than the differ bit of the current
@@ -695,13 +692,19 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                 }
             }
         } else {
-            node->prefix = SCRadixCreatePrefix(prefix->stream, prefix->bitlen,
+            node->prefix = SCRadixCreatePrefix(key_stream, key_bitlen,
                                                user, 255);
         }
         return node;
     }
 
     /* create the leaf node for the new key */
+    SCRadixPrefix *prefix = NULL;
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
+                    netmask)) == NULL) {
+        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+        return NULL;
+    }
     new_node = SCRadixCreateNode();
     new_node->prefix = prefix;
     new_node->bit = prefix->bitlen;

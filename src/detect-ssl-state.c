@@ -261,6 +261,7 @@ DetectSslStateData *DetectSslStateParse(char *arg)
         pcre_free_substring(str1);
         str1 = str2;
     }
+    pcre_free_substring(str1);
 
     if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
         goto error;

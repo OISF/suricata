@@ -580,6 +580,9 @@ int UnixMain(UnixCommand * this)
     }
 
     if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+        TAILQ_FOREACH_SAFE(uclient, &this->clients, next, tclient) {
+            UnixCommandClose(this, uclient->fd);
+        }
         return 1;
     }
 
@@ -763,7 +766,7 @@ TmEcode UnixManagerListCommand(json_t *cmd,
     }
 
     TAILQ_FOREACH(lcmd, &gcmd->commands, next) {
-        json_array_append(jarray, json_string(lcmd->name));
+        json_array_append_new(jarray, json_string(lcmd->name));
         i++;
     }
 

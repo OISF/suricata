@@ -277,6 +277,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     }
     if (str_ptr[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
+    pcre_free_substring(str_ptr);
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
@@ -295,6 +296,8 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     if (unlikely(orig == NULL)) {
         goto error;
     }
+    pcre_free_substring(str_ptr);
+
     tmp_str=orig;
 
     /* Let's see if we need to escape "'s */
@@ -484,6 +487,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     }
     if (str_ptr[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
+    pcre_free_substring(str_ptr);
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
@@ -502,6 +506,8 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     if (unlikely(orig == NULL)) {
         goto error;
     }
+    pcre_free_substring(str_ptr);
+
     tmp_str=orig;
 
     /* Let's see if we need to escape "'s */
@@ -627,6 +633,7 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
     }
     if (str_ptr[0] == '!')
         flag = DETECT_CONTENT_NEGATED;
+    pcre_free_substring(str_ptr);
 
     res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
     if (res < 0) {
@@ -645,6 +652,8 @@ static DetectTlsData *DetectTlsFingerprintParse (char *str)
     if (unlikely(orig == NULL)) {
         goto error;
     }
+    pcre_free_substring(str_ptr);
+
     tmp_str=orig;
 
     /* Let's see if we need to escape "'s */

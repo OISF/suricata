@@ -200,7 +200,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
     }
 
     if (ret > 1) {
-        const char *str_ptr[5];
+        const char *str_ptr;
         char *orig;
         uint8_t found = 0, neg = 0;
         char *tmp_str;
@@ -212,7 +212,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
 
         int i;
         for (i = 1; i < ret; i++) {
-            res = pcre_get_substring((char *) str, ov, MAX_SUBSTRINGS, i, &str_ptr[i]);
+            res = pcre_get_substring((char *) str, ov, MAX_SUBSTRINGS, i, &str_ptr);
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 if (found == 0)
@@ -220,7 +220,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
                 break;
             }
 
-            orig = SCStrdup((char*) str_ptr[i]);
+            orig = SCStrdup((char*) str_ptr);
             if (unlikely(orig == NULL)) {
                 goto error;
             }
@@ -272,6 +272,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
             found = 1;
             neg = 0;
             SCFree(orig);
+            pcre_free_substring(str_ptr);
         }
     }
 
