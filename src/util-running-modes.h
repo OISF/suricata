@@ -23,6 +23,7 @@
 #ifndef __UTIL_RUNNING_MODES_H__
 #define __UTIL_RUNNING_MODES_H__
 
+#include "suricata-common.h"
 
 int ListKeywords(const char *keyword_info);
 int ListAppLayerProtocols();

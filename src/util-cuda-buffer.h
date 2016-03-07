@@ -28,10 +28,12 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifdef __SC_CUDA_SUPPORT__
-
 #ifndef __UTIL_CUDA_BUFFER_H__
 #define __UTIL_CUDA_BUFFER_H__
+
+#include "suricata-common.h"
+
+#ifdef __SC_CUDA_SUPPORT__
 
 #include "util-atomic.h"
 
@@ -106,6 +108,6 @@ CudaBufferData *CudaBufferRegisterNew(uint8_t *d_buffer, uint32_t d_buffer_len,
 void CudaBufferInit(void);
 void CudaBufferRegisterUnittests(void);
 
-#endif /* __UTIL_CUDA_BUFFER_H__ */
-
 #endif /* __SC_CUDA_SUPPORT__ */
+
+#endif /* __UTIL_CUDA_BUFFER_H__ */

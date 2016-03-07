@@ -24,6 +24,8 @@
 #ifndef __UTIL_CUDA__H__
 #define __UTIL_CUDA__H__
 
+#include "suricata-common.h"
+
 #ifdef __SC_CUDA_SUPPORT__
 
 #include <cuda.h>
@@ -320,4 +322,5 @@ int SCCudaIsCudaDeviceIdValid(int cuda_device_id);
 void SCCudaRegisterTests(void);
 
 #endif /* __SC_CUDA_SUPPORT__ */
+
 #endif /* __UTIL_CUDA_H__ */

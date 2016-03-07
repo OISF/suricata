@@ -23,6 +23,7 @@
 
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
+
 #include "suricata-common.h"
 
 #define MPM_ENDMATCH_SINGLE     0x01    /**< A single match is sufficient. No
