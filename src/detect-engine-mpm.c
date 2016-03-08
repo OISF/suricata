@@ -1064,14 +1064,14 @@ void PatternMatchDestroyGroup(SigGroupHead *sh)
  *         always used, etc. */
 typedef struct ContentHash_ {
     DetectContentData *ptr;
-    uint16_t cnt;
-    uint8_t use; /* use no matter what */
+    uint32_t cnt;
+    int use; /* use no matter what */
 } ContentHash;
 
 typedef struct UricontentHash_ {
     DetectContentData *ptr;
-    uint16_t cnt;
-    uint8_t use; /* use no matter what */
+    uint32_t cnt;
+    int use; /* use no matter what */
 } UricontentHash;
 
 uint32_t ContentHashFunc(HashTable *ht, void *data, uint16_t datalen)
@@ -2714,8 +2714,8 @@ typedef struct MpmPatternIdTableElmt_ {
     uint8_t *pattern;       /**< ptr to the pattern */
     uint16_t pattern_len;   /**< pattern len */
     PatIntId id;            /**< pattern id */
-    uint16_t dup_count;     /**< duplicate count */
-    uint8_t sm_list;        /**< SigMatch list */
+    uint32_t dup_count;     /**< duplicate count */
+    int sm_list;            /**< SigMatch list */
 } MpmPatternIdTableElmt;
 
 /** \brief Hash compare func for MpmPatternId api

@@ -640,7 +640,7 @@ typedef struct DetectEngineCtx_ {
     /** hash table for looking up patterns for
      *  id sharing and id tracking. */
     MpmPatternIdStore *mpm_pattern_id_store;
-    uint16_t max_fp_id;
+    uint32_t max_fp_id;
 
     MpmCtxFactoryContainer *mpm_ctx_factory_container;
 
