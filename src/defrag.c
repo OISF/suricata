@@ -783,7 +783,11 @@ insert:
                 StatsIncr(tv, dtv->counter_defrag_ipv4_reassembled);
                 if (pq && DecodeIPV4(tv, dtv, r, (void *)r->ip4h,
                                IPV4_GET_IPLEN(r), pq) != TM_ECODE_OK) {
+
+                    UNSET_TUNNEL_PKT(r);
+                    r->root = NULL;
                     TmqhOutputPacketpool(tv, r);
+                    return NULL;
                 } else {
                     PacketDefragPktSetupParent(p);
                 }
@@ -796,7 +800,11 @@ insert:
                 if (pq && DecodeIPV6(tv, dtv, r, (uint8_t *)r->ip6h,
                                IPV6_GET_PLEN(r) + IPV6_HEADER_LEN,
                                pq) != TM_ECODE_OK) {
+
+                    UNSET_TUNNEL_PKT(r);
+                    r->root = NULL;
                     TmqhOutputPacketpool(tv, r);
+                    return NULL;
                 } else {
                     PacketDefragPktSetupParent(p);
                 }
