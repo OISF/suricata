@@ -192,6 +192,8 @@ Packet *PacketDequeue (PacketQueue *q)
     }
 
     //PacketQueueValidateDebug(q);
+    p->next = NULL;
+    p->prev = NULL;
     return p;
 }
 
