@@ -1382,7 +1382,7 @@ void SCACBSDestroyCtx(MpmCtx *mpm_ctx)
     }
 
     if (ctx->pid_pat_list != NULL) {
-        int i;
+        uint32_t i;
         for (i = 0; i < (ctx->max_pat_id + 1); i++) {
             if (ctx->pid_pat_list[i].cs != NULL)
                 SCFree(ctx->pid_pat_list[i].cs);

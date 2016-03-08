@@ -97,8 +97,8 @@ typedef struct SCACCtx_ {
     SCACPatternList *pid_pat_list;
 
     /* the size of each state */
-    uint16_t single_state_size;
-    uint16_t max_pat_id;
+    uint32_t single_state_size;
+    uint32_t max_pat_id;
 
     uint32_t allocated_state_count;
 

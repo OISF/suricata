@@ -97,7 +97,7 @@ typedef struct SCACGfbsCtx_ {
 
     /* the size of each state */
     uint16_t single_state_size;
-    uint16_t max_pat_id;
+    uint32_t max_pat_id;
 } SCACGfbsCtx;
 
 typedef struct SCACGfbsThreadCtx_ {
