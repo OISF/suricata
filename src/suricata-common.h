@@ -241,7 +241,7 @@
 #define SigIntId uint32_t
 
 /** same for pattern id's */
-#define PatIntId uint16_t
+#define PatIntId uint32_t
 
 /** FreeBSD does not define __WORDSIZE, but it uses __LONG_BIT */
 #ifndef __WORDSIZE
