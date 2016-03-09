@@ -132,6 +132,6 @@ void TmModuleDecodeAFPRegister (void);
 TmEcode AFPPeersListInit();
 TmEcode AFPPeersListCheck();
 void AFPPeersListClean();
-
+int AFPGetLinkType(const char *ifname);
 
 #endif /* __SOURCE_AFP_H__ */
