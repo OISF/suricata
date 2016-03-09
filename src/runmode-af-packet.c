@@ -83,6 +83,9 @@ void RunModeIdsAFPRegister(void)
     return;
 }
 
+
+#ifdef HAVE_AF_PACKET
+
 void AFPDerefConfig(void *conf)
 {
     AFPIfaceConfig *pfp = (AFPIfaceConfig *)conf;
@@ -474,6 +477,9 @@ int AFPRunModeIsIPS()
 
     return has_ips;
 }
+
+#endif
+
 
 int RunModeIdsAFPAutoFp(void)
 {

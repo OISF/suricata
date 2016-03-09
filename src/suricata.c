@@ -984,6 +984,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             /* not an error condition if we have a 1.0 config */
             LiveBuildDeviceList("pfring");
         }
+#ifdef HAVE_AF_PACKET
     } else if (run_mode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
@@ -1002,6 +1003,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
                 EngineModeSetIPS();
             }
         }
+#endif
 #ifdef HAVE_NETMAP
     } else if (run_mode == RUNMODE_NETMAP) {
         /* iface has been set on command line */
