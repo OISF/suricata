@@ -1307,10 +1307,27 @@ static int AFPGetDevLinktype(int fd, const char *ifname)
         case ARPHRD_LOOPBACK:
             return LINKTYPE_ETHERNET;
         case ARPHRD_PPP:
+        case ARPHRD_NONE:
             return LINKTYPE_RAW;
         default:
             return ifr.ifr_hwaddr.sa_family;
     }
+}
+
+int AFPGetLinkType(const char *ifname)
+{
+    int ltype;
+
+    int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (fd == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
+        return LINKTYPE_RAW;
+    }
+
+    ltype =  AFPGetDevLinktype(fd, ifname);
+    close(fd);
+
+    return ltype;
 }
 
 static int AFPComputeRingParams(AFPThreadVars *ptv, int order)
