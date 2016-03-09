@@ -422,11 +422,10 @@ void StreamTcpInitConfig(char quiet)
                 "enabled" : "disabled");
     }
 
-    int inl = 0;
-
-
     char *temp_stream_inline_str;
     if (ConfGet("stream.inline", &temp_stream_inline_str) == 1) {
+        int inl = 0;
+
         /* checking for "auto" and falling back to boolean to provide
          * backward compatibility */
         if (strcmp(temp_stream_inline_str, "auto") == 0) {
@@ -437,6 +436,13 @@ void StreamTcpInitConfig(char quiet)
             }
         } else if (ConfGetBool("stream.inline", &inl) == 1) {
             stream_inline = inl;
+        }
+    } else {
+        /* default to 'auto' */
+        if (EngineModeIsIPS()) {
+            stream_inline = 1;
+        } else {
+            stream_inline = 0;
         }
     }
 
