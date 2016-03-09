@@ -173,6 +173,14 @@ static int FilePruneFile(File *file)
         SCLogDebug("fd %p", fd);
 
         if (file->flags & FILE_NOSTORE || fd->stored == 1) {
+            /* keep chunks in memory as long as we still need to
+             * inspect them or parts of them */
+            if (file->flags & FILE_USE_DETECT) {
+                uint64_t right_edge = fd->stream_offset + fd->len;
+                if (file->content_inspected < right_edge)
+                    break;
+            }
+
             file->chunks_head = fd->next;
             if (file->chunks_tail == fd)
                 file->chunks_tail = fd->next;
@@ -562,6 +570,10 @@ File *FileOpenFile(FileContainer *ffc, const uint8_t *name, uint16_t name_len,
     if (flags & FILE_NOMD5) {
         SCLogDebug("not doing md5 for this file");
         ff->flags |= FILE_NOMD5;
+    }
+    if (flags & FILE_USE_DETECT) {
+        SCLogDebug("considering content_inspect tracker when pruning");
+        ff->flags |= FILE_USE_DETECT;
     }
 
 #ifdef HAVE_NSS
