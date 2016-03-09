@@ -38,6 +38,7 @@
 #define FILE_STORE      0x0040
 #define FILE_STORED     0x0080
 #define FILE_NOTRACK    0x0100 /**< track size of file */
+#define FILE_USE_DETECT 0x0200 /**< use content_inspected tracker */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -80,7 +81,8 @@ typedef struct File_ {
     uint64_t chunks_cnt_max;
 #endif
     uint64_t content_len_so_far;
-    uint64_t content_inspected;
+    uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
+                                     *   flag is set */
 } File;
 
 typedef struct FileContainer_ {
