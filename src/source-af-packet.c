@@ -1307,6 +1307,7 @@ static int AFPGetDevLinktype(int fd, const char *ifname)
         case ARPHRD_LOOPBACK:
             return LINKTYPE_ETHERNET;
         case ARPHRD_PPP:
+        case ARPHRD_NONE:
             return LINKTYPE_RAW;
         default:
             return ifr.ifr_hwaddr.sa_family;
