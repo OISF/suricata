@@ -357,7 +357,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST|PKT_STREAM_EOF;
     f.alproto = ALPROTO_SMTP;
 
     StreamTcpInitConfig(TRUE);

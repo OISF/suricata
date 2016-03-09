@@ -347,9 +347,46 @@ static SMTPTransaction *SMTPTransactionCreate(void)
     return tx;
 }
 
-int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
-        MimeDecParseState *state) {
+/** \internal
+ *  \brief update inspected tracker if it gets to far behind
+ *
+ *  As smtp uses the FILE_USE_DETECT flag in the file API, we are responsible
+ *  for making sure that File::content_inspected is not getting too far
+ *  behind.
+ */
+static void SMTPPruneFiles(FileContainer *files)
+{
+    SCLogDebug("cfg: win %"PRIu32" min_size %"PRIu32,
+            smtp_config.content_inspect_window, smtp_config.content_inspect_min_size);
 
+    File *file = files->head;
+    while (file) {
+        if (file->chunks_head) {
+            uint32_t window = smtp_config.content_inspect_window;
+            if (file->chunks_head->stream_offset == 0)
+                window = MAX(window, smtp_config.content_inspect_min_size);
+
+            uint64_t file_size = file->content_len_so_far;
+            uint64_t data_size = file_size - file->chunks_head->stream_offset;
+
+            SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
+                    window, file_size, data_size);
+
+            if (data_size > (window * 3)) {
+                uint64_t left_edge = file_size - window;
+                SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
+                file->content_inspected = left_edge;
+            }
+        }
+
+        file = file->next;
+    }
+}
+
+int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
+        MimeDecParseState *state)
+{
+    SCEnter();
     int ret = MIME_DEC_OK;
     Flow *flow = (Flow *) state->data;
     SMTPState *smtp_state = (SMTPState *) flow->alstate;
@@ -410,7 +447,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             }
 
             if (FileOpenFile(files, (uint8_t *) entity->filename, entity->filename_len,
-                    (uint8_t *) chunk, len, flags) == NULL) {
+                    (uint8_t *) chunk, len, flags|FILE_USE_DETECT) == NULL) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }
@@ -466,6 +503,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     }
 
     if (files != NULL) {
+        SMTPPruneFiles(files);
         FilePrune(files);
     }
 
