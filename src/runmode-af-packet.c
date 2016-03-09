@@ -367,9 +367,17 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (GetIfaceOffloading(iface) == 1) {
-        SCLogWarning(SC_ERR_AFP_CREATE,
-                "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+
+    int ltype = AFPGetLinkType(iface);
+    switch (ltype) {
+        case LINKTYPE_ETHERNET:
+            if (GetIfaceOffloading(iface) == 1) {
+                SCLogWarning(SC_ERR_AFP_CREATE,
+                    "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+            }
+        case -1:
+        default:
+            break;
     }
 
     char *active_runmode = RunmodeGetActive();
