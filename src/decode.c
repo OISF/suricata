@@ -109,9 +109,15 @@ void PacketFree(Packet *p)
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
 
-    if (p->flags & PKT_IS_INVALID)
+    if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
-
+        int i = 0;
+        for (i = 0; i < p->events.cnt; i++) {
+            if (EVENT_IS_DECODER_PACKET_ERROR(p->events.events[i])) {
+                StatsIncr(tv, dtv->counter_invalid_events[p->events.events[i]]);
+            }
+        }
+    }
 #ifdef __SC_CUDA_SUPPORT__
     if (dtv->cuda_vars.mpm_is_cuda)
         CudaBufferPacket(&dtv->cuda_vars, p);
@@ -419,7 +425,13 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
         StatsRegisterCounter("defrag.ipv6.timeouts", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
-
+    
+    int i = 0;
+    for (i = 0; i < DECODE_EVENT_PACKET_MAX; i++) {
+        dtv->counter_invalid_events[i] = StatsRegisterCounter(
+                DEvents[i].event_name, tv);
+    }
+    
     return;
 }
 
