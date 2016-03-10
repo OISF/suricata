@@ -88,6 +88,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {
+    SCEnter();
     int index = 0;
     uint8_t *buffer = NULL;
     *buffer_len = 0;
@@ -122,6 +123,11 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         index = (tx_id - det_ctx->smtp_start_tx_id);
     }
 
+    SCLogDebug("smtp_config.content_limit %u, smtp_config.content_inspect_min_size %u",
+                smtp_config.content_limit, smtp_config.content_inspect_min_size);
+
+    SCLogDebug("file %p size %"PRIu64", state %d", curr_file, curr_file->content_len_so_far, curr_file->state);
+
     /* no new data */
     if (curr_file->content_inspected == curr_file->content_len_so_far) {
         SCLogDebug("no new data");
@@ -137,7 +143,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     if ((smtp_config.content_limit == 0 ||
          curr_file->content_len_so_far < smtp_config.content_limit) &&
         curr_file->content_len_so_far < smtp_config.content_inspect_min_size &&
-        !(flags & STREAM_EOF)) {
+        !(flags & STREAM_EOF) && !(curr_file->state > FILE_STATE_OPENED)) {
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
                    "entire content.");
@@ -188,11 +194,14 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
 
     /* updat inspected tracker */
     curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
+    SCLogDebug("curr_file->content_inspected now %"PRIu64, curr_file->content_inspected);
 
     buffer = det_ctx->smtp[index].buffer;
     *buffer_len = det_ctx->smtp[index].buffer_len;
     *stream_start_offset = det_ctx->smtp[index].offset;
+
 end:
+    SCLogDebug("buffer %p, len %u", buffer, *buffer_len);
     return buffer;
 }
 
@@ -346,7 +355,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST|PKT_STREAM_EOF;
     f.alproto = ALPROTO_SMTP;
 
     StreamTcpInitConfig(TRUE);

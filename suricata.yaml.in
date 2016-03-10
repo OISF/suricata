@@ -1332,9 +1332,9 @@ app-layer:
         body-md5: no
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
-        content-limit: 1000
-        content-inspect-min-size: 1000
-        content-inspect-window: 1000
+        content-limit: 100000
+        content-inspect-min-size: 32768
+        content-inspect-window: 4096
     imap:
       enabled: detection-only
     msn:
