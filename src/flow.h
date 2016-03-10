@@ -329,6 +329,9 @@ typedef struct Flow_
     /** flow queue id, used with autofp */
     SC_ATOMIC_DECLARE(int16_t, autofp_tmqh_flow_qid);
 
+    /** flow hash - the flow hash before hash table size mod. */
+    uint32_t flow_hash;
+
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
     uint32_t tenant_id;
