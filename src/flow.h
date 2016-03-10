@@ -314,6 +314,14 @@ typedef struct Flow_
     uint8_t recursion_level;
     uint16_t vlan_id[2];
 
+    /** flow hash - the flow hash before hash table size mod. */
+    uint32_t flow_hash;
+
+    /* time stamp of last update (last packet). Set/updated under the
+     * flow and flow hash row locks, safe to read under either the
+     * flow lock or flow hash row lock. */
+    struct timeval lastts;
+
     /* end of flow "header" */
 
     SC_ATOMIC_DECLARE(FlowStateType, flow_state);
@@ -337,11 +345,6 @@ typedef struct Flow_
     uint32_t probing_parser_toclient_alproto_masks;
 
     uint32_t flags;
-
-    /* time stamp of last update (last packet). Set/updated under the
-     * flow and flow hash row locks, safe to read under either the
-     * flow lock or flow hash row lock. */
-    struct timeval lastts;
 
 #ifdef FLOWLOCK_RWLOCK
     SCRWLock r;

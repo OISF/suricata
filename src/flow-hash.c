@@ -218,9 +218,9 @@ typedef struct FlowHashKey6_ {
  *
  *  For ICMP we only consider UNREACHABLE errors atm.
  */
-static inline uint32_t FlowGetKey(const Packet *p)
+static inline uint32_t FlowGetHash(const Packet *p)
 {
-    uint32_t key;
+    uint32_t hash = 0;
 
     if (p->ip4h != NULL) {
         if (p->tcph != NULL || p->udph != NULL) {
@@ -244,8 +244,7 @@ static inline uint32_t FlowGetKey(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0];
             fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
-            key = hash % flow_config.hash_size;
+            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
         } else if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
             uint32_t psrc = IPV4_GET_RAW_IPSRC_U32(ICMPV4_GET_EMB_IPV4(p));
@@ -270,8 +269,7 @@ static inline uint32_t FlowGetKey(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0];
             fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
-            key = hash % flow_config.hash_size;
+            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
 
         } else {
             FlowHashKey4 fhk;
@@ -289,8 +287,7 @@ static inline uint32_t FlowGetKey(const Packet *p)
             fhk.vlan_id[0] = p->vlan_id[0];
             fhk.vlan_id[1] = p->vlan_id[1];
 
-            uint32_t hash = hashword(fhk.u32, 5, flow_config.hash_rand);
-            key = hash % flow_config.hash_size;
+            hash = hashword(fhk.u32, 5, flow_config.hash_rand);
         }
     } else if (p->ip6h != NULL) {
         FlowHashKey6 fhk;
@@ -325,12 +322,10 @@ static inline uint32_t FlowGetKey(const Packet *p)
         fhk.vlan_id[0] = p->vlan_id[0];
         fhk.vlan_id[1] = p->vlan_id[1];
 
-        uint32_t hash = hashword(fhk.u32, 11, flow_config.hash_rand);
-        key = hash % flow_config.hash_size;
-    } else
-        key = 0;
+        hash = hashword(fhk.u32, 11, flow_config.hash_rand);
+    }
 
-    return key;
+    return hash;
 }
 
 /* Since two or more flows can have the same hash key, we need to compare
@@ -523,9 +518,9 @@ Flow *FlowGetFlowFromHashByPacket(const Packet *p)
     Flow *f = NULL;
 
     /* get the key to our bucket */
-    uint32_t key = FlowGetKey(p);
+    uint32_t hash = FlowGetHash(p);
     /* get our hash bucket and lock it */
-    FlowBucket *fb = &flow_hash[key];
+    FlowBucket *fb = &flow_hash[hash % flow_config.hash_size];
     FBLOCK_LOCK(fb);
 
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
@@ -544,6 +539,7 @@ Flow *FlowGetFlowFromHashByPacket(const Packet *p)
 
         /* got one, now lock, initialize and return */
         FlowInit(f, p);
+        f->flow_hash = hash;
         f->fb = fb;
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&f->lastts);
@@ -567,9 +563,9 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
     Flow *f = NULL;
 
     /* get the key to our bucket */
-    uint32_t key = FlowGetKey(p);
+    uint32_t hash = FlowGetHash(p);
     /* get our hash bucket and lock it */
-    FlowBucket *fb = &flow_hash[key];
+    FlowBucket *fb = &flow_hash[hash  % flow_config.hash_size];
     FBLOCK_LOCK(fb);
 
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
@@ -656,9 +652,9 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     FlowHashCountInit;
 
     /* get the key to our bucket */
-    uint32_t key = FlowGetKey(p);
+    uint32_t hash = FlowGetHash(p);
     /* get our hash bucket and lock it */
-    FlowBucket *fb = &flow_hash[key];
+    FlowBucket *fb = &flow_hash[hash  % flow_config.hash_size];
     FBLOCK_LOCK(fb);
 
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
@@ -680,6 +676,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
 
         /* got one, now lock, initialize and return */
         FlowInit(f, p);
+        f->flow_hash = hash;
         f->fb = fb;
 
         /* update the last seen timestamp of this flow */
@@ -718,6 +715,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
 
                 /* initialize and return */
                 FlowInit(f, p);
+                f->flow_hash = hash;
                 f->fb = fb;
 
                 /* update the last seen timestamp of this flow */
