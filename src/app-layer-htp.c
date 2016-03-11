@@ -1077,41 +1077,6 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
     SCReturnInt(0);
 }
 
-/**
- *  \brief Setup boundary buffers
- */
-static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
-        uint8_t **expected_boundary, uint8_t *expected_boundary_len,
-        uint8_t **expected_boundary_end, uint8_t *expected_boundary_end_len)
-{
-    uint8_t *eb = NULL;
-    uint8_t *ebe = NULL;
-
-    uint8_t eb_len = htud->boundary_len + 2;
-    eb = (uint8_t *)HTPMalloc(eb_len);
-    if (eb == NULL) {
-        SCReturnInt(-1);
-    }
-    memset(eb, '-', eb_len);
-    memcpy(eb + 2, htud->boundary, htud->boundary_len);
-
-    uint8_t ebe_len = htud->boundary_len + 4;
-    ebe = (uint8_t *)HTPMalloc(ebe_len);
-    if (ebe == NULL) {
-        HTPFree(eb, eb_len);
-        SCReturnInt(-1);
-    }
-    memset(ebe, '-', ebe_len);
-    memcpy(ebe + 2, htud->boundary, htud->boundary_len);
-
-    *expected_boundary = eb;
-    *expected_boundary_len = eb_len;
-    *expected_boundary_end = ebe;
-    *expected_boundary_end_len = ebe_len;
-
-    SCReturnInt(0);
-}
-
 #define C_D_HDR "content-disposition:"
 #define C_D_HDR_LEN 20
 #define C_T_HDR "content-type:"
@@ -1261,14 +1226,23 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
     *chunks_buffer_len = buf_len;
 }
 
+/**
+ *  \brief Setup boundary buffers
+ */
+static void HtpRequestBodySetupBoundary(HtpTxUserData *htud,
+        uint8_t *boundary, uint32_t boundary_len)
+{
+    memset(boundary, '-', boundary_len);
+    memcpy(boundary + 2, htud->boundary, htud->boundary_len);
+}
+
 int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                                   void *tx, uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
-    uint8_t *expected_boundary = NULL;
-    uint8_t *expected_boundary_end = NULL;
-    uint8_t expected_boundary_len = 0;
-    uint8_t expected_boundary_end_len = 0;
+    uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
+    uint8_t expected_boundary_len = htud->boundary_len + 2;
+    uint8_t expected_boundary_end_len = htud->boundary_len + 4;
     int tx_progress = 0;
 
 #ifdef PRINT
@@ -1277,21 +1251,18 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
     printf("CHUNK END: \n");
 #endif
 
-    if (HtpRequestBodySetupBoundary(htud, &expected_boundary, &expected_boundary_len,
-                &expected_boundary_end, &expected_boundary_end_len) < 0) {
-        goto end;
-    }
+    HtpRequestBodySetupBoundary(htud, boundary, htud->boundary_len + 4);
 
     /* search for the header start, header end and form end */
     uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            expected_boundary, expected_boundary_len);
+            boundary, expected_boundary_len);
     uint8_t *header_end = NULL;
     if (header_start != NULL) {
         header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
                 (uint8_t *)"\r\n\r\n", 4);
     }
     uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            expected_boundary_end, expected_boundary_end_len);
+            boundary, expected_boundary_end_len);
 
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
             header_end, form_end);
@@ -1428,7 +1399,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
                 /* or is it? */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        expected_boundary, expected_boundary_len);
+                        boundary, expected_boundary_len);
                 if (header_next != NULL) {
                     filedata_len -= (form_end - header_next);
                 }
@@ -1481,7 +1452,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 /* form doesn't end in this chunk, but part might. Lets
                  * see if have another coming up */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        expected_boundary, expected_boundary_len);
+                        boundary, expected_boundary_len);
                 SCLogDebug("header_next %p", header_next);
                 if (header_next == NULL) {
                     /* no, but we'll handle the file data when we see the
@@ -1531,7 +1502,7 @@ next:
         uint32_t cursizeread = header_end - chunks_buffer;
         header_start = Bs2bmSearch(header_end + 4,
                 chunks_buffer_len - (cursizeread + 4),
-                expected_boundary, expected_boundary_len);
+                boundary, expected_boundary_len);
         if (header_start != NULL) {
             header_end = Bs2bmSearch(header_end + 4,
                     chunks_buffer_len - (cursizeread + 4),
@@ -1552,13 +1523,6 @@ next:
     }
 
 end:
-    if (expected_boundary != NULL) {
-        HTPFree(expected_boundary, expected_boundary_len);
-    }
-    if (expected_boundary_end != NULL) {
-        HTPFree(expected_boundary_end, expected_boundary_end_len);
-    }
-
     SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
     return 0;
 }
