@@ -822,6 +822,9 @@ void RunModeInitializeOutputs(void)
         } else if (strcmp(output->val, "lua") == 0) {
             SCLogDebug("handle lua");
 
+            if (output_ctx == NULL)
+                continue;
+
             OutputModule *lua_module = OutputGetModuleByConfName(output->val);
             BUG_ON(lua_module == NULL);
             AddOutputToFreeList(lua_module, output_ctx);
