@@ -471,7 +471,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     /* Get the TX so the script can get more context about it.
      * TODO hardcoded to HTTP currently */
     void *txptr = NULL;
-    if (p && p->flow && p->flow->alstate)
+    if (p->flow && p->flow->alstate)
         txptr = AppLayerParserGetTx(p->proto, ALPROTO_HTTP, p->flow->alstate, ff->txid);
 
     SCMutexLock(&td->lua_ctx->m);
@@ -980,12 +980,9 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     return output_ctx;
 
 error:
-
-    if (output_ctx != NULL) {
-        if (output_ctx->DeInit && output_ctx->data)
-            output_ctx->DeInit(output_ctx->data);
-        SCFree(output_ctx);
-    }
+    if (output_ctx->DeInit && output_ctx->data)
+        output_ctx->DeInit(output_ctx->data);
+    SCFree(output_ctx);
     return NULL;
 }
 
