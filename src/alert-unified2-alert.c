@@ -518,7 +518,6 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
     int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
     uint32_t hdr_length = 0;
-    int datalink = p->datalink;
 
     memset(hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(phdr, 0, sizeof(Unified2Packet));
@@ -527,7 +526,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
     aun->hdr = hdr;
 
     phdr->sensor_id = htonl(sensor_id);
-    phdr->linktype = htonl(datalink);
+    phdr->linktype = htonl(p->datalink);
     phdr->event_id = aun->event_id;
     phdr->event_second = phdr->packet_second = htonl(p->ts.tv_sec);
     phdr->packet_microsecond = htonl(p->ts.tv_usec);
@@ -536,7 +535,6 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
     if (p->datalink != DLT_EN10MB) {
         /* We have raw data here */
         phdr->linktype = htonl(DLT_RAW);
-        datalink = DLT_RAW;
     }
 
     aun->length += sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
@@ -550,8 +548,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
         if (p->datalink == DLT_EN10MB) {
             /* Fake this */
             ethh_offset = 14;
-            datalink = DLT_EN10MB;
-            phdr->linktype = htonl(datalink);
+            phdr->linktype = htonl(DLT_EN10MB);
             aun->length += ethh_offset;
 
             if (aun->length > aun->datalen) {
@@ -593,8 +590,7 @@ static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8
         if (p->datalink == DLT_EN10MB) {
             /* Fake this */
             ethh_offset = 14;
-            datalink = DLT_EN10MB;
-            phdr->linktype = htonl(datalink);
+            phdr->linktype = htonl(DLT_EN10MB);
             aun->length += ethh_offset;
             if (aun->length > aun->datalen) {
                 SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data");
