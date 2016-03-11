@@ -89,12 +89,9 @@ static void SetupLogging (void)
     int fd = open("/dev/null", O_RDWR);
     if (fd < 0)
         return;
-    if (dup2(fd, 0) < 0)
-        return;
-    if (dup2(fd, 1) < 0)
-        return;
-    if (dup2(fd, 2) < 0)
-        return;
+    (void)dup2(fd, 0);
+    (void)dup2(fd, 1);
+    (void)dup2(fd, 2);
     close(fd);
 }
 
