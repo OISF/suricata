@@ -982,7 +982,7 @@ static int AFPReadAndDiscard(AFPThreadVars *ptv, struct timeval *synctv)
     iov.iov_len = ptv->datalen;
     iov.iov_base = ptv->data;
 
-    recvmsg(ptv->socket, &msg, MSG_TRUNC);
+    (void)recvmsg(ptv->socket, &msg, MSG_TRUNC);
 
     if (ioctl(ptv->socket, SIOCGSTAMP, &ts) == -1) {
         /* FIXME */
