@@ -1189,6 +1189,141 @@ void AppLayerParserStatePrintDetails(AppLayerParserState *pstate)
 }
 #endif
 
+#ifdef AFLFUZZ_APPLAYER
+int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
+{
+    int result = 1;
+    Flow *f = NULL;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = SCCalloc(1, sizeof(Flow));
+    if (f == NULL)
+        goto end;
+    FLOW_INITIALIZE(f);
+
+    f->flags |= FLOW_IPV4;
+    f->src.addr_data32[0] = 0x01020304;
+    f->dst.addr_data32[0] = 0x05060708;
+    f->sp = 10000;
+    f->dp = 80;
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = alproto;
+
+    FILE *fp = fopen(filename, "r");
+    BUG_ON(fp == NULL);
+
+    uint8_t buffer[256];
+
+    int start = 1;
+    while (1) {
+        int done = 0;
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        if (result < sizeof(buffer))
+            done = 1;
+
+        //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
+
+        uint8_t flags = STREAM_TOSERVER;
+
+        if (start--) {
+            flags |= STREAM_START;
+        }
+        if (done) {
+            flags |= STREAM_EOF;
+        }
+        //PrintRawDataFp(stdout, buffer, result);
+
+        (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+        if (done)
+            break;
+    }
+
+    result = 0;
+    fclose(fp);
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (f != NULL) {
+        FlowFree(f);
+    }
+    return result;
+}
+
+int AppLayerParserFromFile(AppProto alproto, char *filename)
+{
+    int result = 1;
+    Flow *f = NULL;
+    TcpSession ssn;
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = SCCalloc(1, sizeof(Flow));
+    if (f == NULL)
+        goto end;
+    FLOW_INITIALIZE(f);
+
+    f->flags |= FLOW_IPV4;
+    f->src.addr_data32[0] = 0x01020304;
+    f->dst.addr_data32[0] = 0x05060708;
+    f->sp = 10000;
+    f->dp = 80;
+    f->protoctx = &ssn;
+    f->proto = IPPROTO_TCP;
+    f->alproto = alproto;
+
+    FILE *fp = fopen(filename, "r");
+    BUG_ON(fp == NULL);
+
+    uint8_t buffer[64];
+
+    int start = 1;
+    int flip = 0;
+    while (1) {
+        int done = 0;
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        if (result < sizeof(buffer))
+            done = 1;
+
+        //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
+
+        uint8_t flags = 0;
+        if (flip) {
+            flags = STREAM_TOCLIENT;
+            flip = 0;
+        } else {
+            flags = STREAM_TOSERVER;
+            flip = 1;
+        }
+
+        if (start--) {
+            flags |= STREAM_START;
+        }
+        if (done) {
+            flags |= STREAM_EOF;
+        }
+        //PrintRawDataFp(stdout, buffer, result);
+
+        (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+        if (done)
+            break;
+    }
+
+    result = 0;
+    fclose(fp);
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    if (f != NULL) {
+        FlowFree(f);
+    }
+    return result;
+}
+#endif
 
 /***** Unittests *****/
 
