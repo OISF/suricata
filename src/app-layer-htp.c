@@ -1090,7 +1090,7 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     uint8_t eb_len = htud->boundary_len + 2;
     eb = (uint8_t *)HTPMalloc(eb_len);
     if (eb == NULL) {
-        goto error;
+        SCReturnInt(-1);
     }
     memset(eb, '-', eb_len);
     memcpy(eb + 2, htud->boundary, htud->boundary_len);
@@ -1098,7 +1098,8 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     uint8_t ebe_len = htud->boundary_len + 4;
     ebe = (uint8_t *)HTPMalloc(ebe_len);
     if (ebe == NULL) {
-        goto error;
+        HTPFree(eb, eb_len);
+        SCReturnInt(-1);
     }
     memset(ebe, '-', ebe_len);
     memcpy(ebe + 2, htud->boundary, htud->boundary_len);
@@ -1109,15 +1110,6 @@ static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
     *expected_boundary_end_len = ebe_len;
 
     SCReturnInt(0);
-
-error:
-    if (eb != NULL) {
-        HTPFree(eb, eb_len);
-    }
-    if (ebe != NULL) {
-        HTPFree(ebe, ebe_len);
-    }
-    SCReturnInt(-1);
 }
 
 #define C_D_HDR "content-disposition:"
