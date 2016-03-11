@@ -285,8 +285,9 @@ static void *HTPStateAlloc(void)
     SCEnter();
 
     HtpState *s = HTPMalloc(sizeof(HtpState));
-    if (unlikely(s == NULL))
-        goto error;
+    if (unlikely(s == NULL)) {
+        SCReturnPtr(NULL, "void");
+    }
 
     memset(s, 0x00, sizeof(HtpState));
 
@@ -299,13 +300,6 @@ static void *HTPStateAlloc(void)
 #endif
 
     SCReturnPtr((void *)s, "void");
-
-error:
-    if (s != NULL) {
-        HTPFree(s, sizeof(HtpState));
-    }
-
-    SCReturnPtr(NULL, "void");
 }
 
 static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
