@@ -40,6 +40,9 @@ enum {
     TLS_DECODER_EVENT_INVALID_HEARTBEAT,
     TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT,
     TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH,
+    TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS,
+    TLS_DECODER_EVENT_INVALID_SNI_TYPE,
+    TLS_DECODER_EVENT_INVALID_SNI_LENGTH,
     /* Certificates decoding messages */
     TLS_DECODER_EVENT_INVALID_CERTIFICATE,
     TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT,
@@ -88,6 +91,9 @@ enum {
 
 /* extensions */
 #define SSL_EXTENSION_SNI                       0x0000
+
+/* SNI types */
+#define SSL_SNI_TYPE_HOST_NAME                  0
 
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
