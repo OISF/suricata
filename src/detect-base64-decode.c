@@ -310,6 +310,9 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         }
         else {
             sm_list = SigMatchListSMBelongsTo(s, pm);
+            if (sm_list < 0) {
+                goto error;
+            }
         }
     }
 
