@@ -2162,7 +2162,11 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
     cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
     cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
+#ifndef AFLFUZZ_NO_RANDOM
     cfg_prec->randomize = HTP_CONFIG_DEFAULT_RANDOMIZE;
+#else
+    cfg_prec->randomize = 0;
+#endif
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
@@ -2441,7 +2445,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
                     (size_t)limit);
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
+#ifndef AFLFUZZ_NO_RANDOM
             cfg_prec->randomize = ConfValIsTrue(p->val);
+#endif
         } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
             uint32_t range = atoi(p->val);
             if (range > 100) {
