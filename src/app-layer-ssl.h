@@ -89,6 +89,9 @@ enum {
 /* extensions */
 #define SSL_EXTENSION_SNI                       0x0000
 
+/* SNI types */
+#define SSL_SNI_TYPE_HOST_NAME                  0
+
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
 enum {

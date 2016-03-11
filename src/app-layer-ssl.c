@@ -205,8 +205,31 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 switch (ext_type) {
                     case SSL_EXTENSION_SNI:
                     {
-                        /* skip sni_list_length and sni_type */
-                        input += 3;
+                        /* there must not be more than one extension of the same
+                           type (RFC5246 section 7.4.1.4) */
+                        if (ssl_state->curr_connp->sni) {
+                            SCLogDebug("Multiple SNI extensions");
+                            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                                    TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+                            return -1;
+                        }
+
+                        /* skip sni_list_length */
+                        input += 2;
+
+                        if (!(HAS_SPACE(1)))
+                            goto end;
+
+                        uint8_t sni_type = *(input++);
+
+                        /* currently the only type allowed is host_name
+                           (RFC6066 section 3) */
+                        if (sni_type != SSL_SNI_TYPE_HOST_NAME) {
+                            SCLogDebug("Unknown SNI type");
+                            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                                    TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+                            return -1;
+                        }
 
                         if (!(HAS_SPACE(2)))
                             goto end;
@@ -216,6 +239,16 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
                         if (!(HAS_SPACE(sni_len)))
                             goto end;
+
+                        /* host_name contains the fully qualified domain name,
+                           and should therefore be limited by the maximum domain
+                           name length */
+                        if (sni_len > 255) {
+                            SCLogDebug("SNI length >255");
+                            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                                    TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+                            return -1;
+                        }
 
                         size_t sni_strlen = sni_len + 1;
                         ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
