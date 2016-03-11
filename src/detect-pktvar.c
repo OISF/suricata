@@ -211,6 +211,8 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
             len = x;
     }
 
+    /* coverity[alloc_strlen : FALSE]
+     * not an actual string, but a byte array */
     cd->content = SCMalloc(len);
     if (cd->content == NULL) {
         SCFree(cd);
