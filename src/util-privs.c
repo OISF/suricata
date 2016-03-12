@@ -28,8 +28,8 @@
 
 #include <grp.h>
 #include <pwd.h>
-#include "util-debug.h"
 #include "suricata-common.h"
+#include "util-debug.h"
 #include "suricata.h"
 
 #ifdef HAVE_LIBCAP_NG

@@ -23,9 +23,9 @@
  * Retrieve CPU information (configured CPUs, online CPUs)
  */
 
+#include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
-#include "suricata-common.h"
 
 /**
  * Ok, if they should use sysconf, check that they have the macro's
