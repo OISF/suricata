@@ -64,6 +64,7 @@ static SCSpinlock current_time_spinlock;
 static char live = TRUE;
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
+struct tm *SCUtcTime(time_t timep, struct tm *result);
 
 void TimeInit(void)
 {
@@ -188,6 +189,26 @@ void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
     } else {
         snprintf(str, size, "ts-error");
     }
+}
+
+void CreateUtcIsoTimeString (const struct timeval *ts, char *str, size_t size)
+{
+    time_t time = ts->tv_sec;
+    struct tm local_tm;
+    struct tm *t = (struct tm*)SCUtcTime(time, &local_tm);
+    char time_fmt[64] = { 0 };
+
+    if (likely(t != NULL)) {
+        strftime(time_fmt, sizeof(time_fmt), "%Y-%m-%dT%H:%M:%S", t);
+        snprintf(str, size, time_fmt, ts->tv_usec);
+    } else {
+        snprintf(str, size, "ts-error");
+    }
+}
+
+struct tm *SCUtcTime(time_t timep, struct tm *result)
+{
+    return gmtime_r(&timep, result);
 }
 
 /*
