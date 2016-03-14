@@ -62,6 +62,7 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
 static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t size, uint8_t depth, uint32_t *errcode);
 static Asn1Generic * DecodeAsn1DerT61String(const unsigned char *buffer, uint32_t size, uint8_t depth, uint32_t *errcode);
 static Asn1Generic * DecodeAsn1DerUTCTime(const unsigned char *buffer, uint32_t size, uint8_t depth, uint32_t *errcode);
+static Asn1Generic * DecodeAsn1DerGeneralizedTime(const unsigned char *buffer, uint32_t size, uint8_t depth, uint32_t *errcode);
 
 static Asn1Generic * Asn1GenericNew(void)
 {
@@ -182,6 +183,9 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t 
             break;
         case ASN1_UTCTIME:
             child = DecodeAsn1DerUTCTime(d_ptr, el_max_size, depth+1, errcode);
+            break;
+        case ASN1_GENERALIZEDTIME:
+            child = DecodeAsn1DerGeneralizedTime(d_ptr, el_max_size, depth+1, errcode);
             break;
         default:
             /* unknown ASN.1 type */
@@ -731,6 +735,17 @@ static Asn1Generic * DecodeAsn1DerUTCTime(const unsigned char *buffer, uint32_t 
     a = DecodeAsn1DerIA5String(buffer, max_size, depth, errcode);
     if (a != NULL)
         a->type = ASN1_UTCTIME;
+
+    return a;
+}
+
+static Asn1Generic * DecodeAsn1DerGeneralizedTime(const unsigned char *buffer, uint32_t max_size, uint8_t depth, uint32_t *errcode)
+{
+    Asn1Generic *a;
+
+    a = DecodeAsn1DerIA5String(buffer, max_size, depth, errcode);
+    if (a != NULL)
+        a->type = ASN1_GENERALIZEDTIME;
 
     return a;
 }
