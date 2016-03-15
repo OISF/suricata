@@ -72,6 +72,7 @@ enum {
     MPM_AC_GFBS,
     MPM_AC_BS,
     MPM_AC_TILE,
+    MPM_HS,
     /* table size */
     MPM_TABLE_SIZE,
 };
