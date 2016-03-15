@@ -194,6 +194,7 @@
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
 #endif
+#include "util-mpm-hs.h"
 #include "util-storage.h"
 #include "host-storage.h"
 
@@ -2614,6 +2615,10 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     SC_ATOMIC_DESTROY(engine_stage);
+
+#ifdef BUILD_HYPERSCAN
+    MpmHSGlobalCleanup();
+#endif
 
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)

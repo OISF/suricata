@@ -372,6 +372,7 @@ util-mpm-ac-tile.c util-mpm-ac-tile.h \
 util-mpm-ac-tile-small.c \
 util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b3g.c util-mpm-b3g.h \
+util-mpm-hs.c util-mpm-hs.h \
 util-mpm.c util-mpm.h \
 util-mpm-wumanber.c util-mpm-wumanber.h \
 util-optimize.h \
