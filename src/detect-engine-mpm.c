@@ -1216,28 +1216,40 @@ static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
                                                 Signature *s, uint8_t flags,
                                                 int chop)
 {
+    uint16_t pat_offset = cd->offset;
+    uint16_t pat_depth = cd->depth;
+
+    /* recompute offset/depth to cope with chop */
+    if (chop && (pat_depth || pat_offset)) {
+        pat_offset += cd->fp_chop_offset;
+        if (pat_depth) {
+            pat_depth -= cd->content_len;
+            pat_depth += cd->fp_chop_offset + cd->fp_chop_len;
+        }
+    }
+
     if (cd->flags & DETECT_CONTENT_NOCASE) {
         if (chop) {
             MpmAddPatternCI(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                            0, 0,
+                            pat_offset, pat_depth,
                             cd->id, s->num, flags);
         } else {
             MpmAddPatternCI(mpm_ctx,
                             cd->content, cd->content_len,
-                            0, 0,
+                            pat_offset, pat_depth,
                             cd->id, s->num, flags);
         }
     } else {
         if (chop) {
             MpmAddPatternCS(mpm_ctx,
                             cd->content + cd->fp_chop_offset, cd->fp_chop_len,
-                            0, 0,
+                            pat_offset, pat_depth,
                             cd->id, s->num, flags);
         } else {
             MpmAddPatternCS(mpm_ctx,
                             cd->content, cd->content_len,
-                            0, 0,
+                            pat_offset, pat_depth,
                             cd->id, s->num, flags);
         }
     }
