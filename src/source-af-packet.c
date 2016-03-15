@@ -811,7 +811,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         /* get vlan id from header */
         if ((!ptv->vlan_disabled) &&
             (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
-            p->vlan_id[0] = h.h2->tp_vlan_tci;
+            p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
             p->vlan_idx = 1;
             p->vlanh[0] = NULL;
         }
