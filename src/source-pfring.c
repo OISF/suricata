@@ -251,7 +251,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * is not defined nor used in PF_RING code. And vlan_id is set to 0
      * in PF_RING kernel code when there is no VLAN. */
     if ((!ptv->vlan_disabled) && h->extended_hdr.parsed_pkt.vlan_id) {
-        p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id;
+        p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
         p->vlanh[0] = NULL;
     }
