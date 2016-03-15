@@ -108,6 +108,7 @@
 #include "util-memrchr.h"
 
 #include "util-mpm-ac.h"
+#include "util-mpm-hs.h"
 #include "detect-engine-mpm.h"
 
 #include "util-decode-asn1.h"
@@ -288,6 +289,9 @@ void RunUnittests(int list_unittests, char *regex_arg)
         uint32_t failed = UtRunTests(regex_arg);
         PacketPoolDestroy();
         UtCleanup();
+#ifdef BUILD_HYPERSCAN
+        MpmHSGlobalCleanup();
+#endif
 #ifdef __SC_CUDA_SUPPORT__
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
             MpmCudaBufferDeSetup();
