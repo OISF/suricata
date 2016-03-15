@@ -585,6 +585,36 @@
         AC_MSG_RESULT(no)
     fi
 
+  # libhs
+    enable_hyperscan="no"
+    AC_ARG_WITH(libhs_includes,
+            [  --with-libhs-includes=DIR  libhs include directory],
+            [with_libhs_includes="$withval"],[with_libhs_includes=no])
+    AC_ARG_WITH(libhs_libraries,
+            [  --with-libhs-libraries=DIR    libhs library directory],
+            [with_libhs_libraries="$withval"],[with_libhs_libraries="no"])
+
+    if test "$with_libhs_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libhs_includes}"
+    fi
+    AC_CHECK_HEADER(hs.h,HYPERSCAN="yes",HYPERSCAN="no")
+    if test "$HYPERSCAN" = "yes"; then
+        if test "$with_libhs_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libhs_libraries}"
+        fi
+
+        AC_CHECK_LIB(hs,hs_compile,,HYPERSCAN="no")
+        enable_hyperscan="yes"
+        if test "$HYPERSCAN" = "no"; then
+            echo
+            echo "   Hyperscan library not found; get it from:"
+            echo "     https://01.org/hyperscan/"
+            echo
+            enable_hyperscan="no"
+        fi
+    fi
+    AS_IF([test "x$enable_hyperscan" = "xyes"], [AC_DEFINE([BUILD_HYPERSCAN], [1], [Intel Hyperscan support enabled])])
+
   # libyaml
     AC_ARG_WITH(libyaml_includes,
             [  --with-libyaml-includes=DIR  libyaml include directory],
@@ -1896,6 +1926,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
+  Hyperscan support:                       ${enable_hyperscan}
 
   Suricatasc install:                      ${enable_python}
 
