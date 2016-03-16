@@ -288,6 +288,7 @@ static void StatsReleaseCtx()
     if (stats_ctx->counters_id_hash != NULL) {
         HashTableFree(stats_ctx->counters_id_hash);
         stats_ctx->counters_id_hash = NULL;
+        counters_global_id = 0;
     }
 
     StatsPublicThreadContextCleanup(&stats_ctx->global_counter_ctx);
