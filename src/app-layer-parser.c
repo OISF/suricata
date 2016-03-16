@@ -111,6 +111,8 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    uint64_t (*GetTxCounter)(void);
+
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
      * STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -483,6 +485,17 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState = StateHasTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetTxCounter(uint8_t ipproto, AppProto alproto,
+        uint64_t (*GetTxCounter)(void))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        GetTxCounter = GetTxCounter;
 
     SCReturn;
 }
@@ -1068,6 +1081,25 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
         StreamTcpReassembleTriggerRawReassembly(f->protoctx);
 
     SCReturn;
+}
+
+int AppLayerParserHasGetTxCounter(uint8_t ipproto, AppProto alproto)
+{
+    SCEnter();
+
+    return (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxCounter != NULL);   
+}
+
+uint64_t AppLayerParserGetTxCounter(uint8_t ipproto, AppProto alproto)
+{
+    SCEnter();
+    uint64_t tx_cnt = 0;
+    
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxCounter != NULL) {
+        tx_cnt = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxCounter();
+    }
+
+    return tx_cnt;
 }
 
 /***** Cleanup *****/
