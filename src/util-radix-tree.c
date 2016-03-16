@@ -1127,7 +1127,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     SCRadixPrefix *prefix = NULL;
 
-    int mask = 0;
+    uint32_t mask = 0;
     int i = 0;
 
     if (node == NULL)
@@ -1157,7 +1157,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     i = prefix->bitlen / 8;
     if (SCMemcmp(node->prefix->stream, prefix->stream, i) == 0) {
-        mask = -1 << (8 - prefix->bitlen % 8);
+        mask = UINT_MAX << (8 - prefix->bitlen % 8);
 
         if (prefix->bitlen % 8 == 0 ||
             (node->prefix->stream[i] & mask) == (prefix->stream[i] & mask)) {
@@ -1334,7 +1334,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
                                                     SCRadixNode *node, void **user_data_result)
 {
     SCRadixNode *netmask_node = NULL;
-    int mask = 0;
+    uint32_t mask = 0;
     int bytes = 0;
     int i = 0;
     int j = 0;
@@ -1351,10 +1351,10 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
     for (j = 0; j < netmask_node->netmask_cnt; j++) {
         bytes = key_bitlen / 8;
         for (i = 0; i < bytes; i++) {
-            mask = -1;
+            mask = UINT_MAX;
             if ( ((i + 1) * 8) > netmask_node->netmasks[j]) {
                 if ( ((i + 1) * 8 - netmask_node->netmasks[j]) < 8)
-                    mask = -1 << ((i + 1) * 8 - netmask_node->netmasks[j]);
+                    mask = UINT_MAX << ((i + 1) * 8 - netmask_node->netmasks[j]);
                 else
                     mask = 0;
             }
@@ -1377,7 +1377,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
             return NULL;
 
         if (SCMemcmp(node->prefix->stream, key_stream, bytes) == 0) {
-            mask = -1 << (8 - key_bitlen % 8);
+            mask = UINT_MAX << (8 - key_bitlen % 8);
 
             if (key_bitlen % 8 == 0 ||
                 (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
@@ -1406,7 +1406,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
         return NULL;
 
     SCRadixNode *node = tree->head;
-    int mask = 0;
+    uint32_t mask = 0;
     int bytes = 0;
     uint8_t tmp_stream[255];
 
@@ -1435,7 +1435,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     bytes = key_bitlen / 8;
     if (SCMemcmp(node->prefix->stream, tmp_stream, bytes) == 0) {
-        mask = -1 << (8 - key_bitlen % 8);
+        mask = UINT_MAX << (8 - key_bitlen % 8);
 
         if (key_bitlen % 8 == 0 ||
             (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
