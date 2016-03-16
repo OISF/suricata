@@ -751,8 +751,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                        "Error encountered in establishing the sslv2 "
                        "session, may be version");
             AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_ERROR_MSG_ENCOUNTERED);
-
-            break;
+            return -1;
 
         case SSLV2_MT_CLIENT_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
