@@ -1,5 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
- * Copyright (C) 2015-2016 Intel Corporation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
