@@ -311,7 +311,7 @@ int AffinityGetNextCPU(ThreadsAffinityType *taf)
         }
     }
     if (iter == 2) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contains available cpus, cpu afinity conf is invalid");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contain available cpus, cpu affinity conf is invalid");
     }
     taf->lcpu = ncpu + 1;
     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
