@@ -745,6 +745,20 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
         return (input - initial_input);
     }
 
+    /* record_length should never be 0 */
+    if (ssl_state->curr_connp->record_length == 0) {
+        SCLogDebug("SSLv2 record length is 0");
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
+        return -1;
+    }
+
+    /* record_lenghts_length should never be 0 */
+    if (ssl_state->curr_connp->record_lengths_length == 0) {
+        SCLogDebug("SSLv2 record lengths length is 0");
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
+        return -1;
+    }
+
     switch (ssl_state->curr_connp->content_type) {
         case SSLV2_MT_ERROR:
             SCLogDebug("SSLV2_MT_ERROR msg_type received.  "
@@ -972,6 +986,13 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         return -1;
     }
 
+    /* record_length should never be 0 */
+    if (ssl_state->curr_connp->record_length == 0) {
+        SCLogDebug("SSLv3 Record length is 0");
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
+        return -1;
+    }
+
     switch (ssl_state->curr_connp->content_type) {
 
         /* we don't need any data from these types */
@@ -1182,7 +1203,7 @@ static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserSt
                                "previously left off");
                     retval = SSLv2Decode(direction, ssl_state, pstate, input,
                                          input_len);
-                    if (retval == -1) {
+                    if (retval < 0) {
                         SCLogDebug("Error parsing SSLv2.x.  Reseting parser "
                                    "state.  Let's get outta here");
                         SSLParserReset(ssl_state);
