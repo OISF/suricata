@@ -84,6 +84,23 @@ void StreamTcpUTClearStream(TcpStream *s)
     StreamTcpStreamCleanup(s);
 }
 
+/** \brief wrapper for StreamTcpReassembleHandleSegmentHandleData */
+int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
+{
+    Packet *p = UTHBuildPacketReal(payload, len, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    if (p == NULL) {
+        return -1;
+    }
+    p->tcph->th_seq = htonl(seq);
+    p->tcph->th_ack = htonl(31);
+
+    if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) < 0)
+        return -1;
+
+    UTHFreePacket(p);
+    return 0;
+}
+
 int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
 {
     TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx, len);
