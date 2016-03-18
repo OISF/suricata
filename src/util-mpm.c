@@ -35,6 +35,7 @@
 #include "util-mpm-ac-gfbs.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-tile.h"
+#include "util-mpm-hs.h"
 #include "util-hashlist.h"
 
 #include "detect-engine.h"
@@ -674,6 +675,9 @@ void MpmTableSetup(void)
     MpmACBSRegister();
     MpmACGfbsRegister();
     MpmACTileRegister();
+#ifdef BUILD_HYPERSCAN
+    MpmHSRegister();
+#endif /* BUILD_HYPERSCAN */
 #ifdef __SC_CUDA_SUPPORT__
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
