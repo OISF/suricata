@@ -119,6 +119,9 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
                 sp = SkipWhiteSpaceTill(p, savep);
                 json_array_append_new(ajs, json_string(sp));
             }
+        } else {
+            json_decref(ajs);
+            return NULL;
         }
         SCFree(to_line);
     }
