@@ -28,6 +28,7 @@
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
+#include "detect-engine.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -51,6 +52,14 @@
 
 #ifdef HAVE_LIBJANSSON
 
+/**
+ * specify which engine info will be printed in stats log.
+ * ALL means both last reload and ruleset stats.
+ */
+#define JSON_ENGINE_LAST_RELOAD    (1<<0)
+#define JSON_ENGINE_RULESET        (1<<1)
+#define JSON_ENGINE_ALL            (1<<2)
+
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -60,6 +69,111 @@ typedef struct JsonStatsLogThread_ {
     OutputStatsCtx *statslog_ctx;
     MemBuffer *buffer;
 } JsonStatsLogThread;
+
+static json_t *OutputDetectEngineStats2Json(const DetectEngineCtx *de_ctx,
+                                            const int output)
+{
+    struct timeval last_reload;
+    char timebuf[64];
+    const SigFileLoaderStat *sig_stat = NULL;
+
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    if (output == JSON_ENGINE_LAST_RELOAD || output == JSON_ENGINE_ALL) {
+        last_reload = de_ctx->last_reload;
+        CreateIsoTimeString(&last_reload, timebuf, sizeof(timebuf));
+        json_object_set_new(jdata, "last_reload", json_string(timebuf));
+    }
+
+    sig_stat = &de_ctx->sig_stat;
+    if ((output == JSON_ENGINE_RULESET || output == JSON_ENGINE_ALL) &&
+        sig_stat != NULL)
+    {
+        json_object_set_new(jdata, "rules_loaded",
+                            json_integer(sig_stat->good_sigs_total));
+        json_object_set_new(jdata, "rules_failed",
+                            json_integer(sig_stat->bad_sigs_total));
+    }
+
+    return jdata;
+}
+
+static json_t *OutputTenancyStats2Json(int output)
+{
+    json_t *jdata = json_object();
+    if (jdata == NULL) {
+        return NULL;
+    }
+
+    DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+    if (de_ctx == NULL) {
+        SCFree(jdata);
+        goto error;
+    }
+    /* Since we need to deference de_ctx pointer, we don't want to lost it. */
+    DetectEngineCtx *list = de_ctx;
+
+    if (list->minimal) {
+        json_object_set_new(jdata, "message", json_string("Detect engine is not yet ready"));
+        goto error;
+    }
+
+    json_t *js_tenant_list = json_array();
+
+    if (js_tenant_list == NULL) {
+        json_object_set_new(jdata, "message", json_string("Unable to get into"));
+        goto error;
+    }
+
+    while(list) {
+        json_t *js_tenant = json_object();
+        if (js_tenant == NULL) {
+            json_object_set_new(jdata, "message", json_string("Unable to get into"));
+            json_object_clear(js_tenant_list);
+            goto error;
+        }
+        json_object_set_new(js_tenant, "id", json_integer(list->tenant_id));
+
+        json_t *js_stats = OutputDetectEngineStats2Json(list, output);
+        if (js_stats == NULL) {
+            json_object_set_new(jdata, "message", json_string("Unable to get into"));
+            json_object_clear(js_tenant);
+            json_object_clear(js_tenant_list);
+            goto error;
+        }
+        json_object_update(js_tenant, js_stats);
+        json_array_append_new(js_tenant_list, js_tenant);
+        list = list->next;
+    }
+
+    DetectEngineDeReference(&de_ctx);
+    return js_tenant_list;
+
+error:
+    DetectEngineDeReference(&de_ctx);
+    return NULL;
+}
+
+TmEcode OutputTenancyStatsLastReload(json_t **jdata) {
+    *jdata = OutputTenancyStats2Json(JSON_ENGINE_LAST_RELOAD);
+    if (*jdata == NULL) {
+        return TM_ECODE_FAILED;
+    } else {
+        return TM_ECODE_OK;
+    }
+}
+
+TmEcode OutputTenancyStatsRuleset(json_t **jdata) {
+    *jdata = OutputTenancyStats2Json(JSON_ENGINE_RULESET);
+    if (*jdata == NULL) {
+        return TM_ECODE_FAILED;
+    } else {
+        return TM_ECODE_OK;
+    }
+}
 
 static json_t *OutputStats2Json(json_t *js, const char *key)
 {
@@ -79,6 +193,20 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     json_t *value = json_object_iter_value(iter);
     if (value == NULL) {
         value = json_object();
+        /* If multi-tenancy is disabled, it means we have only one engine.
+           In this case, we add engine stats in detect obj.
+           The output will be:
+           "detect":{"engine":{"last_reload":"...","rules_loaded":...,"rules_failed":...}, ...}
+        */
+        if (!DetectEngineMultiTenantEnabled() && !strncmp(s, "detect", 6)) {
+            DetectEngineCtx *de_ctx = DetectEngineGetCurrent();
+            json_t *js_engine =
+                OutputDetectEngineStats2Json(de_ctx, JSON_ENGINE_ALL);
+            if (js_engine != NULL) {
+                json_object_set_new(value, "engine", js_engine);
+            }
+            DetectEngineDeReference(&de_ctx);
+        }
         json_object_set_new(js, s, value);
     }
     if (s2 != NULL) {
@@ -104,6 +232,22 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
     /* Uptime, in seconds. */
     json_object_set_new(js_stats, "uptime",
         json_integer((int)difftime(tval.tv_sec, st->start_time)));
+
+    /* tenancy stats */
+    if (DetectEngineMultiTenantEnabled()) {
+        /* In this case, we add a new "tenancy" object,
+           which contains stats for each tenant.
+           The output will be:
+           "tenancy":[{"id":1,"last_reload":"...","rules_loaded":...,"rules_failed":...},
+                      {"id":2,"last_reload":"...","rules_loaded":...,"rules_failed":...}]
+        */
+        json_t *js_tenancy = OutputTenancyStats2Json(JSON_ENGINE_ALL);
+        if (unlikely(js_tenancy == NULL)) {
+            json_decref(js);
+            return 0;
+        }
+        json_object_set_new(js_stats, "tenancy", js_tenancy);
+    }
 
     uint32_t u = 0;
     if (flags & JSON_STATS_TOTALS) {
