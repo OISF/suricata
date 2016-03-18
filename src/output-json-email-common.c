@@ -371,6 +371,10 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
     SMTPTransaction *tx = (SMTPTransaction *) vtx;
 
+    if (sjs == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
         JsonEmailLogJSONCustom(email_ctx, sjs, tx);
 
