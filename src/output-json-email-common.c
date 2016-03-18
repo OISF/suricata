@@ -263,6 +263,7 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
     }
     if ((mime_state != NULL)) {
         if (entity == NULL) {
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
         }
 
