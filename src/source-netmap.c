@@ -80,7 +80,7 @@
 
 #endif /* HAVE_NETMAP */
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 #ifndef HAVE_NETMAP
 
@@ -635,6 +635,15 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
         ntv->flags |= NETMAP_FLAG_ZERO_COPY;
         SCLogInfo("Enabling zero copy mode for %s->%s",
                   aconf->iface_name, aconf->out_iface_name);
+    } else {
+        uint16_t ring_size = ntv->ifsrc->rings[0].rx->num_slots;
+        if (ring_size > max_pending_packets) {
+            SCLogError(SC_ERR_NETMAP_CREATE,
+                       "Packet pool size (%" PRIuMAX ") must be greater or equal than %s ring size (%" PRIu16 "). "
+                       "Increase max_pending_packets option.",
+                       max_pending_packets, aconf->iface_name, ring_size);
+            goto error_dst;
+        }
     }
 
     if (aconf->bpf_filter) {
@@ -762,6 +771,10 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
     uint32_t avail = nm_ring_space(rx);
     uint32_t cur = rx->cur;
 
+    if (!(ntv->flags & NETMAP_FLAG_ZERO_COPY)) {
+        PacketPoolWaitForN(avail);
+    }
+
     while (likely(avail-- > 0)) {
         struct netmap_slot *slot = &rx->slot[cur];
         unsigned char *slot_data = (unsigned char *)NETMAP_BUF(rx, slot->buf_idx);
@@ -775,7 +788,7 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
             }
         }
 
-        Packet *p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketPoolGetPacket();
         if (unlikely(p == NULL)) {
             SCReturnInt(NETMAP_FAILURE);
         }
