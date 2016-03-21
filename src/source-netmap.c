@@ -632,14 +632,9 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     char const *active_runmode = RunmodeGetActive();
     if ((aconf->copy_mode != NETMAP_COPY_MODE_NONE) && active_runmode
             && !strcmp("workers", active_runmode)) {
-        if (likely(ntv->ifsrc->mem == ntv->ifdst->mem)) {
-            ntv->flags |= NETMAP_FLAG_ZERO_COPY;
-            SCLogInfo("Enabling zero copy mode for %s->%s",
-                      aconf->iface_name, aconf->out_iface_name);
-        } else {
-            SCLogInfo("Unable to set zero copy mode for %s->%s",
-                      aconf->iface_name, aconf->out_iface_name);
-        }
+        ntv->flags |= NETMAP_FLAG_ZERO_COPY;
+        SCLogInfo("Enabling zero copy mode for %s->%s",
+                  aconf->iface_name, aconf->out_iface_name);
     }
 
     if (aconf->bpf_filter) {
