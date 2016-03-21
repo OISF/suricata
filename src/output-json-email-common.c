@@ -253,6 +253,7 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
                 SCLogDebug("no smtp state, so no request logging");
+                json_decref(sjs);
                 SCReturnPtr(NULL, "json_t");
             }
             SMTPTransaction *tx = vtx;
@@ -262,6 +263,7 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             break;
         default:
             /* don't know how we got here */
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
     }
     if ((mime_state != NULL)) {
@@ -306,8 +308,10 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             }
         }
 
-        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL)
+        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL) {
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
+        }
 
         entity = (MimeDecEntity *)mime_state->stack->top->data;
         int attch_cnt = 0;
