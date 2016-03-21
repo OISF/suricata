@@ -654,7 +654,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
 
     if (GetIfaceOffloading(aconf->iface) == 1) {
         SCLogWarning(SC_ERR_NETMAP_CREATE,
-                     "Using mmap mode with GRO or LRO activated can lead to capture problems");
+                     "Using netmap mode with GRO or LRO activated can lead to capture problems");
     }
 
     *data = (void *)ntv;
