@@ -541,6 +541,35 @@ int DetectEngineReloadIsDone(void)
     return r;
 }
 
+/* nudge capture loops to wake up */
+static void BreakCapture(void)
+{
+    SCMutexLock(&tv_root_lock);
+    ThreadVars *tv = tv_root[TVT_PPT];
+    while (tv) {
+        /* find the correct slot */
+        TmSlot *slots = tv->tm_slots;
+        while (slots != NULL) {
+            if (suricata_ctl_flags != 0) {
+                return;
+            }
+
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+            if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
+                slots = slots->slot_next;
+                continue;
+            }
+
+            if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
+                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
+            }
+            break;
+        }
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
+}
+
 /** \internal
  *  \brief Update detect threads with new detect engine
  *
@@ -694,32 +723,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
         }
     }
 
-    /* nudge capture loops to wake up */
-    SCMutexLock(&tv_root_lock);
-    tv = tv_root[TVT_PPT];
-    while (tv) {
-        /* find the correct slot */
-        TmSlot *slots = tv->tm_slots;
-        while (slots != NULL) {
-            if (suricata_ctl_flags != 0) {
-                return -1;
-            }
-
-            TmModule *tm = TmModuleGetById(slots->tm_id);
-            if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
-                slots = slots->slot_next;
-                continue;
-            }
-
-            if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
-                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
-            }
-            break;
-        }
-        tv = tv->next;
-    }
-    SCMutexUnlock(&tv_root_lock);
-
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
         usleep(1000);
@@ -729,6 +732,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
                 break;
             }
 
+            BreakCapture();
             usleep(1000);
         }
         if (break_out)
