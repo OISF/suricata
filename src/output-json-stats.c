@@ -47,9 +47,14 @@
 #include "output-json.h"
 #include "output-json-stats.h"
 
+#include "app-layer.h"
+#include "app-layer-parser.h"
+
 #define MODULE_NAME "JsonStatsLog"
 
 #ifdef HAVE_LIBJANSSON
+
+#define ALPROTO_SUFFIX  4
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
@@ -87,6 +92,82 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     return value;
 }
 
+static json_t *AppLayerStats2Json(void)
+{
+    /* app-layer stats */
+    json_t *js_app_layer_stats = json_object();
+    if (unlikely(js_app_layer_stats == NULL)) {
+        return NULL;
+    }
+    json_t *js_alproto = json_object();
+    if (unlikely(js_alproto == NULL)) {
+        json_decref(js_app_layer_stats);
+        return NULL;
+    }
+
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        if (alprotos[alproto] == 1) {
+            if (AppLayerParserHasGetTxCounter(IPPROTO_TCP, alproto) &&
+                AppLayerParserHasGetTxCounter(IPPROTO_UDP, alproto))
+            {
+                char *curr_alproto = AppLayerGetProtoName(alproto);
+                int curr_alproto_len = strlen(curr_alproto) + 1;
+                int proto[] = {IPPROTO_TCP, IPPROTO_UDP};
+                char *alproto_suffix[] = {"_tcp", "_udp"};
+                int i;
+                char *alproto_str = SCMalloc(curr_alproto_len + ALPROTO_SUFFIX);
+                if (alproto_str == NULL) {
+                    goto error;
+                }
+
+                for (i = 0; i < 2; i++) {
+                    snprintf(alproto_str, curr_alproto_len + ALPROTO_SUFFIX,
+                             "%s%s", curr_alproto, alproto_suffix[i]);
+                    json_object_set_new(js_alproto, alproto_str,
+                        json_integer(AppLayerParserGetTxCounter(proto[i], alproto)));
+                }
+                SCFree(alproto_str);
+            } else {
+                char *curr_alproto = AppLayerGetProtoName(alproto);
+                if (AppLayerParserHasGetTxCounter(IPPROTO_TCP, alproto)) {
+                    json_object_set_new(js_alproto, curr_alproto,
+                        json_integer(AppLayerParserGetTxCounter(IPPROTO_TCP, alproto)));
+                }
+                if (AppLayerParserHasGetTxCounter(IPPROTO_UDP, alproto)) {
+                    json_object_set_new(js_alproto, curr_alproto,
+                        json_integer(AppLayerParserGetTxCounter(IPPROTO_TCP, alproto)));
+                }
+            }
+        }
+    }
+    json_object_set_new(js_app_layer_stats, "tx", js_alproto);
+
+    js_alproto = json_object();
+    if (unlikely(js_alproto == NULL)) {
+        goto error;
+    }
+
+    for (alproto = 0; alproto < ALPROTO_COUNTER_MAX; alproto++) {
+        if (alprotos[alproto] == 1) {
+            json_object_set_new(js_alproto, AppLayerGetProtoName(alproto),
+                json_integer(AppLayerCountersGetCounter(alproto)));
+        }
+    }
+    json_object_set_new(js_app_layer_stats, "flow", js_alproto);
+
+    return js_app_layer_stats;
+
+error:
+    json_decref(js_app_layer_stats);
+    json_decref(js_alproto);
+    return NULL;
+}
+
 /** \brief turn StatsTable into a json object
  *  \param flags JSON_STATS_* flags for controlling output
  */
@@ -104,6 +185,12 @@ json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
     /* Uptime, in seconds. */
     json_object_set_new(js_stats, "uptime",
         json_integer((int)difftime(tval.tv_sec, st->start_time)));
+
+    /* app-layer stats */
+    json_t *js_app_layer_stats = AppLayerStats2Json();
+    if (js_app_layer_stats != NULL) {
+        json_object_set_new(js_stats, "app-layer", js_app_layer_stats);
+    }
 
     uint32_t u = 0;
     if (flags & JSON_STATS_TOTALS) {
