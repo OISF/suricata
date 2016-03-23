@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,25 +18,11 @@
 /**
  * \file
  *
- * \author Tom DeCanio <td@npulsetech.com>
+ * \author Giuseppe Longo <glongo@stamus-networks.com>
+ *
+ * Detection engine helper functions
  */
 
-#ifndef __OUTPUT_JSON_COUNTERS_H__
-#define __OUTPUT_JSON_COUNTERS_H__
-
-#include "output-stats.h"
-
-#define JSON_STATS_TOTALS  (1<<0)
-#define JSON_STATS_THREADS (1<<1)
-#define JSON_STATS_DELTAS  (1<<2)
-
-#ifdef HAVE_LIBJANSSON
-json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
-#endif
-void TmModuleJsonStatsLogRegister (void);
-#ifdef HAVE_LIBJANSSON
-TmEcode OutputTenancyStatsLastReload();
-TmEcode OutputTenancyStatsRuleset();
-#endif /* HAVE_LIBJANSSON */
-
-#endif /* __OUTPUT_JSON_COUNTERS_H__ */
+SigString *SigStringAlloc(void);
+int SigStringAddSig(SigString *sig, const char *sig_file, const char *sig_start, int line);
+int SigStringAppend(SigString **list, const char *sig_file, const char *sig_str, int line);
