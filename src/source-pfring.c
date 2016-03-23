@@ -370,6 +370,19 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
                 PfringDumpCounters(ptv);
                 last_dump = p->ts.tv_sec;
             }
+        } else if (r == 0) {
+            if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+                SCReturnInt(TM_ECODE_OK);
+            }
+
+            Packet *p = PacketGetFromAlloc();
+            if (p != NULL) {
+                p->flags |= PKT_PSEUDO_STREAM_END;
+            }
+            if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+                PacketFree(p);
+            }
+
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
