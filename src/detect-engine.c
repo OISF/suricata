@@ -560,9 +560,14 @@ static void BreakCapture(void)
                 continue;
             }
 
+            /* signal capture method that we need a packet. */
+            TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
+            /* if the method supports it, BreakLoop. Otherwise we rely on
+             * the capture method's recv timeout */
             if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
                 tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
             }
+
             break;
         }
         tv = tv->next;
