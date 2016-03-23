@@ -58,6 +58,24 @@ struct DNSTcpHeader_ {
 } __attribute__((__packed__));
 typedef struct DNSTcpHeader_ DNSTcpHeader;
 
+SC_ATOMIC_DECLARE(uint64_t, dns_tcp_tx_cnt);
+
+/* tx counter functions */
+static void DNSTCPIncTxCounter(void)
+{
+    SC_ATOMIC_ADD(dns_tcp_tx_cnt, 1);
+}
+
+static uint64_t DNSTCPGetTxCounter(void)
+{
+    return SC_ATOMIC_GET(dns_tcp_tx_cnt);
+}
+
+static void DNSTCPRegisterCounters(void)
+{
+    SC_ATOMIC_INIT(dns_tcp_tx_cnt);
+}
+
 /** \internal
  *  \param input_len at least enough for the DNSTcpHeader
  */
@@ -516,6 +534,8 @@ next_record:
     SCLogDebug("input_len %u offset %u record %u",
             input_len, dns_state->offset, dns_state->record_len);
 
+    DNSTCPIncTxCounter();
+
     /* this is the first data of this record */
     if (dns_state->offset == 0) {
         DNSTcpHeader *dns_tcp_header = (DNSTcpHeader *)input;
@@ -667,6 +687,8 @@ void RegisterDNSTCPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
+        AppLayerParserRegisterGetTxCounter(IPPROTO_TCP, ALPROTO_DNS, DNSTCPGetTxCounter);
+        DNSTCPRegisterCounters();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
