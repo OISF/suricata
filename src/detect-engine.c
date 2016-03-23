@@ -678,8 +678,50 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     /* inject a fake packet if the detect thread isn't using the new ctx yet,
      * this speeds up the process */
     for (i = 0; i < no_of_detect_tvs; i++) {
+        if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
+            if (detect_tvs[i]->inq != NULL) {
+                Packet *p = PacketGetFromAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
+                    SCMutexLock(&q->mutex_q);
+                    PacketEnqueue(q, p);
+                    SCCondSignal(&q->cond_q);
+                    SCMutexUnlock(&q->mutex_q);
+                }
+            }
+           usleep(1000);
+        }
+    }
+
+    /* nudge capture loops to wake up */
+    SCMutexLock(&tv_root_lock);
+    tv = tv_root[TVT_PPT];
+    while (tv) {
+        /* find the correct slot */
+        TmSlot *slots = tv->tm_slots;
+        while (slots != NULL) {
+            if (suricata_ctl_flags != 0) {
+                return -1;
+            }
+
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+            if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
+                slots = slots->slot_next;
+                continue;
+            }
+
+            if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
+                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
+            }
+            break;
+        }
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
+
+    for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
-        int pseudo_pkt_inserted = 0;
         usleep(1000);
         while (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
             if (suricata_ctl_flags != 0) {
@@ -687,20 +729,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
                 break;
             }
 
-            if (pseudo_pkt_inserted == 0) {
-                pseudo_pkt_inserted = 1;
-                if (detect_tvs[i]->inq != NULL) {
-                    Packet *p = PacketGetFromAlloc();
-                    if (p != NULL) {
-                        p->flags |= PKT_PSEUDO_STREAM_END;
-                        PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
-                        SCMutexLock(&q->mutex_q);
-                        PacketEnqueue(q, p);
-                        SCCondSignal(&q->cond_q);
-                        SCMutexUnlock(&q->mutex_q);
-                    }
-                }
-            }
             usleep(1000);
         }
         if (break_out)
