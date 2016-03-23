@@ -32,6 +32,7 @@
 
 extern int profiling_rules_enabled;
 extern int profiling_packets_enabled;
+extern int profiling_sghs_enabled;
 extern __thread int profiling_rules_entered;
 
 void SCProfilingPrintPacketProfile(Packet *);
@@ -229,6 +230,11 @@ PktProfiling *SCProfilePacketStart(void);
         }                                                           \
     }
 
+#define SGH_PROFILING_RECORD(det_ctx, sgh)                          \
+    if (profiling_sghs_enabled) {                                   \
+        SCProfilingSghUpdateCounter((det_ctx), (sgh));              \
+    }
+
 
 void SCProfilingRulesGlobalInit(void);
 void SCProfilingRuleDestroyCtx(struct SCProfileDetectCtx_ *);
@@ -243,6 +249,13 @@ void SCProfilingKeywordInitCounters(DetectEngineCtx *);
 void SCProfilingKeywordUpdateCounter(DetectEngineThreadCtx *det_ctx, int id, uint64_t ticks, int match);
 void SCProfilingKeywordThreadSetup(struct SCProfileKeywordDetectCtx_ *, DetectEngineThreadCtx *);
 void SCProfilingKeywordThreadCleanup(DetectEngineThreadCtx *);
+
+void SCProfilingSghsGlobalInit(void);
+void SCProfilingSghDestroyCtx(DetectEngineCtx *);
+void SCProfilingSghInitCounters(DetectEngineCtx *);
+void SCProfilingSghUpdateCounter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh);
+void SCProfilingSghThreadSetup(struct SCProfileSghDetectCtx_ *, DetectEngineThreadCtx *);
+void SCProfilingSghThreadCleanup(DetectEngineThreadCtx *);
 
 void SCProfilingInit(void);
 void SCProfilingDestroy(void);
@@ -276,6 +289,8 @@ void SCProfilingDump(void);
 
 #define PACKET_PROFILING_DETECT_START(p, id)
 #define PACKET_PROFILING_DETECT_END(p, id)
+
+#define SGH_PROFILING_RECORD(det_ctx, sgh)
 
 #endif /* PROFILING */
 
