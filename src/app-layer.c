@@ -66,6 +66,35 @@ struct AppLayerThreadCtx_ {
 #endif
 };
 
+typedef struct AppLayerCounters_ {
+    SC_ATOMIC_DECLARE(uint64_t, counter);
+} AppLayerCounters;
+
+AppLayerCounters applayer_counters[ALPROTO_COUNTER_MAX];
+
+/***** Counter functions *****/
+static void AppLayerCountersSetup(void)
+{
+    AppProto alproto;
+
+    for (alproto = 0; alproto < ALPROTO_COUNTER_MAX; alproto++) {
+        SC_ATOMIC_INIT(applayer_counters[alproto].counter);
+    }
+}
+
+static void AppLayerCountersIncCounter(AppProto alproto)
+{
+    if (alproto > ALPROTO_COUNTER_MAX)
+        return;
+
+    SC_ATOMIC_ADD(applayer_counters[alproto].counter, 1);
+}
+
+uint64_t AppLayerCountersGetCounter(AppProto alproto)
+{
+    return SC_ATOMIC_GET(applayer_counters[alproto].counter);
+}
+
 /***** L7 layer dispatchers *****/
 
 static void DisableAppLayer(Flow *f)
@@ -277,6 +306,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
+            AppLayerCountersIncCounter(*alproto);
         } else {
             /* if the ssn is midstream, we may end up with a case where the
              * start of an HTTP request is missing. We won't detect HTTP based
@@ -499,6 +529,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            AppLayerCountersIncCounter(f->alproto);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tctx->alp_tctx,
@@ -578,6 +609,8 @@ int AppLayerSetup(void)
 
     AppLayerParserRegisterProtocolParsers();
     AppLayerProtoDetectPrepareState();
+
+    AppLayerCountersSetup();
 
     SCReturnInt(0);
 }
