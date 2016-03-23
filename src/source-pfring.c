@@ -370,6 +370,14 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
                 PfringDumpCounters(ptv);
                 last_dump = p->ts.tv_sec;
             }
+        } else if (unlikely(r == 0)) {
+            if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+                SCReturnInt(TM_ECODE_OK);
+            }
+
+            /* pfring didn't use the packet yet */
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, p);
+
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);

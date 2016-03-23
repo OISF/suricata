@@ -339,6 +339,8 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapCallbackLoop failed");
             SCReturnInt(TM_ECODE_FAILED);
+        } else if (unlikely(r == 0)) {
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
         }
 
         StatsSyncCountersIfSignalled(tv);
