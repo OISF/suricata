@@ -276,12 +276,10 @@ int RunmodeGetCurrent(void)
 static void SignalHandlerSigint(/*@unused@*/ int sig)
 {
     sigint_count = 1;
-    suricata_ctl_flags |= SURICATA_STOP;
 }
 static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
-    suricata_ctl_flags |= SURICATA_KILL;
 }
 
 void SignalHandlerSigusr2StartingUp(int sig)
@@ -2442,9 +2440,14 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
+        if (sigterm_count) {
+            suricata_ctl_flags |= SURICATA_KILL;
+        } else if (sigint_count) {
+            suricata_ctl_flags |= SURICATA_STOP;
+        }
+
         if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogNotice("Signal Received.  Stopping engine.");
-
             break;
         }
 
