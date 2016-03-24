@@ -40,6 +40,7 @@ enum LogFileType { LOGFILE_TYPE_FILE,
                    LOGFILE_TYPE_SYSLOG,
                    LOGFILE_TYPE_UNIX_DGRAM,
                    LOGFILE_TYPE_UNIX_STREAM,
+                   LOGFILE_TYPE_ZMQ,
                    LOGFILE_TYPE_REDIS };
 
 typedef struct SyslogSetup_ {
@@ -69,6 +70,9 @@ typedef struct LogFileCtx_ {
 #ifdef HAVE_LIBHIREDIS
         redisContext *redis;
 #endif
+#ifdef HAVE_ZEROMQ
+        void *zmq_fp;
+#endif
     };
 
     union {
@@ -90,6 +94,10 @@ typedef struct LogFileCtx_ {
 
     /** The name of the file */
     char *filename;
+
+    /** Handle ZMQ sockets */
+    void *zmq_context;
+    uint8_t is_zmq;
 
     /** Suricata sensor name */
     char *sensor_name;

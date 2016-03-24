@@ -31,6 +31,9 @@
 #include "tm-modules.h"      /* LogFileCtx */
 #include "conf.h"            /* ConfNode, etc. */
 #include "output.h"          /* DEFAULT_LOG_* */
+#ifdef HAVE_ZEROMQ
+#include <zmq.h>
+#endif
 #include "util-logopenfile.h"
 #include "util-logopenfile-tile.h"
 
@@ -132,7 +135,12 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
         log_ctx->rotation_flag = 0;
         SCConfLogReopen(log_ctx);
     }
-
+#ifdef HAVE_ZEROMQ
+    if (log_ctx->is_zmq) {
+        int rc = zmq_send(log_ctx->zmq_fp, buffer, buffer_len, 0);
+        return rc;
+    }
+#endif
     int ret = 0;
 
     if (log_ctx->fp == NULL && log_ctx->is_sock)
@@ -157,6 +165,19 @@ static int SCLogFileWrite(const char *buffer, int buffer_len, LogFileCtx *log_ct
 
 static void SCLogFileClose(LogFileCtx *log_ctx)
 {
+#ifdef HAVE_ZEROMQ
+    if (log_ctx->is_zmq) {
+        if (log_ctx->zmq_fp) {
+            zmq_close(log_ctx->zmq_fp);
+            log_ctx->zmq_fp = NULL;
+        }
+        if (log_ctx->zmq_context) {
+            zmq_ctx_destroy(log_ctx->zmq_context);
+            log_ctx->zmq_context = NULL;
+        }
+        return;
+    }
+#endif
     if (log_ctx->fp)
         fclose(log_ctx->fp);
 }
@@ -183,6 +204,40 @@ SCLogOpenFileFp(const char *path, const char *append_setting)
                    path, strerror(errno));
     return ret;
 }
+
+#ifdef HAVE_ZEROMQ
+/** \brief connect to ZMQ client, logging any errors
+ *  \param path filesystem path to connect to
+ *  \param log_err, non-zero if connect failure should be logged.
+ *  \retval FILE* on success (fdopen'd wrapper of underlying socket)
+ *  \retval NULL on error
+ */
+static void *
+SCLogOpenZmqFp(LogFileCtx *log_ctx, const char *client, int log_err)
+{
+    void *publisher = NULL;
+
+    if (log_ctx->zmq_context == NULL) {
+        log_ctx->zmq_context = zmq_ctx_new();
+    }
+    if (log_ctx->zmq_context != NULL) {
+        publisher = zmq_socket (log_ctx->zmq_context, ZMQ_PUB);
+        int rc = zmq_bind (publisher, client);
+        if (rc != 0) {
+            goto err;
+        }
+    }
+    return publisher;
+
+err:
+    if (log_err) {
+        SCLogWarning(SC_ERR_ZMQ,
+            "Error connecting to ZeroMQ \"%s\": %s (will keep trying)",
+            client, strerror(errno));
+    }
+    return NULL;
+}
+#endif
 
 /** \brief open the indicated file remotely over PCIe to a host
  *  \param path filesystem path to open
@@ -219,6 +274,7 @@ SCConfLogOpenGeneric(ConfNode *conf,
     char log_path[PATH_MAX];
     char *log_dir;
     const char *filename, *filetype;
+    const char *zmq = NULL;
 
     // Arg check
     if (conf == NULL || log_ctx == NULL || default_filename == NULL) {
@@ -276,6 +332,21 @@ SCConfLogOpenGeneric(ConfNode *conf,
         if (rotate) {
             OutputRegisterFileRotationFlag(&log_ctx->rotation_flag);
         }
+#ifdef HAVE_ZEROMQ
+    } else if (strcasecmp(filetype, "zeromq") == 0) {
+        // The zeromq endpoint needs to be specified before we can continue
+        zmq = ConfNodeLookupChildValue(conf, "zeromq");
+        if (zmq == NULL) {
+            SCLogError(SC_ERR_ZMQ, "ZeroMQ endpoint not specified in configuration");
+            return -1;
+        }
+        log_ctx->zmq_fp = SCLogOpenZmqFp(log_ctx, zmq, 1);
+        if (log_ctx->zmq_fp == NULL) {
+            SCLogError(SC_ERR_ZMQ, "Unable to open ZeroMQ endpoint %s", zmq);
+            return -1;
+        }
+        log_ctx->is_zmq = 1;
+#endif
     } else if (strcasecmp(filetype, "pcie") == 0) {
         log_ctx->pcie_fp = SCLogOpenPcieFp(log_ctx, log_path, append);
         if (log_ctx->pcie_fp == NULL)
@@ -294,8 +365,13 @@ SCConfLogOpenGeneric(ConfNode *conf,
         return -1;
     }
 
-    SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
-              filename);
+    if (strcasecmp(filetype, "zeromq") == 0) {
+        SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
+                  zmq);
+    } else {
+        SCLogInfo("%s output device (%s) initialized: %s", conf->name, filetype,
+                  filename);
+    }
 
     return 0;
 }
@@ -500,7 +576,12 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
         SCReturnInt(0);
     }
 
-    if (lf_ctx->fp != NULL) {
+    if (lf_ctx->is_zmq) {
+        SCMutexLock(&lf_ctx->fp_mutex);
+        lf_ctx->Close(lf_ctx);
+        lf_ctx->is_zmq = 0;
+        SCMutexUnlock(&lf_ctx->fp_mutex);
+    } else if (lf_ctx->fp != NULL) {
         SCMutexLock(&lf_ctx->fp_mutex);
         lf_ctx->Close(lf_ctx);
         SCMutexUnlock(&lf_ctx->fp_mutex);
@@ -623,6 +704,7 @@ int LogFileWrite(LogFileCtx *file_ctx, MemBuffer *buffer)
         syslog(file_ctx->syslog_setup.alert_syslog_level, "%s",
                 (const char *)MEMBUFFER_BUFFER(buffer));
     } else if (file_ctx->type == LOGFILE_TYPE_FILE ||
+               file_ctx->type == LOGFILE_TYPE_ZMQ ||
                file_ctx->type == LOGFILE_TYPE_UNIX_DGRAM ||
                file_ctx->type == LOGFILE_TYPE_UNIX_STREAM)
     {
