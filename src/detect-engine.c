@@ -571,6 +571,34 @@ static void BreakCapture(void)
 }
 
 /** \internal
+ *  \brief inject a pseudo packet into each detect thread that doesn't use the
+ *         new det_ctx yet
+ */
+static void InjectPackets(ThreadVars **detect_tvs,
+                          DetectEngineThreadCtx **new_det_ctx,
+                          int no_of_detect_tvs)
+{
+    int i;
+    /* inject a fake packet if the detect thread isn't using the new ctx yet,
+     * this speeds up the process */
+    for (i = 0; i < no_of_detect_tvs; i++) {
+        if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
+            if (detect_tvs[i]->inq != NULL) {
+                Packet *p = PacketGetFromAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
+                    SCMutexLock(&q->mutex_q);
+                    PacketEnqueue(q, p);
+                    SCCondSignal(&q->cond_q);
+                    SCMutexUnlock(&q->mutex_q);
+                }
+            }
+        }
+    }
+}
+
+/** \internal
  *  \brief Update detect threads with new detect engine
  *
  *  Atomically update each detect thread with a new thread context
@@ -704,24 +732,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     SCLogInfo("Live rule swap has swapped %d old det_ctx's with new ones, "
               "along with the new de_ctx", no_of_detect_tvs);
 
-    /* inject a fake packet if the detect thread isn't using the new ctx yet,
-     * this speeds up the process */
-    for (i = 0; i < no_of_detect_tvs; i++) {
-        if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
-            if (detect_tvs[i]->inq != NULL) {
-                Packet *p = PacketGetFromAlloc();
-                if (p != NULL) {
-                    p->flags |= PKT_PSEUDO_STREAM_END;
-                    PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
-                    SCMutexLock(&q->mutex_q);
-                    PacketEnqueue(q, p);
-                    SCCondSignal(&q->cond_q);
-                    SCMutexUnlock(&q->mutex_q);
-                }
-            }
-           usleep(1000);
-        }
-    }
+    InjectPackets(detect_tvs, new_det_ctx, no_of_detect_tvs);
 
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
