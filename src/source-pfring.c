@@ -354,7 +354,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             PacketSetData(p, pkt_buffer, hdr.caplen);
         }
 
-        if (r == 1) {
+        if (likely(r == 1)) {
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
 
