@@ -58,6 +58,37 @@
 #include "app-layer-protos.h"
 
 #include "detect-engine-hrhhd.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http raw host header match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param hrh        Raw hostname to inspect.
+ * \param hrh_len    Raw hostname buffer length.
+ * \param flags  Flags
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *hrh, const uint32_t hrh_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL);
+
+    if (hrh_len >= det_ctx->sgh->mpm_hrhhd_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hrhhd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hrhhd_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, hrh, hrh_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                               HtpState *htp_state, uint8_t flags,
@@ -65,7 +96,7 @@ int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
-    uint8_t *hname = NULL;
+    const uint8_t *hname = NULL;
     uint32_t hname_len = 0;
 
     if (tx->parsed_uri == NULL || tx->parsed_uri->hostname == NULL) {
@@ -74,21 +105,22 @@ int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         htp_header_t *h = NULL;
         h = (htp_header_t *)htp_table_get_c(tx->request_headers, "Host");
         if (h != NULL) {
-            SCLogDebug("HTTP host header not present in this request");
-            hname = (uint8_t *)bstr_ptr(h->value);
-            hname_len = bstr_len(h->value);
+            hname = (const uint8_t *)bstr_ptr(h->value);
+            if (hname != NULL)
+                hname_len = bstr_len(h->value);
         } else {
+            SCLogDebug("HTTP host header not present in this request");
             goto end;
         }
     } else {
         hname = (uint8_t *)bstr_ptr(tx->parsed_uri->hostname);
         if (hname != NULL)
             hname_len = bstr_len(tx->parsed_uri->hostname);
-        else
-            goto end;
     }
 
-    cnt = HttpHRHPatternSearch(det_ctx, hname, hname_len, flags);
+    if (hname != NULL) {
+        cnt = HttpHRHPatternSearch(det_ctx, hname, hname_len, flags);
+    }
 
  end:
     return cnt;

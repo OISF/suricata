@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,17 +18,12 @@
 /**
  * \file
  *
- * \author Brian Rectanus <brectanu@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_HTTP_METHOD_H__
-#define __DETECT_HTTP_METHOD_H__
+#ifndef _DETECT_ENGINE_PROFILE_H
+#define	_DETECT_ENGINE_PROFILE_H
 
-/* prototypes */
-void DetectHttpMethodRegister(void);
-int DetectHttpMethodDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
-                            Flow *, uint8_t, void *);
-int DetectHttpMethodValidateRule(const Signature *s);
+void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p);
 
-#endif /* __DETECT_HTTP_METHOD_H__ */
-
+#endif	/* _DETECT_ENGINE_PROFILE_H */

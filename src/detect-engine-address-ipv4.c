@@ -117,7 +117,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
     uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
     uint32_t b_ip1 = ntohl(b->ip.addr_data32[0]);
     uint32_t b_ip2 = ntohl(b->ip2.addr_data32[0]);
-    DetectPort *port = NULL;
     DetectAddress *tmp = NULL;
     DetectAddress *tmp_c = NULL;
     int r = 0;
@@ -162,14 +161,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         if (de_ctx != NULL) {
             SigGroupHeadCopySigs(de_ctx, b->sh, &tmp_c->sh);
             SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &tmp_c->port, port);
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &b->port, port);
-
-            tmp_c->cnt += b->cnt;
-            b->cnt += a->cnt;
         }
 
     /* we have 3 parts: [bbb[baba]aaa]
@@ -211,22 +202,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
             /* clean tmp list */
             SigGroupHeadClearSigs(tmp->sh);
-
-            for (port = a->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &tmp->port, port);
-            for (port = b->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &a->port, port);
-            for (port = tmp->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &b->port, port);
-            for (port = tmp->port; port != NULL; port = port->next)
-                DetectPortInsertCopy(de_ctx, &tmp_c->port, port);
-
-            tmp->cnt += a->cnt;
-            a->cnt = 0;
-            tmp_c->cnt += tmp->cnt;
-            a->cnt += b->cnt;
-            b->cnt += tmp->cnt;
-            tmp->cnt = 0;
         }
 
         /* we have 2 or three parts:
@@ -260,10 +235,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             if (de_ctx != NULL) {
                 /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
                 SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-
-                for (port = b->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &a->port, port);
-                a->cnt += b->cnt;
             }
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
@@ -280,19 +251,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                 SigGroupHeadClearSigs(a->sh);
                 SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
                 SigGroupHeadClearSigs(tmp->sh);
-
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &tmp->port, a->port);
-                for (port = b->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &a->port, port);
-                for (port = tmp->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &b->port, port);
-
-                tmp->cnt += a->cnt;
-                a->cnt = 0;
-                a->cnt += b->cnt;
-                b->cnt += tmp->cnt;
-                tmp->cnt = 0;
             }
         } else {
             SCLogDebug("3");
@@ -328,22 +286,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                 SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
                 /* clean tmp list */
                 SigGroupHeadClearSigs(tmp->sh);
-
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &tmp->port, port);
-                for (port = b->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &tmp_c->port, port);
-                for (port = b->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &a->port, port);
-                for (port = tmp->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &b->port, port);
-
-                tmp->cnt += a->cnt;
-                a->cnt = 0;
-                tmp_c->cnt += b->cnt;
-                a->cnt += b->cnt;
-                b->cnt += tmp->cnt;
-                tmp->cnt = 0;
             }
         }
         /* we have 2 or three parts:
@@ -381,19 +323,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                 SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
                 SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
                 SigGroupHeadClearSigs(tmp->sh);
-
-                for (port = b->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &tmp->port, b->port);
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &b->port, port);
-                for (port = tmp->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &a->port, port);
-
-                tmp->cnt += b->cnt;
-                b->cnt = 0;
-                b->cnt += a->cnt;
-                a->cnt += tmp->cnt;
-                tmp->cnt = 0;
             }
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
@@ -407,11 +336,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             if (de_ctx != NULL) {
                 /* 'a' overlaps 'b' so a needs the 'a' sigs */
                 SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &b->port, port);
-
-                b->cnt += a->cnt;
             }
         } else {
             SCLogDebug("DetectAddressCutIPv4: 3");
@@ -437,14 +361,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                  * 'c' gets 'a' sigs */
                 SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
                 SigGroupHeadCopySigs(de_ctx, a->sh, &tmp_c->sh);
-
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &b->port, port);
-                for (port = a->port; port != NULL; port = port->next)
-                    DetectPortInsertCopy(de_ctx, &tmp_c->port, port);
-
-                b->cnt += a->cnt;
-                tmp_c->cnt += a->cnt;
             }
         }
     }
