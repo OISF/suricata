@@ -229,7 +229,11 @@ typedef struct DetectPort_ {
 
     uint8_t flags;  /**< flags for this port */
 
-    /* signatures that belong in this group */
+    /* signatures that belong in this group
+     *
+     * If the PORT_SIGGROUPHEAD_COPY flag is set, we don't own this pointer
+     * (memory is freed elsewhere).
+     */
     struct SigGroupHead_ *sh;
 
     struct DetectPort_ *prev;
