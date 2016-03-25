@@ -1057,8 +1057,6 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
 void MpmHSRegister(void)
 {
     mpm_table[MPM_HS].name = "hs";
-    mpm_table[MPM_HS].max_pattern_length = 0;
-
     mpm_table[MPM_HS].InitCtx = SCHSInitCtx;
     mpm_table[MPM_HS].InitThreadCtx = SCHSInitThreadCtx;
     mpm_table[MPM_HS].DestroyCtx = SCHSDestroyCtx;

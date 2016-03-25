@@ -95,9 +95,6 @@ typedef struct StateQueue_ {
 void MpmACBSRegister(void)
 {
     mpm_table[MPM_AC_BS].name = "ac-bs";
-    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
-    mpm_table[MPM_AC_BS].max_pattern_length = 0;
-
     mpm_table[MPM_AC_BS].InitCtx = SCACBSInitCtx;
     mpm_table[MPM_AC_BS].InitThreadCtx = SCACBSInitThreadCtx;
     mpm_table[MPM_AC_BS].DestroyCtx = SCACBSDestroyCtx;
