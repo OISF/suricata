@@ -35,8 +35,6 @@ void DetectPortCleanupList (DetectPort *head);
 
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
 
-void DetectPortPrintMemory(void);
-
 int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
 
 void DetectPortPrint(DetectPort *);
