@@ -26,7 +26,6 @@
 
 /* prototypes */
 void DetectAddressRegister (void);
-void DetectAddressPrintMemory(void);
 
 DetectAddressHead *DetectAddressHeadInit(void);
 void DetectAddressHeadFree(DetectAddressHead *);

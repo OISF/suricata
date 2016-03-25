@@ -8539,7 +8539,6 @@ static int SigTestMemory01 (void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
 printf("@pre cleanup\n\n");
-    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     SigGroupCleanup(de_ctx);
@@ -8547,7 +8546,6 @@ printf("@pre cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;
@@ -8587,10 +8585,8 @@ printf("@cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 printf("@exit\n\n");
-    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;
@@ -8634,7 +8630,6 @@ printf("@cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
     result = 1;
