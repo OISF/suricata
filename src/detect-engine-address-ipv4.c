@@ -158,11 +158,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         tmp_c->ip2.addr_data32[0] = htonl(b_ip2);
         *c = tmp_c;
 
-        if (de_ctx != NULL) {
-            SigGroupHeadCopySigs(de_ctx, b->sh, &tmp_c->sh);
-            SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-        }
-
     /* we have 3 parts: [bbb[baba]aaa]
      * part a: b_ip1 <-> a_ip1 - 1
      * part b: a_ip1 <-> b_ip2
@@ -185,24 +180,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         tmp_c->ip.addr_data32[0]  = htonl(b_ip2 + 1);
         tmp_c->ip2.addr_data32[0] = htonl(a_ip2);
         *c = tmp_c;
-
-        if (de_ctx != NULL) {
-            /* 'a' gets clean and then 'b' sigs
-             * 'b' gets clean, then 'a' then 'b' sigs
-             * 'c' gets 'a' sigs */
-            /* store old a list */
-            SigGroupHeadCopySigs(de_ctx, a->sh, &tmp->sh);
-            /* clean a list */
-            SigGroupHeadClearSigs(a->sh);
-            /* copy old b to c */
-            SigGroupHeadCopySigs(de_ctx, tmp->sh, &tmp_c->sh);
-            /* copy old b to a */
-            SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-            /* prepend old a before b */
-            SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
-            /* clean tmp list */
-            SigGroupHeadClearSigs(tmp->sh);
-        }
 
         /* we have 2 or three parts:
          *
@@ -232,10 +209,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             b->ip.addr_data32[0] = htonl(a_ip2 + 1);
             b->ip2.addr_data32[0] = htonl(b_ip2);
 
-            if (de_ctx != NULL) {
-                /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
-                SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-            }
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
@@ -245,13 +218,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             b->ip.addr_data32[0]   = htonl(a_ip1);
             b->ip2.addr_data32[0] = htonl(a_ip2);
 
-            if (de_ctx != NULL) {
-                SigGroupHeadCopySigs(de_ctx, b->sh, &tmp->sh);
-                SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-                SigGroupHeadClearSigs(a->sh);
-                SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
-                SigGroupHeadClearSigs(tmp->sh);
-            }
         } else {
             SCLogDebug("3");
 
@@ -269,24 +235,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             tmp_c->ip.addr_data32[0] = htonl(a_ip2 + 1);
             tmp_c->ip2.addr_data32[0] = htonl(b_ip2);
             *c = tmp_c;
-
-            if (de_ctx != NULL) {
-                /* 'a' gets clean and then 'b' sigs
-                 * 'b' gets clean, then 'a' then 'b' sigs
-                 * 'c' gets 'b' sigs */
-                /* store old a list */
-                SigGroupHeadCopySigs(de_ctx, a->sh, &tmp->sh);
-                /* clean a list */
-                SigGroupHeadClearSigs(a->sh);
-                /* copy old b to c */
-                SigGroupHeadCopySigs(de_ctx, b->sh, &tmp_c->sh);
-                /* copy old b to a */
-                SigGroupHeadCopySigs(de_ctx, b->sh, &a->sh);
-                /* prepend old a before b */
-                SigGroupHeadCopySigs(de_ctx, tmp->sh, &b->sh);
-                /* clean tmp list */
-                SigGroupHeadClearSigs(tmp->sh);
-            }
         }
         /* we have 2 or three parts:
          *
@@ -315,15 +263,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
 
             b->ip.addr_data32[0] = htonl(b_ip2 + 1);
             b->ip2.addr_data32[0] = htonl(a_ip2);
-
-            if (de_ctx != NULL) {
-                /* 'b' overlaps 'a' so a needs the 'b' sigs */
-                SigGroupHeadCopySigs(de_ctx, b->sh, &tmp->sh);
-                SigGroupHeadClearSigs(b->sh);
-                SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-                SigGroupHeadCopySigs(de_ctx, tmp->sh, &a->sh);
-                SigGroupHeadClearSigs(tmp->sh);
-            }
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
@@ -332,11 +271,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
 
             b->ip.addr_data32[0]   = htonl(b_ip1);
             b->ip2.addr_data32[0] = htonl(b_ip2);
-
-            if (de_ctx != NULL) {
-                /* 'a' overlaps 'b' so a needs the 'a' sigs */
-                SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-            }
         } else {
             SCLogDebug("DetectAddressCutIPv4: 3");
 
@@ -354,14 +288,6 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
             tmp_c->ip.addr_data32[0] = htonl(b_ip2 + 1);
             tmp_c->ip2.addr_data32[0] = htonl(a_ip2);
             *c = tmp_c;
-
-            if (de_ctx != NULL) {
-                /* 'a' stays the same wrt sigs
-                 * 'b' keeps it's own sigs and gets a's sigs prepended
-                 * 'c' gets 'a' sigs */
-                SigGroupHeadCopySigs(de_ctx, a->sh, &b->sh);
-                SigGroupHeadCopySigs(de_ctx, a->sh, &tmp_c->sh);
-            }
         }
     }
 
