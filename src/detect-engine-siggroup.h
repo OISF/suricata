@@ -24,8 +24,6 @@
 #ifndef __DETECT_ENGINE_SIGGROUP_H__
 #define __DETECT_ENGINE_SIGGROUP_H__
 
-void DetectSigGroupPrintMemory(void);
-
 int SigGroupHeadAppendSig(const DetectEngineCtx *, SigGroupHead **, const Signature *);
 int SigGroupHeadClearSigs(SigGroupHead *);
 int SigGroupHeadCopySigs(DetectEngineCtx *, SigGroupHead *, SigGroupHead **);
