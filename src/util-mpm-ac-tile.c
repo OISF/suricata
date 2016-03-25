@@ -1490,8 +1490,6 @@ void MpmACTileRegister(void)
 #else
     mpm_table[MPM_AC_TILE].name = "ac-ks";
 #endif
-    mpm_table[MPM_AC_TILE].max_pattern_length = 0;
-
     mpm_table[MPM_AC_TILE].InitCtx = SCACTileInitCtx;
     mpm_table[MPM_AC_TILE].InitThreadCtx = SCACTileInitThreadCtx;
     mpm_table[MPM_AC_TILE].DestroyCtx = SCACTileDestroyCtx;

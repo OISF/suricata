@@ -1938,9 +1938,6 @@ int MpmCudaBufferDeSetup(void)
 void MpmACRegister(void)
 {
     mpm_table[MPM_AC].name = "ac";
-    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
-    mpm_table[MPM_AC].max_pattern_length = 0;
-
     mpm_table[MPM_AC].InitCtx = SCACInitCtx;
     mpm_table[MPM_AC].InitThreadCtx = SCACInitThreadCtx;
     mpm_table[MPM_AC].DestroyCtx = SCACDestroyCtx;
@@ -1965,9 +1962,6 @@ void MpmACRegister(void)
 void MpmACCudaRegister(void)
 {
     mpm_table[MPM_AC_CUDA].name = "ac-cuda";
-    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
-    mpm_table[MPM_AC_CUDA].max_pattern_length = 0;
-
     mpm_table[MPM_AC_CUDA].InitCtx = SCACInitCtx;
     mpm_table[MPM_AC_CUDA].InitThreadCtx = SCACInitThreadCtx;
     mpm_table[MPM_AC_CUDA].DestroyCtx = SCACDestroyCtx;

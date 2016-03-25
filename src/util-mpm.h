@@ -152,8 +152,7 @@ typedef struct MpmCtxFactoryContainer_ {
 #define MPM_PATTERN_CTX_OWNS_ID     0x20
 
 typedef struct MpmTableElmt_ {
-    char *name;
-    uint8_t max_pattern_length;
+    const char *name;
     void (*InitCtx)(struct MpmCtx_ *);
     void (*InitThreadCtx)(struct MpmCtx_ *, struct MpmThreadCtx_ *);
     void (*DestroyCtx)(struct MpmCtx_ *);
