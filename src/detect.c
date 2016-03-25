@@ -3528,7 +3528,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_deonly = 0;
 
     //DetectAddressPrintMemory();
-    //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -3624,7 +3623,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     }
 
     //DetectAddressPrintMemory();
-    //DetectSigGroupPrintMemory();
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -4180,7 +4178,6 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
     DetectMpmPrepareAppMpms(de_ctx);
 
 //    DetectAddressPrintMemory();
-//    DetectSigGroupPrintMemory();
 //    DetectPortPrintMemory();
 
     if (SigMatchPrepare(de_ctx) != 0) {
@@ -8542,7 +8539,6 @@ static int SigTestMemory01 (void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
 printf("@pre cleanup\n\n");
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
@@ -8551,7 +8547,6 @@ printf("@pre cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
@@ -8592,11 +8587,9 @@ printf("@cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     DetectPortPrintMemory();
 printf("@exit\n\n");
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     DetectPortPrintMemory();
 
@@ -8641,7 +8634,6 @@ printf("@cleanup\n\n");
     DetectEngineCtxFree(de_ctx);
 
 printf("@exit\n\n");
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     DetectPortPrintMemory();
 

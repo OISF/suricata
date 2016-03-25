@@ -54,32 +54,13 @@
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);
 
-static uint32_t detect_siggroup_head_memory = 0;
-static uint32_t detect_siggroup_head_init_cnt = 0;
-static uint32_t detect_siggroup_head_free_cnt = 0;
-static uint32_t detect_siggroup_head_initdata_memory = 0;
-static uint32_t detect_siggroup_head_initdata_init_cnt = 0;
-static uint32_t detect_siggroup_head_initdata_free_cnt = 0;
-static uint32_t detect_siggroup_sigarray_memory = 0;
-static uint32_t detect_siggroup_sigarray_init_cnt = 0;
-static uint32_t detect_siggroup_sigarray_free_cnt = 0;
-static uint32_t detect_siggroup_matcharray_memory = 0;
-static uint32_t detect_siggroup_matcharray_init_cnt = 0;
-static uint32_t detect_siggroup_matcharray_free_cnt = 0;
-
 void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
 {
     if (sghid->sig_array != NULL) {
         SCFree(sghid->sig_array);
         sghid->sig_array = NULL;
-
-        detect_siggroup_sigarray_free_cnt++;
-        detect_siggroup_sigarray_memory -= sghid->sig_size;
     }
     SCFree(sghid);
-
-    detect_siggroup_head_initdata_free_cnt++;
-    detect_siggroup_head_initdata_memory -= sizeof(SigGroupHeadInitData);
 }
 
 static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
@@ -90,18 +71,12 @@ static SigGroupHeadInitData *SigGroupHeadInitDataAlloc(uint32_t size)
 
     memset(sghid, 0x00, sizeof(SigGroupHeadInitData));
 
-    detect_siggroup_head_initdata_init_cnt++;
-    detect_siggroup_head_initdata_memory += sizeof(SigGroupHeadInitData);
-
     /* initialize the signature bitarray */
     sghid->sig_size = size;
     if ( (sghid->sig_array = SCMalloc(sghid->sig_size)) == NULL)
         goto error;
 
     memset(sghid->sig_array, 0, sghid->sig_size);
-
-    detect_siggroup_sigarray_init_cnt++;
-    detect_siggroup_sigarray_memory += sghid->sig_size;
 
     return sghid;
 error:
@@ -152,9 +127,6 @@ static SigGroupHead *SigGroupHeadAlloc(const DetectEngineCtx *de_ctx, uint32_t s
     if (sgh->init == NULL)
         goto error;
 
-    detect_siggroup_head_init_cnt++;
-    detect_siggroup_head_memory += sizeof(SigGroupHead);
-
     return sgh;
 
 error:
@@ -175,8 +147,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
     SCLogDebug("sgh %p", sgh);
 
     if (sgh->match_array != NULL) {
-        detect_siggroup_matcharray_free_cnt++;
-        detect_siggroup_matcharray_memory -= (sgh->sig_cnt * sizeof(Signature *));
         SCFree(sgh->match_array);
         sgh->match_array = NULL;
     }
@@ -201,9 +171,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
     }
 
     SCFree(sgh);
-
-    detect_siggroup_head_free_cnt++;
-    detect_siggroup_head_memory -= sizeof(SigGroupHead);
 
     return;
 }
@@ -477,62 +444,6 @@ void SigGroupHeadSetProtoAndDirection(SigGroupHead *sgh,
 }
 
 /**
- * \brief Prints the memory statistics for the detect-engine-siggroup.[ch] module.
- */
-void DetectSigGroupPrintMemory(void)
-{
-    SCLogDebug(" * Sig group head memory stats (SigGroupHead %" PRIuMAX "):",
-               (uintmax_t)sizeof(SigGroupHead));
-    SCLogDebug("  - detect_siggroup_head_memory %" PRIu32,
-               detect_siggroup_head_memory);
-    SCLogDebug("  - detect_siggroup_head_init_cnt %" PRIu32,
-               detect_siggroup_head_init_cnt);
-    SCLogDebug("  - detect_siggroup_head_free_cnt %" PRIu32,
-               detect_siggroup_head_free_cnt);
-    SCLogDebug("  - outstanding sig group heads %" PRIu32,
-               detect_siggroup_head_init_cnt - detect_siggroup_head_free_cnt);
-    SCLogDebug(" * Sig group head memory stats done");
-    SCLogDebug(" * Sig group head initdata memory stats (SigGroupHeadInitData %" PRIuMAX "):",
-               (uintmax_t)sizeof(SigGroupHeadInitData));
-    SCLogDebug("  - detect_siggroup_head_initdata_memory %" PRIu32,
-               detect_siggroup_head_initdata_memory);
-    SCLogDebug("  - detect_siggroup_head_initdata_init_cnt %" PRIu32,
-               detect_siggroup_head_initdata_init_cnt);
-    SCLogDebug("  - detect_siggroup_head_initdata_free_cnt %" PRIu32,
-               detect_siggroup_head_initdata_free_cnt);
-    SCLogDebug("  - outstanding sig group head initdatas %" PRIu32,
-               detect_siggroup_head_initdata_init_cnt - detect_siggroup_head_initdata_free_cnt);
-    SCLogDebug(" * Sig group head memory initdata stats done");
-    SCLogDebug(" * Sig group sigarray memory stats:");
-    SCLogDebug("  - detect_siggroup_sigarray_memory %" PRIu32,
-               detect_siggroup_sigarray_memory);
-    SCLogDebug("  - detect_siggroup_sigarray_init_cnt %" PRIu32,
-               detect_siggroup_sigarray_init_cnt);
-    SCLogDebug("  - detect_siggroup_sigarray_free_cnt %" PRIu32,
-               detect_siggroup_sigarray_free_cnt);
-    SCLogDebug("  - outstanding sig group sigarrays %" PRIu32,
-               (detect_siggroup_sigarray_init_cnt -
-                detect_siggroup_sigarray_free_cnt));
-    SCLogDebug(" * Sig group sigarray memory stats done");
-    SCLogDebug(" * Sig group matcharray memory stats:");
-    SCLogDebug("  - detect_siggroup_matcharray_memory %" PRIu32,
-               detect_siggroup_matcharray_memory);
-    SCLogDebug("  - detect_siggroup_matcharray_init_cnt %" PRIu32,
-               detect_siggroup_matcharray_init_cnt);
-    SCLogDebug("  - detect_siggroup_matcharray_free_cnt %" PRIu32,
-               detect_siggroup_matcharray_free_cnt);
-    SCLogDebug("  - outstanding sig group matcharrays %" PRIu32,
-               (detect_siggroup_matcharray_init_cnt -
-                detect_siggroup_matcharray_free_cnt));
-    SCLogDebug(" * Sig group sigarray memory stats done");
-    SCLogDebug(" X Total %" PRIu32,
-               (detect_siggroup_head_memory + detect_siggroup_sigarray_memory +
-                detect_siggroup_matcharray_memory));
-
-    return;
-}
-
-/**
  * \brief Helper function used to print the list of sids for the Signatures
  *        present in this SigGroupHead.
  *
@@ -588,9 +499,6 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
         return -1;
 
     memset(sgh->match_array,0, sgh->sig_cnt * sizeof(Signature *));
-
-    detect_siggroup_matcharray_init_cnt++;
-    detect_siggroup_matcharray_memory += (sgh->sig_cnt * sizeof(Signature *));
 
     for (sig = 0; sig < max_idx + 1; sig++) {
         if (!(sgh->init->sig_array[(sig / 8)] & (1 << (sig % 8))) )

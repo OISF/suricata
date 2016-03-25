@@ -9269,7 +9269,6 @@ static int DetectIPProtoTestSig1(void)
 
     UTHFreePacket(p);
 end:
-    DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
     return result;
 }
