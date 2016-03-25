@@ -461,9 +461,9 @@ typedef struct DetectReplaceList_ {
 typedef struct DetectFlowvarList_ {
     uint16_t idx;                       /**< flowvar name idx */
     uint16_t len;                       /**< data len */
+    int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
     uint8_t *buffer;                    /**< alloc'd buffer, may be freed by
                                              post-match, post-non-match */
-    int type;                           /**< type of store candidate POSTMATCH or ALWAYS */
     struct DetectFlowvarList_ *next;
 } DetectFlowvarList;
 
