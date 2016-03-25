@@ -268,6 +268,7 @@
             AC_DEFINE([AFLFUZZ_PCAP_RUNMODE], [1], [Enable special AFL 'single' runmode])
             AC_DEFINE([AFLFUZZ_CONF_TEST], [1], [Enable special --afl-parse-rules commandline option])
             AC_DEFINE([AFLFUZZ_APPLAYER], [1], [Enable --afl-$proto-request commandline option])
+            AC_DEFINE([AFLFUZZ_MIME], [1], [Enable --afl-mime commandline option])
     ])
 
   # disable TLS on user request
