@@ -54,18 +54,6 @@ static int DetectAddressCut(DetectEngineCtx *, DetectAddress *, DetectAddress *,
                             DetectAddress **);
 int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn);
 
-/** memory usage counters
- * \todo not MT safe */
-#ifdef DEBUG
-static uint32_t detect_address_group_memory = 0;
-static uint32_t detect_address_group_init_cnt = 0;
-static uint32_t detect_address_group_free_cnt = 0;
-
-static uint32_t detect_address_group_head_memory = 0;
-static uint32_t detect_address_group_head_init_cnt = 0;
-static uint32_t detect_address_group_head_free_cnt = 0;
-#endif
-
 /**
  * \brief Creates and returns a new instance of a DetectAddress.
  *
@@ -78,11 +66,6 @@ DetectAddress *DetectAddressInit(void)
     if (unlikely(ag == NULL))
         return NULL;
     memset(ag, 0, sizeof(DetectAddress));
-
-#ifdef DEBUG
-    detect_address_group_memory += sizeof(DetectAddress);
-    detect_address_group_init_cnt++;
-#endif
 
     return ag;
 }
@@ -107,10 +90,6 @@ void DetectAddressFree(DetectAddress *ag)
     }
     ag->sh = NULL;
 
-#ifdef DEBUG
-    detect_address_group_memory -= sizeof(DetectAddress);
-    detect_address_group_free_cnt++;
-#endif
     SCFree(ag);
 
     return;
@@ -138,42 +117,6 @@ DetectAddress *DetectAddressCopy(DetectAddress *orig)
     COPY_ADDRESS(&orig->ip2, &ag->ip2);
 
     return ag;
-}
-
-/**
- * \brief Prints the memory statistics for the detection-engine-address section.
- */
-void DetectAddressPrintMemory(void)
-{
-#ifdef DEBUG
-    SCLogDebug(" * Address group memory stats (DetectAddress %" PRIuMAX "):",
-               (uintmax_t)sizeof(DetectAddress));
-    SCLogDebug("  - detect_address_group_memory %" PRIu32,
-               detect_address_group_memory);
-    SCLogDebug("  - detect_address_group_init_cnt %" PRIu32,
-               detect_address_group_init_cnt);
-    SCLogDebug("  - detect_address_group_free_cnt %" PRIu32,
-               detect_address_group_free_cnt);
-    SCLogDebug("  - outstanding groups %" PRIu32,
-               detect_address_group_init_cnt - detect_address_group_free_cnt);
-    SCLogDebug(" * Address group memory stats done");
-    SCLogDebug(" * Address group head memory stats (DetectAddressHead %" PRIuMAX "):",
-               (uintmax_t)sizeof(DetectAddressHead));
-    SCLogDebug("  - detect_address_group_head_memory %" PRIu32,
-               detect_address_group_head_memory);
-    SCLogDebug("  - detect_address_group_head_init_cnt %" PRIu32,
-               detect_address_group_head_init_cnt);
-    SCLogDebug("  - detect_address_group_head_free_cnt %" PRIu32,
-               detect_address_group_head_free_cnt);
-    SCLogDebug("  - outstanding groups %" PRIu32,
-               (detect_address_group_head_init_cnt -
-                detect_address_group_head_free_cnt));
-    SCLogDebug(" * Address group head memory stats done");
-    SCLogDebug(" X Total %" PRIu32 "\n", (detect_address_group_memory +
-                                         detect_address_group_head_memory));
-#endif
-
-    return;
 }
 
 /**
@@ -1485,11 +1428,6 @@ DetectAddressHead *DetectAddressHeadInit(void)
         return NULL;
     memset(gh, 0, sizeof(DetectAddressHead));
 
-#ifdef DEBUG
-    detect_address_group_head_init_cnt++;
-    detect_address_group_head_memory += sizeof(DetectAddressHead);
-#endif
-
     return gh;
 }
 
@@ -1531,10 +1469,6 @@ void DetectAddressHeadFree(DetectAddressHead *gh)
     if (gh != NULL) {
         DetectAddressHeadCleanup(gh);
         SCFree(gh);
-#ifdef DEBUG
-        detect_address_group_head_free_cnt++;
-        detect_address_group_head_memory -= sizeof(DetectAddressHead);
-#endif
     }
 
     return;
