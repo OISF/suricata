@@ -2614,6 +2614,52 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
     return msg;
 }
 
+#ifdef AFLFUZZ_MIME
+static int MimeParserDataFromFileCB(const uint8_t *chunk, uint32_t len,
+        MimeDecParseState *state)
+{
+    return MIME_DEC_OK;
+}
+
+int MimeParserDataFromFile(char *filename)
+{
+    int result = 1;
+    FILE *fp = fopen(filename, "r");
+    BUG_ON(fp == NULL);
+    uint8_t buffer[256];
+
+    uint32_t line_count = 0;
+
+    MimeDecParseState *state = MimeDecInitParser(&line_count,
+            MimeParserDataFromFileCB);
+
+    while (1) {
+        int done = 0;
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        if (result < sizeof(buffer))
+            done = 1;
+
+        (void) MimeDecParseLine(buffer, result, 1, state);
+
+        if (done)
+            break;
+    }
+
+    /* Completed */
+    (void)MimeDecParseComplete(state);
+
+    if (state->msg) {
+        MimeDecFreeEntity(state->msg);
+    }
+    /* De Init parser */
+    MimeDecDeInitParser(state);
+
+    result = 0;
+    fclose(fp);
+    return result;
+}
+#endif
+
 #ifdef UNITTESTS
 
 /* Helper body chunk callback function */
