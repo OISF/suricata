@@ -80,16 +80,6 @@ void DetectAddressFree(DetectAddress *ag)
     if (ag == NULL)
         return;
 
-    SCLogDebug("ag %p, sh %p", ag, ag->sh);
-
-    /* only free the head if we have the original */
-    if (ag->sh != NULL && !(ag->flags & ADDRESS_SIGGROUPHEAD_COPY)) {
-        SCLogDebug("- ag %p, sh %p not a copy, so call SigGroupHeadFree", ag,
-                   ag->sh);
-        SigGroupHeadFree(ag->sh);
-    }
-    ag->sh = NULL;
-
     SCFree(ag);
 
     return;
@@ -159,7 +149,6 @@ void DetectAddressPrintList(DetectAddress *head)
     SCLogInfo("list:");
     if (head != NULL) {
         for (cur = head; cur != NULL; cur = cur->next) {
-             SCLogInfo("SIGS %6u ", cur->sh ? cur->sh->sig_cnt : 0);
              DetectAddressPrint(cur);
         }
     }
@@ -332,9 +321,7 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
             if (r == ADDRESS_EQ) {
                 /* exact overlap/match */
                 if (cur != new) {
-                    SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);
                     DetectAddressFree(new);
-
                     return 0;
                 }
 
@@ -449,8 +436,6 @@ int DetectAddressJoin(DetectEngineCtx *de_ctx, DetectAddress *target,
 
     if (target->ip.family != source->ip.family)
         return -1;
-
-    SigGroupHeadCopySigs(de_ctx, source->sh, &target->sh);
 
     if (target->ip.family == AF_INET)
         return DetectAddressJoinIPv4(de_ctx, target, source);
@@ -4823,320 +4808,6 @@ int AddressConfVarsTest05(void)
     return result;
 }
 
-#include "detect-engine.h"
-
-/**
- * \test Test sig distribution over address groups
- */
-static int AddressTestFunctions01(void)
-{
-    DetectAddress *a1 = NULL;
-    DetectAddress *a2 = NULL;
-    DetectAddressHead *h = NULL;
-    int result = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    a1 = DetectAddressParseSingle("255.0.0.0/8");
-    if (a1 == NULL) {
-        printf("a1 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
-
-    a2 = DetectAddressParseSingle("0.0.0.0/0");
-    if (a2 == NULL) {
-        printf("a2 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
-
-    SCLogDebug("a1");
-    DetectAddressPrint(a1);
-    SCLogDebug("a2");
-    DetectAddressPrint(a2);
-
-    h = DetectAddressHeadInit();
-    if (h == NULL)
-        goto end;
-    DetectAddressInsert(de_ctx, h, a1);
-    DetectAddressInsert(de_ctx, h, a2);
-
-    if (h == NULL)
-        goto end;
-
-    DetectAddress *x = h->ipv4_head;
-    for ( ; x != NULL; x = x->next) {
-        SCLogDebug("x %p next %p", x, x->next);
-        DetectAddressPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectAddress *one = h->ipv4_head;
-    DetectAddress *two = one->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (h != NULL)
-        DetectAddressHeadFree(h);
-    return result;
-}
-
-/**
- * \test Test sig distribution over address groups
- */
-static int AddressTestFunctions02(void)
-{
-    DetectAddress *a1 = NULL;
-    DetectAddress *a2 = NULL;
-    DetectAddressHead *h = NULL;
-    int result = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    a1 = DetectAddressParseSingle("255.0.0.0/8");
-    if (a1 == NULL) {
-        printf("a1 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
-
-    a2 = DetectAddressParseSingle("0.0.0.0/0");
-    if (a2 == NULL) {
-        printf("a2 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
-
-    SCLogDebug("a1");
-    DetectAddressPrint(a1);
-    SCLogDebug("a2");
-    DetectAddressPrint(a2);
-
-    h = DetectAddressHeadInit();
-    if (h == NULL)
-        goto end;
-    DetectAddressInsert(de_ctx, h, a2);
-    DetectAddressInsert(de_ctx, h, a1);
-
-    BUG_ON(h == NULL);
-
-    SCLogDebug("dp3");
-
-    DetectAddress *x = h->ipv4_head;
-    for ( ; x != NULL; x = x->next) {
-        DetectAddressPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectAddress *one = h->ipv4_head;
-    DetectAddress *two = one->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (h != NULL)
-        DetectAddressHeadFree(h);
-    return result;
-}
-
-/**
- * \test Test sig distribution over address groups
- */
-static int AddressTestFunctions03(void)
-{
-    DetectAddress *a1 = NULL;
-    DetectAddress *a2 = NULL;
-    DetectAddressHead *h = NULL;
-    int result = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    a1 = DetectAddressParseSingle("ffff::/16");
-    if (a1 == NULL) {
-        printf("a1 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
-
-    a2 = DetectAddressParseSingle("::/0");
-    if (a2 == NULL) {
-        printf("a2 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
-
-    SCLogDebug("a1");
-    DetectAddressPrint(a1);
-    SCLogDebug("a2");
-    DetectAddressPrint(a2);
-
-    h = DetectAddressHeadInit();
-    if (h == NULL)
-        goto end;
-    DetectAddressInsert(de_ctx, h, a1);
-    DetectAddressInsert(de_ctx, h, a2);
-
-    if (h == NULL)
-        goto end;
-
-    DetectAddress *x = h->ipv6_head;
-    for ( ; x != NULL; x = x->next) {
-        SCLogDebug("x %p next %p", x, x->next);
-        DetectAddressPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectAddress *one = h->ipv6_head;
-    DetectAddress *two = one->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (h != NULL)
-        DetectAddressHeadFree(h);
-    return result;
-}
-
-/**
- * \test Test sig distribution over address groups
- */
-static int AddressTestFunctions04(void)
-{
-    DetectAddress *a1 = NULL;
-    DetectAddress *a2 = NULL;
-    DetectAddressHead *h = NULL;
-    int result = 0;
-
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature s[2];
-    memset(s,0x00,sizeof(s));
-
-    s[0].num = 0;
-    s[1].num = 1;
-
-    a1 = DetectAddressParseSingle("ffff::/16");
-    if (a1 == NULL) {
-        printf("a1 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a1->sh, &s[0]);
-
-    a2 = DetectAddressParseSingle("::/0");
-    if (a2 == NULL) {
-        printf("a2 == NULL: ");
-        goto end;
-    }
-    SigGroupHeadAppendSig(de_ctx, &a2->sh, &s[1]);
-
-    SCLogDebug("a1");
-    DetectAddressPrint(a1);
-    SCLogDebug("a2");
-    DetectAddressPrint(a2);
-
-    h = DetectAddressHeadInit();
-    if (h == NULL)
-        goto end;
-    DetectAddressInsert(de_ctx, h, a2);
-    DetectAddressInsert(de_ctx, h, a1);
-
-    BUG_ON(h == NULL);
-
-    SCLogDebug("dp3");
-
-    DetectAddress *x = h->ipv6_head;
-    for ( ; x != NULL; x = x->next) {
-        DetectAddressPrint(x);
-        //SigGroupHeadPrintSigs(de_ctx, x->sh);
-    }
-
-    DetectAddress *one = h->ipv6_head;
-    DetectAddress *two = one->next;
-
-    int sig = 0;
-    if ((one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(one->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'one', but it shouldn't: ", sig);
-        goto end;
-    }
-    sig = 1;
-    if (!(two->sh->init->sig_array[sig / 8] & (1 << (sig % 8)))) {
-        printf("sig %d part of 'two', but it shouldn't: ", sig);
-        goto end;
-    }
-
-    result = 1;
-end:
-    if (h != NULL)
-        DetectAddressHeadFree(h);
-    return result;
-}
-
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void)
@@ -5339,10 +5010,5 @@ void DetectAddressTests(void)
     UtRegisterTest("AddressConfVarsTest03 ", AddressConfVarsTest03, 1);
     UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04, 1);
     UtRegisterTest("AddressConfVarsTest05 ", AddressConfVarsTest05, 1);
-
-    UtRegisterTest("AddressTestFunctions01", AddressTestFunctions01, 1);
-    UtRegisterTest("AddressTestFunctions02", AddressTestFunctions02, 1);
-    UtRegisterTest("AddressTestFunctions03", AddressTestFunctions03, 1);
-    UtRegisterTest("AddressTestFunctions04", AddressTestFunctions04, 1);
 #endif /* UNITTESTS */
 }

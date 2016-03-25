@@ -164,8 +164,6 @@ enum {
 #define ADDRESS_FLAG_ANY            0x01 /**< address is "any" */
 #define ADDRESS_FLAG_NOT            0x02 /**< address is negated */
 
-#define ADDRESS_SIGGROUPHEAD_COPY   0x04 /**< sgh is a ptr to another sgh */
-
 /** \brief address structure for use in the detection engine.
  *
  *  Contains the address information and matching information.
@@ -174,9 +172,6 @@ typedef struct DetectAddress_ {
     /** address data for this group */
     Address ip;
     Address ip2;
-
-    /** signatures that belong in this group */
-    struct SigGroupHead_ *sh;
 
     /** flags affecting this address */
     uint8_t flags;
