@@ -312,12 +312,12 @@ typedef struct DetectPort_ {
 typedef struct IPOnlyCIDRItem_ {
     /* address data for this item */
     uint8_t family;
-    uint32_t ip[4];
     /* netmask in CIDR values (ex. /16 /18 /24..) */
     uint8_t netmask;
-
     /* If this host or net is negated for the signum */
     uint8_t negated;
+
+    uint32_t ip[4];
     SigIntId signum; /**< our internal id */
 
     /* linked list, the header should be the biggest network */
