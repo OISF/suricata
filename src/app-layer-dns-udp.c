@@ -277,27 +277,29 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
     }
 
-    /* parse rcode, e.g. "noerror" or "nxdomain" */
-    uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
-    if (rcode <= DNS_RCODE_NOTZONE) {
-        SCLogDebug("rcode %u", rcode);
-        if (tx != NULL)
-            tx->rcode = rcode;
-    } else {
-        /* this is not invalid, rcodes can be user defined */
-        SCLogDebug("unexpected DNS rcode %u", rcode);
+    /* if we previously didn't have a tx, it could have been created by the
+     * above code, so lets check again */
+    if (tx == NULL) {
+        tx = DNSTransactionFindByTxId(dns_state, ntohs(dns_header->tx_id));
     }
-
-    if (ntohs(dns_header->flags) & 0x0080) {
-        SCLogDebug("recursion desired");
-        if (tx != NULL)
-            tx->recursion_desired = 1;
-    }
-
     if (tx != NULL) {
+        /* parse rcode, e.g. "noerror" or "nxdomain" */
+        uint8_t rcode = ntohs(dns_header->flags) & 0x0F;
+        if (rcode <= DNS_RCODE_NOTZONE) {
+            SCLogDebug("rcode %u", rcode);
+            tx->rcode = rcode;
+        } else {
+            /* this is not invalid, rcodes can be user defined */
+            SCLogDebug("unexpected DNS rcode %u", rcode);
+        }
+
+        if (ntohs(dns_header->flags) & 0x0080) {
+            SCLogDebug("recursion desired");
+            tx->recursion_desired = 1;
+        }
+
         tx->replied = 1;
     }
-
     SCReturnInt(1);
 
 bad_data:
