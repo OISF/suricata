@@ -8538,15 +8538,9 @@ static int SigTestMemory01 (void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-printf("@pre cleanup\n\n");
-    DetectPortPrintMemory();
-
     SigGroupCleanup(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
-printf("@exit\n\n");
-    DetectPortPrintMemory();
 
     result = 1;
 end:
@@ -8580,14 +8574,8 @@ static int SigTestMemory02 (void)
 
     SigGroupBuild(de_ctx);
 
-printf("@cleanup\n\n");
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-printf("@exit\n\n");
-    DetectPortPrintMemory();
-printf("@exit\n\n");
-    DetectPortPrintMemory();
 
     result = 1;
 end:
@@ -8625,12 +8613,8 @@ static int SigTestMemory03 (void)
 
     SigGroupBuild(de_ctx);
 
-printf("@cleanup\n\n");
     SigGroupCleanup(de_ctx);
     DetectEngineCtxFree(de_ctx);
-
-printf("@exit\n\n");
-    DetectPortPrintMemory();
 
     result = 1;
 end:

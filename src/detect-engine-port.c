@@ -59,11 +59,6 @@ static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
 DetectPort *PortParse(char *str);
 int DetectPortIsValidRange(char *);
 
-/** Memory usage counters */
-static uint32_t detect_port_memory = 0;
-static uint32_t detect_port_init_cnt = 0;
-static uint32_t detect_port_free_cnt = 0;
-
 /**
  * \brief Alloc a DetectPort structure and update counters
  *
@@ -76,9 +71,6 @@ DetectPort *DetectPortInit(void)
     if (unlikely(dp == NULL))
         return NULL;
     memset(dp, 0, sizeof(DetectPort));
-
-    detect_port_memory += sizeof(DetectPort);
-    detect_port_init_cnt++;
 
     return dp;
 }
@@ -99,24 +91,7 @@ void DetectPortFree(DetectPort *dp)
     }
     dp->sh = NULL;
 
-    detect_port_memory -= sizeof(DetectPort);
-    detect_port_free_cnt++;
     SCFree(dp);
-}
-
-/**
- * \brief Prints Memory statistics of the counters at detect-engine-port.[c,h]
- */
-void DetectPortPrintMemory(void)
-{
-    SCLogDebug(" * Port memory stats (DetectPort %" PRIuMAX "):",
-               (uintmax_t)sizeof(DetectPort));
-    SCLogDebug("  - detect_port_memory %" PRIu32 "", detect_port_memory);
-    SCLogDebug("  - detect_port_init_cnt %" PRIu32 "", detect_port_init_cnt);
-    SCLogDebug("  - detect_port_free_cnt %" PRIu32 "", detect_port_free_cnt);
-    SCLogDebug("  - outstanding ports %" PRIu32 "",
-               detect_port_init_cnt - detect_port_free_cnt);
-    SCLogDebug(" * Port memory stats done");
 }
 
 /**
