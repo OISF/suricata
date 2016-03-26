@@ -59,16 +59,12 @@ void TmqhFlowRegister(void)
     char *scheduler = NULL;
     if (ConfGet("autofp-scheduler", &scheduler) == 1) {
         if (strcasecmp(scheduler, "round-robin") == 0) {
-            SCLogInfo("AutoFP mode using \"Round Robin\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowRoundRobin;
         } else if (strcasecmp(scheduler, "active-packets") == 0) {
-            SCLogInfo("AutoFP mode using \"Active Packets\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
         } else if (strcasecmp(scheduler, "hash") == 0) {
-            SCLogInfo("AutoFP mode using \"Hash\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
         } else if (strcasecmp(scheduler, "ippair") == 0) {
-            SCLogInfo("AutoFP mode using \"ippair\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowIPPair;
         } else {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry \"%s\" "
@@ -77,11 +73,24 @@ void TmqhFlowRegister(void)
             exit(EXIT_FAILURE);
         }
     } else {
-        SCLogInfo("AutoFP mode using default \"Active Packets\" flow load balancer");
         tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
     }
 
     return;
+}
+
+void TmqhFlowPrintAutofpHandler(void)
+{
+#define PRINT_IF_FUNC(f, msg)                       \
+    if (tmqh_table[TMQH_FLOW].OutHandler == (f))    \
+        SCLogInfo("AutoFP mode using \"%s\" flow load balancer", (msg))
+
+    PRINT_IF_FUNC(TmqhOutputFlowRoundRobin, "Round Robin");
+    PRINT_IF_FUNC(TmqhOutputFlowActivePackets, "Active Packets");
+    PRINT_IF_FUNC(TmqhOutputFlowHash, "Hash");
+    PRINT_IF_FUNC(TmqhOutputFlowIPPair, "IPPair");
+
+#undef PRINT_IF_FUNC
 }
 
 /* same as 'simple' */

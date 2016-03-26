@@ -49,6 +49,8 @@
 
 #include "source-pfring.h"
 
+#include "tmqh-flow.h"
+
 int debuglog_enabled = 0;
 
 /**
@@ -367,6 +369,10 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     if (unlikely(active_runmode == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup active mode");
         exit(EXIT_FAILURE);
+    }
+
+    if (strcasecmp(active_runmode, "autofp") == 0) {
+        TmqhFlowPrintAutofpHandler();
     }
 
     mode->RunModeFunc();

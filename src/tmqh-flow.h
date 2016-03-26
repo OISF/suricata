@@ -45,4 +45,6 @@ typedef struct TmqhFlowCtx_ {
 void TmqhFlowRegister (void);
 void TmqhFlowRegisterTests(void);
 
+void TmqhFlowPrintAutofpHandler(void);
+
 #endif /* __TMQH_FLOW_H__ */
