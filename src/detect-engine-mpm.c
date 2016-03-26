@@ -183,20 +183,25 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     uint32_t ret = 0;
+    MpmCtx *mpm_ctx = NULL;
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_ts == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
+        mpm_ctx = det_ctx->sgh->mpm_stream_ctx_ts;
+
     } else {
         DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx_tc == NULL);
 
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
+        mpm_ctx = det_ctx->sgh->mpm_stream_ctx_tc;
     }
+    if (unlikely(mpm_ctx == NULL)) {
+        SCReturnInt(0);
+    }
+
+    ret = mpm_table[mpm_ctx->mpm_type].
+        Search(mpm_ctx, &det_ctx->mtc, &det_ctx->pmq,
+                p->payload, p->payload_len);
 
     SCReturnInt(ret);
 }
