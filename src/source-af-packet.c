@@ -1241,6 +1241,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     AFPDumpCounters(ptv);
                     break;
             }
+        } else if (unlikely(r == 0)) {
+            /* poll timed out, lets see if we need to inject a fake packet  */
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
+
         } else if ((r < 0) && (errno != EINTR)) {
             SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d" PRIu32 ") %s",
                        ptv->iface,

@@ -97,7 +97,7 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
             tms->tm_min, tms->tm_sec, days, hours, min, sec);
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
             "---------------------\n");
-    MemBufferWriteString(aft->buffer, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
+    MemBufferWriteString(aft->buffer, "%-42s | %-26s | %-s\n", "Counter", "TM Name",
             "Value");
     MemBufferWriteString(aft->buffer, "----------------------------------------------"
             "---------------------\n");
@@ -112,8 +112,8 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
             if (!(aft->statslog_ctx->flags & LOG_STATS_NULLS) && st->stats[u].value == 0)
                 continue;
 
-            char line[1024];
-            size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
+            char line[256];
+            size_t len = snprintf(line, sizeof(line), "%-42s | %-26s | %-" PRIu64 "\n",
                     st->stats[u].name, st->stats[u].tm_name, st->stats[u].value);
 
             /* since we can have many threads, the buffer might not be big enough.
@@ -138,8 +138,8 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
                 if (st->tstats[u].name == NULL)
                     continue;
 
-                char line[1024];
-                size_t len = snprintf(line, sizeof(line), "%-25s | %-25s | %-" PRIu64 "\n",
+                char line[256];
+                size_t len = snprintf(line, sizeof(line), "%-42s | %-26s | %-" PRIu64 "\n",
                         st->tstats[u].name, st->tstats[u].tm_name, st->tstats[u].value);
 
                 /* since we can have many threads, the buffer might not be big enough.

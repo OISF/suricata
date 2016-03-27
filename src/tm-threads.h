@@ -197,6 +197,25 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
     return r;
 }
 
+/** \brief inject packet if THV_CAPTURE_INJECT_PKT is set
+ *  Allow caller to supply their own packet
+ *
+ *  Meant for detect reload process that interupts an sleeping capture thread
+ *  to force a packet through the engine to complete a reload */
+static inline void TmThreadsCaptureInjectPacket(ThreadVars *tv, TmSlot *slot, Packet *p)
+{
+    if (TmThreadsCheckFlag(tv, THV_CAPTURE_INJECT_PKT)) {
+        TmThreadsUnsetFlag(tv, THV_CAPTURE_INJECT_PKT);
+        if (p == NULL)
+            p = PacketGetFromQueueOrAlloc();
+        if (p != NULL) {
+            p->flags |= PKT_PSEUDO_STREAM_END;
+            if (TmThreadsSlotProcessPkt(tv, slot, p) != TM_ECODE_OK) {
+                TmqhOutputPacketpool(tv, p);
+            }
+        }
+    }
+}
 
 void TmThreadsListThreads(void);
 int TmThreadsRegisterThread(ThreadVars *tv, const int type);

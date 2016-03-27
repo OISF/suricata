@@ -354,7 +354,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             PacketSetData(p, pkt_buffer, hdr.caplen);
         }
 
-        if (r == 1) {
+        if (likely(r == 1)) {
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
 
@@ -370,6 +370,14 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
                 PfringDumpCounters(ptv);
                 last_dump = p->ts.tv_sec;
             }
+        } else if (unlikely(r == 0)) {
+            if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+                SCReturnInt(TM_ECODE_OK);
+            }
+
+            /* pfring didn't use the packet yet */
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, p);
+
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);

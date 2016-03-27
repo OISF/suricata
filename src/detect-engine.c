@@ -541,6 +541,68 @@ int DetectEngineReloadIsDone(void)
     return r;
 }
 
+/* nudge capture loops to wake up */
+static void BreakCapture(void)
+{
+    SCMutexLock(&tv_root_lock);
+    ThreadVars *tv = tv_root[TVT_PPT];
+    while (tv) {
+        /* find the correct slot */
+        TmSlot *slots = tv->tm_slots;
+        while (slots != NULL) {
+            if (suricata_ctl_flags != 0) {
+                return;
+            }
+
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+            if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
+                slots = slots->slot_next;
+                continue;
+            }
+
+            /* signal capture method that we need a packet. */
+            TmThreadsSetFlag(tv, THV_CAPTURE_INJECT_PKT);
+            /* if the method supports it, BreakLoop. Otherwise we rely on
+             * the capture method's recv timeout */
+            if (tm->PktAcqLoop && tm->PktAcqBreakLoop) {
+                tm->PktAcqBreakLoop(tv, SC_ATOMIC_GET(slots->slot_data));
+            }
+
+            break;
+        }
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
+}
+
+/** \internal
+ *  \brief inject a pseudo packet into each detect thread that doesn't use the
+ *         new det_ctx yet
+ */
+static void InjectPackets(ThreadVars **detect_tvs,
+                          DetectEngineThreadCtx **new_det_ctx,
+                          int no_of_detect_tvs)
+{
+    int i;
+    /* inject a fake packet if the detect thread isn't using the new ctx yet,
+     * this speeds up the process */
+    for (i = 0; i < no_of_detect_tvs; i++) {
+        if (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
+            if (detect_tvs[i]->inq != NULL) {
+                Packet *p = PacketGetFromAlloc();
+                if (p != NULL) {
+                    p->flags |= PKT_PSEUDO_STREAM_END;
+                    PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
+                    SCMutexLock(&q->mutex_q);
+                    PacketEnqueue(q, p);
+                    SCCondSignal(&q->cond_q);
+                    SCMutexUnlock(&q->mutex_q);
+                }
+            }
+        }
+    }
+}
+
 /** \internal
  *  \brief Update detect threads with new detect engine
  *
@@ -675,11 +737,10 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
     SCLogInfo("Live rule swap has swapped %d old det_ctx's with new ones, "
               "along with the new de_ctx", no_of_detect_tvs);
 
-    /* inject a fake packet if the detect thread isn't using the new ctx yet,
-     * this speeds up the process */
+    InjectPackets(detect_tvs, new_det_ctx, no_of_detect_tvs);
+
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
-        int pseudo_pkt_inserted = 0;
         usleep(1000);
         while (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
             if (suricata_ctl_flags != 0) {
@@ -687,20 +748,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
                 break;
             }
 
-            if (pseudo_pkt_inserted == 0) {
-                pseudo_pkt_inserted = 1;
-                if (detect_tvs[i]->inq != NULL) {
-                    Packet *p = PacketGetFromAlloc();
-                    if (p != NULL) {
-                        p->flags |= PKT_PSEUDO_STREAM_END;
-                        PacketQueue *q = &trans_q[detect_tvs[i]->inq->id];
-                        SCMutexLock(&q->mutex_q);
-                        PacketEnqueue(q, p);
-                        SCCondSignal(&q->cond_q);
-                        SCMutexUnlock(&q->mutex_q);
-                    }
-                }
-            }
+            BreakCapture();
             usleep(1000);
         }
         if (break_out)

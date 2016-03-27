@@ -901,6 +901,9 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             /* no events, timeout */
             SCLogDebug("(%s:%d-%d) Poll timeout", ntv->ifsrc->ifname,
                        ntv->src_ring_from, ntv->src_ring_to);
+
+            /* poll timed out, lets see if we need to inject a fake packet  */
+            TmThreadsCaptureInjectPacket(tv, ntv->slot, NULL);
             continue;
         }
 

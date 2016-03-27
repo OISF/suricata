@@ -2261,6 +2261,18 @@ static int SigTest41TestNegatedContent(void)
 }
 
 /**
+ * \test crash condition: as packet has no direction, it defaults to toclient
+ *       in stream ctx inspection of packet. There a null ptr deref happens
+ * We don't care about the match/nomatch here.
+ */
+static int SigTest41aTestNegatedContent(void)
+{
+    (void)SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; flow:to_server; content:\"GET\"; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return 1;
+}
+
+
+/**
  * \test A positive test that checks that the content string doesn't contain
  *       the negated content within the specified depth
  */
@@ -2779,6 +2791,7 @@ void DetectContentRegisterTests(void)
 
     /* Negated content tests */
     UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent, 1);
+    UtRegisterTest("SigTest41aTestNegatedContent", SigTest41aTestNegatedContent, 1);
     UtRegisterTest("SigTest42TestNegatedContent", SigTest42TestNegatedContent, 1);
     UtRegisterTest("SigTest43TestNegatedContent", SigTest43TestNegatedContent, 1);
     UtRegisterTest("SigTest44TestNegatedContent", SigTest44TestNegatedContent, 1);
