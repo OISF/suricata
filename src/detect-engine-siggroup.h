@@ -86,7 +86,7 @@ void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
-void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *, SigGroupHead *);
+void SigGroupHeadSetFileHashFlag(DetectEngineCtx *, SigGroupHead *);
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
 uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
                                    SigGroupHead *sgh, int list);

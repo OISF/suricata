@@ -323,13 +323,15 @@ typedef struct DetectPort_ {
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
 #define DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH 0x0004
 
-#define FILE_SIG_NEED_FILE          0x01
-#define FILE_SIG_NEED_FILENAME      0x02
-#define FILE_SIG_NEED_TYPE          0x04
-#define FILE_SIG_NEED_MAGIC         0x08    /**< need the start of the file */
-#define FILE_SIG_NEED_FILECONTENT   0x10
-#define FILE_SIG_NEED_MD5           0x20
-#define FILE_SIG_NEED_SIZE          0x40
+#define FILE_SIG_NEED_FILE          0x0001
+#define FILE_SIG_NEED_FILENAME      0x0002
+#define FILE_SIG_NEED_TYPE          0x0004
+#define FILE_SIG_NEED_MAGIC         0x0008    /**< need the start of the file */
+#define FILE_SIG_NEED_FILECONTENT   0x0010
+#define FILE_SIG_NEED_MD5           0x0020
+#define FILE_SIG_NEED_SHA1          0x0040
+#define FILE_SIG_NEED_SHA256        0x0080
+#define FILE_SIG_NEED_SIZE          0x0100
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -392,7 +394,7 @@ typedef struct Signature_ {
 
     /** inline -- action */
     uint8_t action;
-    uint8_t file_flags;
+    uint16_t file_flags;
 
     /** addresses, ports and proto this sig matches on */
     DetectProto proto;
@@ -967,9 +969,11 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_REFERENCED       (1 << 19) /**< sgh is being referenced by others, don't clear */
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
-#define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
-#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
+#define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 22)
+#define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 23)
+#define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 24)
+#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 25)
+#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 26)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers */
@@ -1225,6 +1229,8 @@ enum {
     DETECT_FILESTORE,
     DETECT_FILEMAGIC,
     DETECT_FILEMD5,
+    DETECT_FILESHA1,
+    DETECT_FILESHA256,
     DETECT_FILESIZE,
 
     DETECT_L3PROTO,
@@ -1281,6 +1287,8 @@ Signature *DetectGetTagSignature(void);
 int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
 int SignatureIsFileMd5Inspecting(Signature *);
+int SignatureIsFileSha1Inspecting(Signature *);
+int SignatureIsFileSha256Inspecting(Signature *);
 int SignatureIsFilesizeInspecting(Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);
