@@ -52,6 +52,11 @@ void hashword2 (const uint32_t *k,          /* the key, an array of uint32_t val
 
 uint32_t hashlittle( const void *key, size_t length, uint32_t initval);
 
+/* A variant of hashlittle() that ensures avoids accesses beyond the last byte
+ * of the string, which will cause warnings from tools like Valgrind or Address
+ * Sanitizer. */
+uint32_t hashlittle_safe(const void *key, size_t length, uint32_t initval);
+
 void hashlittle2(const void *key,       /* the key to hash */
                  size_t      length,    /* length of the key */
                  uint32_t   *pc,        /* IN: primary initval, OUT: primary hash */
