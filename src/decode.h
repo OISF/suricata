@@ -907,6 +907,13 @@ int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t
 
 void AddressDebugPrint(Address *);
 
+#ifdef AFLFUZZ_DECODER
+typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+         uint8_t *pkt, uint16_t len, PacketQueue *pq);
+
+int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
+#endif
+
 /** \brief Set the No payload inspection Flag for the packet.
  *
  * \param p Packet to set the flag in
