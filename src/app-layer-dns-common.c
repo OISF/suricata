@@ -1125,3 +1125,27 @@ void DNSCreateRcodeString(uint8_t rcode, char *str, size_t str_size)
             snprintf(str, str_size, "%04x/%u", rcode, rcode);
     }
 }
+
+int DNSGetTxIsLogged(void *tx, uint8_t direction)
+{
+    DNSTransaction *dnstx = tx;
+    if (direction & STREAM_TOSERVER) {
+        return dnstx->request_logged;
+    }
+    else if (direction & STREAM_TOCLIENT) {
+        return dnstx->response_logged;
+    }
+    return 0;
+}
+
+void DNSSetTxIsLogged(void *tx, uint8_t direction)
+{
+    DNSTransaction *dnstx = tx;
+
+    if (direction & STREAM_TOSERVER) {
+        dnstx->request_logged = 1;
+    }
+    if (direction & STREAM_TOCLIENT) {
+        dnstx->response_logged = 1;
+    }
+}

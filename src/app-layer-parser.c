@@ -111,6 +111,9 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    int (*GetTxIsLogged)(void *tx, uint8_t direction);
+    void (*SetTxIsLogged)(void *tx, uint8_t direction);
+
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
      * STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -487,6 +490,43 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
+/**
+ * \brief Register functions for tracking per-direction logging state.
+ *
+ * Setting these callbacks is optional, but doing so will setup the
+ * application layer for per direction logging. Instead of the logger
+ * being called when the transaction is complete, it will be called
+ * when each direction is complete. This will allow the logging of the
+ * request before the reply has been seen.
+ *
+ * The SetTxIsLogged callback is likely a simple function that sets a
+ * per-direction flag that application layer logging has occurred for
+ * that direction while the GetTxIsLogged returns that flag.
+ *
+ * \param ipproto IP protocol of application layer.
+ *
+ * \param allproto The application layer protocol identifier.
+ *
+ * \param GetTxIsLogged Function pointer that returns true (1) if the
+ *     transaction has been logged for direction.
+ *
+ * \param SetTxIsLogged Function pointer that sets the logged state
+ *     for the designated direction.
+ */
+void AppLayerParserRegisterTxLogStateFuncs(uint8_t ipproto, AppProto alproto,
+    int (*GetTxIsLogged)(void *tx, uint8_t direction),
+    void (*SetTxIsLogged)(void *tx, uint8_t direction))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxIsLogged =
+        GetTxIsLogged;
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxIsLogged =
+        SetTxIsLogged;
+
+    SCReturn;
+}
+
 /***** Get and transaction functions *****/
 
 void *AppLayerParserGetProtocolParserLocalStorage(uint8_t ipproto, AppProto alproto)
@@ -847,6 +887,32 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
         SCReturnInt(-EBUSY);
     r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState(alstate, tx, s);
     SCReturnInt(r);
+}
+
+int AppLayerParserSupportsTxLogState(uint8_t ipproto, AppProto alproto)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxIsLogged != NULL)
+        return TRUE;
+    return FALSE;
+}
+
+int AppLayerParserGetTxIsLogged(uint8_t ipproto, AppProto alproto, void *tx,
+    uint8_t direction)
+{
+    SCEnter();
+    int r;
+    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxIsLogged(tx,
+        direction);
+    SCReturnInt(r);
+}
+
+void AppLayerParserSetTxIsLogged(uint8_t ipproto, AppProto alproto, void *tx,
+    uint8_t direction)
+{
+    SCEnter();
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxIsLogged(tx,
+        direction);
+    SCReturn;
 }
 
 /***** General *****/
