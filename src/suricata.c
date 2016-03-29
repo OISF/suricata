@@ -1160,6 +1160,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-modbus-request", required_argument, 0 , 0},
         {"afl-modbus", required_argument, 0 , 0},
         {"afl-mime", required_argument, 0 , 0},
+
+        {"afl-decoder-ppp", required_argument, 0 , 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1438,6 +1440,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
                 //printf("arg: //%s\n", optarg);
                 exit(MimeParserDataFromFile(optarg));
+#endif
+#ifdef AFLFUZZ_DECODER
+            } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0) {
+                StatsInit();
+                MpmTableSetup();
+                AppLayerProtoDetectSetup();
+                DefragInit();
+                FlowInitConfig(FLOW_QUIET);
+                //printf("arg: //%s\n", optarg);
+                exit(DecoderParseDataFromFile(optarg, DecodePPP));
 #endif
             } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
