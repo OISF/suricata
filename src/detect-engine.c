@@ -551,6 +551,7 @@ static void BreakCapture(void)
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
             if (suricata_ctl_flags != 0) {
+                SCMutexUnlock(&tv_root_lock);
                 return;
             }
 
