@@ -465,11 +465,8 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
 
     if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
         if (bed->base == DETECT_BYTE_EXTRACT_BASE_NONE) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Base not specified for "
-                       "byte_extract, though string was specified.  "
-                       "The right options are (string, hex), (string, oct) "
-                       "or (string, dec)");
-            goto error;
+            /* Default to decimal if base not specified. */
+            bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
         }
         if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't have "
@@ -4815,6 +4812,46 @@ int DetectByteExtractTest63(void)
     return result;
 }
 
+int DetectByteExtractTestParseNoBase(void)
+{
+    int result = 0;
+
+    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string");
+    if (bed == NULL)
+        goto end;
+
+    if (bed->nbytes != 4) {
+        goto end;
+    }
+    if (bed->offset != 2) {
+        goto end;
+    }
+    if (strcmp(bed->name, "one") != 0) {
+        goto end;
+    }
+    if (bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING) {
+        goto end;
+    }
+    if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
+        goto end;
+    }
+    if (bed->base != DETECT_BYTE_EXTRACT_BASE_DEC) {
+        goto end;
+    }
+    if (bed->align_value != 0) {
+        goto end;
+    }
+    if (bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+
+    result = 1;
+ end:
+    if (bed != NULL)
+        DetectByteExtractFree(bed);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectByteExtractRegisterTests(void)
@@ -4891,6 +4928,9 @@ void DetectByteExtractRegisterTests(void)
     UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61, 1);
     UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62, 1);
     UtRegisterTest("DetectByteExtractTest63", DetectByteExtractTest63, 1);
+
+    UtRegisterTest("DetectByteExtractTestParseNoBase",
+        DetectByteExtractTestParseNoBase, 1);
 #endif /* UNITTESTS */
 
     return;
