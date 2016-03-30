@@ -1749,6 +1749,8 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
      * and discard the other one */
     if (sw->s->rev <= sw_dup->s->rev) {
         ret = 1;
+        SCFree(sw);
+        sw = NULL;
         goto end;
     }
 
