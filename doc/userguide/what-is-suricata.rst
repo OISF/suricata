@@ -7,7 +7,6 @@ replace or emulate the existing tools in the industry, but will bring
 new ideas and technologies to the field. The Suricata Engine and the
 HTP Library are available to use under the GPLv2.
 
-
 IDS/IPS
 -------
 
@@ -25,7 +24,6 @@ the General Public License, Suricata eliminates the ID/PS engine cost
 concerns while providing a scalable option for the most complex
 network security architectures.
 
-
 Multi-threading
 ---------------
 
@@ -37,7 +35,7 @@ latest multi-core CPU chip sets. Suricata is developed for ease of
 implementation and accompanied by a step-by-step getting started
 documentation and user manual.
 
-Development and features
+Development and Features
 ------------------------
 
 The goal of the Suricata Project Phase 1 was to have a distributable
@@ -64,3 +62,10 @@ Ristic of Mod Security fame for the OISF. This integrates and provides
 very advanced processing of HTTP streams for Suricata. The HTP library
 is required by the engine, but may also be used independently in a
 range of applications and tools.
+
+License
+-------
+
+The Suricata source code is licensed under version 2 of the
+:doc:`licenses/gnu-gpl-v2.0`. This documentation is licensed under the
+:doc:`licenses/cc-nc-4.0`.

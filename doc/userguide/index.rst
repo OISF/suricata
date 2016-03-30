@@ -21,3 +21,4 @@ Suricata User Guide
    public-data-sets
    capture-hardware/index.rst
    acknowledgements
+   licenses/index.rst
