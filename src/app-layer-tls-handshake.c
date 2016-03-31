@@ -110,9 +110,22 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
 
     i = 0;
     while (certificates_length > 0) {
+        if ((uint32_t)(input + 3 - start_data) > (uint32_t)input_len) {
+            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            return -1;
+        }
+
         cur_cert_length = input[0]<<16 | input[1]<<8 | input[2];
         input += 3;
         parsed += 3;
+
+        /* current certificate length should be greater than zero */
+        if (cur_cert_length == 0) {
+            AppLayerDecoderEventsSetEvent(ssl_state->f,
+                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            return -1;
+        }
 
         if (input - start_data + cur_cert_length > input_len) {
             AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
