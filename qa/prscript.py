@@ -30,6 +30,7 @@ import argparse
 import sys
 import os
 import copy
+from subprocess import Popen, PIPE
 
 GOT_NOTIFY = True
 try:
@@ -118,15 +119,32 @@ def TestRepoSync(branch):
     page = urllib2.urlopen(request)
     json_result = json.loads(page.read())
     sha_orig = json_result[0]["sha"]
-    request = urllib2.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch + "&per_page=100")
-    page = urllib2.urlopen(request)
+    check_command = ["git", "branch", "--contains", sha_orig ]
+    p1 = Popen(check_command, stdout=PIPE)
+    p2 = Popen(["grep", branch], stdin=p1.stdout, stdout=PIPE)
+    p1.stdout.close()
+    output = p2.communicate()[0]
+    if len(output) == 0:
+        return -1
+    return 0
+
+def TestGithubSync(branch):
+    request = urllib2.Request(GITHUB_BASE_URI + username + "/" + args.repository + "/commits?sha=" + branch + "&per_page=1")
+    try:
+        page = urllib2.urlopen(request)
+    except urllib2.HTTPError, e:
+        if e.code == 404:
+            return -2
+        else:
+            raise(e)
     json_result = json.loads(page.read())
-    found = -1
-    for commit in json_result:
-        if commit["sha"] == sha_orig:
-            found = 1
-            break
-    return found
+    sha_github = json_result[0]["sha"]
+    check_command = ["git", "rev-parse", branch]
+    p1 = Popen(check_command, stdout=PIPE)
+    sha_local = p1.communicate()[0].rstrip()
+    if sha_local != sha_github:
+        return -1
+    return 0
 
 def OpenBuildbotSession():
     auth_params = { 'username':username,'passwd':password, 'name':'login'}
@@ -220,12 +238,23 @@ def WaitForBuildResult(builder, buildid, extension="", builder_name = None):
     return res
 
     # check that github branch and inliniac master branch are sync
-if not args.local and TestRepoSync(args.branch) == -1:
-    if args.norebase:
-        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
-    else:
-        print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
-        sys.exit(-1)
+if not args.local:
+    ret = TestGithubSync(args.branch)
+    if ret != 0:
+        if ret == -2:
+            print "Branch " + args.branch + " is not pushed to Github."
+            sys.exit(-1)
+        if args.norebase:
+            print "Branch " + args.branch + " is not in sync with corresponding Github branch. Continuing due to --norebase option."
+        else:
+            print "Branch " + args.branch + " is not in sync with corresponding Github branch. Push may be needed."
+            sys.exit(-1)
+    if TestRepoSync(args.branch) != 0:
+        if args.norebase:
+            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Continuing due to --norebase option."
+        else:
+            print "Branch " + args.branch + " is not in sync with inliniac's master branch. Rebase needed."
+            sys.exit(-1)
 
 def CreateContainer():
     cli = Client()
