@@ -849,15 +849,15 @@ void SCHSDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
 {
     SCHSPrintSearchStats(mpm_thread_ctx);
 
-    SCHSThreadCtx *thr_ctx = (SCHSThreadCtx *)mpm_thread_ctx->ctx;
-
-    if (thr_ctx->scratch != NULL) {
-        hs_free_scratch(thr_ctx->scratch);
-        mpm_thread_ctx->memory_cnt--;
-        mpm_thread_ctx->memory_size -= thr_ctx->scratch_size;
-    }
-
     if (mpm_thread_ctx->ctx != NULL) {
+        SCHSThreadCtx *thr_ctx = (SCHSThreadCtx *)mpm_thread_ctx->ctx;
+
+        if (thr_ctx->scratch != NULL) {
+            hs_free_scratch(thr_ctx->scratch);
+            mpm_thread_ctx->memory_cnt--;
+            mpm_thread_ctx->memory_size -= thr_ctx->scratch_size;
+        }
+
         SCFree(mpm_thread_ctx->ctx);
         mpm_thread_ctx->ctx = NULL;
         mpm_thread_ctx->memory_cnt--;
