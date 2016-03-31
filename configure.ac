@@ -11,32 +11,6 @@
     AC_PROG_LIBTOOL
     PKG_PROG_PKG_CONFIG(0.21) # 0.21 is the CentOS 5.11 version
 
-    AC_DEFUN([FAIL_MESSAGE],[
-            echo
-            echo
-            echo "**********************************************"
-            echo "  ERROR: unable to find" $1
-            echo "  checked in the following places"
-            for i in `echo $2`; do
-            echo "        $i"
-            done
-            echo "**********************************************"
-            echo
-            exit 1
-            ])
-
-    AC_DEFUN([LIBNET_FAIL_WARN],[
-            echo
-            echo "*************************************************************************"
-            echo "   Warning! libnet version 1.1.x could not be found in " $1
-            echo "   Reject keywords will not be supported."
-            echo "   If you require reject support, please install libnet 1.1.x. "
-            echo "   If libnet is not installed in a non-standard location please use the"
-            echo "   --with-libnet-includes and --with-libnet-libraries configure options"
-            echo "*************************************************************************"
-            echo
-            ])
-
     dnl Taken from https://llvm.org/svn/llvm-project/llvm/trunk/autoconf/configure.ac
     dnl check if we compile using clang or gcc. On some systems the gcc binary is
     dnl is actually clang, so do a compile test.
@@ -453,10 +427,6 @@
     AS_IF([test "x$enable_coccinelle" = "xyes"], [
         AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
         if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
-            echo "   Warning! spatch not found, you will not be "
-            echo "   able to run code checking with coccinelle  "
-            echo "   get it from http://coccinelle.lip6.fr      "
-            echo "   or install from your distribution          "
             enable_coccinelle=no
         fi
     ])
@@ -999,14 +969,13 @@
     fi
     done
 
+    enable_libnet="no"
     AC_MSG_CHECKING(for libnet.h version 1.1.x)
     if test "$LIBNET_INC_DIR" != ""; then
         LIBNET_VER=`grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep '1.[[12]]' | sed 's/[[^"]]*"\([[^"]]*\).*/\1/'`
 
         if test -z "$LIBNET_VER" ; then
             AC_MSG_RESULT(no)
-            LIBNET_DETECT_FAIL="yes"
-            LIBNET_FAIL_WARN($libnet_dir)
         else
             AC_MSG_RESULT(yes)
         fi
@@ -1023,12 +992,7 @@
                 AC_DEFINE([__BSD_SOURCE],[1],(bsd source))
                 AC_DEFINE([__FAVOR_BSD],[1],(favor bsd))
                 AC_DEFINE([HAVE_NET_ETHERNET_H],[1],(ethernet.h))
-            else
-            #if we displayed a warning already no reason to do it again.
-                if test "$LIBNET_DETECT_FAIL" = "no"; then
-                    LIBNET_DETECT_FAIL="yes"
-                    LIBNET_FAIL_WARN($libnet_dir)
-                fi
+                enable_libnet="yes"
             fi
 
             # see if we have the patched libnet 1.1
@@ -1036,7 +1000,7 @@
             #
             # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
             # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
-            if test "$LIBNET_DETECT_FAIL" = "no"; then
+            if test "$enable_libnet" = "yes"; then
                 LLIBNET=""
                 TMPLIBS="${LIBS}"
                 AC_CHECK_LIB(net, libnet_build_icmpv6_unreach,, LLIBNET="no")
@@ -1056,8 +1020,7 @@
                 [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))])
         fi
     else
-        LIBNET_DETECT_FAIL="yes"
-        LIBNET_FAIL_WARN($libnet_dir)
+        AC_MSG_RESULT(no)
     fi
 
   # libpcap
@@ -1988,15 +1951,18 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
   Hyperscan support:                       ${enable_hyperscan}
+  Libnet support:                          ${enable_libnet}
 
   Suricatasc install:                      ${enable_python}
 
+  Profiling enabled:                       ${enable_profiling}
+  Profiling locks enabled:                 ${enable_profiling_locks}
+
+Development settings:
+  Coccinelle / spatch:                     ${enable_coccinelle}
   Unit tests enabled:                      ${enable_unittests}
   Debug output enabled:                    ${enable_debug}
   Debug validation enabled:                ${enable_debug_validation}
-  Profiling enabled:                       ${enable_profiling}
-  Profiling locks enabled:                 ${enable_profiling_locks}
-  Coccinelle / spatch:                     ${enable_coccinelle}
 
 Generic build parameters:
   Installation prefix:                     ${prefix}
