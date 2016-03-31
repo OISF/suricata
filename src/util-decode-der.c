@@ -216,6 +216,10 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t 
              * sequence parsing will fail
              */
             child->length += (d_ptr - save_d_ptr);
+
+            if (child->length > max_size - (d_ptr - buffer))
+                return NULL;
+
             break;
     };
     if (child == NULL)
