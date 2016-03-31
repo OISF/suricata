@@ -742,6 +742,9 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size, uint32_t *er
     Asn1Generic *cert;
     uint8_t c;
 
+    if (size < 2)
+        return NULL;
+
     /* Check that buffer is an ASN.1 structure (basic checks) */
     if (d_ptr[0] != 0x30 && d_ptr[1] != 0x82) /* Sequence */
         return NULL;
