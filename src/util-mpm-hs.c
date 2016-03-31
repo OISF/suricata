@@ -1026,7 +1026,6 @@ void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx)
 void SCHSPrintInfo(MpmCtx *mpm_ctx)
 {
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
-    PatternDatabase *pd = ctx->pattern_db;
 
     printf("MPM HS Information:\n");
     printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
@@ -1041,6 +1040,7 @@ void SCHSPrintInfo(MpmCtx *mpm_ctx)
     printf("\n");
 
     if (ctx) {
+        PatternDatabase *pd = ctx->pattern_db;
         char *db_info = NULL;
         if (hs_database_info(pd->hs_db, &db_info) == HS_SUCCESS) {
             printf("HS Database Info: %s\n", db_info);
