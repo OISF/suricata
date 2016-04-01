@@ -49,6 +49,7 @@
 #define AFP_SOCK_PROTECT (1<<2)
 #define AFP_EMERGENCY_MODE (1<<3)
 #define AFP_TPACKET_V3 (1<<4)
+#define AFP_VLAN_DISABLED (1<<5)
 
 #define AFP_COPY_MODE_NONE  0
 #define AFP_COPY_MODE_TAP   1
@@ -108,12 +109,12 @@ typedef struct AFPPeer_ {
 typedef struct AFPPacketVars_
 {
     void *relptr;
-    int copy_mode;
     AFPPeer *peer; /**< Sending peer for IPS/TAP mode */
     /** Pointer to ::AFPPeer used for capture. Field is used to be able
      * to do reference counting.
      */
     AFPPeer *mpeer;
+    uint8_t copy_mode;
 } AFPPacketVars;
 
 #define AFPV_CLEANUP(afpv) do {           \
