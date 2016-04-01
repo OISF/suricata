@@ -88,16 +88,16 @@ typedef struct AFPIfaceConfig_
  */
 
 typedef struct AFPPeer_ {
-    char iface[AFP_IFACE_NAME_LENGTH];
     SC_ATOMIC_DECLARE(int, socket);
     SC_ATOMIC_DECLARE(int, sock_usage);
     SC_ATOMIC_DECLARE(int, if_idx);
-    SC_ATOMIC_DECLARE(uint8_t, state);
-    SCMutex sock_protect;
     int flags;
+    SCMutex sock_protect;
     int turn; /**< Field used to store initialisation order. */
+    SC_ATOMIC_DECLARE(uint8_t, state);
     struct AFPPeer_ *peer;
     TAILQ_ENTRY(AFPPeer_) next;
+    char iface[AFP_IFACE_NAME_LENGTH];
 } AFPPeer;
 
 /**
