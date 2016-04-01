@@ -216,12 +216,17 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling mmaped capture on iface %s",
-                aconf->iface);
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
+        if (boolval) {
+            aconf->flags |= AFP_RING_MODE;
+        } else {
+            SCLogInfo("Disabling mmaped capture on iface %s",
+                    aconf->iface);
+        }
+    } else {
         aconf->flags |= AFP_RING_MODE;
     }
+
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Enabling locked memory for mmap on iface %s",
