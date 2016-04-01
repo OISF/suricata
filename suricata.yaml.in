@@ -514,7 +514,7 @@ af-packet:
   # Put default values here
   - interface: default
     #threads: auto
-    #use-mmap: yes
+    use-mmap: yes
     #rollover: yes
 
 # Netmap support
