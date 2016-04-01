@@ -45,8 +45,6 @@
 
 #include "app-layer-tls-handshake.h"
 
-#include <stdint.h>
-
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
 
