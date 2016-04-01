@@ -727,7 +727,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 {
     Packet *p = NULL;
     union thdr h;
-    struct sockaddr_ll *from;
     uint8_t emergency_flush = 0;
     int read_pkts = 0;
     int loop_start = -1;
@@ -789,20 +788,11 @@ int AFPReadFromRing(AFPThreadVars *ptv)
          * function. */
         h.h2->tp_status |= TP_STATUS_USER_BUSY;
 
-        from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
-
         ptv->pkts++;
         ptv->bytes += h.h2->tp_len;
         p->livedev = ptv->livedev;
-
-        /* add forged header */
-        if (ptv->cooked) {
-            SllHdr * hdrp = (SllHdr *)ptv->data;
-            /* XXX this is minimalist, but this seems enough */
-            hdrp->sll_protocol = from->sll_protocol;
-        }
-
         p->datalink = ptv->datalink;
+
         if (h.h2->tp_len > h.h2->tp_snaplen) {
             SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
                     h.h2->tp_len, h.h2->tp_snaplen);
