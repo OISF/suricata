@@ -1220,6 +1220,14 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         } else if (r > 0) {
             r = AFPReadFunc(ptv);
             switch (r) {
+                case AFP_READ_OK:
+                    /* Trigger one dump of stats every second */
+                    TimeGet(&current_time);
+                    if (current_time.tv_sec != last_dump) {
+                        AFPDumpCounters(ptv);
+                        last_dump = current_time.tv_sec;
+                    }
+                    break;
                 case AFP_READ_FAILURE:
                     /* AFPRead in error: best to reset the socket */
                     SCLogError(SC_ERR_AFP_READ,
@@ -1230,14 +1238,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                 case AFP_FAILURE:
                     AFPSwitchState(ptv, AFP_STATE_DOWN);
                     SCReturnInt(TM_ECODE_FAILED);
-                    break;
-                case AFP_READ_OK:
-                    /* Trigger one dump of stats every second */
-                    TimeGet(&current_time);
-                    if (current_time.tv_sec != last_dump) {
-                        AFPDumpCounters(ptv);
-                        last_dump = current_time.tv_sec;
-                    }
                     break;
                 case AFP_KERNEL_DROP:
                     AFPDumpCounters(ptv);
