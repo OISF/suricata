@@ -194,64 +194,68 @@ struct block_desc {
  */
 typedef struct AFPThreadVars_
 {
-    /* thread specific socket */
-    int socket;
-    /* handle state */
-    unsigned char afp_state;
-
-    /* data link type for the thread */
-    int datalink;
-    int cooked;
-
     /* counters */
     uint64_t pkts;
     uint64_t bytes;
-    uint64_t errs;
 
     ThreadVars *tv;
     TmSlot *slot;
+    LiveDevice *livedev;
+    /* data link type for the thread */
+    int datalink;
+    int flags;
 
+    unsigned int frame_offset;
+
+    ChecksumValidationMode checksum_mode;
+
+    uint16_t capture_kernel_packets;
+    uint16_t capture_kernel_drops;
+
+    /* handle state */
+    uint8_t afp_state;
+    uint8_t copy_mode;
+
+    struct iovec *rd;
+    char *frame_buf;
+
+    /* IPS peer */
+    AFPPeer *mpeer;
+
+    /* no mmap mode */
     uint8_t *data; /** Per function and thread data */
     int datalen; /** Length of per function and thread data */
+    int cooked;
 
-    int vlan_disabled;
+    /* 
+     *  Init related members
+     */
 
-    char iface[AFP_IFACE_NAME_LENGTH];
-    LiveDevice *livedev;
-    int down_count;
-
+    /* thread specific socket */
+    int socket;
     /* Filter */
     char *bpf_filter;
 
     /* socket buffer size */
     int buffer_size;
+
+    int ring_size;
+
     int promisc;
-    ChecksumValidationMode checksum_mode;
 
-    /* IPS stuff */
+    int down_count;
+
+    char iface[AFP_IFACE_NAME_LENGTH];
+    /* IPS output iface */
     char out_iface[AFP_IFACE_NAME_LENGTH];
-    AFPPeer *mpeer;
-
-    int flags;
-    uint16_t capture_kernel_packets;
-    uint16_t capture_kernel_drops;
 
     int cluster_id;
     int cluster_type;
 
     int threads;
-    int copy_mode;
 
     struct tpacket_req req;
     struct tpacket_req3 req3;
-    unsigned int tp_hdrlen;
-    unsigned int ring_buflen;
-    char *ring_buf;
-    char *frame_buf;
-    struct iovec *rd;
-
-    unsigned int frame_offset;
-    int ring_size;
 
 } AFPThreadVars;
 
@@ -819,7 +823,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         }
 
         /* get vlan id from header */
-        if ((!ptv->vlan_disabled) &&
+        if ((!(ptv->flags & AFP_VLAN_DISABLED)) &&
             (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
             p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
             p->vlan_idx = 1;
@@ -1575,6 +1579,8 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     int order;
     unsigned int i;
     int if_idx;
+    unsigned int ring_buflen;
+    uint8_t * ring_buf;
 
     /* open socket */
     ptv->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -1711,7 +1717,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE, "Error when retrieving packet header len");
             goto socket_err;
         }
-        ptv->tp_hdrlen = val;
 
         if (ptv->flags & AFP_TPACKET_V3) {
             val = TPACKET_V3;
@@ -1770,13 +1775,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
         /* Allocate the Ring */
         if (ptv->flags & AFP_TPACKET_V3) {
-            ptv->ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
+            ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
         } else {
-            ptv->ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
+            ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
         }
-        ptv->ring_buf = mmap(0, ptv->ring_buflen, PROT_READ|PROT_WRITE,
+        ring_buf = mmap(0, ring_buflen, PROT_READ|PROT_WRITE,
                 MAP_SHARED, ptv->socket, 0);
-        if (ptv->ring_buf == MAP_FAILED) {
+        if (ring_buf == MAP_FAILED) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
             goto socket_err;
         }
@@ -1787,7 +1792,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                 goto mmap_err;
             }
             for (i = 0; i < ptv->req3.tp_block_nr; ++i) {
-                ptv->rd[i].iov_base = ptv->ring_buf + (i * ptv->req3.tp_block_size);
+                ptv->rd[i].iov_base = ring_buf + (i * ptv->req3.tp_block_size);
                 ptv->rd[i].iov_len = ptv->req3.tp_block_size;
             }
         } else {
@@ -1801,7 +1806,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             /* fill the header ring with proper frame ptr*/
             ptv->frame_offset = 0;
             for (i = 0; i < ptv->req.tp_block_nr; ++i) {
-                void *base = &ptv->ring_buf[i * ptv->req.tp_block_size];
+                void *base = &ring_buf[i * ptv->req.tp_block_size];
                 unsigned int j;
                 for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
                     (((union thdr **)ptv->frame_buf)[ptv->frame_offset]) = base;
@@ -2000,14 +2005,14 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
      * the capture phase */
     int vlanbool = 0;
     if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
-        ptv->vlan_disabled = 1;
+        ptv->flags |= AFP_VLAN_DISABLED;
     }
 
     /* If kernel is older than 3.0, VLAN is not stripped so we don't
      * get the info from packet extended header but we will use a standard
      * parsing of packet data (See Linux commit bcc6d47903612c3861201cc3a866fb604f26b8b2) */
     if (! SCKernelVersionIsAtLeast(3, 0)) {
-        ptv->vlan_disabled = 1;
+        ptv->flags |= AFP_VLAN_DISABLED;
     }
 
     SCReturnInt(TM_ECODE_OK);
