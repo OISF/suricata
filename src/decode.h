@@ -274,6 +274,8 @@ typedef struct PacketAlert_ {
 /** alert is in a tx, tx_id set */
 #define PACKET_ALERT_FLAG_TX            0x08
 
+#define PACKET_APPLAYER_LOGGED          (1<<0)
+
 #define PACKET_ALERT_MAX 15
 
 typedef struct PacketAlerts_ {
@@ -393,6 +395,9 @@ typedef struct Packet_
     /* flow */
     uint8_t flowflags;
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
+
+    uint8_t cachedflags;
+    uint16_t alproto;
 
     /* Pkt Flags */
     uint32_t flags;
@@ -708,6 +713,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         PACKET_FREE_EXTDATA((p));               \
         (p)->flags = (p)->flags & PKT_ALLOC;    \
         (p)->flowflags = 0;                     \
+        (p)->cachedflags = 0;                 \
         (p)->pkt_src = 0;                       \
         (p)->vlan_id[0] = 0;                    \
         (p)->vlan_id[1] = 0;                    \

@@ -162,6 +162,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             }
 
             f->alproto = *alproto;
+            p->alproto = f->alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
             /* if we have seen data from the other direction first, send
@@ -509,6 +510,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
+        p->alproto = f->alproto;
     } else {
         SCLogDebug("stream data (len %" PRIu32 " ), alproto "
                    "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
