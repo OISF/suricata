@@ -42,31 +42,31 @@ static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
 
 static const char *Oid2ShortStr(const char *oid)
 {
-    if (strcmp(oid, "1.2.840.113549.1.9.1")==0)
+    if (strcmp(oid, "1.2.840.113549.1.9.1") == 0)
         return "emailAddress";
 
-    if (strcmp(oid, "2.5.4.3")==0)
+    if (strcmp(oid, "2.5.4.3") == 0)
         return "CN";
 
-    if (strcmp(oid, "2.5.4.5")==0)
+    if (strcmp(oid, "2.5.4.5") == 0)
         return "serialNumber";
 
-    if (strcmp(oid, "2.5.4.6")==0)
+    if (strcmp(oid, "2.5.4.6") == 0)
         return "C";
 
-    if (strcmp(oid, "2.5.4.7")==0)
+    if (strcmp(oid, "2.5.4.7") == 0)
         return "L";
 
-    if (strcmp(oid, "2.5.4.8")==0)
+    if (strcmp(oid, "2.5.4.8") == 0)
         return "ST";
 
-    if (strcmp(oid, "2.5.4.10")==0)
+    if (strcmp(oid, "2.5.4.10") == 0)
         return "O";
 
-    if (strcmp(oid, "2.5.4.11")==0)
+    if (strcmp(oid, "2.5.4.11") == 0)
         return "OU";
 
-    if (strcmp(oid, "0.9.2342.19200300.100.1.25")==0)
+    if (strcmp(oid, "0.9.2342.19200300.100.1.25") == 0)
         return "DC";
 
     return "unknown";
@@ -78,7 +78,8 @@ static const char *Oid2ShortStr(const char *oid)
  *
  * \retval The matching node, or NULL
  */
-const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode)
+const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index,
+                               const uint32_t seqsz, uint32_t *errcode)
 {
     const Asn1Generic * node;
     uint8_t idx, i;
@@ -128,10 +129,12 @@ const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index,
     return node;
 }
 
-int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode)
+int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length,
+                       uint32_t *errcode)
 {
     const Asn1Generic *node_oid;
-    const Asn1Generic *node, *it;
+    const Asn1Generic *node;
+    const Asn1Generic *it;
     const Asn1Generic *node_set;
     const Asn1Generic *node_str;
     const char *shortname;
@@ -143,6 +146,7 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, u
 
     if (length < 10)
         goto issuer_dn_error;
+
     buffer[0] = '\0';
 
     node = Asn1DerGet(cert, SEQ_IDX_ISSUER, sizeof(SEQ_IDX_ISSUER), errcode);
@@ -186,7 +190,7 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, u
                 goto issuer_dn_error;
         }
 
-        if (strcmp(shortname,"CN")==0)
+        if (strcmp(shortname,"CN") == 0)
             separator = "/";
         if (it->next != NULL)
             strlcat(buffer, separator, length);
@@ -201,10 +205,12 @@ issuer_dn_error:
     return rc;
 }
 
-int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode)
+int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length,
+                        uint32_t *errcode)
 {
     const Asn1Generic *node_oid;
-    const Asn1Generic *node, *it;
+    const Asn1Generic *node;
+    const Asn1Generic *it;
     const Asn1Generic *node_set;
     const Asn1Generic *node_str;
     const char *shortname;
@@ -216,6 +222,7 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, 
 
     if (length < 10)
         goto subject_dn_error;
+
     buffer[0] = '\0';
 
     node = Asn1DerGet(cert, SEQ_IDX_SUBJECT, sizeof(SEQ_IDX_SUBJECT), errcode);
@@ -260,7 +267,7 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, 
                 goto subject_dn_error;
         }
 
-        if (strcmp(shortname,"CN")==0)
+        if (strcmp(shortname,"CN") == 0)
             separator = "/";
         if (it->next != NULL)
             strlcat(buffer, separator, length);
@@ -275,4 +282,3 @@ subject_dn_error:
     return rc;
 }
 
-/* vim: set et ts=4 sw=4: */
