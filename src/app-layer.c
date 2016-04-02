@@ -152,12 +152,12 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                                  APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
                 /* it indicates some data has already been sent to the parser */
                 if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                    f->alproto = *alproto = *alproto_otherdir;
+                    *alproto = *alproto_otherdir;
                 } else {
                     if (flags & STREAM_TOCLIENT)
-                        f->alproto = *alproto_otherdir = *alproto;
+                        *alproto_otherdir = *alproto;
                     else
-                        f->alproto = *alproto = *alproto_otherdir;
+                        *alproto = *alproto_otherdir;
                 }
             }
 
