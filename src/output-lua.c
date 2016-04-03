@@ -286,11 +286,11 @@ static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto dontlog;
+    if (p->alproto != ALPROTO_TLS) {
+        return FALSE;
+    }
 
+    FLOWLOCK_RDLOCK(p->flow);
     SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, so no request logging");
@@ -366,11 +366,11 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto dontlog;
+    if (p->alproto != ALPROTO_SSH) {
+        return FALSE;
+    }
 
+    FLOWLOCK_RDLOCK(p->flow);
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state == NULL) {
         SCLogDebug("no ssh state, so no request logging");
