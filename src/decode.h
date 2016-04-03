@@ -396,15 +396,12 @@ typedef struct Packet_
     uint8_t flowflags;
     /* coccinelle: Packet:flowflags:FLOW_PKT_ */
 
-    uint8_t cachedflags;
-    uint16_t alproto;
-
     /* Pkt Flags */
     uint32_t flags;
 
-    struct Flow_ *flow;
-
     struct timeval ts;
+
+    struct Flow_ *flow;
 
     union {
         /* nfq stuff */
@@ -550,6 +547,9 @@ typedef struct Packet_
      * the packet to its owner's stack. If NULL, then allocated with malloc.
      */
     struct PktPool_ *pool;
+
+    uint16_t alproto;
+    uint8_t cachedflags;
 
 #ifdef PROFILING
     PktProfiling *profile;
