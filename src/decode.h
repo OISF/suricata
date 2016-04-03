@@ -275,6 +275,7 @@ typedef struct PacketAlert_ {
 #define PACKET_ALERT_FLAG_TX            0x08
 
 #define PACKET_APPLAYER_LOGGED          (1<<0)
+#define PACKET_FLOW_DROP_LOGGED         (1<<1)
 
 #define PACKET_ALERT_MAX 15
 
