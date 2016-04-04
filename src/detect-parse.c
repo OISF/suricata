@@ -43,6 +43,7 @@
 #include "detect-engine-apt-event.h"
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
+#include "detect-http-method.h"
 
 #include "pkt-var.h"
 #include "host.h"
@@ -138,6 +139,85 @@ typedef struct SignatureParser_ {
     char dp[DETECT_MAX_RULE_SIZE];
     char opts[DETECT_MAX_RULE_SIZE];
 } SignatureParser;
+
+const char *DetectListToHumanString(int list)
+{
+#define CASE_CODE_STRING(E, S)  case E: return S; break
+    switch (list) {
+        CASE_CODE_STRING(DETECT_SM_LIST_MATCH, "packet");
+        CASE_CODE_STRING(DETECT_SM_LIST_PMATCH, "payload");
+        CASE_CODE_STRING(DETECT_SM_LIST_UMATCH, "http_uri");
+        CASE_CODE_STRING(DETECT_SM_LIST_HRUDMATCH, "http_raw_uri");
+        CASE_CODE_STRING(DETECT_SM_LIST_HCBDMATCH, "http_client_body");
+        CASE_CODE_STRING(DETECT_SM_LIST_FILEDATA, "file_data");
+        CASE_CODE_STRING(DETECT_SM_LIST_HHDMATCH, "http_header");
+        CASE_CODE_STRING(DETECT_SM_LIST_HRHDMATCH, "http_raw_header");
+        CASE_CODE_STRING(DETECT_SM_LIST_HSMDMATCH, "http_stat_msg");
+        CASE_CODE_STRING(DETECT_SM_LIST_HSCDMATCH, "http_stat_code");
+        CASE_CODE_STRING(DETECT_SM_LIST_HHHDMATCH, "http_host");
+        CASE_CODE_STRING(DETECT_SM_LIST_HRHHDMATCH, "http_raw_host");
+        CASE_CODE_STRING(DETECT_SM_LIST_HMDMATCH, "http_method");
+        CASE_CODE_STRING(DETECT_SM_LIST_HCDMATCH, "http_cookie");
+        CASE_CODE_STRING(DETECT_SM_LIST_HUADMATCH, "http_user_agent");
+        CASE_CODE_STRING(DETECT_SM_LIST_HRLMATCH, "http_request_line");
+        CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
+        CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
+        CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
+        CASE_CODE_STRING(DETECT_SM_LIST_TMATCH, "tag");
+        CASE_CODE_STRING(DETECT_SM_LIST_FILEMATCH, "file");
+        CASE_CODE_STRING(DETECT_SM_LIST_DNSREQUEST_MATCH, "dns_request");
+        CASE_CODE_STRING(DETECT_SM_LIST_DNSRESPONSE_MATCH, "dns_response");
+        CASE_CODE_STRING(DETECT_SM_LIST_DNSQUERYNAME_MATCH, "dns_query");
+        CASE_CODE_STRING(DETECT_SM_LIST_MODBUS_MATCH, "modbus");
+        CASE_CODE_STRING(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH, "template");
+        CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
+        CASE_CODE_STRING(DETECT_SM_LIST_SUPPRESS, "suppress");
+        CASE_CODE_STRING(DETECT_SM_LIST_THRESHOLD, "threshold");
+        CASE_CODE_STRING(DETECT_SM_LIST_MAX, "max (internal)");
+        CASE_CODE_STRING(DETECT_SM_LIST_NOTSET, "not set (internal)");
+    }
+#undef CASE_CODE_STRING
+    return "unknown";
+}
+
+#define CASE_CODE(E)  case E: return #E
+const char *DetectListToString(int list)
+{
+    switch (list) {
+        CASE_CODE(DETECT_SM_LIST_MATCH);
+        CASE_CODE(DETECT_SM_LIST_PMATCH);
+        CASE_CODE(DETECT_SM_LIST_UMATCH);
+        CASE_CODE(DETECT_SM_LIST_HRUDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HCBDMATCH);
+        CASE_CODE(DETECT_SM_LIST_FILEDATA);
+        CASE_CODE(DETECT_SM_LIST_HHDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HRHDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HSMDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HSCDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HHHDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HRHHDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HMDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HCDMATCH);
+        CASE_CODE(DETECT_SM_LIST_HUADMATCH);
+        CASE_CODE(DETECT_SM_LIST_HRLMATCH);
+        CASE_CODE(DETECT_SM_LIST_APP_EVENT);
+        CASE_CODE(DETECT_SM_LIST_AMATCH);
+        CASE_CODE(DETECT_SM_LIST_DMATCH);
+        CASE_CODE(DETECT_SM_LIST_TMATCH);
+        CASE_CODE(DETECT_SM_LIST_FILEMATCH);
+        CASE_CODE(DETECT_SM_LIST_DNSREQUEST_MATCH);
+        CASE_CODE(DETECT_SM_LIST_DNSRESPONSE_MATCH);
+        CASE_CODE(DETECT_SM_LIST_DNSQUERYNAME_MATCH);
+        CASE_CODE(DETECT_SM_LIST_MODBUS_MATCH);
+        CASE_CODE(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH);
+        CASE_CODE(DETECT_SM_LIST_POSTMATCH);
+        CASE_CODE(DETECT_SM_LIST_SUPPRESS);
+        CASE_CODE(DETECT_SM_LIST_THRESHOLD);
+        CASE_CODE(DETECT_SM_LIST_MAX);
+        CASE_CODE(DETECT_SM_LIST_NOTSET);
+    }
+    return "unknown";
+}
 
 int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg,
                                            uint8_t sm_type, uint8_t sm_list,
@@ -419,12 +499,12 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
     return;
 }
 
-int SigMatchListSMBelongsTo(Signature *s, SigMatch *key_sm)
+int SigMatchListSMBelongsTo(const Signature *s, const SigMatch *key_sm)
 {
     int list = 0;
 
     for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
-        SigMatch *sm = s->sm_lists[list];
+        const SigMatch *sm = s->sm_lists[list];
         while (sm != NULL) {
             if (sm == key_sm)
                 return list;
@@ -1205,6 +1285,9 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
             }
         }
     }
+
+    if (!DetectHttpMethodValidateRule(s))
+        SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
     //    if (s->flags & SIG_FLAG_STATE_MATCH) {
@@ -2987,7 +3070,6 @@ int SigTestBidirec04 (void)
        with source 192.168.1.1 80, all the sids should match */
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* only sid 2 should match with a packet going to 192.168.1.1 port 80 */
@@ -3000,7 +3082,6 @@ int SigTestBidirec04 (void)
         PACKET_RECYCLE(p);
     }
     FlowShutdown();
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:

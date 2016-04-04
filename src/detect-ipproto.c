@@ -9241,7 +9241,7 @@ static int DetectIPProtoTestSig1(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     if (p == NULL)
-        goto end;
+        return 0;
 
     char *sigs[4];
     sigs[0] = "alert ip any any -> any any "
@@ -9268,9 +9268,6 @@ static int DetectIPProtoTestSig1(void)
     result = UTHGenericTest(&p, 1, sigs, sid, results, 4);
 
     UTHFreePacket(p);
-end:
-    DetectSigGroupPrintMemory();
-    DetectAddressPrintMemory();
     return result;
 }
 

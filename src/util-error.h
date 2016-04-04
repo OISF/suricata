@@ -306,6 +306,7 @@ typedef enum {
     SC_ERR_JSON_STATS_LOG_NEGATED, /** When totals and threads are both NO in yaml **/
     SC_ERR_DEPRECATED_CONF, /**< Deprecated configuration parameter. */
     SC_WARN_FASTER_CAPTURE_AVAILABLE,
+    SC_WARN_POOR_RULE,
 } SCError;
 
 const char *SCErrorToString(SCError);
