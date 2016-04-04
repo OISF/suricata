@@ -272,7 +272,7 @@ insufficient_data:
 /** \internal
  *  \brief Parse DNS request packet
  */
-static int DNSTCPRequestParse(Flow *f, void *dstate,
+static int DNSTCPRequestParse(ThreadVars *tv, Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
@@ -487,7 +487,7 @@ insufficient_data:
  *  would have been _very_ tricky due to the way names are compressed in DNS
  *
  */
-static int DNSTCPResponseParse(Flow *f, void *dstate,
+static int DNSTCPResponseParse(ThreadVars *tv, Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)

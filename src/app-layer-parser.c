@@ -83,7 +83,7 @@ struct AppLayerParserThreadCtx_ {
 typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
-    int (*Parser[2])(Flow *f, void *protocol_state,
+    int (*Parser[2])(ThreadVars *tv, Flow *f, void *protocol_state,
                      AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
                      void *local_storage);
@@ -304,7 +304,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
-                      int (*Parser)(Flow *f, void *protocol_state,
+                      int (*Parser)(ThreadVars *tv, Flow *f, void *protocol_state,
                                     AppLayerParserState *pstate,
                                     uint8_t *buf, uint32_t buf_len,
                                     void *local_storage))
@@ -876,7 +876,7 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -930,7 +930,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](tv, f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto]) < 0)
         {
@@ -1411,7 +1411,8 @@ typedef struct TestState_ {
  *  \brief  Test parser function to test the memory deallocation of app layer
  *          parser of occurence of an error.
  */
-static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
+static int TestProtocolParser(ThreadVars *tv, Flow *f, void *test_state,
+                              AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
@@ -1497,7 +1498,7 @@ static int AppLayerParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
                            testbuf, testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
@@ -1550,7 +1551,7 @@ static int AppLayerParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);

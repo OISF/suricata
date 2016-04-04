@@ -53,7 +53,7 @@
 /** \internal
  *  \brief Parse DNS request packet
  */
-static int DNSUDPRequestParse(Flow *f, void *dstate,
+static int DNSUDPRequestParse(ThreadVars *tv, Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
@@ -163,7 +163,7 @@ insufficient_data:
  *  Parses a DNS UDP record and fills the DNS state
  *
  */
-static int DNSUDPResponseParse(Flow *f, void *dstate,
+static int DNSUDPResponseParse(ThreadVars *tv, Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
@@ -315,7 +315,7 @@ static uint16_t DNSUdpProbingParser(uint8_t *input, uint32_t ilen, uint32_t *off
         return ALPROTO_UNKNOWN;
     }
 
-    if (DNSUDPRequestParse(NULL, NULL, NULL, input, ilen, NULL) == -1)
+    if (DNSUDPRequestParse(NULL, NULL, NULL, NULL, input, ilen, NULL) == -1)
         return ALPROTO_FAILED;
 
     return ALPROTO_DNS;
@@ -469,7 +469,7 @@ static int DNSUDPParserTest01 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(NULL, f, f->alstate, NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -504,7 +504,7 @@ static int DNSUDPParserTest02 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(NULL, f, f->alstate, NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -539,7 +539,7 @@ static int DNSUDPParserTest03 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(NULL, f, f->alstate, NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -577,7 +577,7 @@ static int DNSUDPParserTest04 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(NULL, f, f->alstate, NULL, buf, buflen, NULL);
     if (r != 1)
         goto end;
 
@@ -615,7 +615,7 @@ static int DNSUDPParserTest05 (void)
     f->alproto = ALPROTO_DNS;
     f->alstate = DNSStateAlloc();
 
-    int r = DNSUDPResponseParse(f, f->alstate, NULL, buf, buflen, NULL);
+    int r = DNSUDPResponseParse(NULL, f, f->alstate, NULL, buf, buflen, NULL);
     if (r != -1)
         goto end;
 
