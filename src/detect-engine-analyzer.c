@@ -402,7 +402,7 @@ int PerCentEncodingMatch (uint8_t *content, uint8_t content_len)
     return ret;
 }
 
-static void EngineAnalysisRulesPrintFP(Signature *s)
+static void EngineAnalysisRulesPrintFP(const Signature *s)
 {
     DetectContentData *fp_cd = NULL;
     SigMatch *mpm_sm = s->mpm_sm;
@@ -506,7 +506,7 @@ void EngineAnalysisRulesFailure(char *line, char *file, int lineno)
  *
  * \param s Pointer to the signature.
  */
-void EngineAnalysisRules(Signature *s, char *line)
+void EngineAnalysisRules(const Signature *s, const char *line)
 {
     uint32_t rule_bidirectional = 0;
     uint32_t rule_pcre = 0;
@@ -556,6 +556,8 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t warn_offset_depth_pkt_stream = 0;
     uint32_t warn_offset_depth_alproto = 0;
     uint32_t warn_non_alproto_fp_for_alproto_sig = 0;
+    uint32_t warn_no_direction = 0;
+    uint32_t warn_both_direction = 0;
 
     if (s->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -811,6 +813,15 @@ void EngineAnalysisRules(Signature *s, char *line)
         warn_non_alproto_fp_for_alproto_sig = 1;
     }
 
+    if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == 0) {
+        warn_no_direction += 1;
+        rule_warning += 1;
+    }
+    if ((s->flags & (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) == (SIG_FLAG_TOSERVER|SIG_FLAG_TOCLIENT)) {
+        warn_both_direction += 1;
+        rule_warning += 1;
+    }
+
     if (!rule_warnings_only || (rule_warnings_only && rule_warning > 0)) {
         fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
         fprintf(rule_engine_analysis_FD, "%s\n", line);
@@ -916,6 +927,12 @@ void EngineAnalysisRules(Signature *s, char *line)
                     "protocol is http, but the fast_pattern is set on the raw "
                     "stream.  Consider adding fast_pattern over a http "
                     "buffer for increased performance.");
+        }
+        if (warn_no_direction) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule has no direction indicator.\n");
+        }
+        if (warn_both_direction) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule is inspecting both directions.\n");
         }
         if (rule_warning == 0) {
             fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");

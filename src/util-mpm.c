@@ -28,11 +28,7 @@
 #include "util-debug.h"
 
 /* include pattern matchers */
-#include "util-mpm-wumanber.h"
-#include "util-mpm-b2g.h"
-#include "util-mpm-b3g.h"
 #include "util-mpm-ac.h"
-#include "util-mpm-ac-gfbs.h"
 #include "util-mpm-ac-bs.h"
 #include "util-mpm-ac-tile.h"
 #include "util-mpm-hs.h"
@@ -49,6 +45,7 @@
 #include "util-cuda-handlers.h"
 #include "detect-engine-mpm.h"
 #endif
+#include "util-memcpy.h"
 
 /**
  * \brief Register a new Mpm Context.
@@ -57,7 +54,7 @@
  *
  * \retval id Return the id created for the new MpmCtx profile.
  */
-int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name, uint8_t flags)
+int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *name)
 {
     void *ptmp;
     /* the very first entry */
@@ -75,11 +72,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
             exit(EXIT_FAILURE);
         }
 
-        item[0].name = SCStrdup(name);
-        if (item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
+        item[0].name = name;
 
         /* toserver */
         item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -102,9 +95,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         /* our id starts from 0 always.  Helps us with the ctx retrieval from
          * the array */
         item[0].id = 0;
-
-        /* store the flag */
-        item[0].flags = flags;
 
         /* store the newly created item */
         de_ctx->mpm_ctx_factory_container->items = item;
@@ -136,7 +126,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
                     memset(items[i].mpm_ctx_tc, 0, sizeof(MpmCtx));
                     items[i].mpm_ctx_tc->global = 1;
                 }
-                items[i].flags = flags;
                 return items[i].id;
             }
         }
@@ -155,11 +144,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         de_ctx->mpm_ctx_factory_container->items = items;
 
         MpmCtxFactoryItem *new_item = &items[de_ctx->mpm_ctx_factory_container->no_of_items];
-        new_item[0].name = SCStrdup(name);
-        if (new_item[0].name == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
-        }
+        new_item[0].name = name;
 
         /* toserver */
         new_item[0].mpm_ctx_ts = SCMalloc(sizeof(MpmCtx));
@@ -180,7 +165,6 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
         new_item[0].mpm_ctx_tc->global = 1;
 
         new_item[0].id = de_ctx->mpm_ctx_factory_container->no_of_items;
-        new_item[0].flags = flags;
         de_ctx->mpm_ctx_factory_container->no_of_items++;
 
         /* the newly created id */
@@ -188,7 +172,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(DetectEngineCtx *de_ctx, const char *nam
     }
 }
 
-int32_t MpmFactoryIsMpmCtxAvailable(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
+int32_t MpmFactoryIsMpmCtxAvailable(const DetectEngineCtx *de_ctx, const MpmCtx *mpm_ctx)
 {
     if (mpm_ctx == NULL)
         return 0;
@@ -207,7 +191,7 @@ int32_t MpmFactoryIsMpmCtxAvailable(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
     }
 }
 
-MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int direction)
+MpmCtx *MpmFactoryGetMpmCtxForProfile(const DetectEngineCtx *de_ctx, int32_t id, int direction)
 {
     if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
         MpmCtx *mpm_ctx = SCMalloc(sizeof(MpmCtx));
@@ -230,7 +214,7 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(DetectEngineCtx *de_ctx, int32_t id, int d
     }
 }
 
-void MpmFactoryReClaimMpmCtx(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
+void MpmFactoryReClaimMpmCtx(const DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
 {
     if (mpm_ctx == NULL)
         return;
@@ -252,8 +236,6 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
     int i = 0;
     MpmCtxFactoryItem *items = de_ctx->mpm_ctx_factory_container->items;
     for (i = 0; i < de_ctx->mpm_ctx_factory_container->no_of_items; i++) {
-        if (items[i].name != NULL)
-            SCFree(items[i].name);
         if (items[i].mpm_ctx_ts != NULL) {
             if (items[i].mpm_ctx_ts->mpm_type != MPM_NOTSET)
                 mpm_table[items[i].mpm_ctx_ts->mpm_type].DestroyCtx(items[i].mpm_ctx_ts);
@@ -413,16 +395,13 @@ void MpmCudaEnvironmentSetup()
  *  \brief Setup a pmq
  *
  *  \param pmq Pattern matcher queue to be initialized
- *  \param maxid Max sig id to be matched on
- *  \param patmaxid Max pattern id to be matched on
  *
  *  \retval -1 error
  *  \retval 0 ok
  */
-int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
+int PmqSetup(PatternMatcherQueue *pmq)
 {
     SCEnter();
-    SCLogDebug("patmaxid %u", patmaxid);
 
     if (pmq == NULL) {
         SCReturnInt(-1);
@@ -430,38 +409,16 @@ int PmqSetup(PatternMatcherQueue *pmq, uint32_t patmaxid)
 
     memset(pmq, 0, sizeof(PatternMatcherQueue));
 
-    if (patmaxid > 0) {
-        pmq->pattern_id_array_size = 32; /* Intial size, TODO Make this configure option */
-        pmq->pattern_id_array_cnt = 0;
+    pmq->rule_id_array_size = 128; /* Initial size, TODO: Make configure option. */
+    pmq->rule_id_array_cnt = 0;
 
-        pmq->pattern_id_array = SCCalloc(pmq->pattern_id_array_size, sizeof(uint32_t));
-        if (pmq->pattern_id_array == NULL) {
-            SCReturnInt(-1);
-        }
-
-        /* lookup bitarray */
-        pmq->pattern_id_bitarray_size = (patmaxid / 8) + 1;
-
-        pmq->pattern_id_bitarray = SCMalloc(pmq->pattern_id_bitarray_size);
-        if (pmq->pattern_id_bitarray == NULL) {
-            SCReturnInt(-1);
-        }
-        memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
-
-        SCLogDebug("pmq->pattern_id_array %p, pmq->pattern_id_bitarray %p",
-                pmq->pattern_id_array, pmq->pattern_id_bitarray);
-
-        pmq->rule_id_array_size = 128; /* Initial size, TODO: Make configure option. */
-        pmq->rule_id_array_cnt = 0;
-
-        size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
-        pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
-        if (pmq->rule_id_array == NULL) {
-            pmq->rule_id_array_size = 0;
-            SCReturnInt(-1);
-        }
-        // Don't need to zero memory since it is always written first.
+    size_t bytes = pmq->rule_id_array_size * sizeof(SigIntId);
+    pmq->rule_id_array = (SigIntId*)SCMalloc(bytes);
+    if (pmq->rule_id_array == NULL) {
+        pmq->rule_id_array_size = 0;
+        SCReturnInt(-1);
     }
+    // Don't need to zero memory since it is always written first.
 
     SCReturnInt(0);
 }
@@ -502,101 +459,6 @@ MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size)
     return new_size;
 }
 
-/** \brief Increase the size of the Pattern rule ID array.
- *
- *  \param pmq storage for match results
- *  \param new_size number of Signature IDs needing to be stored.
- *
- *  \return 0 on failure.
- */
-int
-MpmAddPidResize(PatternMatcherQueue *pmq, uint32_t new_size)
-{
-    /* Need to make the array bigger. Double the size needed to
-     * also handle the case that sids_size might still be
-     * larger than the old size.
-     */
-    new_size = new_size * 2;
-    uint32_t *new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
-                                               new_size * sizeof(uint32_t));
-    if (unlikely(new_array == NULL)) {
-        // Failed to allocate 2x, so try 1x.
-        new_size = new_size / 2;
-        new_array = (uint32_t*)SCRealloc(pmq->pattern_id_array,
-                                         new_size * sizeof(uint32_t));
-        if (unlikely(new_array == NULL)) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to realloc PatternMatchQueue"
-                       " pattern ID array. Some new Pattern ID matches were lost.");
-            return 0;
-        }
-    }
-    pmq->pattern_id_array = new_array;
-    pmq->pattern_id_array_size = new_size;
-
-    return new_size;
-}
-
-/** \brief Verify and store a match
- *
- *   used at search runtime
- *
- *  \param thread_ctx mpm thread ctx
- *  \param pmq storage for match results
- *  \param patid pattern ID being checked
- *  \param bitarray Array of bits for patterns IDs found in current search
- *  \param sids pointer to array of Signature IDs
- *  \param sids_size number of Signature IDs in sids array.
- *
- *  \retval 0 no match after all
- *  \retval 1 (new) match
- */
-int
-MpmVerifyMatch(MpmThreadCtx *thread_ctx, PatternMatcherQueue *pmq, uint32_t patid,
-               uint8_t *bitarray, SigIntId *sids, uint32_t sids_size)
-{
-    SCEnter();
-
-    /* Handle pattern id storage */
-    if (pmq != NULL && pmq->pattern_id_bitarray != NULL) {
-        SCLogDebug("using pattern id arrays, storing %"PRIu32, patid);
-
-        if ((bitarray[(patid / 8)] & (1<<(patid % 8))) == 0) {
-            bitarray[(patid / 8)] |= (1<<(patid % 8));
-            /* flag this pattern id as being added now */
-            pmq->pattern_id_bitarray[(patid / 8)] |= (1<<(patid % 8));
-            /* append the pattern_id to the array with matches */
-            MpmAddPid(pmq, patid);
-            MpmAddSids(pmq, sids, sids_size);
-        }
-    }
-
-    SCReturnInt(1);
-}
-
-/**
- *  \brief Merge two pmq's bitarrays
- *
- *  \param src source pmq
- *  \param dst destination pmq to merge into
- */
-void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst)
-{
-    uint32_t u;
-
-    if (src->pattern_id_array_cnt == 0)
-        return;
-
-    for (u = 0; u < src->pattern_id_bitarray_size && u < dst->pattern_id_bitarray_size; u++) {
-        dst->pattern_id_bitarray[u] |= src->pattern_id_bitarray[u];
-    }
-
-    /** \todo now set merged flag? */
-
-    if (src->rule_id_array && dst->rule_id_array) {
-        MpmAddSids(dst, src->rule_id_array, src->rule_id_array_cnt);
-    }
-}
-
 /** \brief Reset a Pmq for reusage. Meant to be called after a single search.
  *  \param pmq Pattern matcher to be reset.
  *  \todo memset is expensive, but we need it as we merge pmq's. We might use
@@ -606,10 +468,6 @@ void PmqReset(PatternMatcherQueue *pmq)
 {
     if (pmq == NULL)
         return;
-
-    memset(pmq->pattern_id_bitarray, 0, pmq->pattern_id_bitarray_size);
-
-    pmq->pattern_id_array_cnt = 0;
 
     pmq->rule_id_array_cnt = 0;
     /* TODO: Realloc the rule id array smaller at some size? */
@@ -622,24 +480,10 @@ void PmqCleanup(PatternMatcherQueue *pmq)
 {
     if (pmq == NULL)
         return;
-
-    if (pmq->pattern_id_array != NULL) {
-        SCFree(pmq->pattern_id_array);
-        pmq->pattern_id_array = NULL;
-    }
-
-    if (pmq->pattern_id_bitarray != NULL) {
-        SCFree(pmq->pattern_id_bitarray);
-        pmq->pattern_id_bitarray = NULL;
-    }
-
     if (pmq->rule_id_array != NULL) {
         SCFree(pmq->rule_id_array);
         pmq->rule_id_array = NULL;
     }
-
-    pmq->pattern_id_array_cnt = 0;
-    pmq->pattern_id_array_size = 0;
 }
 
 /** \brief Cleanup and free a Pmq
@@ -653,9 +497,9 @@ void PmqFree(PatternMatcherQueue *pmq)
     PmqCleanup(pmq);
 }
 
-void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher, uint32_t max_id)
+void MpmInitThreadCtx(MpmThreadCtx *mpm_thread_ctx, uint16_t matcher)
 {
-    mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx, max_id);
+    mpm_table[matcher].InitThreadCtx(NULL, mpm_thread_ctx);
 }
 
 void MpmInitCtx (MpmCtx *mpm_ctx, uint16_t matcher)
@@ -668,12 +512,8 @@ void MpmTableSetup(void)
 {
     memset(mpm_table, 0, sizeof(mpm_table));
 
-    MpmWuManberRegister();
-    MpmB2gRegister();
-    MpmB3gRegister();
     MpmACRegister();
     MpmACBSRegister();
-    MpmACGfbsRegister();
     MpmACTileRegister();
 #ifdef BUILD_HYPERSCAN
     MpmHSRegister();
@@ -681,62 +521,6 @@ void MpmTableSetup(void)
 #ifdef __SC_CUDA_SUPPORT__
     MpmACCudaRegister();
 #endif /* __SC_CUDA_SUPPORT__ */
-}
-
-/** \brief  Function to return the default hash size for the mpm algorithm,
- *          which has been defined by the user in the config file
- *
- *  \param  conf_val    pointer to the string value of hash size
- *  \retval hash_value  returns the hash value as defined by user, otherwise
- *                      default low size value
- */
-uint32_t MpmGetHashSize(const char *conf_val)
-{
-    SCEnter();
-    uint32_t hash_value = HASHSIZE_LOW;
-
-    if(strcmp(conf_val, "lowest") == 0) {
-        hash_value = HASHSIZE_LOWEST;
-    } else if(strcmp(conf_val, "low") == 0) {
-        hash_value = HASHSIZE_LOW;
-    } else if(strcmp(conf_val, "medium") == 0) {
-        hash_value = HASHSIZE_MEDIUM;
-    } else if(strcmp(conf_val, "high") == 0) {
-        hash_value = HASHSIZE_HIGH;
-    /* "highest" is supported in 1.0 to 1.0.2, so we keep supporting
-     * it for backwards compatibility */
-    } else if(strcmp(conf_val, "highest") == 0) {
-        hash_value = HASHSIZE_HIGHER;
-    } else if(strcmp(conf_val, "higher") == 0) {
-        hash_value = HASHSIZE_HIGHER;
-    } else if(strcmp(conf_val, "max") == 0) {
-        hash_value = HASHSIZE_MAX;
-    }
-
-    SCReturnInt(hash_value);
-}
-
-/** \brief  Function to return the default bloomfilter size for the mpm algorithm,
- *          which has been defined by the user in the config file
- *
- *  \param  conf_val    pointer to the string value of bloom filter size
- *  \retval bloom_value returns the bloom filter value as defined by user,
- *                      otherwise default medium size value
- */
-uint32_t MpmGetBloomSize(const char *conf_val)
-{
-    SCEnter();
-    uint32_t bloom_value = BLOOMSIZE_MEDIUM;
-
-    if(strncmp(conf_val, "low", 3) == 0) {
-        bloom_value = BLOOMSIZE_LOW;
-    } else if(strncmp(conf_val, "medium", 6) == 0) {
-        bloom_value = BLOOMSIZE_MEDIUM;
-    } else if(strncmp(conf_val, "high", 4) == 0) {
-        bloom_value = BLOOMSIZE_HIGH;
-    }
-
-    SCReturnInt(bloom_value);
 }
 
 int MpmAddPatternCS(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
@@ -757,6 +541,287 @@ int MpmAddPatternCI(struct MpmCtx_ *mpm_ctx, uint8_t *pat, uint16_t patlen,
                                                          pid, sid, flags);
 }
 
+
+/**
+ * \internal
+ * \brief Creates a hash of the pattern.  We use it for the hashing process
+ *        during the initial pattern insertion time, to cull duplicate sigs.
+ *
+ * \param pat    Pointer to the pattern.
+ * \param patlen Pattern length.
+ *
+ * \retval hash A 32 bit unsigned hash.
+ */
+static inline uint32_t MpmInitHashRaw(uint8_t *pat, uint16_t patlen)
+{
+    uint32_t hash = patlen * pat[0];
+    if (patlen > 1)
+        hash += pat[1];
+
+    return (hash % MPM_INIT_HASH_SIZE);
+}
+
+/**
+ * \internal
+ * \brief Looks up a pattern.  We use it for the hashing process during the
+ *        the initial pattern insertion time, to cull duplicate sigs.
+ *
+ * \param ctx    Pointer to the AC ctx.
+ * \param pat    Pointer to the pattern.
+ * \param patlen Pattern length.
+ * \param flags  Flags.  We don't need this.
+ *
+ * \retval hash A 32 bit unsigned hash.
+ */
+static inline MpmPattern *MpmInitHashLookup(MpmCtx *ctx, uint8_t *pat,
+                                                  uint16_t patlen, char flags,
+                                                  uint32_t pid)
+{
+    uint32_t hash = MpmInitHashRaw(pat, patlen);
+
+    if (ctx->init_hash == NULL) {
+        return NULL;
+    }
+
+    MpmPattern *t = ctx->init_hash[hash];
+    for ( ; t != NULL; t = t->next) {
+        if (!(flags & MPM_PATTERN_CTX_OWNS_ID)) {
+            if (t->id == pid)
+                return t;
+        } else {
+            if (t->len == patlen &&
+                    memcmp(pat, t->original_pat, patlen) == 0 &&
+                    t->flags == flags)
+            {
+                return t;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * \internal
+ * \brief Allocs a new pattern instance.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ *
+ * \retval p Pointer to the newly created pattern.
+ */
+static inline MpmPattern *MpmAllocPattern(MpmCtx *mpm_ctx)
+{
+    MpmPattern *p = SCMalloc(sizeof(MpmPattern));
+    if (unlikely(p == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(MpmPattern));
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += sizeof(MpmPattern);
+
+    return p;
+}
+
+/**
+ * \internal
+ * \brief Used to free MpmPattern instances.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ * \param p       Pointer to the MpmPattern instance to be freed.
+ */
+void MpmFreePattern(MpmCtx *mpm_ctx, MpmPattern *p)
+{
+    if (p != NULL && p->cs != NULL && p->cs != p->ci) {
+        SCFree(p->cs);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL && p->ci != NULL) {
+        SCFree(p->ci);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL && p->original_pat != NULL) {
+        SCFree(p->original_pat);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL) {
+        SCFree(p);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= sizeof(MpmPattern);
+    }
+    return;
+}
+
+static inline uint32_t MpmInitHash(MpmPattern *p)
+{
+    uint32_t hash = p->len * p->original_pat[0];
+    if (p->len > 1)
+        hash += p->original_pat[1];
+
+    return (hash % MPM_INIT_HASH_SIZE);
+}
+
+static inline int MpmInitHashAdd(MpmCtx *ctx, MpmPattern *p)
+{
+    uint32_t hash = MpmInitHash(p);
+
+    if (ctx->init_hash == NULL) {
+        return 0;
+    }
+
+    if (ctx->init_hash[hash] == NULL) {
+        ctx->init_hash[hash] = p;
+        return 0;
+    }
+
+    MpmPattern *tt = NULL;
+    MpmPattern *t = ctx->init_hash[hash];
+
+    /* get the list tail */
+    do {
+        tt = t;
+        t = t->next;
+    } while (t != NULL);
+
+    tt->next = p;
+
+    return 0;
+}
+
+/**
+ * \internal
+ * \brief Add a pattern to the mpm-ac context.
+ *
+ * \param mpm_ctx Mpm context.
+ * \param pat     Pointer to the pattern.
+ * \param patlen  Length of the pattern.
+ * \param pid     Pattern id
+ * \param sid     Signature id (internal id).
+ * \param flags   Pattern's MPM_PATTERN_* flags.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                            uint16_t offset, uint16_t depth, uint32_t pid,
+                            SigIntId sid, uint8_t flags)
+{
+    SCLogDebug("Adding pattern for ctx %p, patlen %"PRIu16" and pid %" PRIu32,
+               mpm_ctx, patlen, pid);
+
+    if (patlen == 0) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "pattern length 0");
+        return 0;
+    }
+
+    if (flags & MPM_PATTERN_CTX_OWNS_ID)
+        pid = UINT_MAX;
+
+    /* check if we have already inserted this pattern */
+    MpmPattern *p = MpmInitHashLookup(mpm_ctx, pat, patlen, flags, pid);
+    if (p == NULL) {
+        SCLogDebug("Allocing new pattern");
+
+        /* p will never be NULL */
+        p = MpmAllocPattern(mpm_ctx);
+
+        p->len = patlen;
+        p->flags = flags;
+        if (flags & MPM_PATTERN_CTX_OWNS_ID)
+            p->id = mpm_ctx->max_pat_id++;
+        else
+            p->id = pid;
+
+        p->original_pat = SCMalloc(patlen);
+        if (p->original_pat == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy(p->original_pat, pat, patlen);
+
+        p->ci = SCMalloc(patlen);
+        if (p->ci == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy_tolower(p->ci, pat, patlen);
+
+        /* setup the case sensitive part of the pattern */
+        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
+            /* nocase means no difference between cs and ci */
+            p->cs = p->ci;
+        } else {
+            if (memcmp(p->ci, pat, p->len) == 0) {
+                /* no diff between cs and ci: pat is lowercase */
+                p->cs = p->ci;
+            } else {
+                p->cs = SCMalloc(patlen);
+                if (p->cs == NULL)
+                    goto error;
+                mpm_ctx->memory_cnt++;
+                mpm_ctx->memory_size += patlen;
+                memcpy(p->cs, pat, patlen);
+            }
+        }
+
+        /* put in the pattern hash */
+        MpmInitHashAdd(mpm_ctx, p);
+
+        mpm_ctx->pattern_cnt++;
+
+        if (mpm_ctx->maxlen < patlen)
+            mpm_ctx->maxlen = patlen;
+
+        if (mpm_ctx->minlen == 0) {
+            mpm_ctx->minlen = patlen;
+        } else {
+            if (mpm_ctx->minlen > patlen)
+                mpm_ctx->minlen = patlen;
+        }
+
+        /* we need the max pat id */
+        if (p->id > mpm_ctx->max_pat_id)
+            mpm_ctx->max_pat_id = p->id;
+
+        p->sids_size = 1;
+        p->sids = SCMalloc(p->sids_size * sizeof(SigIntId));
+        BUG_ON(p->sids == NULL);
+        p->sids[0] = sid;
+    } else {
+        /* we can be called multiple times for the same sid in the case
+         * of the 'single' modus. Here multiple rule groups share the
+         * same mpm ctx and might be adding the same pattern to the
+         * mpm_ctx */
+        int found = 0;
+        uint32_t x = 0;
+        for (x = 0; x < p->sids_size; x++) {
+            if (p->sids[x] == sid) {
+                found = 1;
+                break;
+            }
+        }
+
+        if (!found) {
+            SigIntId *sids = SCRealloc(p->sids, (sizeof(SigIntId) * (p->sids_size + 1)));
+            BUG_ON(sids == NULL);
+            p->sids = sids;
+            p->sids[p->sids_size] = sid;
+            p->sids_size++;
+        }
+    }
+
+    return 0;
+
+error:
+    MpmFreePattern(mpm_ctx, p);
+    return -1;
+}
 
 
 /************************************Unittests*********************************/

@@ -585,8 +585,6 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    DetectSigGroupPrintMemory();
-    DetectAddressPrintMemory();
     UTHFreePackets(&p, 1);
 end:
     return result;
