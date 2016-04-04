@@ -1,3 +1,10 @@
+3.0.1 -- 2016-04-04
+
+Feature #1704: hyperscan mpm integration
+Feature #1661: Improved support for xbits/hostbits (in particular ip_pair) when running with multiple threads
+Bug #1697: byte_extract incompatibility with Snort.
+Bug #1737: Stats not reset between PCAPs when Suricata runs in socket mode
+
 3.0.1RC1 -- 2016-03-23
 
 Feature #1535: Expose the certificate itself in TLS-lua
