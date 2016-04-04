@@ -106,7 +106,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
  */
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
-                      int (*Parser)(Flow *f, void *protocol_state,
+                      int (*Parser)(ThreadVars *tv, Flow *f, void *protocol_state,
                                     AppLayerParserState *pstate,
                                     uint8_t *buf, uint32_t buf_len,
                                     void *local_storage));
@@ -190,7 +190,7 @@ void AppLayerParserRegisterCounters(uint8_t ipproto, AppProto alproto, ThreadVar
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
 int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate,

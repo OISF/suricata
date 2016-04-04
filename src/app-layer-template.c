@@ -201,7 +201,7 @@ static AppProto TemplateProbingParser(uint8_t *input, uint32_t input_len,
     return ALPROTO_UNKNOWN;
 }
 
-static int TemplateParseRequest(Flow *f, void *state,
+static int TemplateParseRequest(ThreadVars *tv, Flow *f, void *state,
     AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
     void *local_data)
 {
@@ -270,8 +270,9 @@ end:
     return 0;
 }
 
-static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
-    uint8_t *input, uint32_t input_len, void *local_data)
+static int TemplateParseResponse(ThreadVars *tv, Flow *f, void *state,
+    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    void *local_data)
 {
     TemplateState *echo = state;
     TemplateTransaction *tx = NULL, *ttx;;
