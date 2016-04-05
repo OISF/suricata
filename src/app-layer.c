@@ -277,6 +277,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
+            AppLayerParserIncFlowCounter(IPPROTO_TCP, *alproto, tv);
         } else {
             /* if the ssn is midstream, we may end up with a case where the
              * start of an HTTP request is missing. We won't detect HTTP based
@@ -499,6 +500,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            AppLayerParserIncFlowCounter(IPPROTO_UDP, f->alproto, tv);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tv, tctx->alp_tctx,
