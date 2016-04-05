@@ -57,6 +57,54 @@
 #include "util-lua.h"
 #include "util-lua-common.h"
 
+static int GetCertValidity(lua_State *luastate, const Flow *f, int direction)
+{
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
+
+    SSLState *ssl_state = (SSLState *)state;
+    SSLStateConnp *connp = NULL;
+
+    if (direction) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (connp->cert0_not_before == 0 || connp->cert0_not_after == 0)
+        return LuaCallbackError(luastate, "error: no certificate validity");
+
+    int r = LuaPushInteger(luastate, connp->cert0_not_before);
+    r += LuaPushInteger(luastate, connp->cert0_not_after);
+
+    return r;
+}
+
+static int TlsGetCertValidity(lua_State *luastate)
+{
+    int r;
+
+    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
+        return LuaCallbackError(luastate, "error: protocol not tls");
+
+    int direction = LuaStateGetDirection(luastate);
+
+    int lock_hint = 0;
+    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
+        FLOWLOCK_RDLOCK(f);
+        r = GetCertValidity(luastate, f, direction);
+        FLOWLOCK_UNLOCK(f);
+    } else {
+        r = GetCertValidity(luastate, f, direction);
+    }
+    return r;
+}
+
 static int GetCertInfo(lua_State *luastate, const Flow *f, int direction)
 {
     void *state = FlowGetAppState(f);
@@ -236,6 +284,8 @@ static int TlsGetCertChain(lua_State *luastate)
 int LuaRegisterTlsFunctions(lua_State *luastate)
 {
     /* registration of the callbacks */
+    lua_pushcfunction(luastate, TlsGetCertValidity);
+    lua_setglobal(luastate, "TlsGetCertValidity");
     lua_pushcfunction(luastate, TlsGetCertInfo);
     lua_setglobal(luastate, "TlsGetCertInfo");
 
