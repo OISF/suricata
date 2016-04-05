@@ -111,6 +111,9 @@ typedef struct AppLayerParserProtoCtx_
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
 
+    void (*RegisterCounters)(ThreadVars *tv);
+    void (*IncFlowCounter)(ThreadVars *tv);
+
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
      * STREAM_TOSERVER, STREAM_TOCLIENT */
@@ -483,6 +486,28 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState = StateHasTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterCountersFunc(uint8_t ipproto, AppProto alproto,
+    void (*RegisterCounters)(ThreadVars *tv))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        RegisterCounters = RegisterCounters;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterIncFlowCounter(uint8_t ipproto, AppProto alproto,
+    void (*IncFlowCounter)(ThreadVars *tv))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        IncFlowCounter = IncFlowCounter;
 
     SCReturn;
 }
@@ -1066,6 +1091,30 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
 
     if (f != NULL && f->protoctx != NULL)
         StreamTcpReassembleTriggerRawReassembly(f->protoctx);
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterCounters(uint8_t ipproto, AppProto alproto,
+                                    ThreadVars *tv)
+{
+    SCEnter();
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    if (alp_ctx.ctxs[ipproto_map][alproto].RegisterCounters != NULL)
+        alp_ctx.ctxs[ipproto_map][alproto].RegisterCounters(tv);
+
+    SCReturn;
+}
+
+void AppLayerParserIncFlowCounter(uint8_t ipproto, AppProto alproto,
+                                  ThreadVars *tv)
+{
+    SCEnter();
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    if (alp_ctx.ctxs[ipproto_map][alproto].IncFlowCounter != NULL)
+        alp_ctx.ctxs[ipproto_map][alproto].IncFlowCounter(tv);
 
     SCReturn;
 }
