@@ -516,7 +516,7 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 }
 
 /**
- *  \brief Set the need md5 flag in the sgh.
+ *  \brief Set the need file magic flag in the sgh.
  *
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the flag in
@@ -608,12 +608,12 @@ void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 }
 
 /**
- *  \brief Set the need magic flag in the sgh.
+ *  \brief Set the need hash flag in the sgh.
  *
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the flag in
  */
-void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
+void SigGroupHeadSetFileHashFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
     Signature *s = NULL;
     uint32_t sig = 0;
@@ -629,6 +629,18 @@ void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (SignatureIsFileMd5Inspecting(s)) {
             sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMD5;
             SCLogDebug("sgh %p has filemd5", sgh);
+            break;
+        }
+
+        if (SignatureIsFileSha1Inspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILESHA1;
+            SCLogDebug("sgh %p has filesha1", sgh);
+            break;
+        }
+
+        if (SignatureIsFileSha256Inspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILESHA256;
+            SCLogDebug("sgh %p has filesha256", sgh);
             break;
         }
     }

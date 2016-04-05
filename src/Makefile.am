@@ -133,7 +133,7 @@ detect-fast-pattern.c detect-fast-pattern.h \
 detect-file-data.c detect-file-data.h \
 detect-fileext.c detect-fileext.h \
 detect-filemagic.c detect-filemagic.h \
-detect-filemd5.c detect-filemd5.h \
+detect-filehash.c detect-filehash.h \
 detect-filename.c detect-filename.h \
 detect-filesize.c detect-filesize.h \
 detect-filestore.c detect-filestore.h \

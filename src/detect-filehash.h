@@ -19,19 +19,20 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Duarte Silva <duarte.silva@serializing.me>
  */
 
-#ifndef __DETECT_FILEMD5_H__
-#define __DETECT_FILEMD5_H__
+#ifndef __DETECT_FILEHASH_H__
+#define __DETECT_FILEHASH_H__
 
 #include "util-rohash.h"
 
-typedef struct DetectFileMd5Data {
+typedef struct DetectFileHashData {
     ROHashTable *hash;
     int negated;
-} DetectFileMd5Data;
+} DetectFileHashData;
 
 /* prototypes */
-void DetectFileMd5Register (void);
+void DetectFileHashRegister (void);
 
-#endif /* __DETECT_FILEMD5_H__ */
+#endif /* __DETECT_FILEHASH_H__ */
