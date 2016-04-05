@@ -134,6 +134,10 @@ typedef struct LogDnsLogThread_ {
 
 static int DNSRRTypeEnabled(uint16_t type, uint32_t flags)
 {
+    if (likely(flags == (uint32_t)~0)) {
+        return 1;
+    }
+
     switch (type) {
         case DNS_RECORD_TYPE_A:
             return ((flags & LOG_A) != 0) ? 1 : 0;
@@ -477,27 +481,8 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
-
-    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
-    if (unlikely(dnslog_ctx == NULL)) {
-        return NULL;
-    }
-    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
-
-    dnslog_ctx->file_ctx = ajt->file_ctx;
-
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
-        SCFree(dnslog_ctx);
-        return NULL;
-    }
-
-    output_ctx->data = dnslog_ctx;
-    output_ctx->DeInit = LogDnsLogDeInitCtxSub;
-
     dnslog_ctx->flags = (uint32_t)~0;
 
     if (conf) {
@@ -539,6 +524,30 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
             }
         }
     }
+}
+
+static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
+{
+    OutputJsonCtx *ojc = parent_ctx->data;
+
+    LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
+    if (unlikely(dnslog_ctx == NULL)) {
+        return NULL;
+    }
+    memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
+
+    dnslog_ctx->file_ctx = ojc->file_ctx;
+
+    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    if (unlikely(output_ctx == NULL)) {
+        SCFree(dnslog_ctx);
+        return NULL;
+    }
+
+    output_ctx->data = dnslog_ctx;
+    output_ctx->DeInit = LogDnsLogDeInitCtxSub;
+
+    JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log sub-module initialized");
 
@@ -585,6 +594,8 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log output initialized");
 
