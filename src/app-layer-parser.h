@@ -146,6 +146,8 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
+void AppLayerParserRegisterCountersFunc(uint8_t ipproto, AppProto alproto,
+        void (*RegisterCounters)(ThreadVars *tv));
 
 /***** Get and transaction functions *****/
 
@@ -184,6 +186,7 @@ int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto);
 int AppLayerParserHasTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate);
 DetectEngineState *AppLayerParserGetTxDetectState(uint8_t ipproto, AppProto alproto, void *tx);
 int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alstate, void *tx, DetectEngineState *s);
+void AppLayerParserRegisterCounters(uint8_t ipproto, AppProto alproto, ThreadVars *tv);
 
 /***** General *****/
 
