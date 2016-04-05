@@ -273,4 +273,10 @@ int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_
     return 1;
 }
 
+int LuaPushInteger(lua_State *luastate, lua_Integer n)
+{
+    lua_pushinteger(luastate, n);
+    return 1;
+}
+
 #endif /* HAVE_LUA */
