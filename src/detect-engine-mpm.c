@@ -895,6 +895,9 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
     }
 
     ms->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx, ms->sgh_mpm_context, dir);
+    if (ms->mpm_ctx == NULL)
+        return;
+
     MpmInitCtx(ms->mpm_ctx, de_ctx->mpm_matcher);
 
     /* add the patterns */
@@ -937,15 +940,13 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
         }
     }
 
-    if (ms->mpm_ctx != NULL) {
-        if (ms->mpm_ctx->pattern_cnt == 0) {
-            MpmFactoryReClaimMpmCtx(de_ctx, ms->mpm_ctx);
-            ms->mpm_ctx = NULL;
-        } else {
-            if (ms->sgh_mpm_context == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
-                if (mpm_table[ms->mpm_ctx->mpm_type].Prepare != NULL) {
-                    mpm_table[ms->mpm_ctx->mpm_type].Prepare(ms->mpm_ctx);
-                }
+    if (ms->mpm_ctx->pattern_cnt == 0) {
+        MpmFactoryReClaimMpmCtx(de_ctx, ms->mpm_ctx);
+        ms->mpm_ctx = NULL;
+    } else {
+        if (ms->sgh_mpm_context == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+            if (mpm_table[ms->mpm_ctx->mpm_type].Prepare != NULL) {
+                mpm_table[ms->mpm_ctx->mpm_type].Prepare(ms->mpm_ctx);
             }
         }
     }
