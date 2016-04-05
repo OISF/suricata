@@ -697,13 +697,17 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         return 0;
     }
 
-    sgh->non_mpm_other_store_array = SCMalloc(non_mpm * sizeof(SignatureNonMpmStore));
-    BUG_ON(sgh->non_mpm_other_store_array == NULL);
-    memset(sgh->non_mpm_other_store_array, 0, non_mpm * sizeof(SignatureNonMpmStore));
+    if (non_mpm > 0) {
+        sgh->non_mpm_other_store_array = SCMalloc(non_mpm * sizeof(SignatureNonMpmStore));
+        BUG_ON(sgh->non_mpm_other_store_array == NULL);
+        memset(sgh->non_mpm_other_store_array, 0, non_mpm * sizeof(SignatureNonMpmStore));
+    }
 
-    sgh->non_mpm_syn_store_array = SCMalloc(non_mpm_syn * sizeof(SignatureNonMpmStore));
-    BUG_ON(sgh->non_mpm_syn_store_array == NULL);
-    memset(sgh->non_mpm_syn_store_array, 0, non_mpm_syn * sizeof(SignatureNonMpmStore));
+    if (non_mpm_syn > 0) {
+        sgh->non_mpm_syn_store_array = SCMalloc(non_mpm_syn * sizeof(SignatureNonMpmStore));
+        BUG_ON(sgh->non_mpm_syn_store_array == NULL);
+        memset(sgh->non_mpm_syn_store_array, 0, non_mpm_syn * sizeof(SignatureNonMpmStore));
+    }
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
@@ -713,12 +717,14 @@ int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
             if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
                 BUG_ON(sgh->non_mpm_other_store_cnt >= non_mpm);
+                BUG_ON(sgh->non_mpm_other_store_array == NULL);
                 sgh->non_mpm_other_store_array[sgh->non_mpm_other_store_cnt].id = s->num;
                 sgh->non_mpm_other_store_array[sgh->non_mpm_other_store_cnt].mask = s->mask;
                 sgh->non_mpm_other_store_cnt++;
             }
 
             BUG_ON(sgh->non_mpm_syn_store_cnt >= non_mpm_syn);
+            BUG_ON(sgh->non_mpm_syn_store_array == NULL);
             sgh->non_mpm_syn_store_array[sgh->non_mpm_syn_store_cnt].id = s->num;
             sgh->non_mpm_syn_store_array[sgh->non_mpm_syn_store_cnt].mask = s->mask;
             sgh->non_mpm_syn_store_cnt++;
