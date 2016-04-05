@@ -43,6 +43,7 @@
 #include "util-misc.h"
 
 #include "stream.h"
+#include "stream-tcp.h"
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
@@ -71,77 +72,63 @@ SCEnumCharMap modbus_decoder_event_table[ ] = {
     { NULL,                         -1 },
 };
 
-/* Modbus Application Data Unit (ADU) length range. */
-#define MODBUS_MIN_ADU_LEN  2
-#define MODBUS_MAX_ADU_LEN  254
+SCEnumCharMap modbus_function_name_table[ ] = {
+    { "none", MODBUS_FUNC_NONE },
+    { "readcoils", MODBUS_FUNC_READCOILS },
+    { "readdiscinputs", MODBUS_FUNC_READDISCINPUTS },
+    { "readholdregs", MODBUS_FUNC_READHOLDREGS },
+    { "readinputregs", MODBUS_FUNC_READINPUTREGS },
+    { "writesinglecoil", MODBUS_FUNC_WRITESINGLECOIL },
+    { "writesinglereg", MODBUS_FUNC_WRITESINGLEREG },
+    { "readexcstatus", MODBUS_FUNC_READEXCSTATUS },
+    { "diagnostic", MODBUS_FUNC_DIAGNOSTIC },
+    { "getcomevtcounter", MODBUS_FUNC_GETCOMEVTCOUNTER },
+    { "getcomevtlog", MODBUS_FUNC_GETCOMEVTLOG },
+    { "writemultcoils", MODBUS_FUNC_WRITEMULTCOILS },
+    { "writemultregs", MODBUS_FUNC_WRITEMULTREGS },
+    { "reportserverid", MODBUS_FUNC_REPORTSERVERID },
+    { "readfilerecord", MODBUS_FUNC_READFILERECORD },
+    { "writefilerecord", MODBUS_FUNC_WRITEFILERECORD },
+    { "maskwritereg", MODBUS_FUNC_MASKWRITEREG },
+    { "readwritemultregs", MODBUS_FUNC_READWRITEMULTREGS },
+    { "readfifoqueue", MODBUS_FUNC_READFIFOQUEUE },
+    { "encapinttrans", MODBUS_FUNC_ENCAPINTTRANS },
+    { "mask", MODBUS_FUNC_MASK },
+    { "errormask", MODBUS_FUNC_ERRORMASK },
+    { NULL, -1 }
+};
 
-/* Modbus Protocol version. */
-#define MODBUS_PROTOCOL_VER 0
+SCEnumCharMap modbus_subfunction_name_table[ ] = {
+    { "query_data", MODBUS_SUBFUNC_QUERY_DATA },
+    { "restart_com", MODBUS_SUBFUNC_RESTART_COM },
+    { "diag_regs", MODBUS_SUBFUNC_DIAG_REGS },
+    { "change_delimiter", MODBUS_SUBFUNC_CHANGE_DELIMITER },
+    { "listen_mode", MODBUS_SUBFUNC_LISTEN_MODE },
+    { "clear_regs", MODBUS_SUBFUNC_CLEAR_REGS },
+    { "bus_msg_count", MODBUS_SUBFUNC_BUS_MSG_COUNT },
+    { "com_err_count", MODBUS_SUBFUNC_COM_ERR_COUNT },
+    { "except_err_count", MODBUS_SUBFUNC_EXCEPT_ERR_COUNT },
+    { "server_msg_count", MODBUS_SUBFUNC_SERVER_MSG_COUNT },
+    { "server_no_rsp_count", MODBUS_SUBFUNC_SERVER_NO_RSP_COUNT },
+    { "server_nak_count", MODBUS_SUBFUNC_SERVER_NAK_COUNT },
+    { "server_busy_count", MODBUS_SUBFUNC_SERVER_BUSY_COUNT },
+    { "server_char_count", MODBUS_SUBFUNC_SERVER_CHAR_COUNT },
+    { "clear_count", MODBUS_SUBFUNC_CLEAR_COUNT },
+    { NULL, -1 }
+};
 
-/* Modbus Unit Identifier range. */
-#define MODBUS_MIN_INVALID_UNIT_ID  247
-#define MODBUS_MAX_INVALID_UNIT_ID  255
-
-/* Modbus Quantity range. */
-#define MODBUS_MIN_QUANTITY                 0
-#define MODBUS_MAX_QUANTITY_IN_BIT_ACCESS   2000
-#define MODBUS_MAX_QUANTITY_IN_WORD_ACCESS  125
-
-/* Modbus Count range. */
-#define MODBUS_MIN_COUNT    1
-#define MODBUS_MAX_COUNT    250
-
-/* Modbus Function Code. */
-#define MODBUS_FUNC_NONE                0x00
-#define MODBUS_FUNC_READCOILS           0x01
-#define MODBUS_FUNC_READDISCINPUTS      0x02
-#define MODBUS_FUNC_READHOLDREGS        0x03
-#define MODBUS_FUNC_READINPUTREGS       0x04
-#define MODBUS_FUNC_WRITESINGLECOIL     0x05
-#define MODBUS_FUNC_WRITESINGLEREG      0x06
-#define MODBUS_FUNC_READEXCSTATUS       0x07
-#define MODBUS_FUNC_DIAGNOSTIC          0x08
-#define MODBUS_FUNC_GETCOMEVTCOUNTER    0x0b
-#define MODBUS_FUNC_GETCOMEVTLOG        0x0c
-#define MODBUS_FUNC_WRITEMULTCOILS      0x0f
-#define MODBUS_FUNC_WRITEMULTREGS       0x10
-#define MODBUS_FUNC_REPORTSERVERID      0x11
-#define MODBUS_FUNC_READFILERECORD      0x14
-#define MODBUS_FUNC_WRITEFILERECORD     0x15
-#define MODBUS_FUNC_MASKWRITEREG        0x16
-#define MODBUS_FUNC_READWRITEMULTREGS   0x17
-#define MODBUS_FUNC_READFIFOQUEUE       0x18
-#define MODBUS_FUNC_ENCAPINTTRANS       0x2b
-#define MODBUS_FUNC_MASK                0x7f
-#define MODBUS_FUNC_ERRORMASK           0x80
-
-/* Modbus Diagnostic functions: Subfunction Code. */
-#define MODBUS_SUBFUNC_QUERY_DATA           0x00
-#define MODBUS_SUBFUNC_RESTART_COM          0x01
-#define MODBUS_SUBFUNC_DIAG_REGS            0x02
-#define MODBUS_SUBFUNC_CHANGE_DELIMITER     0x03
-#define MODBUS_SUBFUNC_LISTEN_MODE          0x04
-#define MODBUS_SUBFUNC_CLEAR_REGS           0x0a
-#define MODBUS_SUBFUNC_BUS_MSG_COUNT        0x0b
-#define MODBUS_SUBFUNC_COM_ERR_COUNT        0x0c
-#define MODBUS_SUBFUNC_EXCEPT_ERR_COUNT     0x0d
-#define MODBUS_SUBFUNC_SERVER_MSG_COUNT     0x0e
-#define MODBUS_SUBFUNC_SERVER_NO_RSP_COUNT  0x0f
-#define MODBUS_SUBFUNC_SERVER_NAK_COUNT     0x10
-#define MODBUS_SUBFUNC_SERVER_BUSY_COUNT    0x11
-#define MODBUS_SUBFUNC_SERVER_CHAR_COUNT    0x12
-#define MODBUS_SUBFUNC_CLEAR_COUNT          0x14
-
-/* Modbus Encapsulated Interface Transport function: MEI type. */
-#define MODBUS_MEI_ENCAPINTTRANS_CAN   0x0d
-#define MODBUS_MEI_ENCAPINTTRANS_READ  0x0e
-
-/* Modbus Exception Codes. */
-#define MODBUS_ERROR_CODE_ILLEGAL_FUNCTION      0x01
-#define MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS  0x02
-#define MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE    0x03
-#define MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE 0x04
-#define MODBUS_ERROR_CODE_MEMORY_PARITY_ERROR   0x08
+SCEnumCharMap modbus_exception_name_table[ ] = {
+    { "illegal_function", MODBUS_ERROR_CODE_ILLEGAL_FUNCTION },
+    { "illegal_data_address", MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS },
+    { "illegal_data_value", MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE },
+    { "server_device_failure", MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE },
+    { "acknowledge", MODBUS_ERROR_CODE_ACKNOWLEDGE },
+    { "server_device_busy", MODBUS_ERROR_CODE_SERVER_DEVICE_BUSY },
+    { "memory_parity_error", MODBUS_ERROR_CODE_MEMORY_PARITY_ERROR },
+    { "gateway_path_unavailable", MODBUS_ERROR_CODE_GATEWAY_PATH_UNAVAILABLE },
+    { "gateway_fail_to_respond", MODBUS_ERROR_CODE_GATEWAY_FAIL_TO_RESPOND },
+    { NULL, -1 },
+};
 
 /* Modbus Application Protocol (MBAP) header. */
 struct ModbusHeader_ {
@@ -212,6 +199,7 @@ int ModbusHasEvents(void *state) {
 int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
     ModbusTransaction   *tx     = (ModbusTransaction *) modbus_tx;
     ModbusState         *modbus = tx->modbus;
+    ModbusTransaction   *ntx    = NULL;
 
     if (tx->replied == 1)
         return 1;
@@ -220,6 +208,15 @@ int ModbusGetAlstateProgress(void *modbus_tx, uint8_t direction) {
     if ((modbus->givenup == 1)  &&
         ((modbus->transaction_max - tx->tx_num) > request_flood))
         return 1;
+
+    /* Check if we have a hole: next transaction is over but this one not.
+     * Stream did continue but we miss an answer so we won't see the answer
+     * and we can assume the current transaction is done.
+     */
+    ntx = TAILQ_NEXT(tx, next);
+    if (ntx && (ntx->replied == 1)) {
+        return 1;
+    }
 
     return 0;
 }
@@ -380,6 +377,21 @@ void ModbusStateTxFree(void *state, uint64_t tx_id) {
     SCReturn;
 }
 
+const char * ModbusGetFunctionName(uint8_t function)
+{
+    return SCMapEnumValueToName(function, modbus_function_name_table);
+}
+
+const char * ModbusGetSubFunctionName(uint8_t function)
+{
+    return SCMapEnumValueToName(function, modbus_subfunction_name_table);
+}
+
+const char * ModbusGetExceptionName(uint8_t exception)
+{
+    return SCMapEnumValueToName(exception, modbus_exception_name_table);
+}
+
 /** \internal
  *  \brief Extract 8bits data from pointer the received input data
  *
@@ -490,22 +502,21 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t exception = 0;
 
     /* Exception code (1 byte) */
-    if (ModbusExtractUint8(modbus, &exception, input, input_len, offset))
+    if (ModbusExtractUint8(modbus, &tx->exception, input, input_len, offset))
         SCReturn;
 
-    switch (exception) {
+    switch (tx->exception) {
         case MODBUS_ERROR_CODE_ILLEGAL_FUNCTION:
         case MODBUS_ERROR_CODE_SERVER_DEVICE_FAILURE:
+        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
             break;
         case MODBUS_ERROR_CODE_ILLEGAL_DATA_VALUE:
             if (tx->function == MODBUS_FUNC_DIAGNOSTIC) {
                 break;
             }
             /* Fallthrough */
-        case MODBUS_ERROR_CODE_ILLEGAL_DATA_ADDRESS:
             if (    (tx->type & MODBUS_TYP_ACCESS_FUNCTION_MASK)    ||
                     (tx->function == MODBUS_FUNC_READFIFOQUEUE)     ||
                     (tx->function == MODBUS_FUNC_ENCAPINTTRANS)) {
@@ -518,6 +529,12 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                 break;
             }
             /* Fallthrough */
+        case MODBUS_ERROR_CODE_ACKNOWLEDGE:
+        case MODBUS_ERROR_CODE_SERVER_DEVICE_BUSY:
+        case MODBUS_ERROR_CODE_GATEWAY_PATH_UNAVAILABLE:
+        case MODBUS_ERROR_CODE_GATEWAY_FAIL_TO_RESPOND:
+            if (tx->category != MODBUS_CAT_PUBLIC_ASSIGNED)
+                break;
         default:
             ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_INVALID_EXCEPTION_CODE);
             break;
@@ -613,6 +630,11 @@ static void ModbusParseReadResponse(ModbusTransaction   *tx,
                 (count > MODBUS_MAX_COUNT)          ||
                 (count != (2 * (tx->read.quantity))))
             goto error;
+    }
+
+    tx->data = SCMalloc(count);
+    if (tx->data) {
+        memcpy(tx->data, input + *offset, count);
     }
 
     /* Except from Read/Write Multiple Registers function (code 23)         */
@@ -1318,8 +1340,13 @@ static int ModbusParseResponse(Flow                 *f,
             if (tx == NULL)
                 SCReturnInt(0);
 
-            SCLogDebug("MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE");
-            ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE);
+            /* check that midstream is enable and that we are at start of flow */
+            if (StreamTcpMidstreamIsEnabled() && (f->data_al_so_far[0] == 0)) {
+                AppLayerParserManualSetTransactionInspectId(pstate, header.transactionId + 1, 0);
+            } else {
+                SCLogDebug("MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE");
+                ModbusSetEvent(modbus, MODBUS_DECODER_EVENT_UNSOLICITED_RESPONSE);
+            }
         } else {
             /* Store PDU length */
             tx->length = header.length;

@@ -315,7 +315,7 @@ static AppLayerProtoDetectProbingParserPort *AppLayerProtoDetectGetProbingParser
  * lead to a PP, we try the sp.
  *
  */
-static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
+static AppProto AppLayerProtoDetectPPGetProto(Flow *f, Packet *p,
                                               uint8_t *buf, uint32_t buflen,
                                               uint8_t ipproto, uint8_t direction)
 {
@@ -347,7 +347,9 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
             SCLogDebug("toserver - Probing parser found for source port %"PRIu16, f->sp);
 
             /* found based on source port, so use sp registration */
-            pe2 = pp_port_sp->sp;
+            pe2 = pp_port_sp->dp;
+            StreamTcpPacketSwitchDir(NULL, p);
+            f->flags |= FLOW_ALPROTO_REVERTED;
         } else {
             SCLogDebug("toserver - No probing parser registered for source port %"PRIu16,
                     f->sp);
@@ -358,7 +360,7 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         alproto_masks = &f->probing_parser_toclient_alproto_masks;
         if (pp_port_dp != NULL) {
             SCLogDebug("toclient - Probing parser found for destination port %"PRIu16, f->dp);
-
+ 
             /* found based on destination port, so use dp registration */
             pe1 = pp_port_dp->dp;
         } else {
@@ -370,7 +372,10 @@ static AppProto AppLayerProtoDetectPPGetProto(Flow *f,
         if (pp_port_sp != NULL) {
             SCLogDebug("toclient - Probing parser found for source port %"PRIu16, f->sp);
 
-            pe2 = pp_port_sp->sp;
+            /* found based on source port, so use sp registration */
+            pe2 = pp_port_sp->dp;
+            StreamTcpPacketSwitchDir(NULL, p);
+            f->flags |= FLOW_ALPROTO_REVERTED;
         } else {
             SCLogDebug("toclient - No probing parser registered for source port %"PRIu16,
                         f->sp);
@@ -1275,7 +1280,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
 /***** Protocol Retrieval *****/
 
 AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
-                                     Flow *f,
+                                     Flow *f, Packet *p,
                                      uint8_t *buf, uint32_t buflen,
                                      uint8_t ipproto, uint8_t direction)
 {
@@ -1298,7 +1303,7 @@ AppProto AppLayerProtoDetectGetProto(AppLayerProtoDetectThreadCtx *tctx,
     }
 
     if (!FLOW_IS_PP_DONE(f, direction))
-        alproto = AppLayerProtoDetectPPGetProto(f, buf, buflen, ipproto, direction);
+        alproto = AppLayerProtoDetectPPGetProto(f, p, buf, buflen, ipproto, direction);
 
  end:
     SCReturnCT(alproto, "AppProto");

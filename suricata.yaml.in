@@ -117,6 +117,8 @@ outputs:
       #    enabled: yes ## set enable to yes to enable query pipelining
       #    batch-size: 10 ## number of entry to keep in buffer
       types:
+        - modbus:
+            array-as-dict: yes       # log values as an integer indexed dict (ELK compliant)
         - alert:
             # payload: yes           # enable dumping payload in Base64
             # payload-printable: yes # enable dumping payload in printable (lossy) format
@@ -125,6 +127,7 @@ outputs:
             # tls: yes               # enable dumping of tls fields
             # ssh: yes               # enable dumping of ssh fields
             # smtp: yes              # enable dumping of smtp fields
+            # modbus: yes            # enable dumping of modbus fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)

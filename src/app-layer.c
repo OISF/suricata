@@ -141,7 +141,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
         PACKET_PROFILING_APP_PD_START(app_tctx);
         *alproto = AppLayerProtoDetectGetProto(app_tctx->alpd_tctx,
-                                f,
+                                f, p,
                                 data, data_len,
                                 IPPROTO_TCP, flags);
         PACKET_PROFILING_APP_PD_END(app_tctx);
@@ -492,7 +492,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         PACKET_PROFILING_APP_PD_START(tctx);
         f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
-                                  f,
+                                  f, p,
                                   p->payload, p->payload_len,
                                   IPPROTO_UDP, flags);
         PACKET_PROFILING_APP_PD_END(tctx);

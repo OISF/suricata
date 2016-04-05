@@ -546,6 +546,13 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
+void AppLayerParserManualSetTransactionInspectId(AppLayerParserState *pstate,
+                                                 const uint32_t tx_id,
+                                                 const uint8_t flags)
+{
+    pstate->inspect_id[0] = tx_id;
+}
+
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                            const uint8_t ipproto, const AppProto alproto,
                                            void *alstate, const uint8_t flags)
@@ -905,7 +912,13 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        int dir;
+        if (f->flags & FLOW_ALPROTO_REVERTED) {
+            dir = (flags & STREAM_TOSERVER) ? 1 : 0;
+        } else {
+            dir = (flags & STREAM_TOSERVER) ? 0 : 1;
+        }
+        if (p->Parser[dir](f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto]) < 0)
         {
