@@ -651,6 +651,20 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
 }
 
+void AppLayerRegisterCounters(ThreadVars *tv, uint8_t ipproto)
+{
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        if (alprotos[alproto] == 1) {
+            AppLayerParserRegisterCounters(ipproto, alproto, tv);
+        }
+    }
+}
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS
