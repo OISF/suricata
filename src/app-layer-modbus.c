@@ -165,6 +165,22 @@ typedef struct ModbusHeader_ ModbusHeader;
 
 static uint32_t request_flood = MODBUS_CONFIG_DEFAULT_REQUEST_FLOOD;
 
+static uint16_t modbus_tx_cnt = 0;
+
+static void ModbusRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        modbus_tx_cnt = StatsRegisterCounter("app-layer.tx.modbus", tv);
+    }
+}
+
+static void ModbusIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, modbus_tx_cnt);
+    }
+}
+
 int ModbusStateGetEventInfo(const char *event_name, int *event_id, AppLayerEventType *event_type) {
     *event_id = SCMapEnumNameToValue(event_name, modbus_decoder_event_table);
 
@@ -1267,6 +1283,7 @@ static int ModbusParseRequest(ThreadVars            *tv,
         input_len   -= adu_len;
     }
 
+    ModbusIncTxCounter(tv);
     SCReturnInt(1);
 }
 
@@ -1482,6 +1499,8 @@ void RegisterModbusParsers(void)
         AppLayerParserRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateGetEventInfo);
 
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_MODBUS,
+                                           ModbusRegisterCounters);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection" "still on.", proto_name);
     }

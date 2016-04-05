@@ -165,6 +165,22 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
 
+static uint16_t htp_tx_cnt = 0;
+
+static void HTPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        htp_tx_cnt = StatsRegisterCounter("app-layer.tx.htp", tv);
+    }
+}
+
+static void HTPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, htp_tx_cnt);
+    }
+}
+
 #ifdef DEBUG
 /**
  * \internal
@@ -779,6 +795,7 @@ static int HTPHandleRequestData(ThreadVars *tv, Flow *f, void *htp_state,
         SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
 
+    HTPIncTxCounter(tv);
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
 
@@ -2786,6 +2803,8 @@ void RegisterHTPParsers(void)
                                      HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_HTTP,
+                                           HTPRegisterCounters);
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
