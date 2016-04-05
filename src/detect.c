@@ -3798,10 +3798,10 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx, DetectPort *port_list, Detect
 
         if (tmplist2 == NULL) {
             tmplist2 = joingr;
-            tmplist2_tail = joingr;
+            //tmplist2_tail = joingr;
         } else {
             tmplist2_tail->next = joingr;
-            tmplist2_tail = joingr;
+            //tmplist2_tail = joingr;
         }
     } else {
         SCLogDebug("no joingr");
