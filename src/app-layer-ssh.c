@@ -52,6 +52,31 @@
 #include "util-byte.h"
 #include "util-memcmp.h"
 
+static uint16_t ssh_tx_cnt = 0;
+static uint16_t ssh_flow_cnt = 0;
+
+static void SSHRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        ssh_tx_cnt = StatsRegisterCounter("app-layer.tx.ssh", tv);
+        ssh_flow_cnt = StatsRegisterCounter("app-layer.flow.ssh", tv);
+    }
+}
+
+static void SSHIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssh_tx_cnt);
+    }
+}
+
+static void SSHIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssh_flow_cnt);
+    }
+}
+
 /** \internal
  *  \brief Function to parse the SSH version string of the client
  *
@@ -462,6 +487,7 @@ static int SSHParseResponse(ThreadVars *tv, Flow *f, void *state,
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
     }
 
+    SSHIncTxCounter(tv);
     SCReturnInt(r);
 }
 
@@ -534,6 +560,10 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_SSH,
+                                           SSHRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_SSH,
+                                             SSHIncFlowCounter);
     } else {
 //        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
 //                  "still on.", proto_name);

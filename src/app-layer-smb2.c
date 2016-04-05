@@ -57,6 +57,31 @@ enum {
     SMB_FIELD_MAX,
 };
 
+static uint16_t smb2_tx_cnt = 0;
+static uint16_t smb2_flow_cnt = 0;
+
+static void SMB2RegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        smb2_tx_cnt = StatsRegisterCounter("app-layer.tx.smb2", tv);
+        smb2_flow_cnt = StatsRegisterCounter("app-layer.flow.smb2", tv);
+    }
+}
+
+static void SMB2IncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smb2_tx_cnt);
+    }
+}
+
+static void SMB2IncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smb2_flow_cnt);
+    }
+}
+
 static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len)
 {
@@ -520,7 +545,8 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
+static int SMB2Parse(Flow *f, void *smb2_state,
+                     AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
                      void *local_data)
 {
@@ -575,7 +601,22 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
     SCReturnInt(1);
 }
 
+static int SMB2ParseRequest(ThreadVars *tv, Flow *f, void *smb2_state,
+                            AppLayerParserState *pstate,
+                            uint8_t *input, uint32_t input_len,
+                            void *local_data)
+{
+    SMB2IncTxCounter(tv);
+    return SMB2Parse(f, smb2_state, pstate, input, input_len, local_data);
+}
 
+static int SMB2ParseResponse(ThreadVars *tv, Flow *f, void *smb2_state,
+                             AppLayerParserState *pstate,
+                             uint8_t *input, uint32_t input_len,
+                             void *local_data)
+{
+    return SMB2Parse(f, smb2_state, pstate, input, input_len, local_data);
+}
 static void *SMB2StateAlloc(void)
 {
     void *s = SCMalloc(sizeof(SMB2State));
@@ -600,9 +641,11 @@ void RegisterSMB2Parsers(void)
     char *proto_name = "smb2";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2ParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2ParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_SMB2, SMB2RegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_SMB2, SMB2IncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

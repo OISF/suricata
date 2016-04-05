@@ -50,6 +50,31 @@
 #include "util-debug.h"
 #include "util-memcmp.h"
 
+static uint16_t ftp_tx_cnt = 0;
+static uint16_t ftp_flow_cnt = 0;
+
+static void FTPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        ftp_tx_cnt = StatsRegisterCounter("app-layer.tx.ftp", tv);
+        ftp_flow_cnt = StatsRegisterCounter("app-layer.flow.ftp", tv);
+    }
+}
+
+static void FTPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ftp_tx_cnt);
+    }
+}
+
+static void FTPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ftp_flow_cnt);
+    }
+}
+
 static int FTPGetLineForDirection(FtpState *state, FtpLineState *line_state)
 {
     void *ptmp;
@@ -252,6 +277,7 @@ static int FTPParseRequest(ThreadVars *tv, Flow *f, void *ftp_state,
         }
     }
 
+    FTPIncTxCounter(tv);
     return 1;
 }
 
@@ -352,6 +378,10 @@ void RegisterFTPParsers(void)
                                      FTPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_FTP, FTPStateAlloc, FTPStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_FTP, STREAM_TOSERVER | STREAM_TOCLIENT);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_FTP,
+                                           FTPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_FTP,
+                                             FTPIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

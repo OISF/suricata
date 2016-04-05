@@ -230,6 +230,31 @@ SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0};
 
 static SMTPString *SMTPStringAlloc(void);
 
+static uint16_t smtp_tx_cnt = 0;
+static uint16_t smtp_flow_cnt = 0;
+
+static void SMTPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        smtp_tx_cnt = StatsRegisterCounter("app-layer.tx.smtp", tv);
+        smtp_flow_cnt = StatsRegisterCounter("app-layer.flow.smtp", tv);
+    }
+}
+
+static void SMTPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smtp_tx_cnt);
+    }
+}
+
+static void SMTPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smtp_flow_cnt);
+    }
+}
+
 /**
  * \brief Configure SMTP Mime Decoder by parsing out mime section of YAML
  * config file
@@ -1231,7 +1256,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     }
 }
 
-static int SMTPParse(int direction, Flow *f, SMTPState *state,
+static int SMTPParse(ThreadVars *tv, int direction, Flow *f,
+                     SMTPState *state,
                      AppLayerParserState *pstate, uint8_t *input,
                      uint32_t input_len,
                      PatternMatcherQueue *local_data)
@@ -1249,6 +1275,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     state->direction = direction;
     state->thread_local_data = local_data;
 
+    SMTPIncTxCounter(tv);
     /* toserver */
     if (direction == 0) {
         while (SMTPGetLine(state) >= 0) {
@@ -1275,7 +1302,7 @@ static int SMTPParseClientRecord(ThreadVars *tv, Flow *f, void *alstate,
     SCEnter();
 
     /* first arg 0 is toserver */
-    return SMTPParse(0, f, alstate, pstate, input, input_len, local_data);
+    return SMTPParse(tv, 0, f, alstate, pstate, input, input_len, local_data);
 }
 
 static int SMTPParseServerRecord(ThreadVars *tv, Flow *f, void *alstate,
@@ -1286,7 +1313,7 @@ static int SMTPParseServerRecord(ThreadVars *tv, Flow *f, void *alstate,
     SCEnter();
 
     /* first arg 1 is toclient */
-    return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
+    return SMTPParse(tv, 1, f, alstate, pstate, input, input_len, local_data);
 
     return 0;
 }
@@ -1639,6 +1666,10 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_SMTP,
+                                     SMTPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_SMTP,
+                                       SMTPIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

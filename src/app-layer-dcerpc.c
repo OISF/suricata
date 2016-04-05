@@ -79,6 +79,31 @@ enum {
 
 void DCERPCUuidListFree(DCERPCUuidEntryList *list);
 
+static uint16_t dcerpc_tx_cnt = 0;
+static uint16_t dcerpc_flow_cnt = 0;
+
+static void DCERPCRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        dcerpc_tx_cnt = StatsRegisterCounter("app-layer.tx.dcerpc_tcp", tv);
+        dcerpc_flow_cnt = StatsRegisterCounter("app-layer.flow.dcerpc_tcp", tv);
+    }
+}
+
+static void DCERPCIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_tx_cnt);
+    }
+}
+
+static void DCERPCIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_flow_cnt);
+    }
+}
+
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(/*Flow *f,*/ const void *buf, size_t len)
 {
@@ -1924,6 +1949,7 @@ static int DCERPCParseRequest(ThreadVars *tv, Flow *f, void *dcerpc_state,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
+    DCERPCIncTxCounter(tv);
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,
                        local_data, 0);
 }
@@ -2033,6 +2059,10 @@ void RegisterDCERPCParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCStateAlloc,
                                          DCERPCStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_DCERPC, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_DCERPC,
+                                           DCERPCRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_DCERPC,
+                                             DCERPCIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

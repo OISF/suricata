@@ -50,6 +50,31 @@
 
 #include "app-layer-dns-udp.h"
 
+static uint16_t dns_udp_tx_cnt = 0;
+static uint16_t dns_udp_flow_cnt = 0;
+
+static void DNSUDPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        dns_udp_tx_cnt = StatsRegisterCounter("app-layer.tx.dns_udp", tv);
+        dns_udp_flow_cnt = StatsRegisterCounter("app-layer.flow.dns_udp", tv);
+    }
+}
+
+static void DNSUDPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dns_udp_tx_cnt);
+    }
+}
+
+static void DNSUDPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dns_udp_flow_cnt);
+    }
+}
+
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -202,6 +227,8 @@ static int DNSUDPResponseParse(ThreadVars *tv, Flow *f, void *dstate,
         goto bad_data;
 
     SCLogDebug("queries %04x", ntohs(dns_header->questions));
+
+    DNSUDPIncTxCounter(tv);
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
@@ -425,6 +452,10 @@ void RegisterDNSUDPParsers(void)
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
 
+        AppLayerParserRegisterCountersFunc(IPPROTO_UDP, ALPROTO_DNS,
+                                           DNSUDPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_UDP, ALPROTO_DNS,
+                                             DNSUDPIncFlowCounter);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
 
         DNSUDPConfigure();

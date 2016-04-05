@@ -128,6 +128,32 @@ SslConfig ssl_config;
 
 #define HAS_SPACE(n) ((uint32_t)((input) + (n) - (initial_input)) > (uint32_t)(input_len)) ?  0 : 1
 
+
+static uint16_t ssl_tx_cnt = 0;
+static uint16_t ssl_flow_cnt = 0;
+
+static void SSLRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        ssl_tx_cnt = StatsRegisterCounter("app-layer.tx.ssl", tv);
+        ssl_flow_cnt = StatsRegisterCounter("app-layer.flow.ssl", tv);
+    }
+}
+
+static void SSLIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssl_tx_cnt);
+    }
+}
+
+static void SSLIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssl_flow_cnt);
+    }
+}
+
 static void SSLParserReset(SSLState *ssl_state)
 {
     ssl_state->curr_connp->bytes_processed = 0;
@@ -1356,6 +1382,7 @@ int SSLParseServerRecord(ThreadVars *tv, Flow *f, void *alstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data)
 {
+    SSLIncTxCounter(tv);
     return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
 }
 
@@ -1638,6 +1665,10 @@ void RegisterSSLParsers(void)
 
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_TLS, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_TLS,
+                                           SSLRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_TLS,
+                                             SSLIncFlowCounter);
 
         /* Get the value of no reassembly option from the config file */
         if (ConfGetNode("app-layer.protocols.tls.no-reassemble") == NULL) {

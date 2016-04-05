@@ -62,6 +62,31 @@ enum {
     SMB_FIELD_MAX,
 };
 
+static uint16_t smb_tx_cnt = 0;
+static uint16_t smb_flow_cnt = 0;
+
+static void SMBRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        smb_tx_cnt = StatsRegisterCounter("app-layer.tx.smb", tv);
+        smb_flow_cnt = StatsRegisterCounter("app-layer.flow.smb", tv);
+    }
+}
+
+static void SMBIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smb_tx_cnt);
+    }
+}
+
+static void SMBIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, smb_flow_cnt);
+    }
+}
+
 /**
  *  \brief SMB Write AndX Request Parsing
  */
@@ -1381,6 +1406,7 @@ static int SMBParseRequest(ThreadVars *tv, Flow *f, void *smb_state, AppLayerPar
                            uint8_t *input, uint32_t input_len,
                            void *local_data)
 {
+    SMBIncTxCounter(tv);
     return SMBParse(f, smb_state, pstate, input, input_len, local_data, 0);
 }
 
@@ -1545,6 +1571,8 @@ void RegisterSMBParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOSERVER, SMBParseRequest);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_SMB, SMBRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_SMB, SMBIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
