@@ -292,8 +292,8 @@ int UtSelftestTrue(void)
 
 int UtSelftestFalse(void)
 {
-    if (0)return 1;
-    else  return 0;
+    if (0)return 0;
+    else  return 1;
 }
 #endif /* UNITTESTS */
 
@@ -312,7 +312,7 @@ int UtRunSelftest (char *regex_arg)
     UtInitialize();
 
     UtRegisterTest("true",  UtSelftestTrue,  1);
-    UtRegisterTest("false", UtSelftestFalse, 0);
+    UtRegisterTest("false", UtSelftestFalse, 1);
 
     int ret = UtRunTests(regex_arg);
     if (ret == 0)

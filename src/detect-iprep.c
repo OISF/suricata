@@ -757,7 +757,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    return result == 0;
 }
 
 static int DetectIPRepTest06(void)
@@ -819,7 +819,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    return result == 0;
 }
 
 static int DetectIPRepTest07(void)
@@ -881,7 +881,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    return result == 0;
 }
 
 static int DetectIPRepTest08(void)
@@ -944,7 +944,7 @@ end:
     DetectEngineCtxFree(de_ctx);
 
     HostShutdown();
-    return result;
+    return result == 0;
 }
 
 static int DetectIPRepTest09(void)
@@ -1021,10 +1021,10 @@ void IPRepRegisterTests(void)
     UtRegisterTest("DetectIPRepTest02", DetectIPRepTest02, 1);
     UtRegisterTest("DetectIPRepTest03", DetectIPRepTest03, 1);
     UtRegisterTest("DetectIPRepTest04", DetectIPRepTest04, 1);
-    UtRegisterTest("DetectIPRepTest05", DetectIPRepTest05, 0);
-    UtRegisterTest("DetectIPRepTest06", DetectIPRepTest06, 0);
-    UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07, 0);
-    UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08, 0);
+    UtRegisterTest("DetectIPRepTest05", DetectIPRepTest05, 1);
+    UtRegisterTest("DetectIPRepTest06", DetectIPRepTest06, 1);
+    UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07, 1);
+    UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08, 1);
     UtRegisterTest("DetectIPRepTest09", DetectIPRepTest09, 1);
 #endif /* UNITTESTS */
 }

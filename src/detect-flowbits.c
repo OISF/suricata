@@ -452,7 +452,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -574,7 +574,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -652,7 +652,7 @@ end:
 
 
     SCFree(p);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -1004,7 +1004,7 @@ static int FlowBitsTestSig07(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    return result == 0;
 end:
 
     if (de_ctx != NULL) {
@@ -1024,7 +1024,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -1113,7 +1113,7 @@ static int FlowBitsTestSig08(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    return result == 0;
 end:
 
     if (de_ctx != NULL) {
@@ -1133,7 +1133,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    return result == 0;
 }
 #endif /* UNITTESTS */
 
@@ -1144,13 +1144,13 @@ void FlowBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01, 1);
-    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 0);
-    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 0);
-    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03, 0);
+    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 1);
+    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 1);
+    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03, 1);
     UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04, 1);
     UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05, 1);
     UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06, 1);
-    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07, 0);
-    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08, 0);
+    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07, 1);
+    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08, 1);
 #endif /* UNITTESTS */
 }

@@ -310,9 +310,9 @@ int DetectIcmpSeqParseTest03 (void)
     iseq = DetectIcmpSeqParse("badc");
     if (iseq != NULL) {
         DetectIcmpSeqFree(iseq);
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 /**
@@ -383,7 +383,7 @@ void DetectIcmpSeqRegisterTests (void)
 #ifdef UNITTESTS
     UtRegisterTest("DetectIcmpSeqParseTest01", DetectIcmpSeqParseTest01, 1);
     UtRegisterTest("DetectIcmpSeqParseTest02", DetectIcmpSeqParseTest02, 1);
-    UtRegisterTest("DetectIcmpSeqParseTest03", DetectIcmpSeqParseTest03, 0);
+    UtRegisterTest("DetectIcmpSeqParseTest03", DetectIcmpSeqParseTest03, 1);
     UtRegisterTest("DetectIcmpSeqMatchTest01", DetectIcmpSeqMatchTest01, 1);
 #endif /* UNITTESTS */
 }

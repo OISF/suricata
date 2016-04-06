@@ -299,9 +299,9 @@ int DetectFragOffsetParseTest03 (void)
     fragoff = DetectFragOffsetParse("badc");
     if (fragoff != NULL) {
         DetectFragOffsetFree(fragoff);
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 /**
@@ -389,7 +389,7 @@ void DetectFragOffsetRegisterTests (void)
 #ifdef UNITTESTS
     UtRegisterTest("DetectFragOffsetParseTest01", DetectFragOffsetParseTest01, 1);
     UtRegisterTest("DetectFragOffsetParseTest02", DetectFragOffsetParseTest02, 1);
-    UtRegisterTest("DetectFragOffsetParseTest03", DetectFragOffsetParseTest03, 0);
+    UtRegisterTest("DetectFragOffsetParseTest03", DetectFragOffsetParseTest03, 1);
     UtRegisterTest("DetectFragOffsetMatchTest01", DetectFragOffsetMatchTest01, 1);
 #endif /* UNITTESTS */
 }

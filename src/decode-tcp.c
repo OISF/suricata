@@ -245,7 +245,7 @@ static int TCPCalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+    return (csum != TCPCalculateChecksum((uint16_t *) raw_ipshdr,
                                          (uint16_t *)raw_tcp, sizeof(raw_tcp)));
 }
 
@@ -291,7 +291,7 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    return (csum == TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    return (csum != TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                            (uint16_t *)(raw_ipv6 + 54), 32));
 }
 
@@ -505,11 +505,11 @@ void DecodeTCPRegisterTests(void)
     UtRegisterTest("TCPCalculateValidChecksumtest01",
                    TCPCalculateValidChecksumtest01, 1);
     UtRegisterTest("TCPCalculateInvalidChecksumtest02",
-                   TCPCalculateInvalidChecksumtest02, 0);
+                   TCPCalculateInvalidChecksumtest02, 1);
     UtRegisterTest("TCPV6CalculateValidChecksumtest03",
                    TCPV6CalculateValidChecksumtest03, 1);
     UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
-                   TCPV6CalculateInvalidChecksumtest04, 0);
+                   TCPV6CalculateInvalidChecksumtest04, 1);
     UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
     UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
     UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);

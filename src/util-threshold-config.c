@@ -1590,7 +1590,7 @@ end:
     SigGroupBuild(de_ctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -2882,7 +2882,7 @@ void SCThresholdConfRegisterTests(void)
     UtRegisterTest("SCThresholdConfTest01", SCThresholdConfTest01, 1);
     UtRegisterTest("SCThresholdConfTest02", SCThresholdConfTest02, 1);
     UtRegisterTest("SCThresholdConfTest03", SCThresholdConfTest03, 1);
-    UtRegisterTest("SCThresholdConfTest04", SCThresholdConfTest04, 0);
+    UtRegisterTest("SCThresholdConfTest04", SCThresholdConfTest04, 1);
     UtRegisterTest("SCThresholdConfTest05", SCThresholdConfTest05, 1);
     UtRegisterTest("SCThresholdConfTest06", SCThresholdConfTest06, 1);
     UtRegisterTest("SCThresholdConfTest07", SCThresholdConfTest07, 1);
