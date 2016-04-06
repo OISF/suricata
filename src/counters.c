@@ -1519,16 +1519,16 @@ static int StatsTestCounterValues11()
 void StatsRegisterTests()
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02, 1);
-    UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03, 1);
-    UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04, 1);
-    UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05, 1);
-    UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06, 1);
-    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07, 1);
-    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08, 1);
-    UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09, 1);
+    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02);
+    UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03);
+    UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04);
+    UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05);
+    UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06);
+    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07);
+    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08);
+    UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09);
     UtRegisterTest("StatsTestUpdateGlobalCounter10",
-                   StatsTestUpdateGlobalCounter10, 1);
-    UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11, 1);
+                   StatsTestUpdateGlobalCounter10);
+    UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11);
 #endif
 }

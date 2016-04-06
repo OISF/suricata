@@ -144,7 +144,7 @@ static int DecodeEthernetTest01 (void)
 void DecodeEthernetRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01, 1);
+    UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01);
 #endif /* UNITTESTS */
 }
 /**

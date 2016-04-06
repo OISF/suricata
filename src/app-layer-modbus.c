@@ -2647,17 +2647,29 @@ end:
 
 void ModbusParserRegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("ModbusParserTest01 - Modbus Read Coils request", ModbusParserTest01, 1);
-    UtRegisterTest("ModbusParserTest02 - Modbus Write Multiple registers request", ModbusParserTest02, 1);
-    UtRegisterTest("ModbusParserTest03 - Modbus Read/Write Multiple registers request", ModbusParserTest03, 1);
-    UtRegisterTest("ModbusParserTest04 - Modbus Force Listen Only Mode request", ModbusParserTest04, 1);
-    UtRegisterTest("ModbusParserTest05 - Modbus invalid Protocol version", ModbusParserTest05, 1);
-    UtRegisterTest("ModbusParserTest06 - Modbus unsolicited response", ModbusParserTest06, 1);
-    UtRegisterTest("ModbusParserTest07 - Modbus invalid Length request", ModbusParserTest07, 1);
-    UtRegisterTest("ModbusParserTest08 - Modbus Exception code invalid", ModbusParserTest08, 1);
-    UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets", ModbusParserTest09, 1);
-    UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet", ModbusParserTest10, 1);
-    UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request", ModbusParserTest11, 1);
-    UtRegisterTest("ModbusParserTest12 - Modbus invalid PDU Length", ModbusParserTest12, 1);
+    UtRegisterTest("ModbusParserTest01 - Modbus Read Coils request",
+                   ModbusParserTest01);
+    UtRegisterTest("ModbusParserTest02 - Modbus Write Multiple registers request",
+                   ModbusParserTest02);
+    UtRegisterTest("ModbusParserTest03 - Modbus Read/Write Multiple registers request",
+                   ModbusParserTest03);
+    UtRegisterTest("ModbusParserTest04 - Modbus Force Listen Only Mode request",
+                   ModbusParserTest04);
+    UtRegisterTest("ModbusParserTest05 - Modbus invalid Protocol version",
+                   ModbusParserTest05);
+    UtRegisterTest("ModbusParserTest06 - Modbus unsolicited response",
+                   ModbusParserTest06);
+    UtRegisterTest("ModbusParserTest07 - Modbus invalid Length request",
+                   ModbusParserTest07);
+    UtRegisterTest("ModbusParserTest08 - Modbus Exception code invalid",
+                   ModbusParserTest08);
+    UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets",
+                   ModbusParserTest09);
+    UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet",
+                   ModbusParserTest10);
+    UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request",
+                   ModbusParserTest11);
+    UtRegisterTest("ModbusParserTest12 - Modbus invalid PDU Length",
+                   ModbusParserTest12);
 #endif /* UNITTESTS */
 }

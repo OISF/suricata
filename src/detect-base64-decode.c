@@ -763,19 +763,17 @@ end:
 static void DetectBase64DecodeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse,
-        1);
-    UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup,
-        1);
+    UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
+    UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
     UtRegisterTest("DetectBase64DecodeHttpHeaderTestSetup",
-        DetectBase64DecodeHttpHeaderTestSetup, 1);
-    UtRegisterTest("DetectBase64DecodeTestDecode", DetectBase64DecodeTestDecode,
-        1);
+                   DetectBase64DecodeHttpHeaderTestSetup);
+    UtRegisterTest("DetectBase64DecodeTestDecode",
+                   DetectBase64DecodeTestDecode);
     UtRegisterTest("DetectBase64DecodeTestDecodeWithOffset",
-        DetectBase64DecodeTestDecodeWithOffset, 1);
+                   DetectBase64DecodeTestDecodeWithOffset);
     UtRegisterTest("DetectBase64DecodeTestDecodeLargeOffset",
-        DetectBase64DecodeTestDecodeLargeOffset, 1);
+                   DetectBase64DecodeTestDecodeLargeOffset);
     UtRegisterTest("DetectBase64DecodeTestDecodeRelative",
-        DetectBase64DecodeTestDecodeRelative, 1);
+                   DetectBase64DecodeTestDecodeRelative);
 #endif /* UNITTESTS */
 }

@@ -522,11 +522,11 @@ end:
 void DetectFilesizeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFilesizeParseTest01", DetectFilesizeParseTest01, 1);
-    UtRegisterTest("DetectFilesizeParseTest02", DetectFilesizeParseTest02, 1);
-    UtRegisterTest("DetectFilesizeParseTest03", DetectFilesizeParseTest03, 1);
-    UtRegisterTest("DetectFilesizeParseTest04", DetectFilesizeParseTest04, 1);
-    UtRegisterTest("DetectFilesizeParseTest05", DetectFilesizeParseTest05, 1);
-    UtRegisterTest("DetectFilesizeSetpTest01", DetectFilesizeSetpTest01, 1);
+    UtRegisterTest("DetectFilesizeParseTest01", DetectFilesizeParseTest01);
+    UtRegisterTest("DetectFilesizeParseTest02", DetectFilesizeParseTest02);
+    UtRegisterTest("DetectFilesizeParseTest03", DetectFilesizeParseTest03);
+    UtRegisterTest("DetectFilesizeParseTest04", DetectFilesizeParseTest04);
+    UtRegisterTest("DetectFilesizeParseTest05", DetectFilesizeParseTest05);
+    UtRegisterTest("DetectFilesizeSetpTest01", DetectFilesizeSetpTest01);
 #endif /* UNITTESTS */
 }

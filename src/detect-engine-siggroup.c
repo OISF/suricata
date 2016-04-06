@@ -1272,12 +1272,12 @@ end:
 void SigGroupHeadRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SigGroupHeadTest03", SigGroupHeadTest03, 1);
-    UtRegisterTest("SigGroupHeadTest06", SigGroupHeadTest06, 1);
-    UtRegisterTest("SigGroupHeadTest07", SigGroupHeadTest07, 1);
-    UtRegisterTest("SigGroupHeadTest08", SigGroupHeadTest08, 1);
-    UtRegisterTest("SigGroupHeadTest09", SigGroupHeadTest09, 1);
-    UtRegisterTest("SigGroupHeadTest10", SigGroupHeadTest10, 1);
-    UtRegisterTest("SigGroupHeadTest11", SigGroupHeadTest11, 1);
+    UtRegisterTest("SigGroupHeadTest03", SigGroupHeadTest03);
+    UtRegisterTest("SigGroupHeadTest06", SigGroupHeadTest06);
+    UtRegisterTest("SigGroupHeadTest07", SigGroupHeadTest07);
+    UtRegisterTest("SigGroupHeadTest08", SigGroupHeadTest08);
+    UtRegisterTest("SigGroupHeadTest09", SigGroupHeadTest09);
+    UtRegisterTest("SigGroupHeadTest10", SigGroupHeadTest10);
+    UtRegisterTest("SigGroupHeadTest11", SigGroupHeadTest11);
 #endif
 }

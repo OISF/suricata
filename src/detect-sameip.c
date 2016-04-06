@@ -190,6 +190,6 @@ end:
 static void DetectSameipRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSameipSigTest01", DetectSameipSigTest01, 1);
+    UtRegisterTest("DetectSameipSigTest01", DetectSameipSigTest01);
 #endif /* UNITTESTS */
 }

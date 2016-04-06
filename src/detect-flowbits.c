@@ -1143,14 +1143,14 @@ end:
 void FlowBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01, 1);
-    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 1);
-    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 1);
-    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03, 1);
-    UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04, 1);
-    UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05, 1);
-    UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06, 1);
-    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07, 1);
-    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08, 1);
+    UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01);
+    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01);
+    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02);
+    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03);
+    UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04);
+    UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05);
+    UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
+    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
+    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08);
 #endif /* UNITTESTS */
 }

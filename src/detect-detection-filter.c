@@ -651,15 +651,24 @@ end:
 void DetectDetectionFilterRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDetectionFilterTestParse01", DetectDetectionFilterTestParse01, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse02", DetectDetectionFilterTestParse02, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse03", DetectDetectionFilterTestParse03, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse04", DetectDetectionFilterTestParse04, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse05", DetectDetectionFilterTestParse05, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3, 1);
+    UtRegisterTest("DetectDetectionFilterTestParse01",
+                   DetectDetectionFilterTestParse01);
+    UtRegisterTest("DetectDetectionFilterTestParse02",
+                   DetectDetectionFilterTestParse02);
+    UtRegisterTest("DetectDetectionFilterTestParse03",
+                   DetectDetectionFilterTestParse03);
+    UtRegisterTest("DetectDetectionFilterTestParse04",
+                   DetectDetectionFilterTestParse04);
+    UtRegisterTest("DetectDetectionFilterTestParse05",
+                   DetectDetectionFilterTestParse05);
+    UtRegisterTest("DetectDetectionFilterTestParse06",
+                   DetectDetectionFilterTestParse06);
+    UtRegisterTest("DetectDetectionFilterTestSig1",
+                   DetectDetectionFilterTestSig1);
+    UtRegisterTest("DetectDetectionFilterTestSig2",
+                   DetectDetectionFilterTestSig2);
+    UtRegisterTest("DetectDetectionFilterTestSig3",
+                   DetectDetectionFilterTestSig3);
 #endif /* UNITTESTS */
 }
 

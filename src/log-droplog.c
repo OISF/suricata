@@ -487,8 +487,8 @@ int LogDropLogTest02()
  */
 static void LogDropLogRegisterTests(void)
 {
-    UtRegisterTest("LogDropLogTest01", LogDropLogTest01, 1);
-    UtRegisterTest("LogDropLogTest02", LogDropLogTest02, 1);
+    UtRegisterTest("LogDropLogTest01", LogDropLogTest01);
+    UtRegisterTest("LogDropLogTest02", LogDropLogTest02);
 }
 #endif
 

@@ -236,8 +236,8 @@ end:
 static void DetectSeqRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSeqSigTest01", DetectSeqSigTest01, 1);
-    UtRegisterTest("DetectSeqSigTest02", DetectSeqSigTest02, 1);
+    UtRegisterTest("DetectSeqSigTest01", DetectSeqSigTest01);
+    UtRegisterTest("DetectSeqSigTest02", DetectSeqSigTest02);
 #endif /* UNITTESTS */
 }
 

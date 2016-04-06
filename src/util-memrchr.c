@@ -62,6 +62,6 @@ static int MemrchrTest01 (void)
 void MemrchrRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MemrchrTest01", MemrchrTest01, 1);
+    UtRegisterTest("MemrchrTest01", MemrchrTest01);
 #endif
 }

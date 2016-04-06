@@ -536,18 +536,18 @@ int DetectHttpUriTest18(void)
 void DetectHttpUriRegisterTests (void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectHttpUriTest01", DetectHttpUriTest01, 1);
-    UtRegisterTest("DetectHttpUriTest02", DetectHttpUriTest02, 1);
-    UtRegisterTest("DetectHttpUriTest03", DetectHttpUriTest03, 1);
-    UtRegisterTest("DetectHttpUriTest04", DetectHttpUriTest04, 1);
-    UtRegisterTest("DetectHttpUriTest05", DetectHttpUriTest05, 1);
-    UtRegisterTest("DetectHttpUriTest12", DetectHttpUriTest12, 1);
-    UtRegisterTest("DetectHttpUriTest13", DetectHttpUriTest13, 1);
-    UtRegisterTest("DetectHttpUriTest14", DetectHttpUriTest14, 1);
-    UtRegisterTest("DetectHttpUriTest15", DetectHttpUriTest15, 1);
-    UtRegisterTest("DetectHttpUriTest16", DetectHttpUriTest16, 1);
-    UtRegisterTest("DetectHttpUriTest17", DetectHttpUriTest17, 1);
-    UtRegisterTest("DetectHttpUriTest18", DetectHttpUriTest18, 1);
+    UtRegisterTest("DetectHttpUriTest01", DetectHttpUriTest01);
+    UtRegisterTest("DetectHttpUriTest02", DetectHttpUriTest02);
+    UtRegisterTest("DetectHttpUriTest03", DetectHttpUriTest03);
+    UtRegisterTest("DetectHttpUriTest04", DetectHttpUriTest04);
+    UtRegisterTest("DetectHttpUriTest05", DetectHttpUriTest05);
+    UtRegisterTest("DetectHttpUriTest12", DetectHttpUriTest12);
+    UtRegisterTest("DetectHttpUriTest13", DetectHttpUriTest13);
+    UtRegisterTest("DetectHttpUriTest14", DetectHttpUriTest14);
+    UtRegisterTest("DetectHttpUriTest15", DetectHttpUriTest15);
+    UtRegisterTest("DetectHttpUriTest16", DetectHttpUriTest16);
+    UtRegisterTest("DetectHttpUriTest17", DetectHttpUriTest17);
+    UtRegisterTest("DetectHttpUriTest18", DetectHttpUriTest18);
 #endif /* UNITTESTS */
 
 }

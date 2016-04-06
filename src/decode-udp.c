@@ -204,13 +204,13 @@ void DecodeUDPV4RegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("UDPV4CalculateValidChecksumtest01",
-                   UDPV4CalculateValidChecksumtest01, 1);
+                   UDPV4CalculateValidChecksumtest01);
     UtRegisterTest("UDPV4CalculateInvalidChecksumtest02",
-                   UDPV4CalculateInvalidChecksumtest02, 1);
+                   UDPV4CalculateInvalidChecksumtest02);
     UtRegisterTest("UDPV6CalculateValidChecksumtest03",
-                   UDPV6CalculateValidChecksumtest03, 1);
+                   UDPV6CalculateValidChecksumtest03);
     UtRegisterTest("UDPV6CalculateInvalidChecksumtest04",
-                   UDPV6CalculateInvalidChecksumtest04, 1);
+                   UDPV6CalculateInvalidChecksumtest04);
 #endif /* UNITTESTS */
 }
 /**

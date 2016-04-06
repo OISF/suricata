@@ -1869,35 +1869,35 @@ int DetectUriContentParseTest24(void)
 void HttpUriRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTTPUriTest01", HTTPUriTest01, 1);
-    UtRegisterTest("HTTPUriTest02", HTTPUriTest02, 1);
-    UtRegisterTest("HTTPUriTest03", HTTPUriTest03, 1);
-    UtRegisterTest("HTTPUriTest04", HTTPUriTest04, 1);
+    UtRegisterTest("HTTPUriTest01", HTTPUriTest01);
+    UtRegisterTest("HTTPUriTest02", HTTPUriTest02);
+    UtRegisterTest("HTTPUriTest03", HTTPUriTest03);
+    UtRegisterTest("HTTPUriTest04", HTTPUriTest04);
 
-    UtRegisterTest("DetectUriSigTest01", DetectUriSigTest01, 1);
-    UtRegisterTest("DetectUriSigTest02", DetectUriSigTest02, 1);
-    UtRegisterTest("DetectUriSigTest03", DetectUriSigTest03, 1);
-    UtRegisterTest("DetectUriSigTest04 - Modifiers", DetectUriSigTest04, 1);
-    UtRegisterTest("DetectUriSigTest05 - Inspection", DetectUriSigTest05, 1);
-    UtRegisterTest("DetectUriSigTest06 - Inspection", DetectUriSigTest06, 1);
-    UtRegisterTest("DetectUriSigTest07 - Inspection", DetectUriSigTest07, 1);
-    UtRegisterTest("DetectUriSigTest08", DetectUriSigTest08, 1);
-    UtRegisterTest("DetectUriSigTest09", DetectUriSigTest09, 1);
-    UtRegisterTest("DetectUriSigTest10", DetectUriSigTest10, 1);
-    UtRegisterTest("DetectUriSigTest11", DetectUriSigTest11, 1);
-    UtRegisterTest("DetectUriSigTest12", DetectUriSigTest12, 1);
+    UtRegisterTest("DetectUriSigTest01", DetectUriSigTest01);
+    UtRegisterTest("DetectUriSigTest02", DetectUriSigTest02);
+    UtRegisterTest("DetectUriSigTest03", DetectUriSigTest03);
+    UtRegisterTest("DetectUriSigTest04 - Modifiers", DetectUriSigTest04);
+    UtRegisterTest("DetectUriSigTest05 - Inspection", DetectUriSigTest05);
+    UtRegisterTest("DetectUriSigTest06 - Inspection", DetectUriSigTest06);
+    UtRegisterTest("DetectUriSigTest07 - Inspection", DetectUriSigTest07);
+    UtRegisterTest("DetectUriSigTest08", DetectUriSigTest08);
+    UtRegisterTest("DetectUriSigTest09", DetectUriSigTest09);
+    UtRegisterTest("DetectUriSigTest10", DetectUriSigTest10);
+    UtRegisterTest("DetectUriSigTest11", DetectUriSigTest11);
+    UtRegisterTest("DetectUriSigTest12", DetectUriSigTest12);
 
-    UtRegisterTest("DetectUriContentParseTest13", DetectUriContentParseTest13, 1);
-    UtRegisterTest("DetectUriContentParseTest14", DetectUriContentParseTest14, 1);
-    UtRegisterTest("DetectUriContentParseTest15", DetectUriContentParseTest15, 1);
-    UtRegisterTest("DetectUriContentParseTest16", DetectUriContentParseTest16, 1);
-    UtRegisterTest("DetectUriContentParseTest17", DetectUriContentParseTest17, 1);
-    UtRegisterTest("DetectUriContentParseTest18", DetectUriContentParseTest18, 1);
-    UtRegisterTest("DetectUriContentParseTest19", DetectUriContentParseTest19, 1);
-    UtRegisterTest("DetectUriContentParseTest20", DetectUriContentParseTest20, 1);
-    UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21, 1);
-    UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22, 1);
-    UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23, 1);
-    UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24, 1);
+    UtRegisterTest("DetectUriContentParseTest13", DetectUriContentParseTest13);
+    UtRegisterTest("DetectUriContentParseTest14", DetectUriContentParseTest14);
+    UtRegisterTest("DetectUriContentParseTest15", DetectUriContentParseTest15);
+    UtRegisterTest("DetectUriContentParseTest16", DetectUriContentParseTest16);
+    UtRegisterTest("DetectUriContentParseTest17", DetectUriContentParseTest17);
+    UtRegisterTest("DetectUriContentParseTest18", DetectUriContentParseTest18);
+    UtRegisterTest("DetectUriContentParseTest19", DetectUriContentParseTest19);
+    UtRegisterTest("DetectUriContentParseTest20", DetectUriContentParseTest20);
+    UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21);
+    UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22);
+    UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23);
+    UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24);
 #endif /* UNITTESTS */
 }

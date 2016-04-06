@@ -374,11 +374,11 @@ end:
 void DetectIdRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01, 1);
-    UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02, 1);
-    UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03, 1);
-    UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04, 1);
-    UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01, 1);
+    UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01);
+    UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02);
+    UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03);
+    UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04);
+    UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01);
 
 #endif /* UNITTESTS */
 }

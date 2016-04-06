@@ -2367,37 +2367,37 @@ int DetectHttpClientBodyTest36(void)
 void DetectHttpClientBodyRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectHttpClientBodyTest01", DetectHttpClientBodyTest01, 1);
-    UtRegisterTest("DetectHttpClientBodyTest02", DetectHttpClientBodyTest02, 1);
-    UtRegisterTest("DetectHttpClientBodyTest03", DetectHttpClientBodyTest03, 1);
-    UtRegisterTest("DetectHttpClientBodyTest04", DetectHttpClientBodyTest04, 1);
-    UtRegisterTest("DetectHttpClientBodyTest05", DetectHttpClientBodyTest05, 1);
-    UtRegisterTest("DetectHttpClientBodyTest06", DetectHttpClientBodyTest06, 1);
-    UtRegisterTest("DetectHttpClientBodyTest07", DetectHttpClientBodyTest07, 1);
-    UtRegisterTest("DetectHttpClientBodyTest08", DetectHttpClientBodyTest08, 1);
-    UtRegisterTest("DetectHttpClientBodyTest09", DetectHttpClientBodyTest09, 1);
-    UtRegisterTest("DetectHttpClientBodyTest10", DetectHttpClientBodyTest10, 1);
-    UtRegisterTest("DetectHttpClientBodyTest11", DetectHttpClientBodyTest11, 1);
-    UtRegisterTest("DetectHttpClientBodyTest12", DetectHttpClientBodyTest12, 1);
-    UtRegisterTest("DetectHttpClientBodyTest13", DetectHttpClientBodyTest13, 1);
-    UtRegisterTest("DetectHttpClientBodyTest14", DetectHttpClientBodyTest14, 1);
-    UtRegisterTest("DetectHttpClientBodyTest15", DetectHttpClientBodyTest15, 1);
+    UtRegisterTest("DetectHttpClientBodyTest01", DetectHttpClientBodyTest01);
+    UtRegisterTest("DetectHttpClientBodyTest02", DetectHttpClientBodyTest02);
+    UtRegisterTest("DetectHttpClientBodyTest03", DetectHttpClientBodyTest03);
+    UtRegisterTest("DetectHttpClientBodyTest04", DetectHttpClientBodyTest04);
+    UtRegisterTest("DetectHttpClientBodyTest05", DetectHttpClientBodyTest05);
+    UtRegisterTest("DetectHttpClientBodyTest06", DetectHttpClientBodyTest06);
+    UtRegisterTest("DetectHttpClientBodyTest07", DetectHttpClientBodyTest07);
+    UtRegisterTest("DetectHttpClientBodyTest08", DetectHttpClientBodyTest08);
+    UtRegisterTest("DetectHttpClientBodyTest09", DetectHttpClientBodyTest09);
+    UtRegisterTest("DetectHttpClientBodyTest10", DetectHttpClientBodyTest10);
+    UtRegisterTest("DetectHttpClientBodyTest11", DetectHttpClientBodyTest11);
+    UtRegisterTest("DetectHttpClientBodyTest12", DetectHttpClientBodyTest12);
+    UtRegisterTest("DetectHttpClientBodyTest13", DetectHttpClientBodyTest13);
+    UtRegisterTest("DetectHttpClientBodyTest14", DetectHttpClientBodyTest14);
+    UtRegisterTest("DetectHttpClientBodyTest15", DetectHttpClientBodyTest15);
 
-    UtRegisterTest("DetectHttpClientBodyTest22", DetectHttpClientBodyTest22, 1);
-    UtRegisterTest("DetectHttpClientBodyTest23", DetectHttpClientBodyTest23, 1);
-    UtRegisterTest("DetectHttpClientBodyTest24", DetectHttpClientBodyTest24, 1);
-    UtRegisterTest("DetectHttpClientBodyTest25", DetectHttpClientBodyTest25, 1);
-    UtRegisterTest("DetectHttpClientBodyTest26", DetectHttpClientBodyTest26, 1);
-    UtRegisterTest("DetectHttpClientBodyTest27", DetectHttpClientBodyTest27, 1);
-    UtRegisterTest("DetectHttpClientBodyTest28", DetectHttpClientBodyTest28, 1);
-    UtRegisterTest("DetectHttpClientBodyTest29", DetectHttpClientBodyTest29, 1);
-    UtRegisterTest("DetectHttpClientBodyTest30", DetectHttpClientBodyTest30, 1);
-    UtRegisterTest("DetectHttpClientBodyTest31", DetectHttpClientBodyTest31, 1);
-    UtRegisterTest("DetectHttpClientBodyTest32", DetectHttpClientBodyTest32, 1);
-    UtRegisterTest("DetectHttpClientBodyTest33", DetectHttpClientBodyTest33, 1);
-    UtRegisterTest("DetectHttpClientBodyTest34", DetectHttpClientBodyTest34, 1);
-    UtRegisterTest("DetectHttpClientBodyTest35", DetectHttpClientBodyTest35, 1);
-    UtRegisterTest("DetectHttpClientBodyTest36", DetectHttpClientBodyTest36, 1);
+    UtRegisterTest("DetectHttpClientBodyTest22", DetectHttpClientBodyTest22);
+    UtRegisterTest("DetectHttpClientBodyTest23", DetectHttpClientBodyTest23);
+    UtRegisterTest("DetectHttpClientBodyTest24", DetectHttpClientBodyTest24);
+    UtRegisterTest("DetectHttpClientBodyTest25", DetectHttpClientBodyTest25);
+    UtRegisterTest("DetectHttpClientBodyTest26", DetectHttpClientBodyTest26);
+    UtRegisterTest("DetectHttpClientBodyTest27", DetectHttpClientBodyTest27);
+    UtRegisterTest("DetectHttpClientBodyTest28", DetectHttpClientBodyTest28);
+    UtRegisterTest("DetectHttpClientBodyTest29", DetectHttpClientBodyTest29);
+    UtRegisterTest("DetectHttpClientBodyTest30", DetectHttpClientBodyTest30);
+    UtRegisterTest("DetectHttpClientBodyTest31", DetectHttpClientBodyTest31);
+    UtRegisterTest("DetectHttpClientBodyTest32", DetectHttpClientBodyTest32);
+    UtRegisterTest("DetectHttpClientBodyTest33", DetectHttpClientBodyTest33);
+    UtRegisterTest("DetectHttpClientBodyTest34", DetectHttpClientBodyTest34);
+    UtRegisterTest("DetectHttpClientBodyTest35", DetectHttpClientBodyTest35);
+    UtRegisterTest("DetectHttpClientBodyTest36", DetectHttpClientBodyTest36);
 #endif /* UNITTESTS */
 
     return;

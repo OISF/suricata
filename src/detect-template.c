@@ -295,9 +295,8 @@ end:
  */
 void DetectTemplateRegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTemplateParseTest01",
-            DetectTemplateParseTest01, 1);
+    UtRegisterTest("DetectTemplateParseTest01", DetectTemplateParseTest01);
     UtRegisterTest("DetectTemplateSignatureTest01",
-            DetectTemplateSignatureTest01, 1);
+                   DetectTemplateSignatureTest01);
 #endif /* UNITTESTS */
 }

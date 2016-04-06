@@ -793,12 +793,15 @@ end:
 void DetectSslVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectSslVersionTestParse01", DetectSslVersionTestParse01, 1);
-    UtRegisterTest("DetectSslVersionTestParse02", DetectSslVersionTestParse02, 1);
-    UtRegisterTest("DetectSslVersionTestParse03", DetectSslVersionTestParse03, 1);
-    UtRegisterTest("DetectSslVersionTestDetect01", DetectSslVersionTestDetect01, 1);
-    UtRegisterTest("DetectSslVersionTestDetect02", DetectSslVersionTestDetect02, 1);
-    UtRegisterTest("DetectSslVersionTestDetect03", DetectSslVersionTestDetect03, 1);
+    UtRegisterTest("DetectSslVersionTestParse01", DetectSslVersionTestParse01);
+    UtRegisterTest("DetectSslVersionTestParse02", DetectSslVersionTestParse02);
+    UtRegisterTest("DetectSslVersionTestParse03", DetectSslVersionTestParse03);
+    UtRegisterTest("DetectSslVersionTestDetect01",
+                   DetectSslVersionTestDetect01);
+    UtRegisterTest("DetectSslVersionTestDetect02",
+                   DetectSslVersionTestDetect02);
+    UtRegisterTest("DetectSslVersionTestDetect03",
+                   DetectSslVersionTestDetect03);
 #endif /* UNITTESTS */
 
     return;

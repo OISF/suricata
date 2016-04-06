@@ -574,9 +574,9 @@ error:
 void FragBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FragBitsTestParse01", FragBitsTestParse01, 1);
-    UtRegisterTest("FragBitsTestParse02", FragBitsTestParse02, 1);
-    UtRegisterTest("FragBitsTestParse03", FragBitsTestParse03, 1);
-    UtRegisterTest("FragBitsTestParse04", FragBitsTestParse04, 1);
+    UtRegisterTest("FragBitsTestParse01", FragBitsTestParse01);
+    UtRegisterTest("FragBitsTestParse02", FragBitsTestParse02);
+    UtRegisterTest("FragBitsTestParse03", FragBitsTestParse03);
+    UtRegisterTest("FragBitsTestParse04", FragBitsTestParse04);
 #endif /* UNITTESTS */
 }

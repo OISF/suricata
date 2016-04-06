@@ -2537,35 +2537,35 @@ void SCACTileRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCACTileTest01", SCACTileTest01, 1);
-    UtRegisterTest("SCACTileTest02", SCACTileTest02, 1);
-    UtRegisterTest("SCACTileTest03", SCACTileTest03, 1);
-    UtRegisterTest("SCACTileTest04", SCACTileTest04, 1);
-    UtRegisterTest("SCACTileTest05", SCACTileTest05, 1);
-    UtRegisterTest("SCACTileTest06", SCACTileTest06, 1);
-    UtRegisterTest("SCACTileTest07", SCACTileTest07, 1);
-    UtRegisterTest("SCACTileTest08", SCACTileTest08, 1);
-    UtRegisterTest("SCACTileTest09", SCACTileTest09, 1);
-    UtRegisterTest("SCACTileTest10", SCACTileTest10, 1);
-    UtRegisterTest("SCACTileTest11", SCACTileTest11, 1);
-    UtRegisterTest("SCACTileTest12", SCACTileTest12, 1);
-    UtRegisterTest("SCACTileTest13", SCACTileTest13, 1);
-    UtRegisterTest("SCACTileTest14", SCACTileTest14, 1);
-    UtRegisterTest("SCACTileTest15", SCACTileTest15, 1);
-    UtRegisterTest("SCACTileTest16", SCACTileTest16, 1);
-    UtRegisterTest("SCACTileTest17", SCACTileTest17, 1);
-    UtRegisterTest("SCACTileTest18", SCACTileTest18, 1);
-    UtRegisterTest("SCACTileTest19", SCACTileTest19, 1);
-    UtRegisterTest("SCACTileTest20", SCACTileTest20, 1);
-    UtRegisterTest("SCACTileTest21", SCACTileTest21, 1);
-    UtRegisterTest("SCACTileTest22", SCACTileTest22, 1);
-    UtRegisterTest("SCACTileTest23", SCACTileTest23, 1);
-    UtRegisterTest("SCACTileTest24", SCACTileTest24, 1);
-    UtRegisterTest("SCACTileTest25", SCACTileTest25, 1);
-    UtRegisterTest("SCACTileTest26", SCACTileTest26, 1);
-    UtRegisterTest("SCACTileTest27", SCACTileTest27, 1);
-    UtRegisterTest("SCACTileTest28", SCACTileTest28, 1);
-    UtRegisterTest("SCACTileTest29", SCACTileTest29, 1);
+    UtRegisterTest("SCACTileTest01", SCACTileTest01);
+    UtRegisterTest("SCACTileTest02", SCACTileTest02);
+    UtRegisterTest("SCACTileTest03", SCACTileTest03);
+    UtRegisterTest("SCACTileTest04", SCACTileTest04);
+    UtRegisterTest("SCACTileTest05", SCACTileTest05);
+    UtRegisterTest("SCACTileTest06", SCACTileTest06);
+    UtRegisterTest("SCACTileTest07", SCACTileTest07);
+    UtRegisterTest("SCACTileTest08", SCACTileTest08);
+    UtRegisterTest("SCACTileTest09", SCACTileTest09);
+    UtRegisterTest("SCACTileTest10", SCACTileTest10);
+    UtRegisterTest("SCACTileTest11", SCACTileTest11);
+    UtRegisterTest("SCACTileTest12", SCACTileTest12);
+    UtRegisterTest("SCACTileTest13", SCACTileTest13);
+    UtRegisterTest("SCACTileTest14", SCACTileTest14);
+    UtRegisterTest("SCACTileTest15", SCACTileTest15);
+    UtRegisterTest("SCACTileTest16", SCACTileTest16);
+    UtRegisterTest("SCACTileTest17", SCACTileTest17);
+    UtRegisterTest("SCACTileTest18", SCACTileTest18);
+    UtRegisterTest("SCACTileTest19", SCACTileTest19);
+    UtRegisterTest("SCACTileTest20", SCACTileTest20);
+    UtRegisterTest("SCACTileTest21", SCACTileTest21);
+    UtRegisterTest("SCACTileTest22", SCACTileTest22);
+    UtRegisterTest("SCACTileTest23", SCACTileTest23);
+    UtRegisterTest("SCACTileTest24", SCACTileTest24);
+    UtRegisterTest("SCACTileTest25", SCACTileTest25);
+    UtRegisterTest("SCACTileTest26", SCACTileTest26);
+    UtRegisterTest("SCACTileTest27", SCACTileTest27);
+    UtRegisterTest("SCACTileTest28", SCACTileTest28);
+    UtRegisterTest("SCACTileTest29", SCACTileTest29);
 #endif
 }
 

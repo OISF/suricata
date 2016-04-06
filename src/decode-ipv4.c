@@ -1871,41 +1871,44 @@ end:
 void DecodeIPV4RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeIPV4OptionsNONETest01", DecodeIPV4OptionsNONETest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsEOLTest01", DecodeIPV4OptionsEOLTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsNOPTest01", DecodeIPV4OptionsNOPTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsRRTest01", DecodeIPV4OptionsRRTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsRRTest02", DecodeIPV4OptionsRRTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsRRTest03", DecodeIPV4OptionsRRTest03, 1);
-    UtRegisterTest("DecodeIPV4OptionsRRTest04", DecodeIPV4OptionsRRTest04, 1);
-    UtRegisterTest("DecodeIPV4OptionsQSTest01", DecodeIPV4OptionsQSTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsQSTest02", DecodeIPV4OptionsQSTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsTSTest01", DecodeIPV4OptionsTSTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsTSTest02", DecodeIPV4OptionsTSTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsTSTest03", DecodeIPV4OptionsTSTest03, 1);
-    UtRegisterTest("DecodeIPV4OptionsTSTest04", DecodeIPV4OptionsTSTest04, 1);
-    UtRegisterTest("DecodeIPV4OptionsSECTest01", DecodeIPV4OptionsSECTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsSECTest02", DecodeIPV4OptionsSECTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsLSRRTest01", DecodeIPV4OptionsLSRRTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsLSRRTest02", DecodeIPV4OptionsLSRRTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsLSRRTest03", DecodeIPV4OptionsLSRRTest03, 1);
-    UtRegisterTest("DecodeIPV4OptionsLSRRTest04", DecodeIPV4OptionsLSRRTest04, 1);
-    UtRegisterTest("DecodeIPV4OptionsCIPSOTest01", DecodeIPV4OptionsCIPSOTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsSIDTest01", DecodeIPV4OptionsSIDTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsSIDTest02", DecodeIPV4OptionsSIDTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsSSRRTest01", DecodeIPV4OptionsSSRRTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsSSRRTest02", DecodeIPV4OptionsSSRRTest02, 1);
-    UtRegisterTest("DecodeIPV4OptionsSSRRTest03", DecodeIPV4OptionsSSRRTest03, 1);
-    UtRegisterTest("DecodeIPV4OptionsSSRRTest04", DecodeIPV4OptionsSSRRTest04, 1);
-    UtRegisterTest("DecodeIPV4OptionsRTRALTTest01", DecodeIPV4OptionsRTRALTTest01, 1);
-    UtRegisterTest("DecodeIPV4OptionsRTRALTTest02", DecodeIPV4OptionsRTRALTTest02, 1);
+    UtRegisterTest("DecodeIPV4OptionsNONETest01", DecodeIPV4OptionsNONETest01);
+    UtRegisterTest("DecodeIPV4OptionsEOLTest01", DecodeIPV4OptionsEOLTest01);
+    UtRegisterTest("DecodeIPV4OptionsNOPTest01", DecodeIPV4OptionsNOPTest01);
+    UtRegisterTest("DecodeIPV4OptionsRRTest01", DecodeIPV4OptionsRRTest01);
+    UtRegisterTest("DecodeIPV4OptionsRRTest02", DecodeIPV4OptionsRRTest02);
+    UtRegisterTest("DecodeIPV4OptionsRRTest03", DecodeIPV4OptionsRRTest03);
+    UtRegisterTest("DecodeIPV4OptionsRRTest04", DecodeIPV4OptionsRRTest04);
+    UtRegisterTest("DecodeIPV4OptionsQSTest01", DecodeIPV4OptionsQSTest01);
+    UtRegisterTest("DecodeIPV4OptionsQSTest02", DecodeIPV4OptionsQSTest02);
+    UtRegisterTest("DecodeIPV4OptionsTSTest01", DecodeIPV4OptionsTSTest01);
+    UtRegisterTest("DecodeIPV4OptionsTSTest02", DecodeIPV4OptionsTSTest02);
+    UtRegisterTest("DecodeIPV4OptionsTSTest03", DecodeIPV4OptionsTSTest03);
+    UtRegisterTest("DecodeIPV4OptionsTSTest04", DecodeIPV4OptionsTSTest04);
+    UtRegisterTest("DecodeIPV4OptionsSECTest01", DecodeIPV4OptionsSECTest01);
+    UtRegisterTest("DecodeIPV4OptionsSECTest02", DecodeIPV4OptionsSECTest02);
+    UtRegisterTest("DecodeIPV4OptionsLSRRTest01", DecodeIPV4OptionsLSRRTest01);
+    UtRegisterTest("DecodeIPV4OptionsLSRRTest02", DecodeIPV4OptionsLSRRTest02);
+    UtRegisterTest("DecodeIPV4OptionsLSRRTest03", DecodeIPV4OptionsLSRRTest03);
+    UtRegisterTest("DecodeIPV4OptionsLSRRTest04", DecodeIPV4OptionsLSRRTest04);
+    UtRegisterTest("DecodeIPV4OptionsCIPSOTest01",
+                   DecodeIPV4OptionsCIPSOTest01);
+    UtRegisterTest("DecodeIPV4OptionsSIDTest01", DecodeIPV4OptionsSIDTest01);
+    UtRegisterTest("DecodeIPV4OptionsSIDTest02", DecodeIPV4OptionsSIDTest02);
+    UtRegisterTest("DecodeIPV4OptionsSSRRTest01", DecodeIPV4OptionsSSRRTest01);
+    UtRegisterTest("DecodeIPV4OptionsSSRRTest02", DecodeIPV4OptionsSSRRTest02);
+    UtRegisterTest("DecodeIPV4OptionsSSRRTest03", DecodeIPV4OptionsSSRRTest03);
+    UtRegisterTest("DecodeIPV4OptionsSSRRTest04", DecodeIPV4OptionsSSRRTest04);
+    UtRegisterTest("DecodeIPV4OptionsRTRALTTest01",
+                   DecodeIPV4OptionsRTRALTTest01);
+    UtRegisterTest("DecodeIPV4OptionsRTRALTTest02",
+                   DecodeIPV4OptionsRTRALTTest02);
     UtRegisterTest("IPV4CalculateValidChecksumtest01",
-                   IPV4CalculateValidChecksumtest01, 1);
+                   IPV4CalculateValidChecksumtest01);
     UtRegisterTest("IPV4CalculateInvalidChecksumtest02",
-                   IPV4CalculateInvalidChecksumtest02, 1);
-    UtRegisterTest("DecodeIPV4DefragTest01", DecodeIPV4DefragTest01, 1);
-    UtRegisterTest("DecodeIPV4DefragTest02", DecodeIPV4DefragTest02, 1);
-    UtRegisterTest("DecodeIPV4DefragTest03", DecodeIPV4DefragTest03, 1);
+                   IPV4CalculateInvalidChecksumtest02);
+    UtRegisterTest("DecodeIPV4DefragTest01", DecodeIPV4DefragTest01);
+    UtRegisterTest("DecodeIPV4DefragTest02", DecodeIPV4DefragTest02);
+    UtRegisterTest("DecodeIPV4DefragTest03", DecodeIPV4DefragTest03);
 #endif /* UNITTESTS */
 }
 /**

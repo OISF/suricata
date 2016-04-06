@@ -85,11 +85,9 @@ static int UtAppendTest(UtTest **list, UtTest *test)
  *
  * \param name Unit test name
  * \param TestFn Unit test function
- * \param evalue Unit test function return value
- *
  */
 
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue)
+void UtRegisterTest(char *name, int(*TestFn)(void))
 {
     UtTest *ut = UtAllocTest();
     if (ut == NULL)
@@ -97,7 +95,6 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue)
 
     ut->name = name;
     ut->TestFn = TestFn;
-    ut->evalue = evalue;
     ut->next = NULL;
 
     /* append */
@@ -206,8 +203,8 @@ uint32_t UtRunTests(char *regex_arg)
                 TimeSetToCurrentTime();
 
                 ret = ut->TestFn();
-                printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
-                if (ret != ut->evalue) {
+                printf("%s\n", ret ? "pass" : "FAILED");
+                if (!ret) {
                     if (failure_fatal == 1) {
                         fprintf(stderr, "ERROR: unittest failed.\n");
                         exit(EXIT_FAILURE);
@@ -311,8 +308,8 @@ int UtRunSelftest (char *regex_arg)
 
     UtInitialize();
 
-    UtRegisterTest("true",  UtSelftestTrue,  1);
-    UtRegisterTest("false", UtSelftestFalse, 1);
+    UtRegisterTest("true", UtSelftestTrue);
+    UtRegisterTest("false", UtSelftestFalse);
 
     int ret = UtRunTests(regex_arg);
     if (ret == 0)

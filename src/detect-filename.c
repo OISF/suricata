@@ -314,8 +314,8 @@ int DetectFilenameTestParse03 (void)
 void DetectFilenameRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectFilenameTestParse01", DetectFilenameTestParse01, 1);
-    UtRegisterTest("DetectFilenameTestParse02", DetectFilenameTestParse02, 1);
-    UtRegisterTest("DetectFilenameTestParse03", DetectFilenameTestParse03, 1);
+    UtRegisterTest("DetectFilenameTestParse01", DetectFilenameTestParse01);
+    UtRegisterTest("DetectFilenameTestParse02", DetectFilenameTestParse02);
+    UtRegisterTest("DetectFilenameTestParse03", DetectFilenameTestParse03);
 #endif /* UNITTESTS */
 }

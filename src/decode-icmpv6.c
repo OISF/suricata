@@ -1612,46 +1612,49 @@ end:
 void DecodeICMPV6RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ICMPV6CalculateValidChecksumtest01", ICMPV6CalculateValidChecksumtest01, 1);
-    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02", ICMPV6CalculateInvalidChecksumtest02, 1);
+    UtRegisterTest("ICMPV6CalculateValidChecksumtest01",
+                   ICMPV6CalculateValidChecksumtest01);
+    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02",
+                   ICMPV6CalculateInvalidChecksumtest02);
 
-    UtRegisterTest("ICMPV6ParamProbTest01 (Valid)", ICMPV6ParamProbTest01, 1);
-    UtRegisterTest("ICMPV6DestUnreachTest01 (Valid)", ICMPV6DestUnreachTest01, 1);
-    UtRegisterTest("ICMPV6PktTooBigTest01 (Valid)", ICMPV6PktTooBigTest01, 1);
-    UtRegisterTest("ICMPV6TimeExceedTest01 (Valid)", ICMPV6TimeExceedTest01, 1);
-    UtRegisterTest("ICMPV6EchoReqTest01 (Valid)", ICMPV6EchoReqTest01, 1);
-    UtRegisterTest("ICMPV6EchoRepTest01 (Valid)", ICMPV6EchoRepTest01, 1);
+    UtRegisterTest("ICMPV6ParamProbTest01 (Valid)", ICMPV6ParamProbTest01);
+    UtRegisterTest("ICMPV6DestUnreachTest01 (Valid)", ICMPV6DestUnreachTest01);
+    UtRegisterTest("ICMPV6PktTooBigTest01 (Valid)", ICMPV6PktTooBigTest01);
+    UtRegisterTest("ICMPV6TimeExceedTest01 (Valid)", ICMPV6TimeExceedTest01);
+    UtRegisterTest("ICMPV6EchoReqTest01 (Valid)", ICMPV6EchoReqTest01);
+    UtRegisterTest("ICMPV6EchoRepTest01 (Valid)", ICMPV6EchoRepTest01);
 
-    UtRegisterTest("ICMPV6ParamProbTest02 (Invalid)", ICMPV6ParamProbTest02, 1);
-    UtRegisterTest("ICMPV6DestUnreachTest02 (Invalid)", ICMPV6DestUnreachTest02, 1);
-    UtRegisterTest("ICMPV6PktTooBigTest02 (Invalid)", ICMPV6PktTooBigTest02, 1);
-    UtRegisterTest("ICMPV6TimeExceedTest02 (Invalid)", ICMPV6TimeExceedTest02, 1);
-    UtRegisterTest("ICMPV6EchoReqTest02 (Invalid)", ICMPV6EchoReqTest02, 1);
-    UtRegisterTest("ICMPV6EchoRepTest02 (Invalid)", ICMPV6EchoRepTest02, 1);
+    UtRegisterTest("ICMPV6ParamProbTest02 (Invalid)", ICMPV6ParamProbTest02);
+    UtRegisterTest("ICMPV6DestUnreachTest02 (Invalid)",
+                   ICMPV6DestUnreachTest02);
+    UtRegisterTest("ICMPV6PktTooBigTest02 (Invalid)", ICMPV6PktTooBigTest02);
+    UtRegisterTest("ICMPV6TimeExceedTest02 (Invalid)", ICMPV6TimeExceedTest02);
+    UtRegisterTest("ICMPV6EchoReqTest02 (Invalid)", ICMPV6EchoReqTest02);
+    UtRegisterTest("ICMPV6EchoRepTest02 (Invalid)", ICMPV6EchoRepTest02);
 
-    UtRegisterTest("ICMPV6PayloadTest01", ICMPV6PayloadTest01, 1);
+    UtRegisterTest("ICMPV6PayloadTest01", ICMPV6PayloadTest01);
 
     UtRegisterTest("ICMPV6RouterSolicitTestKnownCode",
-        ICMPV6RouterSolicitTestKnownCode, 1);
+                   ICMPV6RouterSolicitTestKnownCode);
     UtRegisterTest("ICMPV6RouterSolicitTestUnknownCode",
-        ICMPV6RouterSolicitTestUnknownCode, 1);
+                   ICMPV6RouterSolicitTestUnknownCode);
     UtRegisterTest("ICMPV6RouterAdvertTestKnownCode",
-        ICMPV6RouterAdvertTestKnownCode, 1);
+                   ICMPV6RouterAdvertTestKnownCode);
     UtRegisterTest("ICMPV6RouterAdvertTestUnknownCode",
-        ICMPV6RouterAdvertTestUnknownCode, 1);
+                   ICMPV6RouterAdvertTestUnknownCode);
 
     UtRegisterTest("ICMPV6NeighbourSolicitTestKnownCode",
-        ICMPV6NeighbourSolicitTestKnownCode, 1);
+                   ICMPV6NeighbourSolicitTestKnownCode);
     UtRegisterTest("ICMPV6NeighbourSolicitTestUnknownCode",
-        ICMPV6NeighbourSolicitTestUnknownCode, 1);
+                   ICMPV6NeighbourSolicitTestUnknownCode);
     UtRegisterTest("ICMPV6NeighbourAdvertTestKnownCode",
-        ICMPV6NeighbourAdvertTestKnownCode, 1);
+                   ICMPV6NeighbourAdvertTestKnownCode);
     UtRegisterTest("ICMPV6NeighbourAdvertTestUnknownCode",
-        ICMPV6NeighbourAdvertTestUnknownCode, 1);
+                   ICMPV6NeighbourAdvertTestUnknownCode);
 
-    UtRegisterTest("ICMPV6RedirectTestKnownCode", ICMPV6RedirectTestKnownCode, 1);
+    UtRegisterTest("ICMPV6RedirectTestKnownCode", ICMPV6RedirectTestKnownCode);
     UtRegisterTest("ICMPV6RedirectTestUnknownCode",
-        ICMPV6RedirectTestUnknownCode, 1);
+                   ICMPV6RedirectTestUnknownCode);
 #endif /* UNITTESTS */
 }
 /**

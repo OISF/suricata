@@ -3503,17 +3503,17 @@ void AppLayerUnittestsRegister(void)
 {
     SCEnter();
 
-    UtRegisterTest("AppLayerTest01", AppLayerTest01, 1);
-    UtRegisterTest("AppLayerTest02", AppLayerTest02, 1);
-    UtRegisterTest("AppLayerTest03", AppLayerTest03, 1);
-    UtRegisterTest("AppLayerTest04", AppLayerTest04, 1);
-    UtRegisterTest("AppLayerTest05", AppLayerTest05, 1);
-    UtRegisterTest("AppLayerTest06", AppLayerTest06, 1);
-    UtRegisterTest("AppLayerTest07", AppLayerTest07, 1);
-    UtRegisterTest("AppLayerTest08", AppLayerTest08, 1);
-    UtRegisterTest("AppLayerTest09", AppLayerTest09, 1);
-    UtRegisterTest("AppLayerTest10", AppLayerTest10, 1);
-    UtRegisterTest("AppLayerTest11", AppLayerTest11, 1);
+    UtRegisterTest("AppLayerTest01", AppLayerTest01);
+    UtRegisterTest("AppLayerTest02", AppLayerTest02);
+    UtRegisterTest("AppLayerTest03", AppLayerTest03);
+    UtRegisterTest("AppLayerTest04", AppLayerTest04);
+    UtRegisterTest("AppLayerTest05", AppLayerTest05);
+    UtRegisterTest("AppLayerTest06", AppLayerTest06);
+    UtRegisterTest("AppLayerTest07", AppLayerTest07);
+    UtRegisterTest("AppLayerTest08", AppLayerTest08);
+    UtRegisterTest("AppLayerTest09", AppLayerTest09);
+    UtRegisterTest("AppLayerTest10", AppLayerTest10);
+    UtRegisterTest("AppLayerTest11", AppLayerTest11);
 
     SCReturn;
 }

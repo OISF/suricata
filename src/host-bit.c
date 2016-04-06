@@ -488,16 +488,16 @@ end:
 void HostBitRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HostBitTest01", HostBitTest01, 1);
-    UtRegisterTest("HostBitTest02", HostBitTest02, 1);
-    UtRegisterTest("HostBitTest03", HostBitTest03, 1);
-    UtRegisterTest("HostBitTest04", HostBitTest04, 1);
-    UtRegisterTest("HostBitTest05", HostBitTest05, 1);
-    UtRegisterTest("HostBitTest06", HostBitTest06, 1);
-    UtRegisterTest("HostBitTest07", HostBitTest07, 1);
-    UtRegisterTest("HostBitTest08", HostBitTest08, 1);
-    UtRegisterTest("HostBitTest09", HostBitTest09, 1);
-    UtRegisterTest("HostBitTest10", HostBitTest10, 1);
-    UtRegisterTest("HostBitTest11", HostBitTest11, 1);
+    UtRegisterTest("HostBitTest01", HostBitTest01);
+    UtRegisterTest("HostBitTest02", HostBitTest02);
+    UtRegisterTest("HostBitTest03", HostBitTest03);
+    UtRegisterTest("HostBitTest04", HostBitTest04);
+    UtRegisterTest("HostBitTest05", HostBitTest05);
+    UtRegisterTest("HostBitTest06", HostBitTest06);
+    UtRegisterTest("HostBitTest07", HostBitTest07);
+    UtRegisterTest("HostBitTest08", HostBitTest08);
+    UtRegisterTest("HostBitTest09", HostBitTest09);
+    UtRegisterTest("HostBitTest10", HostBitTest10);
+    UtRegisterTest("HostBitTest11", HostBitTest11);
 #endif /* UNITTESTS */
 }

@@ -1110,6 +1110,6 @@ end:
 
 void DCERPCUDPParserRegisterTests(void)
 {
-	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01, 1);
+	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01);
 }
 #endif

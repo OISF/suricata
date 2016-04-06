@@ -594,11 +594,11 @@ void DetectEngineSMTPFiledataRegisterTests(void)
 {
     #ifdef UNITTESTS
     UtRegisterTest("DetectEngineSMTPFiledataTest01",
-                   DetectEngineSMTPFiledataTest01, 1);
+                   DetectEngineSMTPFiledataTest01);
     UtRegisterTest("DetectEngineSMTPFiledataTest02",
-                   DetectEngineSMTPFiledataTest02, 1);
+                   DetectEngineSMTPFiledataTest02);
     UtRegisterTest("DetectEngineSMTPFiledataTest03",
-                   DetectEngineSMTPFiledataTest03, 1);
+                   DetectEngineSMTPFiledataTest03);
     #endif /* UNITTESTS */
 
     return;

@@ -2829,35 +2829,35 @@ void SCACRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCACTest01", SCACTest01, 1);
-    UtRegisterTest("SCACTest02", SCACTest02, 1);
-    UtRegisterTest("SCACTest03", SCACTest03, 1);
-    UtRegisterTest("SCACTest04", SCACTest04, 1);
-    UtRegisterTest("SCACTest05", SCACTest05, 1);
-    UtRegisterTest("SCACTest06", SCACTest06, 1);
-    UtRegisterTest("SCACTest07", SCACTest07, 1);
-    UtRegisterTest("SCACTest08", SCACTest08, 1);
-    UtRegisterTest("SCACTest09", SCACTest09, 1);
-    UtRegisterTest("SCACTest10", SCACTest10, 1);
-    UtRegisterTest("SCACTest11", SCACTest11, 1);
-    UtRegisterTest("SCACTest12", SCACTest12, 1);
-    UtRegisterTest("SCACTest13", SCACTest13, 1);
-    UtRegisterTest("SCACTest14", SCACTest14, 1);
-    UtRegisterTest("SCACTest15", SCACTest15, 1);
-    UtRegisterTest("SCACTest16", SCACTest16, 1);
-    UtRegisterTest("SCACTest17", SCACTest17, 1);
-    UtRegisterTest("SCACTest18", SCACTest18, 1);
-    UtRegisterTest("SCACTest19", SCACTest19, 1);
-    UtRegisterTest("SCACTest20", SCACTest20, 1);
-    UtRegisterTest("SCACTest21", SCACTest21, 1);
-    UtRegisterTest("SCACTest22", SCACTest22, 1);
-    UtRegisterTest("SCACTest23", SCACTest23, 1);
-    UtRegisterTest("SCACTest24", SCACTest24, 1);
-    UtRegisterTest("SCACTest25", SCACTest25, 1);
-    UtRegisterTest("SCACTest26", SCACTest26, 1);
-    UtRegisterTest("SCACTest27", SCACTest27, 1);
-    UtRegisterTest("SCACTest28", SCACTest28, 1);
-    UtRegisterTest("SCACTest29", SCACTest29, 1);
+    UtRegisterTest("SCACTest01", SCACTest01);
+    UtRegisterTest("SCACTest02", SCACTest02);
+    UtRegisterTest("SCACTest03", SCACTest03);
+    UtRegisterTest("SCACTest04", SCACTest04);
+    UtRegisterTest("SCACTest05", SCACTest05);
+    UtRegisterTest("SCACTest06", SCACTest06);
+    UtRegisterTest("SCACTest07", SCACTest07);
+    UtRegisterTest("SCACTest08", SCACTest08);
+    UtRegisterTest("SCACTest09", SCACTest09);
+    UtRegisterTest("SCACTest10", SCACTest10);
+    UtRegisterTest("SCACTest11", SCACTest11);
+    UtRegisterTest("SCACTest12", SCACTest12);
+    UtRegisterTest("SCACTest13", SCACTest13);
+    UtRegisterTest("SCACTest14", SCACTest14);
+    UtRegisterTest("SCACTest15", SCACTest15);
+    UtRegisterTest("SCACTest16", SCACTest16);
+    UtRegisterTest("SCACTest17", SCACTest17);
+    UtRegisterTest("SCACTest18", SCACTest18);
+    UtRegisterTest("SCACTest19", SCACTest19);
+    UtRegisterTest("SCACTest20", SCACTest20);
+    UtRegisterTest("SCACTest21", SCACTest21);
+    UtRegisterTest("SCACTest22", SCACTest22);
+    UtRegisterTest("SCACTest23", SCACTest23);
+    UtRegisterTest("SCACTest24", SCACTest24);
+    UtRegisterTest("SCACTest25", SCACTest25);
+    UtRegisterTest("SCACTest26", SCACTest26);
+    UtRegisterTest("SCACTest27", SCACTest27);
+    UtRegisterTest("SCACTest28", SCACTest28);
+    UtRegisterTest("SCACTest29", SCACTest29);
 #endif
 
     return;

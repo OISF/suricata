@@ -713,11 +713,14 @@ end:
 void DetectTlsVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01, 1);
-    UtRegisterTest("DetectTlsVersionTestParse02", DetectTlsVersionTestParse02, 1);
-    UtRegisterTest("DetectTlsVersionTestDetect01", DetectTlsVersionTestDetect01, 1);
-    UtRegisterTest("DetectTlsVersionTestDetect02", DetectTlsVersionTestDetect02, 1);
-    UtRegisterTest("DetectTlsVersionTestDetect03", DetectTlsVersionTestDetect03, 1);
+    UtRegisterTest("DetectTlsVersionTestParse01", DetectTlsVersionTestParse01);
+    UtRegisterTest("DetectTlsVersionTestParse02", DetectTlsVersionTestParse02);
+    UtRegisterTest("DetectTlsVersionTestDetect01",
+                   DetectTlsVersionTestDetect01);
+    UtRegisterTest("DetectTlsVersionTestDetect02",
+                   DetectTlsVersionTestDetect02);
+    UtRegisterTest("DetectTlsVersionTestDetect03",
+                   DetectTlsVersionTestDetect03);
 #endif /* UNITTESTS */
 }
 

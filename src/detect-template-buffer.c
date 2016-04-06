@@ -165,6 +165,6 @@ end:
 static void DetectTemplateBufferRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTemplateBufferTest", DetectTemplateBufferTest, 1);
+    UtRegisterTest("DetectTemplateBufferTest", DetectTemplateBufferTest);
 #endif /* UNITTESTS */
 }

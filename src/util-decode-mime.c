@@ -2987,13 +2987,13 @@ static int MimeIsIpv6HostTest01(void)
 void MimeDecRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01, 1);
-    UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02, 1);
-    UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01, 1);
-    UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02, 1);
-    UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01, 1);
-    UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01, 1);
-    UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01, 1);
-    UtRegisterTest("MimeIsIpv6HostTest01", MimeIsIpv6HostTest01, 1);
+    UtRegisterTest("MimeDecParseLineTest01", MimeDecParseLineTest01);
+    UtRegisterTest("MimeDecParseLineTest02", MimeDecParseLineTest02);
+    UtRegisterTest("MimeDecParseFullMsgTest01", MimeDecParseFullMsgTest01);
+    UtRegisterTest("MimeDecParseFullMsgTest02", MimeDecParseFullMsgTest02);
+    UtRegisterTest("MimeBase64DecodeTest01", MimeBase64DecodeTest01);
+    UtRegisterTest("MimeIsExeURLTest01", MimeIsExeURLTest01);
+    UtRegisterTest("MimeIsIpv4HostTest01", MimeIsIpv4HostTest01);
+    UtRegisterTest("MimeIsIpv6HostTest01", MimeIsIpv6HostTest01);
 #endif /* UNITTESTS */
 }

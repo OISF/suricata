@@ -1134,12 +1134,15 @@ end:
 static void DetectDnsQueryRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01, 1);
-    UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02, 1);
-    UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03, 1);
-    UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing", DetectDnsQueryTest04, 1);
-    UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx", DetectDnsQueryTest05, 1);
-    UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06, 1);
-    UtRegisterTest("DetectDnsQueryTest07 -- app layer event", DetectDnsQueryTest07, 1);
+    UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01);
+    UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02);
+    UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03);
+    UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing",
+                   DetectDnsQueryTest04);
+    UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx",
+                   DetectDnsQueryTest05);
+    UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06);
+    UtRegisterTest("DetectDnsQueryTest07 -- app layer event",
+                   DetectDnsQueryTest07);
 #endif
 }

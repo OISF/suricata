@@ -268,9 +268,9 @@ error:
 void DecodeVLANRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeVLANtest01", DecodeVLANtest01, 1);
-    UtRegisterTest("DecodeVLANtest02", DecodeVLANtest02, 1);
-    UtRegisterTest("DecodeVLANtest03", DecodeVLANtest03, 1);
+    UtRegisterTest("DecodeVLANtest01", DecodeVLANtest01);
+    UtRegisterTest("DecodeVLANtest02", DecodeVLANtest02);
+    UtRegisterTest("DecodeVLANtest03", DecodeVLANtest03);
 #endif /* UNITTESTS */
 }
 

@@ -2323,49 +2323,66 @@ void UtilSpmSearchRegistertests(void)
 {
 #ifdef UNITTESTS
     /* Generic tests */
-    UtRegisterTest("UtilSpmBasicSearchTest01", UtilSpmBasicSearchTest01, 1);
-    UtRegisterTest("UtilSpmBasicSearchNocaseTest01", UtilSpmBasicSearchNocaseTest01, 1);
+    UtRegisterTest("UtilSpmBasicSearchTest01", UtilSpmBasicSearchTest01);
+    UtRegisterTest("UtilSpmBasicSearchNocaseTest01",
+                   UtilSpmBasicSearchNocaseTest01);
 
-    UtRegisterTest("UtilSpmBs2bmSearchTest01", UtilSpmBs2bmSearchTest01, 1);
-    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest01", UtilSpmBs2bmSearchNocaseTest01, 1);
+    UtRegisterTest("UtilSpmBs2bmSearchTest01", UtilSpmBs2bmSearchTest01);
+    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest01",
+                   UtilSpmBs2bmSearchNocaseTest01);
 
-    UtRegisterTest("UtilSpmBoyerMooreSearchTest01", UtilSpmBoyerMooreSearchTest01, 1);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest01", UtilSpmBoyerMooreSearchNocaseTest01, 1);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTestIssue130", UtilSpmBoyerMooreSearchNocaseTestIssue130, 1);
+    UtRegisterTest("UtilSpmBoyerMooreSearchTest01",
+                   UtilSpmBoyerMooreSearchTest01);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest01",
+                   UtilSpmBoyerMooreSearchNocaseTest01);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTestIssue130",
+                   UtilSpmBoyerMooreSearchNocaseTestIssue130);
 
-    UtRegisterTest("UtilSpmBs2bmSearchTest02", UtilSpmBs2bmSearchTest02, 1);
-    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest02", UtilSpmBs2bmSearchNocaseTest02, 1);
+    UtRegisterTest("UtilSpmBs2bmSearchTest02", UtilSpmBs2bmSearchTest02);
+    UtRegisterTest("UtilSpmBs2bmSearchNocaseTest02",
+                   UtilSpmBs2bmSearchNocaseTest02);
 
-    UtRegisterTest("UtilSpmBasicSearchTest02", UtilSpmBasicSearchTest02, 1);
-    UtRegisterTest("UtilSpmBasicSearchNocaseTest02", UtilSpmBasicSearchNocaseTest02, 1);
+    UtRegisterTest("UtilSpmBasicSearchTest02", UtilSpmBasicSearchTest02);
+    UtRegisterTest("UtilSpmBasicSearchNocaseTest02",
+                   UtilSpmBasicSearchNocaseTest02);
 
-    UtRegisterTest("UtilSpmBoyerMooreSearchTest02", UtilSpmBoyerMooreSearchTest02, 1);
-    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest02", UtilSpmBoyerMooreSearchNocaseTest02, 1);
+    UtRegisterTest("UtilSpmBoyerMooreSearchTest02",
+                   UtilSpmBoyerMooreSearchTest02);
+    UtRegisterTest("UtilSpmBoyerMooreSearchNocaseTest02",
+                   UtilSpmBoyerMooreSearchNocaseTest02);
 
     /* test matches at any offset */
-    UtRegisterTest("UtilSpmSearchOffsetsTest01", UtilSpmSearchOffsetsTest01, 1);
-    UtRegisterTest("UtilSpmSearchOffsetsNocaseTest01", UtilSpmSearchOffsetsNocaseTest01, 1);
+    UtRegisterTest("UtilSpmSearchOffsetsTest01", UtilSpmSearchOffsetsTest01);
+    UtRegisterTest("UtilSpmSearchOffsetsNocaseTest01",
+                   UtilSpmSearchOffsetsNocaseTest01);
 
 #ifdef ENABLE_SEARCH_STATS
     /* Give some stats searching given a prepared context (look at the wrappers) */
-    UtRegisterTest("UtilSpmSearchStatsTest01", UtilSpmSearchStatsTest01, 1);
-    UtRegisterTest("UtilSpmSearchStatsTest02", UtilSpmSearchStatsTest02, 1);
-    UtRegisterTest("UtilSpmSearchStatsTest03", UtilSpmSearchStatsTest03, 1);
+    UtRegisterTest("UtilSpmSearchStatsTest01", UtilSpmSearchStatsTest01);
+    UtRegisterTest("UtilSpmSearchStatsTest02", UtilSpmSearchStatsTest02);
+    UtRegisterTest("UtilSpmSearchStatsTest03", UtilSpmSearchStatsTest03);
 
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest01", UtilSpmNocaseSearchStatsTest01, 1);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest02", UtilSpmNocaseSearchStatsTest02, 1);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest03", UtilSpmNocaseSearchStatsTest03, 1);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest01",
+                   UtilSpmNocaseSearchStatsTest01);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest02",
+                   UtilSpmNocaseSearchStatsTest02);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest03",
+                   UtilSpmNocaseSearchStatsTest03);
 
     /* Stats building context and searching */
-    UtRegisterTest("UtilSpmSearchStatsTest04", UtilSpmSearchStatsTest04, 1);
-    UtRegisterTest("UtilSpmSearchStatsTest05", UtilSpmSearchStatsTest05, 1);
-    UtRegisterTest("UtilSpmSearchStatsTest06", UtilSpmSearchStatsTest06, 1);
-    UtRegisterTest("UtilSpmSearchStatsTest07", UtilSpmSearchStatsTest07, 1);
+    UtRegisterTest("UtilSpmSearchStatsTest04", UtilSpmSearchStatsTest04);
+    UtRegisterTest("UtilSpmSearchStatsTest05", UtilSpmSearchStatsTest05);
+    UtRegisterTest("UtilSpmSearchStatsTest06", UtilSpmSearchStatsTest06);
+    UtRegisterTest("UtilSpmSearchStatsTest07", UtilSpmSearchStatsTest07);
 
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest04", UtilSpmNocaseSearchStatsTest04, 1);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest05", UtilSpmNocaseSearchStatsTest05, 1);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest06", UtilSpmNocaseSearchStatsTest06, 1);
-    UtRegisterTest("UtilSpmNocaseSearchStatsTest07", UtilSpmNocaseSearchStatsTest07, 1);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest04",
+                   UtilSpmNocaseSearchStatsTest04);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest05",
+                   UtilSpmNocaseSearchStatsTest05);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest06",
+                   UtilSpmNocaseSearchStatsTest06);
+    UtRegisterTest("UtilSpmNocaseSearchStatsTest07",
+                   UtilSpmNocaseSearchStatsTest07);
 
 #endif
 #endif

@@ -358,10 +358,10 @@ end:
 void DetectWindowRegisterTests(void)
 {
     #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectWindowTestParse01", DetectWindowTestParse01, 1);
-    UtRegisterTest("DetectWindowTestParse02", DetectWindowTestParse02, 1);
-    UtRegisterTest("DetectWindowTestParse03", DetectWindowTestParse03, 1);
-    UtRegisterTest("DetectWindowTestParse04", DetectWindowTestParse04, 1);
-    UtRegisterTest("DetectWindowTestPacket01"  , DetectWindowTestPacket01  , 1);
+    UtRegisterTest("DetectWindowTestParse01", DetectWindowTestParse01);
+    UtRegisterTest("DetectWindowTestParse02", DetectWindowTestParse02);
+    UtRegisterTest("DetectWindowTestParse03", DetectWindowTestParse03);
+    UtRegisterTest("DetectWindowTestParse04", DetectWindowTestParse04);
+    UtRegisterTest("DetectWindowTestPacket01", DetectWindowTestPacket01);
     #endif /* UNITTESTS */
 }

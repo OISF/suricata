@@ -5070,25 +5070,25 @@ int SMTPProcessDataChunkTest05(void){
 void SMTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SMTPParserTest01", SMTPParserTest01, 1);
-    UtRegisterTest("SMTPParserTest02", SMTPParserTest02, 1);
-    UtRegisterTest("SMTPParserTest03", SMTPParserTest03, 1);
-    UtRegisterTest("SMTPParserTest04", SMTPParserTest04, 1);
-    UtRegisterTest("SMTPParserTest05", SMTPParserTest05, 1);
-    UtRegisterTest("SMTPParserTest06", SMTPParserTest06, 1);
-    UtRegisterTest("SMTPParserTest07", SMTPParserTest07, 1);
-    UtRegisterTest("SMTPParserTest08", SMTPParserTest08, 1);
-    UtRegisterTest("SMTPParserTest09", SMTPParserTest09, 1);
-    UtRegisterTest("SMTPParserTest10", SMTPParserTest10, 1);
-    UtRegisterTest("SMTPParserTest11", SMTPParserTest11, 1);
-    UtRegisterTest("SMTPParserTest12", SMTPParserTest12, 1);
-    UtRegisterTest("SMTPParserTest13", SMTPParserTest13, 1);
-    UtRegisterTest("SMTPParserTest14", SMTPParserTest14, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05, 1);
+    UtRegisterTest("SMTPParserTest01", SMTPParserTest01);
+    UtRegisterTest("SMTPParserTest02", SMTPParserTest02);
+    UtRegisterTest("SMTPParserTest03", SMTPParserTest03);
+    UtRegisterTest("SMTPParserTest04", SMTPParserTest04);
+    UtRegisterTest("SMTPParserTest05", SMTPParserTest05);
+    UtRegisterTest("SMTPParserTest06", SMTPParserTest06);
+    UtRegisterTest("SMTPParserTest07", SMTPParserTest07);
+    UtRegisterTest("SMTPParserTest08", SMTPParserTest08);
+    UtRegisterTest("SMTPParserTest09", SMTPParserTest09);
+    UtRegisterTest("SMTPParserTest10", SMTPParserTest10);
+    UtRegisterTest("SMTPParserTest11", SMTPParserTest11);
+    UtRegisterTest("SMTPParserTest12", SMTPParserTest12);
+    UtRegisterTest("SMTPParserTest13", SMTPParserTest13);
+    UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
+    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01);
+    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02);
+    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03);
+    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04);
+    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05);
 #endif /* UNITTESTS */
 
     return;

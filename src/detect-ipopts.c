@@ -379,9 +379,9 @@ error:
 void IpOptsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01, 1);
-    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02, 1);
-    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03, 1);
-    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04, 1);
+    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01);
+    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02);
+    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
+    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
 #endif /* UNITTESTS */
 }

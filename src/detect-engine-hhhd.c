@@ -2588,56 +2588,31 @@ void DetectEngineHttpHHRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectEngineHttpHHTest01",
-                   DetectEngineHttpHHTest01, 1);
-    UtRegisterTest("DetectEngineHttpHHTest02",
-                   DetectEngineHttpHHTest02, 1);
-    UtRegisterTest("DetectEngineHttpHHTest03",
-                   DetectEngineHttpHHTest03, 1);
-    UtRegisterTest("DetectEngineHttpHHTest04",
-                   DetectEngineHttpHHTest04, 1);
-    UtRegisterTest("DetectEngineHttpHHTest05",
-                   DetectEngineHttpHHTest05, 1);
-    UtRegisterTest("DetectEngineHttpHHTest06",
-                   DetectEngineHttpHHTest06, 1);
-    UtRegisterTest("DetectEngineHttpHHTest07",
-                   DetectEngineHttpHHTest07, 1);
-    UtRegisterTest("DetectEngineHttpHHTest08",
-                   DetectEngineHttpHHTest08, 1);
-    UtRegisterTest("DetectEngineHttpHHTest09",
-                   DetectEngineHttpHHTest09, 1);
-    UtRegisterTest("DetectEngineHttpHHTest10",
-                   DetectEngineHttpHHTest10, 1);
-    UtRegisterTest("DetectEngineHttpHHTest11",
-                   DetectEngineHttpHHTest11, 1);
-    UtRegisterTest("DetectEngineHttpHHTest12",
-                   DetectEngineHttpHHTest12, 1);
-    UtRegisterTest("DetectEngineHttpHHTest13",
-                   DetectEngineHttpHHTest13, 1);
-    UtRegisterTest("DetectEngineHttpHHTest14",
-                   DetectEngineHttpHHTest14, 1);
-    UtRegisterTest("DetectEngineHttpHHTest15",
-                   DetectEngineHttpHHTest15, 1);
-    UtRegisterTest("DetectEngineHttpHHTest16",
-                   DetectEngineHttpHHTest16, 1);
-    UtRegisterTest("DetectEngineHttpHHTest17",
-                   DetectEngineHttpHHTest17, 1);
-    UtRegisterTest("DetectEngineHttpHHTest18",
-                   DetectEngineHttpHHTest18, 1);
-    UtRegisterTest("DetectEngineHttpHHTest19",
-                   DetectEngineHttpHHTest19, 1);
-    UtRegisterTest("DetectEngineHttpHHTest20",
-                   DetectEngineHttpHHTest20, 1);
-    UtRegisterTest("DetectEngineHttpHHTest21",
-                   DetectEngineHttpHHTest21, 1);
-    UtRegisterTest("DetectEngineHttpHHTest22",
-                   DetectEngineHttpHHTest22, 1);
-    UtRegisterTest("DetectEngineHttpHHTest23",
-                   DetectEngineHttpHHTest23, 1);
-    UtRegisterTest("DetectEngineHttpHHTest24",
-                   DetectEngineHttpHHTest24, 1);
-    UtRegisterTest("DetectEngineHttpHHTest25",
-                   DetectEngineHttpHHTest25, 1);
+    UtRegisterTest("DetectEngineHttpHHTest01", DetectEngineHttpHHTest01);
+    UtRegisterTest("DetectEngineHttpHHTest02", DetectEngineHttpHHTest02);
+    UtRegisterTest("DetectEngineHttpHHTest03", DetectEngineHttpHHTest03);
+    UtRegisterTest("DetectEngineHttpHHTest04", DetectEngineHttpHHTest04);
+    UtRegisterTest("DetectEngineHttpHHTest05", DetectEngineHttpHHTest05);
+    UtRegisterTest("DetectEngineHttpHHTest06", DetectEngineHttpHHTest06);
+    UtRegisterTest("DetectEngineHttpHHTest07", DetectEngineHttpHHTest07);
+    UtRegisterTest("DetectEngineHttpHHTest08", DetectEngineHttpHHTest08);
+    UtRegisterTest("DetectEngineHttpHHTest09", DetectEngineHttpHHTest09);
+    UtRegisterTest("DetectEngineHttpHHTest10", DetectEngineHttpHHTest10);
+    UtRegisterTest("DetectEngineHttpHHTest11", DetectEngineHttpHHTest11);
+    UtRegisterTest("DetectEngineHttpHHTest12", DetectEngineHttpHHTest12);
+    UtRegisterTest("DetectEngineHttpHHTest13", DetectEngineHttpHHTest13);
+    UtRegisterTest("DetectEngineHttpHHTest14", DetectEngineHttpHHTest14);
+    UtRegisterTest("DetectEngineHttpHHTest15", DetectEngineHttpHHTest15);
+    UtRegisterTest("DetectEngineHttpHHTest16", DetectEngineHttpHHTest16);
+    UtRegisterTest("DetectEngineHttpHHTest17", DetectEngineHttpHHTest17);
+    UtRegisterTest("DetectEngineHttpHHTest18", DetectEngineHttpHHTest18);
+    UtRegisterTest("DetectEngineHttpHHTest19", DetectEngineHttpHHTest19);
+    UtRegisterTest("DetectEngineHttpHHTest20", DetectEngineHttpHHTest20);
+    UtRegisterTest("DetectEngineHttpHHTest21", DetectEngineHttpHHTest21);
+    UtRegisterTest("DetectEngineHttpHHTest22", DetectEngineHttpHHTest22);
+    UtRegisterTest("DetectEngineHttpHHTest23", DetectEngineHttpHHTest23);
+    UtRegisterTest("DetectEngineHttpHHTest24", DetectEngineHttpHHTest24);
+    UtRegisterTest("DetectEngineHttpHHTest25", DetectEngineHttpHHTest25);
 #endif /* UNITTESTS */
 
     return;

@@ -384,24 +384,24 @@ static int MemcmpTest18 (void)
 void MemcmpRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MemcmpTest01", MemcmpTest01, 1);
-    UtRegisterTest("MemcmpTest02", MemcmpTest02, 1);
-    UtRegisterTest("MemcmpTest03", MemcmpTest03, 1);
-    UtRegisterTest("MemcmpTest04", MemcmpTest04, 1);
-    UtRegisterTest("MemcmpTest05", MemcmpTest05, 1);
-    UtRegisterTest("MemcmpTest06", MemcmpTest06, 1);
-    UtRegisterTest("MemcmpTest07", MemcmpTest07, 1);
-    UtRegisterTest("MemcmpTest08", MemcmpTest08, 1);
-    UtRegisterTest("MemcmpTest09", MemcmpTest09, 1);
-    UtRegisterTest("MemcmpTest10", MemcmpTest10, 1);
-    UtRegisterTest("MemcmpTest11", MemcmpTest11, 1);
-    UtRegisterTest("MemcmpTest12", MemcmpTest12, 1);
-    UtRegisterTest("MemcmpTest13", MemcmpTest13, 1);
-    UtRegisterTest("MemcmpTest14", MemcmpTest14, 1);
-    UtRegisterTest("MemcmpTest15", MemcmpTest15, 1);
-    UtRegisterTest("MemcmpTest16", MemcmpTest16, 1);
-    UtRegisterTest("MemcmpTest17", MemcmpTest17, 1);
-    UtRegisterTest("MemcmpTest18", MemcmpTest18, 1);
+    UtRegisterTest("MemcmpTest01", MemcmpTest01);
+    UtRegisterTest("MemcmpTest02", MemcmpTest02);
+    UtRegisterTest("MemcmpTest03", MemcmpTest03);
+    UtRegisterTest("MemcmpTest04", MemcmpTest04);
+    UtRegisterTest("MemcmpTest05", MemcmpTest05);
+    UtRegisterTest("MemcmpTest06", MemcmpTest06);
+    UtRegisterTest("MemcmpTest07", MemcmpTest07);
+    UtRegisterTest("MemcmpTest08", MemcmpTest08);
+    UtRegisterTest("MemcmpTest09", MemcmpTest09);
+    UtRegisterTest("MemcmpTest10", MemcmpTest10);
+    UtRegisterTest("MemcmpTest11", MemcmpTest11);
+    UtRegisterTest("MemcmpTest12", MemcmpTest12);
+    UtRegisterTest("MemcmpTest13", MemcmpTest13);
+    UtRegisterTest("MemcmpTest14", MemcmpTest14);
+    UtRegisterTest("MemcmpTest15", MemcmpTest15);
+    UtRegisterTest("MemcmpTest16", MemcmpTest16);
+    UtRegisterTest("MemcmpTest17", MemcmpTest17);
+    UtRegisterTest("MemcmpTest18", MemcmpTest18);
 #endif /* UNITTESTS */
 }
 

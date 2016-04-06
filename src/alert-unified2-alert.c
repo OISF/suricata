@@ -1967,11 +1967,12 @@ error:
 void Unified2RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("Unified2Test01 -- Ipv4 test", Unified2Test01, 1);
-    UtRegisterTest("Unified2Test02 -- Ipv6 test", Unified2Test02, 1);
-    UtRegisterTest("Unified2Test03 -- GRE test", Unified2Test03, 1);
-    UtRegisterTest("Unified2Test04 -- PPP test", Unified2Test04, 1);
-    UtRegisterTest("Unified2Test05 -- Inline test", Unified2Test05, 1);
-    UtRegisterTest("Unified2TestRotate01 -- Rotate File", Unified2TestRotate01, 1);
+    UtRegisterTest("Unified2Test01 -- Ipv4 test", Unified2Test01);
+    UtRegisterTest("Unified2Test02 -- Ipv6 test", Unified2Test02);
+    UtRegisterTest("Unified2Test03 -- GRE test", Unified2Test03);
+    UtRegisterTest("Unified2Test04 -- PPP test", Unified2Test04);
+    UtRegisterTest("Unified2Test05 -- Inline test", Unified2Test05);
+    UtRegisterTest("Unified2TestRotate01 -- Rotate File",
+                   Unified2TestRotate01);
 #endif /* UNITTESTS */
 }

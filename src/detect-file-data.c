@@ -273,10 +273,10 @@ end:
 void DetectFiledataRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01, 1);
-    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02, 1);
-    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03, 1);
-    UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04, 1);
-    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05, 1);
+    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01);
+    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02);
+    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
+    UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
+    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05);
 #endif
 }

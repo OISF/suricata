@@ -292,8 +292,8 @@ error:
 void RegisterIPPairStorageTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IPPairStorageTest01", IPPairStorageTest01, 1);
-    UtRegisterTest("IPPairStorageTest02", IPPairStorageTest02, 1);
-    UtRegisterTest("IPPairStorageTest03", IPPairStorageTest03, 1);
+    UtRegisterTest("IPPairStorageTest01", IPPairStorageTest01);
+    UtRegisterTest("IPPairStorageTest02", IPPairStorageTest02);
+    UtRegisterTest("IPPairStorageTest03", IPPairStorageTest03);
 #endif
 }

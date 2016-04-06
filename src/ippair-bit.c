@@ -491,16 +491,16 @@ end:
 void IPPairBitRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IPPairBitTest01", IPPairBitTest01, 1);
-    UtRegisterTest("IPPairBitTest02", IPPairBitTest02, 1);
-    UtRegisterTest("IPPairBitTest03", IPPairBitTest03, 1);
-    UtRegisterTest("IPPairBitTest04", IPPairBitTest04, 1);
-    UtRegisterTest("IPPairBitTest05", IPPairBitTest05, 1);
-    UtRegisterTest("IPPairBitTest06", IPPairBitTest06, 1);
-    UtRegisterTest("IPPairBitTest07", IPPairBitTest07, 1);
-    UtRegisterTest("IPPairBitTest08", IPPairBitTest08, 1);
-    UtRegisterTest("IPPairBitTest09", IPPairBitTest09, 1);
-    UtRegisterTest("IPPairBitTest10", IPPairBitTest10, 1);
-    UtRegisterTest("IPPairBitTest11", IPPairBitTest11, 1);
+    UtRegisterTest("IPPairBitTest01", IPPairBitTest01);
+    UtRegisterTest("IPPairBitTest02", IPPairBitTest02);
+    UtRegisterTest("IPPairBitTest03", IPPairBitTest03);
+    UtRegisterTest("IPPairBitTest04", IPPairBitTest04);
+    UtRegisterTest("IPPairBitTest05", IPPairBitTest05);
+    UtRegisterTest("IPPairBitTest06", IPPairBitTest06);
+    UtRegisterTest("IPPairBitTest07", IPPairBitTest07);
+    UtRegisterTest("IPPairBitTest08", IPPairBitTest08);
+    UtRegisterTest("IPPairBitTest09", IPPairBitTest09);
+    UtRegisterTest("IPPairBitTest10", IPPairBitTest10);
+    UtRegisterTest("IPPairBitTest11", IPPairBitTest11);
 #endif /* UNITTESTS */
 }

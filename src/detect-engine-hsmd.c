@@ -2087,35 +2087,35 @@ void DetectEngineHttpStatMsgRegisterTests(void)
 
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpStatMsgTest01",
-                   DetectEngineHttpStatMsgTest01, 1);
+                   DetectEngineHttpStatMsgTest01);
     UtRegisterTest("DetectEngineHttpStatMsgTest02",
-                   DetectEngineHttpStatMsgTest02, 1);
+                   DetectEngineHttpStatMsgTest02);
     UtRegisterTest("DetectEngineHttpStatMsgTest03",
-                   DetectEngineHttpStatMsgTest03, 1);
+                   DetectEngineHttpStatMsgTest03);
     UtRegisterTest("DetectEngineHttpStatMsgTest04",
-                   DetectEngineHttpStatMsgTest04, 1);
+                   DetectEngineHttpStatMsgTest04);
     UtRegisterTest("DetectEngineHttpStatMsgTest05",
-                   DetectEngineHttpStatMsgTest05, 1);
+                   DetectEngineHttpStatMsgTest05);
     UtRegisterTest("DetectEngineHttpStatMsgTest06",
-                   DetectEngineHttpStatMsgTest06, 1);
+                   DetectEngineHttpStatMsgTest06);
     UtRegisterTest("DetectEngineHttpStatMsgTest07",
-                   DetectEngineHttpStatMsgTest07, 1);
+                   DetectEngineHttpStatMsgTest07);
     UtRegisterTest("DetectEngineHttpStatMsgTest08",
-                   DetectEngineHttpStatMsgTest08, 1);
+                   DetectEngineHttpStatMsgTest08);
     UtRegisterTest("DetectEngineHttpStatMsgTest09",
-                   DetectEngineHttpStatMsgTest09, 1);
+                   DetectEngineHttpStatMsgTest09);
     UtRegisterTest("DetectEngineHttpStatMsgTest10",
-                   DetectEngineHttpStatMsgTest10, 1);
+                   DetectEngineHttpStatMsgTest10);
     UtRegisterTest("DetectEngineHttpStatMsgTest11",
-                   DetectEngineHttpStatMsgTest11, 1);
+                   DetectEngineHttpStatMsgTest11);
     UtRegisterTest("DetectEngineHttpStatMsgTest12",
-                   DetectEngineHttpStatMsgTest12, 1);
+                   DetectEngineHttpStatMsgTest12);
     UtRegisterTest("DetectEngineHttpStatMsgTest13",
-                   DetectEngineHttpStatMsgTest13, 1);
+                   DetectEngineHttpStatMsgTest13);
     UtRegisterTest("DetectEngineHttpStatMsgTest14",
-                   DetectEngineHttpStatMsgTest14, 1);
+                   DetectEngineHttpStatMsgTest14);
     UtRegisterTest("DetectEngineHttpStatMsgTest15",
-                   DetectEngineHttpStatMsgTest15, 1);
+                   DetectEngineHttpStatMsgTest15);
 #endif /* UNITTESTS */
 
     return;

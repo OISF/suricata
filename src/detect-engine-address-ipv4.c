@@ -1439,18 +1439,18 @@ void DetectAddressIPv4Tests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectAddressIPv4TestAddressCmp01",
-                   DetectAddressIPv4TestAddressCmp01, 1);
+                   DetectAddressIPv4TestAddressCmp01);
     UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace02",
-                   DetectAddressIPv4IsCompleteIPSpace02, 1);
+                   DetectAddressIPv4IsCompleteIPSpace02);
     UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace03",
-                   DetectAddressIPv4IsCompleteIPSpace03, 1);
+                   DetectAddressIPv4IsCompleteIPSpace03);
     UtRegisterTest("DetectAddressIPv4IsCompleteIPSpace04",
-                   DetectAddressIPv4IsCompleteIPSpace04, 1);
-    UtRegisterTest("DetectAddressIPv4CutNot05", DetectAddressIPv4CutNot05, 1);
-    UtRegisterTest("DetectAddressIPv4CutNot06", DetectAddressIPv4CutNot06, 1);
-    UtRegisterTest("DetectAddressIPv4CutNot07", DetectAddressIPv4CutNot07, 1);
-    UtRegisterTest("DetectAddressIPv4CutNot08", DetectAddressIPv4CutNot08, 1);
-    UtRegisterTest("DetectAddressIPv4CutNot09", DetectAddressIPv4CutNot09, 1);
-    UtRegisterTest("DetectAddressIPv4Join10", DetectAddressIPv4Join10, 1);
+                   DetectAddressIPv4IsCompleteIPSpace04);
+    UtRegisterTest("DetectAddressIPv4CutNot05", DetectAddressIPv4CutNot05);
+    UtRegisterTest("DetectAddressIPv4CutNot06", DetectAddressIPv4CutNot06);
+    UtRegisterTest("DetectAddressIPv4CutNot07", DetectAddressIPv4CutNot07);
+    UtRegisterTest("DetectAddressIPv4CutNot08", DetectAddressIPv4CutNot08);
+    UtRegisterTest("DetectAddressIPv4CutNot09", DetectAddressIPv4CutNot09);
+    UtRegisterTest("DetectAddressIPv4Join10", DetectAddressIPv4Join10);
 #endif
 }

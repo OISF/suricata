@@ -2326,16 +2326,16 @@ end:
 void DeStateRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DeStateTest01", DeStateTest01, 1);
-    UtRegisterTest("DeStateTest02", DeStateTest02, 1);
-    UtRegisterTest("DeStateTest03", DeStateTest03, 1);
-    UtRegisterTest("DeStateSigTest01", DeStateSigTest01, 1);
-    UtRegisterTest("DeStateSigTest02", DeStateSigTest02, 1);
-    UtRegisterTest("DeStateSigTest03", DeStateSigTest03, 1);
-    UtRegisterTest("DeStateSigTest04", DeStateSigTest04, 1);
-    UtRegisterTest("DeStateSigTest05", DeStateSigTest05, 1);
-    UtRegisterTest("DeStateSigTest06", DeStateSigTest06, 1);
-    UtRegisterTest("DeStateSigTest07", DeStateSigTest07, 1);
+    UtRegisterTest("DeStateTest01", DeStateTest01);
+    UtRegisterTest("DeStateTest02", DeStateTest02);
+    UtRegisterTest("DeStateTest03", DeStateTest03);
+    UtRegisterTest("DeStateSigTest01", DeStateSigTest01);
+    UtRegisterTest("DeStateSigTest02", DeStateSigTest02);
+    UtRegisterTest("DeStateSigTest03", DeStateSigTest03);
+    UtRegisterTest("DeStateSigTest04", DeStateSigTest04);
+    UtRegisterTest("DeStateSigTest05", DeStateSigTest05);
+    UtRegisterTest("DeStateSigTest06", DeStateSigTest06);
+    UtRegisterTest("DeStateSigTest07", DeStateSigTest07);
 #endif
 
     return;

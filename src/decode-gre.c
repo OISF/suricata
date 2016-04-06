@@ -403,9 +403,9 @@ static int DecodeGREtest03 (void)
 void DecodeGRERegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeGREtest01", DecodeGREtest01, 1);
-    UtRegisterTest("DecodeGREtest02", DecodeGREtest02, 1);
-    UtRegisterTest("DecodeGREtest03", DecodeGREtest03, 1);
+    UtRegisterTest("DecodeGREtest01", DecodeGREtest01);
+    UtRegisterTest("DecodeGREtest02", DecodeGREtest02);
+    UtRegisterTest("DecodeGREtest03", DecodeGREtest03);
 #endif /* UNITTESTS */
 }
 /**

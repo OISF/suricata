@@ -1225,25 +1225,25 @@ end:
 void DetectIsdataatRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01, 1);
-    UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02, 1);
-    UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
-    UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04, 1);
-    UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05, 1);
-    UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06, 1);
-    UtRegisterTest("DetectIsdataatTestParse07", DetectIsdataatTestParse07, 1);
-    UtRegisterTest("DetectIsdataatTestParse08", DetectIsdataatTestParse08, 1);
-    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09, 1);
-    UtRegisterTest("DetectIsdataatTestParse10", DetectIsdataatTestParse10, 1);
-    UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11, 1);
-    UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12, 1);
-    UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13, 1);
-    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14, 1);
-    UtRegisterTest("DetectIsdataatTestParse15", DetectIsdataatTestParse15, 1);
-    UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16, 1);
+    UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01);
+    UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02);
+    UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03);
+    UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04);
+    UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05);
+    UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06);
+    UtRegisterTest("DetectIsdataatTestParse07", DetectIsdataatTestParse07);
+    UtRegisterTest("DetectIsdataatTestParse08", DetectIsdataatTestParse08);
+    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09);
+    UtRegisterTest("DetectIsdataatTestParse10", DetectIsdataatTestParse10);
+    UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11);
+    UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12);
+    UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13);
+    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14);
+    UtRegisterTest("DetectIsdataatTestParse15", DetectIsdataatTestParse15);
+    UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16);
 
-    UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
-    UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
-    UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03, 1);
+    UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
+    UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
+    UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03);
 #endif
 }

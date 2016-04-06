@@ -565,9 +565,12 @@ end:
 void TmqhFlowRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest01", TmqhOutputFlowSetupCtxTest01, 1);
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest02", TmqhOutputFlowSetupCtxTest02, 1);
-    UtRegisterTest("TmqhOutputFlowSetupCtxTest03", TmqhOutputFlowSetupCtxTest03, 1);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest01",
+                   TmqhOutputFlowSetupCtxTest01);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest02",
+                   TmqhOutputFlowSetupCtxTest02);
+    UtRegisterTest("TmqhOutputFlowSetupCtxTest03",
+                   TmqhOutputFlowSetupCtxTest03);
 #endif
 
     return;
