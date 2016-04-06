@@ -422,7 +422,7 @@ static int ICMPV6CalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 56)));
 
-    return (csum == ICMPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    return (csum != ICMPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                             (uint16_t *)(raw_ipv6 + 54), 68));
 }
 
@@ -1613,7 +1613,7 @@ void DecodeICMPV6RegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("ICMPV6CalculateValidChecksumtest01", ICMPV6CalculateValidChecksumtest01, 1);
-    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02", ICMPV6CalculateInvalidChecksumtest02, 0);
+    UtRegisterTest("ICMPV6CalculateInValidChecksumtest02", ICMPV6CalculateInvalidChecksumtest02, 1);
 
     UtRegisterTest("ICMPV6ParamProbTest01 (Valid)", ICMPV6ParamProbTest01, 1);
     UtRegisterTest("ICMPV6DestUnreachTest01 (Valid)", ICMPV6DestUnreachTest01, 1);

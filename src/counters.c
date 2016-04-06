@@ -1286,7 +1286,7 @@ static int StatsTestCounterReg02()
 
     memset(&pctx, 0, sizeof(StatsPublicThreadContext));
 
-    return RegisterCounter(NULL, NULL, &pctx);
+    return RegisterCounter(NULL, NULL, &pctx) == 0;
 }
 
 static int StatsTestCounterReg03()
@@ -1384,7 +1384,7 @@ static int StatsTestCntArraySize07()
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    return result == 2;
 }
 
 static int StatsTestUpdateCounter08()
@@ -1409,7 +1409,7 @@ static int StatsTestUpdateCounter08()
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    return result == 101;
 }
 
 static int StatsTestUpdateCounter09()
@@ -1519,13 +1519,13 @@ static int StatsTestCounterValues11()
 void StatsRegisterTests()
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02, 0);
+    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02, 1);
     UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03, 1);
     UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04, 1);
     UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05, 1);
     UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06, 1);
-    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07, 2);
-    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08, 101);
+    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07, 1);
+    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08, 1);
     UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09, 1);
     UtRegisterTest("StatsTestUpdateGlobalCounter10",
                    StatsTestUpdateGlobalCounter10, 1);

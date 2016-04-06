@@ -332,10 +332,10 @@ int EngineEventTestParse04 (void)
     de = DetectEngineEventParse("decoder.IPV6.INVALID_EVENT");
     if (de) {
         DetectEngineEventFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -347,10 +347,10 @@ int EngineEventTestParse05 (void)
     de = DetectEngineEventParse("decoder.IPV-6,INVALID_CHAR");
     if (de) {
         DetectEngineEventFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -409,8 +409,8 @@ void EngineEventRegisterTests(void)
     UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01, 1);
     UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02, 1);
     UtRegisterTest("EngineEventTestParse03", EngineEventTestParse03, 1);
-    UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04, 0);
-    UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05, 0);
+    UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04, 1);
+    UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05, 1);
     UtRegisterTest("EngineEventTestParse06", EngineEventTestParse06, 1);
 #endif /* UNITTESTS */
 }

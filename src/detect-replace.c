@@ -443,7 +443,7 @@ static int DetectReplaceMatchTest05(void)
                 " content:\"th\"; replace:\"TH\"; content:\"nutella\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"TH\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
 /**
@@ -456,7 +456,7 @@ static int DetectReplaceMatchTest06(void)
                 " content:\"nutella\"; replace:\"commode\"; content:\"this is\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"commode\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
 /**
@@ -492,7 +492,7 @@ static int DetectReplaceMatchTest09(void)
                 " content:\"big\"; depth:16; replace:\"pig\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"this is a pig test\"; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
 /**
@@ -528,7 +528,7 @@ static int DetectReplaceMatchTest12(void)
                 " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 4; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
 /**
@@ -552,7 +552,7 @@ static int DetectReplaceMatchTest14(void)
                 " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 2; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
                 " content:\"pig\"; depth:17; offset:14; sid:2;)";
-    return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
+    return !DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
 /**
@@ -822,16 +822,16 @@ void DetectReplaceRegisterTests(void)
     UtRegisterTest("DetectReplaceMatchTest02", DetectReplaceMatchTest02, 1);
     UtRegisterTest("DetectReplaceMatchTest03", DetectReplaceMatchTest03, 1);
     UtRegisterTest("DetectReplaceMatchTest04", DetectReplaceMatchTest04, 1);
-    UtRegisterTest("DetectReplaceMatchTest05", DetectReplaceMatchTest05, 0);
-    UtRegisterTest("DetectReplaceMatchTest06", DetectReplaceMatchTest06, 0);
+    UtRegisterTest("DetectReplaceMatchTest05", DetectReplaceMatchTest05, 1);
+    UtRegisterTest("DetectReplaceMatchTest06", DetectReplaceMatchTest06, 1);
     UtRegisterTest("DetectReplaceMatchTest07", DetectReplaceMatchTest07, 1);
     UtRegisterTest("DetectReplaceMatchTest08", DetectReplaceMatchTest08, 1);
-    UtRegisterTest("DetectReplaceMatchTest09", DetectReplaceMatchTest09, 0);
+    UtRegisterTest("DetectReplaceMatchTest09", DetectReplaceMatchTest09, 1);
     UtRegisterTest("DetectReplaceMatchTest10", DetectReplaceMatchTest10, 1);
     UtRegisterTest("DetectReplaceMatchTest11", DetectReplaceMatchTest11, 1);
-    UtRegisterTest("DetectReplaceMatchTest12", DetectReplaceMatchTest12, 0);
+    UtRegisterTest("DetectReplaceMatchTest12", DetectReplaceMatchTest12, 1);
     UtRegisterTest("DetectReplaceMatchTest13", DetectReplaceMatchTest13, 1);
-    UtRegisterTest("DetectReplaceMatchTest14", DetectReplaceMatchTest14, 0);
+    UtRegisterTest("DetectReplaceMatchTest14", DetectReplaceMatchTest14, 1);
     UtRegisterTest("DetectReplaceMatchTest15", DetectReplaceMatchTest15, 1);
 /* parsing */
     UtRegisterTest("DetectReplaceParseTest01", DetectReplaceParseTest01, 1);

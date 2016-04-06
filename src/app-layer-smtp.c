@@ -4868,7 +4868,7 @@ int SMTPProcessDataChunkTest01(void){
     int ret;
     ret = SMTPProcessDataChunk(NULL, 0, state);
 
-    return ret;
+    return ret == 0;
 }
 
 
@@ -4925,8 +4925,7 @@ int SMTPProcessDataChunkTest02(void){
     int ret;
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
 
-
-    return ret;
+    return ret == 0;
 }
 
 
@@ -4981,7 +4980,7 @@ int SMTPProcessDataChunkTest03(void){
     if(ret) goto end;
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 
@@ -5022,7 +5021,7 @@ int SMTPProcessDataChunkTest04(void){
     if(SMTPProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state) != 0) goto end;
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 int SMTPProcessDataChunkTest05(void){
@@ -5057,13 +5056,13 @@ int SMTPProcessDataChunkTest05(void){
     if(ret){goto end;}
     printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);
     if(file->size == file_size){
-        return 0;
-    }else{
         return 1;
+    }else{
+        return 0;
     }
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 #endif /* UNITTESTS */
@@ -5085,11 +5084,11 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest12", SMTPParserTest12, 1);
     UtRegisterTest("SMTPParserTest13", SMTPParserTest13, 1);
     UtRegisterTest("SMTPParserTest14", SMTPParserTest14, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05, 0);
+    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01, 1);
+    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02, 1);
+    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03, 1);
+    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04, 1);
+    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05, 1);
 #endif /* UNITTESTS */
 
     return;

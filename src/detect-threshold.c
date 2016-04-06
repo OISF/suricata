@@ -333,10 +333,10 @@ static int ThresholdTestParse02(void)
     de = DetectThresholdParse("type any,track by_dst,count 10,seconds 60");
     if (de && (de->type == TYPE_LIMIT) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
         DetectThresholdFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -370,10 +370,10 @@ static int ThresholdTestParse04(void)
     de = DetectThresholdParse("count 10, track by_dst, seconds 60, type both, count 10");
     if (de && (de->type == TYPE_BOTH) && (de->track == TRACK_DST) && (de->count == 10) && (de->seconds == 60)) {
         DetectThresholdFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -1501,9 +1501,9 @@ void ThresholdRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01, 1);
-    UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02, 0);
+    UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02, 1);
     UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03, 1);
-    UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04, 0);
+    UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04, 1);
     UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05, 1);
     UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1, 1);
     UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2, 1);
