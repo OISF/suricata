@@ -300,10 +300,10 @@ static int DecodePPPtest04 (void)
 void DecodePPPRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodePPPtest01", DecodePPPtest01, 1);
-    UtRegisterTest("DecodePPPtest02", DecodePPPtest02, 1);
-    UtRegisterTest("DecodePPPtest03", DecodePPPtest03, 1);
-    UtRegisterTest("DecodePPPtest04", DecodePPPtest04, 1);
+    UtRegisterTest("DecodePPPtest01", DecodePPPtest01);
+    UtRegisterTest("DecodePPPtest02", DecodePPPtest02);
+    UtRegisterTest("DecodePPPtest03", DecodePPPtest03);
+    UtRegisterTest("DecodePPPtest04", DecodePPPtest04);
 #endif /* UNITTESTS */
 }
 

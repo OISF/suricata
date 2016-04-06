@@ -6442,47 +6442,47 @@ end:
 void HTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTPParserTest01", HTPParserTest01, 1);
-    UtRegisterTest("HTPParserTest01a", HTPParserTest01a, 1);
-    UtRegisterTest("HTPParserTest02", HTPParserTest02, 1);
-    UtRegisterTest("HTPParserTest03", HTPParserTest03, 1);
-    UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);
-    UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
-    UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
-    UtRegisterTest("HTPParserTest07", HTPParserTest07, 1);
-    UtRegisterTest("HTPParserTest08", HTPParserTest08, 1);
-    UtRegisterTest("HTPParserTest09", HTPParserTest09, 1);
-    UtRegisterTest("HTPParserTest10", HTPParserTest10, 1);
-    UtRegisterTest("HTPParserTest11", HTPParserTest11, 1);
-    UtRegisterTest("HTPParserTest12", HTPParserTest12, 1);
-    UtRegisterTest("HTPParserTest13", HTPParserTest13, 1);
-    UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
-    UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
-    UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
+    UtRegisterTest("HTPParserTest01", HTPParserTest01);
+    UtRegisterTest("HTPParserTest01a", HTPParserTest01a);
+    UtRegisterTest("HTPParserTest02", HTPParserTest02);
+    UtRegisterTest("HTPParserTest03", HTPParserTest03);
+    UtRegisterTest("HTPParserTest04", HTPParserTest04);
+    UtRegisterTest("HTPParserTest05", HTPParserTest05);
+    UtRegisterTest("HTPParserTest06", HTPParserTest06);
+    UtRegisterTest("HTPParserTest07", HTPParserTest07);
+    UtRegisterTest("HTPParserTest08", HTPParserTest08);
+    UtRegisterTest("HTPParserTest09", HTPParserTest09);
+    UtRegisterTest("HTPParserTest10", HTPParserTest10);
+    UtRegisterTest("HTPParserTest11", HTPParserTest11);
+    UtRegisterTest("HTPParserTest12", HTPParserTest12);
+    UtRegisterTest("HTPParserTest13", HTPParserTest13);
+    UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01);
+    UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02);
+    UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03);
 #if 0 /* disabled when we upgraded to libhtp 0.5.x */
     UtRegisterTest("HTPParserConfigTest04", HTPParserConfigTest04, 1);
 #endif
 
-    UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
-    UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
-    UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03, 1);
-    UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04, 1);
-    UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05, 1);
-    UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06, 1);
-    UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07, 1);
-    UtRegisterTest("HTPParserDecodingTest08", HTPParserDecodingTest08, 1);
-    UtRegisterTest("HTPParserDecodingTest09", HTPParserDecodingTest09, 1);
+    UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01);
+    UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02);
+    UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03);
+    UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04);
+    UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05);
+    UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06);
+    UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07);
+    UtRegisterTest("HTPParserDecodingTest08", HTPParserDecodingTest08);
+    UtRegisterTest("HTPParserDecodingTest09", HTPParserDecodingTest09);
 
-    UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
+    UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01);
 
-    UtRegisterTest("HTPSegvTest01", HTPSegvTest01, 1);
+    UtRegisterTest("HTPSegvTest01", HTPSegvTest01);
 
-    UtRegisterTest("HTPParserTest14", HTPParserTest14, 1);
-    UtRegisterTest("HTPParserTest15", HTPParserTest15, 1);
-    UtRegisterTest("HTPParserTest16", HTPParserTest16, 1);
-    UtRegisterTest("HTPParserTest17", HTPParserTest17, 1);
-    UtRegisterTest("HTPParserTest18", HTPParserTest18, 1);
-    UtRegisterTest("HTPParserTest19", HTPParserTest19, 1);
+    UtRegisterTest("HTPParserTest14", HTPParserTest14);
+    UtRegisterTest("HTPParserTest15", HTPParserTest15);
+    UtRegisterTest("HTPParserTest16", HTPParserTest16);
+    UtRegisterTest("HTPParserTest17", HTPParserTest17);
+    UtRegisterTest("HTPParserTest18", HTPParserTest18);
+    UtRegisterTest("HTPParserTest19", HTPParserTest19);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();

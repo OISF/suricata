@@ -2725,107 +2725,119 @@ static int DetectLongContentTest3(void)
 void DetectContentRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01, 1);
-    UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02, 1);
-    UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03, 1);
-    UtRegisterTest("DetectContentParseTest04", DetectContentParseTest04, 1);
-    UtRegisterTest("DetectContentParseTest05", DetectContentParseTest05, 1);
-    UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06, 1);
-    UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07, 1);
-    UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
-    UtRegisterTest("DetectContentParseTest09", DetectContentParseTest09, 1);
-    UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10, 1);
-    UtRegisterTest("DetectContentParseNegTest11", DetectContentParseNegTest11, 1);
-    UtRegisterTest("DetectContentParseNegTest12", DetectContentParseNegTest12, 1);
-    UtRegisterTest("DetectContentParseNegTest13", DetectContentParseNegTest13, 1);
-    UtRegisterTest("DetectContentParseNegTest14", DetectContentParseNegTest14, 1);
-    UtRegisterTest("DetectContentParseNegTest15", DetectContentParseNegTest15, 1);
-    UtRegisterTest("DetectContentParseNegTest16", DetectContentParseNegTest16, 1);
-    UtRegisterTest("DetectContentParseTest17", DetectContentParseTest17, 1);
-    UtRegisterTest("DetectContentParseTest18", DetectContentParseTest18, 1);
-    UtRegisterTest("DetectContentParseTest19", DetectContentParseTest19, 1);
-    UtRegisterTest("DetectContentParseTest20", DetectContentParseTest20, 1);
-    UtRegisterTest("DetectContentParseTest21", DetectContentParseTest21, 1);
-    UtRegisterTest("DetectContentParseTest22", DetectContentParseTest22, 1);
-    UtRegisterTest("DetectContentParseTest23", DetectContentParseTest23, 1);
-    UtRegisterTest("DetectContentParseTest24", DetectContentParseTest24, 1);
-    UtRegisterTest("DetectContentParseTest25", DetectContentParseTest25, 1);
-    UtRegisterTest("DetectContentParseTest26", DetectContentParseTest26, 1);
-    UtRegisterTest("DetectContentParseTest27", DetectContentParseTest27, 1);
-    UtRegisterTest("DetectContentParseTest28", DetectContentParseTest28, 1);
-    UtRegisterTest("DetectContentParseTest29", DetectContentParseTest29, 1);
-    UtRegisterTest("DetectContentParseTest30", DetectContentParseTest30, 1);
-    UtRegisterTest("DetectContentParseTest31", DetectContentParseTest31, 1);
-    UtRegisterTest("DetectContentParseTest32", DetectContentParseTest32, 1);
-    UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33, 1);
-    UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34, 1);
-    UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35, 1);
-    UtRegisterTest("DetectContentParseTest36", DetectContentParseTest36, 1);
-    UtRegisterTest("DetectContentParseTest37", DetectContentParseTest37, 1);
-    UtRegisterTest("DetectContentParseTest38", DetectContentParseTest38, 1);
-    UtRegisterTest("DetectContentParseTest39", DetectContentParseTest39, 1);
-    UtRegisterTest("DetectContentParseTest40", DetectContentParseTest40, 1);
-    UtRegisterTest("DetectContentParseTest41", DetectContentParseTest41, 1);
-    UtRegisterTest("DetectContentParseTest42", DetectContentParseTest42, 1);
-    UtRegisterTest("DetectContentParseTest43", DetectContentParseTest43, 1);
-    UtRegisterTest("DetectContentParseTest44", DetectContentParseTest44, 1);
+    UtRegisterTest("DetectContentParseTest01", DetectContentParseTest01);
+    UtRegisterTest("DetectContentParseTest02", DetectContentParseTest02);
+    UtRegisterTest("DetectContentParseTest03", DetectContentParseTest03);
+    UtRegisterTest("DetectContentParseTest04", DetectContentParseTest04);
+    UtRegisterTest("DetectContentParseTest05", DetectContentParseTest05);
+    UtRegisterTest("DetectContentParseTest06", DetectContentParseTest06);
+    UtRegisterTest("DetectContentParseTest07", DetectContentParseTest07);
+    UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08);
+    UtRegisterTest("DetectContentParseTest09", DetectContentParseTest09);
+    UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10);
+    UtRegisterTest("DetectContentParseNegTest11", DetectContentParseNegTest11);
+    UtRegisterTest("DetectContentParseNegTest12", DetectContentParseNegTest12);
+    UtRegisterTest("DetectContentParseNegTest13", DetectContentParseNegTest13);
+    UtRegisterTest("DetectContentParseNegTest14", DetectContentParseNegTest14);
+    UtRegisterTest("DetectContentParseNegTest15", DetectContentParseNegTest15);
+    UtRegisterTest("DetectContentParseNegTest16", DetectContentParseNegTest16);
+    UtRegisterTest("DetectContentParseTest17", DetectContentParseTest17);
+    UtRegisterTest("DetectContentParseTest18", DetectContentParseTest18);
+    UtRegisterTest("DetectContentParseTest19", DetectContentParseTest19);
+    UtRegisterTest("DetectContentParseTest20", DetectContentParseTest20);
+    UtRegisterTest("DetectContentParseTest21", DetectContentParseTest21);
+    UtRegisterTest("DetectContentParseTest22", DetectContentParseTest22);
+    UtRegisterTest("DetectContentParseTest23", DetectContentParseTest23);
+    UtRegisterTest("DetectContentParseTest24", DetectContentParseTest24);
+    UtRegisterTest("DetectContentParseTest25", DetectContentParseTest25);
+    UtRegisterTest("DetectContentParseTest26", DetectContentParseTest26);
+    UtRegisterTest("DetectContentParseTest27", DetectContentParseTest27);
+    UtRegisterTest("DetectContentParseTest28", DetectContentParseTest28);
+    UtRegisterTest("DetectContentParseTest29", DetectContentParseTest29);
+    UtRegisterTest("DetectContentParseTest30", DetectContentParseTest30);
+    UtRegisterTest("DetectContentParseTest31", DetectContentParseTest31);
+    UtRegisterTest("DetectContentParseTest32", DetectContentParseTest32);
+    UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33);
+    UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34);
+    UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35);
+    UtRegisterTest("DetectContentParseTest36", DetectContentParseTest36);
+    UtRegisterTest("DetectContentParseTest37", DetectContentParseTest37);
+    UtRegisterTest("DetectContentParseTest38", DetectContentParseTest38);
+    UtRegisterTest("DetectContentParseTest39", DetectContentParseTest39);
+    UtRegisterTest("DetectContentParseTest40", DetectContentParseTest40);
+    UtRegisterTest("DetectContentParseTest41", DetectContentParseTest41);
+    UtRegisterTest("DetectContentParseTest42", DetectContentParseTest42);
+    UtRegisterTest("DetectContentParseTest43", DetectContentParseTest43);
+    UtRegisterTest("DetectContentParseTest44", DetectContentParseTest44);
 
     /* The reals */
-    UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest02", DetectContentLongPatternMatchTest02, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest03", DetectContentLongPatternMatchTest03, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest04", DetectContentLongPatternMatchTest04, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest05", DetectContentLongPatternMatchTest05, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest06", DetectContentLongPatternMatchTest06, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest07", DetectContentLongPatternMatchTest07, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest08", DetectContentLongPatternMatchTest08, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest09", DetectContentLongPatternMatchTest09, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest10", DetectContentLongPatternMatchTest10, 1);
-    UtRegisterTest("DetectContentLongPatternMatchTest11", DetectContentLongPatternMatchTest11, 1);
+    UtRegisterTest("DetectContentLongPatternMatchTest01",
+                   DetectContentLongPatternMatchTest01);
+    UtRegisterTest("DetectContentLongPatternMatchTest02",
+                   DetectContentLongPatternMatchTest02);
+    UtRegisterTest("DetectContentLongPatternMatchTest03",
+                   DetectContentLongPatternMatchTest03);
+    UtRegisterTest("DetectContentLongPatternMatchTest04",
+                   DetectContentLongPatternMatchTest04);
+    UtRegisterTest("DetectContentLongPatternMatchTest05",
+                   DetectContentLongPatternMatchTest05);
+    UtRegisterTest("DetectContentLongPatternMatchTest06",
+                   DetectContentLongPatternMatchTest06);
+    UtRegisterTest("DetectContentLongPatternMatchTest07",
+                   DetectContentLongPatternMatchTest07);
+    UtRegisterTest("DetectContentLongPatternMatchTest08",
+                   DetectContentLongPatternMatchTest08);
+    UtRegisterTest("DetectContentLongPatternMatchTest09",
+                   DetectContentLongPatternMatchTest09);
+    UtRegisterTest("DetectContentLongPatternMatchTest10",
+                   DetectContentLongPatternMatchTest10);
+    UtRegisterTest("DetectContentLongPatternMatchTest11",
+                   DetectContentLongPatternMatchTest11);
 
     /* Negated content tests */
-    UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent, 1);
-    UtRegisterTest("SigTest41aTestNegatedContent", SigTest41aTestNegatedContent, 1);
-    UtRegisterTest("SigTest42TestNegatedContent", SigTest42TestNegatedContent, 1);
-    UtRegisterTest("SigTest43TestNegatedContent", SigTest43TestNegatedContent, 1);
-    UtRegisterTest("SigTest44TestNegatedContent", SigTest44TestNegatedContent, 1);
-    UtRegisterTest("SigTest45TestNegatedContent", SigTest45TestNegatedContent, 1);
-    UtRegisterTest("SigTest46TestNegatedContent", SigTest46TestNegatedContent, 1);
-    UtRegisterTest("SigTest47TestNegatedContent", SigTest47TestNegatedContent, 1);
-    UtRegisterTest("SigTest48TestNegatedContent", SigTest48TestNegatedContent, 1);
-    UtRegisterTest("SigTest49TestNegatedContent", SigTest49TestNegatedContent, 1);
-    UtRegisterTest("SigTest50TestNegatedContent", SigTest50TestNegatedContent, 1);
-    UtRegisterTest("SigTest51TestNegatedContent", SigTest51TestNegatedContent, 1);
-    UtRegisterTest("SigTest52TestNegatedContent", SigTest52TestNegatedContent, 1);
-    UtRegisterTest("SigTest53TestNegatedContent", SigTest53TestNegatedContent, 1);
-    UtRegisterTest("SigTest54TestNegatedContent", SigTest54TestNegatedContent, 1);
-    UtRegisterTest("SigTest55TestNegatedContent", SigTest55TestNegatedContent, 1);
-    UtRegisterTest("SigTest56TestNegatedContent", SigTest56TestNegatedContent, 1);
-    UtRegisterTest("SigTest57TestNegatedContent", SigTest57TestNegatedContent, 1);
-    UtRegisterTest("SigTest58TestNegatedContent", SigTest58TestNegatedContent, 1);
-    UtRegisterTest("SigTest59TestNegatedContent", SigTest59TestNegatedContent, 1);
-    UtRegisterTest("SigTest60TestNegatedContent", SigTest60TestNegatedContent, 1);
-    UtRegisterTest("SigTest61TestNegatedContent", SigTest61TestNegatedContent, 1);
-    UtRegisterTest("SigTest62TestNegatedContent", SigTest62TestNegatedContent, 1);
-    UtRegisterTest("SigTest63TestNegatedContent", SigTest63TestNegatedContent, 1);
-    UtRegisterTest("SigTest64TestNegatedContent", SigTest64TestNegatedContent, 1);
-    UtRegisterTest("SigTest65TestNegatedContent", SigTest65TestNegatedContent, 1);
-    UtRegisterTest("SigTest66TestNegatedContent", SigTest66TestNegatedContent, 1);
-    UtRegisterTest("SigTest67TestNegatedContent", SigTest67TestNegatedContent, 1);
-    UtRegisterTest("SigTest68TestNegatedContent", SigTest68TestNegatedContent, 1);
-    UtRegisterTest("SigTest69TestNegatedContent", SigTest69TestNegatedContent, 1);
-    UtRegisterTest("SigTest70TestNegatedContent", SigTest70TestNegatedContent, 1);
-    UtRegisterTest("SigTest71TestNegatedContent", SigTest71TestNegatedContent, 1);
-    UtRegisterTest("SigTest72TestNegatedContent", SigTest72TestNegatedContent, 1);
-    UtRegisterTest("SigTest73TestNegatedContent", SigTest73TestNegatedContent, 1);
-    UtRegisterTest("SigTest74TestNegatedContent", SigTest74TestNegatedContent, 1);
-    UtRegisterTest("SigTest75TestNegatedContent", SigTest75TestNegatedContent, 1);
+    UtRegisterTest("SigTest41TestNegatedContent", SigTest41TestNegatedContent);
+    UtRegisterTest("SigTest41aTestNegatedContent",
+                   SigTest41aTestNegatedContent);
+    UtRegisterTest("SigTest42TestNegatedContent", SigTest42TestNegatedContent);
+    UtRegisterTest("SigTest43TestNegatedContent", SigTest43TestNegatedContent);
+    UtRegisterTest("SigTest44TestNegatedContent", SigTest44TestNegatedContent);
+    UtRegisterTest("SigTest45TestNegatedContent", SigTest45TestNegatedContent);
+    UtRegisterTest("SigTest46TestNegatedContent", SigTest46TestNegatedContent);
+    UtRegisterTest("SigTest47TestNegatedContent", SigTest47TestNegatedContent);
+    UtRegisterTest("SigTest48TestNegatedContent", SigTest48TestNegatedContent);
+    UtRegisterTest("SigTest49TestNegatedContent", SigTest49TestNegatedContent);
+    UtRegisterTest("SigTest50TestNegatedContent", SigTest50TestNegatedContent);
+    UtRegisterTest("SigTest51TestNegatedContent", SigTest51TestNegatedContent);
+    UtRegisterTest("SigTest52TestNegatedContent", SigTest52TestNegatedContent);
+    UtRegisterTest("SigTest53TestNegatedContent", SigTest53TestNegatedContent);
+    UtRegisterTest("SigTest54TestNegatedContent", SigTest54TestNegatedContent);
+    UtRegisterTest("SigTest55TestNegatedContent", SigTest55TestNegatedContent);
+    UtRegisterTest("SigTest56TestNegatedContent", SigTest56TestNegatedContent);
+    UtRegisterTest("SigTest57TestNegatedContent", SigTest57TestNegatedContent);
+    UtRegisterTest("SigTest58TestNegatedContent", SigTest58TestNegatedContent);
+    UtRegisterTest("SigTest59TestNegatedContent", SigTest59TestNegatedContent);
+    UtRegisterTest("SigTest60TestNegatedContent", SigTest60TestNegatedContent);
+    UtRegisterTest("SigTest61TestNegatedContent", SigTest61TestNegatedContent);
+    UtRegisterTest("SigTest62TestNegatedContent", SigTest62TestNegatedContent);
+    UtRegisterTest("SigTest63TestNegatedContent", SigTest63TestNegatedContent);
+    UtRegisterTest("SigTest64TestNegatedContent", SigTest64TestNegatedContent);
+    UtRegisterTest("SigTest65TestNegatedContent", SigTest65TestNegatedContent);
+    UtRegisterTest("SigTest66TestNegatedContent", SigTest66TestNegatedContent);
+    UtRegisterTest("SigTest67TestNegatedContent", SigTest67TestNegatedContent);
+    UtRegisterTest("SigTest68TestNegatedContent", SigTest68TestNegatedContent);
+    UtRegisterTest("SigTest69TestNegatedContent", SigTest69TestNegatedContent);
+    UtRegisterTest("SigTest70TestNegatedContent", SigTest70TestNegatedContent);
+    UtRegisterTest("SigTest71TestNegatedContent", SigTest71TestNegatedContent);
+    UtRegisterTest("SigTest72TestNegatedContent", SigTest72TestNegatedContent);
+    UtRegisterTest("SigTest73TestNegatedContent", SigTest73TestNegatedContent);
+    UtRegisterTest("SigTest74TestNegatedContent", SigTest74TestNegatedContent);
+    UtRegisterTest("SigTest75TestNegatedContent", SigTest75TestNegatedContent);
 
-    UtRegisterTest("SigTest76TestBug134", SigTest76TestBug134, 1);
-    UtRegisterTest("SigTest77TestBug139", SigTest77TestBug139, 1);
+    UtRegisterTest("SigTest76TestBug134", SigTest76TestBug134);
+    UtRegisterTest("SigTest77TestBug139", SigTest77TestBug139);
 
-    UtRegisterTest("DetectLongContentTest1", DetectLongContentTest1, 1);
-    UtRegisterTest("DetectLongContentTest2", DetectLongContentTest2, 1);
-    UtRegisterTest("DetectLongContentTest3", DetectLongContentTest3, 1);
+    UtRegisterTest("DetectLongContentTest1", DetectLongContentTest1);
+    UtRegisterTest("DetectLongContentTest2", DetectLongContentTest2);
+    UtRegisterTest("DetectLongContentTest3", DetectLongContentTest3);
 #endif /* UNITTESTS */
 }

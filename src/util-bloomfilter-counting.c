@@ -393,18 +393,28 @@ end:
 void BloomFilterCountingRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("BloomFilterCountingTestInit01", BloomFilterCountingTestInit01, 1);
-    UtRegisterTest("BloomFilterCountingTestInit02", BloomFilterCountingTestInit02, 1);
-    UtRegisterTest("BloomFilterCountingTestInit03", BloomFilterCountingTestInit03, 1);
-    UtRegisterTest("BloomFilterCountingTestInit04", BloomFilterCountingTestInit04, 1);
-    UtRegisterTest("BloomFilterCountingTestInit05", BloomFilterCountingTestInit05, 1);
-    UtRegisterTest("BloomFilterCountingTestInit06", BloomFilterCountingTestInit06, 1);
+    UtRegisterTest("BloomFilterCountingTestInit01",
+                   BloomFilterCountingTestInit01);
+    UtRegisterTest("BloomFilterCountingTestInit02",
+                   BloomFilterCountingTestInit02);
+    UtRegisterTest("BloomFilterCountingTestInit03",
+                   BloomFilterCountingTestInit03);
+    UtRegisterTest("BloomFilterCountingTestInit04",
+                   BloomFilterCountingTestInit04);
+    UtRegisterTest("BloomFilterCountingTestInit05",
+                   BloomFilterCountingTestInit05);
+    UtRegisterTest("BloomFilterCountingTestInit06",
+                   BloomFilterCountingTestInit06);
 
-    UtRegisterTest("BloomFilterCountingTestAdd01", BloomFilterCountingTestAdd01, 1);
-    UtRegisterTest("BloomFilterCountingTestAdd02", BloomFilterCountingTestAdd02, 1);
+    UtRegisterTest("BloomFilterCountingTestAdd01",
+                   BloomFilterCountingTestAdd01);
+    UtRegisterTest("BloomFilterCountingTestAdd02",
+                   BloomFilterCountingTestAdd02);
 
-    UtRegisterTest("BloomFilterCountingTestFull01", BloomFilterCountingTestFull01, 1);
-    UtRegisterTest("BloomFilterCountingTestFull02", BloomFilterCountingTestFull02, 1);
+    UtRegisterTest("BloomFilterCountingTestFull01",
+                   BloomFilterCountingTestFull01);
+    UtRegisterTest("BloomFilterCountingTestFull02",
+                   BloomFilterCountingTestFull02);
 #endif
 }
 

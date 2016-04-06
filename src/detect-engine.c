@@ -3272,15 +3272,15 @@ void DetectEngineRegisterTests()
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectEngineTest01", DetectEngineTest01, 1);
-    UtRegisterTest("DetectEngineTest02", DetectEngineTest02, 1);
-    UtRegisterTest("DetectEngineTest03", DetectEngineTest03, 1);
-    UtRegisterTest("DetectEngineTest04", DetectEngineTest04, 1);
-    UtRegisterTest("DetectEngineTest05", DetectEngineTest05, 1);
-    UtRegisterTest("DetectEngineTest06", DetectEngineTest06, 1);
-    UtRegisterTest("DetectEngineTest07", DetectEngineTest07, 1);
-    UtRegisterTest("DetectEngineTest08", DetectEngineTest08, 1);
-    UtRegisterTest("DetectEngineTest09", DetectEngineTest09, 1);
+    UtRegisterTest("DetectEngineTest01", DetectEngineTest01);
+    UtRegisterTest("DetectEngineTest02", DetectEngineTest02);
+    UtRegisterTest("DetectEngineTest03", DetectEngineTest03);
+    UtRegisterTest("DetectEngineTest04", DetectEngineTest04);
+    UtRegisterTest("DetectEngineTest05", DetectEngineTest05);
+    UtRegisterTest("DetectEngineTest06", DetectEngineTest06);
+    UtRegisterTest("DetectEngineTest07", DetectEngineTest07);
+    UtRegisterTest("DetectEngineTest08", DetectEngineTest08);
+    UtRegisterTest("DetectEngineTest09", DetectEngineTest09);
 #endif
 
     return;

@@ -511,17 +511,17 @@ void DecodeTCPRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("TCPCalculateValidChecksumtest01",
-                   TCPCalculateValidChecksumtest01, 1);
+                   TCPCalculateValidChecksumtest01);
     UtRegisterTest("TCPCalculateInvalidChecksumtest02",
-                   TCPCalculateInvalidChecksumtest02, 1);
+                   TCPCalculateInvalidChecksumtest02);
     UtRegisterTest("TCPV6CalculateValidChecksumtest03",
-                   TCPV6CalculateValidChecksumtest03, 1);
+                   TCPV6CalculateValidChecksumtest03);
     UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
-                   TCPV6CalculateInvalidChecksumtest04, 1);
-    UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
-    UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
-    UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);
-    UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01, 1);
+                   TCPV6CalculateInvalidChecksumtest04);
+    UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01);
+    UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02);
+    UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03);
+    UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01);
 #endif /* UNITTESTS */
 }
 /**

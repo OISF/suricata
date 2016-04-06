@@ -2481,36 +2481,36 @@ void SCACBSRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCACBSTest01", SCACBSTest01, 1);
-    UtRegisterTest("SCACBSTest02", SCACBSTest02, 1);
-    UtRegisterTest("SCACBSTest03", SCACBSTest03, 1);
-    UtRegisterTest("SCACBSTest04", SCACBSTest04, 1);
-    UtRegisterTest("SCACBSTest05", SCACBSTest05, 1);
-    UtRegisterTest("SCACBSTest06", SCACBSTest06, 1);
-    UtRegisterTest("SCACBSTest07", SCACBSTest07, 1);
-    UtRegisterTest("SCACBSTest08", SCACBSTest08, 1);
-    UtRegisterTest("SCACBSTest09", SCACBSTest09, 1);
-    UtRegisterTest("SCACBSTest10", SCACBSTest10, 1);
-    UtRegisterTest("SCACBSTest11", SCACBSTest11, 1);
-    UtRegisterTest("SCACBSTest12", SCACBSTest12, 1);
-    UtRegisterTest("SCACBSTest13", SCACBSTest13, 1);
-    UtRegisterTest("SCACBSTest14", SCACBSTest14, 1);
-    UtRegisterTest("SCACBSTest15", SCACBSTest15, 1);
-    UtRegisterTest("SCACBSTest16", SCACBSTest16, 1);
-    UtRegisterTest("SCACBSTest17", SCACBSTest17, 1);
-    UtRegisterTest("SCACBSTest18", SCACBSTest18, 1);
-    UtRegisterTest("SCACBSTest19", SCACBSTest19, 1);
-    UtRegisterTest("SCACBSTest20", SCACBSTest20, 1);
-    UtRegisterTest("SCACBSTest21", SCACBSTest21, 1);
-    UtRegisterTest("SCACBSTest22", SCACBSTest22, 1);
-    UtRegisterTest("SCACBSTest23", SCACBSTest23, 1);
-    UtRegisterTest("SCACBSTest24", SCACBSTest24, 1);
-    UtRegisterTest("SCACBSTest25", SCACBSTest25, 1);
-    UtRegisterTest("SCACBSTest26", SCACBSTest26, 1);
-    UtRegisterTest("SCACBSTest27", SCACBSTest27, 1);
-    UtRegisterTest("SCACBSTest28", SCACBSTest28, 1);
-    UtRegisterTest("SCACBSTest29", SCACBSTest29, 1);
-    UtRegisterTest("SCACBSTest30", SCACBSTest30, 1);
+    UtRegisterTest("SCACBSTest01", SCACBSTest01);
+    UtRegisterTest("SCACBSTest02", SCACBSTest02);
+    UtRegisterTest("SCACBSTest03", SCACBSTest03);
+    UtRegisterTest("SCACBSTest04", SCACBSTest04);
+    UtRegisterTest("SCACBSTest05", SCACBSTest05);
+    UtRegisterTest("SCACBSTest06", SCACBSTest06);
+    UtRegisterTest("SCACBSTest07", SCACBSTest07);
+    UtRegisterTest("SCACBSTest08", SCACBSTest08);
+    UtRegisterTest("SCACBSTest09", SCACBSTest09);
+    UtRegisterTest("SCACBSTest10", SCACBSTest10);
+    UtRegisterTest("SCACBSTest11", SCACBSTest11);
+    UtRegisterTest("SCACBSTest12", SCACBSTest12);
+    UtRegisterTest("SCACBSTest13", SCACBSTest13);
+    UtRegisterTest("SCACBSTest14", SCACBSTest14);
+    UtRegisterTest("SCACBSTest15", SCACBSTest15);
+    UtRegisterTest("SCACBSTest16", SCACBSTest16);
+    UtRegisterTest("SCACBSTest17", SCACBSTest17);
+    UtRegisterTest("SCACBSTest18", SCACBSTest18);
+    UtRegisterTest("SCACBSTest19", SCACBSTest19);
+    UtRegisterTest("SCACBSTest20", SCACBSTest20);
+    UtRegisterTest("SCACBSTest21", SCACBSTest21);
+    UtRegisterTest("SCACBSTest22", SCACBSTest22);
+    UtRegisterTest("SCACBSTest23", SCACBSTest23);
+    UtRegisterTest("SCACBSTest24", SCACBSTest24);
+    UtRegisterTest("SCACBSTest25", SCACBSTest25);
+    UtRegisterTest("SCACBSTest26", SCACBSTest26);
+    UtRegisterTest("SCACBSTest27", SCACBSTest27);
+    UtRegisterTest("SCACBSTest28", SCACBSTest28);
+    UtRegisterTest("SCACBSTest29", SCACBSTest29);
+    UtRegisterTest("SCACBSTest30", SCACBSTest30);
 #endif
 
     return;

@@ -1153,7 +1153,7 @@ void
 SCProfilingRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ProfilingGenericTicksTest01", ProfilingGenericTicksTest01, 1);
+    UtRegisterTest("ProfilingGenericTicksTest01", ProfilingGenericTicksTest01);
 #endif /* UNITTESTS */
 }
 

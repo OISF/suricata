@@ -10106,60 +10106,67 @@ void SigRegisterTests(void)
     SigParseRegisterTests();
     IPOnlyRegisterTests();
 
-    UtRegisterTest("SigTest01", SigTest01, 1);
-    UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02, 1);
-    UtRegisterTest("SigTest03 -- offset/depth mismatch", SigTest03, 1);
-    UtRegisterTest("SigTest04 -- distance/within match", SigTest04, 1);
-    UtRegisterTest("SigTest05 -- distance/within mismatch", SigTest05, 1);
-    UtRegisterTest("SigTest06 -- uricontent HTTP/1.1 match test", SigTest06, 1);
-    UtRegisterTest("SigTest07 -- uricontent HTTP/1.1 mismatch test", SigTest07, 1);
-    UtRegisterTest("SigTest08 -- uricontent HTTP/1.0 match test", SigTest08, 1);
-    UtRegisterTest("SigTest09 -- uricontent HTTP/1.0 mismatch test", SigTest09, 1);
-    UtRegisterTest("SigTest10 -- long content match, longer than pkt", SigTest10, 1);
-    UtRegisterTest("SigTest11 -- mpm searching", SigTest11, 1);
-    UtRegisterTest("SigTest12 -- content order matching, normal", SigTest12, 1);
-    UtRegisterTest("SigTest13 -- content order matching, diff order", SigTest13, 1);
-    UtRegisterTest("SigTest14 -- content order matching, distance 0", SigTest14, 1);
-    UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15, 1);
-    UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16, 1);
-    UtRegisterTest("SigTest17 -- HTTP Host Pkt var capture", SigTest17, 1);
-    UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18, 1);
-    UtRegisterTest("SigTest19 -- IP-ONLY test (1)", SigTest19, 1);
-    UtRegisterTest("SigTest20 -- IP-ONLY test (2)", SigTest20, 1);
-    UtRegisterTest("SigTest21 -- FLOWBIT test (1)", SigTest21, 1);
-    UtRegisterTest("SigTest22 -- FLOWBIT test (2)", SigTest22, 1);
-    UtRegisterTest("SigTest23 -- FLOWBIT test (3)", SigTest23, 1);
+    UtRegisterTest("SigTest01", SigTest01);
+    UtRegisterTest("SigTest02 -- Offset/Depth match", SigTest02);
+    UtRegisterTest("SigTest03 -- offset/depth mismatch", SigTest03);
+    UtRegisterTest("SigTest04 -- distance/within match", SigTest04);
+    UtRegisterTest("SigTest05 -- distance/within mismatch", SigTest05);
+    UtRegisterTest("SigTest06 -- uricontent HTTP/1.1 match test", SigTest06);
+    UtRegisterTest("SigTest07 -- uricontent HTTP/1.1 mismatch test",
+                   SigTest07);
+    UtRegisterTest("SigTest08 -- uricontent HTTP/1.0 match test", SigTest08);
+    UtRegisterTest("SigTest09 -- uricontent HTTP/1.0 mismatch test",
+                   SigTest09);
+    UtRegisterTest("SigTest10 -- long content match, longer than pkt",
+                   SigTest10);
+    UtRegisterTest("SigTest11 -- mpm searching", SigTest11);
+    UtRegisterTest("SigTest12 -- content order matching, normal", SigTest12);
+    UtRegisterTest("SigTest13 -- content order matching, diff order",
+                   SigTest13);
+    UtRegisterTest("SigTest14 -- content order matching, distance 0",
+                   SigTest14);
+    UtRegisterTest("SigTest15 -- port negation sig (no match)", SigTest15);
+    UtRegisterTest("SigTest16 -- port negation sig (match)", SigTest16);
+    UtRegisterTest("SigTest17 -- HTTP Host Pkt var capture", SigTest17);
+    UtRegisterTest("SigTest18 -- Ftp negation sig test", SigTest18);
+    UtRegisterTest("SigTest19 -- IP-ONLY test (1)", SigTest19);
+    UtRegisterTest("SigTest20 -- IP-ONLY test (2)", SigTest20);
+    UtRegisterTest("SigTest21 -- FLOWBIT test (1)", SigTest21);
+    UtRegisterTest("SigTest22 -- FLOWBIT test (2)", SigTest22);
+    UtRegisterTest("SigTest23 -- FLOWBIT test (3)", SigTest23);
 
-    UtRegisterTest("SigTest24IPV4Keyword", SigTest24IPV4Keyword, 1);
+    UtRegisterTest("SigTest24IPV4Keyword", SigTest24IPV4Keyword);
     UtRegisterTest("SigTest25NegativeIPV4Keyword",
-                   SigTest25NegativeIPV4Keyword, 1);
+                   SigTest25NegativeIPV4Keyword);
 
-    UtRegisterTest("SigTest26TCPV4Keyword", SigTest26TCPV4Keyword, 1);
-    UtRegisterTest("SigTest26TCPV4AndNegativeIPV4Keyword", SigTest26TCPV4AndNegativeIPV4Keyword, 1);
-    UtRegisterTest("SigTest26TCPV4AndIPV4Keyword", SigTest26TCPV4AndIPV4Keyword, 1);
+    UtRegisterTest("SigTest26TCPV4Keyword", SigTest26TCPV4Keyword);
+    UtRegisterTest("SigTest26TCPV4AndNegativeIPV4Keyword",
+                   SigTest26TCPV4AndNegativeIPV4Keyword);
+    UtRegisterTest("SigTest26TCPV4AndIPV4Keyword",
+                   SigTest26TCPV4AndIPV4Keyword);
     UtRegisterTest("SigTest27NegativeTCPV4Keyword",
-                   SigTest27NegativeTCPV4Keyword, 1);
+                   SigTest27NegativeTCPV4Keyword);
 
-    UtRegisterTest("SigTest28TCPV6Keyword", SigTest28TCPV6Keyword, 1);
+    UtRegisterTest("SigTest28TCPV6Keyword", SigTest28TCPV6Keyword);
     UtRegisterTest("SigTest29NegativeTCPV6Keyword",
-                   SigTest29NegativeTCPV6Keyword, 1);
+                   SigTest29NegativeTCPV6Keyword);
 
-    UtRegisterTest("SigTest30UDPV4Keyword", SigTest30UDPV4Keyword, 1);
+    UtRegisterTest("SigTest30UDPV4Keyword", SigTest30UDPV4Keyword);
     UtRegisterTest("SigTest31NegativeUDPV4Keyword",
-                   SigTest31NegativeUDPV4Keyword, 1);
+                   SigTest31NegativeUDPV4Keyword);
 
-    UtRegisterTest("SigTest32UDPV6Keyword", SigTest32UDPV6Keyword, 1);
+    UtRegisterTest("SigTest32UDPV6Keyword", SigTest32UDPV6Keyword);
     UtRegisterTest("SigTest33NegativeUDPV6Keyword",
-                   SigTest33NegativeUDPV6Keyword, 1);
+                   SigTest33NegativeUDPV6Keyword);
 
-    UtRegisterTest("SigTest34ICMPV4Keyword", SigTest34ICMPV4Keyword, 1);
+    UtRegisterTest("SigTest34ICMPV4Keyword", SigTest34ICMPV4Keyword);
     UtRegisterTest("SigTest35NegativeICMPV4Keyword",
-                   SigTest35NegativeICMPV4Keyword, 1);
+                   SigTest35NegativeICMPV4Keyword);
 
     UtRegisterTest("SigTest36ContentAndIsdataatKeywords01",
-                    SigTest36ContentAndIsdataatKeywords01, 1);
+                   SigTest36ContentAndIsdataatKeywords01);
     UtRegisterTest("SigTest37ContentAndIsdataatKeywords02",
-                    SigTest37ContentAndIsdataatKeywords02, 1);
+                   SigTest37ContentAndIsdataatKeywords02);
 
     /* We need to enable these tests, as soon as we add the ICMPv6 protocol
        support in our rules engine */
@@ -10167,41 +10174,46 @@ void SigRegisterTests(void)
     //UtRegisterTest("SigTest37NegativeICMPV6Keyword",
     //               SigTest37NegativeICMPV6Keyword, 1);
 
-    UtRegisterTest("SigTest38 -- byte_test test (1)", SigTest38, 1);
+    UtRegisterTest("SigTest38 -- byte_test test (1)", SigTest38);
 
-    UtRegisterTest("SigTest39 -- byte_jump test (2)", SigTest39, 1);
+    UtRegisterTest("SigTest39 -- byte_jump test (2)", SigTest39);
 
-    UtRegisterTest("SigTest40NoPacketInspection01", SigTest40NoPacketInspection01, 1);
-    UtRegisterTest("SigTest40NoPayloadInspection02", SigTest40NoPayloadInspection02, 1);
+    UtRegisterTest("SigTest40NoPacketInspection01",
+                   SigTest40NoPacketInspection01);
+    UtRegisterTest("SigTest40NoPayloadInspection02",
+                   SigTest40NoPayloadInspection02);
 
-    UtRegisterTest("SigTestMemory01", SigTestMemory01, 1);
-    UtRegisterTest("SigTestMemory02", SigTestMemory02, 1);
-    UtRegisterTest("SigTestMemory03", SigTestMemory03, 1);
+    UtRegisterTest("SigTestMemory01", SigTestMemory01);
+    UtRegisterTest("SigTestMemory02", SigTestMemory02);
+    UtRegisterTest("SigTestMemory03", SigTestMemory03);
 
-    UtRegisterTest("SigTestContent01 -- 32 byte pattern", SigTestContent01, 1);
-    UtRegisterTest("SigTestContent02 -- 32+31 byte pattern", SigTestContent02, 1);
-    UtRegisterTest("SigTestContent03 -- 32 byte pattern, x2 + distance", SigTestContent03, 1);
-    UtRegisterTest("SigTestContent04 -- 32 byte pattern, x2 + distance/within", SigTestContent04, 1);
-    UtRegisterTest("SigTestContent05 -- distance/within", SigTestContent05, 1);
-    UtRegisterTest("SigTestContent06 -- distance/within ip only", SigTestContent06, 1);
+    UtRegisterTest("SigTestContent01 -- 32 byte pattern", SigTestContent01);
+    UtRegisterTest("SigTestContent02 -- 32+31 byte pattern", SigTestContent02);
+    UtRegisterTest("SigTestContent03 -- 32 byte pattern, x2 + distance",
+                   SigTestContent03);
+    UtRegisterTest("SigTestContent04 -- 32 byte pattern, x2 + distance/within",
+                   SigTestContent04);
+    UtRegisterTest("SigTestContent05 -- distance/within", SigTestContent05);
+    UtRegisterTest("SigTestContent06 -- distance/within ip only",
+                   SigTestContent06);
 
-    UtRegisterTest("SigTestWithinReal01", SigTestWithin01, 1);
-    UtRegisterTest("SigTestDepthOffset01", SigTestDepthOffset01, 1);
+    UtRegisterTest("SigTestWithinReal01", SigTestWithin01);
+    UtRegisterTest("SigTestDepthOffset01", SigTestDepthOffset01);
 
-    UtRegisterTest("SigTestDetectAlertCounter", SigTestDetectAlertCounter, 1);
+    UtRegisterTest("SigTestDetectAlertCounter", SigTestDetectAlertCounter);
 
-    UtRegisterTest("SigTestDropFlow01", SigTestDropFlow01, 1);
-    UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02, 1);
-    UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03, 1);
-    UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04, 1);
+    UtRegisterTest("SigTestDropFlow01", SigTestDropFlow01);
+    UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02);
+    UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03);
+    UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04);
 
-    UtRegisterTest("DetectAddressYamlParsing01", DetectAddressYamlParsing01, 1);
-    UtRegisterTest("DetectAddressYamlParsing02", DetectAddressYamlParsing02, 1);
-    UtRegisterTest("DetectAddressYamlParsing03", DetectAddressYamlParsing03, 1);
-    UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04, 1);
+    UtRegisterTest("DetectAddressYamlParsing01", DetectAddressYamlParsing01);
+    UtRegisterTest("DetectAddressYamlParsing02", DetectAddressYamlParsing02);
+    UtRegisterTest("DetectAddressYamlParsing03", DetectAddressYamlParsing03);
+    UtRegisterTest("DetectAddressYamlParsing04", DetectAddressYamlParsing04);
 
-    UtRegisterTest("SigTestPorts01", SigTestPorts01, 1);
-    UtRegisterTest("SigTestBug01", SigTestBug01, 1);
+    UtRegisterTest("SigTestPorts01", SigTestPorts01);
+    UtRegisterTest("SigTestBug01", SigTestBug01);
 
 #if 0
     DetectSimdRegisterTests();

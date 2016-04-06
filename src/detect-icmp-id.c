@@ -488,13 +488,13 @@ end:
 void DetectIcmpIdRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01, 1);
-    UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02, 1);
-    UtRegisterTest("DetectIcmpIdParseTest03", DetectIcmpIdParseTest03, 1);
-    UtRegisterTest("DetectIcmpIdParseTest04", DetectIcmpIdParseTest04, 1);
-    UtRegisterTest("DetectIcmpIdParseTest05", DetectIcmpIdParseTest05, 1);
-    UtRegisterTest("DetectIcmpIdMatchTest01", DetectIcmpIdMatchTest01, 1);
-    UtRegisterTest("DetectIcmpIdMatchTest02", DetectIcmpIdMatchTest02, 1);
+    UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01);
+    UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02);
+    UtRegisterTest("DetectIcmpIdParseTest03", DetectIcmpIdParseTest03);
+    UtRegisterTest("DetectIcmpIdParseTest04", DetectIcmpIdParseTest04);
+    UtRegisterTest("DetectIcmpIdParseTest05", DetectIcmpIdParseTest05);
+    UtRegisterTest("DetectIcmpIdMatchTest01", DetectIcmpIdMatchTest01);
+    UtRegisterTest("DetectIcmpIdMatchTest02", DetectIcmpIdMatchTest02);
 #endif /* UNITTESTS */
 }
 

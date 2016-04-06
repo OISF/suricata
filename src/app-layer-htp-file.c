@@ -1621,16 +1621,16 @@ end:
 void HTPFileParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTPFileParserTest01", HTPFileParserTest01, 1);
-    UtRegisterTest("HTPFileParserTest02", HTPFileParserTest02, 1);
-    UtRegisterTest("HTPFileParserTest03", HTPFileParserTest03, 1);
-    UtRegisterTest("HTPFileParserTest04", HTPFileParserTest04, 1);
-    UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05, 1);
-    UtRegisterTest("HTPFileParserTest06", HTPFileParserTest06, 1);
-    UtRegisterTest("HTPFileParserTest07", HTPFileParserTest07, 1);
-    UtRegisterTest("HTPFileParserTest08", HTPFileParserTest08, 1);
-    UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09, 1);
-    UtRegisterTest("HTPFileParserTest10", HTPFileParserTest10, 1);
-    UtRegisterTest("HTPFileParserTest11", HTPFileParserTest11, 1);
+    UtRegisterTest("HTPFileParserTest01", HTPFileParserTest01);
+    UtRegisterTest("HTPFileParserTest02", HTPFileParserTest02);
+    UtRegisterTest("HTPFileParserTest03", HTPFileParserTest03);
+    UtRegisterTest("HTPFileParserTest04", HTPFileParserTest04);
+    UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05);
+    UtRegisterTest("HTPFileParserTest06", HTPFileParserTest06);
+    UtRegisterTest("HTPFileParserTest07", HTPFileParserTest07);
+    UtRegisterTest("HTPFileParserTest08", HTPFileParserTest08);
+    UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09);
+    UtRegisterTest("HTPFileParserTest10", HTPFileParserTest10);
+    UtRegisterTest("HTPFileParserTest11", HTPFileParserTest11);
 #endif /* UNITTESTS */
 }

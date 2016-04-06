@@ -1590,56 +1590,55 @@ void DetectCsumRegisterTests(void)
 #ifdef UNITTESTS
 
     UtRegisterTest("DetectCsumIPV4ValidArgsTestParse01",
-                   DetectCsumIPV4ValidArgsTestParse01, 1);
+                   DetectCsumIPV4ValidArgsTestParse01);
     UtRegisterTest("DetectCsumIPV4InValidArgsTestParse02",
-                   DetectCsumIPV4InValidArgsTestParse02, 1);
+                   DetectCsumIPV4InValidArgsTestParse02);
     UtRegisterTest("DetectCsumIPV4ValidArgsTestParse03",
-                   DetectCsumIPV4ValidArgsTestParse03, 1);
+                   DetectCsumIPV4ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumICMPV4ValidArgsTestParse01",
-                   DetectCsumICMPV4ValidArgsTestParse01, 1);
+                   DetectCsumICMPV4ValidArgsTestParse01);
     UtRegisterTest("DetectCsumICMPV4InValidArgsTestParse02",
-                   DetectCsumICMPV4InValidArgsTestParse02, 1);
+                   DetectCsumICMPV4InValidArgsTestParse02);
     UtRegisterTest("DetectCsumICMPV4ValidArgsTestParse03",
-                   DetectCsumICMPV4ValidArgsTestParse03, 1);
+                   DetectCsumICMPV4ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumTCPV4ValidArgsTestParse01",
-                   DetectCsumTCPV4ValidArgsTestParse01, 1);
+                   DetectCsumTCPV4ValidArgsTestParse01);
     UtRegisterTest("DetectCsumTCPV4InValidArgsTestParse02",
-                   DetectCsumTCPV4InValidArgsTestParse02, 1);
+                   DetectCsumTCPV4InValidArgsTestParse02);
     UtRegisterTest("DetectCsumTCPV4ValidArgsTestParse03",
-                   DetectCsumTCPV4ValidArgsTestParse03, 1);
+                   DetectCsumTCPV4ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumUDPV4ValidArgsTestParse01",
-                   DetectCsumUDPV4ValidArgsTestParse01, 1);
+                   DetectCsumUDPV4ValidArgsTestParse01);
     UtRegisterTest("DetectCsumUDPV4InValidArgsTestParse02",
-                   DetectCsumUDPV4InValidArgsTestParse02, 1);
+                   DetectCsumUDPV4InValidArgsTestParse02);
     UtRegisterTest("DetectCsumUDPV4ValidArgsTestParse03",
-                   DetectCsumUDPV4ValidArgsTestParse03, 1);
+                   DetectCsumUDPV4ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumUDPV6ValidArgsTestParse01",
-                   DetectCsumUDPV6ValidArgsTestParse01, 1);
+                   DetectCsumUDPV6ValidArgsTestParse01);
     UtRegisterTest("DetectCsumUDPV6InValidArgsTestParse02",
-                   DetectCsumUDPV6InValidArgsTestParse02, 1);
+                   DetectCsumUDPV6InValidArgsTestParse02);
     UtRegisterTest("DetectCsumUDPV6ValidArgsTestParse03",
-                   DetectCsumUDPV6ValidArgsTestParse03, 1);
+                   DetectCsumUDPV6ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumTCPV6ValidArgsTestParse01",
-                   DetectCsumTCPV6ValidArgsTestParse01, 1);
+                   DetectCsumTCPV6ValidArgsTestParse01);
     UtRegisterTest("DetectCsumTCPV6InValidArgsTestParse02",
-                   DetectCsumTCPV6InValidArgsTestParse02, 1);
+                   DetectCsumTCPV6InValidArgsTestParse02);
     UtRegisterTest("DetectCsumTCPV6ValidArgsTestParse03",
-                   DetectCsumTCPV6ValidArgsTestParse03, 1);
+                   DetectCsumTCPV6ValidArgsTestParse03);
 
     UtRegisterTest("DetectCsumICMPV6ValidArgsTestParse01",
-                   DetectCsumICMPV6ValidArgsTestParse01, 1);
+                   DetectCsumICMPV6ValidArgsTestParse01);
     UtRegisterTest("DetectCsumICMPV6InValidArgsTestParse02",
-                   DetectCsumICMPV6InValidArgsTestParse02, 1);
+                   DetectCsumICMPV6InValidArgsTestParse02);
     UtRegisterTest("DetectCsumICMPV6ValidArgsTestParse03",
-                   DetectCsumICMPV6ValidArgsTestParse03, 1);
+                   DetectCsumICMPV6ValidArgsTestParse03);
 
-    UtRegisterTest("DetectCsumICMPV6Test01",
-                   DetectCsumICMPV6Test01, 1);
+    UtRegisterTest("DetectCsumICMPV6Test01", DetectCsumICMPV6Test01);
 
 
 #endif /* UNITTESTS */

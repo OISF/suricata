@@ -412,18 +412,18 @@ end:
 void DetectTosRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTosTest01", DetectTosTest01, 1);
-    UtRegisterTest("DetectTosTest02", DetectTosTest02, 1);
-    UtRegisterTest("DetectTosTest03", DetectTosTest03, 1);
-    UtRegisterTest("DetectTosTest04", DetectTosTest04, 1);
-    UtRegisterTest("DetectTosTest05", DetectTosTest05, 1);
-    UtRegisterTest("DetectTosTest06", DetectTosTest06, 1);
-    UtRegisterTest("DetectTosTest07", DetectTosTest07, 1);
-    UtRegisterTest("DetectTosTest08", DetectTosTest08, 1);
-    UtRegisterTest("DetectTosTest09", DetectTosTest09, 1);
-    UtRegisterTest("DetectTosTest10", DetectTosTest10, 1);
-    UtRegisterTest("DetectTosTest11", DetectTosTest11, 1);
-    UtRegisterTest("DetectTosTest12", DetectTosTest12, 1);
+    UtRegisterTest("DetectTosTest01", DetectTosTest01);
+    UtRegisterTest("DetectTosTest02", DetectTosTest02);
+    UtRegisterTest("DetectTosTest03", DetectTosTest03);
+    UtRegisterTest("DetectTosTest04", DetectTosTest04);
+    UtRegisterTest("DetectTosTest05", DetectTosTest05);
+    UtRegisterTest("DetectTosTest06", DetectTosTest06);
+    UtRegisterTest("DetectTosTest07", DetectTosTest07);
+    UtRegisterTest("DetectTosTest08", DetectTosTest08);
+    UtRegisterTest("DetectTosTest09", DetectTosTest09);
+    UtRegisterTest("DetectTosTest10", DetectTosTest10);
+    UtRegisterTest("DetectTosTest11", DetectTosTest11);
+    UtRegisterTest("DetectTosTest12", DetectTosTest12);
 #endif
 
     return;

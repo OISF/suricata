@@ -287,8 +287,8 @@ end:
 void DetectWithinRegisterTests(void)
 {
     #ifdef UNITTESTS
-    UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01, 1);
-    UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02, 1);
-    UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup, 1);
+    UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01);
+    UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02);
+    UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup);
     #endif /* UNITTESTS */
 }

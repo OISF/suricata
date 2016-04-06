@@ -1017,14 +1017,14 @@ end:
 void IPRepRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIPRepTest01", DetectIPRepTest01, 1);
-    UtRegisterTest("DetectIPRepTest02", DetectIPRepTest02, 1);
-    UtRegisterTest("DetectIPRepTest03", DetectIPRepTest03, 1);
-    UtRegisterTest("DetectIPRepTest04", DetectIPRepTest04, 1);
-    UtRegisterTest("DetectIPRepTest05", DetectIPRepTest05, 1);
-    UtRegisterTest("DetectIPRepTest06", DetectIPRepTest06, 1);
-    UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07, 1);
-    UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08, 1);
-    UtRegisterTest("DetectIPRepTest09", DetectIPRepTest09, 1);
+    UtRegisterTest("DetectIPRepTest01", DetectIPRepTest01);
+    UtRegisterTest("DetectIPRepTest02", DetectIPRepTest02);
+    UtRegisterTest("DetectIPRepTest03", DetectIPRepTest03);
+    UtRegisterTest("DetectIPRepTest04", DetectIPRepTest04);
+    UtRegisterTest("DetectIPRepTest05", DetectIPRepTest05);
+    UtRegisterTest("DetectIPRepTest06", DetectIPRepTest06);
+    UtRegisterTest("DetectIPRepTest07", DetectIPRepTest07);
+    UtRegisterTest("DetectIPRepTest08", DetectIPRepTest08);
+    UtRegisterTest("DetectIPRepTest09", DetectIPRepTest09);
 #endif /* UNITTESTS */
 }

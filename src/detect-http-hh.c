@@ -2067,36 +2067,36 @@ int DetectHttpHHTest36(void)
 void DetectHttpHHRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectHttpHHTest01", DetectHttpHHTest01, 1);
-    UtRegisterTest("DetectHttpHHTest02", DetectHttpHHTest02, 1);
-    UtRegisterTest("DetectHttpHHTest03", DetectHttpHHTest03, 1);
-    UtRegisterTest("DetectHttpHHTest04", DetectHttpHHTest04, 1);
-    UtRegisterTest("DetectHttpHHTest05", DetectHttpHHTest05, 1);
-    UtRegisterTest("DetectHttpHHTest06", DetectHttpHHTest06, 1);
-    UtRegisterTest("DetectHttpHHTest07", DetectHttpHHTest07, 1);
-    UtRegisterTest("DetectHttpHHTest08", DetectHttpHHTest08, 1);
-    UtRegisterTest("DetectHttpHHTest09", DetectHttpHHTest09, 1);
-    UtRegisterTest("DetectHttpHHTest10", DetectHttpHHTest10, 1);
-    UtRegisterTest("DetectHttpHHTest11", DetectHttpHHTest11, 1);
-    UtRegisterTest("DetectHttpHHTest12", DetectHttpHHTest12, 1);
-    UtRegisterTest("DetectHttpHHTest13", DetectHttpHHTest13, 1);
-    UtRegisterTest("DetectHttpHHTest14", DetectHttpHHTest14, 1);
+    UtRegisterTest("DetectHttpHHTest01", DetectHttpHHTest01);
+    UtRegisterTest("DetectHttpHHTest02", DetectHttpHHTest02);
+    UtRegisterTest("DetectHttpHHTest03", DetectHttpHHTest03);
+    UtRegisterTest("DetectHttpHHTest04", DetectHttpHHTest04);
+    UtRegisterTest("DetectHttpHHTest05", DetectHttpHHTest05);
+    UtRegisterTest("DetectHttpHHTest06", DetectHttpHHTest06);
+    UtRegisterTest("DetectHttpHHTest07", DetectHttpHHTest07);
+    UtRegisterTest("DetectHttpHHTest08", DetectHttpHHTest08);
+    UtRegisterTest("DetectHttpHHTest09", DetectHttpHHTest09);
+    UtRegisterTest("DetectHttpHHTest10", DetectHttpHHTest10);
+    UtRegisterTest("DetectHttpHHTest11", DetectHttpHHTest11);
+    UtRegisterTest("DetectHttpHHTest12", DetectHttpHHTest12);
+    UtRegisterTest("DetectHttpHHTest13", DetectHttpHHTest13);
+    UtRegisterTest("DetectHttpHHTest14", DetectHttpHHTest14);
 
-    UtRegisterTest("DetectHttpHHTest22", DetectHttpHHTest22, 1);
-    UtRegisterTest("DetectHttpHHTest23", DetectHttpHHTest23, 1);
-    UtRegisterTest("DetectHttpHHTest24", DetectHttpHHTest24, 1);
-    UtRegisterTest("DetectHttpHHTest25", DetectHttpHHTest25, 1);
-    UtRegisterTest("DetectHttpHHTest26", DetectHttpHHTest26, 1);
-    UtRegisterTest("DetectHttpHHTest27", DetectHttpHHTest27, 1);
-    UtRegisterTest("DetectHttpHHTest28", DetectHttpHHTest28, 1);
-    UtRegisterTest("DetectHttpHHTest29", DetectHttpHHTest29, 1);
-    UtRegisterTest("DetectHttpHHTest30", DetectHttpHHTest30, 1);
-    UtRegisterTest("DetectHttpHHTest31", DetectHttpHHTest31, 1);
-    UtRegisterTest("DetectHttpHHTest32", DetectHttpHHTest32, 1);
-    UtRegisterTest("DetectHttpHHTest33", DetectHttpHHTest33, 1);
-    UtRegisterTest("DetectHttpHHTest34", DetectHttpHHTest34, 1);
-    UtRegisterTest("DetectHttpHHTest35", DetectHttpHHTest35, 1);
-    UtRegisterTest("DetectHttpHHTest36", DetectHttpHHTest36, 1);
+    UtRegisterTest("DetectHttpHHTest22", DetectHttpHHTest22);
+    UtRegisterTest("DetectHttpHHTest23", DetectHttpHHTest23);
+    UtRegisterTest("DetectHttpHHTest24", DetectHttpHHTest24);
+    UtRegisterTest("DetectHttpHHTest25", DetectHttpHHTest25);
+    UtRegisterTest("DetectHttpHHTest26", DetectHttpHHTest26);
+    UtRegisterTest("DetectHttpHHTest27", DetectHttpHHTest27);
+    UtRegisterTest("DetectHttpHHTest28", DetectHttpHHTest28);
+    UtRegisterTest("DetectHttpHHTest29", DetectHttpHHTest29);
+    UtRegisterTest("DetectHttpHHTest30", DetectHttpHHTest30);
+    UtRegisterTest("DetectHttpHHTest31", DetectHttpHHTest31);
+    UtRegisterTest("DetectHttpHHTest32", DetectHttpHHTest32);
+    UtRegisterTest("DetectHttpHHTest33", DetectHttpHHTest33);
+    UtRegisterTest("DetectHttpHHTest34", DetectHttpHHTest34);
+    UtRegisterTest("DetectHttpHHTest35", DetectHttpHHTest35);
+    UtRegisterTest("DetectHttpHHTest36", DetectHttpHHTest36);
 #endif /* UNITTESTS */
 
     return;

@@ -827,12 +827,12 @@ void SCClassConfRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("SCClassConfTest01", SCClassConfTest01, 1);
-    UtRegisterTest("SCClassConfTest02", SCClassConfTest02, 1);
-    UtRegisterTest("SCClassConfTest03", SCClassConfTest03, 1);
-    UtRegisterTest("SCClassConfTest04", SCClassConfTest04, 1);
-    UtRegisterTest("SCClassConfTest05", SCClassConfTest05, 1);
-    UtRegisterTest("SCClassConfTest06", SCClassConfTest06, 1);
+    UtRegisterTest("SCClassConfTest01", SCClassConfTest01);
+    UtRegisterTest("SCClassConfTest02", SCClassConfTest02);
+    UtRegisterTest("SCClassConfTest03", SCClassConfTest03);
+    UtRegisterTest("SCClassConfTest04", SCClassConfTest04);
+    UtRegisterTest("SCClassConfTest05", SCClassConfTest05);
+    UtRegisterTest("SCClassConfTest06", SCClassConfTest06);
 
 #endif /* UNITTESTS */
 

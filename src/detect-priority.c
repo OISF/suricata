@@ -213,8 +213,8 @@ void SCPriorityRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("DetectPriorityTest01", DetectPriorityTest01, 1);
-    UtRegisterTest("DetectPriorityTest02", DetectPriorityTest02, 1);
+    UtRegisterTest("DetectPriorityTest01", DetectPriorityTest01);
+    UtRegisterTest("DetectPriorityTest02", DetectPriorityTest02);
 
 #endif /* UNITTESTS */
 

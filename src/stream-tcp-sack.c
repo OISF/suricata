@@ -928,33 +928,23 @@ end:
 void StreamTcpSackRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamTcpSackTest01 -- Insertion",
-                    StreamTcpSackTest01, 1);
-    UtRegisterTest("StreamTcpSackTest02 -- Insertion",
-                    StreamTcpSackTest02, 1);
-    UtRegisterTest("StreamTcpSackTest03 -- Insertion",
-                    StreamTcpSackTest03, 1);
-    UtRegisterTest("StreamTcpSackTest04 -- Insertion",
-                    StreamTcpSackTest04, 1);
-    UtRegisterTest("StreamTcpSackTest05 -- Insertion",
-                    StreamTcpSackTest05, 1);
-    UtRegisterTest("StreamTcpSackTest06 -- Insertion",
-                    StreamTcpSackTest06, 1);
-    UtRegisterTest("StreamTcpSackTest07 -- Pruning",
-                    StreamTcpSackTest07, 1);
-    UtRegisterTest("StreamTcpSackTest08 -- Pruning",
-                    StreamTcpSackTest08, 1);
-    UtRegisterTest("StreamTcpSackTest09 -- Pruning",
-                    StreamTcpSackTest09, 1);
-    UtRegisterTest("StreamTcpSackTest10 -- Pruning",
-                    StreamTcpSackTest10, 1);
+    UtRegisterTest("StreamTcpSackTest01 -- Insertion", StreamTcpSackTest01);
+    UtRegisterTest("StreamTcpSackTest02 -- Insertion", StreamTcpSackTest02);
+    UtRegisterTest("StreamTcpSackTest03 -- Insertion", StreamTcpSackTest03);
+    UtRegisterTest("StreamTcpSackTest04 -- Insertion", StreamTcpSackTest04);
+    UtRegisterTest("StreamTcpSackTest05 -- Insertion", StreamTcpSackTest05);
+    UtRegisterTest("StreamTcpSackTest06 -- Insertion", StreamTcpSackTest06);
+    UtRegisterTest("StreamTcpSackTest07 -- Pruning", StreamTcpSackTest07);
+    UtRegisterTest("StreamTcpSackTest08 -- Pruning", StreamTcpSackTest08);
+    UtRegisterTest("StreamTcpSackTest09 -- Pruning", StreamTcpSackTest09);
+    UtRegisterTest("StreamTcpSackTest10 -- Pruning", StreamTcpSackTest10);
     UtRegisterTest("StreamTcpSackTest11 -- Insertion && Pruning",
-                    StreamTcpSackTest11, 1);
+                   StreamTcpSackTest11);
     UtRegisterTest("StreamTcpSackTest12 -- Insertion && Pruning",
-                    StreamTcpSackTest12, 1);
+                   StreamTcpSackTest12);
     UtRegisterTest("StreamTcpSackTest13 -- Insertion out of window",
-                    StreamTcpSackTest13, 1);
+                   StreamTcpSackTest13);
     UtRegisterTest("StreamTcpSackTest14 -- Insertion out of window",
-                    StreamTcpSackTest14, 1);
+                   StreamTcpSackTest14);
 #endif
 }

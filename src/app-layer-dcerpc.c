@@ -6382,25 +6382,25 @@ end:
 void DCERPCParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01, 1);
-    UtRegisterTest("DCERPCParserTest02", DCERPCParserTest02, 1);
-    UtRegisterTest("DCERPCParserTest03", DCERPCParserTest03, 1);
-    UtRegisterTest("DCERPCParserTest04", DCERPCParserTest04, 1);
-    UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05, 1);
-    UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06, 1);
-    UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07, 1);
-    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08, 1);
-    UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09, 1);
-    UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10, 1);
-    UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
-    UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12, 1);
-    UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13, 1);
-    UtRegisterTest("DCERPCParserTest14", DCERPCParserTest14, 1);
-    UtRegisterTest("DCERPCParserTest15", DCERPCParserTest15, 1);
-    UtRegisterTest("DCERPCParserTest16", DCERPCParserTest16, 1);
-    UtRegisterTest("DCERPCParserTest17", DCERPCParserTest17, 1);
-    UtRegisterTest("DCERPCParserTest18", DCERPCParserTest18, 1);
-    UtRegisterTest("DCERPCParserTest19", DCERPCParserTest19, 1);
+    UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01);
+    UtRegisterTest("DCERPCParserTest02", DCERPCParserTest02);
+    UtRegisterTest("DCERPCParserTest03", DCERPCParserTest03);
+    UtRegisterTest("DCERPCParserTest04", DCERPCParserTest04);
+    UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05);
+    UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06);
+    UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07);
+    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08);
+    UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09);
+    UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10);
+    UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11);
+    UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12);
+    UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13);
+    UtRegisterTest("DCERPCParserTest14", DCERPCParserTest14);
+    UtRegisterTest("DCERPCParserTest15", DCERPCParserTest15);
+    UtRegisterTest("DCERPCParserTest16", DCERPCParserTest16);
+    UtRegisterTest("DCERPCParserTest17", DCERPCParserTest17);
+    UtRegisterTest("DCERPCParserTest18", DCERPCParserTest18);
+    UtRegisterTest("DCERPCParserTest19", DCERPCParserTest19);
 #endif /* UNITTESTS */
 
     return;

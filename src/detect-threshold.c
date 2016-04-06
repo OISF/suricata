@@ -1500,23 +1500,24 @@ end:
 void ThresholdRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01, 1);
-    UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02, 1);
-    UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03, 1);
-    UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04, 1);
-    UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05, 1);
-    UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1, 1);
-    UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2, 1);
-    UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3, 1);
-    UtRegisterTest("DetectThresholdTestSig4", DetectThresholdTestSig4, 1);
-    UtRegisterTest("DetectThresholdTestSig5", DetectThresholdTestSig5, 1);
-    UtRegisterTest("DetectThresholdTestSig6Ticks", DetectThresholdTestSig6Ticks, 1);
-    UtRegisterTest("DetectThresholdTestSig7", DetectThresholdTestSig7, 1);
-    UtRegisterTest("DetectThresholdTestSig8", DetectThresholdTestSig8, 1);
-    UtRegisterTest("DetectThresholdTestSig9", DetectThresholdTestSig9, 1);
-    UtRegisterTest("DetectThresholdTestSig10", DetectThresholdTestSig10, 1);
-    UtRegisterTest("DetectThresholdTestSig11", DetectThresholdTestSig11, 1);
-    UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12, 1);
+    UtRegisterTest("ThresholdTestParse01", ThresholdTestParse01);
+    UtRegisterTest("ThresholdTestParse02", ThresholdTestParse02);
+    UtRegisterTest("ThresholdTestParse03", ThresholdTestParse03);
+    UtRegisterTest("ThresholdTestParse04", ThresholdTestParse04);
+    UtRegisterTest("ThresholdTestParse05", ThresholdTestParse05);
+    UtRegisterTest("DetectThresholdTestSig1", DetectThresholdTestSig1);
+    UtRegisterTest("DetectThresholdTestSig2", DetectThresholdTestSig2);
+    UtRegisterTest("DetectThresholdTestSig3", DetectThresholdTestSig3);
+    UtRegisterTest("DetectThresholdTestSig4", DetectThresholdTestSig4);
+    UtRegisterTest("DetectThresholdTestSig5", DetectThresholdTestSig5);
+    UtRegisterTest("DetectThresholdTestSig6Ticks",
+                   DetectThresholdTestSig6Ticks);
+    UtRegisterTest("DetectThresholdTestSig7", DetectThresholdTestSig7);
+    UtRegisterTest("DetectThresholdTestSig8", DetectThresholdTestSig8);
+    UtRegisterTest("DetectThresholdTestSig9", DetectThresholdTestSig9);
+    UtRegisterTest("DetectThresholdTestSig10", DetectThresholdTestSig10);
+    UtRegisterTest("DetectThresholdTestSig11", DetectThresholdTestSig11);
+    UtRegisterTest("DetectThresholdTestSig12", DetectThresholdTestSig12);
 #endif /* UNITTESTS */
 }
 

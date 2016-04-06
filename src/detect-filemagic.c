@@ -498,8 +498,8 @@ int DetectFilemagicTestParse03 (void)
 void DetectFilemagicRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01, 1);
-    UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02, 1);
-    UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03, 1);
+    UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01);
+    UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02);
+    UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03);
 #endif /* UNITTESTS */
 }

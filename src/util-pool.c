@@ -719,13 +719,13 @@ end:
 void PoolRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
-    UtRegisterTest("PoolTestInit02", PoolTestInit02, 1);
-    UtRegisterTest("PoolTestInit03", PoolTestInit03, 1);
-    UtRegisterTest("PoolTestInit04", PoolTestInit04, 1);
-    UtRegisterTest("PoolTestInit05", PoolTestInit05, 1);
-    UtRegisterTest("PoolTestInit06", PoolTestInit06, 1);
-    UtRegisterTest("PoolTestInit07", PoolTestInit07, 1);
+    UtRegisterTest("PoolTestInit01", PoolTestInit01);
+    UtRegisterTest("PoolTestInit02", PoolTestInit02);
+    UtRegisterTest("PoolTestInit03", PoolTestInit03);
+    UtRegisterTest("PoolTestInit04", PoolTestInit04);
+    UtRegisterTest("PoolTestInit05", PoolTestInit05);
+    UtRegisterTest("PoolTestInit06", PoolTestInit06);
+    UtRegisterTest("PoolTestInit07", PoolTestInit07);
 
     PoolThreadRegisterTests();
 #endif /* UNITTESTS */

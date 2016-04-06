@@ -392,15 +392,24 @@ int DetectAppLayerProtocolTest09(void)
 void DetectAppLayerProtocolRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectAppLayerProtocolTest01", DetectAppLayerProtocolTest01, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest02", DetectAppLayerProtocolTest02, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest03", DetectAppLayerProtocolTest03, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest04", DetectAppLayerProtocolTest04, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest05", DetectAppLayerProtocolTest05, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest06", DetectAppLayerProtocolTest06, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest07", DetectAppLayerProtocolTest07, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest08", DetectAppLayerProtocolTest08, 1);
-    UtRegisterTest("DetectAppLayerProtocolTest09", DetectAppLayerProtocolTest09, 1);
+    UtRegisterTest("DetectAppLayerProtocolTest01",
+                   DetectAppLayerProtocolTest01);
+    UtRegisterTest("DetectAppLayerProtocolTest02",
+                   DetectAppLayerProtocolTest02);
+    UtRegisterTest("DetectAppLayerProtocolTest03",
+                   DetectAppLayerProtocolTest03);
+    UtRegisterTest("DetectAppLayerProtocolTest04",
+                   DetectAppLayerProtocolTest04);
+    UtRegisterTest("DetectAppLayerProtocolTest05",
+                   DetectAppLayerProtocolTest05);
+    UtRegisterTest("DetectAppLayerProtocolTest06",
+                   DetectAppLayerProtocolTest06);
+    UtRegisterTest("DetectAppLayerProtocolTest07",
+                   DetectAppLayerProtocolTest07);
+    UtRegisterTest("DetectAppLayerProtocolTest08",
+                   DetectAppLayerProtocolTest08);
+    UtRegisterTest("DetectAppLayerProtocolTest09",
+                   DetectAppLayerProtocolTest09);
 #endif /* UNITTESTS */
 
     return;

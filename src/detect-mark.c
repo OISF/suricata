@@ -345,9 +345,9 @@ static int MarkTestParse04 (void)
 void MarkRegisterTests(void)
 {
 #if defined UNITTESTS && defined NFQ
-    UtRegisterTest("MarkTestParse01", MarkTestParse01, 1);
-    UtRegisterTest("MarkTestParse02", MarkTestParse02, 1);
-    UtRegisterTest("MarkTestParse03", MarkTestParse03, 1);
-    UtRegisterTest("MarkTestParse04", MarkTestParse04, 1);
+    UtRegisterTest("MarkTestParse01", MarkTestParse01);
+    UtRegisterTest("MarkTestParse02", MarkTestParse02);
+    UtRegisterTest("MarkTestParse03", MarkTestParse03);
+    UtRegisterTest("MarkTestParse04", MarkTestParse04);
 #endif /* UNITTESTS */
 }

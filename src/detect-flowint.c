@@ -2128,51 +2128,33 @@ end:
 void DetectFlowintRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectFlowintTestParseVal01",
-                    DetectFlowintTestParseVal01, 1);
-    UtRegisterTest("DetectFlowintTestParseVar01",
-                    DetectFlowintTestParseVar01, 1);
-    UtRegisterTest("DetectFlowintTestParseVal02",
-                    DetectFlowintTestParseVal02, 1);
-    UtRegisterTest("DetectFlowintTestParseVar02",
-                    DetectFlowintTestParseVar02, 1);
-    UtRegisterTest("DetectFlowintTestParseVal03",
-                    DetectFlowintTestParseVal03, 1);
-    UtRegisterTest("DetectFlowintTestParseVar03",
-                    DetectFlowintTestParseVar03, 1);
-    UtRegisterTest("DetectFlowintTestParseVal04",
-                    DetectFlowintTestParseVal04, 1);
-    UtRegisterTest("DetectFlowintTestParseVar04",
-                    DetectFlowintTestParseVar04, 1);
-    UtRegisterTest("DetectFlowintTestParseVal05",
-                    DetectFlowintTestParseVal05, 1);
-    UtRegisterTest("DetectFlowintTestParseVar05",
-                    DetectFlowintTestParseVar05, 1);
-    UtRegisterTest("DetectFlowintTestParseVal06",
-                    DetectFlowintTestParseVal06, 1);
-    UtRegisterTest("DetectFlowintTestParseVar06",
-                    DetectFlowintTestParseVar06, 1);
-    UtRegisterTest("DetectFlowintTestParseVal07",
-                    DetectFlowintTestParseVal07, 1);
-    UtRegisterTest("DetectFlowintTestParseVar07",
-                    DetectFlowintTestParseVar07, 1);
-    UtRegisterTest("DetectFlowintTestParseVal08",
-                    DetectFlowintTestParseVal08, 1);
-    UtRegisterTest("DetectFlowintTestParseVar08",
-                    DetectFlowintTestParseVar08, 1);
-    UtRegisterTest("DetectFlowintTestParseVal09",
-                    DetectFlowintTestParseVal09, 1);
-    UtRegisterTest("DetectFlowintTestParseVar09",
-                    DetectFlowintTestParseVar09, 1);
+    UtRegisterTest("DetectFlowintTestParseVal01", DetectFlowintTestParseVal01);
+    UtRegisterTest("DetectFlowintTestParseVar01", DetectFlowintTestParseVar01);
+    UtRegisterTest("DetectFlowintTestParseVal02", DetectFlowintTestParseVal02);
+    UtRegisterTest("DetectFlowintTestParseVar02", DetectFlowintTestParseVar02);
+    UtRegisterTest("DetectFlowintTestParseVal03", DetectFlowintTestParseVal03);
+    UtRegisterTest("DetectFlowintTestParseVar03", DetectFlowintTestParseVar03);
+    UtRegisterTest("DetectFlowintTestParseVal04", DetectFlowintTestParseVal04);
+    UtRegisterTest("DetectFlowintTestParseVar04", DetectFlowintTestParseVar04);
+    UtRegisterTest("DetectFlowintTestParseVal05", DetectFlowintTestParseVal05);
+    UtRegisterTest("DetectFlowintTestParseVar05", DetectFlowintTestParseVar05);
+    UtRegisterTest("DetectFlowintTestParseVal06", DetectFlowintTestParseVal06);
+    UtRegisterTest("DetectFlowintTestParseVar06", DetectFlowintTestParseVar06);
+    UtRegisterTest("DetectFlowintTestParseVal07", DetectFlowintTestParseVal07);
+    UtRegisterTest("DetectFlowintTestParseVar07", DetectFlowintTestParseVar07);
+    UtRegisterTest("DetectFlowintTestParseVal08", DetectFlowintTestParseVal08);
+    UtRegisterTest("DetectFlowintTestParseVar08", DetectFlowintTestParseVar08);
+    UtRegisterTest("DetectFlowintTestParseVal09", DetectFlowintTestParseVal09);
+    UtRegisterTest("DetectFlowintTestParseVar09", DetectFlowintTestParseVar09);
     UtRegisterTest("DetectFlowintTestParseIsset10",
-                    DetectFlowintTestParseIsset10, 1);
+                   DetectFlowintTestParseIsset10);
     UtRegisterTest("DetectFlowintTestParseInvalidSyntaxis01",
-                    DetectFlowintTestParseInvalidSyntaxis01, 1);
+                   DetectFlowintTestParseInvalidSyntaxis01);
     UtRegisterTest("DetectFlowintTestPacket01Real",
-                    DetectFlowintTestPacket01Real, 1);
+                   DetectFlowintTestPacket01Real);
     UtRegisterTest("DetectFlowintTestPacket02Real",
-                    DetectFlowintTestPacket02Real, 1);
+                   DetectFlowintTestPacket02Real);
     UtRegisterTest("DetectFlowintTestPacket03Real",
-                    DetectFlowintTestPacket03Real, 1);
+                   DetectFlowintTestPacket03Real);
 #endif /* UNITTESTS */
 }

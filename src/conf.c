@@ -1524,23 +1524,27 @@ end:
 
 void ConfRegisterTests(void)
 {
-    UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
-    UtRegisterTest("ConfSetTest", ConfSetTest, 1);
-    UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet, 1);
-    UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1, 1);
-    UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
-    UtRegisterTest("ConfTestGetInt", ConfTestGetInt, 1);
-    UtRegisterTest("ConfTestGetBool", ConfTestGetBool, 1);
-    UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest, 1);
-    UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest, 1);
-    UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest, 1);
-    UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest, 1);
-    UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
-    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
-    UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
-    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest, 1);
-    UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest, 1);
-    UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest, 1);
+    UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant);
+    UtRegisterTest("ConfSetTest", ConfSetTest);
+    UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet);
+    UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1);
+    UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2);
+    UtRegisterTest("ConfTestGetInt", ConfTestGetInt);
+    UtRegisterTest("ConfTestGetBool", ConfTestGetBool);
+    UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest);
+    UtRegisterTest("ConfNodeLookupChildValueTest",
+                   ConfNodeLookupChildValueTest);
+    UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest);
+    UtRegisterTest("ConfGetChildValueWithDefaultTest",
+                   ConfGetChildValueWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueIntWithDefaultTest",
+                   ConfGetChildValueIntWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest",
+                   ConfGetChildValueBoolWithDefaultTest);
+    UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest);
+    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
+    UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);
+    UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest);
 }
 
 #endif /* UNITTESTS */

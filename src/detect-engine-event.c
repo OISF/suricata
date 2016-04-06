@@ -406,11 +406,11 @@ error:
 void EngineEventRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01, 1);
-    UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02, 1);
-    UtRegisterTest("EngineEventTestParse03", EngineEventTestParse03, 1);
-    UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04, 1);
-    UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05, 1);
-    UtRegisterTest("EngineEventTestParse06", EngineEventTestParse06, 1);
+    UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01);
+    UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02);
+    UtRegisterTest("EngineEventTestParse03", EngineEventTestParse03);
+    UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04);
+    UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05);
+    UtRegisterTest("EngineEventTestParse06", EngineEventTestParse06);
 #endif /* UNITTESTS */
 }

@@ -2077,12 +2077,12 @@ end:
 void DetectLuaRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("LuaMatchTest01", LuaMatchTest01, 1);
-    UtRegisterTest("LuaMatchTest02", LuaMatchTest02, 1);
-    UtRegisterTest("LuaMatchTest03", LuaMatchTest03, 1);
-    UtRegisterTest("LuaMatchTest04", LuaMatchTest04, 1);
-    UtRegisterTest("LuaMatchTest05", LuaMatchTest05, 1);
-    UtRegisterTest("LuaMatchTest06", LuaMatchTest06, 1);
+    UtRegisterTest("LuaMatchTest01", LuaMatchTest01);
+    UtRegisterTest("LuaMatchTest02", LuaMatchTest02);
+    UtRegisterTest("LuaMatchTest03", LuaMatchTest03);
+    UtRegisterTest("LuaMatchTest04", LuaMatchTest04);
+    UtRegisterTest("LuaMatchTest05", LuaMatchTest05);
+    UtRegisterTest("LuaMatchTest06", LuaMatchTest06);
 #endif
 }
 

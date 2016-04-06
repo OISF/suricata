@@ -626,10 +626,10 @@ end:
 
 void DNSUDPParserRegisterTests(void)
 {
-    UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01, 1);
-    UtRegisterTest("DNSUDPParserTest02", DNSUDPParserTest02, 1);
-    UtRegisterTest("DNSUDPParserTest03", DNSUDPParserTest03, 1);
-    UtRegisterTest("DNSUDPParserTest04", DNSUDPParserTest04, 1);
-    UtRegisterTest("DNSUDPParserTest05", DNSUDPParserTest05, 1);
+    UtRegisterTest("DNSUDPParserTest01", DNSUDPParserTest01);
+    UtRegisterTest("DNSUDPParserTest02", DNSUDPParserTest02);
+    UtRegisterTest("DNSUDPParserTest03", DNSUDPParserTest03);
+    UtRegisterTest("DNSUDPParserTest04", DNSUDPParserTest04);
+    UtRegisterTest("DNSUDPParserTest05", DNSUDPParserTest05);
 }
 #endif

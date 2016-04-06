@@ -143,9 +143,9 @@ int ThreadMacrosTest05RWLocks(void)
 void ThreadMacrosRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNIT TESTS */
-    UtRegisterTest("ThreadMacrosTest01Mutex", ThreadMacrosTest01Mutex, 1);
-    UtRegisterTest("ThreadMacrosTest02Spinlocks", ThreadMacrosTest02Spinlocks, 1);
-    UtRegisterTest("ThreadMacrosTest03RWLocks", ThreadMacrosTest03RWLocks, 1);
-    UtRegisterTest("ThreadMacrosTest04RWLocks", ThreadMacrosTest04RWLocks, 1);
+    UtRegisterTest("ThreadMacrosTest01Mutex", ThreadMacrosTest01Mutex);
+    UtRegisterTest("ThreadMacrosTest02Spinlocks", ThreadMacrosTest02Spinlocks);
+    UtRegisterTest("ThreadMacrosTest03RWLocks", ThreadMacrosTest03RWLocks);
+    UtRegisterTest("ThreadMacrosTest04RWLocks", ThreadMacrosTest04RWLocks);
 #endif /* UNIT TESTS */
 }

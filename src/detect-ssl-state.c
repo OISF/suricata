@@ -901,13 +901,13 @@ static int DetectSslStateTest07(void)
 void DetectSslStateRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01, 1);
-    UtRegisterTest("DetectSslStateTest02", DetectSslStateTest02, 1);
-    UtRegisterTest("DetectSslStateTest03", DetectSslStateTest03, 1);
-    UtRegisterTest("DetectSslStateTest04", DetectSslStateTest04, 1);
-    UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05, 1);
-    UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06, 1);
-    UtRegisterTest("DetectSslStateTest07", DetectSslStateTest07, 1);
+    UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01);
+    UtRegisterTest("DetectSslStateTest02", DetectSslStateTest02);
+    UtRegisterTest("DetectSslStateTest03", DetectSslStateTest03);
+    UtRegisterTest("DetectSslStateTest04", DetectSslStateTest04);
+    UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05);
+    UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06);
+    UtRegisterTest("DetectSslStateTest07", DetectSslStateTest07);
 #endif
 
     return;

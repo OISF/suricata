@@ -269,7 +269,7 @@ end:
 static void DetectAckRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectAckSigTest01", DetectAckSigTest01, 1);
+    UtRegisterTest("DetectAckSigTest01", DetectAckSigTest01);
 #endif /* UNITTESTS */
 }
 

@@ -3866,75 +3866,75 @@ void DetectEngineHttpHeaderRegisterTests(void)
 
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpHeaderTest01",
-                   DetectEngineHttpHeaderTest01, 1);
+                   DetectEngineHttpHeaderTest01);
     UtRegisterTest("DetectEngineHttpHeaderTest02",
-                   DetectEngineHttpHeaderTest02, 1);
+                   DetectEngineHttpHeaderTest02);
     UtRegisterTest("DetectEngineHttpHeaderTest03",
-                   DetectEngineHttpHeaderTest03, 1);
+                   DetectEngineHttpHeaderTest03);
     UtRegisterTest("DetectEngineHttpHeaderTest04",
-                   DetectEngineHttpHeaderTest04, 1);
+                   DetectEngineHttpHeaderTest04);
     UtRegisterTest("DetectEngineHttpHeaderTest05",
-                   DetectEngineHttpHeaderTest05, 1);
+                   DetectEngineHttpHeaderTest05);
     UtRegisterTest("DetectEngineHttpHeaderTest06",
-                   DetectEngineHttpHeaderTest06, 1);
+                   DetectEngineHttpHeaderTest06);
     UtRegisterTest("DetectEngineHttpHeaderTest07",
-                   DetectEngineHttpHeaderTest07, 1);
+                   DetectEngineHttpHeaderTest07);
     UtRegisterTest("DetectEngineHttpHeaderTest08",
-                   DetectEngineHttpHeaderTest08, 1);
+                   DetectEngineHttpHeaderTest08);
     UtRegisterTest("DetectEngineHttpHeaderTest09",
-                   DetectEngineHttpHeaderTest09, 1);
+                   DetectEngineHttpHeaderTest09);
     UtRegisterTest("DetectEngineHttpHeaderTest10",
-                   DetectEngineHttpHeaderTest10, 1);
+                   DetectEngineHttpHeaderTest10);
     UtRegisterTest("DetectEngineHttpHeaderTest11",
-                   DetectEngineHttpHeaderTest11, 1);
+                   DetectEngineHttpHeaderTest11);
     UtRegisterTest("DetectEngineHttpHeaderTest12",
-                   DetectEngineHttpHeaderTest12, 1);
+                   DetectEngineHttpHeaderTest12);
     UtRegisterTest("DetectEngineHttpHeaderTest13",
-                   DetectEngineHttpHeaderTest13, 1);
+                   DetectEngineHttpHeaderTest13);
     UtRegisterTest("DetectEngineHttpHeaderTest14",
-                   DetectEngineHttpHeaderTest14, 1);
+                   DetectEngineHttpHeaderTest14);
     UtRegisterTest("DetectEngineHttpHeaderTest15",
-                   DetectEngineHttpHeaderTest15, 1);
+                   DetectEngineHttpHeaderTest15);
     UtRegisterTest("DetectEngineHttpHeaderTest16",
-                   DetectEngineHttpHeaderTest16, 1);
+                   DetectEngineHttpHeaderTest16);
     UtRegisterTest("DetectEngineHttpHeaderTest17",
-                   DetectEngineHttpHeaderTest17, 1);
+                   DetectEngineHttpHeaderTest17);
     UtRegisterTest("DetectEngineHttpHeaderTest18",
-                   DetectEngineHttpHeaderTest18, 1);
+                   DetectEngineHttpHeaderTest18);
     UtRegisterTest("DetectEngineHttpHeaderTest19",
-                   DetectEngineHttpHeaderTest19, 1);
+                   DetectEngineHttpHeaderTest19);
     UtRegisterTest("DetectEngineHttpHeaderTest20",
-                   DetectEngineHttpHeaderTest20, 1);
+                   DetectEngineHttpHeaderTest20);
     UtRegisterTest("DetectEngineHttpHeaderTest21",
-                   DetectEngineHttpHeaderTest21, 1);
+                   DetectEngineHttpHeaderTest21);
     UtRegisterTest("DetectEngineHttpHeaderTest22",
-                   DetectEngineHttpHeaderTest22, 1);
+                   DetectEngineHttpHeaderTest22);
     UtRegisterTest("DetectEngineHttpHeaderTest23",
-                   DetectEngineHttpHeaderTest23, 1);
+                   DetectEngineHttpHeaderTest23);
     UtRegisterTest("DetectEngineHttpHeaderTest24",
-                   DetectEngineHttpHeaderTest24, 1);
+                   DetectEngineHttpHeaderTest24);
     UtRegisterTest("DetectEngineHttpHeaderTest25",
-                   DetectEngineHttpHeaderTest25, 1);
+                   DetectEngineHttpHeaderTest25);
     UtRegisterTest("DetectEngineHttpHeaderTest26",
-                   DetectEngineHttpHeaderTest26, 1);
+                   DetectEngineHttpHeaderTest26);
     UtRegisterTest("DetectEngineHttpHeaderTest27",
-                   DetectEngineHttpHeaderTest27, 1);
+                   DetectEngineHttpHeaderTest27);
     UtRegisterTest("DetectEngineHttpHeaderTest28",
-                   DetectEngineHttpHeaderTest28, 1);
+                   DetectEngineHttpHeaderTest28);
     UtRegisterTest("DetectEngineHttpHeaderTest29",
-                   DetectEngineHttpHeaderTest29, 1);
+                   DetectEngineHttpHeaderTest29);
     UtRegisterTest("DetectEngineHttpHeaderTest30",
-                   DetectEngineHttpHeaderTest30, 1);
+                   DetectEngineHttpHeaderTest30);
     UtRegisterTest("DetectEngineHttpHeaderTest31",
-                   DetectEngineHttpHeaderTest31, 1);
+                   DetectEngineHttpHeaderTest31);
 #if 0
     UtRegisterTest("DetectEngineHttpHeaderTest30",
                    DetectEngineHttpHeaderTest30, 1);
 #endif
     UtRegisterTest("DetectEngineHttpHeaderTest32",
-                   DetectEngineHttpHeaderTest32, 1);
+                   DetectEngineHttpHeaderTest32);
     UtRegisterTest("DetectEngineHttpHeaderTest33",
-                   DetectEngineHttpHeaderTest33, 1);
+                   DetectEngineHttpHeaderTest33);
 
 #endif /* UNITTESTS */
 

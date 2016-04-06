@@ -1378,8 +1378,8 @@ void AppLayerParserRegisterUnittests(void)
         }
     }
 
-    UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01, 1);
-    UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02, 1);
+    UtRegisterTest("AppLayerParserTest01", AppLayerParserTest01);
+    UtRegisterTest("AppLayerParserTest02", AppLayerParserTest02);
 
     SCReturn;
 }

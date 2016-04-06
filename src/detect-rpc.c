@@ -597,11 +597,11 @@ end:
 void DetectRpcRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectRpcTestParse01", DetectRpcTestParse01, 1);
-    UtRegisterTest("DetectRpcTestParse02", DetectRpcTestParse02, 1);
-    UtRegisterTest("DetectRpcTestParse03", DetectRpcTestParse03, 1);
-    UtRegisterTest("DetectRpcTestParse04", DetectRpcTestParse04, 1);
-    UtRegisterTest("DetectRpcTestParse05", DetectRpcTestParse05, 1);
-    UtRegisterTest("DetectRpcTestSig01", DetectRpcTestSig01, 1);
+    UtRegisterTest("DetectRpcTestParse01", DetectRpcTestParse01);
+    UtRegisterTest("DetectRpcTestParse02", DetectRpcTestParse02);
+    UtRegisterTest("DetectRpcTestParse03", DetectRpcTestParse03);
+    UtRegisterTest("DetectRpcTestParse04", DetectRpcTestParse04);
+    UtRegisterTest("DetectRpcTestParse05", DetectRpcTestParse05);
+    UtRegisterTest("DetectRpcTestSig01", DetectRpcTestSig01);
 #endif /* UNITTESTS */
 }

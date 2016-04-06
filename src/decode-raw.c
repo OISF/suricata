@@ -221,9 +221,9 @@ static int DecodeRawTest03 (void)
 void DecodeRawRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeRawTest01", DecodeRawTest01, 1);
-    UtRegisterTest("DecodeRawTest02", DecodeRawTest02, 1);
-    UtRegisterTest("DecodeRawTest03", DecodeRawTest03, 1);
+    UtRegisterTest("DecodeRawTest01", DecodeRawTest01);
+    UtRegisterTest("DecodeRawTest02", DecodeRawTest02);
+    UtRegisterTest("DecodeRawTest03", DecodeRawTest03);
 #endif /* UNITTESTS */
 }
 /**

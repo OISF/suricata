@@ -538,8 +538,8 @@ error:
 
 void StorageRegisterTests(void)
 {
-    UtRegisterTest("StorageTest01", StorageTest01, 1);
-    UtRegisterTest("StorageTest02", StorageTest02, 1);
-    UtRegisterTest("StorageTest03", StorageTest03, 1);
+    UtRegisterTest("StorageTest01", StorageTest01);
+    UtRegisterTest("StorageTest02", StorageTest02);
+    UtRegisterTest("StorageTest03", StorageTest03);
 }
 #endif

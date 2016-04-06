@@ -5445,8 +5445,8 @@ int SCCudaTest02(void)
 void SCCudaRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SCCudaTest01", SCCudaTest01, 1);
-    UtRegisterTest("SCCudaTest02", SCCudaTest02, 1);
+    UtRegisterTest("SCCudaTest01", SCCudaTest01);
+    UtRegisterTest("SCCudaTest02", SCCudaTest02);
 #endif
 
     return;

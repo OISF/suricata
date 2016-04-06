@@ -936,14 +936,14 @@ void
 ConfYamlRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ConfYamlSequenceTest", ConfYamlSequenceTest, 1);
-    UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest, 1);
-    UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest, 1);
-    UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest, 1);
+    UtRegisterTest("ConfYamlSequenceTest", ConfYamlSequenceTest);
+    UtRegisterTest("ConfYamlLoggingOutputTest", ConfYamlLoggingOutputTest);
+    UtRegisterTest("ConfYamlNonYamlFileTest", ConfYamlNonYamlFileTest);
+    UtRegisterTest("ConfYamlBadYamlVersionTest", ConfYamlBadYamlVersionTest);
     UtRegisterTest("ConfYamlSecondLevelSequenceTest",
-        ConfYamlSecondLevelSequenceTest, 1);
-    UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest, 1);
-    UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest, 1);
-    UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest, 1);
+                   ConfYamlSecondLevelSequenceTest);
+    UtRegisterTest("ConfYamlFileIncludeTest", ConfYamlFileIncludeTest);
+    UtRegisterTest("ConfYamlOverrideTest", ConfYamlOverrideTest);
+    UtRegisterTest("ConfYamlOverrideFinalTest", ConfYamlOverrideFinalTest);
 #endif /* UNITTESTS */
 }

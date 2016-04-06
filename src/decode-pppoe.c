@@ -446,12 +446,12 @@ static int DecodePPPOEtest06 (void)
 void DecodePPPOERegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01, 1);
-    UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02, 1);
-    UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03, 1);
-    UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04, 1);
-    UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05, 1);
-    UtRegisterTest("DecodePPPOEtest06", DecodePPPOEtest06, 1);
+    UtRegisterTest("DecodePPPOEtest01", DecodePPPOEtest01);
+    UtRegisterTest("DecodePPPOEtest02", DecodePPPOEtest02);
+    UtRegisterTest("DecodePPPOEtest03", DecodePPPOEtest03);
+    UtRegisterTest("DecodePPPOEtest04", DecodePPPOEtest04);
+    UtRegisterTest("DecodePPPOEtest05", DecodePPPOEtest05);
+    UtRegisterTest("DecodePPPOEtest06", DecodePPPOEtest06);
 #endif /* UNITTESTS */
 }
 

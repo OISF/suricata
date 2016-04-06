@@ -2155,35 +2155,35 @@ end:
 void SCHSRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SCHSTest01", SCHSTest01, 1);
-    UtRegisterTest("SCHSTest02", SCHSTest02, 1);
-    UtRegisterTest("SCHSTest03", SCHSTest03, 1);
-    UtRegisterTest("SCHSTest04", SCHSTest04, 1);
-    UtRegisterTest("SCHSTest05", SCHSTest05, 1);
-    UtRegisterTest("SCHSTest06", SCHSTest06, 1);
-    UtRegisterTest("SCHSTest07", SCHSTest07, 1);
-    UtRegisterTest("SCHSTest08", SCHSTest08, 1);
-    UtRegisterTest("SCHSTest09", SCHSTest09, 1);
-    UtRegisterTest("SCHSTest10", SCHSTest10, 1);
-    UtRegisterTest("SCHSTest11", SCHSTest11, 1);
-    UtRegisterTest("SCHSTest12", SCHSTest12, 1);
-    UtRegisterTest("SCHSTest13", SCHSTest13, 1);
-    UtRegisterTest("SCHSTest14", SCHSTest14, 1);
-    UtRegisterTest("SCHSTest15", SCHSTest15, 1);
-    UtRegisterTest("SCHSTest16", SCHSTest16, 1);
-    UtRegisterTest("SCHSTest17", SCHSTest17, 1);
-    UtRegisterTest("SCHSTest18", SCHSTest18, 1);
-    UtRegisterTest("SCHSTest19", SCHSTest19, 1);
-    UtRegisterTest("SCHSTest20", SCHSTest20, 1);
-    UtRegisterTest("SCHSTest21", SCHSTest21, 1);
-    UtRegisterTest("SCHSTest22", SCHSTest22, 1);
-    UtRegisterTest("SCHSTest23", SCHSTest23, 1);
-    UtRegisterTest("SCHSTest24", SCHSTest24, 1);
-    UtRegisterTest("SCHSTest25", SCHSTest25, 1);
-    UtRegisterTest("SCHSTest26", SCHSTest26, 1);
-    UtRegisterTest("SCHSTest27", SCHSTest27, 1);
-    UtRegisterTest("SCHSTest28", SCHSTest28, 1);
-    UtRegisterTest("SCHSTest29", SCHSTest29, 1);
+    UtRegisterTest("SCHSTest01", SCHSTest01);
+    UtRegisterTest("SCHSTest02", SCHSTest02);
+    UtRegisterTest("SCHSTest03", SCHSTest03);
+    UtRegisterTest("SCHSTest04", SCHSTest04);
+    UtRegisterTest("SCHSTest05", SCHSTest05);
+    UtRegisterTest("SCHSTest06", SCHSTest06);
+    UtRegisterTest("SCHSTest07", SCHSTest07);
+    UtRegisterTest("SCHSTest08", SCHSTest08);
+    UtRegisterTest("SCHSTest09", SCHSTest09);
+    UtRegisterTest("SCHSTest10", SCHSTest10);
+    UtRegisterTest("SCHSTest11", SCHSTest11);
+    UtRegisterTest("SCHSTest12", SCHSTest12);
+    UtRegisterTest("SCHSTest13", SCHSTest13);
+    UtRegisterTest("SCHSTest14", SCHSTest14);
+    UtRegisterTest("SCHSTest15", SCHSTest15);
+    UtRegisterTest("SCHSTest16", SCHSTest16);
+    UtRegisterTest("SCHSTest17", SCHSTest17);
+    UtRegisterTest("SCHSTest18", SCHSTest18);
+    UtRegisterTest("SCHSTest19", SCHSTest19);
+    UtRegisterTest("SCHSTest20", SCHSTest20);
+    UtRegisterTest("SCHSTest21", SCHSTest21);
+    UtRegisterTest("SCHSTest22", SCHSTest22);
+    UtRegisterTest("SCHSTest23", SCHSTest23);
+    UtRegisterTest("SCHSTest24", SCHSTest24);
+    UtRegisterTest("SCHSTest25", SCHSTest25);
+    UtRegisterTest("SCHSTest26", SCHSTest26);
+    UtRegisterTest("SCHSTest27", SCHSTest27);
+    UtRegisterTest("SCHSTest28", SCHSTest28);
+    UtRegisterTest("SCHSTest29", SCHSTest29);
 #endif
 
     return;

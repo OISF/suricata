@@ -146,7 +146,7 @@ end:
 static void DetectPktDataTestRegister(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01, 1);
+    UtRegisterTest("DetectPktDataTest01", DetectPktDataTest01);
 #endif
 }
 

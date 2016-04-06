@@ -33,14 +33,13 @@ typedef struct UtTest_ {
 
     char *name;
     int(*TestFn)(void);
-    int evalue;
 
     struct UtTest_ *next;
 
 } UtTest;
 
 
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
+void UtRegisterTest(char *name, int(*TestFn)(void));
 uint32_t UtRunTests(char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);

@@ -262,13 +262,9 @@ end:
 static void DetectBase64DataRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01,
-        1);
-    UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02,
-        1);
-    UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03,
-        1);
-    UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04,
-        1);
+    UtRegisterTest("DetectBase64DataSetupTest01", DetectBase64DataSetupTest01);
+    UtRegisterTest("DetectBase64DataSetupTest02", DetectBase64DataSetupTest02);
+    UtRegisterTest("DetectBase64DataSetupTest03", DetectBase64DataSetupTest03);
+    UtRegisterTest("DetectBase64DataSetupTest04", DetectBase64DataSetupTest04);
 #endif /* UNITTESTS */
 }

@@ -811,28 +811,28 @@ end:
 void DsizeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DsizeTestParse01", DsizeTestParse01, 1);
-    UtRegisterTest("DsizeTestParse02", DsizeTestParse02, 1);
-    UtRegisterTest("DsizeTestParse03", DsizeTestParse03, 1);
-    UtRegisterTest("DsizeTestParse04", DsizeTestParse04, 1);
-    UtRegisterTest("DsizeTestParse05", DsizeTestParse05, 1);
-    UtRegisterTest("DsizeTestParse06", DsizeTestParse06, 1);
-    UtRegisterTest("DsizeTestParse07", DsizeTestParse07, 1);
-    UtRegisterTest("DsizeTestParse08", DsizeTestParse08, 1);
-    UtRegisterTest("DsizeTestParse09", DsizeTestParse09, 1);
-    UtRegisterTest("DsizeTestParse10", DsizeTestParse10, 1);
-    UtRegisterTest("DsizeTestParse11", DsizeTestParse11, 1);
-    UtRegisterTest("DsizeTestParse12", DsizeTestParse12, 1);
-    UtRegisterTest("DsizeTestParse13", DsizeTestParse13, 1);
-    UtRegisterTest("DsizeTestParse14", DsizeTestParse14, 1);
-    UtRegisterTest("DsizeTestParse15", DsizeTestParse15, 1);
-    UtRegisterTest("DsizeTestParse16", DsizeTestParse16, 1);
-    UtRegisterTest("DsizeTestParse17", DsizeTestParse17, 1);
-    UtRegisterTest("DsizeTestParse18", DsizeTestParse18, 1);
-    UtRegisterTest("DsizeTestParse19", DsizeTestParse19, 1);
-    UtRegisterTest("DsizeTestParse20", DsizeTestParse20, 1);
+    UtRegisterTest("DsizeTestParse01", DsizeTestParse01);
+    UtRegisterTest("DsizeTestParse02", DsizeTestParse02);
+    UtRegisterTest("DsizeTestParse03", DsizeTestParse03);
+    UtRegisterTest("DsizeTestParse04", DsizeTestParse04);
+    UtRegisterTest("DsizeTestParse05", DsizeTestParse05);
+    UtRegisterTest("DsizeTestParse06", DsizeTestParse06);
+    UtRegisterTest("DsizeTestParse07", DsizeTestParse07);
+    UtRegisterTest("DsizeTestParse08", DsizeTestParse08);
+    UtRegisterTest("DsizeTestParse09", DsizeTestParse09);
+    UtRegisterTest("DsizeTestParse10", DsizeTestParse10);
+    UtRegisterTest("DsizeTestParse11", DsizeTestParse11);
+    UtRegisterTest("DsizeTestParse12", DsizeTestParse12);
+    UtRegisterTest("DsizeTestParse13", DsizeTestParse13);
+    UtRegisterTest("DsizeTestParse14", DsizeTestParse14);
+    UtRegisterTest("DsizeTestParse15", DsizeTestParse15);
+    UtRegisterTest("DsizeTestParse16", DsizeTestParse16);
+    UtRegisterTest("DsizeTestParse17", DsizeTestParse17);
+    UtRegisterTest("DsizeTestParse18", DsizeTestParse18);
+    UtRegisterTest("DsizeTestParse19", DsizeTestParse19);
+    UtRegisterTest("DsizeTestParse20", DsizeTestParse20);
 
-    UtRegisterTest("DetectDsizeIcmpv6Test01", DetectDsizeIcmpv6Test01, 1);
+    UtRegisterTest("DetectDsizeIcmpv6Test01", DetectDsizeIcmpv6Test01);
 #endif /* UNITTESTS */
 }
 

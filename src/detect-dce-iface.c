@@ -1812,25 +1812,25 @@ void DetectDceIfaceRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01, 1);
-    UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02, 1);
-    UtRegisterTest("DetectDceIfaceTestParse03", DetectDceIfaceTestParse03, 1);
-    UtRegisterTest("DetectDceIfaceTestParse04", DetectDceIfaceTestParse04, 1);
-    UtRegisterTest("DetectDceIfaceTestParse05", DetectDceIfaceTestParse05, 1);
-    UtRegisterTest("DetectDceIfaceTestParse06", DetectDceIfaceTestParse06, 1);
-    UtRegisterTest("DetectDceIfaceTestParse07", DetectDceIfaceTestParse07, 1);
-    UtRegisterTest("DetectDceIfaceTestParse08", DetectDceIfaceTestParse08, 1);
-    UtRegisterTest("DetectDceIfaceTestParse09", DetectDceIfaceTestParse09, 1);
-    UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10, 1);
-    UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11, 1);
-    UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12, 1);
+    UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01);
+    UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02);
+    UtRegisterTest("DetectDceIfaceTestParse03", DetectDceIfaceTestParse03);
+    UtRegisterTest("DetectDceIfaceTestParse04", DetectDceIfaceTestParse04);
+    UtRegisterTest("DetectDceIfaceTestParse05", DetectDceIfaceTestParse05);
+    UtRegisterTest("DetectDceIfaceTestParse06", DetectDceIfaceTestParse06);
+    UtRegisterTest("DetectDceIfaceTestParse07", DetectDceIfaceTestParse07);
+    UtRegisterTest("DetectDceIfaceTestParse08", DetectDceIfaceTestParse08);
+    UtRegisterTest("DetectDceIfaceTestParse09", DetectDceIfaceTestParse09);
+    UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10);
+    UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11);
+    UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
      * dce parser */
 #if 0
     UtRegisterTest("DetectDceIfaceTestParse13", DetectDceIfaceTestParse13, 1);
 #endif
-    UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14, 1);
-    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15, 1);
+    UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14);
+    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15);
 #endif
 
     return;

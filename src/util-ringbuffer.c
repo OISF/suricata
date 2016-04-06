@@ -1078,11 +1078,11 @@ end:
 void DetectRingBufferRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("RingBuffer8SrSwInit01", RingBuffer8SrSwInit01, 1);
-    UtRegisterTest("RingBuffer8SrSwPut01", RingBuffer8SrSwPut01, 1);
-    UtRegisterTest("RingBuffer8SrSwPut02", RingBuffer8SrSwPut02, 1);
-    UtRegisterTest("RingBuffer8SrSwGet01", RingBuffer8SrSwGet01, 1);
-    UtRegisterTest("RingBuffer8SrSwGet02", RingBuffer8SrSwGet02, 1);
+    UtRegisterTest("RingBuffer8SrSwInit01", RingBuffer8SrSwInit01);
+    UtRegisterTest("RingBuffer8SrSwPut01", RingBuffer8SrSwPut01);
+    UtRegisterTest("RingBuffer8SrSwPut02", RingBuffer8SrSwPut02);
+    UtRegisterTest("RingBuffer8SrSwGet01", RingBuffer8SrSwGet01);
+    UtRegisterTest("RingBuffer8SrSwGet02", RingBuffer8SrSwGet02);
 #endif /* UNITTESTS */
 }
 
