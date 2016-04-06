@@ -1398,10 +1398,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
-                if (ConfSetFinal("unittests.failure-fatal", "1") != 1) {
-                    fprintf(stderr, "ERROR: Failed to set unittests failure-fatal.\n");
-                    return TM_ECODE_FAILED;
-                }
+                unittests_fatal = 1;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
