@@ -731,7 +731,8 @@ static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
     lua_close(luastate);
     return 0;
 error:
-    lua_close(luastate);
+    if (luastate)
+        lua_close(luastate);
     return -1;
 }
 
@@ -796,7 +797,8 @@ static lua_State *LuaScriptSetup(const char *filename)
     SCLogDebug("lua_State %p is set up", luastate);
     return luastate;
 error:
-    lua_close(luastate);
+    if (luastate)
+        lua_close(luastate);
     return NULL;
 }
 
