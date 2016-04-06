@@ -38,6 +38,8 @@ static pcre_extra *parse_regex_study;
 
 static UtTest *ut_list;
 
+int unittests_fatal = 0;
+
 /**
  * \brief Allocate UtTest list member
  *
@@ -181,12 +183,6 @@ uint32_t UtRunTests(char *regex_arg)
     uint32_t good = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
-    int failure_fatal;
-
-    if (ConfGetBool("unittests.failure-fatal", &failure_fatal) != 1) {
-        SCLogDebug("ConfGetBool could not load the value.");
-        failure_fatal = 0;
-    }
 
     rcomp = UtRegex(regex_arg);
 
@@ -205,7 +201,7 @@ uint32_t UtRunTests(char *regex_arg)
                 ret = ut->TestFn();
                 printf("%s\n", ret ? "pass" : "FAILED");
                 if (!ret) {
-                    if (failure_fatal == 1) {
+                    if (unittests_fatal == 1) {
                         fprintf(stderr, "ERROR: unittest failed.\n");
                         exit(EXIT_FAILURE);
                     }
@@ -292,6 +288,7 @@ int UtSelftestFalse(void)
     if (0)return 0;
     else  return 1;
 }
+
 #endif /* UNITTESTS */
 
 /** \brief Run self tests
