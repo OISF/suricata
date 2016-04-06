@@ -362,10 +362,10 @@ static int FragBitsTestParse02 (void)
     de = DetectFragBitsParse("G");
     if (de) {
         DetectFragBitsFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -554,16 +554,17 @@ static int FragBitsTestParse04 (void)
         PACKET_RECYCLE(p);
         FlowShutdown();
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
-    return 0;
+    return 1;
 }
 #endif /* UNITTESTS */
 
@@ -573,9 +574,9 @@ error:
 void FragBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FragBitsTestParse01", FragBitsTestParse01, 1);
-    UtRegisterTest("FragBitsTestParse02", FragBitsTestParse02, 0);
-    UtRegisterTest("FragBitsTestParse03", FragBitsTestParse03, 1);
-    UtRegisterTest("FragBitsTestParse04", FragBitsTestParse04, 0);
+    UtRegisterTest("FragBitsTestParse01", FragBitsTestParse01);
+    UtRegisterTest("FragBitsTestParse02", FragBitsTestParse02);
+    UtRegisterTest("FragBitsTestParse03", FragBitsTestParse03);
+    UtRegisterTest("FragBitsTestParse04", FragBitsTestParse04);
 #endif /* UNITTESTS */
 }

@@ -2193,37 +2193,37 @@ end:
 void DetectHttpHRHRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectHttpHRHTest01", DetectHttpHRHTest01, 1);
-    UtRegisterTest("DetectHttpHRHTest02", DetectHttpHRHTest02, 1);
-    UtRegisterTest("DetectHttpHRHTest03", DetectHttpHRHTest03, 1);
-    UtRegisterTest("DetectHttpHRHTest04", DetectHttpHRHTest04, 1);
-    UtRegisterTest("DetectHttpHRHTest05", DetectHttpHRHTest05, 1);
-    UtRegisterTest("DetectHttpHRHTest06", DetectHttpHRHTest06, 1);
-    UtRegisterTest("DetectHttpHRHTest07", DetectHttpHRHTest07, 1);
-    UtRegisterTest("DetectHttpHRHTest08", DetectHttpHRHTest08, 1);
-    UtRegisterTest("DetectHttpHRHTest09", DetectHttpHRHTest09, 1);
-    UtRegisterTest("DetectHttpHRHTest10", DetectHttpHRHTest10, 1);
-    UtRegisterTest("DetectHttpHRHTest11", DetectHttpHRHTest11, 1);
-    UtRegisterTest("DetectHttpHRHTest12", DetectHttpHRHTest12, 1);
-    UtRegisterTest("DetectHttpHRHTest13", DetectHttpHRHTest13, 1);
-    UtRegisterTest("DetectHttpHRHTest14", DetectHttpHRHTest14, 1);
+    UtRegisterTest("DetectHttpHRHTest01", DetectHttpHRHTest01);
+    UtRegisterTest("DetectHttpHRHTest02", DetectHttpHRHTest02);
+    UtRegisterTest("DetectHttpHRHTest03", DetectHttpHRHTest03);
+    UtRegisterTest("DetectHttpHRHTest04", DetectHttpHRHTest04);
+    UtRegisterTest("DetectHttpHRHTest05", DetectHttpHRHTest05);
+    UtRegisterTest("DetectHttpHRHTest06", DetectHttpHRHTest06);
+    UtRegisterTest("DetectHttpHRHTest07", DetectHttpHRHTest07);
+    UtRegisterTest("DetectHttpHRHTest08", DetectHttpHRHTest08);
+    UtRegisterTest("DetectHttpHRHTest09", DetectHttpHRHTest09);
+    UtRegisterTest("DetectHttpHRHTest10", DetectHttpHRHTest10);
+    UtRegisterTest("DetectHttpHRHTest11", DetectHttpHRHTest11);
+    UtRegisterTest("DetectHttpHRHTest12", DetectHttpHRHTest12);
+    UtRegisterTest("DetectHttpHRHTest13", DetectHttpHRHTest13);
+    UtRegisterTest("DetectHttpHRHTest14", DetectHttpHRHTest14);
 
-    UtRegisterTest("DetectHttpHRHTest22", DetectHttpHRHTest22, 1);
-    UtRegisterTest("DetectHttpHRHTest23", DetectHttpHRHTest23, 1);
-    UtRegisterTest("DetectHttpHRHTest24", DetectHttpHRHTest24, 1);
-    UtRegisterTest("DetectHttpHRHTest25", DetectHttpHRHTest25, 1);
-    UtRegisterTest("DetectHttpHRHTest26", DetectHttpHRHTest26, 1);
-    UtRegisterTest("DetectHttpHRHTest27", DetectHttpHRHTest27, 1);
-    UtRegisterTest("DetectHttpHRHTest28", DetectHttpHRHTest28, 1);
-    UtRegisterTest("DetectHttpHRHTest29", DetectHttpHRHTest29, 1);
-    UtRegisterTest("DetectHttpHRHTest30", DetectHttpHRHTest30, 1);
-    UtRegisterTest("DetectHttpHRHTest31", DetectHttpHRHTest31, 1);
-    UtRegisterTest("DetectHttpHRHTest32", DetectHttpHRHTest32, 1);
-    UtRegisterTest("DetectHttpHRHTest33", DetectHttpHRHTest33, 1);
-    UtRegisterTest("DetectHttpHRHTest34", DetectHttpHRHTest34, 1);
-    UtRegisterTest("DetectHttpHRHTest35", DetectHttpHRHTest35, 1);
-    UtRegisterTest("DetectHttpHRHTest36", DetectHttpHRHTest36, 1);
-    UtRegisterTest("DetectHttpHRHTest37", DetectHttpHRHTest37, 1);
+    UtRegisterTest("DetectHttpHRHTest22", DetectHttpHRHTest22);
+    UtRegisterTest("DetectHttpHRHTest23", DetectHttpHRHTest23);
+    UtRegisterTest("DetectHttpHRHTest24", DetectHttpHRHTest24);
+    UtRegisterTest("DetectHttpHRHTest25", DetectHttpHRHTest25);
+    UtRegisterTest("DetectHttpHRHTest26", DetectHttpHRHTest26);
+    UtRegisterTest("DetectHttpHRHTest27", DetectHttpHRHTest27);
+    UtRegisterTest("DetectHttpHRHTest28", DetectHttpHRHTest28);
+    UtRegisterTest("DetectHttpHRHTest29", DetectHttpHRHTest29);
+    UtRegisterTest("DetectHttpHRHTest30", DetectHttpHRHTest30);
+    UtRegisterTest("DetectHttpHRHTest31", DetectHttpHRHTest31);
+    UtRegisterTest("DetectHttpHRHTest32", DetectHttpHRHTest32);
+    UtRegisterTest("DetectHttpHRHTest33", DetectHttpHRHTest33);
+    UtRegisterTest("DetectHttpHRHTest34", DetectHttpHRHTest34);
+    UtRegisterTest("DetectHttpHRHTest35", DetectHttpHRHTest35);
+    UtRegisterTest("DetectHttpHRHTest36", DetectHttpHRHTest36);
+    UtRegisterTest("DetectHttpHRHTest37", DetectHttpHRHTest37);
 #endif /* UNITTESTS */
 
     return;

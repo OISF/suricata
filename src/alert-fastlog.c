@@ -378,8 +378,8 @@ void AlertFastLogRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("AlertFastLogTest01", AlertFastLogTest01, 1);
-    UtRegisterTest("AlertFastLogTest02", AlertFastLogTest02, 1);
+    UtRegisterTest("AlertFastLogTest01", AlertFastLogTest01);
+    UtRegisterTest("AlertFastLogTest02", AlertFastLogTest02);
 
 #endif /* UNITTESTS */
 

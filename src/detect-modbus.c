@@ -884,14 +884,23 @@ static int DetectModbusTest09(void)
 void DetectModbusRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectModbusTest01 - Testing function", DetectModbusTest01, 1);
-    UtRegisterTest("DetectModbusTest02 - Testing function and subfunction", DetectModbusTest02, 1);
-    UtRegisterTest("DetectModbusTest03 - Testing category function", DetectModbusTest03, 1);
-    UtRegisterTest("DetectModbusTest04 - Testing category function in negative", DetectModbusTest04, 1);
-    UtRegisterTest("DetectModbusTest05 - Testing access type", DetectModbusTest05, 1);
-    UtRegisterTest("DetectModbusTest06 - Testing access function", DetectModbusTest06, 1);
-    UtRegisterTest("DetectModbusTest07 - Testing access at address", DetectModbusTest07, 1);
-    UtRegisterTest("DetectModbusTest08 - Testing a range of address", DetectModbusTest08, 1);
-    UtRegisterTest("DetectModbusTest09 - Testing write a range of value", DetectModbusTest09, 1);
+    UtRegisterTest("DetectModbusTest01 - Testing function",
+                   DetectModbusTest01);
+    UtRegisterTest("DetectModbusTest02 - Testing function and subfunction",
+                   DetectModbusTest02);
+    UtRegisterTest("DetectModbusTest03 - Testing category function",
+                   DetectModbusTest03);
+    UtRegisterTest("DetectModbusTest04 - Testing category function in negative",
+                   DetectModbusTest04);
+    UtRegisterTest("DetectModbusTest05 - Testing access type",
+                   DetectModbusTest05);
+    UtRegisterTest("DetectModbusTest06 - Testing access function",
+                   DetectModbusTest06);
+    UtRegisterTest("DetectModbusTest07 - Testing access at address",
+                   DetectModbusTest07);
+    UtRegisterTest("DetectModbusTest08 - Testing a range of address",
+                   DetectModbusTest08);
+    UtRegisterTest("DetectModbusTest09 - Testing write a range of value",
+                   DetectModbusTest09);
 #endif /* UNITTESTS */
 }

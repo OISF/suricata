@@ -439,17 +439,17 @@ end:
 void PoolThreadRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("PoolThreadTestInit01", PoolThreadTestInit01, 1);
-    UtRegisterTest("PoolThreadTestInit02", PoolThreadTestInit02, 1);
+    UtRegisterTest("PoolThreadTestInit01", PoolThreadTestInit01);
+    UtRegisterTest("PoolThreadTestInit02", PoolThreadTestInit02);
 
-    UtRegisterTest("PoolThreadTestGet01", PoolThreadTestGet01, 1);
-    UtRegisterTest("PoolThreadTestGet02", PoolThreadTestGet02, 1);
+    UtRegisterTest("PoolThreadTestGet01", PoolThreadTestGet01);
+    UtRegisterTest("PoolThreadTestGet02", PoolThreadTestGet02);
 
-    UtRegisterTest("PoolThreadTestReturn01", PoolThreadTestReturn01, 1);
+    UtRegisterTest("PoolThreadTestReturn01", PoolThreadTestReturn01);
 
-    UtRegisterTest("PoolThreadTestGrow01", PoolThreadTestGrow01, 1);
-    UtRegisterTest("PoolThreadTestGrow02", PoolThreadTestGrow02, 1);
-    UtRegisterTest("PoolThreadTestGrow03", PoolThreadTestGrow03, 1);
+    UtRegisterTest("PoolThreadTestGrow01", PoolThreadTestGrow01);
+    UtRegisterTest("PoolThreadTestGrow02", PoolThreadTestGrow02);
+    UtRegisterTest("PoolThreadTestGrow03", PoolThreadTestGrow03);
 #endif
 }
 

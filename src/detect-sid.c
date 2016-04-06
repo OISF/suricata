@@ -158,8 +158,8 @@ end:
 static void DetectSidRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SidTestParse01", SidTestParse01, 1);
-    UtRegisterTest("SidTestParse02", SidTestParse02, 1);
-    UtRegisterTest("SidTestParse03", SidTestParse03, 1);
+    UtRegisterTest("SidTestParse01", SidTestParse01);
+    UtRegisterTest("SidTestParse02", SidTestParse02);
+    UtRegisterTest("SidTestParse03", SidTestParse03);
 #endif /* UNITTESTS */
 }

@@ -275,17 +275,17 @@ end:
 void BloomFilterRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("BloomFilterTestInit01", BloomFilterTestInit01, 1);
-    UtRegisterTest("BloomFilterTestInit02", BloomFilterTestInit02, 1);
-    UtRegisterTest("BloomFilterTestInit03", BloomFilterTestInit03, 1);
-    UtRegisterTest("BloomFilterTestInit04", BloomFilterTestInit04, 1);
-    UtRegisterTest("BloomFilterTestInit05", BloomFilterTestInit05, 1);
+    UtRegisterTest("BloomFilterTestInit01", BloomFilterTestInit01);
+    UtRegisterTest("BloomFilterTestInit02", BloomFilterTestInit02);
+    UtRegisterTest("BloomFilterTestInit03", BloomFilterTestInit03);
+    UtRegisterTest("BloomFilterTestInit04", BloomFilterTestInit04);
+    UtRegisterTest("BloomFilterTestInit05", BloomFilterTestInit05);
 
-    UtRegisterTest("BloomFilterTestAdd01", BloomFilterTestAdd01, 1);
-    UtRegisterTest("BloomFilterTestAdd02", BloomFilterTestAdd02, 1);
+    UtRegisterTest("BloomFilterTestAdd01", BloomFilterTestAdd01);
+    UtRegisterTest("BloomFilterTestAdd02", BloomFilterTestAdd02);
 
-    UtRegisterTest("BloomFilterTestFull01", BloomFilterTestFull01, 1);
-    UtRegisterTest("BloomFilterTestFull02", BloomFilterTestFull02, 1);
+    UtRegisterTest("BloomFilterTestFull01", BloomFilterTestFull01);
+    UtRegisterTest("BloomFilterTestFull02", BloomFilterTestFull02);
 #endif /* UNITTESTS */
 }
 

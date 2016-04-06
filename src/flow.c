@@ -1131,11 +1131,15 @@ static int FlowTest09 (void)
 void FlowRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
-    UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function", FlowTest02, 1);
-    UtRegisterTest("FlowTest07 -- Test flow Allocations when it reach memcap", FlowTest07, 1);
-    UtRegisterTest("FlowTest08 -- Test flow Allocations when it reach memcap", FlowTest08, 1);
-    UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap", FlowTest09, 1);
+    UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01);
+    UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function",
+                   FlowTest02);
+    UtRegisterTest("FlowTest07 -- Test flow Allocations when it reach memcap",
+                   FlowTest07);
+    UtRegisterTest("FlowTest08 -- Test flow Allocations when it reach memcap",
+                   FlowTest08);
+    UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
+                   FlowTest09);
 
     FlowMgrRegisterTests();
     RegisterFlowStorageTests();

@@ -351,14 +351,14 @@ static int XFFTest09(void) {
 void HTPXFFParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("XFFTest01", XFFTest01, 1);
-    UtRegisterTest("XFFTest02", XFFTest02, 1);
-    UtRegisterTest("XFFTest03", XFFTest03, 1);
-    UtRegisterTest("XFFTest04", XFFTest04, 1);
-    UtRegisterTest("XFFTest05", XFFTest05, 1);
-    UtRegisterTest("XFFTest06", XFFTest06, 1);
-    UtRegisterTest("XFFTest07", XFFTest07, 1);
-    UtRegisterTest("XFFTest08", XFFTest08, 1);
-    UtRegisterTest("XFFTest09", XFFTest09, 1);
+    UtRegisterTest("XFFTest01", XFFTest01);
+    UtRegisterTest("XFFTest02", XFFTest02);
+    UtRegisterTest("XFFTest03", XFFTest03);
+    UtRegisterTest("XFFTest04", XFFTest04);
+    UtRegisterTest("XFFTest05", XFFTest05);
+    UtRegisterTest("XFFTest06", XFFTest06);
+    UtRegisterTest("XFFTest07", XFFTest07);
+    UtRegisterTest("XFFTest08", XFFTest08);
+    UtRegisterTest("XFFTest09", XFFTest09);
 #endif
 }

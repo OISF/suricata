@@ -427,17 +427,17 @@ end:
 void FlowBitRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowBitTest01", FlowBitTest01, 1);
-    UtRegisterTest("FlowBitTest02", FlowBitTest02, 1);
-    UtRegisterTest("FlowBitTest03", FlowBitTest03, 1);
-    UtRegisterTest("FlowBitTest04", FlowBitTest04, 1);
-    UtRegisterTest("FlowBitTest05", FlowBitTest05, 1);
-    UtRegisterTest("FlowBitTest06", FlowBitTest06, 1);
-    UtRegisterTest("FlowBitTest07", FlowBitTest07, 1);
-    UtRegisterTest("FlowBitTest08", FlowBitTest08, 1);
-    UtRegisterTest("FlowBitTest09", FlowBitTest09, 1);
-    UtRegisterTest("FlowBitTest10", FlowBitTest10, 1);
-    UtRegisterTest("FlowBitTest11", FlowBitTest11, 1);
+    UtRegisterTest("FlowBitTest01", FlowBitTest01);
+    UtRegisterTest("FlowBitTest02", FlowBitTest02);
+    UtRegisterTest("FlowBitTest03", FlowBitTest03);
+    UtRegisterTest("FlowBitTest04", FlowBitTest04);
+    UtRegisterTest("FlowBitTest05", FlowBitTest05);
+    UtRegisterTest("FlowBitTest06", FlowBitTest06);
+    UtRegisterTest("FlowBitTest07", FlowBitTest07);
+    UtRegisterTest("FlowBitTest08", FlowBitTest08);
+    UtRegisterTest("FlowBitTest09", FlowBitTest09);
+    UtRegisterTest("FlowBitTest10", FlowBitTest10);
+    UtRegisterTest("FlowBitTest11", FlowBitTest11);
 #endif /* UNITTESTS */
 }
 

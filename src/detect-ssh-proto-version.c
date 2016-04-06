@@ -689,12 +689,15 @@ end:
 void DetectSshVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01, 1);
-    UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02, 1);
-    UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03, 1);
-    UtRegisterTest("DetectSshVersionTestDetect01", DetectSshVersionTestDetect01, 1);
-    UtRegisterTest("DetectSshVersionTestDetect02", DetectSshVersionTestDetect02, 1);
-    UtRegisterTest("DetectSshVersionTestDetect03", DetectSshVersionTestDetect03, 1);
+    UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01);
+    UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02);
+    UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03);
+    UtRegisterTest("DetectSshVersionTestDetect01",
+                   DetectSshVersionTestDetect01);
+    UtRegisterTest("DetectSshVersionTestDetect02",
+                   DetectSshVersionTestDetect02);
+    UtRegisterTest("DetectSshVersionTestDetect03",
+                   DetectSshVersionTestDetect03);
 #endif /* UNITTESTS */
 }
 

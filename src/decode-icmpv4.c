@@ -665,7 +665,7 @@ static int ICMPV4CalculateInvalidChecksumtest06(void)
         0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38};
 
     csum = *( ((uint16_t *)raw_icmpv4) + 1);
-    return (csum == ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
+    return (csum != ICMPV4CalculateChecksum((uint16_t *)raw_icmpv4, sizeof(raw_icmpv4)));
 }
 
 static int ICMPV4InvalidType07(void)
@@ -769,17 +769,17 @@ static int DecodeICMPV4test08(void)
 void DecodeICMPV4RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeICMPV4test01", DecodeICMPV4test01, 1);
-    UtRegisterTest("DecodeICMPV4test02", DecodeICMPV4test02, 1);
-    UtRegisterTest("DecodeICMPV4test03", DecodeICMPV4test03, 1);
-    UtRegisterTest("DecodeICMPV4test04", DecodeICMPV4test04, 1);
-    UtRegisterTest("DecodeICMPV4test05", DecodeICMPV4test05, 1);
+    UtRegisterTest("DecodeICMPV4test01", DecodeICMPV4test01);
+    UtRegisterTest("DecodeICMPV4test02", DecodeICMPV4test02);
+    UtRegisterTest("DecodeICMPV4test03", DecodeICMPV4test03);
+    UtRegisterTest("DecodeICMPV4test04", DecodeICMPV4test04);
+    UtRegisterTest("DecodeICMPV4test05", DecodeICMPV4test05);
     UtRegisterTest("ICMPV4CalculateValidChecksumtest05",
-                   ICMPV4CalculateValidChecksumtest05, 1);
+                   ICMPV4CalculateValidChecksumtest05);
     UtRegisterTest("ICMPV4CalculateInvalidChecksumtest06",
-                   ICMPV4CalculateInvalidChecksumtest06, 0);
-    UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07, 1);
-    UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08, 1);
+                   ICMPV4CalculateInvalidChecksumtest06);
+    UtRegisterTest("DecodeICMPV4InvalidType", ICMPV4InvalidType07);
+    UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08);
 #endif /* UNITTESTS */
 }
 /**

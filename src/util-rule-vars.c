@@ -520,12 +520,12 @@ end:
 void SCRuleVarsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SCRuleVarsPositiveTest01", SCRuleVarsPositiveTest01, 1);
-    UtRegisterTest("SCRuleVarsNegativeTest02", SCRuleVarsNegativeTest02, 1);
-    UtRegisterTest("SCRuleVarsPositiveTest03", SCRuleVarsPositiveTest03, 1);
-    UtRegisterTest("SCRuleVarsNegativeTest04", SCRuleVarsNegativeTest04, 1);
+    UtRegisterTest("SCRuleVarsPositiveTest01", SCRuleVarsPositiveTest01);
+    UtRegisterTest("SCRuleVarsNegativeTest02", SCRuleVarsNegativeTest02);
+    UtRegisterTest("SCRuleVarsPositiveTest03", SCRuleVarsPositiveTest03);
+    UtRegisterTest("SCRuleVarsNegativeTest04", SCRuleVarsNegativeTest04);
 
-    UtRegisterTest("SCRuleVarsMTest01", SCRuleVarsMTest01, 1);
+    UtRegisterTest("SCRuleVarsMTest01", SCRuleVarsMTest01);
 #endif
 
     return;

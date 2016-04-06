@@ -516,14 +516,14 @@ end:
 void DetectITypeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectITypeParseTest01", DetectITypeParseTest01, 1);
-    UtRegisterTest("DetectITypeParseTest02", DetectITypeParseTest02, 1);
-    UtRegisterTest("DetectITypeParseTest03", DetectITypeParseTest03, 1);
-    UtRegisterTest("DetectITypeParseTest04", DetectITypeParseTest04, 1);
-    UtRegisterTest("DetectITypeParseTest05", DetectITypeParseTest05, 1);
-    UtRegisterTest("DetectITypeParseTest06", DetectITypeParseTest06, 1);
-    UtRegisterTest("DetectITypeParseTest07", DetectITypeParseTest07, 1);
-    UtRegisterTest("DetectITypeParseTest08", DetectITypeParseTest08, 1);
-    UtRegisterTest("DetectITypeMatchTest01", DetectITypeMatchTest01, 1);
+    UtRegisterTest("DetectITypeParseTest01", DetectITypeParseTest01);
+    UtRegisterTest("DetectITypeParseTest02", DetectITypeParseTest02);
+    UtRegisterTest("DetectITypeParseTest03", DetectITypeParseTest03);
+    UtRegisterTest("DetectITypeParseTest04", DetectITypeParseTest04);
+    UtRegisterTest("DetectITypeParseTest05", DetectITypeParseTest05);
+    UtRegisterTest("DetectITypeParseTest06", DetectITypeParseTest06);
+    UtRegisterTest("DetectITypeParseTest07", DetectITypeParseTest07);
+    UtRegisterTest("DetectITypeParseTest08", DetectITypeParseTest08);
+    UtRegisterTest("DetectITypeMatchTest01", DetectITypeMatchTest01);
 #endif /* UNITTESTS */
 }

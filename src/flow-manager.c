@@ -1276,10 +1276,15 @@ static int FlowMgrTest05 (void)
 void FlowMgrRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowMgrTest01 -- Timeout a flow having fresh TcpSession", FlowMgrTest01, 1);
-    UtRegisterTest("FlowMgrTest02 -- Timeout a flow having TcpSession with segments", FlowMgrTest02, 1);
-    UtRegisterTest("FlowMgrTest03 -- Timeout a flow in emergency having fresh TcpSession", FlowMgrTest03, 1);
-    UtRegisterTest("FlowMgrTest04 -- Timeout a flow in emergency having TcpSession with segments", FlowMgrTest04, 1);
-    UtRegisterTest("FlowMgrTest05 -- Test flow Allocations when it reach memcap", FlowMgrTest05, 1);
+    UtRegisterTest("FlowMgrTest01 -- Timeout a flow having fresh TcpSession",
+                   FlowMgrTest01);
+    UtRegisterTest("FlowMgrTest02 -- Timeout a flow having TcpSession with segments",
+                   FlowMgrTest02);
+    UtRegisterTest("FlowMgrTest03 -- Timeout a flow in emergency having fresh TcpSession",
+                   FlowMgrTest03);
+    UtRegisterTest("FlowMgrTest04 -- Timeout a flow in emergency having TcpSession with segments",
+                   FlowMgrTest04);
+    UtRegisterTest("FlowMgrTest05 -- Test flow Allocations when it reach memcap",
+                   FlowMgrTest05);
 #endif /* UNITTESTS */
 }

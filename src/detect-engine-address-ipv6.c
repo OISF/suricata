@@ -2081,49 +2081,48 @@ void DetectAddressIPv6Tests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("AddressTestIPv6Gt01", AddressTestIPv6Gt01, 1);
-    UtRegisterTest("AddressTestIPv6Gt02", AddressTestIPv6Gt02, 1);
-    UtRegisterTest("AddressTestIPv6Gt03", AddressTestIPv6Gt03, 1);
-    UtRegisterTest("AddressTestIPv6Gt04", AddressTestIPv6Gt04, 1);
+    UtRegisterTest("AddressTestIPv6Gt01", AddressTestIPv6Gt01);
+    UtRegisterTest("AddressTestIPv6Gt02", AddressTestIPv6Gt02);
+    UtRegisterTest("AddressTestIPv6Gt03", AddressTestIPv6Gt03);
+    UtRegisterTest("AddressTestIPv6Gt04", AddressTestIPv6Gt04);
 
-    UtRegisterTest("AddressTestIPv6Lt01", AddressTestIPv6Lt01, 1);
-    UtRegisterTest("AddressTestIPv6Lt02", AddressTestIPv6Lt02, 1);
-    UtRegisterTest("AddressTestIPv6Lt03", AddressTestIPv6Lt03, 1);
-    UtRegisterTest("AddressTestIPv6Lt04", AddressTestIPv6Lt04, 1);
+    UtRegisterTest("AddressTestIPv6Lt01", AddressTestIPv6Lt01);
+    UtRegisterTest("AddressTestIPv6Lt02", AddressTestIPv6Lt02);
+    UtRegisterTest("AddressTestIPv6Lt03", AddressTestIPv6Lt03);
+    UtRegisterTest("AddressTestIPv6Lt04", AddressTestIPv6Lt04);
 
-    UtRegisterTest("AddressTestIPv6Eq01", AddressTestIPv6Eq01, 1);
-    UtRegisterTest("AddressTestIPv6Eq02", AddressTestIPv6Eq02, 1);
-    UtRegisterTest("AddressTestIPv6Eq03", AddressTestIPv6Eq03, 1);
-    UtRegisterTest("AddressTestIPv6Eq04", AddressTestIPv6Eq04, 1);
+    UtRegisterTest("AddressTestIPv6Eq01", AddressTestIPv6Eq01);
+    UtRegisterTest("AddressTestIPv6Eq02", AddressTestIPv6Eq02);
+    UtRegisterTest("AddressTestIPv6Eq03", AddressTestIPv6Eq03);
+    UtRegisterTest("AddressTestIPv6Eq04", AddressTestIPv6Eq04);
 
-    UtRegisterTest("AddressTestIPv6Le01", AddressTestIPv6Le01, 1);
-    UtRegisterTest("AddressTestIPv6Le02", AddressTestIPv6Le02, 1);
-    UtRegisterTest("AddressTestIPv6Le03", AddressTestIPv6Le03, 1);
-    UtRegisterTest("AddressTestIPv6Le04", AddressTestIPv6Le04, 1);
-    UtRegisterTest("AddressTestIPv6Le05", AddressTestIPv6Le05, 1);
+    UtRegisterTest("AddressTestIPv6Le01", AddressTestIPv6Le01);
+    UtRegisterTest("AddressTestIPv6Le02", AddressTestIPv6Le02);
+    UtRegisterTest("AddressTestIPv6Le03", AddressTestIPv6Le03);
+    UtRegisterTest("AddressTestIPv6Le04", AddressTestIPv6Le04);
+    UtRegisterTest("AddressTestIPv6Le05", AddressTestIPv6Le05);
 
-    UtRegisterTest("AddressTestIPv6Ge01", AddressTestIPv6Ge01, 1);
-    UtRegisterTest("AddressTestIPv6Ge02", AddressTestIPv6Ge02, 1);
-    UtRegisterTest("AddressTestIPv6Ge03", AddressTestIPv6Ge03, 1);
-    UtRegisterTest("AddressTestIPv6Ge04", AddressTestIPv6Ge04, 1);
-    UtRegisterTest("AddressTestIPv6Ge05", AddressTestIPv6Ge05, 1);
+    UtRegisterTest("AddressTestIPv6Ge01", AddressTestIPv6Ge01);
+    UtRegisterTest("AddressTestIPv6Ge02", AddressTestIPv6Ge02);
+    UtRegisterTest("AddressTestIPv6Ge03", AddressTestIPv6Ge03);
+    UtRegisterTest("AddressTestIPv6Ge04", AddressTestIPv6Ge04);
+    UtRegisterTest("AddressTestIPv6Ge05", AddressTestIPv6Ge05);
 
-    UtRegisterTest("AddressTestIPv6SubOne01", AddressTestIPv6SubOne01, 1);
-    UtRegisterTest("AddressTestIPv6SubOne02", AddressTestIPv6SubOne02, 1);
+    UtRegisterTest("AddressTestIPv6SubOne01", AddressTestIPv6SubOne01);
+    UtRegisterTest("AddressTestIPv6SubOne02", AddressTestIPv6SubOne02);
 
-    UtRegisterTest("AddressTestIPv6AddOne01", AddressTestIPv6AddOne01, 1);
-    UtRegisterTest("AddressTestIPv6AddOne02", AddressTestIPv6AddOne02, 1);
+    UtRegisterTest("AddressTestIPv6AddOne01", AddressTestIPv6AddOne01);
+    UtRegisterTest("AddressTestIPv6AddOne02", AddressTestIPv6AddOne02);
 
-    UtRegisterTest("AddressTestIPv6AddressCmp01",
-                   AddressTestIPv6AddressCmp01, 1);
+    UtRegisterTest("AddressTestIPv6AddressCmp01", AddressTestIPv6AddressCmp01);
 
-    UtRegisterTest("AddressTestIPv6CutNot01", AddressTestIPv6CutNot01, 1);
-    UtRegisterTest("AddressTestIPv6CutNot02", AddressTestIPv6CutNot02, 1);
-    UtRegisterTest("AddressTestIPv6CutNot03", AddressTestIPv6CutNot03, 1);
-    UtRegisterTest("AddressTestIPv6CutNot04", AddressTestIPv6CutNot04, 1);
-    UtRegisterTest("AddressTestIPv6CutNot05", AddressTestIPv6CutNot05, 1);
+    UtRegisterTest("AddressTestIPv6CutNot01", AddressTestIPv6CutNot01);
+    UtRegisterTest("AddressTestIPv6CutNot02", AddressTestIPv6CutNot02);
+    UtRegisterTest("AddressTestIPv6CutNot03", AddressTestIPv6CutNot03);
+    UtRegisterTest("AddressTestIPv6CutNot04", AddressTestIPv6CutNot04);
+    UtRegisterTest("AddressTestIPv6CutNot05", AddressTestIPv6CutNot05);
 
-    UtRegisterTest("AddressTestIPv6Join01", AddressTestIPv6Join01, 1);
+    UtRegisterTest("AddressTestIPv6Join01", AddressTestIPv6Join01);
 #endif /* UNITTESTS */
 
     return;

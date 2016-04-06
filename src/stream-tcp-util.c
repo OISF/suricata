@@ -256,9 +256,9 @@ end:
 void StreamTcpUtilRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamTcpUtilTest01", StreamTcpUtilTest01, 1);
-    UtRegisterTest("StreamTcpUtilStreamTest01", StreamTcpUtilStreamTest01, 1);
-    UtRegisterTest("StreamTcpUtilStreamTest02", StreamTcpUtilStreamTest02, 1);
+    UtRegisterTest("StreamTcpUtilTest01", StreamTcpUtilTest01);
+    UtRegisterTest("StreamTcpUtilStreamTest01", StreamTcpUtilStreamTest01);
+    UtRegisterTest("StreamTcpUtilStreamTest02", StreamTcpUtilStreamTest02);
 #endif /* UNITTESTS */
 }
 

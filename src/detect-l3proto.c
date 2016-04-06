@@ -386,8 +386,8 @@ end:
 void DetectL3protoRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectL3protoTestSig1",  DetectL3protoTestSig1, 1);
-    UtRegisterTest("DetectL3protoTestSig2",  DetectL3protoTestSig2, 1);
-    UtRegisterTest("DetectL3protoTestSig3",  DetectL3protoTestSig3, 1);
+    UtRegisterTest("DetectL3protoTestSig1", DetectL3protoTestSig1);
+    UtRegisterTest("DetectL3protoTestSig2", DetectL3protoTestSig2);
+    UtRegisterTest("DetectL3protoTestSig3", DetectL3protoTestSig3);
 #endif /* UNITTESTS */
 }

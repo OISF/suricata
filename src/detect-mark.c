@@ -288,11 +288,11 @@ static int MarkTestParse02 (void)
     data = DetectMarkParse("4");
 
     if (data == NULL) {
-        return 0;
+        return 1;
     }
 
     DetectMarkDataFree(data);
-    return 1;
+    return 0;
 }
 
 /**
@@ -328,11 +328,11 @@ static int MarkTestParse04 (void)
     data = DetectMarkParse("0x1g/0xff");
 
     if (data == NULL) {
-        return 0;
+        return 1;
     }
 
     DetectMarkDataFree(data);
-    return 1;
+    return 0;
 }
 
 
@@ -345,9 +345,9 @@ static int MarkTestParse04 (void)
 void MarkRegisterTests(void)
 {
 #if defined UNITTESTS && defined NFQ
-    UtRegisterTest("MarkTestParse01", MarkTestParse01, 1);
-    UtRegisterTest("MarkTestParse02", MarkTestParse02, 0);
-    UtRegisterTest("MarkTestParse03", MarkTestParse03, 1);
-    UtRegisterTest("MarkTestParse04", MarkTestParse04, 0);
+    UtRegisterTest("MarkTestParse01", MarkTestParse01);
+    UtRegisterTest("MarkTestParse02", MarkTestParse02);
+    UtRegisterTest("MarkTestParse03", MarkTestParse03);
+    UtRegisterTest("MarkTestParse04", MarkTestParse04);
 #endif /* UNITTESTS */
 }

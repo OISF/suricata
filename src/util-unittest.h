@@ -33,20 +33,28 @@ typedef struct UtTest_ {
 
     char *name;
     int(*TestFn)(void);
-    int evalue;
 
     struct UtTest_ *next;
 
 } UtTest;
 
-
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
+void UtRegisterTest(char *name, int(*TestFn)(void));
 uint32_t UtRunTests(char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
 int UtRunSelftest (char *regex_arg);
 void UtListTests(char *regex_arg);
 void UtRunModeRegister(void);
+
+extern int unittests_fatal;
+
+#define FAIL_IF(expr) do {                             \
+        if (unittests_fatal) {                         \
+            BUG_ON(expr);                              \
+        } else if (expr) {                             \
+            return 0;                                  \
+        }                                              \
+    } while (0)
 
 #endif
 

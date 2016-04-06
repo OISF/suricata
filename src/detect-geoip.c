@@ -597,21 +597,21 @@ static int GeoipMatchTest07(void)
 static void DetectGeoipRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("GeoipParseTest01", GeoipParseTest01, 1);
-    UtRegisterTest("GeoipParseTest02", GeoipParseTest02, 1);
-    UtRegisterTest("GeoipParseTest03", GeoipParseTest03, 1);
-    UtRegisterTest("GeoipParseTest04", GeoipParseTest04, 1);
-    UtRegisterTest("GeoipParseTest05", GeoipParseTest05, 1);
-    UtRegisterTest("GeoipParseTest06", GeoipParseTest06, 1);
-    UtRegisterTest("GeoipParseTest07", GeoipParseTest07, 1);
+    UtRegisterTest("GeoipParseTest01", GeoipParseTest01);
+    UtRegisterTest("GeoipParseTest02", GeoipParseTest02);
+    UtRegisterTest("GeoipParseTest03", GeoipParseTest03);
+    UtRegisterTest("GeoipParseTest04", GeoipParseTest04);
+    UtRegisterTest("GeoipParseTest05", GeoipParseTest05);
+    UtRegisterTest("GeoipParseTest06", GeoipParseTest06);
+    UtRegisterTest("GeoipParseTest07", GeoipParseTest07);
 
-    UtRegisterTest("GeoipMatchTest01", GeoipMatchTest01, 1);
-    UtRegisterTest("GeoipMatchTest02", GeoipMatchTest02, 1);
-    UtRegisterTest("GeoipMatchTest03", GeoipMatchTest03, 1);
-    UtRegisterTest("GeoipMatchTest04", GeoipMatchTest04, 2);
-    UtRegisterTest("GeoipMatchTest05", GeoipMatchTest05, 1);
-    UtRegisterTest("GeoipMatchTest06", GeoipMatchTest06, 1);
-    UtRegisterTest("GeoipMatchTest07", GeoipMatchTest07, 2);
+    UtRegisterTest("GeoipMatchTest01", GeoipMatchTest01);
+    UtRegisterTest("GeoipMatchTest02", GeoipMatchTest02);
+    UtRegisterTest("GeoipMatchTest03", GeoipMatchTest03);
+    UtRegisterTest("GeoipMatchTest04", GeoipMatchTest04);
+    UtRegisterTest("GeoipMatchTest05", GeoipMatchTest05);
+    UtRegisterTest("GeoipMatchTest06", GeoipMatchTest06);
+    UtRegisterTest("GeoipMatchTest07", GeoipMatchTest07);
 #endif /* UNITTESTS */
 }
 

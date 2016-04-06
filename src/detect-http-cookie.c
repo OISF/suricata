@@ -1254,21 +1254,21 @@ end:
 void DetectHttpCookieRegisterTests (void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectHttpCookieTest01", DetectHttpCookieTest01, 1);
-    UtRegisterTest("DetectHttpCookieTest02", DetectHttpCookieTest02, 1);
-    UtRegisterTest("DetectHttpCookieTest03", DetectHttpCookieTest03, 1);
-    UtRegisterTest("DetectHttpCookieTest04", DetectHttpCookieTest04, 1);
-    UtRegisterTest("DetectHttpCookieTest05", DetectHttpCookieTest05, 1);
-    UtRegisterTest("DetectHttpCookieTest06", DetectHttpCookieTest06, 1);
-    UtRegisterTest("DetectHttpCookieSigTest01", DetectHttpCookieSigTest01, 1);
-    UtRegisterTest("DetectHttpCookieSigTest02", DetectHttpCookieSigTest02, 1);
-    UtRegisterTest("DetectHttpCookieSigTest03", DetectHttpCookieSigTest03, 1);
-    UtRegisterTest("DetectHttpCookieSigTest04", DetectHttpCookieSigTest04, 1);
-    UtRegisterTest("DetectHttpCookieSigTest05", DetectHttpCookieSigTest05, 1);
-    UtRegisterTest("DetectHttpCookieSigTest06", DetectHttpCookieSigTest06, 1);
-    UtRegisterTest("DetectHttpCookieSigTest07", DetectHttpCookieSigTest07, 1);
-    UtRegisterTest("DetectHttpCookieSigTest08", DetectHttpCookieSigTest08, 1);
-    UtRegisterTest("DetectHttpCookieSigTest09", DetectHttpCookieSigTest09, 1);
+    UtRegisterTest("DetectHttpCookieTest01", DetectHttpCookieTest01);
+    UtRegisterTest("DetectHttpCookieTest02", DetectHttpCookieTest02);
+    UtRegisterTest("DetectHttpCookieTest03", DetectHttpCookieTest03);
+    UtRegisterTest("DetectHttpCookieTest04", DetectHttpCookieTest04);
+    UtRegisterTest("DetectHttpCookieTest05", DetectHttpCookieTest05);
+    UtRegisterTest("DetectHttpCookieTest06", DetectHttpCookieTest06);
+    UtRegisterTest("DetectHttpCookieSigTest01", DetectHttpCookieSigTest01);
+    UtRegisterTest("DetectHttpCookieSigTest02", DetectHttpCookieSigTest02);
+    UtRegisterTest("DetectHttpCookieSigTest03", DetectHttpCookieSigTest03);
+    UtRegisterTest("DetectHttpCookieSigTest04", DetectHttpCookieSigTest04);
+    UtRegisterTest("DetectHttpCookieSigTest05", DetectHttpCookieSigTest05);
+    UtRegisterTest("DetectHttpCookieSigTest06", DetectHttpCookieSigTest06);
+    UtRegisterTest("DetectHttpCookieSigTest07", DetectHttpCookieSigTest07);
+    UtRegisterTest("DetectHttpCookieSigTest08", DetectHttpCookieSigTest08);
+    UtRegisterTest("DetectHttpCookieSigTest09", DetectHttpCookieSigTest09);
 #endif /* UNITTESTS */
 
 }

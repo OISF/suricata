@@ -1637,11 +1637,11 @@ void SCLogRegisterTests()
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("SCLogTestInit01", SCLogTestInit01, 1);
-    UtRegisterTest("SCLogTestInit02", SCLogTestInit02, 1);
-    UtRegisterTest("SCLogTestInit03", SCLogTestInit03, 1);
-    UtRegisterTest("SCLogTestInit04", SCLogTestInit04, 1);
-    UtRegisterTest("SCLogTestInit05", SCLogTestInit05, 1);
+    UtRegisterTest("SCLogTestInit01", SCLogTestInit01);
+    UtRegisterTest("SCLogTestInit02", SCLogTestInit02);
+    UtRegisterTest("SCLogTestInit03", SCLogTestInit03);
+    UtRegisterTest("SCLogTestInit04", SCLogTestInit04);
+    UtRegisterTest("SCLogTestInit05", SCLogTestInit05);
 
 #endif /* UNITTESTS */
 

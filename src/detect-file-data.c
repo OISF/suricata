@@ -213,6 +213,9 @@ end:
     return result;
 }
 
+/**
+ * \test Test the file_data fails with flow:to_server.
+ */
 static int DetectFiledataParseTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -227,11 +230,9 @@ static int DetectFiledataParseTest04(void)
                                "alert smtp any any -> any any "
                                "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
+        result = 1;
     }
 
-    result = 1;
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -240,6 +241,9 @@ end:
     return result;
 }
 
+/**
+ * \test Test the file_data fails with flow:to_server.
+ */
 static int DetectFiledataParseTest05(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -254,11 +258,9 @@ static int DetectFiledataParseTest05(void)
                                "alert http any any -> any any "
                                "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        printf("sig parse failed: ");
-        goto end;
+        result = 1;
     }
 
-    result = 1;
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -271,10 +273,10 @@ end:
 void DetectFiledataRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01, 1);
-    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02, 1);
-    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03, 1);
-    UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04, 0);
-    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05, 0);
+    UtRegisterTest("DetectFiledataParseTest01", DetectFiledataParseTest01);
+    UtRegisterTest("DetectFiledataParseTest02", DetectFiledataParseTest02);
+    UtRegisterTest("DetectFiledataParseTest03", DetectFiledataParseTest03);
+    UtRegisterTest("DetectFiledataParseTest04", DetectFiledataParseTest04);
+    UtRegisterTest("DetectFiledataParseTest05", DetectFiledataParseTest05);
 #endif
 }

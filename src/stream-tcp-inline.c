@@ -645,13 +645,13 @@ end:
 void StreamTcpInlineRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamTcpInlineTest01", StreamTcpInlineTest01, 1);
-    UtRegisterTest("StreamTcpInlineTest02", StreamTcpInlineTest02, 1);
-    UtRegisterTest("StreamTcpInlineTest03", StreamTcpInlineTest03, 1);
-    UtRegisterTest("StreamTcpInlineTest04", StreamTcpInlineTest04, 1);
-    UtRegisterTest("StreamTcpInlineTest05", StreamTcpInlineTest05, 1);
-    UtRegisterTest("StreamTcpInlineTest06", StreamTcpInlineTest06, 1);
-    UtRegisterTest("StreamTcpInlineTest07", StreamTcpInlineTest07, 1);
+    UtRegisterTest("StreamTcpInlineTest01", StreamTcpInlineTest01);
+    UtRegisterTest("StreamTcpInlineTest02", StreamTcpInlineTest02);
+    UtRegisterTest("StreamTcpInlineTest03", StreamTcpInlineTest03);
+    UtRegisterTest("StreamTcpInlineTest04", StreamTcpInlineTest04);
+    UtRegisterTest("StreamTcpInlineTest05", StreamTcpInlineTest05);
+    UtRegisterTest("StreamTcpInlineTest06", StreamTcpInlineTest06);
+    UtRegisterTest("StreamTcpInlineTest07", StreamTcpInlineTest07);
 #endif /* UNITTESTS */
 }
 

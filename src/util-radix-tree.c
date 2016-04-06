@@ -4181,50 +4181,50 @@ void SCRadixRegisterTests(void)
 #ifdef UNITTESTS
     //UtRegisterTest("SCRadixTestInsertion01", SCRadixTestInsertion01, 1);
     //UtRegisterTest("SCRadixTestInsertion02", SCRadixTestInsertion02, 1);
-    UtRegisterTest("SCRadixTestIPV4Insertion03", SCRadixTestIPV4Insertion03, 1);
-    UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04, 1);
+    UtRegisterTest("SCRadixTestIPV4Insertion03", SCRadixTestIPV4Insertion03);
+    UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04);
     //UtRegisterTest("SCRadixTestCharacterInsertion05",
     //               SCRadixTestCharacterInsertion05, 1);
     //UtRegisterTest("SCRadixTestCharacterRemoval06",
     //               SCRadixTestCharacterRemoval06, 1);
-    UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07, 1);
-    UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08, 1);
+    UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07);
+    UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion09",
-                   SCRadixTestIPV4NetblockInsertion09, 1);
+                   SCRadixTestIPV4NetblockInsertion09);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion10",
-                   SCRadixTestIPV4NetblockInsertion10, 1);
+                   SCRadixTestIPV4NetblockInsertion10);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion11",
-                   SCRadixTestIPV4NetblockInsertion11, 1);
+                   SCRadixTestIPV4NetblockInsertion11);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion12",
-                   SCRadixTestIPV4NetblockInsertion12, 1);
+                   SCRadixTestIPV4NetblockInsertion12);
     UtRegisterTest("SCRadixTestIPV6NetblockInsertion13",
-                   SCRadixTestIPV6NetblockInsertion13, 1);
+                   SCRadixTestIPV6NetblockInsertion13);
     UtRegisterTest("SCRadixTestIPV6NetblockInsertion14",
-                   SCRadixTestIPV6NetblockInsertion14, 1);
+                   SCRadixTestIPV6NetblockInsertion14);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch15",
-                   SCRadixTestIPV4NetBlocksAndBestSearch15, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch15);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch16",
-                   SCRadixTestIPV4NetBlocksAndBestSearch16, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch16);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch17",
-                   SCRadixTestIPV4NetBlocksAndBestSearch17, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch17);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch18",
-                   SCRadixTestIPV4NetBlocksAndBestSearch18, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch18);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch19",
-                   SCRadixTestIPV4NetBlocksAndBestSearch19, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch19);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch20",
-                   SCRadixTestIPV6NetBlocksAndBestSearch20, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch20);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch21",
-                   SCRadixTestIPV6NetBlocksAndBestSearch21, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch21);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch22",
-                   SCRadixTestIPV6NetBlocksAndBestSearch22, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch22);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch23",
-                   SCRadixTestIPV6NetBlocksAndBestSearch23, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch23);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch24",
-                   SCRadixTestIPV6NetBlocksAndBestSearch24, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch24);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion25",
-                   SCRadixTestIPV4NetblockInsertion25, 1);
+                   SCRadixTestIPV4NetblockInsertion25);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion26",
-                   SCRadixTestIPV4NetblockInsertion26, 1);
+                   SCRadixTestIPV4NetblockInsertion26);
 #endif
 
     return;

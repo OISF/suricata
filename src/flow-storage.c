@@ -289,8 +289,8 @@ error:
 void RegisterFlowStorageTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowStorageTest01", FlowStorageTest01, 1);
-    UtRegisterTest("FlowStorageTest02", FlowStorageTest02, 1);
-    UtRegisterTest("FlowStorageTest03", FlowStorageTest03, 1);
+    UtRegisterTest("FlowStorageTest01", FlowStorageTest01);
+    UtRegisterTest("FlowStorageTest02", FlowStorageTest02);
+    UtRegisterTest("FlowStorageTest03", FlowStorageTest03);
 #endif
 }

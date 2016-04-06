@@ -312,14 +312,14 @@ void DecodeMPLSRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DecodeMPLSTestHeaderTooSmall",
-        DecodeMPLSTestHeaderTooSmall, 1);
+                   DecodeMPLSTestHeaderTooSmall);
     UtRegisterTest("DecodeMPLSTestBadLabelRouterAlert",
-        DecodeMPLSTestBadLabelRouterAlert, 1);
+                   DecodeMPLSTestBadLabelRouterAlert);
     UtRegisterTest("DecodeMPLSTestBadLabelImplicitNull",
-        DecodeMPLSTestBadLabelImplicitNull, 1);
+                   DecodeMPLSTestBadLabelImplicitNull);
     UtRegisterTest("DecodeMPLSTestBadLabelReserved",
-        DecodeMPLSTestBadLabelReserved, 1);
+                   DecodeMPLSTestBadLabelReserved);
     UtRegisterTest("DecodeMPLSTestUnknownPayloadType",
-        DecodeMPLSTestUnknownPayloadType, 1);
+                   DecodeMPLSTestUnknownPayloadType);
 #endif /* UNITTESTS */
 }

@@ -1590,7 +1590,7 @@ end:
     SigGroupBuild(de_ctx);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    return result;
+    return result == 0;
 }
 
 /**
@@ -2879,28 +2879,39 @@ end:
 void SCThresholdConfRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SCThresholdConfTest01", SCThresholdConfTest01, 1);
-    UtRegisterTest("SCThresholdConfTest02", SCThresholdConfTest02, 1);
-    UtRegisterTest("SCThresholdConfTest03", SCThresholdConfTest03, 1);
-    UtRegisterTest("SCThresholdConfTest04", SCThresholdConfTest04, 0);
-    UtRegisterTest("SCThresholdConfTest05", SCThresholdConfTest05, 1);
-    UtRegisterTest("SCThresholdConfTest06", SCThresholdConfTest06, 1);
-    UtRegisterTest("SCThresholdConfTest07", SCThresholdConfTest07, 1);
-    UtRegisterTest("SCThresholdConfTest08", SCThresholdConfTest08, 1);
-    UtRegisterTest("SCThresholdConfTest09 - rate_filter", SCThresholdConfTest09, 1);
-    UtRegisterTest("SCThresholdConfTest10 - rate_filter", SCThresholdConfTest10, 1);
-    UtRegisterTest("SCThresholdConfTest11 - event_filter", SCThresholdConfTest11, 1);
-    UtRegisterTest("SCThresholdConfTest12 - event_filter", SCThresholdConfTest12, 1);
-    UtRegisterTest("SCThresholdConfTest13", SCThresholdConfTest13, 1);
-    UtRegisterTest("SCThresholdConfTest14 - suppress", SCThresholdConfTest14, 1);
-    UtRegisterTest("SCThresholdConfTest15 - suppress drop", SCThresholdConfTest15, 1);
-    UtRegisterTest("SCThresholdConfTest16 - suppress drop", SCThresholdConfTest16, 1);
-    UtRegisterTest("SCThresholdConfTest17 - suppress drop", SCThresholdConfTest17, 1);
+    UtRegisterTest("SCThresholdConfTest01", SCThresholdConfTest01);
+    UtRegisterTest("SCThresholdConfTest02", SCThresholdConfTest02);
+    UtRegisterTest("SCThresholdConfTest03", SCThresholdConfTest03);
+    UtRegisterTest("SCThresholdConfTest04", SCThresholdConfTest04);
+    UtRegisterTest("SCThresholdConfTest05", SCThresholdConfTest05);
+    UtRegisterTest("SCThresholdConfTest06", SCThresholdConfTest06);
+    UtRegisterTest("SCThresholdConfTest07", SCThresholdConfTest07);
+    UtRegisterTest("SCThresholdConfTest08", SCThresholdConfTest08);
+    UtRegisterTest("SCThresholdConfTest09 - rate_filter",
+                   SCThresholdConfTest09);
+    UtRegisterTest("SCThresholdConfTest10 - rate_filter",
+                   SCThresholdConfTest10);
+    UtRegisterTest("SCThresholdConfTest11 - event_filter",
+                   SCThresholdConfTest11);
+    UtRegisterTest("SCThresholdConfTest12 - event_filter",
+                   SCThresholdConfTest12);
+    UtRegisterTest("SCThresholdConfTest13", SCThresholdConfTest13);
+    UtRegisterTest("SCThresholdConfTest14 - suppress", SCThresholdConfTest14);
+    UtRegisterTest("SCThresholdConfTest15 - suppress drop",
+                   SCThresholdConfTest15);
+    UtRegisterTest("SCThresholdConfTest16 - suppress drop",
+                   SCThresholdConfTest16);
+    UtRegisterTest("SCThresholdConfTest17 - suppress drop",
+                   SCThresholdConfTest17);
 
-    UtRegisterTest("SCThresholdConfTest18 - suppress parsing", SCThresholdConfTest18, 1);
-    UtRegisterTest("SCThresholdConfTest19 - suppress parsing", SCThresholdConfTest19, 1);
-    UtRegisterTest("SCThresholdConfTest20 - suppress parsing", SCThresholdConfTest20, 1);
-    UtRegisterTest("SCThresholdConfTest21 - suppress parsing", SCThresholdConfTest21, 1);
+    UtRegisterTest("SCThresholdConfTest18 - suppress parsing",
+                   SCThresholdConfTest18);
+    UtRegisterTest("SCThresholdConfTest19 - suppress parsing",
+                   SCThresholdConfTest19);
+    UtRegisterTest("SCThresholdConfTest20 - suppress parsing",
+                   SCThresholdConfTest20);
+    UtRegisterTest("SCThresholdConfTest21 - suppress parsing",
+                   SCThresholdConfTest21);
 #endif /* UNITTESTS */
 }
 

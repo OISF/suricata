@@ -825,11 +825,11 @@ int DetectAppLayerEventTest05(void)
 void DetectAppLayerEventRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectAppLayerEventTest01", DetectAppLayerEventTest01, 1);
-    UtRegisterTest("DetectAppLayerEventTest02", DetectAppLayerEventTest02, 1);
-    UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03, 1);
-    UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04, 1);
-    UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05, 1);
+    UtRegisterTest("DetectAppLayerEventTest01", DetectAppLayerEventTest01);
+    UtRegisterTest("DetectAppLayerEventTest02", DetectAppLayerEventTest02);
+    UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
+    UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
+    UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
 #endif /* UNITTESTS */
 
     return;

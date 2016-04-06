@@ -367,9 +367,9 @@ cleanup:
 void ReferenceRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01, 1);
-    UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02, 1);
-    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03, 1);
+    UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01);
+    UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02);
+    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03);
 #endif /* UNITTESTS */
 
     return;

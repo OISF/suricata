@@ -4868,7 +4868,7 @@ int SMTPProcessDataChunkTest01(void){
     int ret;
     ret = SMTPProcessDataChunk(NULL, 0, state);
 
-    return ret;
+    return ret == 0;
 }
 
 
@@ -4925,8 +4925,7 @@ int SMTPProcessDataChunkTest02(void){
     int ret;
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
 
-
-    return ret;
+    return ret == 0;
 }
 
 
@@ -4981,7 +4980,7 @@ int SMTPProcessDataChunkTest03(void){
     if(ret) goto end;
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 
@@ -5022,7 +5021,7 @@ int SMTPProcessDataChunkTest04(void){
     if(SMTPProcessDataChunk((uint8_t *)mimemsg11, sizeof(mimemsg11), state) != 0) goto end;
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 int SMTPProcessDataChunkTest05(void){
@@ -5057,13 +5056,13 @@ int SMTPProcessDataChunkTest05(void){
     if(ret){goto end;}
     printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);
     if(file->size == file_size){
-        return 0;
-    }else{
         return 1;
+    }else{
+        return 0;
     }
 
     end:
-    return ret;
+    return ret == 0;
 }
 
 #endif /* UNITTESTS */
@@ -5071,25 +5070,25 @@ int SMTPProcessDataChunkTest05(void){
 void SMTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SMTPParserTest01", SMTPParserTest01, 1);
-    UtRegisterTest("SMTPParserTest02", SMTPParserTest02, 1);
-    UtRegisterTest("SMTPParserTest03", SMTPParserTest03, 1);
-    UtRegisterTest("SMTPParserTest04", SMTPParserTest04, 1);
-    UtRegisterTest("SMTPParserTest05", SMTPParserTest05, 1);
-    UtRegisterTest("SMTPParserTest06", SMTPParserTest06, 1);
-    UtRegisterTest("SMTPParserTest07", SMTPParserTest07, 1);
-    UtRegisterTest("SMTPParserTest08", SMTPParserTest08, 1);
-    UtRegisterTest("SMTPParserTest09", SMTPParserTest09, 1);
-    UtRegisterTest("SMTPParserTest10", SMTPParserTest10, 1);
-    UtRegisterTest("SMTPParserTest11", SMTPParserTest11, 1);
-    UtRegisterTest("SMTPParserTest12", SMTPParserTest12, 1);
-    UtRegisterTest("SMTPParserTest13", SMTPParserTest13, 1);
-    UtRegisterTest("SMTPParserTest14", SMTPParserTest14, 1);
-    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04, 0);
-    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05, 0);
+    UtRegisterTest("SMTPParserTest01", SMTPParserTest01);
+    UtRegisterTest("SMTPParserTest02", SMTPParserTest02);
+    UtRegisterTest("SMTPParserTest03", SMTPParserTest03);
+    UtRegisterTest("SMTPParserTest04", SMTPParserTest04);
+    UtRegisterTest("SMTPParserTest05", SMTPParserTest05);
+    UtRegisterTest("SMTPParserTest06", SMTPParserTest06);
+    UtRegisterTest("SMTPParserTest07", SMTPParserTest07);
+    UtRegisterTest("SMTPParserTest08", SMTPParserTest08);
+    UtRegisterTest("SMTPParserTest09", SMTPParserTest09);
+    UtRegisterTest("SMTPParserTest10", SMTPParserTest10);
+    UtRegisterTest("SMTPParserTest11", SMTPParserTest11);
+    UtRegisterTest("SMTPParserTest12", SMTPParserTest12);
+    UtRegisterTest("SMTPParserTest13", SMTPParserTest13);
+    UtRegisterTest("SMTPParserTest14", SMTPParserTest14);
+    UtRegisterTest("SMTPProcessDataChunkTest01", SMTPProcessDataChunkTest01);
+    UtRegisterTest("SMTPProcessDataChunkTest02", SMTPProcessDataChunkTest02);
+    UtRegisterTest("SMTPProcessDataChunkTest03", SMTPProcessDataChunkTest03);
+    UtRegisterTest("SMTPProcessDataChunkTest04", SMTPProcessDataChunkTest04);
+    UtRegisterTest("SMTPProcessDataChunkTest05", SMTPProcessDataChunkTest05);
 #endif /* UNITTESTS */
 
     return;

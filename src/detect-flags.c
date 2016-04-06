@@ -595,10 +595,10 @@ static int FlagsTestParse02 (void)
     de = DetectFlagsParse("G");
     if (de) {
         DetectFlagsFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -701,14 +701,15 @@ static int FlagsTestParse04 (void)
         if (de) SCFree(de);
         if (sm) SCFree(sm);
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 
 /**
@@ -756,14 +757,15 @@ static int FlagsTestParse05 (void)
         if (de) SCFree(de);
         if (sm) SCFree(sm);
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 
 /**
@@ -866,14 +868,15 @@ static int FlagsTestParse07 (void)
         if (de) SCFree(de);
         if (sm) SCFree(sm);
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 
 /**
@@ -1086,14 +1089,15 @@ static int FlagsTestParse11 (void)
         if (de) SCFree(de);
         if (sm) SCFree(sm);
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 
 /**
@@ -1143,14 +1147,15 @@ static int FlagsTestParse12 (void)
         if (de) SCFree(de);
         if (sm) SCFree(sm);
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 
 /**
@@ -1358,22 +1363,22 @@ error:
 void FlagsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlagsTestParse01", FlagsTestParse01, 1);
-    UtRegisterTest("FlagsTestParse02", FlagsTestParse02, 0);
-    UtRegisterTest("FlagsTestParse03", FlagsTestParse03, 1);
-    UtRegisterTest("FlagsTestParse04", FlagsTestParse04, 0);
-    UtRegisterTest("FlagsTestParse05", FlagsTestParse05, 0);
-    UtRegisterTest("FlagsTestParse06", FlagsTestParse06, 1);
-    UtRegisterTest("FlagsTestParse07", FlagsTestParse07, 0);
-    UtRegisterTest("FlagsTestParse08", FlagsTestParse08, 1);
-    UtRegisterTest("FlagsTestParse09", FlagsTestParse09, 1);
-    UtRegisterTest("FlagsTestParse10", FlagsTestParse10, 1);
-    UtRegisterTest("FlagsTestParse11", FlagsTestParse11, 0);
-    UtRegisterTest("FlagsTestParse12", FlagsTestParse12, 0);
-    UtRegisterTest("FlagsTestParse13", FlagsTestParse13, 1);
-    UtRegisterTest("FlagsTestParse14", FlagsTestParse14, 1);
-    UtRegisterTest("FlagsTestParse15", FlagsTestParse15, 1);
-    UtRegisterTest("FlagsTestParse16", FlagsTestParse16, 1);
-    UtRegisterTest("FlagsTestParse17", FlagsTestParse17, 1);
+    UtRegisterTest("FlagsTestParse01", FlagsTestParse01);
+    UtRegisterTest("FlagsTestParse02", FlagsTestParse02);
+    UtRegisterTest("FlagsTestParse03", FlagsTestParse03);
+    UtRegisterTest("FlagsTestParse04", FlagsTestParse04);
+    UtRegisterTest("FlagsTestParse05", FlagsTestParse05);
+    UtRegisterTest("FlagsTestParse06", FlagsTestParse06);
+    UtRegisterTest("FlagsTestParse07", FlagsTestParse07);
+    UtRegisterTest("FlagsTestParse08", FlagsTestParse08);
+    UtRegisterTest("FlagsTestParse09", FlagsTestParse09);
+    UtRegisterTest("FlagsTestParse10", FlagsTestParse10);
+    UtRegisterTest("FlagsTestParse11", FlagsTestParse11);
+    UtRegisterTest("FlagsTestParse12", FlagsTestParse12);
+    UtRegisterTest("FlagsTestParse13", FlagsTestParse13);
+    UtRegisterTest("FlagsTestParse14", FlagsTestParse14);
+    UtRegisterTest("FlagsTestParse15", FlagsTestParse15);
+    UtRegisterTest("FlagsTestParse16", FlagsTestParse16);
+    UtRegisterTest("FlagsTestParse17", FlagsTestParse17);
 #endif /* UNITTESTS */
 }

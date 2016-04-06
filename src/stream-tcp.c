@@ -10750,52 +10750,50 @@ void StreamTcpRegisterTests (void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("StreamTcpTest01 -- TCP session allocation",
-                    StreamTcpTest01, 1);
+                   StreamTcpTest01);
     UtRegisterTest("StreamTcpTest02 -- TCP session deallocation",
-                    StreamTcpTest02, 1);
+                   StreamTcpTest02);
     UtRegisterTest("StreamTcpTest03 -- SYN missed MidStream session",
-                    StreamTcpTest03, 1);
+                   StreamTcpTest03);
     UtRegisterTest("StreamTcpTest04 -- SYN/ACK missed MidStream session",
-                    StreamTcpTest04, 1);
+                   StreamTcpTest04);
     UtRegisterTest("StreamTcpTest05 -- 3WHS missed MidStream session",
-                    StreamTcpTest05, 1);
+                   StreamTcpTest05);
     UtRegisterTest("StreamTcpTest06 -- FIN, RST message MidStream session",
-                    StreamTcpTest06, 1);
+                   StreamTcpTest06);
     UtRegisterTest("StreamTcpTest07 -- PAWS invalid timestamp",
-                    StreamTcpTest07, 1);
-    UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp",
-                    StreamTcpTest08, 1);
-    UtRegisterTest("StreamTcpTest09 -- No Client Reassembly",
-                    StreamTcpTest09, 1);
+                   StreamTcpTest07);
+    UtRegisterTest("StreamTcpTest08 -- PAWS valid timestamp", StreamTcpTest08);
+    UtRegisterTest("StreamTcpTest09 -- No Client Reassembly", StreamTcpTest09);
     UtRegisterTest("StreamTcpTest10 -- No missed packet Async stream",
-                    StreamTcpTest10, 1);
+                   StreamTcpTest10);
     UtRegisterTest("StreamTcpTest11 -- SYN missed Async stream",
-                    StreamTcpTest11, 1);
+                   StreamTcpTest11);
     UtRegisterTest("StreamTcpTest12 -- SYN/ACK missed Async stream",
-                    StreamTcpTest12, 1);
-    UtRegisterTest("StreamTcpTest13 -- opposite stream packets for Async "
-                   "stream", StreamTcpTest13, 1);
-    UtRegisterTest("StreamTcp4WHSTest01", StreamTcp4WHSTest01, 1);
-    UtRegisterTest("StreamTcp4WHSTest02", StreamTcp4WHSTest02, 1);
-    UtRegisterTest("StreamTcp4WHSTest03", StreamTcp4WHSTest03, 1);
-    UtRegisterTest("StreamTcpTest14 -- setup OS policy", StreamTcpTest14, 1);
-    UtRegisterTest("StreamTcpTest15 -- setup OS policy", StreamTcpTest15, 1);
-    UtRegisterTest("StreamTcpTest16 -- setup OS policy", StreamTcpTest16, 1);
-    UtRegisterTest("StreamTcpTest17 -- setup OS policy", StreamTcpTest17, 1);
-    UtRegisterTest("StreamTcpTest18 -- setup OS policy", StreamTcpTest18, 1);
-    UtRegisterTest("StreamTcpTest19 -- setup OS policy", StreamTcpTest19, 1);
-    UtRegisterTest("StreamTcpTest20 -- setup OS policy", StreamTcpTest20, 1);
-    UtRegisterTest("StreamTcpTest21 -- setup OS policy", StreamTcpTest21, 1);
-    UtRegisterTest("StreamTcpTest22 -- setup OS policy", StreamTcpTest22, 1);
-    UtRegisterTest("StreamTcpTest23 -- stream memory leaks", StreamTcpTest23, 1);
-    UtRegisterTest("StreamTcpTest24 -- stream memory leaks", StreamTcpTest24, 1);
+                   StreamTcpTest12);
+    UtRegisterTest("StreamTcpTest13 -- opposite stream packets for Async " "stream",
+                   StreamTcpTest13);
+    UtRegisterTest("StreamTcp4WHSTest01", StreamTcp4WHSTest01);
+    UtRegisterTest("StreamTcp4WHSTest02", StreamTcp4WHSTest02);
+    UtRegisterTest("StreamTcp4WHSTest03", StreamTcp4WHSTest03);
+    UtRegisterTest("StreamTcpTest14 -- setup OS policy", StreamTcpTest14);
+    UtRegisterTest("StreamTcpTest15 -- setup OS policy", StreamTcpTest15);
+    UtRegisterTest("StreamTcpTest16 -- setup OS policy", StreamTcpTest16);
+    UtRegisterTest("StreamTcpTest17 -- setup OS policy", StreamTcpTest17);
+    UtRegisterTest("StreamTcpTest18 -- setup OS policy", StreamTcpTest18);
+    UtRegisterTest("StreamTcpTest19 -- setup OS policy", StreamTcpTest19);
+    UtRegisterTest("StreamTcpTest20 -- setup OS policy", StreamTcpTest20);
+    UtRegisterTest("StreamTcpTest21 -- setup OS policy", StreamTcpTest21);
+    UtRegisterTest("StreamTcpTest22 -- setup OS policy", StreamTcpTest22);
+    UtRegisterTest("StreamTcpTest23 -- stream memory leaks", StreamTcpTest23);
+    UtRegisterTest("StreamTcpTest24 -- stream memory leaks", StreamTcpTest24);
     UtRegisterTest("StreamTcpTest25 -- test ecn/cwr sessions",
-                    StreamTcpTest25, 1);
+                   StreamTcpTest25);
     UtRegisterTest("StreamTcpTest26 -- test ecn/cwr sessions",
-                    StreamTcpTest26, 1);
+                   StreamTcpTest26);
     UtRegisterTest("StreamTcpTest27 -- test ecn/cwr sessions",
-                    StreamTcpTest27, 1);
-    UtRegisterTest("StreamTcpTest28 -- Memcap Test", StreamTcpTest28, 1);
+                   StreamTcpTest27);
+    UtRegisterTest("StreamTcpTest28 -- Memcap Test", StreamTcpTest28);
 
 #if 0 /* VJ 2010/09/01 disabled since they blow up on Fedora and Fedora is
        * right about blowing up. The checksum functions are not used properly
@@ -10809,18 +10807,19 @@ void StreamTcpRegisterTests (void)
     UtRegisterTest("StreamTcpTest35 -- SYN-URG Test", StreamTcpTest35, 1);
     UtRegisterTest("StreamTcpTest36 -- PUSH-URG Test", StreamTcpTest36, 1);
 #endif
-    UtRegisterTest("StreamTcpTest37 -- Out of order FIN Test", StreamTcpTest37, 1);
+    UtRegisterTest("StreamTcpTest37 -- Out of order FIN Test",
+                   StreamTcpTest37);
 
-    UtRegisterTest("StreamTcpTest38 -- validate ACK", StreamTcpTest38, 1);
-    UtRegisterTest("StreamTcpTest39 -- update next_seq", StreamTcpTest39, 1);
+    UtRegisterTest("StreamTcpTest38 -- validate ACK", StreamTcpTest38);
+    UtRegisterTest("StreamTcpTest39 -- update next_seq", StreamTcpTest39);
 
-    UtRegisterTest("StreamTcpTest40 -- pseudo setup", StreamTcpTest40, 1);
-    UtRegisterTest("StreamTcpTest41 -- pseudo setup", StreamTcpTest41, 1);
+    UtRegisterTest("StreamTcpTest40 -- pseudo setup", StreamTcpTest40);
+    UtRegisterTest("StreamTcpTest41 -- pseudo setup", StreamTcpTest41);
 
-    UtRegisterTest("StreamTcpTest42 -- SYN/ACK queue", StreamTcpTest42, 1);
-    UtRegisterTest("StreamTcpTest43 -- SYN/ACK queue", StreamTcpTest43, 1);
-    UtRegisterTest("StreamTcpTest44 -- SYN/ACK queue", StreamTcpTest44, 1);
-    UtRegisterTest("StreamTcpTest45 -- SYN/ACK queue", StreamTcpTest45, 1);
+    UtRegisterTest("StreamTcpTest42 -- SYN/ACK queue", StreamTcpTest42);
+    UtRegisterTest("StreamTcpTest43 -- SYN/ACK queue", StreamTcpTest43);
+    UtRegisterTest("StreamTcpTest44 -- SYN/ACK queue", StreamTcpTest44);
+    UtRegisterTest("StreamTcpTest45 -- SYN/ACK queue", StreamTcpTest45);
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();

@@ -1170,42 +1170,42 @@ end:
 void PayloadRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("PayloadTestSig01", PayloadTestSig01, 1);
-    UtRegisterTest("PayloadTestSig02", PayloadTestSig02, 1);
-    UtRegisterTest("PayloadTestSig03", PayloadTestSig03, 1);
-    UtRegisterTest("PayloadTestSig04", PayloadTestSig04, 1);
-    UtRegisterTest("PayloadTestSig05", PayloadTestSig05, 1);
-    UtRegisterTest("PayloadTestSig06", PayloadTestSig06, 1);
-    UtRegisterTest("PayloadTestSig07", PayloadTestSig07, 1);
-    UtRegisterTest("PayloadTestSig08", PayloadTestSig08, 1);
-    UtRegisterTest("PayloadTestSig09", PayloadTestSig09, 1);
-    UtRegisterTest("PayloadTestSig10", PayloadTestSig10, 1);
-    UtRegisterTest("PayloadTestSig11", PayloadTestSig11, 1);
-    UtRegisterTest("PayloadTestSig12", PayloadTestSig12, 1);
-    UtRegisterTest("PayloadTestSig13", PayloadTestSig13, 1);
-    UtRegisterTest("PayloadTestSig14", PayloadTestSig14, 1);
-    UtRegisterTest("PayloadTestSig15", PayloadTestSig15, 1);
-    UtRegisterTest("PayloadTestSig16", PayloadTestSig16, 1);
-    UtRegisterTest("PayloadTestSig17", PayloadTestSig17, 1);
+    UtRegisterTest("PayloadTestSig01", PayloadTestSig01);
+    UtRegisterTest("PayloadTestSig02", PayloadTestSig02);
+    UtRegisterTest("PayloadTestSig03", PayloadTestSig03);
+    UtRegisterTest("PayloadTestSig04", PayloadTestSig04);
+    UtRegisterTest("PayloadTestSig05", PayloadTestSig05);
+    UtRegisterTest("PayloadTestSig06", PayloadTestSig06);
+    UtRegisterTest("PayloadTestSig07", PayloadTestSig07);
+    UtRegisterTest("PayloadTestSig08", PayloadTestSig08);
+    UtRegisterTest("PayloadTestSig09", PayloadTestSig09);
+    UtRegisterTest("PayloadTestSig10", PayloadTestSig10);
+    UtRegisterTest("PayloadTestSig11", PayloadTestSig11);
+    UtRegisterTest("PayloadTestSig12", PayloadTestSig12);
+    UtRegisterTest("PayloadTestSig13", PayloadTestSig13);
+    UtRegisterTest("PayloadTestSig14", PayloadTestSig14);
+    UtRegisterTest("PayloadTestSig15", PayloadTestSig15);
+    UtRegisterTest("PayloadTestSig16", PayloadTestSig16);
+    UtRegisterTest("PayloadTestSig17", PayloadTestSig17);
 
-    UtRegisterTest("PayloadTestSig18", PayloadTestSig18, 1);
-    UtRegisterTest("PayloadTestSig19", PayloadTestSig19, 1);
-    UtRegisterTest("PayloadTestSig20", PayloadTestSig20, 1);
-    UtRegisterTest("PayloadTestSig21", PayloadTestSig21, 1);
-    UtRegisterTest("PayloadTestSig22", PayloadTestSig22, 1);
-    UtRegisterTest("PayloadTestSig23", PayloadTestSig23, 1);
-    UtRegisterTest("PayloadTestSig24", PayloadTestSig24, 1);
-    UtRegisterTest("PayloadTestSig25", PayloadTestSig25, 1);
-    UtRegisterTest("PayloadTestSig26", PayloadTestSig26, 1);
-    UtRegisterTest("PayloadTestSig27", PayloadTestSig27, 1);
-    UtRegisterTest("PayloadTestSig28", PayloadTestSig28, 1);
-    UtRegisterTest("PayloadTestSig29", PayloadTestSig29, 1);
+    UtRegisterTest("PayloadTestSig18", PayloadTestSig18);
+    UtRegisterTest("PayloadTestSig19", PayloadTestSig19);
+    UtRegisterTest("PayloadTestSig20", PayloadTestSig20);
+    UtRegisterTest("PayloadTestSig21", PayloadTestSig21);
+    UtRegisterTest("PayloadTestSig22", PayloadTestSig22);
+    UtRegisterTest("PayloadTestSig23", PayloadTestSig23);
+    UtRegisterTest("PayloadTestSig24", PayloadTestSig24);
+    UtRegisterTest("PayloadTestSig25", PayloadTestSig25);
+    UtRegisterTest("PayloadTestSig26", PayloadTestSig26);
+    UtRegisterTest("PayloadTestSig27", PayloadTestSig27);
+    UtRegisterTest("PayloadTestSig28", PayloadTestSig28);
+    UtRegisterTest("PayloadTestSig29", PayloadTestSig29);
 
-    UtRegisterTest("PayloadTestSig30", PayloadTestSig30, 1);
-    UtRegisterTest("PayloadTestSig31", PayloadTestSig31, 1);
-    UtRegisterTest("PayloadTestSig32", PayloadTestSig32, 1);
-    UtRegisterTest("PayloadTestSig33", PayloadTestSig33, 1);
-    UtRegisterTest("PayloadTestSig34", PayloadTestSig34, 1);
+    UtRegisterTest("PayloadTestSig30", PayloadTestSig30);
+    UtRegisterTest("PayloadTestSig31", PayloadTestSig31);
+    UtRegisterTest("PayloadTestSig32", PayloadTestSig32);
+    UtRegisterTest("PayloadTestSig33", PayloadTestSig33);
+    UtRegisterTest("PayloadTestSig34", PayloadTestSig34);
 #endif /* UNITTESTS */
 
     return;

@@ -796,12 +796,12 @@ void SCRConfRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCRConfTest01", SCRConfTest01, 1);
-    UtRegisterTest("SCRConfTest02", SCRConfTest02, 1);
-    UtRegisterTest("SCRConfTest03", SCRConfTest03, 1);
-    UtRegisterTest("SCRConfTest04", SCRConfTest04, 1);
-    UtRegisterTest("SCRConfTest05", SCRConfTest05, 1);
-    UtRegisterTest("SCRConfTest06", SCRConfTest06, 1);
+    UtRegisterTest("SCRConfTest01", SCRConfTest01);
+    UtRegisterTest("SCRConfTest02", SCRConfTest02);
+    UtRegisterTest("SCRConfTest03", SCRConfTest03);
+    UtRegisterTest("SCRConfTest04", SCRConfTest04);
+    UtRegisterTest("SCRConfTest05", SCRConfTest05);
+    UtRegisterTest("SCRConfTest06", SCRConfTest06);
 #endif /* UNITTESTS */
 
     return;

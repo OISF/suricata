@@ -1629,32 +1629,28 @@ void SCHInfoRegisterTests(void)
 #ifdef UNITTESTS
 
     UtRegisterTest("SCHInfoTesInvalidOSFlavour01",
-                   SCHInfoTestInvalidOSFlavour01, 1);
+                   SCHInfoTestInvalidOSFlavour01);
     UtRegisterTest("SCHInfoTestInvalidIPV4Address02",
-                   SCHInfoTestInvalidIPV4Address02, 1);
+                   SCHInfoTestInvalidIPV4Address02);
     UtRegisterTest("SCHInfoTestInvalidIPV6Address03",
-                   SCHInfoTestInvalidIPV6Address03, 1);
+                   SCHInfoTestInvalidIPV6Address03);
     UtRegisterTest("SCHInfoTestValidIPV4Address04",
-                   SCHInfoTestValidIPV4Address04, 1);
+                   SCHInfoTestValidIPV4Address04);
     UtRegisterTest("SCHInfoTestValidIPV4Address05",
-                   SCHInfoTestValidIPV4Address05, 1);
+                   SCHInfoTestValidIPV4Address05);
     UtRegisterTest("SCHInfoTestValidIPV6Address06",
-                   SCHInfoTestValidIPV6Address06, 1);
+                   SCHInfoTestValidIPV6Address06);
     UtRegisterTest("SCHInfoTestValidIPV6Address07",
-                   SCHInfoTestValidIPV6Address07, 1);
+                   SCHInfoTestValidIPV6Address07);
     UtRegisterTest("SCHInfoTestValidIPV6Address08",
-                   SCHInfoTestValidIPV6Address08, 1);
+                   SCHInfoTestValidIPV6Address08);
     UtRegisterTest("SCHInfoTestValidIPV4Address09",
-                   SCHInfoTestValidIPV4Address09, 1);
+                   SCHInfoTestValidIPV4Address09);
 
-    UtRegisterTest("SCHInfoTestLoadFromConfig01",
-                   SCHInfoTestLoadFromConfig01, 1);
-    UtRegisterTest("SCHInfoTestLoadFromConfig02",
-                   SCHInfoTestLoadFromConfig02, 1);
-    UtRegisterTest("SCHInfoTestLoadFromConfig03",
-                   SCHInfoTestLoadFromConfig03, 1);
-    UtRegisterTest("SCHInfoTestLoadFromConfig04",
-                   SCHInfoTestLoadFromConfig04, 1);
+    UtRegisterTest("SCHInfoTestLoadFromConfig01", SCHInfoTestLoadFromConfig01);
+    UtRegisterTest("SCHInfoTestLoadFromConfig02", SCHInfoTestLoadFromConfig02);
+    UtRegisterTest("SCHInfoTestLoadFromConfig03", SCHInfoTestLoadFromConfig03);
+    UtRegisterTest("SCHInfoTestLoadFromConfig04", SCHInfoTestLoadFromConfig04);
 #endif /* UNITTESTS */
 
 }

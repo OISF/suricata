@@ -551,11 +551,11 @@ void DetectHttpStatMsgRegisterTests (void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
 
-    UtRegisterTest("DetectHttpStatMsgTest01", DetectHttpStatMsgTest01, 1);
-    UtRegisterTest("DetectHttpStatMsgTest02", DetectHttpStatMsgTest02, 1);
-    UtRegisterTest("DetectHttpStatMsgSigTest01", DetectHttpStatMsgSigTest01, 1);
-    UtRegisterTest("DetectHttpStatMsgSigTest02", DetectHttpStatMsgSigTest02, 1);
-    UtRegisterTest("DetectHttpStatMsgSigTest03", DetectHttpStatMsgSigTest03, 1);
+    UtRegisterTest("DetectHttpStatMsgTest01", DetectHttpStatMsgTest01);
+    UtRegisterTest("DetectHttpStatMsgTest02", DetectHttpStatMsgTest02);
+    UtRegisterTest("DetectHttpStatMsgSigTest01", DetectHttpStatMsgSigTest01);
+    UtRegisterTest("DetectHttpStatMsgSigTest02", DetectHttpStatMsgSigTest02);
+    UtRegisterTest("DetectHttpStatMsgSigTest03", DetectHttpStatMsgSigTest03);
 
 #endif /* UNITTESTS */
 }

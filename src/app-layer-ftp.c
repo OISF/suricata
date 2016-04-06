@@ -671,11 +671,11 @@ end:
 void FTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FTPParserTest01", FTPParserTest01, 1);
-    UtRegisterTest("FTPParserTest03", FTPParserTest03, 1);
-    UtRegisterTest("FTPParserTest06", FTPParserTest06, 1);
-    UtRegisterTest("FTPParserTest07", FTPParserTest07, 1);
-    UtRegisterTest("FTPParserTest10", FTPParserTest10, 1);
+    UtRegisterTest("FTPParserTest01", FTPParserTest01);
+    UtRegisterTest("FTPParserTest03", FTPParserTest03);
+    UtRegisterTest("FTPParserTest06", FTPParserTest06);
+    UtRegisterTest("FTPParserTest07", FTPParserTest07);
+    UtRegisterTest("FTPParserTest10", FTPParserTest10);
 #endif /* UNITTESTS */
 }
 

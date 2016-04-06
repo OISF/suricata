@@ -2927,15 +2927,15 @@ void DetectDceOpnumRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01, 1);
-    UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02, 1);
-    UtRegisterTest("DetectDceOpnumTestParse03", DetectDceOpnumTestParse03, 1);
-    UtRegisterTest("DetectDceOpnumTestParse04", DetectDceOpnumTestParse04, 1);
-    UtRegisterTest("DetectDceOpnumTestParse05", DetectDceOpnumTestParse05, 1);
-    UtRegisterTest("DetectDceOpnumTestParse06", DetectDceOpnumTestParse06, 1);
-    UtRegisterTest("DetectDceOpnumTestParse07", DetectDceOpnumTestParse07, 1);
-    UtRegisterTest("DetectDceOpnumTestParse08", DetectDceOpnumTestParse08, 1);
-    UtRegisterTest("DetectDceOpnumTestParse09", DetectDceOpnumTestParse09, 1);
+    UtRegisterTest("DetectDceOpnumTestParse01", DetectDceOpnumTestParse01);
+    UtRegisterTest("DetectDceOpnumTestParse02", DetectDceOpnumTestParse02);
+    UtRegisterTest("DetectDceOpnumTestParse03", DetectDceOpnumTestParse03);
+    UtRegisterTest("DetectDceOpnumTestParse04", DetectDceOpnumTestParse04);
+    UtRegisterTest("DetectDceOpnumTestParse05", DetectDceOpnumTestParse05);
+    UtRegisterTest("DetectDceOpnumTestParse06", DetectDceOpnumTestParse06);
+    UtRegisterTest("DetectDceOpnumTestParse07", DetectDceOpnumTestParse07);
+    UtRegisterTest("DetectDceOpnumTestParse08", DetectDceOpnumTestParse08);
+    UtRegisterTest("DetectDceOpnumTestParse09", DetectDceOpnumTestParse09);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
      * dce parser */
 #if 0

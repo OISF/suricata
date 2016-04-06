@@ -330,8 +330,8 @@ error:
 void RegisterHostStorageTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HostStorageTest01", HostStorageTest01, 1);
-    UtRegisterTest("HostStorageTest02", HostStorageTest02, 1);
-    UtRegisterTest("HostStorageTest03", HostStorageTest03, 1);
+    UtRegisterTest("HostStorageTest01", HostStorageTest01);
+    UtRegisterTest("HostStorageTest02", HostStorageTest02);
+    UtRegisterTest("HostStorageTest03", HostStorageTest03);
 #endif
 }

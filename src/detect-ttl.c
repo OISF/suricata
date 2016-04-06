@@ -625,14 +625,14 @@ end:
 void DetectTtlRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTtlParseTest01", DetectTtlParseTest01, 1);
-    UtRegisterTest("DetectTtlParseTest02", DetectTtlParseTest02, 1);
-    UtRegisterTest("DetectTtlParseTest03", DetectTtlParseTest03, 1);
-    UtRegisterTest("DetectTtlParseTest04", DetectTtlParseTest04, 1);
-    UtRegisterTest("DetectTtlParseTest05", DetectTtlParseTest05, 1);
-    UtRegisterTest("DetectTtlParseTest06", DetectTtlParseTest06, 1);
-    UtRegisterTest("DetectTtlParseTest07", DetectTtlParseTest07, 1);
-    UtRegisterTest("DetectTtlSetpTest01", DetectTtlSetpTest01, 1);
-    UtRegisterTest("DetectTtlTestSig1",  DetectTtlTestSig1, 1);
+    UtRegisterTest("DetectTtlParseTest01", DetectTtlParseTest01);
+    UtRegisterTest("DetectTtlParseTest02", DetectTtlParseTest02);
+    UtRegisterTest("DetectTtlParseTest03", DetectTtlParseTest03);
+    UtRegisterTest("DetectTtlParseTest04", DetectTtlParseTest04);
+    UtRegisterTest("DetectTtlParseTest05", DetectTtlParseTest05);
+    UtRegisterTest("DetectTtlParseTest06", DetectTtlParseTest06);
+    UtRegisterTest("DetectTtlParseTest07", DetectTtlParseTest07);
+    UtRegisterTest("DetectTtlSetpTest01", DetectTtlSetpTest01);
+    UtRegisterTest("DetectTtlTestSig1", DetectTtlTestSig1);
 #endif /* UNITTESTS */
 }

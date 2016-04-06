@@ -847,19 +847,20 @@ void DetectHttpMethodRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
     SCLogDebug("Registering tests for DetectHttpMethod...");
-    UtRegisterTest("DetectHttpMethodTest01", DetectHttpMethodTest01, 1);
-    UtRegisterTest("DetectHttpMethodTest02", DetectHttpMethodTest02, 1);
-    UtRegisterTest("DetectHttpMethodTest03", DetectHttpMethodTest03, 1);
-    UtRegisterTest("DetectHttpMethodTest04", DetectHttpMethodTest04, 1);
-    UtRegisterTest("DetectHttpMethodTest05", DetectHttpMethodTest05, 1);
-    UtRegisterTest("DetectHttpMethodTest12 -- nocase flag", DetectHttpMethodTest12, 1);
-    UtRegisterTest("DetectHttpMethodTest13", DetectHttpMethodTest13, 1);
-    UtRegisterTest("DetectHttpMethodTest14", DetectHttpMethodTest14, 1);
-    UtRegisterTest("DetectHttpMethodTest15", DetectHttpMethodTest15, 1);
-    UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01, 1);
-    UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02, 1);
-    UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03, 1);
-    UtRegisterTest("DetectHttpMethodSigTest04", DetectHttpMethodSigTest04, 1);
+    UtRegisterTest("DetectHttpMethodTest01", DetectHttpMethodTest01);
+    UtRegisterTest("DetectHttpMethodTest02", DetectHttpMethodTest02);
+    UtRegisterTest("DetectHttpMethodTest03", DetectHttpMethodTest03);
+    UtRegisterTest("DetectHttpMethodTest04", DetectHttpMethodTest04);
+    UtRegisterTest("DetectHttpMethodTest05", DetectHttpMethodTest05);
+    UtRegisterTest("DetectHttpMethodTest12 -- nocase flag",
+                   DetectHttpMethodTest12);
+    UtRegisterTest("DetectHttpMethodTest13", DetectHttpMethodTest13);
+    UtRegisterTest("DetectHttpMethodTest14", DetectHttpMethodTest14);
+    UtRegisterTest("DetectHttpMethodTest15", DetectHttpMethodTest15);
+    UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01);
+    UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02);
+    UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03);
+    UtRegisterTest("DetectHttpMethodSigTest04", DetectHttpMethodSigTest04);
 #endif /* UNITTESTS */
 }
 

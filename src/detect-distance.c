@@ -264,8 +264,9 @@ end:
 void DetectDistanceRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDistanceTest01 -- distance / within mix", DetectDistanceTest01, 1);
-    UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01, 1);
+    UtRegisterTest("DetectDistanceTest01 -- distance / within mix",
+                   DetectDistanceTest01);
+    UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01);
 #endif /* UNITTESTS */
 }
 

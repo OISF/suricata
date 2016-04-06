@@ -667,19 +667,20 @@ end:
 void MagicRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MagicInitTest01", MagicInitTest01, 1);
-    UtRegisterTest("MagicInitTest02", MagicInitTest02, 1);
-    UtRegisterTest("MagicDetectTest01", MagicDetectTest01, 1);
+    UtRegisterTest("MagicInitTest01", MagicInitTest01);
+    UtRegisterTest("MagicInitTest02", MagicInitTest02);
+    UtRegisterTest("MagicDetectTest01", MagicDetectTest01);
     //UtRegisterTest("MagicDetectTest02", MagicDetectTest02, 1);
-    UtRegisterTest("MagicDetectTest03", MagicDetectTest03, 1);
-    UtRegisterTest("MagicDetectTest04", MagicDetectTest04, 1);
-    UtRegisterTest("MagicDetectTest05", MagicDetectTest05, 1);
+    UtRegisterTest("MagicDetectTest03", MagicDetectTest03);
+    UtRegisterTest("MagicDetectTest04", MagicDetectTest04);
+    UtRegisterTest("MagicDetectTest05", MagicDetectTest05);
     //UtRegisterTest("MagicDetectTest06", MagicDetectTest06, 1);
-    UtRegisterTest("MagicDetectTest07", MagicDetectTest07, 1);
-    UtRegisterTest("MagicDetectTest08", MagicDetectTest08, 1);
+    UtRegisterTest("MagicDetectTest07", MagicDetectTest07);
+    UtRegisterTest("MagicDetectTest08", MagicDetectTest08);
     /* fails in valgrind, somehow it returns different pointers then.
     UtRegisterTest("MagicDetectTest09", MagicDetectTest09, 1); */
 
-    UtRegisterTest("MagicDetectTest10ValgrindError", MagicDetectTest10ValgrindError, 1);
+    UtRegisterTest("MagicDetectTest10ValgrindError",
+                   MagicDetectTest10ValgrindError);
 #endif /* UNITTESTS */
 }

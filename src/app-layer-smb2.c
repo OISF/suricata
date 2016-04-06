@@ -684,7 +684,7 @@ end:
 
 void SMB2ParserRegisterTests(void)
 {
-    UtRegisterTest("SMB2ParserTest01", SMB2ParserTest01, 1);
+    UtRegisterTest("SMB2ParserTest01", SMB2ParserTest01);
 }
 #endif
 

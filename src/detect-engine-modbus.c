@@ -1331,15 +1331,24 @@ end:
 void DetectEngineInspectModbusRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectEngineInspectModbusTest01 - Code function", DetectEngineInspectModbusTest01, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest02 - code function and code subfunction", DetectEngineInspectModbusTest02, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest03 - Function category", DetectEngineInspectModbusTest03, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest04 - Negative function category", DetectEngineInspectModbusTest04, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest05 - Access type", DetectEngineInspectModbusTest05, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest06 - Access function", DetectEngineInspectModbusTest06, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest07 - Read access at an address", DetectEngineInspectModbusTest07, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest08 - Read access at a range of address", DetectEngineInspectModbusTest08, 1);
-    UtRegisterTest("DetectEngineInspectModbusTest09 - Write access at an address a range of value", DetectEngineInspectModbusTest09, 1);
+    UtRegisterTest("DetectEngineInspectModbusTest01 - Code function",
+                   DetectEngineInspectModbusTest01);
+    UtRegisterTest("DetectEngineInspectModbusTest02 - code function and code subfunction",
+                   DetectEngineInspectModbusTest02);
+    UtRegisterTest("DetectEngineInspectModbusTest03 - Function category",
+                   DetectEngineInspectModbusTest03);
+    UtRegisterTest("DetectEngineInspectModbusTest04 - Negative function category",
+                   DetectEngineInspectModbusTest04);
+    UtRegisterTest("DetectEngineInspectModbusTest05 - Access type",
+                   DetectEngineInspectModbusTest05);
+    UtRegisterTest("DetectEngineInspectModbusTest06 - Access function",
+                   DetectEngineInspectModbusTest06);
+    UtRegisterTest("DetectEngineInspectModbusTest07 - Read access at an address",
+                   DetectEngineInspectModbusTest07);
+    UtRegisterTest("DetectEngineInspectModbusTest08 - Read access at a range of address",
+                   DetectEngineInspectModbusTest08);
+    UtRegisterTest("DetectEngineInspectModbusTest09 - Write access at an address a range of value",
+                   DetectEngineInspectModbusTest09);
 #endif /* UNITTESTS */
     return;
 }

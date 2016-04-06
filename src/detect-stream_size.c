@@ -523,10 +523,10 @@ static int DetectStreamSizeParseTest04 (void)
 void DetectStreamSizeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01, 1);
-    UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02, 1);
-    UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03, 1);
-    UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04, 1);
+    UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01);
+    UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02);
+    UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03);
+    UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04);
 #endif /* UNITTESTS */
 }
 

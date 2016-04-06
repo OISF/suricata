@@ -684,17 +684,17 @@ end:
 void DetectUrilenRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectUrilenParseTest01", DetectUrilenParseTest01, 1);
-    UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02, 1);
-    UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03, 1);
-    UtRegisterTest("DetectUrilenParseTest04", DetectUrilenParseTest04, 1);
-    UtRegisterTest("DetectUrilenParseTest05", DetectUrilenParseTest05, 1);
-    UtRegisterTest("DetectUrilenParseTest06", DetectUrilenParseTest06, 1);
-    UtRegisterTest("DetectUrilenParseTest07", DetectUrilenParseTest07, 1);
-    UtRegisterTest("DetectUrilenParseTest08", DetectUrilenParseTest08, 1);
-    UtRegisterTest("DetectUrilenParseTest09", DetectUrilenParseTest09, 1);
-    UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10, 1);
-    UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01, 1);
-    UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01, 1);
+    UtRegisterTest("DetectUrilenParseTest01", DetectUrilenParseTest01);
+    UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02);
+    UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03);
+    UtRegisterTest("DetectUrilenParseTest04", DetectUrilenParseTest04);
+    UtRegisterTest("DetectUrilenParseTest05", DetectUrilenParseTest05);
+    UtRegisterTest("DetectUrilenParseTest06", DetectUrilenParseTest06);
+    UtRegisterTest("DetectUrilenParseTest07", DetectUrilenParseTest07);
+    UtRegisterTest("DetectUrilenParseTest08", DetectUrilenParseTest08);
+    UtRegisterTest("DetectUrilenParseTest09", DetectUrilenParseTest09);
+    UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10);
+    UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01);
+    UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01);
 #endif /* UNITTESTS */
 }

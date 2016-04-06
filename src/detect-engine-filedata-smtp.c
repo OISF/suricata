@@ -585,7 +585,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    return result == 0;
 }
 
 #endif /* UNITTESTS */
@@ -594,11 +594,11 @@ void DetectEngineSMTPFiledataRegisterTests(void)
 {
     #ifdef UNITTESTS
     UtRegisterTest("DetectEngineSMTPFiledataTest01",
-                   DetectEngineSMTPFiledataTest01, 1);
+                   DetectEngineSMTPFiledataTest01);
     UtRegisterTest("DetectEngineSMTPFiledataTest02",
-                   DetectEngineSMTPFiledataTest02, 1);
+                   DetectEngineSMTPFiledataTest02);
     UtRegisterTest("DetectEngineSMTPFiledataTest03",
-                   DetectEngineSMTPFiledataTest03, 0);
+                   DetectEngineSMTPFiledataTest03);
     #endif /* UNITTESTS */
 
     return;

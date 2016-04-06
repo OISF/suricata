@@ -539,7 +539,7 @@ end:
 void XBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("XBitsTestSig01", XBitsTestSig01, 1);
-    UtRegisterTest("XBitsTestSig02", XBitsTestSig02, 1);
+    UtRegisterTest("XBitsTestSig01", XBitsTestSig01);
+    UtRegisterTest("XBitsTestSig02", XBitsTestSig02);
 #endif /* UNITTESTS */
 }

@@ -333,9 +333,9 @@ void DetectClasstypeRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01, 1);
-    UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02, 1);
-    UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03, 1);
+    UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01);
+    UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02);
+    UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03);
 
 #endif /* UNITTESTS */
 

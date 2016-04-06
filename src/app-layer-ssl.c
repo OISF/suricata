@@ -4340,36 +4340,36 @@ end:
 void SSLParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SSLParserTest01", SSLParserTest01, 1);
-    UtRegisterTest("SSLParserTest02", SSLParserTest02, 1);
-    UtRegisterTest("SSLParserTest03", SSLParserTest03, 1);
-    UtRegisterTest("SSLParserTest04", SSLParserTest04, 1);
+    UtRegisterTest("SSLParserTest01", SSLParserTest01);
+    UtRegisterTest("SSLParserTest02", SSLParserTest02);
+    UtRegisterTest("SSLParserTest03", SSLParserTest03);
+    UtRegisterTest("SSLParserTest04", SSLParserTest04);
     /* Updated by Anoop Saldanha.  Faulty tests.  Disable it for now */
     //UtRegisterTest("SSLParserTest05", SSLParserTest05, 1);
     //UtRegisterTest("SSLParserTest06", SSLParserTest06, 1);
-    UtRegisterTest("SSLParserTest07", SSLParserTest07, 1);
+    UtRegisterTest("SSLParserTest07", SSLParserTest07);
     //UtRegisterTest("SSLParserTest08", SSLParserTest08, 1);
-    UtRegisterTest("SSLParserTest09", SSLParserTest09, 1);
-    UtRegisterTest("SSLParserTest10", SSLParserTest10, 1);
-    UtRegisterTest("SSLParserTest11", SSLParserTest11, 1);
-    UtRegisterTest("SSLParserTest12", SSLParserTest12, 1);
-    UtRegisterTest("SSLParserTest13", SSLParserTest13, 1);
+    UtRegisterTest("SSLParserTest09", SSLParserTest09);
+    UtRegisterTest("SSLParserTest10", SSLParserTest10);
+    UtRegisterTest("SSLParserTest11", SSLParserTest11);
+    UtRegisterTest("SSLParserTest12", SSLParserTest12);
+    UtRegisterTest("SSLParserTest13", SSLParserTest13);
 
-    UtRegisterTest("SSLParserTest14", SSLParserTest14, 1);
-    UtRegisterTest("SSLParserTest15", SSLParserTest15, 1);
-    UtRegisterTest("SSLParserTest16", SSLParserTest16, 1);
-    UtRegisterTest("SSLParserTest17", SSLParserTest17, 1);
-    UtRegisterTest("SSLParserTest18", SSLParserTest18, 1);
-    UtRegisterTest("SSLParserTest19", SSLParserTest19, 1);
-    UtRegisterTest("SSLParserTest20", SSLParserTest20, 1);
-    UtRegisterTest("SSLParserTest21", SSLParserTest21, 1);
-    UtRegisterTest("SSLParserTest22", SSLParserTest22, 1);
-    UtRegisterTest("SSLParserTest23", SSLParserTest23, 1);
-    UtRegisterTest("SSLParserTest24", SSLParserTest24, 1);
-    UtRegisterTest("SSLParserTest25", SSLParserTest25, 1);
+    UtRegisterTest("SSLParserTest14", SSLParserTest14);
+    UtRegisterTest("SSLParserTest15", SSLParserTest15);
+    UtRegisterTest("SSLParserTest16", SSLParserTest16);
+    UtRegisterTest("SSLParserTest17", SSLParserTest17);
+    UtRegisterTest("SSLParserTest18", SSLParserTest18);
+    UtRegisterTest("SSLParserTest19", SSLParserTest19);
+    UtRegisterTest("SSLParserTest20", SSLParserTest20);
+    UtRegisterTest("SSLParserTest21", SSLParserTest21);
+    UtRegisterTest("SSLParserTest22", SSLParserTest22);
+    UtRegisterTest("SSLParserTest23", SSLParserTest23);
+    UtRegisterTest("SSLParserTest24", SSLParserTest24);
+    UtRegisterTest("SSLParserTest25", SSLParserTest25);
 
-    UtRegisterTest("SSLParserMultimsgTest01", SSLParserMultimsgTest01, 1);
-    UtRegisterTest("SSLParserMultimsgTest02", SSLParserMultimsgTest02, 1);
+    UtRegisterTest("SSLParserMultimsgTest01", SSLParserMultimsgTest01);
+    UtRegisterTest("SSLParserMultimsgTest02", SSLParserMultimsgTest02);
 #endif /* UNITTESTS */
 
     return;

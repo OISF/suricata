@@ -132,7 +132,7 @@ static int DecodeEthernetTest01 (void)
     DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
     SCFree(p);
-    return 0;
+    return 1;
 }
 #endif /* UNITTESTS */
 
@@ -144,7 +144,7 @@ static int DecodeEthernetTest01 (void)
 void DecodeEthernetRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01, 0);
+    UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01);
 #endif /* UNITTESTS */
 }
 /**

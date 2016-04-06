@@ -322,10 +322,10 @@ int DetectDetectionFilterTestParse02 (void)
     df = DetectDetectionFilterParse("track both,count 10,seconds 60");
     if (df && (df->track == TRACK_DST || df->track == TRACK_SRC) && (df->count == 10) && (df->seconds == 60)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -359,10 +359,10 @@ int DetectDetectionFilterTestParse04 (void)
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -395,10 +395,10 @@ int DetectDetectionFilterTestParse06 (void)
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 0)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -651,15 +651,24 @@ end:
 void DetectDetectionFilterRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDetectionFilterTestParse01", DetectDetectionFilterTestParse01, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse02", DetectDetectionFilterTestParse02, 0);
-    UtRegisterTest("DetectDetectionFilterTestParse03", DetectDetectionFilterTestParse03, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse04", DetectDetectionFilterTestParse04, 0);
-    UtRegisterTest("DetectDetectionFilterTestParse05", DetectDetectionFilterTestParse05, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06, 0);
-    UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3, 1);
+    UtRegisterTest("DetectDetectionFilterTestParse01",
+                   DetectDetectionFilterTestParse01);
+    UtRegisterTest("DetectDetectionFilterTestParse02",
+                   DetectDetectionFilterTestParse02);
+    UtRegisterTest("DetectDetectionFilterTestParse03",
+                   DetectDetectionFilterTestParse03);
+    UtRegisterTest("DetectDetectionFilterTestParse04",
+                   DetectDetectionFilterTestParse04);
+    UtRegisterTest("DetectDetectionFilterTestParse05",
+                   DetectDetectionFilterTestParse05);
+    UtRegisterTest("DetectDetectionFilterTestParse06",
+                   DetectDetectionFilterTestParse06);
+    UtRegisterTest("DetectDetectionFilterTestSig1",
+                   DetectDetectionFilterTestSig1);
+    UtRegisterTest("DetectDetectionFilterTestSig2",
+                   DetectDetectionFilterTestSig2);
+    UtRegisterTest("DetectDetectionFilterTestSig3",
+                   DetectDetectionFilterTestSig3);
 #endif /* UNITTESTS */
 }
 

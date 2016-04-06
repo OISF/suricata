@@ -477,11 +477,11 @@ static int DetectTagTestParse05(void)
 void DetectTagRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTagTestParse01", DetectTagTestParse01, 1);
-    UtRegisterTest("DetectTagTestParse02", DetectTagTestParse02, 1);
-    UtRegisterTest("DetectTagTestParse03", DetectTagTestParse03, 1);
-    UtRegisterTest("DetectTagTestParse04", DetectTagTestParse04, 1);
-    UtRegisterTest("DetectTagTestParse05", DetectTagTestParse05, 1);
+    UtRegisterTest("DetectTagTestParse01", DetectTagTestParse01);
+    UtRegisterTest("DetectTagTestParse02", DetectTagTestParse02);
+    UtRegisterTest("DetectTagTestParse03", DetectTagTestParse03);
+    UtRegisterTest("DetectTagTestParse04", DetectTagTestParse04);
+    UtRegisterTest("DetectTagTestParse05", DetectTagTestParse05);
 
     DetectEngineTagRegisterTests();
 #endif /* UNITTESTS */

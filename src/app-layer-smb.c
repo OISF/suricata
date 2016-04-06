@@ -2687,16 +2687,16 @@ end:
 void SMBParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SMBParserTest01", SMBParserTest01, 1);
-    UtRegisterTest("SMBParserTest02", SMBParserTest02, 1);
-    UtRegisterTest("SMBParserTest03", SMBParserTest03, 1);
-    UtRegisterTest("SMBParserTest04", SMBParserTest04, 1);
-    UtRegisterTest("SMBParserTest05", SMBParserTest05, 1);
-    UtRegisterTest("SMBParserTest06", SMBParserTest06, 1);
-    UtRegisterTest("SMBParserTest07", SMBParserTest07, 1);
-    UtRegisterTest("SMBParserTest08", SMBParserTest08, 1);
-    UtRegisterTest("SMBParserTest09", SMBParserTest09, 1);
-    UtRegisterTest("SMBParserTest10", SMBParserTest10, 1);
+    UtRegisterTest("SMBParserTest01", SMBParserTest01);
+    UtRegisterTest("SMBParserTest02", SMBParserTest02);
+    UtRegisterTest("SMBParserTest03", SMBParserTest03);
+    UtRegisterTest("SMBParserTest04", SMBParserTest04);
+    UtRegisterTest("SMBParserTest05", SMBParserTest05);
+    UtRegisterTest("SMBParserTest06", SMBParserTest06);
+    UtRegisterTest("SMBParserTest07", SMBParserTest07);
+    UtRegisterTest("SMBParserTest08", SMBParserTest08);
+    UtRegisterTest("SMBParserTest09", SMBParserTest09);
+    UtRegisterTest("SMBParserTest10", SMBParserTest10);
 #endif
 }
 

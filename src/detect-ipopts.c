@@ -261,10 +261,10 @@ int IpOptsTestParse02 (void)
     de = DetectIpOptsParse("invalidopt");
     if (de) {
         DetectIpOptsFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -361,14 +361,15 @@ int IpOptsTestParse04 (void)
 
     if(ret) {
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 #endif /* UNITTESTS */
 
@@ -378,9 +379,9 @@ error:
 void IpOptsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01, 1);
-    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02, 0);
-    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03, 1);
-    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04, 0);
+    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01);
+    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02);
+    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
+    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
 #endif /* UNITTESTS */
 }

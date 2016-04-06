@@ -206,8 +206,8 @@ end:
 void DetectMsgRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01, 1);
-    UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02, 1);
+    UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01);
+    UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02);
 #endif /* UNITTESTS */
 }
 

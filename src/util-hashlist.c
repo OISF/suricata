@@ -501,18 +501,18 @@ end:
 void HashListTableRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HashListTableTestInit01", HashListTableTestInit01, 1);
-    UtRegisterTest("HashListTableTestInit02", HashListTableTestInit02, 1);
-    UtRegisterTest("HashListTableTestInit03", HashListTableTestInit03, 1);
-    UtRegisterTest("HashListTableTestInit04", HashListTableTestInit04, 1);
+    UtRegisterTest("HashListTableTestInit01", HashListTableTestInit01);
+    UtRegisterTest("HashListTableTestInit02", HashListTableTestInit02);
+    UtRegisterTest("HashListTableTestInit03", HashListTableTestInit03);
+    UtRegisterTest("HashListTableTestInit04", HashListTableTestInit04);
 
-    UtRegisterTest("HashListTableTestAdd01", HashListTableTestAdd01, 1);
-    UtRegisterTest("HashListTableTestAdd02", HashListTableTestAdd02, 1);
-    UtRegisterTest("HashListTableTestAdd03", HashListTableTestAdd03, 1);
-    UtRegisterTest("HashListTableTestAdd04", HashListTableTestAdd04, 1);
+    UtRegisterTest("HashListTableTestAdd01", HashListTableTestAdd01);
+    UtRegisterTest("HashListTableTestAdd02", HashListTableTestAdd02);
+    UtRegisterTest("HashListTableTestAdd03", HashListTableTestAdd03);
+    UtRegisterTest("HashListTableTestAdd04", HashListTableTestAdd04);
 
-    UtRegisterTest("HashListTableTestFull01", HashListTableTestFull01, 1);
-    UtRegisterTest("HashListTableTestFull02", HashListTableTestFull02, 1);
+    UtRegisterTest("HashListTableTestFull01", HashListTableTestFull01);
+    UtRegisterTest("HashListTableTestFull02", HashListTableTestFull02);
 #endif /* UNITTESTS */
 }
 
