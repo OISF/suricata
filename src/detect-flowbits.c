@@ -315,69 +315,38 @@ void DetectFlowbitFree (void *ptr)
 
 static int FlowBitsTestParse01(void)
 {
-    int ret = 0;
     char command[16] = "", name[16] = "";
 
     /* Single argument version. */
-    if (!DetectFlowbitParse("noalert", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "noalert") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "noalert") != 0);
 
     /* No leading or trailing spaces. */
-    if (!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading space. */
-    if (!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Trailing space. */
-    if (!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading and trailing space. */
-    if (!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
-    ret = 1;
-end:
-    return ret;
+    PASS;
 }
 
 /**
@@ -452,7 +421,7 @@ end:
     }
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -574,7 +543,7 @@ end:
     }
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -652,7 +621,7 @@ end:
 
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -716,7 +685,7 @@ static int FlowBitsTestSig04(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     SCFree(p);
-    return result;
+    PASS_IF(result);
 
 end:
 
@@ -734,7 +703,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -796,7 +765,7 @@ static int FlowBitsTestSig05(void)
     DetectEngineCtxFree(de_ctx);
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 end:
 
     if (de_ctx != NULL) {
@@ -813,7 +782,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -898,7 +867,7 @@ static int FlowBitsTestSig06(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 end:
 
     if (de_ctx != NULL) {
@@ -917,7 +886,7 @@ end:
     if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -1004,7 +973,7 @@ static int FlowBitsTestSig07(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 end:
 
     if (de_ctx != NULL) {
@@ -1024,7 +993,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -1113,7 +1082,7 @@ static int FlowBitsTestSig08(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 end:
 
     if (de_ctx != NULL) {
@@ -1133,7 +1102,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result == 0;
+    PASS_IF(result == 0);
 }
 #endif /* UNITTESTS */
 
