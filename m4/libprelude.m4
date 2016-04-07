@@ -101,7 +101,7 @@ main ()
                 prelude_check_version(NULL) );
         printf("*** You need a version of LIBPRELUDE newer than %s. The latest version of\n",
                "$min_libprelude_version" );
-        printf("*** LIBPRELUDE is always available from http://www.prelude-ids.com/development/download/\n");
+        printf("*** LIBPRELUDE is always available from http://www.prelude-siem.com/index.php/en/community/download\n");
         printf("*** \n");
         printf("*** If you have already installed a sufficiently new version, this error\n");
         printf("*** probably means that the wrong copy of the libprelude-config shell script is\n");
