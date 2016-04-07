@@ -1562,17 +1562,146 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     return 1;
 }
 
+static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
+{
+    int val;
+    unsigned int len = sizeof(val), i;
+    unsigned int ring_buflen;
+    uint8_t * ring_buf;
+    int order;
+    int r;
+
+    if (ptv->flags & AFP_TPACKET_V3) {
+        val = TPACKET_V3;
+    } else {
+        val = TPACKET_V2;
+    }
+    if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
+        if (errno == ENOPROTOOPT) {
+            if (ptv->flags & AFP_TPACKET_V3) {
+                SCLogError(SC_ERR_AFP_CREATE,
+                        "Too old kernel giving up (need 3.2 for TPACKET_V3)");
+            } else {
+                SCLogError(SC_ERR_AFP_CREATE,
+                        "Too old kernel giving up (need 2.6.27 at least)");
+            }
+        }
+        SCLogError(SC_ERR_AFP_CREATE, "Error when retrieving packet header len");
+        return -AFP_FATAL_ERROR;
+    }
+
+    if (ptv->flags & AFP_TPACKET_V3) {
+        val = TPACKET_V3;
+    } else {
+        val = TPACKET_V2;
+    }
+    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_VERSION, &val,
+                sizeof(val)) < 0) {
+        SCLogError(SC_ERR_AFP_CREATE,
+                "Can't activate TPACKET_V2/TPACKET_V3 on packet socket: %s",
+                strerror(errno));
+        return -AFP_FATAL_ERROR;
+    }
+
+    /* Allocate RX ring */
+    if (ptv->flags & AFP_TPACKET_V3) {
+        if (AFPComputeRingParamsV3(ptv) != 1) {
+            SCLogInfo("Ring parameter are incorrect. Please correct the devel");
+            return -AFP_FATAL_ERROR;
+        }
+        r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
+                (void *) &ptv->req3, sizeof(ptv->req3));
+    } else {
+#define DEFAULT_ORDER 3
+        for (order = DEFAULT_ORDER; order >= 0; order--) {
+            if (AFPComputeRingParams(ptv, order) != 1) {
+                SCLogInfo("Ring parameter are incorrect. Please correct the devel");
+                return AFP_FATAL_ERROR;
+            }
+
+            r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
+                    (void *) &ptv->req, sizeof(ptv->req));
+
+            if (r < 0) {
+                if (errno == ENOMEM) {
+                    SCLogInfo("Memory issue with ring parameters. Retrying.");
+                    continue;
+                }
+                SCLogError(SC_ERR_MEM_ALLOC,
+                        "Unable to allocate RX Ring for iface %s: (%d) %s",
+                        devname,
+                        errno,
+                        strerror(errno));
+                return -AFP_FATAL_ERROR;
+            } else {
+                break;
+            }
+        }
+        if (order < 0) {
+            SCLogError(SC_ERR_MEM_ALLOC,
+                    "Unable to allocate RX Ring for iface %s (order 0 failed)",
+                    devname);
+            return -AFP_FATAL_ERROR;
+        }
+    }
+
+    /* Allocate the Ring */
+    if (ptv->flags & AFP_TPACKET_V3) {
+        ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
+    } else {
+        ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
+    }
+    ring_buf = mmap(0, ring_buflen, PROT_READ|PROT_WRITE,
+            MAP_SHARED, ptv->socket, 0);
+    if (ring_buf == MAP_FAILED) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
+        goto mmap_err;
+    }
+    if (ptv->flags & AFP_TPACKET_V3) {
+        ptv->ring_v3 = SCMalloc(ptv->req3.tp_block_nr * sizeof(*ptv->ring_v3));
+        if (!ptv->ring_v3) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring_v3");
+            goto mmap_err;
+        }
+        for (i = 0; i < ptv->req3.tp_block_nr; ++i) {
+            ptv->ring_v3[i].iov_base = ring_buf + (i * ptv->req3.tp_block_size);
+            ptv->ring_v3[i].iov_len = ptv->req3.tp_block_size;
+        }
+    } else {
+        /* allocate a ring for each frame header pointer*/
+        ptv->ring_v2 = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
+        if (ptv->ring_v2 == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
+            goto mmap_err;
+        }
+        memset(ptv->ring_v2, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
+        /* fill the header ring with proper frame ptr*/
+        ptv->frame_offset = 0;
+        for (i = 0; i < ptv->req.tp_block_nr; ++i) {
+            void *base = &ring_buf[i * ptv->req.tp_block_size];
+            unsigned int j;
+            for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
+                (((union thdr **)ptv->ring_v2)[ptv->frame_offset]) = base;
+                base += ptv->req.tp_frame_size;
+            }
+        }
+        ptv->frame_offset = 0;
+    }
+
+    return 0;
+
+mmap_err:
+    /* Packet mmap does the cleaning when socket is closed */
+    return -AFP_FATAL_ERROR;
+}
+
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 {
     int r;
     int ret = AFP_FATAL_ERROR;
     struct packet_mreq sock_params;
     struct sockaddr_ll bind_address;
-    int order;
-    unsigned int i;
     int if_idx;
-    unsigned int ring_buflen;
-    uint8_t * ring_buf;
 
     /* open socket */
     ptv->socket = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
@@ -1603,7 +1732,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                     "Couldn't switch iface %s to promiscuous, error %s",
                     devname, strerror(errno));
-            goto frame_err;
+            goto socket_err;
         }
     }
 
@@ -1629,7 +1758,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                     "Couldn't set buffer size to %d on iface %s, error %s",
                     ptv->buffer_size, devname, strerror(errno));
-            goto frame_err;
+            goto socket_err;
         }
     }
 
@@ -1647,7 +1776,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             }
         }
         ret = AFP_RECOVERABLE_ERROR;
-        goto frame_err;
+        goto socket_err;
     }
 
 #ifdef HAVE_PACKET_FANOUT
@@ -1662,7 +1791,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             SCLogError(SC_ERR_AFP_CREATE,
                        "Coudn't set fanout mode, error %s",
                        strerror(errno));
-            goto frame_err;
+            goto socket_err;
         }
     }
 #endif
@@ -1675,7 +1804,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                     ptv->iface);
         }
         ret = AFP_RECOVERABLE_ERROR;
-        goto frame_err;
+        goto socket_err;
     }
     if ((if_flags & IFF_UP) == 0) {
         if (verbose) {
@@ -1684,129 +1813,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
                     ptv->iface);
         }
         ret = AFP_RECOVERABLE_ERROR;
-        goto frame_err;
+        goto socket_err;
     }
 
     if (ptv->flags & AFP_RING_MODE) {
-        int val;
-        unsigned int len = sizeof(val);
-
-        if (ptv->flags & AFP_TPACKET_V3) {
-            val = TPACKET_V3;
-        } else {
-            val = TPACKET_V2;
-        }
-        if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
-            if (errno == ENOPROTOOPT) {
-                if (ptv->flags & AFP_TPACKET_V3) {
-                    SCLogError(SC_ERR_AFP_CREATE,
-                            "Too old kernel giving up (need 3.2 for TPACKET_V3)");
-                } else {
-                    SCLogError(SC_ERR_AFP_CREATE,
-                            "Too old kernel giving up (need 2.6.27 at least)");
-                }
-            }
-            SCLogError(SC_ERR_AFP_CREATE, "Error when retrieving packet header len");
+        ret = AFPSetupRing(ptv, devname);
+        if (ret != 0)
             goto socket_err;
-        }
-
-        if (ptv->flags & AFP_TPACKET_V3) {
-            val = TPACKET_V3;
-        } else {
-            val = TPACKET_V2;
-        }
-        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_VERSION, &val,
-                    sizeof(val)) < 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                       "Can't activate TPACKET_V2/TPACKET_V3 on packet socket: %s",
-                       strerror(errno));
-            goto socket_err;
-        }
-
-        /* Allocate RX ring */
-        if (ptv->flags & AFP_TPACKET_V3) {
-            if (AFPComputeRingParamsV3(ptv) != 1) {
-                SCLogInfo("Ring parameter are incorrect. Please correct the devel");
-                goto socket_err;
-            }
-            r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
-                    (void *) &ptv->req3, sizeof(ptv->req3));
-        } else {
-#define DEFAULT_ORDER 3
-            for (order = DEFAULT_ORDER; order >= 0; order--) {
-                if (AFPComputeRingParams(ptv, order) != 1) {
-                    SCLogInfo("Ring parameter are incorrect. Please correct the devel");
-                    goto socket_err;
-                }
-
-                r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
-                        (void *) &ptv->req, sizeof(ptv->req));
-
-                if (r < 0) {
-                    if (errno == ENOMEM) {
-                        SCLogInfo("Memory issue with ring parameters. Retrying.");
-                        continue;
-                    }
-                    SCLogError(SC_ERR_MEM_ALLOC,
-                            "Unable to allocate RX Ring for iface %s: (%d) %s",
-                            devname,
-                            errno,
-                            strerror(errno));
-                    goto socket_err;
-                } else {
-                    break;
-                }
-            }
-            if (order < 0) {
-                SCLogError(SC_ERR_MEM_ALLOC,
-                        "Unable to allocate RX Ring for iface %s (order 0 failed)",
-                        devname);
-                goto socket_err;
-            }
-        }
-
-        /* Allocate the Ring */
-        if (ptv->flags & AFP_TPACKET_V3) {
-            ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
-        } else {
-            ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
-        }
-        ring_buf = mmap(0, ring_buflen, PROT_READ|PROT_WRITE,
-                MAP_SHARED, ptv->socket, 0);
-        if (ring_buf == MAP_FAILED) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
-            goto socket_err;
-        }
-        if (ptv->flags & AFP_TPACKET_V3) {
-            ptv->ring_v3 = SCMalloc(ptv->req3.tp_block_nr * sizeof(*ptv->ring_v3));
-            if (!ptv->ring_v3) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring_v3");
-                goto mmap_err;
-            }
-            for (i = 0; i < ptv->req3.tp_block_nr; ++i) {
-                ptv->ring_v3[i].iov_base = ring_buf + (i * ptv->req3.tp_block_size);
-                ptv->ring_v3[i].iov_len = ptv->req3.tp_block_size;
-            }
-        } else {
-            /* allocate a ring for each frame header pointer*/
-            ptv->ring_v2 = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
-            if (ptv->ring_v2 == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
-                goto mmap_err;
-            }
-            memset(ptv->ring_v2, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
-            /* fill the header ring with proper frame ptr*/
-            ptv->frame_offset = 0;
-            for (i = 0; i < ptv->req.tp_block_nr; ++i) {
-                void *base = &ring_buf[i * ptv->req.tp_block_size];
-                unsigned int j;
-                for (j = 0; j < ptv->req.tp_block_size / ptv->req.tp_frame_size; ++j, ++ptv->frame_offset) {
-                    (((union thdr **)ptv->ring_v2)[ptv->frame_offset]) = base;
-                    base += ptv->req.tp_frame_size;
-                }
-            }
-            ptv->frame_offset = 0;
-        }
     }
 
     SCLogDebug("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
@@ -1838,8 +1851,6 @@ frame_err:
         if (ptv->ring_v2)
             SCFree(ptv->ring_v2);
     }
-mmap_err:
-    /* Packet mmap does the cleaning when socket is closed */
 socket_err:
     close(ptv->socket);
     ptv->socket = -1;
