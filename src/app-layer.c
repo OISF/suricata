@@ -163,6 +163,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
             f->alproto = *alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+            AppLayerParserSetupTcpSession(f->proto, *alproto, ssn);
 
             /* if we have seen data from the other direction first, send
              * data for that direction first to the parser.  This shouldn't
@@ -338,6 +339,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     AppLayerDecoderEventsSetEventRaw(&p->app_layer_events,
                                                      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+                    AppLayerParserSetupTcpSession(f->proto, *alproto_otherdir, ssn);
                     f->data_al_so_far[dir] = 0;
                 } else {
                     f->data_al_so_far[dir] = data_len;
