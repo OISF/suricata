@@ -970,7 +970,9 @@
 
     AC_MSG_CHECKING(for libnet.h version 1.1.x)
     if test "$LIBNET_INC_DIR" != ""; then
-        if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v '1.[[12]]' >/dev/null"; then
+        LIBNET_VER=`grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep '1.[[12]]' | sed 's/[[^"]]*"\([[^"]]*\).*/\1/'`
+
+        if test -z "$LIBNET_VER" ; then
             AC_MSG_RESULT(no)
             LIBNET_DETECT_FAIL="yes"
             LIBNET_FAIL_WARN($libnet_dir)
@@ -1012,6 +1014,15 @@
                 fi
                 LIBS="${TMPLIBS}"
             fi
+
+            # See if we have libnet 1.1.6 or newer - these versions handle capabilities correctly
+            # Some patched 1.1.4 versions are also good, but it's not guaranteed for all distros.
+            #
+            # Details: https://bugzilla.redhat.com/show_bug.cgi?id=589770
+            AS_VERSION_COMPARE([LIBNET_VER], [1.1.6],
+                [],
+                [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))],
+                [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))])
         fi
     else
         LIBNET_DETECT_FAIL="yes"
