@@ -469,6 +469,8 @@ af-packet:
     #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
+    # Use tpacket_v3, capture mode, only active if user-mmap is true
+    #tpacket-v3: true
     # Ring size will be computed with respect to max_pending_packets and number
     # of threads. You can set manually the ring size in number of packets by setting
     # the following value. If you are using flow cluster-type and have really network
@@ -512,7 +514,7 @@ af-packet:
   # Put default values here
   - interface: default
     #threads: auto
-    #use-mmap: yes
+    use-mmap: yes
     #rollover: yes
 
 # Netmap support
