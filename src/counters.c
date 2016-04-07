@@ -1384,7 +1384,7 @@ static int StatsTestCntArraySize07()
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result == 2;
+    PASS_IF(result == 2);
 }
 
 static int StatsTestUpdateCounter08()
