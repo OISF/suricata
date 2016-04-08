@@ -1583,7 +1583,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     unsigned int ring_buflen;
     uint8_t * ring_buf;
     int order;
-    int r;
+    int r, mmap_flag;
 
     if (ptv->flags & AFP_TPACKET_V3) {
         val = TPACKET_V3;
@@ -1672,8 +1672,11 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     } else {
         ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
     }
+    mmap_flag = MAP_SHARED;
+    if (ptv->flags & AFP_MMAP_LOCKED)
+        mmap_flag |= MAP_LOCKED;
     ring_buf = mmap(0, ring_buflen, PROT_READ|PROT_WRITE,
-            MAP_SHARED, ptv->socket, 0);
+            mmap_flag, ptv->socket, 0);
     if (ring_buf == MAP_FAILED) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
         goto mmap_err;
