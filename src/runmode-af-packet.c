@@ -222,6 +222,12 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->flags |= AFP_RING_MODE;
     }
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Enabling locked memory for mmap on iface %s",
+                aconf->iface);
+        aconf->flags |= AFP_MMAP_LOCKED;
+    }
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", (int *)&boolval);
     if (boolval) {
         if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
