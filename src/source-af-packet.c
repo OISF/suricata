@@ -232,6 +232,7 @@ typedef struct AFPThreadVars_
 
     int ring_size;
     int block_size;
+    int block_timeout;
     /* socket buffer size */
     int buffer_size;
     /* Filter */
@@ -1552,7 +1553,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
     ptv->req3.tp_block_nr = ptv->req3.tp_frame_nr / frames_per_block + 1;
     /* exact division */
     ptv->req3.tp_frame_nr = ptv->req3.tp_block_nr * frames_per_block;
-    ptv->req3.tp_retire_blk_tov = 10; /* 10 ms timeout on block */
+    ptv->req3.tp_retire_blk_tov = ptv->block_timeout;
     ptv->req3.tp_feature_req_word = TP_FT_REQ_FILL_RXHASH;
     SCLogInfo("AF_PACKET V3 RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d (mem: %d)",
               ptv->req3.tp_block_size, ptv->req3.tp_block_nr,

@@ -480,6 +480,9 @@ af-packet:
     # Block size is used by tpacket_v3 only. It should set to a value high enough to contain
     # a decent number of packets. Size is in bytes so please consider your MTU.
     #block-size: 32768
+    # tpacket_v3 block timeout: an open block is passed to userspace if it is not
+    # filled after block-timeout milliseconds.
+    #block-timeout: 10
     # On busy system, this could help to set it to yes to recover from a packet drop
     # phase. This will result in some packets (at max a ring flush) being non treated.
     #use-emergency-flush: yes
