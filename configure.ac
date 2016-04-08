@@ -258,6 +258,16 @@
     esac
     AC_MSG_RESULT(ok)
 
+  # enable modifications for AFL fuzzing
+    AC_ARG_ENABLE(afl,
+           AS_HELP_STRING([--enable-afl], Enable AFL fuzzing logic[])], [enable_afl="$enableval"],[enable_afl=no])
+    AS_IF([test "x$enable_afl" = "xyes"], [
+            AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+            AC_DEFINE([AFLFUZZ_DISABLE_MGTTHREADS], [1], [Disable all management threads])
+            AC_DEFINE([AFLFUZZ_PCAP_RUNMODE], [1], [Enable special AFL 'single' runmode])
+            AC_DEFINE([AFLFUZZ_CONF_TEST], [1], [Enable special --afl-parse-rules commandline option])
+    ])
+
   # disable TLS on user request
     AC_ARG_ENABLE(threading-tls,
            AS_HELP_STRING([--disable-threading-tls], [Disable TLS (thread local storage)]), [enable_tls="$enableval"],[enable_tls=yes])

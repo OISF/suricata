@@ -1113,6 +1113,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int list_keywords = 0;
     int build_info = 0;
     int conf_test = 0;
+#ifdef AFLFUZZ_CONF_TEST
+    int conf_test_force_success = 0;
+#endif
     int engine_analysis = 0;
     int set_log_directory = 0;
     int ret = TM_ECODE_OK;
@@ -1167,6 +1170,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"set", required_argument, 0, 0},
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
+#endif
+#ifdef AFLFUZZ_CONF_TEST
+        {"afl-parse-rules", 0, &conf_test_force_success, 1},
 #endif
         {NULL, 0, NULL, 0}
     };
@@ -1764,6 +1770,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
         return TM_ECODE_FAILED;
     }
+#ifdef AFLFUZZ_CONF_TEST
+    if (conf_test && conf_test_force_success) {
+        (void)ConfSetFinal("engine.init-failure-fatal", "0");
+    }
+#endif
 
     if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
