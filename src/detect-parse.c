@@ -751,7 +751,7 @@ static int SigParsePort(const DetectEngineCtx *de_ctx,
 static int SigParseActionRejectValidate(const char *action)
 {
 #ifdef HAVE_LIBNET11
-#ifdef HAVE_LIBCAP_NG
+#if defined HAVE_LIBCAP_NG && !defined HAVE_LIBNET_CAPABILITIES
     if (sc_set_caps == TRUE) {
         SCLogError(SC_ERR_LIBNET11_INCOMPATIBLE_WITH_LIBCAP_NG, "Libnet 1.1 is "
             "incompatible with POSIX based capabilities with privs dropping. "
