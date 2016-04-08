@@ -231,11 +231,11 @@ typedef struct AFPThreadVars_
     int socket;
 
     int ring_size;
-    /* Filter */
-    char *bpf_filter;
-
+    int block_size;
     /* socket buffer size */
     int buffer_size;
+    /* Filter */
+    char *bpf_filter;
 
     int promisc;
 
@@ -1555,7 +1555,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
 
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
-    ptv->req3.tp_block_size = getpagesize();
+    ptv->req3.tp_block_size = ptv->block_size;
     ptv->req3.tp_frame_size = 2048;
     int frames_per_block = 0;
     int tp_hdrlen = sizeof(struct tpacket3_hdr);
@@ -1649,8 +1649,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
             return AFP_FATAL_ERROR;
         }
     } else {
-#define DEFAULT_ORDER 3
-        for (order = DEFAULT_ORDER; order >= 0; order--) {
+        for (order = AFP_BLOCK_SIZE_DEFAULT_ORDER; order >= 0; order--) {
             if (AFPComputeRingParams(ptv, order) != 1) {
                 SCLogInfo("Ring parameter are incorrect. Please correct the devel");
                 return AFP_FATAL_ERROR;
@@ -1982,6 +1981,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ptv->buffer_size = afpconfig->buffer_size;
     ptv->ring_size = afpconfig->ring_size;
+    ptv->block_size = afpconfig->block_size;
 
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;
