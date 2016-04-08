@@ -58,6 +58,8 @@
 #define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48
 
+#define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
+
 typedef struct AFPIfaceConfig_
 {
     char iface[AFP_IFACE_NAME_LENGTH];
@@ -67,6 +69,8 @@ typedef struct AFPIfaceConfig_
     int buffer_size;
     /* ring size in number of packets */
     int ring_size;
+    /* block size for tpacket_v3 */
+    int block_size;
     /* cluster param */
     int cluster_id;
     int cluster_type;
