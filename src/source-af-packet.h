@@ -58,6 +58,10 @@
 #define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48
 
+/* In kernel the allocated block size is allocated using the formula
+ * page_size << order. So default value is using the same formula with
+ * an order of 3 which guarantee we have some room in the block compared
+ * to standard frame size */
 #define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
 
 typedef struct AFPIfaceConfig_
@@ -69,8 +73,10 @@ typedef struct AFPIfaceConfig_
     int buffer_size;
     /* ring size in number of packets */
     int ring_size;
-    /* block size for tpacket_v3 */
+    /* block size for tpacket_v3 in */
     int block_size;
+    /* block timeout for tpacket_v3 in milliseconds */
+    int block_timeout;
     /* cluster param */
     int cluster_id;
     int cluster_type;
