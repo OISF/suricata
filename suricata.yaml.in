@@ -478,6 +478,10 @@ af-packet:
     # intensive single-flow you could want to set the ring-size independantly of the number
     # of threads:
     #ring-size: 2048
+    # Block size is used by tpacket_v3 only. It should set to a value high enough to contain
+    # a decent number of packets. Size is in bytes so please consider your MTU. It should be
+    # a power of 2 and it must be multiple of page size (usually 4096).
+    #block-size: 32768
     # On busy system, this could help to set it to yes to recover from a packet drop
     # phase. This will result in some packets (at max a ring flush) being non treated.
     #use-emergency-flush: yes
