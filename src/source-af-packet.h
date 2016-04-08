@@ -71,6 +71,8 @@ typedef struct AFPIfaceConfig_
     int ring_size;
     /* block size for tpacket_v3 */
     int block_size;
+    /* block timeout for tpacket_v3 */
+    int block_timeout;
     /* cluster param */
     int cluster_id;
     int cluster_type;
