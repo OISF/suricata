@@ -361,6 +361,12 @@ void *ParseAFPConfig(const char *iface)
         aconf->ring_size = max_pending_packets * 2 / aconf->threads;
     }
 
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
+        aconf->block_size = value;
+    } else {
+        aconf->block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
+    }
+
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Disabling promiscuous mode on iface %s",

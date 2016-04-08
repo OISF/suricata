@@ -162,8 +162,6 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define TP_STATUS_VLAN_VALID (1 << 4)
 #endif
 
-#define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
-
 /** protect pfring_set_bpf_filter, as it is not thread safe */
 static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
@@ -233,11 +231,11 @@ typedef struct AFPThreadVars_
     int socket;
 
     int ring_size;
-    /* Filter */
-    char *bpf_filter;
-
+    int block_size;
     /* socket buffer size */
     int buffer_size;
+    /* Filter */
+    char *bpf_filter;
 
     int promisc;
 
@@ -1543,7 +1541,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
 
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
-    ptv->req3.tp_block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
+    ptv->req3.tp_block_size = ptv->block_size;
     ptv->req3.tp_frame_size = 2048;
     int frames_per_block = ptv->req3.tp_block_size / ptv->req3.tp_frame_size;
     if (frames_per_block == 0) {
@@ -1946,6 +1944,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ptv->buffer_size = afpconfig->buffer_size;
     ptv->ring_size = afpconfig->ring_size;
+    ptv->block_size = afpconfig->block_size;
 
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;
