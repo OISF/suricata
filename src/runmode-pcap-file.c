@@ -116,10 +116,22 @@ int RunModeFilePcapSingle(void)
 
     TmThreadSetCPU(tv, DETECT_CPU_SET);
 
+#ifndef AFLFUZZ_PCAP_RUNMODE
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
+#else
+    /* in afl mode we don't spawn a new thread, but run the pipeline
+     * in the main thread */
+    tv->tm_func(tv);
+    int afl_runmode_exit_immediately = 0;
+    (void)ConfGetBool("afl.exit_after_pcap", &afl_runmode_exit_immediately);
+    if (afl_runmode_exit_immediately) {
+        SCLogNotice("exit because of afl-runmode-exit-after-pcap commandline option");
+        exit(EXIT_SUCCESS);
+    }
+#endif
 
     return 0;
 }

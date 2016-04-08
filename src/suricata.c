@@ -145,6 +145,13 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-ssl.h"
+#include "app-layer-dns-tcp.h"
+#include "app-layer-ssh.h"
+#include "app-layer-ftp.h"
+#include "app-layer-smtp.h"
+#include "app-layer-smb.h"
+#include "app-layer-modbus.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -1113,6 +1120,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int list_keywords = 0;
     int build_info = 0;
     int conf_test = 0;
+#ifdef AFLFUZZ_CONF_TEST
+    int conf_test_force_success = 0;
+#endif
     int engine_analysis = 0;
     int set_log_directory = 0;
     int ret = TM_ECODE_OK;
@@ -1133,6 +1143,22 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
+        {"afl-http-request", required_argument, 0 , 0},
+        {"afl-http", required_argument, 0 , 0},
+        {"afl-tls-request", required_argument, 0 , 0},
+        {"afl-tls", required_argument, 0 , 0},
+        {"afl-dns-request", required_argument, 0 , 0},
+        {"afl-dns", required_argument, 0 , 0},
+        {"afl-ssh-request", required_argument, 0 , 0},
+        {"afl-ssh", required_argument, 0 , 0},
+        {"afl-ftp-request", required_argument, 0 , 0},
+        {"afl-ftp", required_argument, 0 , 0},
+        {"afl-smtp-request", required_argument, 0 , 0},
+        {"afl-smtp", required_argument, 0 , 0},
+        {"afl-smb-request", required_argument, 0 , 0},
+        {"afl-smb", required_argument, 0 , 0},
+        {"afl-modbus-request", required_argument, 0 , 0},
+        {"afl-modbus", required_argument, 0 , 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1167,6 +1193,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"set", required_argument, 0, 0},
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
+#endif
+#ifdef AFLFUZZ_CONF_TEST
+        {"afl-parse-rules", 0, &conf_test_force_success, 1},
 #endif
         {NULL, 0, NULL, 0}
     };
@@ -1318,6 +1347,91 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     usage(argv[0]);
                     return TM_ECODE_FAILED;
                 }
+#ifdef AFLFUZZ_APPLAYER
+            } else if(strcmp((long_opts[option_index]).name, "afl-http-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterHTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_HTTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-http") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterHTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_HTTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-tls-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSSLParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_TLS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-tls") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSSLParsers();
+                exit(AppLayerParserFromFile(ALPROTO_TLS, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-dns-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterDNSTCPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_DNS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-dns") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterDNSTCPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_DNS, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-ssh-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSSHParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SSH, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-ssh") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSSHParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SSH, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-ftp-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterFTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_FTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-ftp") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterFTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_FTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                AppLayerParserSetup();
+                RegisterSMTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SMTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-smtp") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                AppLayerParserSetup();
+                RegisterSMTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SMTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-smb-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSMBParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SMB, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-smb") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSMBParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SMB, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-modbus-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterModbusParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_MODBUS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-modbus") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterModbusParsers();
+                exit(AppLayerParserFromFile(ALPROTO_MODBUS, optarg));
+#endif
             } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
                 EngineModeSetIPS();
@@ -1764,6 +1878,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
         return TM_ECODE_FAILED;
     }
+#ifdef AFLFUZZ_CONF_TEST
+    if (conf_test && conf_test_force_success) {
+        (void)ConfSetFinal("engine.init-failure-fatal", "0");
+    }
+#endif
 
     if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
