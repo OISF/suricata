@@ -162,6 +162,8 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define TP_STATUS_VLAN_VALID (1 << 4)
 #endif
 
+#define AFP_BLOCK_SIZE_DEFAULT_ORDER 3
+
 /** protect pfring_set_bpf_filter, as it is not thread safe */
 static SCMutex afpacket_bpf_set_filter_lock = SCMUTEX_INITIALIZER;
 
@@ -1541,7 +1543,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
 
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
-    ptv->req3.tp_block_size = getpagesize();
+    ptv->req3.tp_block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
     ptv->req3.tp_frame_size = 2048;
     int frames_per_block = ptv->req3.tp_block_size / ptv->req3.tp_frame_size;
     if (frames_per_block == 0) {
@@ -1612,8 +1614,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
                 (void *) &ptv->req3, sizeof(ptv->req3));
     } else {
-#define DEFAULT_ORDER 3
-        for (order = DEFAULT_ORDER; order >= 0; order--) {
+        for (order = AFP_BLOCK_SIZE_DEFAULT_ORDER; order >= 0; order--) {
             if (AFPComputeRingParams(ptv, order) != 1) {
                 SCLogInfo("Ring parameter are incorrect. Please correct the devel");
                 return AFP_FATAL_ERROR;
