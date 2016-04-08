@@ -469,6 +469,9 @@ af-packet:
     #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
+    # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
+    # your system
+    #mmap-locked: yes
     # Use tpacket_v3, capture mode, only active if user-mmap is true
     #tpacket-v3: yes
     # Ring size will be computed with respect to max_pending_packets and number
