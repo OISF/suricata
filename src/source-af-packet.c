@@ -179,7 +179,9 @@ enum {
 
 union thdr {
     struct tpacket2_hdr *h2;
+#ifdef HAVE_TPACKET_V3
     struct tpacket3_hdr *h3;
+#endif
     void *raw;
 };
 
@@ -249,7 +251,9 @@ typedef struct AFPThreadVars_
 
     union {
         struct tpacket_req req;
+#ifdef HAVE_TPACKET_V3
         struct tpacket_req3 req3;
+#endif
     };
 
     char iface[AFP_IFACE_NAME_LENGTH];
@@ -1001,6 +1005,7 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
  */
 int AFPReadFromRingV3(AFPThreadVars *ptv)
 {
+#ifdef HAVE_TPACKET_V3
     struct tpacket_block_desc *pbd;
 
     /* Loop till we have packets available */
@@ -1027,7 +1032,7 @@ int AFPReadFromRingV3(AFPThreadVars *ptv)
             SCReturnInt(AFP_READ_OK);
         }
     }
-
+#endif
     SCReturnInt(AFP_READ_OK);
 }
 
@@ -1540,6 +1545,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
     return 1;
 }
 
+#ifdef HAVE_TPACKET_V3
 static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
 {
     ptv->req3.tp_block_size = ptv->block_size;
@@ -1562,6 +1568,7 @@ static int AFPComputeRingParamsV3(AFPThreadVars *ptv)
               );
     return 1;
 }
+#endif
 
 static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
 {
@@ -1572,11 +1579,15 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     int order;
     int r, mmap_flag;
 
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         val = TPACKET_V3;
     } else {
+#endif
         val = TPACKET_V2;
+#ifdef HAVE_TPACKET_V3
     }
+#endif
     if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
         if (errno == ENOPROTOOPT) {
             if (ptv->flags & AFP_TPACKET_V3) {
@@ -1605,6 +1616,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     }
 
     /* Allocate RX ring */
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         if (AFPComputeRingParamsV3(ptv) != 1) {
             SCLogInfo("Ring parameter are incorrect. Please correct the devel");
@@ -1613,6 +1625,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_RX_RING,
                 (void *) &ptv->req3, sizeof(ptv->req3));
     } else {
+#endif
         for (order = AFP_BLOCK_SIZE_DEFAULT_ORDER; order >= 0; order--) {
             if (AFPComputeRingParams(ptv, order) != 1) {
                 SCLogInfo("Ring parameter are incorrect. Please correct the devel");
@@ -1643,14 +1656,20 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
                     devname);
             return -AFP_FATAL_ERROR;
         }
+#ifdef HAVE_TPACKET_V3
     }
+#endif
 
     /* Allocate the Ring */
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         ring_buflen = ptv->req3.tp_block_nr * ptv->req3.tp_block_size;
     } else {
+#endif
         ring_buflen = ptv->req.tp_block_nr * ptv->req.tp_block_size;
+#ifdef HAVE_TPACKET_V3
     }
+#endif
     mmap_flag = MAP_SHARED;
     if (ptv->flags & AFP_MMAP_LOCKED)
         mmap_flag |= MAP_LOCKED;
@@ -1660,6 +1679,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
         goto mmap_err;
     }
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         ptv->ring_v3 = SCMalloc(ptv->req3.tp_block_nr * sizeof(*ptv->ring_v3));
         if (!ptv->ring_v3) {
@@ -1671,6 +1691,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
             ptv->ring_v3[i].iov_len = ptv->req3.tp_block_size;
         }
     } else {
+#endif
         /* allocate a ring for each frame header pointer*/
         ptv->ring_v2 = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
         if (ptv->ring_v2 == NULL) {
@@ -1689,7 +1710,9 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
             }
         }
         ptv->frame_offset = 0;
+#ifdef HAVE_TPACKET_V3
     }
+#endif
 
     return 0;
 
