@@ -227,6 +227,12 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t 
     if (child == NULL)
         return NULL;
 
+    /* child length should never be zero */
+    if (child->length == 0) {
+        SCFree(child);
+        return NULL;
+    }
+
     child->header = el;
     return child;
 }
