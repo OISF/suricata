@@ -153,6 +153,7 @@
 #include "app-layer-smb.h"
 #include "app-layer-modbus.h"
 
+#include "util-decode-der.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
@@ -1162,6 +1163,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-mime", required_argument, 0 , 0},
 
         {"afl-decoder-ppp", required_argument, 0 , 0},
+        {"afl-der", required_argument, 0, 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1450,6 +1452,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 FlowInitConfig(FLOW_QUIET);
                 //printf("arg: //%s\n", optarg);
                 exit(DecoderParseDataFromFile(optarg, DecodePPP));
+#endif
+#ifdef AFLFUZZ_DER
+            } else if(strcmp((long_opts[option_index]).name, "afl-der") == 0) {
+                //printf("arg: //%s\n", optarg);
+                exit(DerParseDataFromFile(optarg));
 #endif
             } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
                 SCLogInfo("Setting IPS mode");
