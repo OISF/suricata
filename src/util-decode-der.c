@@ -898,6 +898,34 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
     return cert;
 }
 
+#ifdef AFLFUZZ_DER
+int DerParseDataFromFile(char *filename)
+{
+    int result = 1;
+    FILE *fp = fopen(filename, "r");
+    BUG_ON(fp == NULL);
+    uint8_t buffer[65536];
+
+    uint32_t errcode = 0;
+
+    while (1) {
+        int done = 0;
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        if (result < sizeof(buffer))
+            done = 1;
+
+        DecodeDer(buffer, result, &errcode);
+
+        if (done)
+            break;
+    }
+
+    result = 0;
+    fclose(fp);
+    return result;
+}
+#endif
+
 void DerFree(Asn1Generic *a)
 {
     Asn1Generic *it, *n;

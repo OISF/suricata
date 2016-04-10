@@ -93,4 +93,8 @@ typedef struct Asn1Generic_ {
 Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size, uint32_t *errcode);
 void DerFree(Asn1Generic *a);
 
+#ifdef AFLFUZZ_DER
+int DerParseDataFromFile(char *filename);
+#endif
+
 #endif /* __UTIL_DECODE_DER_H__ */
