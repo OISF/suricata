@@ -175,6 +175,7 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     /* we only log the state once */
     ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED;
+    p->flow->cachedflags |= PACKET_APPLAYER_LOGGED;
 end:
     FLOWLOCK_UNLOCK(p->flow);
     return 0;
@@ -338,7 +339,16 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
  */
 static int JsonTlsCondition(ThreadVars *tv, const Packet *p)
 {
+
+    if (p->cachedflags & PACKET_APPLAYER_LOGGED) {
+        return FALSE;
+    }
+
     if (p->flow == NULL) {
+        return FALSE;
+    }
+
+    if (p->alproto != ALPROTO_TLS) {
         return FALSE;
     }
 
@@ -347,9 +357,6 @@ static int JsonTlsCondition(ThreadVars *tv, const Packet *p)
     }
 
     FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto dontlog;
 
     SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
@@ -364,8 +371,6 @@ static int JsonTlsCondition(ThreadVars *tv, const Packet *p)
     if (ssl_state->server_connp.cert0_issuerdn == NULL ||
             ssl_state->server_connp.cert0_subject == NULL)
         goto dontlog;
-
-    /* todo: logic to log once */
 
     FLOWLOCK_UNLOCK(p->flow);
     return TRUE;

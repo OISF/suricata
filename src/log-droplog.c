@@ -286,6 +286,9 @@ static int LogDropCondition(ThreadVars *tv, const Packet *p)
         SCLogDebug("engine is not running in inline mode, so returning");
         return FALSE;
     }
+    if (p->cachedflags & PACKET_FLOW_DROP_LOGGED) {
+        return FALSE;
+    }
     if (PKT_IS_PSEUDOPKT(p)) {
         SCLogDebug("drop log doesn't log pseudo packets");
         return FALSE;
@@ -328,10 +331,18 @@ static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     if (p->flow) {
         FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
-            if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
+            if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED)) {
                 p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
-            else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
+                if (p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED) {
+                    p->flow->cachedflags |= PACKET_FLOW_DROP_LOGGED;
+                }
+            } else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED)) {
                 p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
+                if (p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED) {
+                    p->flow->cachedflags |= PACKET_FLOW_DROP_LOGGED;
+                }
+
+            }
         }
         FLOWLOCK_UNLOCK(p->flow);
     }

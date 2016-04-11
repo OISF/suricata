@@ -174,6 +174,7 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_PKT_TOCLIENT_IPONLY_SET    0x10
 #define FLOW_PKT_TOSERVER_FIRST         0x20
 #define FLOW_PKT_TOCLIENT_FIRST         0x40
+#define FLOW_PKT_LOGGED                 0x80
 
 #define FLOW_END_FLAG_STATE_NEW         0x01
 #define FLOW_END_FLAG_STATE_ESTABLISHED 0x02
@@ -363,6 +364,8 @@ typedef struct Flow_
 
     uint8_t flow_end_flags;
     /* coccinelle: Flow:flow_end_flags:FLOW_END_FLAG_ */
+
+    uint8_t cachedflags;
 
     AppProto alproto; /**< \brief application level protocol */
     AppProto alproto_ts;

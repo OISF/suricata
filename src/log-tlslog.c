@@ -276,7 +276,16 @@ filectx_error:
  */
 static int LogTlsCondition(ThreadVars *tv, const Packet *p)
 {
+
+    if (p->cachedflags & PACKET_APPLAYER_LOGGED) {
+        return FALSE;
+    }
+
     if (p->flow == NULL) {
+        return FALSE;
+    }
+
+    if (p->alproto != ALPROTO_TLS) {
         return FALSE;
     }
 
@@ -305,8 +314,8 @@ static int LogTlsCondition(ThreadVars *tv, const Packet *p)
             ssl_state->server_connp.cert0_subject == NULL)
         goto dontlog;
 
-    /* todo: logic to log once */
-
+    /* Backup the fact we have logged */
+    p->flow->cachedflags |= PACKET_APPLAYER_LOGGED;
     FLOWLOCK_UNLOCK(p->flow);
     return TRUE;
 dontlog:

@@ -135,6 +135,7 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     /* we only log the state once */
     ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED;
+    p->flow->cachedflags |= PACKET_APPLAYER_LOGGED;
 end:
     FLOWLOCK_UNLOCK(p->flow);
     return 0;
@@ -278,19 +279,20 @@ OutputCtx *OutputSshLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
  */
 static int JsonSshCondition(ThreadVars *tv, const Packet *p)
 {
+
+    if (p->cachedflags & PACKET_APPLAYER_LOGGED) {
+        return FALSE;
+    }
+
     if (p->flow == NULL) {
         return FALSE;
     }
 
-    if (!(PKT_IS_TCP(p))) {
+    if (p->alproto != ALPROTO_SSH) {
         return FALSE;
     }
 
     FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto dontlog;
-
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state == NULL) {
         SCLogDebug("no ssh state, so no logging");
@@ -304,8 +306,6 @@ static int JsonSshCondition(ThreadVars *tv, const Packet *p)
     if (ssh_state->cli_hdr.software_version == NULL ||
         ssh_state->srv_hdr.software_version == NULL)
         goto dontlog;
-
-    /* todo: logic to log once */
 
     FLOWLOCK_UNLOCK(p->flow);
     return TRUE;
