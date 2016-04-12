@@ -1099,7 +1099,8 @@ void AFPSwitchState(AFPThreadVars *ptv, int state)
     }
 }
 
-static int AFPReadAndDiscard(AFPThreadVars *ptv, struct timeval *synctv)
+static int AFPReadAndDiscard(AFPThreadVars *ptv, struct timeval *synctv,
+                             uint64_t *discarded_pkts)
 {
     struct sockaddr_ll from;
     struct iovec iov;
@@ -1141,7 +1142,8 @@ static int AFPReadAndDiscard(AFPThreadVars *ptv, struct timeval *synctv)
     return 0;
 }
 
-static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv)
+static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
+                                     uint64_t *discarded_pkts)
 {
     union thdr h;
 
@@ -1149,26 +1151,30 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv)
         return 1;
     }
 
-    /* Ignore system for tpacket_v3 */
     if (ptv->flags & AFP_TPACKET_V3) {
+        struct tpacket_block_desc *pbd;
+        pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
+        *discarded_pkts += pbd->hdr.bh1.num_pkts;
+        AFPFlushBlock(pbd);
+        ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
         return 1;
-    }
+    } else {
+        /* Read packet from ring */
+        h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
+        if (h.raw == NULL) {
+            return -1;
+        }
+        (*discarded_pkts)++;
+        if (((time_t)h.h2->tp_sec > synctv->tv_sec) ||
+                ((time_t)h.h2->tp_sec == synctv->tv_sec &&
+                 (suseconds_t) (h.h2->tp_nsec / 1000) > synctv->tv_usec)) {
+            return 1;
+        }
 
-    /* Read packet from ring */
-    h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
-    if (h.raw == NULL) {
-        return -1;
-    }
-
-    if (((time_t)h.h2->tp_sec > synctv->tv_sec) ||
-        ((time_t)h.h2->tp_sec == synctv->tv_sec &&
-        (suseconds_t) (h.h2->tp_nsec / 1000) > synctv->tv_usec)) {
-        return 1;
-    }
-
-    h.h2->tp_status = TP_STATUS_KERNEL;
-    if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
-        ptv->frame_offset = 0;
+        h.h2->tp_status = TP_STATUS_KERNEL;
+        if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+            ptv->frame_offset = 0;
+        }
     }
 
 
@@ -1184,7 +1190,7 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv)
  *
  *  \retval r 1 = happy, otherwise unhappy
  */
-static int AFPSynchronizeStart(AFPThreadVars *ptv)
+static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
 {
     int r;
     struct timeval synctv;
@@ -1209,9 +1215,9 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv)
                 gettimeofday(&synctv, NULL);
             }
             if (ptv->flags & AFP_RING_MODE) {
-                r = AFPReadAndDiscardFromRing(ptv, &synctv);
+                r = AFPReadAndDiscardFromRing(ptv, &synctv, discarded_pkts);
             } else {
-                r = AFPReadAndDiscard(ptv, &synctv);
+                r = AFPReadAndDiscard(ptv, &synctv, discarded_pkts);
             }
             SCLogDebug("Discarding on %s", ptv->tv->name);
             switch (r) {
@@ -1278,6 +1284,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     time_t last_dump = 0;
     struct timeval current_time;
     int (*AFPReadFunc) (AFPThreadVars *);
+    uint64_t discarded_pkts = 0;
 
     ptv->slot = s->slot_next;
 
@@ -1317,8 +1324,25 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     if (ptv->afp_state == AFP_STATE_UP) {
         SCLogDebug("Thread %s using socket %d", tv->name, ptv->socket);
         if ((ptv->flags & AFP_TPACKET_V3) != 0) {
-            AFPSynchronizeStart(ptv);
+            AFPSynchronizeStart(ptv, &discarded_pkts);
         }
+        /* let's reset counter as we will start the capture at the
+         * next function call */
+#ifdef PACKET_STATISTICS
+         struct tpacket_stats kstats;
+         socklen_t len = sizeof (struct tpacket_stats);
+         if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
+                     &kstats, &len) > -1) {
+             uint64_t pkts = 0;
+             SCLogDebug("(%s) Kernel socket startup: Packets %" PRIu32
+                     ", dropped %" PRIu32 "",
+                     ptv->tv->name,
+                     kstats.tp_packets, kstats.tp_drops);
+             pkts = kstats.tp_packets - discarded_pkts - kstats.tp_drops;
+             StatsAddUI64(ptv->tv, ptv->capture_kernel_packets, pkts);
+             (void) SC_ATOMIC_ADD(ptv->livedev->pkts, pkts);
+         }
+#endif
     }
 
     fds.fd = ptv->socket;
