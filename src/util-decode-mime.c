@@ -2624,41 +2624,54 @@ static int MimeParserDataFromFileCB(const uint8_t *chunk, uint32_t len,
 int MimeParserDataFromFile(char *filename)
 {
     int result = 1;
-    FILE *fp = fopen(filename, "r");
-    BUG_ON(fp == NULL);
     uint8_t buffer[256];
 
-    uint32_t line_count = 0;
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
-    MimeDecParseState *state = MimeDecInitParser(&line_count,
-            MimeParserDataFromFileCB);
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
 
-    while (1) {
-        int done = 0;
-        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-        if (result < sizeof(buffer))
-            done = 1;
+        uint32_t line_count = 0;
 
-        (void) MimeDecParseLine(buffer, result, 1, state);
+        MimeDecParseState *state = MimeDecInitParser(&line_count,
+                MimeParserDataFromFileCB);
 
-        if (done)
-            break;
+        while (1) {
+            int done = 0;
+            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+            if (result < sizeof(buffer))
+                done = 1;
+
+            (void) MimeDecParseLine(buffer, result, 1, state);
+
+            if (done)
+                break;
+        }
+
+        /* Completed */
+        (void)MimeDecParseComplete(state);
+
+        if (state->msg) {
+            MimeDecFreeEntity(state->msg);
+        }
+
+        /* De Init parser */
+        MimeDecDeInitParser(state);
+
+        fclose(fp);
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
     }
-
-    /* Completed */
-    (void)MimeDecParseComplete(state);
-
-    if (state->msg) {
-        MimeDecFreeEntity(state->msg);
-    }
-    /* De Init parser */
-    MimeDecDeInitParser(state);
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
     result = 0;
-    fclose(fp);
     return result;
 }
-#endif
+#endif /* AFLFUZZ_MIME */
 
 #ifdef UNITTESTS
 

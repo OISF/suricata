@@ -582,40 +582,52 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
 
 #ifdef AFLFUZZ_DECODER
 int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
-    int result = 1;
-    FILE *fp = fopen(filename, "r");
-    BUG_ON(fp == NULL);
     uint8_t buffer[65536];
+    int result = 1;
 
-    ThreadVars tv;
-    memset(&tv, 0, sizeof(tv));
-    DecodeThreadVars *dtv = DecodeThreadVarsAlloc(&tv);
-    DecodeRegisterPerfCounters(dtv, &tv);
-    StatsSetupPrivate(&tv);
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
-    while (1) {
-        int done = 0;
-        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-        if (result < sizeof(buffer))
-            done = 1;
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
 
-        Packet *p = PacketGetFromAlloc();
-        if (p != NULL) {
-            (void) Decoder (&tv, dtv, p, buffer, result, NULL);
-            PacketFree(p);
+        ThreadVars tv;
+        memset(&tv, 0, sizeof(tv));
+        DecodeThreadVars *dtv = DecodeThreadVarsAlloc(&tv);
+        DecodeRegisterPerfCounters(dtv, &tv);
+        StatsSetupPrivate(&tv);
+
+        while (1) {
+            int done = 0;
+            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+            if (result < sizeof(buffer))
+                 done = 1;
+
+            Packet *p = PacketGetFromAlloc();
+            if (p != NULL) {
+                (void) Decoder (&tv, dtv, p, buffer, result, NULL);
+                PacketFree(p);
+            }
+
+            if (done)
+                break;
         }
+        DecodeThreadVarsFree(&tv, dtv);
 
-        if (done)
-            break;
+        fclose(fp);
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
     }
-    DecodeThreadVarsFree(&tv, dtv);
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
     result = 0;
-    fclose(fp);
     return result;
 
 }
-#endif
+#endif /* AFLFUZZ_DECODER */
 
 /**
  * @}
