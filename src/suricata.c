@@ -1149,44 +1149,6 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
     if (optarg != NULL) {
-        /* warn user if af-packet, netmap or pf-ring are available */
-#if defined HAVE_AF_PACKET || HAVE_PFRING || HAVE_NETMAP
-        int i = 0;
-#ifdef HAVE_AF_PACKET
-        i++;
-#endif
-#ifdef HAVE_PFRING
-        i++;
-#endif
-#ifdef HAVE_NETMAP
-        i++;
-#endif
-        SCLogWarning(SC_WARN_FASTER_CAPTURE_AVAILABLE, "faster capture "
-                "option%s %s available:"
-#ifdef HAVE_AF_PACKET
-                " AF_PACKET (--af-packet=%s)"
-#endif
-#ifdef HAVE_PFRING
-                " PF_RING (--pfring-int=%s)"
-#endif
-#ifdef HAVE_NETMAP
-                " NETMAP (--netmap=%s)"
-#endif
-                ". Use --pcap=%s to suppress this warning",
-                i == 1 ? "" : "s", i == 1 ? "is" : "are"
-
-#ifdef HAVE_AF_PACKET
-                , optarg
-#endif
-#ifdef HAVE_PFRING
-                , optarg
-#endif
-#ifdef HAVE_NETMAP
-                , optarg
-#endif
-                , optarg
-                );
-#endif
         /* some windows shells require escaping of the \ in \Device. Otherwise
          * the backslashes are stripped. We put them back here. */
         if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
@@ -1745,7 +1707,35 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
-#else
+#else /* not afpacket */
+            /* warn user if netmap or pf-ring are available */
+#if defined HAVE_PFRING || HAVE_NETMAP
+            int i = 0;
+#ifdef HAVE_PFRING
+            i++;
+#endif
+#ifdef HAVE_NETMAP
+            i++;
+#endif
+            SCLogWarning(SC_WARN_FASTER_CAPTURE_AVAILABLE, "faster capture "
+                    "option%s %s available:"
+#ifdef HAVE_PFRING
+                    " PF_RING (--pfring-int=%s)"
+#endif
+#ifdef HAVE_NETMAP
+                    " NETMAP (--netmap=%s)"
+#endif
+                    ". Use --pcap=%s to suppress this warning",
+                    i == 1 ? "" : "s", i == 1 ? "is" : "are"
+#ifdef HAVE_PFRING
+                    , optarg
+#endif
+#ifdef HAVE_NETMAP
+                    , optarg
+#endif
+                    , optarg
+                    );
+#endif /* have faster methods */
             if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
