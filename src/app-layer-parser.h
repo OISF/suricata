@@ -222,6 +222,11 @@ void AppLayerParserStateFree(AppLayerParserState *pstate);
 void AppLayerParserStatePrintDetails(AppLayerParserState *pstate);
 #endif
 
+#ifdef AFLFUZZ_APPLAYER
+int AppLayerParserRequestFromFile(AppProto alproto, char *filename);
+int AppLayerParserFromFile(AppProto alproto, char *filename);
+#endif
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS

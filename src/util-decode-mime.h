@@ -239,6 +239,10 @@ MimeDecEntity * MimeDecParseFullMsg(const uint8_t *buf, uint32_t blen, void *dat
         int (*DataChunkProcessorFunc)(const uint8_t *chunk, uint32_t len, MimeDecParseState *state));
 const char *MimeDecParseStateGetStatus(MimeDecParseState *state);
 
+#ifdef AFLFUZZ_MIME
+int MimeParserDataFromFile(char *filename);
+#endif
+
 /* Test functions */
 void MimeDecRegisterTests(void);
 

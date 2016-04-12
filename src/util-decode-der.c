@@ -898,6 +898,33 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size,
     return cert;
 }
 
+#ifdef AFLFUZZ_DER
+int DerParseDataFromFile(char *filename)
+{
+    uint8_t buffer[65536];
+    uint32_t errcode = 0;
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
+
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        DecodeDer(buffer, result, &errcode);
+        fclose(fp);
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    }
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
+    return 0;
+}
+#endif /* AFLFUZZ_DER */
+
 void DerFree(Asn1Generic *a)
 {
     Asn1Generic *it, *n;
