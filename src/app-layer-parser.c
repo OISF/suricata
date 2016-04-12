@@ -1213,37 +1213,49 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
     f->proto = IPPROTO_TCP;
     f->alproto = alproto;
 
-    FILE *fp = fopen(filename, "r");
-    BUG_ON(fp == NULL);
+    uint8_t buffer[64];
 
-    uint8_t buffer[256];
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
-    int start = 1;
-    while (1) {
-        int done = 0;
-        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-        if (result < sizeof(buffer))
-            done = 1;
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
 
-        //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
+        int start = 1;
+        while (1) {
+            int done = 0;
+            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+            if (result < sizeof(buffer))
+                done = 1;
 
-        uint8_t flags = STREAM_TOSERVER;
+            //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
 
-        if (start--) {
-            flags |= STREAM_START;
+            uint8_t flags = STREAM_TOSERVER;
+
+            if (start--) {
+                flags |= STREAM_START;
+            }
+            if (done) {
+                flags |= STREAM_EOF;
+            }
+            //PrintRawDataFp(stdout, buffer, result);
+
+            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            if (done)
+                break;
         }
-        if (done) {
-            flags |= STREAM_EOF;
-        }
-        //PrintRawDataFp(stdout, buffer, result);
 
-        (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
-        if (done)
-            break;
+        fclose(fp);
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
     }
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
     result = 0;
-    fclose(fp);
+
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -1276,45 +1288,56 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
     f->proto = IPPROTO_TCP;
     f->alproto = alproto;
 
-    FILE *fp = fopen(filename, "r");
-    BUG_ON(fp == NULL);
-
     uint8_t buffer[64];
 
-    int start = 1;
-    int flip = 0;
-    while (1) {
-        int done = 0;
-        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
-        if (result < sizeof(buffer))
-            done = 1;
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(1000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
-        //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
 
-        uint8_t flags = 0;
-        if (flip) {
-            flags = STREAM_TOCLIENT;
-            flip = 0;
-        } else {
-            flags = STREAM_TOSERVER;
-            flip = 1;
+        int start = 1;
+        int flip = 0;
+        while (1) {
+            int done = 0;
+            size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+            if (result < sizeof(buffer))
+                done = 1;
+
+            //SCLogInfo("result %u done %d start %d", (uint)result, done, start);
+
+            uint8_t flags = 0;
+            if (flip) {
+                flags = STREAM_TOCLIENT;
+                flip = 0;
+            } else {
+                flags = STREAM_TOSERVER;
+                flip = 1;
+            }
+
+            if (start--) {
+                flags |= STREAM_START;
+            }
+            if (done) {
+                flags |= STREAM_EOF;
+            }
+            //PrintRawDataFp(stdout, buffer, result);
+
+            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            if (done)
+                break;
         }
 
-        if (start--) {
-            flags |= STREAM_START;
-        }
-        if (done) {
-            flags |= STREAM_EOF;
-        }
-        //PrintRawDataFp(stdout, buffer, result);
+        fclose(fp);
 
-        (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
-        if (done)
-            break;
+#ifdef AFLFUZZ_PERSISTANT_MODE
     }
+#endif /* AFLFUZZ_PERSISTANT_MODE */
 
     result = 0;
-    fclose(fp);
 end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -1323,7 +1346,7 @@ end:
     }
     return result;
 }
-#endif
+#endif /* AFLFUZZ_APPLAYER */
 
 /***** Unittests *****/
 
