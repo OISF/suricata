@@ -1319,6 +1319,20 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         if ((ptv->flags & AFP_TPACKET_V3) != 0) {
             AFPSynchronizeStart(ptv);
         }
+        /* let's reset counter as we will start the capture at the
+         * next function call */
+#ifdef PACKET_STATISTICS
+         struct tpacket_stats kstats;
+         socklen_t len = sizeof (struct tpacket_stats);
+         if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
+                     &kstats, &len) > -1) {
+             SCLogDebug("(%s) Kernel socket startup: Packets %" PRIu32
+                     ", dropped %" PRIu32 "",
+                     ptv->tv->name,
+                     kstats.tp_packets, kstats.tp_drops);
+         }
+
+#endif
     }
 
     fds.fd = ptv->socket;
