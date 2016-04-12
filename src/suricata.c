@@ -2476,14 +2476,21 @@ int main(int argc, char **argv)
             if (suri.sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
+                sigusr2_count--;
             } else {
-                DetectEngineReload(conf_filename, &suri);
+                if (!(DetectEngineReloadIsStart())) {
+                    DetectEngineReloadStart();
+                    DetectEngineReload(conf_filename, &suri);
+                    DetectEngineReloadSetDone();
+                    sigusr2_count--;
+                }
             }
-            sigusr2_count--;
+
         } else if (DetectEngineReloadIsStart()) {
             if (suri.sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
+                DetectEngineReloadSetDone();
             } else {
                 DetectEngineReload(conf_filename, &suri);
                 DetectEngineReloadSetDone();
