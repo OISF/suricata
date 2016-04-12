@@ -2516,10 +2516,15 @@ int main(int argc, char **argv)
     TmThreadDisableReceiveThreads();
 
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
-        /* we need a packet pool for FlowForceReassembly */
-        PacketPoolInit();
+        /* don't force flow timeout when reading pcap file */
+        if (suri.run_mode != RUNMODE_PCAP_FILE) {
 
-        FlowForceReassembly();
+            /* we need a packet pool for FlowForceReassembly */
+            PacketPoolInit();
+
+            FlowForceReassembly();
+        }
+
         /* kill receive threads when they have processed all
          * flow timeout packets */
         TmThreadDisablePacketThreads();
