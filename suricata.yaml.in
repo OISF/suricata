@@ -469,12 +469,22 @@ af-packet:
     #rollover: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
+    # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
+    # your system
+    #mmap-locked: yes
+    # Use tpacket_v3, capture mode, only active if user-mmap is true
+    #tpacket-v3: yes
     # Ring size will be computed with respect to max_pending_packets and number
     # of threads. You can set manually the ring size in number of packets by setting
     # the following value. If you are using flow cluster-type and have really network
     # intensive single-flow you could want to set the ring-size independantly of the number
     # of threads:
     #ring-size: 2048
+    # Block size is used by tpacket_v3 only. It should set to a value high enough to contain
+    # a decent number of packets
+    #block-size: 32768
+    # tpacket_v3 block timeout
+    #block-timeout: 10
     # On busy system, this could help to set it to yes to recover from a packet drop
     # phase. This will result in some packets (at max a ring flush) being non treated.
     #use-emergency-flush: yes
@@ -512,8 +522,9 @@ af-packet:
   # Put default values here
   - interface: default
     #threads: auto
-    #use-mmap: yes
+    use-mmap: yes
     #rollover: yes
+    tpacket-v3: yes
 
 # Netmap support
 #
