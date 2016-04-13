@@ -165,6 +165,31 @@ static int HTPStateGetAlstateProgress(void *tx, uint8_t direction);
 static uint64_t HTPStateGetTxCnt(void *alstate);
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction);
 
+static uint16_t htp_tx_cnt = 0;
+static uint16_t htp_flow_cnt = 0;
+
+static void HTPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        htp_tx_cnt = StatsRegisterCounter("app-layer.tx.htp", tv);
+        htp_flow_cnt = StatsRegisterCounter("app-layer.flow.htp", tv);
+    }
+}
+
+static void HTPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, htp_tx_cnt);
+    }
+}
+
+static void HTPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, htp_flow_cnt);
+    }
+}
+
 #ifdef DEBUG
 /**
  * \internal
@@ -659,7 +684,7 @@ static inline void HTPErrorCheckTxRequestFlags(HtpState *s, htp_tx_t *tx)
  *
  *  \retval On success returns 1 or on failure returns -1.
  */
-static int HTPHandleRequestData(Flow *f, void *htp_state,
+static int HTPHandleRequestData(ThreadVars *tv, Flow *f, void *htp_state,
                                 AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 void *local_data)
@@ -779,6 +804,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
 
+    HTPIncTxCounter(tv);
     SCLogDebug("hstate->connp %p", hstate->connp);
     SCReturnInt(ret);
 
@@ -799,7 +825,7 @@ error:
  *
  *  \retval On success returns 1 or on failure returns -1
  */
-static int HTPHandleResponseData(Flow *f, void *htp_state,
+static int HTPHandleResponseData(ThreadVars *tv, Flow *f, void *htp_state,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data)
@@ -2766,6 +2792,10 @@ void RegisterHTPParsers(void)
                                      HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_HTTP,
+                                           HTPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_HTTP,
+                                             HTPIncFlowCounter);
         HTPConfigure();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -2831,7 +2861,8 @@ int HTPParserTest01(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -2908,7 +2939,8 @@ static int HTPParserTest01a(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -2970,8 +3002,9 @@ int HTPParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                                STREAM_EOF, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                                httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -3035,7 +3068,8 @@ int HTPParserTest03(void)
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3096,8 +3130,9 @@ int HTPParserTest04(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
-                            STREAM_EOF, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_START | STREAM_EOF,
+                            httpbuf1, httplen1);
     if (r != 0) {
         SCMutexUnlock(&f->m);
         goto end;
@@ -3165,15 +3200,17 @@ int HTPParserTest05(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf4,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf4,
                             httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
@@ -3181,30 +3218,32 @@ int HTPParserTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                            httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3,
-                            httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOSERVER | STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf6,
-                            httplen6);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_EOF, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -3310,15 +3349,17 @@ int HTPParserTest06(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
                             httplen2);
     if (r != 0) {
         printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
@@ -3399,7 +3440,8 @@ int HTPParserTest07(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3498,7 +3540,8 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     SCMutexLock(&f->m);
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -3585,7 +3628,8 @@ libhtp:\n\
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     SCMutexLock(&f->m);
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags, httpbuf1,
+                            httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -3661,7 +3705,8 @@ int HTPParserTest10(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3753,7 +3798,8 @@ static int HTPParserTest11(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3838,7 +3884,8 @@ static int HTPParserTest12(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -3926,7 +3973,8 @@ int HTPParserTest13(void)
             flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4337,7 +4385,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4520,7 +4569,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4689,7 +4739,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4856,7 +4907,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -4993,7 +5045,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5103,7 +5156,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5213,7 +5267,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5324,7 +5379,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5432,7 +5488,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5541,7 +5598,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -5696,7 +5754,9 @@ libhtp:\n\
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -5705,7 +5765,8 @@ libhtp:\n\
     SCMutexUnlock(&f->m);
     SCLogDebug("\n>>>> processing chunk 1 again <<<<\n");
     SCMutexLock(&f->m);
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -5814,7 +5875,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, (uint8_t *)&httpbuf[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                (uint8_t *)&httpbuf[u], 1);
         if (u < 18294) { /* first 18294 bytes should result in 0 */
             if (r != 0) {
                 printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
@@ -5956,7 +6018,8 @@ libhtp:\n\
         else flags = STREAM_TOSERVER;
 
         SCMutexLock(&f->m);
-        r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, (uint8_t *)&httpbuf[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                                (uint8_t *)&httpbuf[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -6039,7 +6102,8 @@ int HTPParserTest16(void)
     uint8_t flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
     SCMutexLock(&f->m);
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, flags, (uint8_t *)httpbuf, len);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, flags,
+                            (uint8_t *)httpbuf, len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -6122,31 +6186,33 @@ int HTPParserTest17(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
                             httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                                httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf4,
-                            httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                            httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -6245,30 +6311,32 @@ int HTPParserTest18(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
                             httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                                httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                                httpbuf4, httplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -6276,8 +6344,8 @@ int HTPParserTest18(void)
     }
 
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5,
-                            httplen5);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT,
+                            httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
@@ -6372,23 +6440,25 @@ int HTPParserTest19(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
-                                httpbuf1, httplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                                STREAM_TOSERVER | STREAM_START, httpbuf1,
+                                httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP,
+                            STREAM_TOCLIENT | STREAM_START, httpbuf2,
                             httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
-                                httpbuf3, httplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER,
+                            httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f->m);

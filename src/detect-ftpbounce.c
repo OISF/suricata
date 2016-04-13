@@ -331,7 +331,8 @@ static int DetectFtpbounceTestALMatch02(void)
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -339,7 +340,8 @@ static int DetectFtpbounceTestALMatch02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -347,7 +349,8 @@ static int DetectFtpbounceTestALMatch02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -355,7 +358,8 @@ static int DetectFtpbounceTestALMatch02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf4, ftplen4);
     if (r != 0) {
         SCLogDebug("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -472,7 +476,8 @@ static int DetectFtpbounceTestALMatch03(void)
     DetectEngineThreadCtxInit(&th_v,(void *)de_ctx,(void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf1, ftplen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP,
+                                STREAM_TOSERVER, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -480,7 +485,8 @@ static int DetectFtpbounceTestALMatch03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -488,7 +494,8 @@ static int DetectFtpbounceTestALMatch03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf3, ftplen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -496,7 +503,8 @@ static int DetectFtpbounceTestALMatch03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f,ALPROTO_FTP, STREAM_TOSERVER, ftpbuf4, ftplen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_FTP, STREAM_TOSERVER,
+                            ftpbuf4, ftplen4);
     if (r != 0) {
         SCLogDebug("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;

@@ -109,6 +109,7 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
  */
 void AppLayerDestroyCtxThread(AppLayerThreadCtx *tctx);
 
+void AppLayerRegisterCounters(ThreadVars *tv, uint8_t ipproto);
 
 /***** Profiling *****/
 

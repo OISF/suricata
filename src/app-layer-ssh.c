@@ -52,6 +52,31 @@
 #include "util-byte.h"
 #include "util-memcmp.h"
 
+static uint16_t ssh_tx_cnt = 0;
+static uint16_t ssh_flow_cnt = 0;
+
+static void SSHRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        ssh_tx_cnt = StatsRegisterCounter("app-layer.tx.ssh", tv);
+        ssh_flow_cnt = StatsRegisterCounter("app-layer.flow.ssh", tv);
+    }
+}
+
+static void SSHIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssh_tx_cnt);
+    }
+}
+
+static void SSHIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, ssh_flow_cnt);
+    }
+}
+
 /** \internal
  *  \brief Function to parse the SSH version string of the client
  *
@@ -415,7 +440,8 @@ static int SSHParseData(SshState *state, SshHeader *header,
     return 0;
 }
 
-static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
+static int SSHParseRequest(ThreadVars *tv, Flow *f, void *state,
+                           AppLayerParserState *pstate,
                            uint8_t *input, uint32_t input_len,
                            void *local_data)
 {
@@ -439,7 +465,8 @@ static int SSHParseRequest(Flow *f, void *state, AppLayerParserState *pstate,
     SCReturnInt(r);
 }
 
-static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
+static int SSHParseResponse(ThreadVars *tv, Flow *f, void *state,
+                            AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
                             void *local_data)
 {
@@ -460,6 +487,7 @@ static int SSHParseResponse(Flow *f, void *state, AppLayerParserState *pstate,
         AppLayerParserStateSetFlag(pstate, APP_LAYER_PARSER_NO_REASSEMBLY);
     }
 
+    SSHIncTxCounter(tv);
     SCReturnInt(r);
 }
 
@@ -532,6 +560,10 @@ void RegisterSSHParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SSH, SSHStateAlloc, SSHStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP,
                 ALPROTO_SSH, STREAM_TOSERVER|STREAM_TOCLIENT);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_SSH,
+                                           SSHRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_SSH,
+                                             SSHIncFlowCounter);
     } else {
 //        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
 //                  "still on.", proto_name);
@@ -562,7 +594,8 @@ static int SSHParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -628,7 +661,8 @@ static int SSHParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -694,7 +728,8 @@ static int SSHParserTest03(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected != 0: ", r);
         SCMutexUnlock(&f.m);
@@ -746,7 +781,8 @@ static int SSHParserTest04(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -812,7 +848,8 @@ static int SSHParserTest05(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -877,7 +914,8 @@ static int SSHParserTest06(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected != 0: ", r);
         SCMutexUnlock(&f.m);
@@ -931,7 +969,8 @@ static int SSHParserTest07(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -940,7 +979,8 @@ static int SSHParserTest07(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1009,7 +1049,8 @@ static int SSHParserTest08(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1018,7 +1059,8 @@ static int SSHParserTest08(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1027,7 +1069,8 @@ static int SSHParserTest08(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1092,7 +1135,8 @@ static int SSHParserTest09(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1101,7 +1145,8 @@ static int SSHParserTest09(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1170,7 +1215,8 @@ static int SSHParserTest10(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1179,7 +1225,8 @@ static int SSHParserTest10(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1188,7 +1235,8 @@ static int SSHParserTest10(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1254,7 +1302,8 @@ static int SSHParserTest11(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1263,7 +1312,8 @@ static int SSHParserTest11(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1336,7 +1386,8 @@ static int SSHParserTest12(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1345,7 +1396,8 @@ static int SSHParserTest12(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1354,7 +1406,8 @@ static int SSHParserTest12(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1428,7 +1481,8 @@ static int SSHParserTest13(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1437,7 +1491,8 @@ static int SSHParserTest13(void)
     SCMutexUnlock(&f.m);
     for (u = 0; u < sshlen2; u++) {
         SCMutexLock(&f.m);
-        r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, &sshbuf2[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, &sshbuf2[u], 1);
         if (r != 0) {
             printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
             SCMutexUnlock(&f.m);
@@ -1447,7 +1502,8 @@ static int SSHParserTest13(void)
     }
     for (u = 0; u < sshlen3; u++) {
         SCMutexLock(&f.m);
-        r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, &sshbuf3[u], 1);
+        r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, &sshbuf3[u], 1);
         if (r != 0) {
             printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
             SCMutexUnlock(&f.m);
@@ -1527,7 +1583,8 @@ static int SSHParserTest14(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1535,7 +1592,8 @@ static int SSHParserTest14(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1543,7 +1601,8 @@ static int SSHParserTest14(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1551,7 +1610,8 @@ static int SSHParserTest14(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1559,7 +1619,8 @@ static int SSHParserTest14(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf5, sshlen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf5, sshlen5);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1639,7 +1700,8 @@ static int SSHParserTest15(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1647,7 +1709,8 @@ static int SSHParserTest15(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1655,7 +1718,8 @@ static int SSHParserTest15(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1663,7 +1727,8 @@ static int SSHParserTest15(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1671,7 +1736,8 @@ static int SSHParserTest15(void)
     }
     SCMutexUnlock(&f.m);
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf5, sshlen5);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf5, sshlen5);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1744,7 +1810,8 @@ static int SSHParserTest16(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1753,7 +1820,8 @@ static int SSHParserTest16(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1762,7 +1830,8 @@ static int SSHParserTest16(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1837,7 +1906,8 @@ static int SSHParserTest17(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1846,7 +1916,8 @@ static int SSHParserTest17(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1855,7 +1926,8 @@ static int SSHParserTest17(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1864,7 +1936,8 @@ static int SSHParserTest17(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1947,7 +2020,8 @@ static int SSHParserTest18(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, server1, serverlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, server1, serverlen1);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1956,7 +2030,8 @@ static int SSHParserTest18(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1965,7 +2040,8 @@ static int SSHParserTest18(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1974,7 +2050,8 @@ static int SSHParserTest18(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, server2, serverlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            server2, serverlen2);
     if (r != 0) {
         printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -1983,7 +2060,8 @@ static int SSHParserTest18(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2053,7 +2131,8 @@ static int SSHParserTest19(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2062,7 +2141,8 @@ static int SSHParserTest19(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2071,7 +2151,8 @@ static int SSHParserTest19(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2080,7 +2161,8 @@ static int SSHParserTest19(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2173,7 +2255,8 @@ static int SSHParserTest20(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2182,7 +2265,8 @@ static int SSHParserTest20(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2191,7 +2275,8 @@ static int SSHParserTest20(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2201,7 +2286,8 @@ static int SSHParserTest20(void)
 
     SCLogDebug("chunk 4:");
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2280,7 +2366,8 @@ static int SSHParserTest21(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2289,7 +2376,8 @@ static int SSHParserTest21(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2298,7 +2386,8 @@ static int SSHParserTest21(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2308,7 +2397,8 @@ static int SSHParserTest21(void)
 
     SCLogDebug("chunk 4:");
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2415,7 +2505,8 @@ static int SSHParserTest22(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2424,7 +2515,8 @@ static int SSHParserTest22(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2433,7 +2525,8 @@ static int SSHParserTest22(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH, STREAM_TOCLIENT,
+                            sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -2507,7 +2600,8 @@ static int SSHParserTest23(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned 0 expected non null: ");
         SCMutexUnlock(&f.m);
@@ -2540,7 +2634,8 @@ static int SSHParserTest24(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SSH,
+                                STREAM_TOSERVER | STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);

@@ -45,6 +45,31 @@ enum {
 	DCERPC_FIELD_MAX,
 };
 
+static uint16_t dcerpc_udp_tx_cnt = 0;
+static uint16_t dcerpc_udp_flow_cnt = 0;
+
+static void DCERPCUDPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        dcerpc_udp_tx_cnt = StatsRegisterCounter("app-layer.tx.dcerpc_udp", tv);
+        dcerpc_udp_tx_cnt = StatsRegisterCounter("app-layer.flow.dcerpc_udp", tv);
+    }
+}
+
+static void DCERPCUDPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_udp_tx_cnt);
+    }
+}
+
+static void DCERPCUDPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_udp_flow_cnt);
+    }
+}
+
 /** \internal
  *  \retval stub_len or 0 in case of error */
 static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
@@ -774,6 +799,23 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 	SCReturnInt(1);
 }
 
+static int DCERPCUDPParseRequest(ThreadVars *tv, Flow *f, void *dcerpc_state,
+                                 AppLayerParserState *pstate,
+                                 uint8_t *input, uint32_t input_len,
+                                 void *local_data)
+{
+    return DCERPCUDPParse(f, dcerpc_state, pstate, input, input_len, local_data);    
+}
+
+static int DCERPCUDPParseResponse(ThreadVars *tv, Flow *f, void *dcerpc_state,
+                                  AppLayerParserState *pstate,
+                                  uint8_t *input, uint32_t input_len,
+                                  void *local_data)
+{
+    DCERPCUDPIncTxCounter(tv);
+    return DCERPCUDPParse(f, dcerpc_state, pstate, input, input_len, local_data);    
+}
+
 static void *DCERPCUDPStateAlloc(void)
 {
 	void *s = SCMalloc(sizeof(DCERPCUDPState));
@@ -835,12 +877,16 @@ void RegisterDCERPCUDPParsers(void)
 
     if (AppLayerParserConfParserEnabled("udp", "dcerpc")) {
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOSERVER,
-                                     DCERPCUDPParse);
+                                     DCERPCUDPParseRequest);
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                                     DCERPCUDPParse);
+                                     DCERPCUDPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DCERPC, DCERPCUDPStateAlloc,
                                          DCERPCUDPStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_UDP, ALPROTO_DCERPC,
+                                           DCERPCUDPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_UDP, ALPROTO_DCERPC,
+                                             DCERPCUDPIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", "dcerpc");
@@ -1062,7 +1108,9 @@ int DCERPCUDPParserTest01(void)
 	StreamTcpInitConfig(TRUE);
 
 	SCMutexLock(&f.m);
-	int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
+	int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+				    STREAM_TOSERVER | STREAM_START,
+				    dcerpcrequest, requestlen);
 	if (r != 0) {
 		printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
 		result = 0;

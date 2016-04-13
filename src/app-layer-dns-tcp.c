@@ -58,6 +58,31 @@ struct DNSTcpHeader_ {
 } __attribute__((__packed__));
 typedef struct DNSTcpHeader_ DNSTcpHeader;
 
+static uint16_t dns_tcp_tx_cnt = 0;
+static uint16_t dns_tcp_flow_cnt = 0;
+
+static void DNSTCPRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        dns_tcp_tx_cnt = StatsRegisterCounter("app-layer.tx.dns_tcp", tv);
+        dns_tcp_flow_cnt = StatsRegisterCounter("app-layer.flow.dns_tcp", tv);
+    }
+}
+
+static void DNSTCPIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dns_tcp_tx_cnt);
+    }
+}
+
+static void DNSTCPIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dns_tcp_flow_cnt);
+    }
+}
+
 /** \internal
  *  \param input_len at least enough for the DNSTcpHeader
  */
@@ -272,7 +297,7 @@ insufficient_data:
 /** \internal
  *  \brief Parse DNS request packet
  */
-static int DNSTCPRequestParse(Flow *f, void *dstate,
+static int DNSTCPRequestParse(ThreadVars *tv, Flow *f, void *dstate,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
@@ -487,7 +512,7 @@ insufficient_data:
  *  would have been _very_ tricky due to the way names are compressed in DNS
  *
  */
-static int DNSTCPResponseParse(Flow *f, void *dstate,
+static int DNSTCPResponseParse(ThreadVars *tv, Flow *f, void *dstate,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
@@ -515,6 +540,8 @@ next_record:
     }
     SCLogDebug("input_len %u offset %u record %u",
             input_len, dns_state->offset, dns_state->record_len);
+
+    DNSTCPIncTxCounter(tv);
 
     /* this is the first data of this record */
     if (dns_state->offset == 0) {
@@ -666,6 +693,10 @@ void RegisterDNSTCPParsers(void)
                                                    DNSGetAlstateProgress);
         AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_DNS,
+                                           DNSTCPRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_DNS,
+                                             DNSTCPIncFlowCounter);
         DNSAppLayerRegisterGetEventInfo(IPPROTO_TCP, ALPROTO_DNS);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"

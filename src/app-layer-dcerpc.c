@@ -79,6 +79,31 @@ enum {
 
 void DCERPCUuidListFree(DCERPCUuidEntryList *list);
 
+static uint16_t dcerpc_tx_cnt = 0;
+static uint16_t dcerpc_flow_cnt = 0;
+
+static void DCERPCRegisterCounters(ThreadVars *tv)
+{
+    if (tv) {
+        dcerpc_tx_cnt = StatsRegisterCounter("app-layer.tx.dcerpc_tcp", tv);
+        dcerpc_flow_cnt = StatsRegisterCounter("app-layer.flow.dcerpc_tcp", tv);
+    }
+}
+
+static void DCERPCIncTxCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_tx_cnt);
+    }
+}
+
+static void DCERPCIncFlowCounter(ThreadVars *tv)
+{
+    if (tv) {
+        StatsIncr(tv, dcerpc_flow_cnt);
+    }
+}
+
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(/*Flow *f,*/ const void *buf, size_t len)
 {
@@ -1919,16 +1944,17 @@ static int DCERPCParse(Flow *f, void *dcerpc_state,
     SCReturnInt(1);
 }
 
-static int DCERPCParseRequest(Flow *f, void *dcerpc_state,
+static int DCERPCParseRequest(ThreadVars *tv, Flow *f, void *dcerpc_state,
                               AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
+    DCERPCIncTxCounter(tv);
     return DCERPCParse(f, dcerpc_state, pstate, input, input_len,
                        local_data, 0);
 }
 
-static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
+static int DCERPCParseResponse(ThreadVars *tv, Flow *f, void *dcerpc_state,
                                AppLayerParserState *pstate,
                                uint8_t *input, uint32_t input_len,
                                void *local_data)
@@ -2033,6 +2059,10 @@ void RegisterDCERPCParsers(void)
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_DCERPC, DCERPCStateAlloc,
                                          DCERPCStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_DCERPC, STREAM_TOSERVER);
+        AppLayerParserRegisterCountersFunc(IPPROTO_TCP, ALPROTO_DCERPC,
+                                           DCERPCRegisterCounters);
+        AppLayerParserRegisterIncFlowCounter(IPPROTO_TCP, ALPROTO_DCERPC,
+                                             DCERPCIncFlowCounter);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);
@@ -2422,7 +2452,9 @@ int DCERPCParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcbind, bindlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                                STREAM_TOSERVER | STREAM_START, dcerpcbind,
+                                bindlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2458,7 +2490,8 @@ int DCERPCParserTest01(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpcbindack, bindacklen);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, dcerpcbindack, bindacklen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2482,7 +2515,9 @@ int DCERPCParserTest01(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_EOF, dcerpcrequest, requestlen);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_EOF, dcerpcrequest,
+                            requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2654,7 +2689,9 @@ int DCERPCParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                                STREAM_TOSERVER | STREAM_START, dcerpcrequest,
+                                requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2854,7 +2891,9 @@ int DCERPCParserTest03(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                                STREAM_TOSERVER | STREAM_START, dcerpcrequest,
+                                requestlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4303,8 +4342,8 @@ int DCERPCParserTest05(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
-                            bind1, bind1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, bind1, bind1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4329,8 +4368,8 @@ int DCERPCParserTest05(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind2, bind2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind2, bind2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4478,8 +4517,8 @@ int DCERPCParserTest06(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START,
-                            bind1, bind1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, bind1, bind1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4501,8 +4540,8 @@ int DCERPCParserTest06(void)
     result &= (dcerpc_state->dcerpc.dcerpcbindbindack.numctxitemsleft == 8);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind2, bind2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind2, bind2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4564,8 +4603,9 @@ int DCERPCParserTest07(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START,
-                            request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, request1,
+                            request1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4587,8 +4627,8 @@ int DCERPCParserTest07(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged = 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4603,8 +4643,8 @@ int DCERPCParserTest07(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged = 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request3, request3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4656,8 +4696,9 @@ int DCERPCParserTest08(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
-                            request, request_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, request,
+                            request_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4716,8 +4757,9 @@ int DCERPCParserTest09(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
-                            request, request_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, request,
+                            request_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4790,8 +4832,8 @@ int DCERPCParserTest10(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START,
-                            fault, fault_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER | STREAM_START, fault, fault_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4808,8 +4850,8 @@ int DCERPCParserTest10(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4823,8 +4865,8 @@ int DCERPCParserTest10(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4891,8 +4933,8 @@ int DCERPCParserTest11(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4914,8 +4956,8 @@ int DCERPCParserTest11(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4928,8 +4970,8 @@ int DCERPCParserTest11(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request3, request3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4990,8 +5032,8 @@ int DCERPCParserTest12(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack1, bind_ack1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack1, bind_ack1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5011,8 +5053,8 @@ int DCERPCParserTest12(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack2, bind_ack2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack2, bind_ack2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5068,8 +5110,8 @@ int DCERPCParserTest13(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5159,8 +5201,8 @@ int DCERPCParserTest14(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5221,8 +5263,8 @@ int DCERPCParserTest15(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5683,8 +5725,8 @@ int DCERPCParserTest16(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind1, bind1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind1, bind1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5701,8 +5743,8 @@ int DCERPCParserTest16(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack1, bind_ack1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack1, bind_ack1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5733,8 +5775,8 @@ int DCERPCParserTest16(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind2, bind2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind2, bind2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5753,8 +5795,8 @@ int DCERPCParserTest16(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack2, bind_ack2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack2, bind_ack2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5785,8 +5827,8 @@ int DCERPCParserTest16(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind3, bind3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind3, bind3_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5805,8 +5847,8 @@ int DCERPCParserTest16(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack3, bind_ack3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack3, bind_ack3_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5929,8 +5971,8 @@ int DCERPCParserTest17(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5947,8 +5989,8 @@ int DCERPCParserTest17(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5979,8 +6021,8 @@ int DCERPCParserTest17(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            alter_context, alter_context_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, alter_context, alter_context_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5999,8 +6041,9 @@ int DCERPCParserTest17(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                            alter_context_resp, alter_context_resp_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, alter_context_resp,
+                            alter_context_resp_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6074,8 +6117,8 @@ int DCERPCParserTest18(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6096,8 +6139,8 @@ int DCERPCParserTest18(void)
     result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
-                            request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6340,7 +6383,9 @@ int DCERPCParserTest19(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START, dcerpcbind, bindlen);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                                STREAM_TOSERVER | STREAM_START, dcerpcbind,
+                                bindlen);
     if (r != 0) {
         printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
         SCMutexUnlock(&f.m);
@@ -6360,7 +6405,8 @@ int DCERPCParserTest19(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpcbindack, bindacklen);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+                            STREAM_TOCLIENT, dcerpcbindack, bindacklen);
     if (r == 0) {
         printf("dce parser didn't return fail\n");
         SCMutexUnlock(&f.m);
