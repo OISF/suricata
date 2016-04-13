@@ -8,6 +8,31 @@
 
     AC_LANG_C
     AC_PROG_CC_C99
+
+    # enable modifications for AFL fuzzing
+    AC_ARG_ENABLE(afl,
+           AS_HELP_STRING([--enable-afl], Enable AFL fuzzing logic[])], [enable_afl="$enableval"],[enable_afl=no])
+
+    AS_IF([test "x$enable_afl" = "xyes"], [
+        AC_DISABLE_SHARED
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        AC_DEFINE([AFLFUZZ_DISABLE_MGTTHREADS], [1], [Disable all management threads])
+        AC_DEFINE([AFLFUZZ_PCAP_RUNMODE], [1], [Enable special AFL 'single' runmode])
+        AC_DEFINE([AFLFUZZ_CONF_TEST], [1], [Enable special --afl-parse-rules commandline option])
+        AC_DEFINE([AFLFUZZ_APPLAYER], [1], [Enable --afl-$proto-request commandline option])
+        AC_DEFINE([AFLFUZZ_MIME], [1], [Enable --afl-mime commandline option])
+        AC_DEFINE([AFLFUZZ_DECODER], [1], [Enable --afl-decoder-$proto commandline option])
+        AC_DEFINE([AFLFUZZ_DER], [1], [Enable --afl-der commandline option])
+
+        # test for AFL PERSISTANT_MODE support
+        CFLAGS_ORIG=$CFLAGS
+        CFLAGS="-Werror"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
+                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [])
+        CFLAGS=$CFLAGS_ORIG
+    ])
+
     AC_PROG_LIBTOOL
     PKG_PROG_PKG_CONFIG(0.21) # 0.21 is the CentOS 5.11 version
 
