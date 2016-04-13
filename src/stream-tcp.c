@@ -166,32 +166,24 @@ int StreamTcpCheckMemcap(uint64_t size)
 }
 
 /**
- *  \brief Function to return the stream back to the pool. It returns the
- *         segments in the stream to the segment pool.
- *
- *  This function is called when the flow is destroyed, so it should free
- *  *everything* related to the tcp session. So including the app layer
- *  data. We are guaranteed to only get here when the flow's use_cnt is 0.
- *
- *  \param ssn Void ptr to the ssn.
+ *  \brief Session cleanup function. Does not free the ssn.
+ *  \param ssn tcp session
  */
-void StreamTcpSessionClear(void *ssnptr)
+void StreamTcpSessionCleanup(TcpSession *ssn)
 {
     SCEnter();
+
     StreamMsg *smsg = NULL;
     TcpStateQueue *q, *q_next;
 
-    TcpSession *ssn = (TcpSession *)ssnptr;
     if (ssn == NULL)
-        SCReturn;
-
-    StreamTcpReturnStreamSegments(&ssn->client);
-    StreamTcpReturnStreamSegments(&ssn->server);
-
-    //AppLayerParserCleanupState(ssn);
+        return;
 
     StreamTcpSackFreeList(&ssn->client);
     StreamTcpSackFreeList(&ssn->server);
+
+    StreamTcpReturnStreamSegments(&ssn->client);
+    StreamTcpReturnStreamSegments(&ssn->server);
 
     /* if we have (a) smsg(s), return to the pool */
     smsg = ssn->toserver_smsg_head;
@@ -225,6 +217,28 @@ void StreamTcpSessionClear(void *ssnptr)
     }
     ssn->queue = NULL;
     ssn->queue_len = 0;
+
+    SCReturn;
+}
+
+/**
+ *  \brief Function to return the stream back to the pool. It returns the
+ *         segments in the stream to the segment pool.
+ *
+ *  This function is called when the flow is destroyed, so it should free
+ *  *everything* related to the tcp session. So including the app layer
+ *  data. We are guaranteed to only get here when the flow's use_cnt is 0.
+ *
+ *  \param ssn Void ptr to the ssn.
+ */
+void StreamTcpSessionClear(void *ssnptr)
+{
+    SCEnter();
+    TcpSession *ssn = (TcpSession *)ssnptr;
+    if (ssn == NULL)
+        return;
+
+    StreamTcpSessionCleanup(ssn);
 
     memset(ssn, 0, sizeof(TcpSession));
     PoolThreadReturn(ssn_pool, ssn);
@@ -264,7 +278,7 @@ void StreamTcpSessionPktFree (Packet *p)
 /** \brief Stream alloc function for the Pool
  *  \retval ptr void ptr to TcpSession structure with all vars set to 0/NULL
  */
-void *StreamTcpSessionPoolAlloc()
+static void *StreamTcpSessionPoolAlloc()
 {
     void *ptr = NULL;
 
@@ -278,7 +292,7 @@ void *StreamTcpSessionPoolAlloc()
     return ptr;
 }
 
-int StreamTcpSessionPoolInit(void *data, void* initdata)
+static int StreamTcpSessionPoolInit(void *data, void* initdata)
 {
     memset(data, 0, sizeof(TcpSession));
     StreamTcpIncrMemuse((uint64_t)sizeof(TcpSession));
@@ -286,55 +300,15 @@ int StreamTcpSessionPoolInit(void *data, void* initdata)
     return 1;
 }
 
-/** \brief Pool free function
+/** \brief Pool cleanup function
  *  \param s Void ptr to TcpSession memory */
-void StreamTcpSessionPoolCleanup(void *s)
+static void StreamTcpSessionPoolCleanup(void *s)
 {
-    StreamMsg *smsg = NULL;
-    TcpStateQueue *q, *q_next;
-
-    if (s == NULL)
-        return;
-
-    TcpSession *ssn = (TcpSession *)s;
-
-    StreamTcpReturnStreamSegments(&ssn->client);
-    StreamTcpReturnStreamSegments(&ssn->server);
-
-    /* if we have (a) smsg(s), return to the pool */
-    smsg = ssn->toserver_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
+    if (s != NULL) {
+        StreamTcpSessionCleanup(s);
+        /** \todo not very clean, as the memory is not freed here */
+        StreamTcpDecrMemuse((uint64_t)sizeof(TcpSession));
     }
-    ssn->toserver_smsg_head = NULL;
-
-    smsg = ssn->toclient_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
-    }
-    ssn->toclient_smsg_head = NULL;
-
-    q = ssn->queue;
-    while (q != NULL) {
-        q_next = q->next;
-        SCFree(q);
-        q = q_next;
-        StreamTcpDecrMemuse((uint64_t)sizeof(TcpStateQueue));
-    }
-    ssn->queue = NULL;
-    ssn->queue_len = 0;
-
-    StreamTcpDecrMemuse((uint64_t)sizeof(TcpSession));
 }
 
 /** \brief          To initialize the stream global configuration data

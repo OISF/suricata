@@ -225,7 +225,11 @@ TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq);
+/* clear ssn and return to pool */
 void StreamTcpSessionClear(void *ssnptr);
+/* cleanup ssn, but don't free ssn */
+void StreamTcpSessionCleanup(TcpSession *ssn);
+
 uint32_t StreamTcpGetStreamSize(TcpStream *stream);
 
 #endif /* __STREAM_TCP_H__ */
