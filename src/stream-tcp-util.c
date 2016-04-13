@@ -68,6 +68,7 @@ void StreamTcpUTClearSession(TcpSession *ssn)
 {
     StreamTcpUTClearStream(&ssn->client);
     StreamTcpUTClearStream(&ssn->server);
+    StreamTcpSessionCleanup(ssn);
 }
 
 void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
@@ -80,7 +81,7 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
 
 void StreamTcpUTClearStream(TcpStream *s)
 {
-    StreamTcpReturnStreamSegments(s);
+    StreamTcpStreamCleanup(s);
 }
 
 int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
