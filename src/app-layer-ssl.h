@@ -26,6 +26,8 @@
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
 
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
 #include "decode-events.h"
 #include "queue.h"
 
@@ -176,9 +178,17 @@ typedef struct SSLState_ {
 
     /* there might be a better place to store this*/
     uint16_t hb_record_len;
+
+    uint8_t finished;
+
+    DetectEngineState *de_state;
+
+    uint16_t events;
+    AppLayerDecoderEvents *decoder_events;
 } SSLState;
 
 void RegisterSSLParsers(void);
 void SSLParserRegisterTests(void);
+void SSLSetEvent(SSLState *ssl_state, uint8_t event);
 
 #endif /* __APP_LAYER_SSL_H__ */
