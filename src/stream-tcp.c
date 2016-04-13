@@ -165,6 +165,14 @@ int StreamTcpCheckMemcap(uint64_t size)
     return 0;
 }
 
+void StreamTcpStreamCleanup(TcpStream *stream)
+{
+    if (stream != NULL) {
+        StreamTcpSackFreeList(stream);
+        StreamTcpReturnStreamSegments(stream);
+    }
+}
+
 /**
  *  \brief Session cleanup function. Does not free the ssn.
  *  \param ssn tcp session
@@ -179,11 +187,8 @@ void StreamTcpSessionCleanup(TcpSession *ssn)
     if (ssn == NULL)
         return;
 
-    StreamTcpSackFreeList(&ssn->client);
-    StreamTcpSackFreeList(&ssn->server);
-
-    StreamTcpReturnStreamSegments(&ssn->client);
-    StreamTcpReturnStreamSegments(&ssn->server);
+    StreamTcpStreamCleanup(&ssn->client);
+    StreamTcpStreamCleanup(&ssn->server);
 
     /* if we have (a) smsg(s), return to the pool */
     smsg = ssn->toserver_smsg_head;

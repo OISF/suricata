@@ -229,6 +229,9 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 void StreamTcpSessionClear(void *ssnptr);
 /* cleanup ssn, but don't free ssn */
 void StreamTcpSessionCleanup(TcpSession *ssn);
+/* cleanup stream, but don't free the stream */
+void StreamTcpStreamCleanup(TcpStream *stream);
+
 
 uint32_t StreamTcpGetStreamSize(TcpStream *stream);
 
