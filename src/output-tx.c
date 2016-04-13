@@ -28,6 +28,7 @@
 #include "output-tx.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
+#include "app-layer-ssl.h"
 #include "util-profiling.h"
 
 typedef struct OutputLoggerThreadStore_ {
@@ -119,12 +120,24 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
-    int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
-                                                       STREAM_TOSERVER);
-    int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
-                                                       STREAM_TOCLIENT);
+
+    int tx_progress_done_value_ts = 0;
+    int tx_progress_done_value_tc = 0;
+
+    /* we want to log TLS once the handshake is done */
+    if (alproto == ALPROTO_TLS) {
+        tx_progress_done_value_ts = TLS_HANDSHAKE_DONE;
+        tx_progress_done_value_ts = TLS_HANDSHAKE_DONE;
+
+    } else {
+        tx_progress_done_value_ts =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                           STREAM_TOSERVER);
+        tx_progress_done_value_tc =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                           STREAM_TOCLIENT);
+    }
+
     for (; tx_id < total_txs; tx_id++)
     {
         int proto_logged = 0;

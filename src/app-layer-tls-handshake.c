@@ -58,25 +58,24 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
     switch (errcode) {
         case ERR_DER_ELEMENT_SIZE_TOO_BIG:
         case ERR_DER_INVALID_SIZE:
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
+            SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
             break;
         case ERR_DER_UNSUPPORTED_STRING:
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
+            SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_CERTIFICATE_INVALID_STRING);
             break;
         case ERR_DER_UNKNOWN_ELEMENT:
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
+            SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_CERTIFICATE_UNKNOWN_ELEMENT);
             break;
         case ERR_DER_MISSING_ELEMENT:
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
+            SSLSetEvent(ssl_state,
                     TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
             break;
         case ERR_DER_GENERIC:
         default:
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
-                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             break;
     };
 }
@@ -108,8 +107,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
     i = 0;
     while (certificates_length > 0) {
         if ((uint32_t)(input + 3 - start_data) > (uint32_t)input_len) {
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
-                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             return -1;
         }
 
@@ -119,14 +117,12 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
 
         /* current certificate length should be greater than zero */
         if (cur_cert_length == 0) {
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
-                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             return -1;
         }
 
         if (input - start_data + cur_cert_length > input_len) {
-            AppLayerDecoderEventsSetEvent(ssl_state->f,
-                    TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             return -1;
         }
 
