@@ -246,7 +246,7 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
 }
 
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, uint8_t flags, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -254,24 +254,28 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     DNSTransaction *tx = txptr;
     json_t *js;
 
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        js = CreateJSONHeader((Packet *)p, 1, "dns");
+    if (flags & STREAM_TOSERVER) {
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            js = CreateJSONHeader((Packet *)p, 1, "dns");
+            if (unlikely(js == NULL))
+                return TM_ECODE_OK;
+
+            LogQuery(td, js, tx, tx_id, query);
+
+            json_decref(js);
+        }
+    }
+
+    if (flags & STREAM_TOCLIENT) {
+        js = CreateJSONHeader((Packet *)p, 0, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
-        LogQuery(td, js, tx, tx_id, query);
+        LogAnswers(td, js, tx, tx_id);
 
         json_decref(js);
     }
-
-    js = CreateJSONHeader((Packet *)p, 0, "dns");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    LogAnswers(td, js, tx, tx_id);
-
-    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
