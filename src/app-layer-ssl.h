@@ -98,8 +98,6 @@ enum ssl_tx_progress_t {
 /* flags for file storage */
 #define SSL_AL_FLAG_STATE_STORED                0x40000
 
-#define SSL_AL_FLAG_STATE_LOGGED_LUA            0x80000
-
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
