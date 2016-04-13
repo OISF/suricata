@@ -267,6 +267,7 @@ static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p
     SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
     if (ssl_state != NULL)
         ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED_LUA;
+    p->flow->cachedflags |= PACKET_APPLAYER_LOGGED_LUA;
 
     FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(0);
@@ -274,6 +275,10 @@ static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p
 
 static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
 {
+    if (p->cachedflags & PACKET_APPLAYER_LOGGED_LUA) {
+        return FALSE;
+    }
+
     if (p->flow == NULL) {
         return FALSE;
     }
@@ -286,11 +291,11 @@ static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto dontlog;
+    if (p->alproto != ALPROTO_TLS) {
+        return FALSE;
+    }
 
+    FLOWLOCK_RDLOCK(p->flow);
     SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
     if (ssl_state == NULL) {
         SCLogDebug("no tls state, so no request logging");
@@ -347,6 +352,7 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state != NULL)
         ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED_LUA;
+    p->flow->cachedflags |= PACKET_APPLAYER_LOGGED_LUA;
 
     FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(0);
@@ -354,6 +360,10 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
 
 static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
 {
+    if (p->cachedflags & PACKET_APPLAYER_LOGGED_LUA) {
+        return FALSE;
+    }
+
     if (p->flow == NULL) {
         return FALSE;
     }
@@ -366,11 +376,11 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_SSH)
-        goto dontlog;
+    if (p->alproto != ALPROTO_SSH) {
+        return FALSE;
+    }
 
+    FLOWLOCK_RDLOCK(p->flow);
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state == NULL) {
         SCLogDebug("no ssh state, so no request logging");

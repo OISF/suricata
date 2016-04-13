@@ -152,16 +152,17 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                                  APPLAYER_MISMATCH_PROTOCOL_BOTH_DIRECTIONS);
                 /* it indicates some data has already been sent to the parser */
                 if (ssn->data_first_seen_dir == APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER) {
-                    f->alproto = *alproto = *alproto_otherdir;
+                    *alproto = *alproto_otherdir;
                 } else {
                     if (flags & STREAM_TOCLIENT)
-                        f->alproto = *alproto_otherdir = *alproto;
+                        *alproto_otherdir = *alproto;
                     else
-                        f->alproto = *alproto = *alproto_otherdir;
+                        *alproto = *alproto_otherdir;
                 }
             }
 
             f->alproto = *alproto;
+            p->alproto = f->alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
 
             /* if we have seen data from the other direction first, send
@@ -509,6 +510,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
+        p->alproto = f->alproto;
     } else {
         SCLogDebug("stream data (len %" PRIu32 " ), alproto "
                    "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
