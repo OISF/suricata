@@ -26,6 +26,8 @@
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
 
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
 #include "decode-events.h"
 #include "queue.h"
 
@@ -75,6 +77,9 @@ enum {
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
 #define SSL_AL_FLAG_STATE_LOGGED                0x4000
+
+/* flag to indicate that session is finished */
+#define SSL_AL_FLAG_STATE_FINISHED              0x4000
 
 /* flags specific to HeartBeat state */
 #define SSL_AL_FLAG_HB_INFLIGHT                 0x8000
@@ -169,16 +174,22 @@ typedef struct SSLState_ {
     /* holds some state flags we need */
     uint32_t flags;
 
+    /* there might be a better place to store this*/
+    uint16_t hb_record_len;
+
+    uint16_t events;
+
     SSLStateConnp *curr_connp;
 
     SSLStateConnp client_connp;
     SSLStateConnp server_connp;
 
-    /* there might be a better place to store this*/
-    uint16_t hb_record_len;
+    DetectEngineState *de_state;
+    AppLayerDecoderEvents *decoder_events;
 } SSLState;
 
 void RegisterSSLParsers(void);
 void SSLParserRegisterTests(void);
+void SSLSetEvent(SSLState *ssl_state, uint8_t event);
 
 #endif /* __APP_LAYER_SSL_H__ */
