@@ -1467,6 +1467,16 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerParserSetup();
                 RegisterModbusParsers();
                 exit(AppLayerParserFromFile(ALPROTO_MODBUS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-enip-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterENIPTCPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_ENIP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-enip") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterENIPTCPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_ENIP, optarg));		
 #endif
 #ifdef AFLFUZZ_MIME
             } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
