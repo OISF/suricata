@@ -47,7 +47,9 @@
 #include "util-proto-name.h"
 #include "util-logopenfile.h"
 #include "util-time.h"
+#include "util-crypt.h"
 #include "output-json.h"
+#include "output-json-alert.h"
 #include "output-json-http.h"
 
 #ifdef HAVE_LIBJANSSON
@@ -350,6 +352,68 @@ static void JsonHttpLogJSONExtended(json_t *js, htp_tx_t *tx)
     json_object_set_new(js, "length", json_integer(tx->response_message_len));
 }
 
+static void BodyPrintableBufferCopy(json_t *js, HtpBody *body, const char *key)
+{
+    if (body->sb != NULL && body->sb->buf != NULL) {
+        uint64_t buf_len = body->sb->buf_offset + 1;
+        uint8_t printable_buf[buf_len];
+        uint32_t offset = 0;
+
+        PrintStringsToBuffer(printable_buf, &offset,
+                             sizeof(printable_buf),
+                             body->sb->buf, body->sb->buf_offset);
+        if (offset > 0) {
+            json_object_set_new(js, key, json_string((char *)printable_buf));
+        }
+    }
+}
+
+void JsonHttpLogJSONBodyPrintable(json_t *js, Flow *f, uint64_t tx_id)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        if (tx) {
+            HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+            if (htud != NULL) {
+                HtpBody *req_body = &htud->request_body;
+                HtpBody *resp_body = &htud->response_body;
+
+                BodyPrintableBufferCopy(js, req_body, "http_request_body_printable");
+                BodyPrintableBufferCopy(js, resp_body, "http_response_body_printable");
+            }
+        }
+    }
+}
+
+static void BodyBase64BufferCopy(json_t *js, HtpBody *body, const char *key)
+{
+    if (body->sb != NULL && body->sb->buf != NULL) {
+        unsigned long len = body->sb->buf_offset * 2 + 1;
+        uint8_t encoded[len];
+        Base64Encode(body->sb->buf, body->sb->buf_offset, encoded, &len);
+        json_object_set_new(js, key, json_string((char *)encoded));
+    }
+}
+
+void JsonHttpLogJSONBodyBase64(json_t *js, Flow *f, uint64_t tx_id)
+{
+    HtpState *htp_state = (HtpState *)FlowGetAppState(f);
+    if (htp_state) {
+        htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, tx_id);
+        if (tx) {
+            HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
+            if (htud != NULL) {
+                HtpBody *req_body = &htud->request_body;
+                HtpBody *resp_body = &htud->response_body;
+
+                BodyBase64BufferCopy(js, req_body, "http_request_body");
+                BodyBase64BufferCopy(js, resp_body, "http_response_body");
+            }
+        }
+    }
+}
+
 /* JSON format logging */
 static void JsonHttpLogJSON(JsonHttpLogThread *aft, json_t *js, htp_tx_t *tx, uint64_t tx_id)
 {
@@ -409,7 +473,6 @@ json_t *JsonHttpAddMetadata(const Flow *f, uint64_t tx_id)
 
             JsonHttpLogJSONBasic(hjs, tx);
             JsonHttpLogJSONExtended(hjs, tx);
-
             return hjs;
         }
     }
