@@ -656,7 +656,7 @@ void DNSStoreAnswerInState(DNSState *dns_state, const int rtype, const uint8_t *
 static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const uint32_t input_len,
         const uint16_t offset, uint8_t *fqdn, const size_t fqdn_size)
 {
-    if (input + input_len < input + offset + 1) {
+    if (offset >= input_len) {
         SCLogDebug("input buffer too small for domain of len %u", offset);
         goto insufficient_data;
     }
@@ -672,13 +672,18 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         SCReturnUInt(6U);
     }
 
+    if ((uint64_t)((qdata + 1) - input) >= (uint64_t)input_len) {
+        SCLogDebug("input buffer too small");
+        goto insufficient_data;
+    }
+
     while (length != 0) {
         int cnt = 0;
         while (length & 0xc0) {
             uint16_t offset = ((length & 0x3f) << 8) + *(qdata+1);
             qdata = (const uint8_t *)input + offset;
 
-            if (input + input_len < qdata + 1) {
+            if ((uint64_t)((qdata + 1) - input) >= (uint64_t)input_len) {
                 SCLogDebug("input buffer too small");
                 goto insufficient_data;
             }
@@ -710,8 +715,8 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         }
         qdata += length;
 
-        if (input + input_len < qdata + 1) {
-            SCLogDebug("input buffer too small for len field");
+        if ((uint64_t)((qdata + 1) - input) >= (uint64_t)input_len) {
+            SCLogDebug("input buffer too small");
             goto insufficient_data;
         }
 
