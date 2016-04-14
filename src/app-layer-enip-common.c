@@ -249,7 +249,6 @@ int DecodeENIPPDU(uint8_t *input, uint32_t input_len,
 int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
         ENIPTransaction *enip_data, uint16_t offset)
 {
-    int ret = 1;
 
     if (enip_data->header.length < sizeof(ENIPEncapDataHdr))
     {
@@ -312,11 +311,11 @@ int DecodeCommonPacketFormatPDU(uint8_t *input, uint32_t input_len,
         case CONNECTED_DATA_ITEM:
             SCLogDebug(
                     "DecodeCommonPacketFormat - CONNECTED DATA ITEM - parse CIP\n");
-            ret = DecodeCIPPDU(input, input_len, enip_data, offset);
+            DecodeCIPPDU(input, input_len, enip_data, offset);
             break;
         case UNCONNECTED_DATA_ITEM:
             SCLogDebug("DecodeCommonPacketFormat - UNCONNECTED DATA ITEM\n");
-            ret = DecodeCIPPDU(input, input_len, enip_data, offset);
+            DecodeCIPPDU(input, input_len, enip_data, offset);
             break;
         default:
             SCLogDebug("DecodeCommonPacketFormat - UNKNOWN TYPE 0x%x\n\n",
@@ -512,8 +511,7 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
     uint16_t req_path_class16;
     uint16_t req_path_instance16;
 
-    uint16_t class = 0;
-    uint16_t attrib = 0;
+    uint16_t class = 0;  
 
     SegmentEntry *seg = NULL;
 
@@ -544,8 +542,8 @@ int DecodeCIPRequestPathPDU(uint8_t *input, uint32_t input_len,
                 break;
             case PATH_ATTR_8BIT: //single attribute
                 ENIPExtractUint8(&req_path_attr8, input, &offset);
-                attrib = (uint16_t) req_path_attr8;
-                SCLogDebug("DecodeCIPRequestPath: 8bit attr 0x%x\n", attrib);
+                //uint16_t attrib = (uint16_t) req_path_attr8;
+                //SCLogDebug("DecodeCIPRequestPath: 8bit attr 0x%x\n", attrib);
 
                 seg = SCMalloc(sizeof(SegmentEntry));
                 if (unlikely(seg == NULL))
