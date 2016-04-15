@@ -616,22 +616,6 @@ void OutputDropLoggerDisable(void)
         drop_loggers--;
 }
 
-static int tls_loggers = 0;
-
-int OutputTlsLoggerEnable(void)
-{
-    if (tls_loggers)
-        return -1;
-    tls_loggers++;
-    return 0;
-}
-
-void OutputTlsLoggerDisable(void)
-{
-    if (tls_loggers)
-        tls_loggers--;
-}
-
 static int ssh_loggers = 0;
 
 int OutputSshLoggerEnable(void)
