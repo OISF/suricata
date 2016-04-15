@@ -42,7 +42,6 @@
 #include "util-debug.h"
 
 #include "output.h"
-#include "log-tlslog.h"
 #include "app-layer-ssl.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -176,8 +175,47 @@ static void LogTlsLogPem(LogTlsStoreLogThread *aft, const Packet *p, SSLState *s
         char timebuf[64];
         Port sp, dp;
         CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-        if (!TLSGetIPInformations(p, srcip, PRINT_BUF_LEN, &sp, dstip, PRINT_BUF_LEN, &dp, ipproto))
-            goto end_fwrite_fpmeta;
+
+        if ((PKT_IS_TOCLIENT(p))) {
+            switch (ipproto) {
+                case AF_INET:
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                              srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                              dstip, sizeof(dstip));
+                    break;
+                case AF_INET6:
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                              srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                              dstip, sizeof(dstip));
+                    break;
+                default:
+                    goto end_fwrite_fpmeta;
+            }
+            sp = p->sp;
+            dp = p->dp;
+        } else {
+            switch (ipproto) {
+                case AF_INET:
+                    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p),
+                              srcip, sizeof(srcip));
+                    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p),
+                              dstip, sizeof(dstip));
+                    break;
+                case AF_INET6:
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p),
+                              srcip, sizeof(srcip));
+                    PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p),
+                              dstip, sizeof(dstip));
+                    break;
+                default:
+                    goto end_fwrite_fpmeta;
+            }
+            sp = p->dp;
+            dp = p->sp;
+        }
+
         if (fprintf(fpmeta, "TIME:              %s\n", timebuf) < 0)
             goto end_fwrite_fpmeta;
         if (p->pcap_cnt > 0) {
