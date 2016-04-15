@@ -26,6 +26,8 @@
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
 
+#include "app-layer-protos.h"
+#include "app-layer-parser.h"
 #include "decode-events.h"
 #include "queue.h"
 
@@ -80,11 +82,6 @@ enum {
 #define SSL_AL_FLAG_HB_INFLIGHT                 0x8000
 #define SSL_AL_FLAG_HB_CLIENT_INIT              0x10000
 #define SSL_AL_FLAG_HB_SERVER_INIT              0x20000
-
-/* flags for file storage */
-#define SSL_AL_FLAG_STATE_STORED                0x40000
-
-#define SSL_AL_FLAG_STATE_LOGGED_LUA            0x80000
 
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
@@ -176,9 +173,17 @@ typedef struct SSLState_ {
 
     /* there might be a better place to store this*/
     uint16_t hb_record_len;
+
+    uint8_t finished;
+
+    DetectEngineState *de_state;
+
+    uint16_t events;
+    AppLayerDecoderEvents *decoder_events;
 } SSLState;
 
 void RegisterSSLParsers(void);
 void SSLParserRegisterTests(void);
+void SSLSetEvent(SSLState *ssl_state, uint8_t event);
 
 #endif /* __APP_LAYER_SSL_H__ */
