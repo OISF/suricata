@@ -132,7 +132,6 @@ int RunModeErfFileAutoFp(void)
     int thread;
 
     RunModeInitialize();
-    RunmodeSetFlowStreamAsync();
 
     char *file = NULL;
     if (ConfGet("erf-file.file", &file) == 0) {

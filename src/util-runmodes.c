@@ -51,21 +51,6 @@
 
 #include "flow-hash.h"
 
-/** set to true if flow engine and stream engine run in different
- *  threads. */
-static int runmode_flow_stream_async = 0;
-
-void RunmodeSetFlowStreamAsync(void)
-{
-    runmode_flow_stream_async = 1;
-    FlowDisableTcpReuseHandling();
-}
-
-int RunmodeGetFlowStreamAsync(void)
-{
-    return runmode_flow_stream_async;
-}
-
 /** \brief create a queue string for autofp to pass to
  *         the flow queue handler.
  *
@@ -120,8 +105,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
-
-    RunmodeSetFlowStreamAsync();
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -496,8 +479,6 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
-
-    RunmodeSetFlowStreamAsync();
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {

@@ -194,7 +194,7 @@ int DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                     {
                         /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
                         if (ICMPV4_DEST_UNREACH_IS_VALID(p)) {
-                            FlowHandlePacket(tv, dtv, p);
+                            FlowSetupPacket(p);
                         }
                     }
                 }

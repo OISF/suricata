@@ -1518,7 +1518,6 @@ int DecodeIPV4DefragTest03(void)
         0x80, 0x00, 0xb1, 0xa3, 0x00, 0x00
     };
 
-    Flow *f = NULL;
     Packet *p = PacketGetFromAlloc();
     if (unlikely(p == NULL))
         return 0;
@@ -1542,12 +1541,11 @@ int DecodeIPV4DefragTest03(void)
         result = 0;
         goto end;
     }
-    if (p->flow == NULL) {
+    if (!(p->flags & PKT_WANTS_FLOW)) {
         printf("packet flow shouldn't be NULL\n");
         result = 0;
         goto end;
     }
-    f = p->flow;
     PACKET_RECYCLE(p);
 
     PacketCopyData(p, pkt1, sizeof(pkt1));
@@ -1585,11 +1583,11 @@ int DecodeIPV4DefragTest03(void)
         result = 0;
         goto end;
     }
-    if (tp->flow == NULL) {
+    if (!(tp->flags & PKT_WANTS_FLOW)) {
         result = 0;
         goto end;
     }
-    if (tp->flow != f) {
+    if (tp->flow_hash != p->flow_hash) {
         result = 0;
         goto end;
     }

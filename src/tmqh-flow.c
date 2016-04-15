@@ -61,7 +61,9 @@ void TmqhFlowRegister(void)
         if (strcasecmp(scheduler, "round-robin") == 0) {
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowRoundRobin;
         } else if (strcasecmp(scheduler, "active-packets") == 0) {
-            tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
+            //tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
+            SCLogNotice("FIXME: using flow hash instead of active packets");
+            tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
         } else if (strcasecmp(scheduler, "hash") == 0) {
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
         } else if (strcasecmp(scheduler, "ippair") == 0) {
@@ -73,7 +75,8 @@ void TmqhFlowRegister(void)
             exit(EXIT_FAILURE);
         }
     } else {
-        tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
+        //tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
+        tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
     }
 
     return;
@@ -330,7 +333,7 @@ void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
  * \param tv thread vars.
  * \param p packet.
  */
-void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
+void TmqhOutputFlowHash2(ThreadVars *tv, Packet *p)
 {
     int16_t qid = 0;
 
@@ -371,6 +374,31 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
     return;
 }
 
+void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
+{
+    int16_t qid = 0;
+
+    TmqhFlowCtx *ctx = (TmqhFlowCtx *)tv->outctx;
+
+    if (p->flags & PKT_WANTS_FLOW) {
+        uint32_t hash = p->flow_hash;
+        qid = hash % ctx->size;
+    } else {
+        qid = ctx->last++;
+
+        if (ctx->last == ctx->size)
+            ctx->last = 0;
+    }
+    (void) SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
+
+    PacketQueue *q = ctx->queues[qid].q;
+    SCMutexLock(&q->mutex_q);
+    PacketEnqueue(q, p);
+    SCCondSignal(&q->cond_q);
+    SCMutexUnlock(&q->mutex_q);
+
+    return;
+}
 /**
  * \brief select the queue to output based on IP address pair.
  *

@@ -461,7 +461,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
  *  If the protocol is yet unknown, the proto detection code is run first.
  *
  *  \param dp_ctx Thread app layer detect context
- *  \param f unlocked flow
+ *  \param f *locked* flow
  *  \param p UDP packet
  *
  *  \retval 0 ok
@@ -472,8 +472,6 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     SCEnter();
 
     int r = 0;
-
-    FLOWLOCK_WRLOCK(f);
 
     uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -527,7 +525,6 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
         }
     }
 
-    FLOWLOCK_UNLOCK(f);
     PACKET_PROFILING_APP_STORE(tctx, p);
 
     SCReturnInt(r);

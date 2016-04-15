@@ -854,8 +854,10 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             p->dst.addr_data32[0] = i;
         }
         FlowHandlePacket(NULL, NULL, p);
-        if (p->flow != NULL)
+        if (p->flow != NULL) {
             SC_ATOMIC_RESET(p->flow->use_cnt);
+            FLOWLOCK_UNLOCK(p->flow);
+        }
 
         /* Now the queues shoul be updated */
         UTHFreePacket(p);
