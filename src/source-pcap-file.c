@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,8 +59,6 @@
 
 extern int max_pending_packets;
 
-//static int pcap_max_read_packets = 0;
-
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
     int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
@@ -72,9 +70,6 @@ typedef struct PcapFileGlobalVars_ {
     SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
 
 } PcapFileGlobalVars;
-
-/** max packets < 65536 */
-//#define PCAP_FILE_MAX_PKTS 256
 
 typedef struct PcapFileThreadVars_
 {
@@ -260,8 +255,10 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
+
     char *tmpbpfstring = NULL;
     char *tmpstring = NULL;
+
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
@@ -302,14 +299,15 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     } else {
         SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
-        if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
-            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
+        if (pcap_compile(pcap_g.pcap_handle, &pcap_g.filter, tmpbpfstring, 1, 0) < 0) {
+            SCLogError(SC_ERR_BPF,"bpf compilation error %s",
+                    pcap_geterr(pcap_g.pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
         }
 
-        if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
-            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
+        if (pcap_setfilter(pcap_g.pcap_handle, &pcap_g.filter) < 0) {
+            SCLogError(SC_ERR_BPF,"could not set bpf filter %s", pcap_geterr(pcap_g.pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
         }
@@ -318,7 +316,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pcap_g.datalink);
 
-    switch(pcap_g.datalink) {
+    switch (pcap_g.datalink) {
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
             break;
