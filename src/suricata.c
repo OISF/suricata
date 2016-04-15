@@ -1140,7 +1140,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
-        {"afl-rules", required_argument, 0 , 0},
+
+        /* AFL app-layer options. */
         {"afl-http-request", required_argument, 0 , 0},
         {"afl-http", required_argument, 0 , 0},
         {"afl-tls-request", required_argument, 0 , 0},
@@ -1160,9 +1161,14 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"afl-enip-request", required_argument, 0 , 0},
         {"afl-enip", required_argument, 0 , 0},
         {"afl-mime", required_argument, 0 , 0},
+        {"afl-dnp3", required_argument, 0, 0},
 
+        /* Other AFL options. */
+        {"afl-rules", required_argument, 0 , 0},
+        {"afl-mime", required_argument, 0 , 0},
         {"afl-decoder-ppp", required_argument, 0 , 0},
         {"afl-der", required_argument, 0, 0},
+
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1439,6 +1445,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 AppLayerParserSetup();
                 RegisterENIPTCPParsers();
                 exit(AppLayerParserFromFile(ALPROTO_ENIP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-dnp3") == 0) {
+                AppLayerParserSetup();
+                RegisterDNP3Parsers();
+                exit(AppLayerParserFromFile(ALPROTO_DNP3, optarg));
 #endif
 #ifdef AFLFUZZ_MIME
             } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
