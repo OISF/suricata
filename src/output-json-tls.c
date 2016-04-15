@@ -125,37 +125,29 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
     json_object_set_new(tjs, "version", json_string(ssl_version));
 }
 
-static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
+static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+                         Flow *f, void *state, void *txptr, uint64_t tx_id)
 {
     JsonTlsLogThread *aft = (JsonTlsLogThread *)thread_data;
     OutputTlsCtx *tls_ctx = aft->tlslog_ctx;
 
-    if (unlikely(p->flow == NULL)) {
+    SSLState *ssl_state = (SSLState *)state;
+    if (unlikely(ssl_state == NULL)) {
         return 0;
     }
 
-    /* check if we have TLS state or not */
-    FLOWLOCK_WRLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto end;
+    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
+            ssl_state->server_connp.cert0_subject == NULL)
+        return 0;
 
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
-    if (unlikely(ssl_state == NULL)) {
-        goto end;
-    }
-
-    if (ssl_state->server_connp.cert0_issuerdn == NULL || ssl_state->server_connp.cert0_subject == NULL)
-        goto end;
-
-    json_t *js = CreateJSONHeader((Packet *)p, 0, "tls");//TODO
+    json_t *js = CreateJSONHeader((Packet *)p, 0, "tls");
     if (unlikely(js == NULL))
-        goto end;
+        return 0;
 
     json_t *tjs = json_object();
     if (tjs == NULL) {
         free(js);
-        goto end;
+        return 0;
     }
 
     /* reset */
@@ -173,10 +165,6 @@ static int JsonTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     json_object_clear(js);
     json_decref(js);
 
-    /* we only log the state once */
-    ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED;
-end:
-    FLOWLOCK_UNLOCK(p->flow);
     return 0;
 }
 
@@ -282,6 +270,8 @@ OutputCtx *OutputTlsLogInit(ConfNode *conf)
     output_ctx->data = tls_ctx;
     output_ctx->DeInit = OutputTlsLogDeinit;
 
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+
     return output_ctx;
 }
 
@@ -329,49 +319,9 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     output_ctx->data = tls_ctx;
     output_ctx->DeInit = OutputTlsLogDeinitSub;
 
+    AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_TLS);
+
     return output_ctx;
-}
-
-/** \internal
- *  \brief Condition function for TLS logger
- *  \retval bool true or false -- log now?
- */
-static int JsonTlsCondition(ThreadVars *tv, const Packet *p)
-{
-    if (p->flow == NULL) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        return FALSE;
-    }
-
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto dontlog;
-
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
-    if (ssl_state == NULL) {
-        SCLogDebug("no tls state, so no request logging");
-        goto dontlog;
-    }
-
-    /* we only log the state once */
-    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED)
-        goto dontlog;
-
-    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)
-        goto dontlog;
-
-    /* todo: logic to log once */
-
-    FLOWLOCK_UNLOCK(p->flow);
-    return TRUE;
-dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
-    return FALSE;
 }
 
 void TmModuleJsonTlsLogRegister (void)
@@ -384,12 +334,14 @@ void TmModuleJsonTlsLogRegister (void)
     tmm_modules[TMM_JSONTLSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterPacketModule("JsonTlsLog", "tls-json-log", OutputTlsLogInit,
-            JsonTlsLogger, JsonTlsCondition);
+    OutputRegisterTxModuleWithProgress("JsonTlsLog", "dns-json-log",
+            OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
+            TLS_HANDSHAKE_DONE);
 
     /* also register as child of eve-log */
-    OutputRegisterPacketSubModule("eve-log", "JsonTlsLog", "eve-log.tls", OutputTlsLogInitSub,
-            JsonTlsLogger, JsonTlsCondition);
+    OutputRegisterTxSubModuleWithProgress("eve-log", "JsonTlsLog",
+            "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger,
+            TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE);
 }
 
 #else
