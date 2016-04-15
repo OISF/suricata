@@ -194,8 +194,6 @@ static TmEcode LogTlsLogThreadDeinit(ThreadVars *t, void *data)
 
 static void LogTlsLogDeInitCtx(OutputCtx *output_ctx)
 {
-    OutputTlsLoggerDisable();
-
     LogTlsFileCtx *tlslog_ctx = (LogTlsFileCtx *) output_ctx->data;
     LogFileFreeCtx(tlslog_ctx->file_ctx);
     SCFree(tlslog_ctx);
@@ -218,12 +216,6 @@ static void LogTlsLogExitPrintStats(ThreadVars *tv, void *data)
  * */
 static OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
 {
-    if (OutputTlsLoggerEnable() != 0) {
-        SCLogError(SC_ERR_CONF_YAML_ERROR, "only one 'tls' logger "
-            "can be enabled");
-        return NULL;
-    }
-
     LogFileCtx* file_ctx = LogFileNewCtx();
 
     if (file_ctx == NULL) {
