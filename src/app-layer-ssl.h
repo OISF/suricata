@@ -84,9 +84,6 @@ enum {
 #define SSL_AL_FLAG_HB_CLIENT_INIT              0x10000
 #define SSL_AL_FLAG_HB_SERVER_INIT              0x20000
 
-/* flags for file storage */
-#define SSL_AL_FLAG_STATE_STORED                0x40000
-
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
