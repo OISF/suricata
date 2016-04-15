@@ -1223,6 +1223,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
+        {"afl-rules", required_argument, 0 , 0},
         {"afl-http-request", required_argument, 0 , 0},
         {"afl-http", required_argument, 0 , 0},
         {"afl-tls-request", required_argument, 0 , 0},
@@ -1382,6 +1383,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
+#ifdef AFLFUZZ_RULES
+            } else if(strcmp((long_opts[option_index]).name, "afl-rules") == 0) {
+                exit(RuleParseDataFromFile(optarg));
+#endif
 #ifdef AFLFUZZ_APPLAYER
             } else if(strcmp((long_opts[option_index]).name, "afl-http-request") == 0) {
                 //printf("arg: //%s\n", optarg);

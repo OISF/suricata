@@ -2019,6 +2019,51 @@ void DetectSetupParseRegexes(const char *parse_str,
     return;
 }
 
+#ifdef AFLFUZZ_RULES
+#include "util-reference-config.h"
+int RuleParseDataFromFile(char *filename)
+{
+    char buffer[65536];
+
+    SigTableSetup();
+    SigParsePrepare();
+    SCReferenceConfInit();
+    SCClassConfInit();
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    while (__AFL_LOOP(10000)) {
+        /* reset state */
+        memset(buffer, 0, sizeof(buffer));
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
+        FILE *fp = fopen(filename, "r");
+        BUG_ON(fp == NULL);
+
+        size_t result = fread(&buffer, 1, sizeof(buffer), fp);
+        if (result < sizeof(buffer)) {
+            buffer[result] = '\0';
+            Signature *s = SigInit(de_ctx, buffer);
+            if (s != NULL) {
+                SigFree(s);
+            }
+        }
+        fclose(fp);
+
+#ifdef AFLFUZZ_PERSISTANT_MODE
+    }
+#endif /* AFLFUZZ_PERSISTANT_MODE */
+
+    DetectEngineCtxFree(de_ctx);
+    SCClassConfDeinit();
+    SCReferenceConfDeinit();
+    return 0;
+}
+#endif /* AFLFUZZ_RULES */
+
 /*
  * TESTS
  */

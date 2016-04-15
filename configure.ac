@@ -272,6 +272,7 @@
         AC_DEFINE([AFLFUZZ_MIME], [1], [Enable --afl-mime commandline option])
         AC_DEFINE([AFLFUZZ_DECODER], [1], [Enable --afl-decoder-$proto commandline option])
         AC_DEFINE([AFLFUZZ_DER], [1], [Enable --afl-der commandline option])
+        AC_DEFINE([AFLFUZZ_RULES], [1], [Enable --afl-rules commandline option])
 
         # test for AFL PERSISTANT_MODE support
         CFLAGS_ORIG=$CFLAGS

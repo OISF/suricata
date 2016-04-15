@@ -75,5 +75,9 @@ void DetectSetupParseRegexes(const char *parse_str,
 void DetectParseRegexAddToFreeList(pcre *regex, pcre_extra *study);
 void DetectParseFreeRegexes(void);
 
+#ifdef AFLFUZZ_RULES
+int RuleParseDataFromFile(char *filename);
+#endif
+
 #endif /* __DETECT_PARSE_H__ */
 
