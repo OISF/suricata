@@ -432,6 +432,11 @@ typedef struct FlowProto_ {
     void (*Freefunc)(void *);
 } FlowProto;
 
+/** \brief prepare packet for a life with flow
+ *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
+ *  and calc the hash value to be used in the lookup and autofp flow
+ *  balancing. */
+void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
@@ -577,11 +582,7 @@ AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
-void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
-
-Flow *FlowGetFlowFromHashByPacket(const Packet *p, Flow **dest);
-Flow *FlowLookupFlowFromHash(const Packet *p, Flow **dest);
 
 #endif /* __FLOW_H__ */
 

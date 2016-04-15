@@ -73,8 +73,7 @@ int DecodeSCTP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         SCTP_GET_SRC_PORT(p), SCTP_GET_DST_PORT(p));
 #endif
 
-    /* Flow is an integral part of us */
-    FlowHandlePacket(tv, dtv, p);
+    FlowSetupPacket(p);
 
     return TM_ECODE_OK;
 }

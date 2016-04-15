@@ -165,7 +165,6 @@ int RunModeFilePcapAutoFp(void)
     int thread;
 
     RunModeInitialize();
-    RunmodeSetFlowStreamAsync();
 
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
