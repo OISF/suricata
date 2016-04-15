@@ -82,8 +82,6 @@ enum ssl_tx_progress_t {
 #define SSL_AL_FLAG_STATE_SERVER_KEYX           0x1000
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
-#define SSL_AL_FLAG_STATE_LOGGED                0x4000
-
 /* flag to indicate that session is finished */
 #define SSL_AL_FLAG_STATE_FINISHED              0x4000
 
