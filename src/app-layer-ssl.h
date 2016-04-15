@@ -93,9 +93,6 @@ enum {
 /* flag to indicate that handshake is done */
 #define SSL_AL_FLAG_HANDSHAKE_DONE              0x40000
 
-/* flags for file storage */
-#define SSL_AL_FLAG_STATE_STORED                0x40000
-
 /* config flags */
 #define SSL_TLS_LOG_PEM                         (1 << 0)
 
