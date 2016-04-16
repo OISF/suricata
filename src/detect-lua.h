@@ -44,7 +44,7 @@ typedef struct DetectLuaData {
     int negated;
     char *filename;
     uint32_t flags;
-    int alproto;
+    AppProto alproto;
     char *buffername; /* buffer name in case of a single buffer */
     uint16_t flowint[DETECT_LUAJIT_MAX_FLOWINTS];
     uint16_t flowints;
@@ -61,7 +61,7 @@ typedef struct DetectLuaData {
 void DetectLuaRegister (void);
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
-        Flow *f, int flow_lock);
+        Flow *f);
 
 #ifdef HAVE_LUAJIT
 int DetectLuajitSetupStatesPool(int num, int reloads);

@@ -203,9 +203,6 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
     else
         flags |= STREAM_TOSERVER;
 
-    if (det_ctx->flow_locked == 0)
-        FLOWLOCK_WRLOCK(p->flow);
-
     FileContainer *ffc = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
                                                 p->flow->alstate, flags);
 
@@ -224,9 +221,6 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
                     det_ctx->filestore[u].file_id, det_ctx->filestore[u].tx_id);
         }
     }
-
-    if (det_ctx->flow_locked == 0)
-        FLOWLOCK_UNLOCK(p->flow);
 
     SCReturnInt(0);
 }

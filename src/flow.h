@@ -441,8 +441,7 @@ void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
-void FlowSetIPOnlyFlag(Flow *, char);
-void FlowSetIPOnlyFlagNoLock(Flow *, char);
+void FlowSetIPOnlyFlag(Flow *, int);
 
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);

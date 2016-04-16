@@ -132,7 +132,6 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
     if (p->flow == NULL)
         return 1;
 
-    FLOWLOCK_WRLOCK(p->flow);
     iter = FlowGetStorageById(p->flow, flow_tag_id);
     if (iter != NULL) {
         /* First iterate installed entries searching a duplicated sid/gid */
@@ -169,7 +168,6 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde)
         SCLogDebug("Max tags for sessions reached (%"PRIu16")", tag_cnt);
     }
 
-    FLOWLOCK_UNLOCK(p->flow);
     return updated;
 }
 
@@ -516,9 +514,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
 
     /* First update and get session tags */
     if (p->flow != NULL) {
-        FLOWLOCK_WRLOCK(p->flow);
         TagHandlePacketFlow(p->flow, p);
-        FLOWLOCK_UNLOCK(p->flow);
     }
 
     Host *src = HostLookupHostFromHash(&p->src);

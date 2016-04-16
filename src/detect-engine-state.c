@@ -378,8 +378,6 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
 {
     int r = 0;
 
-    FLOWLOCK_WRLOCK(f);
-
     if (!(flags & STREAM_EOF) && f->de_state &&
                f->detect_alversion[flags & STREAM_TOSERVER ? 0 : 1] == alversion) {
         SCLogDebug("unchanged state");
@@ -389,8 +387,6 @@ int DeStateFlowHasInspectableState(Flow *f, AppProto alproto,
     } else {
         r = 0;
     }
-    FLOWLOCK_UNLOCK(f);
-
     return r;
 }
 
@@ -490,7 +486,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     SCLogDebug("rule %u", s->id);
 
-    FLOWLOCK_WRLOCK(f);
     /* TX based matches (inspect engines) */
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         uint64_t tx_id = 0;
@@ -713,8 +708,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
  end:
-    FLOWLOCK_UNLOCK(f);
-
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
     return alert_cnt ? 1:0;
@@ -907,9 +900,7 @@ static int DoInspectItem(ThreadVars *tv,
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
     if (alert) {
-        det_ctx->flow_locked = 1;
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
-        det_ctx->flow_locked = 0;
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, inspect_tx_id,
@@ -1000,9 +991,7 @@ static int DoInspectFlowRule(ThreadVars *tv,
     item->nm = sm;
 
     if (alert) {
-        det_ctx->flow_locked = 1;
         SigMatchSignaturesRunPostMatch(tv, de_ctx, det_ctx, p, s);
-        det_ctx->flow_locked = 0;
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, 0,
@@ -1028,14 +1017,11 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint64_t total_txs = 0;
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
 
-    FLOWLOCK_WRLOCK(f);
-
     SCLogDebug("starting continue detection for packet %"PRIu64, p->pcap_cnt);
 
     if (AppLayerParserProtocolSupportsTxs(f->proto, alproto)) {
         void *alstate = FlowGetAppState(f);
         if (!StateIsValid(alproto, alstate)) {
-            FLOWLOCK_UNLOCK(f);
             return;
         }
 
@@ -1134,7 +1120,6 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
 end:
-    FLOWLOCK_UNLOCK(f);
     det_ctx->tx_id = 0;
     det_ctx->tx_id_set = 0;
     return;
@@ -1147,13 +1132,10 @@ end:
  *  \note it is possible that f->alstate, f->alparser are NULL */
 void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
 {
-    FLOWLOCK_WRLOCK(f);
     if (f->alparser && f->alstate) {
         AppLayerParserSetTransactionInspectId(f->alparser, f->proto,
                                               f->alproto, f->alstate, flags);
     }
-    FLOWLOCK_UNLOCK(f);
-
     return;
 }
 

@@ -98,9 +98,6 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     int ret = 0;
     DetectFlowvarData *fd = (DetectFlowvarData *)ctx;
 
-    /* we need a lock */
-    FLOWLOCK_RDLOCK(p->flow);
-
     FlowVar *fv = FlowVarGet(p->flow, fd->idx);
     if (fv != NULL) {
         uint8_t *ptr = SpmSearch(fv->data.fv_str.value,
@@ -109,7 +106,6 @@ int DetectFlowvarMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         if (ptr != NULL)
             ret = 1;
     }
-    FLOWLOCK_UNLOCK(p->flow);
 
     return ret;
 }

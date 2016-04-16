@@ -267,8 +267,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                     if (p->flow != NULL) {
                         /* Update flow flags for iponly */
-                        FLOWLOCK_WRLOCK(p->flow);
-                        FlowSetIPOnlyFlagNoLock(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+                        FlowSetIPOnlyFlag(p->flow, (p->flowflags & FLOW_PKT_TOSERVER) ? 1 : 0);
 
                         if (s->action & ACTION_DROP)
                             p->flow->flags |= FLOW_ACTION_DROP;
@@ -281,7 +280,6 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                         if (s->action & ACTION_PASS) {
                             FlowSetNoPacketInspectionFlag(p->flow);
                         }
-                        FLOWLOCK_UNLOCK(p->flow);
                     }
                 }
             }
@@ -299,7 +297,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     (p->alerts.alerts[i].flags &
                         (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH)))
                 {
-                    FlowLockSetNoPacketInspectionFlag(p->flow);
+                    FlowSetNoPacketInspectionFlag(p->flow);
                 }
                 break;
 
@@ -310,10 +308,8 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                          (s->flags & SIG_FLAG_APPLAYER))
                        && p->flow != NULL)
             {
-                FLOWLOCK_WRLOCK(p->flow);
                 /* This will apply only on IPS mode (check StreamTcpPacket) */
-                p->flow->flags |= FLOW_ACTION_DROP;
-                FLOWLOCK_UNLOCK(p->flow);
+                p->flow->flags |= FLOW_ACTION_DROP; // XXX API?
             }
         }
 

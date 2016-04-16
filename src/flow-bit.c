@@ -125,28 +125,24 @@ void FlowBitToggle(Flow *f, uint16_t idx)
 int FlowBitIsset(Flow *f, uint16_t idx)
 {
     int r = 0;
-    FLOWLOCK_RDLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         r = 1;
     }
 
-    FLOWLOCK_UNLOCK(f);
     return r;
 }
 
 int FlowBitIsnotset(Flow *f, uint16_t idx)
 {
     int r = 0;
-    FLOWLOCK_RDLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         r = 1;
     }
 
-    FLOWLOCK_UNLOCK(f);
     return r;
 }
 
