@@ -536,13 +536,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     }
     else if (sm->type == DETECT_LUA) {
         SCLogDebug("lua starting");
-        /* for flowvar gets and sets we need to know the flow's lock status */
-        int flow_lock = LUA_FLOW_LOCKED_BY_PARENT;
-        if (inspection_mode <= DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM)
-            flow_lock = LUA_FLOW_NOT_LOCKED_BY_PARENT;
 
         if (DetectLuaMatchBuffer(det_ctx, s, sm, buffer, buffer_len,
-                    det_ctx->buffer_offset, f, flow_lock) != 1)
+                    det_ctx->buffer_offset, f) != 1)
         {
             SCLogDebug("lua no_match");
             goto no_match;

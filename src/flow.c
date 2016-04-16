@@ -147,26 +147,12 @@ int FlowUpdateSpareFlows(void)
     return 1;
 }
 
-/** \brief Set the IPOnly scanned flag for 'direction'. This function
-  *        handles the locking too.
-  * \param f Flow to set the flag in
-  * \param direction direction to set the flag in
-  */
-void FlowSetIPOnlyFlag(Flow *f, char direction)
-{
-    FLOWLOCK_WRLOCK(f);
-    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
-        (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    FLOWLOCK_UNLOCK(f);
-    return;
-}
-
 /** \brief Set the IPOnly scanned flag for 'direction'.
   *
   * \param f Flow to set the flag in
   * \param direction direction to set the flag in
   */
-void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
+void FlowSetIPOnlyFlag(Flow *f, int direction)
 {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
