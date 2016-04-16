@@ -1960,6 +1960,52 @@ static DetectEngineThreadCtx *GetTenantById(HashTable *h, uint32_t id)
     return HashTableLookup(h, &id, 0);
 }
 
+static void DetectFlow(ThreadVars *tv,
+                       DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                       Packet *p)
+{
+    /* No need to perform any detection on this packet, if the the given flag is set.*/
+    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
+        (PACKET_TEST_ACTION(p, ACTION_DROP)))
+    {
+        /* hack: if we are in pass the entire flow mode, we need to still
+         * update the inspect_id forward. So test for the condition here,
+         * and call the update code if necessary. */
+        int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
+        uint8_t flags = FlowGetDisruptionFlags(p->flow, 0);
+        AppProto alproto = FlowGetAppProtocol(p->flow);
+        if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                flags |= STREAM_TOSERVER;
+            } else {
+                flags |= STREAM_TOCLIENT;
+            }
+            DeStateUpdateInspectTransactionId(p->flow, flags);
+        }
+        return;
+    }
+
+    /* see if the packet matches one or more of the sigs */
+    (void)SigMatchSignatures(tv,de_ctx,det_ctx,p);
+}
+
+
+static void DetectNoFlow(ThreadVars *tv,
+                         DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                         Packet *p)
+{
+    /* No need to perform any detection on this packet, if the the given flag is set.*/
+    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
+        (PACKET_TEST_ACTION(p, ACTION_DROP)))
+    {
+        return;
+    }
+
+    /* see if the packet matches one or more of the sigs */
+    (void)SigMatchSignatures(tv,de_ctx,det_ctx,p);
+    return;
+}
+
 /** \brief Detection engine thread wrapper.
  *  \param tv thread vars
  *  \param p packet to inspect
@@ -1972,32 +2018,6 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
 {
     DEBUG_VALIDATE_PACKET(p);
 
-    /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if ((p->flags & PKT_NOPACKET_INSPECTION) ||
-        (PACKET_TEST_ACTION(p, ACTION_DROP)))
-    {
-        /* hack: if we are in pass the entire flow mode, we need to still
-         * update the inspect_id forward. So test for the condition here,
-         * and call the update code if necessary. */
-        if (p->flow) {
-            uint8_t flags = 0;
-            FLOWLOCK_RDLOCK(p->flow);
-            int pass = ((p->flow->flags & FLOW_NOPACKET_INSPECTION));
-            flags = FlowGetDisruptionFlags(p->flow, flags);
-            AppProto alproto = FlowGetAppProtocol(p->flow);
-            FLOWLOCK_UNLOCK(p->flow);
-            if (pass && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    flags |= STREAM_TOSERVER;
-                } else {
-                    flags |= STREAM_TOCLIENT;
-                }
-                DeStateUpdateInspectTransactionId(p->flow, flags);
-            }
-        }
-        return 0;
-    }
-
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
@@ -2005,7 +2025,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         goto error;
     }
 
-    if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+    if (unlikely(SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0)) {
         (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
         SCLogDebug("Detect Engine using new det_ctx - %p",
                   det_ctx);
@@ -2027,7 +2047,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
             if (de_ctx == NULL)
                 return TM_ECODE_OK;
 
-            if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+            if (unlikely(SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0)) {
                 (void)SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
                 SCLogDebug("MT de_ctx %p det_ctx %p (tenant %u)", de_ctx, det_ctx, tenant_id);
             }
@@ -2039,11 +2059,12 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         de_ctx = det_ctx->de_ctx;
     }
 
-    /* see if the packet matches one or more of the sigs */
-    int r = SigMatchSignatures(tv,de_ctx,det_ctx,p);
-    if (r >= 0) {
-        return TM_ECODE_OK;
+    if (p->flow) {
+        DetectFlow(tv, de_ctx, det_ctx, p);
+    } else {
+        DetectNoFlow(tv, de_ctx, det_ctx, p);
     }
+    return TM_ECODE_OK;
 
 error:
     return TM_ECODE_FAILED;
