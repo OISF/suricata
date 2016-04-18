@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,16 +25,43 @@
  * And time string generation for alerts.
  */
 
+/* Real time vs offline time
+ *
+ * When we run on live traffic, time handling is simple. Packets have a
+ * timestamp set by the capture method. Management threads can simply
+ * use 'gettimeofday' to know the current time. There should never be
+ * any serious gap between the two.
+ *
+ * In offline mode, things are dramatically different. Here we try to keep
+ * the time from the pcap, which means that if the packets are in 2011 the
+ * log output should also reflect this. Multiple issues:
+ * 1. merged pcaps might have huge time jumps or time going backward
+ * 2. slowly recorded pcaps may be processed much faster than their 'realtime'
+ * 3. management threads need a concept of what the 'current' time is for
+ *    enforcing timeouts
+ * 4. due to (1) individual threads may have very different views on what
+ *    the current time is. E.g. T1 processed packet 1 with TS X, while T2
+ *    at the very same time processes packet 2 with TS X+100000s.
+ *
+ * In offline mode we keep the timestamp per thread. If a management thread
+ * needs current time, it will get the minimum of the threads' values. This
+ * is to avoid the problem that T2s time value might already trigger a flow
+ * timeout as the flow lastts + 100000s is almost certainly meaning the flow
+ * would be considered timed out.
+ */
+
 #include "suricata-common.h"
 #include "detect.h"
 #include "threads.h"
+#include "tm-threads.h"
 #include "util-debug.h"
 
+#ifdef UNITTESTS
 static struct timeval current_time = { 0, 0 };
+#endif
 //static SCMutex current_time_mutex = SCMUTEX_INITIALIZER;
 static SCSpinlock current_time_spinlock;
 static char live = TRUE;
-
 
 struct tm *SCLocalTime(time_t timep, struct tm *result);
 
@@ -63,6 +90,15 @@ void TimeModeSetOffline (void)
     SCLogDebug("offline time mode enabled");
 }
 
+void TimeSetByThread(const int thread_id, const struct timeval *tv)
+{
+    if (live == TRUE)
+        return;
+
+    TmThreadsSetThreadTimestamp(thread_id, tv);
+}
+
+#ifdef UNITTESTS
 void TimeSet(struct timeval *tv)
 {
     if (live == TRUE)
@@ -91,6 +127,7 @@ void TimeSetToCurrentTime(void)
 
     TimeSet(&tv);
 }
+#endif
 
 void TimeGet(struct timeval *tv)
 {
@@ -100,16 +137,25 @@ void TimeGet(struct timeval *tv)
     if (live == TRUE) {
         gettimeofday(tv, NULL);
     } else {
-        SCSpinLock(&current_time_spinlock);
-        tv->tv_sec = current_time.tv_sec;
-        tv->tv_usec = current_time.tv_usec;
-        SCSpinUnlock(&current_time_spinlock);
+#ifdef UNITTESTS
+        if (unlikely(RunmodeIsUnittests())) {
+            SCSpinLock(&current_time_spinlock);
+            tv->tv_sec = current_time.tv_sec;
+            tv->tv_usec = current_time.tv_usec;
+            SCSpinUnlock(&current_time_spinlock);
+        } else {
+#endif
+            TmreadsGetMinimalTimestamp(tv);
+#ifdef UNITTESTS
+        }
+#endif
     }
 
     SCLogDebug("time we got is %" PRIuMAX " sec, %" PRIuMAX " usec",
                (uintmax_t)tv->tv_sec, (uintmax_t)tv->tv_usec);
 }
 
+#ifdef UNITTESTS
 /** \brief increment the time in the engine
  *  \param tv_sec seconds to increment the time with */
 void TimeSetIncrementTime(uint32_t tv_sec)
@@ -122,6 +168,7 @@ void TimeSetIncrementTime(uint32_t tv_sec)
 
     TimeSet(&tv);
 }
+#endif
 
 void CreateIsoTimeString (const struct timeval *ts, char *str, size_t size)
 {
