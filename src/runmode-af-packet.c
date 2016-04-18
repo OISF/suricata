@@ -227,35 +227,40 @@ void *ParseAFPConfig(const char *iface)
         aconf->flags |= AFP_RING_MODE;
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "mmap-locked", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling locked memory for mmap on iface %s",
-                aconf->iface);
-        aconf->flags |= AFP_MMAP_LOCKED;
-    }
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "tpacket-v3", (int *)&boolval);
-    if (boolval) {
-        if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
-#ifdef HAVE_TPACKET_V3
-            SCLogInfo("Enabling tpacket v3 capture on iface %s",
+    if (aconf->flags & AFP_RING_MODE) {
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "mmap-locked", (int *)&boolval);
+        if (boolval) {
+            SCLogInfo("Enabling locked memory for mmap on iface %s",
                     aconf->iface);
-            aconf->flags |= AFP_TPACKET_V3|AFP_RING_MODE;
-#else 
-            SCLogNotice("System too old for tpacket v3 switching to v2");
-            aconf->flags |= AFP_RING_MODE;
-#endif
-        } else {
-            SCLogError(SC_ERR_RUNMODE,
-                       "tpacket v3 is only implemented for 'workers' running mode."
-                       " Switching to tpacket v2.");
-            aconf->flags |= AFP_RING_MODE;
+            aconf->flags |= AFP_MMAP_LOCKED;
         }
-    }
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling ring emergency flush on iface %s",
-                aconf->iface);
-        aconf->flags |= AFP_EMERGENCY_MODE;
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "tpacket-v3", (int *)&boolval);
+        if (boolval) {
+            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+#ifdef HAVE_TPACKET_V3
+                SCLogInfo("Enabling tpacket v3 capture on iface %s",
+                        aconf->iface);
+                aconf->flags |= AFP_TPACKET_V3|AFP_RING_MODE;
+#else
+                SCLogNotice("System too old for tpacket v3 switching to v2");
+                aconf->flags |= AFP_RING_MODE;
+#endif
+            } else {
+                SCLogError(SC_ERR_RUNMODE,
+                        "tpacket v3 is only implemented for 'workers' running mode."
+                        " Switching to tpacket v2.");
+                aconf->flags |= AFP_RING_MODE;
+            }
+        }
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "use-emergency-flush", (int *)&boolval);
+        if (boolval) {
+            SCLogInfo("Enabling ring emergency flush on iface %s",
+                    aconf->iface);
+            aconf->flags |= AFP_EMERGENCY_MODE;
+        }
     }
 
 
