@@ -573,7 +573,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
     int emerg = FALSE;
     int prev_emerg = FALSE;
-    uint32_t last_sec = 0;
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
@@ -584,8 +583,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
     uint16_t flow_mgr_host_spare = StatsRegisterCounter("hosts.spare", th_v);
 */
     memset(&ts, 0, sizeof(ts));
-
-    FlowHashDebugInit();
 
     while (1)
     {
@@ -611,11 +608,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
         memset(&ts, 0, sizeof(ts));
         TimeGet(&ts);
         SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
-
-        if (((uint32_t)ts.tv_sec - last_sec) > 600) {
-            FlowHashDebugPrint((uint32_t)ts.tv_sec);
-            last_sec = (uint32_t)ts.tv_sec;
-        }
 
         /* see if we still have enough spare flows */
         if (ftd->instance == 1)
@@ -695,8 +687,6 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
 
         StatsSyncCountersIfSignalled(th_v);
     }
-
-    FlowHashDebugDeinit();
 
     SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
               "timed out, %"PRIu32" flows in closed state", new_cnt,

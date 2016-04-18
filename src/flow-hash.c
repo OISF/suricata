@@ -55,101 +55,6 @@ SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv);
 static int handle_tcp_reuse = 1;
 
-#ifdef FLOW_DEBUG_STATS
-#define FLOW_DEBUG_STATS_PROTO_ALL      0
-#define FLOW_DEBUG_STATS_PROTO_TCP      1
-#define FLOW_DEBUG_STATS_PROTO_UDP      2
-#define FLOW_DEBUG_STATS_PROTO_ICMP     3
-#define FLOW_DEBUG_STATS_PROTO_OTHER    4
-
-static uint64_t flow_hash_count[5] = { 0, 0, 0, 0, 0 };        /* how often are we looking for a hash */
-static uint64_t flow_hash_loop_count[5] = { 0, 0, 0, 0, 0 };   /* how often do we loop through a hash bucket */
-static FILE *flow_hash_count_fp = NULL;
-static SCSpinlock flow_hash_count_lock;
-
-#define FlowHashCountUpdate do { \
-    SCSpinLock(&flow_hash_count_lock); \
-    flow_hash_count[FLOW_DEBUG_STATS_PROTO_ALL]++; \
-    flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ALL] += _flow_hash_counter; \
-    if (f != NULL) { \
-        if (p->proto == IPPROTO_TCP) { \
-            flow_hash_count[FLOW_DEBUG_STATS_PROTO_TCP]++; \
-            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP] += _flow_hash_counter; \
-        } else if (p->proto == IPPROTO_UDP) {\
-            flow_hash_count[FLOW_DEBUG_STATS_PROTO_UDP]++; \
-            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_UDP] += _flow_hash_counter; \
-        } else if (p->proto == IPPROTO_ICMP) {\
-            flow_hash_count[FLOW_DEBUG_STATS_PROTO_ICMP]++; \
-            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP] += _flow_hash_counter; \
-        } else  {\
-            flow_hash_count[FLOW_DEBUG_STATS_PROTO_OTHER]++; \
-            flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_OTHER] += _flow_hash_counter; \
-        } \
-    } \
-    SCSpinUnlock(&flow_hash_count_lock); \
-} while(0);
-
-#define FlowHashCountInit uint64_t _flow_hash_counter = 0
-#define FlowHashCountIncr _flow_hash_counter++;
-
-void FlowHashDebugInit(void)
-{
-#ifdef FLOW_DEBUG_STATS
-    SCSpinInit(&flow_hash_count_lock, 0);
-#endif
-    flow_hash_count_fp = fopen("flow-debug.log", "w+");
-    if (flow_hash_count_fp != NULL) {
-        fprintf(flow_hash_count_fp, "ts,all,tcp,udp,icmp,other\n");
-    }
-}
-
-void FlowHashDebugPrint(uint32_t ts)
-{
-#ifdef FLOW_DEBUG_STATS
-    if (flow_hash_count_fp == NULL)
-        return;
-
-    float avg_all = 0, avg_tcp = 0, avg_udp = 0, avg_icmp = 0, avg_other = 0;
-    SCSpinLock(&flow_hash_count_lock);
-    if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ALL] != 0)
-        avg_all = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ALL]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_ALL]));
-    if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP] != 0)
-        avg_tcp = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_TCP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_TCP]));
-    if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_UDP] != 0)
-        avg_udp = (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_UDP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_UDP]));
-    if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP] != 0)
-        avg_icmp= (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_ICMP]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_ICMP]));
-    if (flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_OTHER] != 0)
-        avg_other= (float)(flow_hash_loop_count[FLOW_DEBUG_STATS_PROTO_OTHER]/(float)(flow_hash_count[FLOW_DEBUG_STATS_PROTO_OTHER]));
-    fprintf(flow_hash_count_fp, "%"PRIu32",%02.3f,%02.3f,%02.3f,%02.3f,%02.3f\n", ts, avg_all, avg_tcp, avg_udp, avg_icmp, avg_other);
-    fflush(flow_hash_count_fp);
-    memset(&flow_hash_count, 0, sizeof(flow_hash_count));
-    memset(&flow_hash_loop_count, 0, sizeof(flow_hash_loop_count));
-    SCSpinUnlock(&flow_hash_count_lock);
-#endif
-}
-
-void FlowHashDebugDeinit(void)
-{
-#ifdef FLOW_DEBUG_STATS
-    struct timeval ts;
-    memset(&ts, 0, sizeof(ts));
-    TimeGet(&ts);
-    FlowHashDebugPrint((uint32_t)ts.tv_sec);
-    if (flow_hash_count_fp != NULL)
-        fclose(flow_hash_count_fp);
-    SCSpinDestroy(&flow_hash_count_lock);
-#endif
-}
-
-#else
-
-#define FlowHashCountUpdate
-#define FlowHashCountInit
-#define FlowHashCountIncr
-
-#endif /* FLOW_DEBUG_STATS */
-
 void FlowDisableTcpReuseHandling(void)
 {
     handle_tcp_reuse = 0;
@@ -582,8 +487,6 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
     /* see if this is the flow we are looking for */
     if (FlowCompare(f, p) == 0) {
         while (f) {
-            FlowHashCountIncr;
-
             f = f->hnext;
 
             if (f == NULL) {
@@ -649,7 +552,6 @@ Flow *FlowLookupFlowFromHash(const Packet *p)
 Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
 {
     Flow *f = NULL;
-    FlowHashCountInit;
 
     /* get the key to our bucket */
     uint32_t hash = FlowGetHash(p);
@@ -659,14 +561,11 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
 
     SCLogDebug("fb %p fb->head %p", fb, fb->head);
 
-    FlowHashCountIncr;
-
     /* see if the bucket already has a flow */
     if (fb->head == NULL) {
         f = FlowGetNew(tv, dtv, p);
         if (f == NULL) {
             FBLOCK_UNLOCK(fb);
-            FlowHashCountUpdate;
             return NULL;
         }
 
@@ -683,7 +582,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
         COPY_TIMESTAMP(&p->ts,&f->lastts);
 
         FBLOCK_UNLOCK(fb);
-        FlowHashCountUpdate;
         return f;
     }
 
@@ -695,8 +593,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
         Flow *pf = NULL; /* previous flow */
 
         while (f) {
-            FlowHashCountIncr;
-
             pf = f;
             f = f->hnext;
 
@@ -704,7 +600,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 f = pf->hnext = FlowGetNew(tv, dtv, p);
                 if (f == NULL) {
                     FBLOCK_UNLOCK(fb);
-                    FlowHashCountUpdate;
                     return NULL;
                 }
                 fb->tail = f;
@@ -722,7 +617,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
 
                 FBLOCK_UNLOCK(fb);
-                FlowHashCountUpdate;
                 return f;
             }
 
@@ -750,7 +644,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
 
                 FBLOCK_UNLOCK(fb);
-                FlowHashCountUpdate;
                 return f;
             }
         }
@@ -762,7 +655,6 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
     COPY_TIMESTAMP(&p->ts,&f->lastts);
 
     FBLOCK_UNLOCK(fb);
-    FlowHashCountUpdate;
     return f;
 }
 
