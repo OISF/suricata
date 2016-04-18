@@ -420,10 +420,6 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         FlowWakeupFlowManagerThread();
     }
 
-    /* update the engine time representation based on the timestamp
-     * of the packet. */
-    TimeSet(&p->ts);
-
     /* call the decoder */
     pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 

@@ -4880,6 +4880,8 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    TimeSetByThread(tv->id, &p->ts);
+
     if (p->flow && p->flags & PKT_PSEUDO_STREAM_END) {
         FLOWLOCK_WRLOCK(p->flow);
         AppLayerProfilingReset(stt->ra_ctx->app_tctx);

@@ -2224,6 +2224,8 @@ typedef struct Thread_ {
     const char *name;
     int type;
     int in_use;         /**< bool to indicate this is in use */
+
+    struct timeval ts;  /**< current time of this thread (offline mode) */
 } Thread;
 
 typedef struct Threads_ {
@@ -2331,6 +2333,53 @@ void TmThreadsUnregisterThread(const int id)
 end:
     SCMutexUnlock(&thread_store_lock);
 }
+
+void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
+{
+    SCMutexLock(&thread_store_lock);
+    if (unlikely(id <= 0 || id > (int)thread_store.threads_size)) {
+        SCMutexUnlock(&thread_store_lock);
+        return;
+    }
+
+    int idx = id - 1;
+    Thread *t = &thread_store.threads[idx];
+    t->ts.tv_sec = ts->tv_sec;
+    t->ts.tv_usec = ts->tv_usec;
+    SCMutexUnlock(&thread_store_lock);
+}
+
+#define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
+void TmreadsGetMinimalTimestamp(struct timeval *ts)
+{
+    struct timeval local, nullts;
+    memset(&local, 0, sizeof(local));
+    memset(&nullts, 0, sizeof(nullts));
+    int set = 0;
+    size_t s;
+
+    SCMutexLock(&thread_store_lock);
+    for (s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        if (t == NULL || t->in_use == 0)
+            continue;
+        if (!(timercmp(&t->ts, &nullts, ==))) {
+            if (!set) {
+                local.tv_sec = t->ts.tv_sec;
+                local.tv_usec = t->ts.tv_usec;
+                set = 1;
+            } else {
+                if (timercmp(&t->ts, &local, <)) {
+                    COPY_TIMESTAMP(&t->ts, &local);
+                }
+            }
+        }
+    }
+    SCMutexUnlock(&thread_store_lock);
+    COPY_TIMESTAMP(&local, ts);
+    SCLogDebug("ts->tv_sec %u", (uint)ts->tv_sec);
+}
+#undef COPY_TIMESTAMP
 
 /**
  *  \retval r 1 if packet was accepted, 0 otherwise
