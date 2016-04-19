@@ -220,6 +220,7 @@ flow-storage.c flow-storage.h \
 flow-timeout.c flow-timeout.h \
 flow-util.c flow-util.h \
 flow-var.c flow-var.h \
+flow-worker.c flow-worker.h \
 host.c host.h \
 host-bit.c host-bit.h \
 host-queue.c host-queue.h \

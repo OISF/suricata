@@ -4863,77 +4863,42 @@ int TcpSessionPacketSsnReuse(const Packet *p, const Flow *f, const void *tcp_ssn
     return 0;
 }
 
-void FlowUpdate(ThreadVars *tv, StreamTcpThread *stt, Packet *p)
-{
-    FlowHandlePacketUpdate(p->flow, p);
-
-    /* handle the app layer part of the UDP packet payload */
-    if (p->proto == IPPROTO_UDP) {
-        AppLayerHandleUdp(tv, stt->ra_ctx->app_tctx, p, p->flow);
-    }
-}
-
 TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     StreamTcpThread *stt = (StreamTcpThread *)data;
-    TmEcode ret = TM_ECODE_OK;
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 
-    TimeSetByThread(tv->id, &p->ts);
-
-    if (p->flow && p->flags & PKT_PSEUDO_STREAM_END) {
-        FLOWLOCK_WRLOCK(p->flow);
-        AppLayerProfilingReset(stt->ra_ctx->app_tctx);
-        (void)StreamTcpPacket(tv, p, stt, pq);
-        p->flags |= PKT_IGNORE_CHECKSUM;
-        stt->pkts++;
-        FLOWLOCK_UNLOCK(p->flow);
-        return TM_ECODE_OK;
-    }
-
-    if (!(p->flags & PKT_WANTS_FLOW)) {
-        return TM_ECODE_OK;
-    }
-
-    FlowHandlePacket(tv, NULL, p); //TODO what to do about decoder thread vars
-    if (likely(p->flow != NULL)) {
-        FlowUpdate(tv, stt, p);
-    }
-
     if (!(PKT_IS_TCP(p))) {
-        goto unlock;
+        return TM_ECODE_OK;
     }
 
     if (p->flow == NULL) {
         StatsIncr(tv, stt->counter_tcp_no_flow);
-        goto unlock;
+        return TM_ECODE_OK;
     }
 
     /* only TCP packets with a flow from here */
 
-    if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
-        if (StreamTcpValidateChecksum(p) == 0) {
-            StatsIncr(tv, stt->counter_tcp_invalid_checksum);
-            goto unlock;
+    if (!(p->flags & PKT_PSEUDO_STREAM_END)) {
+        if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
+            if (StreamTcpValidateChecksum(p) == 0) {
+                StatsIncr(tv, stt->counter_tcp_invalid_checksum);
+                return TM_ECODE_OK;
+            }
+        } else {
+            p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
-        p->flags |= PKT_IGNORE_CHECKSUM;
+        p->flags |= PKT_IGNORE_CHECKSUM; //TODO check that this is set at creation
     }
     AppLayerProfilingReset(stt->ra_ctx->app_tctx);
 
-    ret = StreamTcpPacket(tv, p, stt, pq);
-
-    //if (ret)
-      //  return TM_ECODE_FAILED;
+    (void)StreamTcpPacket(tv, p, stt, pq);
 
     stt->pkts++;
 
- unlock:
-    if (p->flow) {
-        FLOWLOCK_UNLOCK(p->flow);
-    }
-    return ret;
+    return TM_ECODE_OK;
 }
 
 TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
