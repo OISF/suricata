@@ -28,6 +28,7 @@
 #include "flow.h"
 #include "flow-private.h"
 #include "flow-util.h"
+#include "flow-worker.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
@@ -695,7 +696,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
                 continue;
             }
 
-            old_det_ctx[i] = SC_ATOMIC_GET(slots->slot_data);
+            old_det_ctx[i] = FlowWorkerGetDetectCtxPtr(SC_ATOMIC_GET(slots->slot_data));
             detect_tvs[i] = tv;
 
             new_det_ctx[i] = DetectEngineThreadCtxInitForReload(tv, new_de_ctx, 1);
@@ -733,7 +734,7 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
             }
             SCLogDebug("swapping new det_ctx - %p with older one - %p",
                        new_det_ctx[i], SC_ATOMIC_GET(slots->slot_data));
-            (void)SC_ATOMIC_SET(slots->slot_data, new_det_ctx[i++]);
+            FlowWorkerReplaceDetectCtx(SC_ATOMIC_GET(slots->slot_data), new_det_ctx[i++]);
             break;
         }
         tv = tv->next;

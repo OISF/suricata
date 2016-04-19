@@ -53,14 +53,12 @@
  */
 #define DEBUG_VALIDATE_FLOW(f) do {                 \
     if ((f) != NULL) {                              \
-        SCMutexLock(&(f)->m);                       \
         BUG_ON((f)->flags & FLOW_IPV4 &&            \
                (f)->flags & FLOW_IPV6);             \
         if ((f)->proto == IPPROTO_TCP) {            \
             BUG_ON((f)->alstate != NULL &&          \
                    (f)->alparser == NULL);          \
         }                                           \
-        SCMutexUnlock(&(f)->m);                     \
     }                                               \
 } while(0)
 

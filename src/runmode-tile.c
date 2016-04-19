@@ -245,21 +245,12 @@ int RunModeTileMpipeWorkers(void)
         }
         TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("StreamTcp");
+        tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName Detect failed\n");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_worker, tm_module, NULL);
-        }
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {

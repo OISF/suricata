@@ -192,14 +192,18 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     int r = TM_ECODE_OK;
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->tm_id == TMM_STREAMTCP) {
+        if (slot->tm_id == TMM_FLOWWORKER ||
+            slot->tm_id == TMM_STREAMTCP)
+        {
             stream_slot = slot;
             break;
         }
     }
 
-    if (tv->stream_pq == NULL || stream_slot == NULL)
+    if (tv->stream_pq == NULL || stream_slot == NULL) {
+        SCLogDebug("not running TmThreadTimeoutLoop %p/%p", tv->stream_pq, stream_slot);
         return r;
+    }
 
     SCLogDebug("flow end loop starting");
     while(run) {
@@ -314,11 +318,11 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (slot->slot_next != NULL && slot->slot_next->tm_id == TMM_STREAMTCP) {
+        if (slot->slot_next != NULL && (slot->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (postq)", &s->slot_post_pq);
             tv->stream_pq = &slot->slot_post_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (slot == (TmSlot *)tv->tm_slots && slot->tm_id == TMM_STREAMTCP) {
+        } else if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &slot->slot_pre_pq);
         }
@@ -438,11 +442,11 @@ void *TmThreadsSlotPktAcqLoopAFL(void *td)
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (slot->slot_next != NULL && slot->slot_next->tm_id == TMM_STREAMTCP) {
+        if (slot->slot_next != NULL && (slot->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (postq)", &s->slot_post_pq);
             tv->stream_pq = &slot->slot_post_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (slot == (TmSlot *)tv->tm_slots && slot->tm_id == TMM_STREAMTCP) {
+        } else if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &slot->slot_pre_pq);
         }
@@ -559,11 +563,11 @@ void *TmThreadsSlotVar(void *td)
          * from the flow timeout code */
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (s->slot_next != NULL && s->slot_next->tm_id == TMM_STREAMTCP) {
+        if (s->slot_next != NULL && (s->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (preq)", &s->slot_pre_pq);
             tv->stream_pq = &s->slot_pre_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (s == (TmSlot *)tv->tm_slots && s->tm_id == TMM_STREAMTCP) {
+        } else if (s == (TmSlot *)tv->tm_slots && (s->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &s->slot_pre_pq);
         }
