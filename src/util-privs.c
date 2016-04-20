@@ -71,7 +71,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    switch (run_mode) {
+    switch (RunmodeGetPrimary(&runmodeslist)) {
         case RUNMODE_PCAP_DEV:
         case RUNMODE_AFP_DEV:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
@@ -89,6 +89,31 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
                     CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
                     CAP_SYS_NICE,
                     -1);
+            break;
+        case RUNMODE_ERF_FILE:
+        case RUNMODE_ENGINE_ANALYSIS:
+        case RUNMODE_NFLOG:
+        case RUNMODE_IPFW:
+        case RUNMODE_DAG:
+        case RUNMODE_PCAP_FILE:
+        case RUNMODE_NETMAP:
+        case RUNMODE_TILERA_MPIPE:
+        case RUNMODE_UNITTEST:
+        case RUNMODE_NAPATECH:
+        case RUNMODE_UNIX_SOCKET:
+        case RUNMODE_USER_MAX:
+        case RUNMODE_LIST_KEYWORDS:
+        case RUNMODE_LIST_APP_LAYERS:
+        case RUNMODE_LIST_CUDA_CARDS:
+        case RUNMODE_LIST_RUNMODES:
+        case RUNMODE_PRINT_VERSION:
+        case RUNMODE_PRINT_BUILDINFO:
+        case RUNMODE_PRINT_USAGE:
+        case RUNMODE_DUMP_CONFIG:
+        case RUNMODE_CONF_TEST:
+        case RUNMODE_LIST_UNITTEST:
+        case RUNMODE_MAX:
+        case RUNMODE_UNKNOWN:
             break;
     }
 

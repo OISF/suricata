@@ -427,6 +427,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     char varname[128] = "rule-files";
     int good_sigs = 0;
     int bad_sigs = 0;
+    extern RunModesList runmodeslist;
 
     memset(&sig_stat, 0, sizeof(SigFileLoaderStat));
 
@@ -435,7 +436,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 de_ctx->config_prefix);
     }
 
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (RunmodeGetPrimary(&runmodeslist) == RUNMODE_ENGINE_ANALYSIS) {
         fp_engine_analysis_set = SetupFPAnalyzer();
         rule_engine_analysis_set = SetupRuleAnalyzer();
     }
@@ -511,7 +512,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     ret = 0;
 
  end:
-    if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
+    if (RunmodeGetPrimary(&runmodeslist) == RUNMODE_ENGINE_ANALYSIS) {
         if (rule_engine_analysis_set) {
             CleanupRuleAnalyzer();
         }
