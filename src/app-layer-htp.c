@@ -1226,6 +1226,19 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
     *chunks_buffer_len = buf_len;
 }
 
+static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
+{
+    if (tx && tx->de_state) {
+        if (dir == STREAM_TOSERVER) {
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
+            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+        } else if (STREAM_TOCLIENT) {
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW set");
+            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
+        }
+    }
+}
+
 /**
  *  \brief Setup boundary buffers
  */
@@ -1428,6 +1441,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                         goto end;
                     }
                 }
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
                 htud->request_body.body_parsed += (header_end - chunks_buffer);
                 htud->tsflags &= ~HTP_FILENAME_SET;
@@ -1472,6 +1486,8 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     } else if (result == -2) {
                         htud->tsflags |= HTP_DONTSTORE;
                     }
+                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
+
                 } else if (header_next - filedata > 2) {
                     filedata_len = header_next - filedata - 2;
                     SCLogDebug("filedata_len %u", filedata_len);
@@ -1488,6 +1504,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                             goto end;
                         }
                     }
+                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
                     htud->tsflags &= ~HTP_FILENAME_SET;
                     htud->request_body.body_parsed += (header_end - chunks_buffer);
@@ -1568,6 +1585,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tsflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
                 htud->tsflags |= HTP_FILENAME_SET;
                 htud->tsflags &= ~HTP_DONTSTORE;
             }
@@ -1621,6 +1639,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tsflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
                 htud->tsflags |= HTP_FILENAME_SET;
                 htud->tsflags &= ~HTP_DONTSTORE;
             }
@@ -1688,6 +1707,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tcflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOCLIENT);
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
