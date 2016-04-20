@@ -382,6 +382,14 @@ static void SMTPPruneFiles(FileContainer *files)
     }
 }
 
+static void FlagDetectStateNewFile(SMTPTransaction *tx)
+{
+    if (tx && tx->de_state) {
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
+        tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+    }
+}
+
 int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         MimeDecParseState *state)
 {
@@ -443,6 +451,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }
+            FlagDetectStateNewFile(smtp_state->curr_tx);
 
             /* If close in the same chunk, then pass in empty bytes */
             if (state->body_end) {
