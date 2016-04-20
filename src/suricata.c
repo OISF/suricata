@@ -229,7 +229,7 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 volatile uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
-int run_mode = RUNMODE_UNKNOWN;
+RunModesList runmodeslist = { {RUNMODE_UNKNOWN, RUNMODE_UNKNOWN}, 0};
 
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
@@ -270,15 +270,49 @@ void EngineModeSetIDS(void)
 
 int RunmodeIsUnittests(void)
 {
-    if (run_mode == RUNMODE_UNITTEST)
+    if (RunmodeGetPrimary(&runmodeslist) == RUNMODE_UNITTEST)
         return 1;
 
     return 0;
 }
 
-int RunmodeGetCurrent(void)
+int RunmodeGetCurrent(const RunModesList *runmodes, int index)
 {
-    return run_mode;
+    return runmodes->run_mode[index];
+}
+
+int RunmodeGetNumber(const RunModesList *runmodes)
+{
+    return runmodes->runmodes_cnt;
+}
+
+static int RunmodeIsUnknown(const RunModesList *runmodes)
+{
+    return (runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_UNKNOWN);
+}
+
+static int RunmodeIsAlreadyRan(const RunModesList *runmodes,
+                               const enum RunModes run_mode)
+{
+    int i;
+
+    for (i = 0; i < runmodes->runmodes_cnt; i++) {
+        if (runmodes->run_mode[i] == run_mode) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int RunmodeGetPrimary(const RunModesList *runmodes)
+{
+    return runmodes->run_mode[0];
+}
+
+int RunmodeGetSecondary(const RunModesList *runmodes)
+{
+    return runmodes->run_mode[1];
 }
 
 /** signal handlers
@@ -1037,7 +1071,10 @@ static void SCInstanceInit(SCInstance *suri)
 {
     memset(suri, 0x00, sizeof(*suri));
 
-    suri->run_mode = RUNMODE_UNKNOWN;
+    suri->runmodeslist.run_mode[0] = RUNMODE_UNKNOWN;
+    suri->runmodeslist.run_mode[1] = RUNMODE_UNKNOWN;
+    suri->runmodeslist.runmodes_cnt = 0;
+
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
     suri->sig_file = NULL;
@@ -1111,20 +1148,30 @@ static void SCPrintElapsedTime(SCInstance *suri)
 static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
 {
 #ifdef HAVE_AF_PACKET
-    if (suri->run_mode == RUNMODE_UNKNOWN) {
-        suri->run_mode = RUNMODE_AFP_DEV;
+    RunModesList *runmodes = &suri->runmodeslist;
+    if (runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_UNKNOWN) {
+        if (!RunmodeIsAlreadyRan(runmodes, RUNMODE_AFP_DEV)) {
+            runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_AFP_DEV;
+        } else {
+            SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                "multiple devices to get packets is experimental.");
+            if (!optarg) {
+                SCLogInfo("Mutiple af-packet option without interface on each is useless");
+                return TM_ECODE_FAILED;
+            }
+        }
         if (optarg) {
             LiveRegisterDevice(optarg, RUNMODE_AFP_DEV);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
             strlcpy(suri->pcap_dev, optarg, sizeof(suri->pcap_dev));
         }
-    } else if (suri->run_mode == RUNMODE_AFP_DEV) {
-        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                "multiple devices to get packets is experimental.");
-        if (optarg) {
-            LiveRegisterDevice(optarg, RUNMODE_AFP_DEV);
+        if (runmodes->runmodes_cnt < RUNMODES_MAX) {
+            runmodes->runmodes_cnt++;
         } else {
-            SCLogInfo("Multiple af-packet option without interface on each is useless");
+            SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
+                       "Maximum number of runmodes reached");
+            usage(suri->progname);
+            return TM_ECODE_FAILED;
         }
     } else {
         SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -1143,6 +1190,7 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
 
 static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
 {
+    RunModesList *runmodes = &suri->runmodeslist;
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
 
     if (optarg != NULL) {
@@ -1163,12 +1211,12 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
         }
     }
 
-    if (suri->run_mode == RUNMODE_UNKNOWN) {
-        suri->run_mode = RUNMODE_PCAP_DEV;
+    if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PCAP_DEV;
         if (optarg) {
             LiveRegisterDevice(suri->pcap_dev, RUNMODE_PCAP_DEV);
         }
-    } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
+    } else if (runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
         SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                 "support is not (yet) supported on Windows.");
@@ -1205,6 +1253,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int engine_analysis = 0;
     int set_log_directory = 0;
     int ret = TM_ECODE_OK;
+
+    RunModesList *runmodes = &suri->runmodeslist;
 
 #ifdef UNITTESTS
     coverage_unittests = 0;
@@ -1295,7 +1345,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
                 strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                suri->run_mode = RUNMODE_PFRING;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PFRING;
                 if (optarg != NULL) {
                     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                     strlcpy(suri->pcap_dev, optarg,
@@ -1340,8 +1390,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
             } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
 #ifdef HAVE_NETMAP
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_NETMAP;
+                if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+                    runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_NETMAP;
                     if (optarg) {
                         LiveRegisterDevice(optarg, RUNMODE_NETMAP);
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
@@ -1349,7 +1399,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                                 ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
                                  (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
                     }
-                } else if (suri->run_mode == RUNMODE_NETMAP) {
+                } else if (runmodes->run_mode[0] == RUNMODE_NETMAP) {
                     SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                             "multiple devices to get packets is experimental.");
                     if (optarg) {
@@ -1370,9 +1420,17 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif
             } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
 #ifdef HAVE_NFLOG
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_NFLOG;
-                    LiveBuildDeviceListCustom("nflog", "group");
+                if (RunmodeIsUnknown(runmodes)) {
+                    runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_NFLOG;
+                    LiveBuildDeviceListCustom("nflog", "group", RUNMODE_NFLOG);
+                    if (runmodes->runmodes_cnt < RUNMODES_MAX) {
+                        runmodes->runmodes_cnt++;
+                    } else {
+                        SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
+                                   "Maximum number of runmodes reached");
+                        usage(argv[0]);
+                        return TM_ECODE_FAILED;
+                    }
                 }
 #else
                 SCLogError(SC_ERR_NFLOG_NOSUPPORT, "NFLOG not enabled.");
@@ -1541,8 +1599,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
 #ifdef BUILD_UNIX_SOCKET
             } else if (strcmp((long_opts[option_index]).name , "unix-socket") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_UNIX_SOCKET;
+                if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+                    runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_UNIX_SOCKET;
                     if (optarg) {
                         if (ConfSetFinal("unix-command.filename", optarg) != 1) {
                             fprintf(stderr, "ERROR: Failed to set unix-command.filename.\n");
@@ -1563,7 +1621,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
-                suri->run_mode = RUNMODE_LIST_UNITTEST;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
@@ -1575,7 +1633,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* UNITTESTS */
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
-                suri->run_mode = RUNMODE_LIST_RUNMODES;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_RUNMODES;
                 return TM_ECODE_OK;
             } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
                 if (optarg) {
@@ -1590,15 +1648,15 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
-                suri->run_mode = RUNMODE_INSTALL_SERVICE;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_INSTALL_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-remove") == 0) {
-                suri->run_mode = RUNMODE_REMOVE_SERVICE;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_REMOVE_SERVICE;
                 return TM_ECODE_OK;
             }
             else if(strcmp((long_opts[option_index]).name, "service-change-params") == 0) {
-                suri->run_mode = RUNMODE_CHANGE_SERVICE_PARAMS;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_CHANGE_SERVICE_PARAMS;
                 return TM_ECODE_OK;
             }
 #endif /* OS_WIN32 */
@@ -1638,7 +1696,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* HAVE_LIBCAP_NG */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
-                suri->run_mode = RUNMODE_ERF_FILE;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_ERF_FILE;
                 if (ConfSetFinal("erf-file.file", optarg) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     return TM_ECODE_FAILED;
@@ -1646,10 +1704,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_DAG;
+                if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+                    runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_DAG;
                 }
-                else if (suri->run_mode != RUNMODE_DAG) {
+                else if (runmodes->run_mode[runmodes->runmodes_cnt] != RUNMODE_DAG) {
                     SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
                         "more than one run mode has been specified");
                     usage(argv[0]);
@@ -1664,7 +1722,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 		}
         else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
 #ifdef HAVE_NAPATECH
-            suri->run_mode = RUNMODE_NAPATECH;
+            runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_NAPATECH;
 #else
             SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntapi and a Napatech adapter are required"
                                                  " to capture packets using --napatech.");
@@ -1683,13 +1741,13 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* HAVE_PCAP_SET_BUFF */
             }
             else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
-                suri->run_mode = RUNMODE_PRINT_BUILDINFO;
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PRINT_BUILDINFO;
                 return TM_ECODE_OK;
             }
 #ifdef HAVE_MPIPE
             else if(strcmp((long_opts[option_index]).name , "mpipe") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_TILERA_MPIPE;
+                if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+                    runmodes->run_mode[runmodes->runmode_cnt] = RUNMODE_TILERA_MPIPE;
                     if (optarg != NULL) {
                         memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
                         strlcpy(suri->pcap_dev, optarg,
@@ -1739,7 +1797,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
 #endif /* OS_WIN32 */
         case 'h':
-            suri->run_mode = RUNMODE_PRINT_USAGE;
+            runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
             if (optarg == NULL) {
@@ -1805,12 +1863,22 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'q':
 #ifdef NFQ
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_NFQ;
+            if (RunmodeIsUnknown(runmodes)) {
+                if (!RunmodeIsAlreadyRan(runmodes, RUNMODE_NFQ)) {
+                    runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_NFQ;
+                }
                 EngineModeSetIPS();
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_NFQ) {
+                if (runmodes->runmodes_cnt < RUNMODES_MAX) {
+                    runmodes->runmodes_cnt++;
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
+                               "Maximum number of runmodes reached");
+                    usage(argv[0]);
+                    return TM_ECODE_FAILED;
+                }
+            } else if (RunmodeIsAlreadyRan(runmodes, RUNMODE_NFQ)) {
                 if (NFQRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1826,12 +1894,12 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'd':
 #ifdef IPFW
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_IPFW;
+            if (RunmodeIsUnknown(runmodes)) {
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_IPFW;
                 EngineModeSetIPS();
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
-            } else if (suri->run_mode == RUNMODE_IPFW) {
+            } else if (runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_IPFW) {
                 if (IPFWRegisterQueue(optarg) == -1)
                     return TM_ECODE_FAILED;
             } else {
@@ -1846,8 +1914,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif /* IPFW */
             break;
         case 'r':
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_PCAP_FILE;
+            if (RunmodeIsUnknown(runmodes) && !runmodes->runmodes_cnt) {
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PCAP_FILE;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
@@ -1876,8 +1944,8 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             break;
         case 'u':
 #ifdef UNITTESTS
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_UNITTEST;
+            if (runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_UNKNOWN) {
+                runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_UNITTEST;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
@@ -1898,7 +1966,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #endif
             break;
         case 'V':
-            suri->run_mode = RUNMODE_PRINT_VERSION;
+            runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_PRINT_VERSION;
             return TM_ECODE_OK;
         case 'F':
             if (optarg == NULL) {
@@ -1941,25 +2009,25 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     }
 #endif
 
-    if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
+    if ((runmodes->run_mode[runmodes->runmodes_cnt] == RUNMODE_UNIX_SOCKET) && set_log_directory) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
         return TM_ECODE_FAILED;
     }
 
     if (list_app_layer_protocols)
-        suri->run_mode = RUNMODE_LIST_APP_LAYERS;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_APP_LAYERS;
     if (list_cuda_cards)
-        suri->run_mode = RUNMODE_LIST_CUDA_CARDS;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_CUDA_CARDS;
     if (list_keywords)
-        suri->run_mode = RUNMODE_LIST_KEYWORDS;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_KEYWORDS;
     if (list_unittests)
-        suri->run_mode = RUNMODE_LIST_UNITTEST;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_LIST_UNITTEST;
     if (dump_config)
-        suri->run_mode = RUNMODE_DUMP_CONFIG;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_DUMP_CONFIG;
     if (conf_test)
-        suri->run_mode = RUNMODE_CONF_TEST;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_CONF_TEST;
     if (engine_analysis)
-        suri->run_mode = RUNMODE_ENGINE_ANALYSIS;
+        runmodes->run_mode[runmodes->runmodes_cnt] = RUNMODE_ENGINE_ANALYSIS;
 
     ret = SetBpfString(optind, argv);
     if (ret != TM_ECODE_OK)
@@ -2084,7 +2152,7 @@ static int InitSignalHandler(SCInstance *suri)
 int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 {
     /* Treat internal running mode */
-    switch(suri->run_mode) {
+    switch(RunmodeGetPrimary(&suri->runmodeslist)) {
         case RUNMODE_LIST_KEYWORDS:
             ListKeywords(suri->keyword_info);
             return TM_ECODE_DONE;
@@ -2140,11 +2208,36 @@ int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
 
 static int FinalizeRunMode(SCInstance *suri, char **argv)
 {
-    switch (suri->run_mode) {
+    switch (RunmodeGetPrimary(&suri->runmodeslist)) {
         case RUNMODE_PCAP_FILE:
         case RUNMODE_ERF_FILE:
         case RUNMODE_ENGINE_ANALYSIS:
             suri->offline = 1;
+            break;
+        case RUNMODE_PCAP_DEV:
+        case RUNMODE_PFRING:
+        case RUNMODE_NFQ:
+        case RUNMODE_NFLOG:
+        case RUNMODE_IPFW:
+        case RUNMODE_DAG:
+        case RUNMODE_AFP_DEV:
+        case RUNMODE_NETMAP:
+        case RUNMODE_TILERA_MPIPE:
+        case RUNMODE_UNITTEST:
+        case RUNMODE_NAPATECH:
+        case RUNMODE_UNIX_SOCKET:
+        case RUNMODE_USER_MAX:
+        case RUNMODE_LIST_KEYWORDS:
+        case RUNMODE_LIST_APP_LAYERS:
+        case RUNMODE_LIST_CUDA_CARDS:
+        case RUNMODE_LIST_RUNMODES:
+        case RUNMODE_PRINT_VERSION:
+        case RUNMODE_PRINT_BUILDINFO:
+        case RUNMODE_PRINT_USAGE:
+        case RUNMODE_DUMP_CONFIG:
+        case RUNMODE_CONF_TEST:
+        case RUNMODE_LIST_UNITTEST:
+        case RUNMODE_MAX:
             break;
         case RUNMODE_UNKNOWN:
             usage(argv[0]);
@@ -2153,9 +2246,9 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
             break;
     }
     /* Set the global run mode */
-    run_mode = suri->run_mode;
+    runmodeslist = suri->runmodeslist;
 
-    if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
+    if (!CheckValidDaemonModes(suri->daemon, RunmodeGetPrimary(&suri->runmodeslist))) {
         return TM_ECODE_FAILED;
     }
 
@@ -2221,38 +2314,44 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         int lthread;
         int nlive;
-        int strip_trailing_plus = 0;
-        switch (suri->run_mode) {
-            case RUNMODE_PCAP_DEV:
-            case RUNMODE_AFP_DEV:
-            case RUNMODE_NETMAP:
-                /* in netmap igb0+ has a special meaning, however the
-                 * interface really is igb0 */
-                strip_trailing_plus = 1;
-                /* fall through */
-            case RUNMODE_PFRING:
-                nlive = LiveGetDeviceCount(suri->run_mode);
-                for (lthread = 0; lthread < nlive; lthread++) {
-                    const char *live_dev = LiveGetDeviceName(lthread, suri->run_mode);
-                    char dev[32];
-                    (void)strlcpy(dev, live_dev, sizeof(dev));
+        int strip_trailing_plus;
+        int i;
+        enum RunModes runmode;
+        for (i = 0; i < RunmodeGetNumber(&suri->runmodeslist); i++) {
+            runmode = RunmodeGetCurrent(&suri->runmodeslist, i);
+            strip_trailing_plus = 0;
+            switch (runmode) {
+                case RUNMODE_PCAP_DEV:
+                case RUNMODE_AFP_DEV:
+                case RUNMODE_NETMAP:
+                    /* in netmap igb0+ has a special meaning, however the
+                     * interface really is igb0 */
+                    strip_trailing_plus = 1;
+                    /* fall through */
+                case RUNMODE_PFRING:
+                    nlive = LiveGetDeviceCount(runmode);
+                    for (lthread = 0; lthread < nlive; lthread++) {
+                        const char *live_dev = LiveGetDeviceName(lthread, runmode);
+                        char dev[32];
+                        (void)strlcpy(dev, live_dev, sizeof(dev));
 
-                    if (strip_trailing_plus) {
-                        size_t len = strlen(dev);
-                        if (len && dev[len-1] == '+') {
-                            dev[len-1] = '\0';
+                        if (strip_trailing_plus) {
+                            size_t len = strlen(dev);
+                            if (len && dev[len-1] == '+') {
+                                dev[len-1] = '\0';
+                            }
                         }
-                    }
 
-                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
-                    if (iface_max_packet_size > default_packet_size)
-                        default_packet_size = iface_max_packet_size;
-                }
-                if (default_packet_size)
-                    break;
+                        unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
+                        if (iface_max_packet_size > default_packet_size)
+                            default_packet_size = iface_max_packet_size;
+                    }
+                    if (default_packet_size)
+                        break;
                 /* fall through */
-            default:
-                default_packet_size = DEFAULT_PACKET_SIZE;
+                default:
+                    default_packet_size = DEFAULT_PACKET_SIZE;
+            }
         }
     } else {
         if (ParseSizeStringU32(temp_default_packet_size, &default_packet_size) < 0) {
@@ -2336,17 +2435,17 @@ static int PostConfLoadedSetup(SCInstance *suri)
     }
 
 #ifdef NFQ
-    if (suri->run_mode == RUNMODE_NFQ)
+    if (RunmodeGetPrimary(&suri->runmodeslist) == RUNMODE_NFQ || RunmodeGetSecondary(&suri->runmodeslist) == RUNMODE_NFQ)
         NFQInitConfig(FALSE);
 #endif
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri->runmodeslist) != RUNMODE_UNIX_SOCKET) {
         DefragInit();
     }
 
-    if (suri->run_mode == RUNMODE_ENGINE_ANALYSIS) {
+    if (RunmodeGetPrimary(&suri->runmodeslist) == RUNMODE_ENGINE_ANALYSIS) {
         SCLogInfo("== Carrying out Engine Analysis ==");
         char *temp = NULL;
         if (ConfGet("engine-analysis", &temp) == 0) {
@@ -2365,7 +2464,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     CIDRInit();
     SigParsePrepare();
 #ifdef PROFILING
-    if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri->runmodeslist) != RUNMODE_UNIX_SOCKET) {
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
         SCProfilingSghsGlobalInit();
@@ -2414,7 +2513,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
 
 #ifdef HAVE_NSS
-    if (suri->run_mode != RUNMODE_CONF_TEST) {
+    if ((RunmodeGetPrimary(&suri->runmodeslist) != RUNMODE_CONF_TEST)) {
         /* init NSS for md5 */
         PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
         NSS_NoDB_Init(NULL);
@@ -2500,7 +2599,7 @@ int main(int argc, char **argv)
     GlobalInits();
     TimeInit();
     SupportFastPatternForSigMatchTypes();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         StatsInit();
     }
 
@@ -2509,7 +2608,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (suri.run_mode == RUNMODE_DUMP_CONFIG) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) == RUNMODE_DUMP_CONFIG) {
         ConfDump();
         exit(EXIT_SUCCESS);
     }
@@ -2522,15 +2621,18 @@ int main(int argc, char **argv)
 
     UtilCpuPrintSummary();
 
-    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
+    int i;
+    for (i = 0; i < RunmodeGetNumber(&suri.runmodeslist); i++) {
+        if (ParseInterfacesList(RunmodeGetCurrent(&suri.runmodeslist, i), suri.pcap_dev) != TM_ECODE_OK) {
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (PostConfLoadedSetup(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
         StreamTcpInitConfig(STREAM_VERBOSE);
         IPPairInitConfig(IPPAIR_VERBOSE);
@@ -2553,7 +2655,7 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
         if ((suri.delayed_detect || (mt_enabled && !default_tenant)) &&
-            (suri.run_mode != RUNMODE_CONF_TEST)) {
+            (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_CONF_TEST)) {
             de_ctx = DetectEngineCtxInitMinimal();
         } else {
             de_ctx = DetectEngineCtxInit();
@@ -2572,7 +2674,7 @@ int main(int argc, char **argv)
         if (!de_ctx->minimal) {
             if (LoadSignatures(de_ctx, &suri) != TM_ECODE_OK)
                 exit(EXIT_FAILURE);
-            if (suri.run_mode == RUNMODE_ENGINE_ANALYSIS) {
+            if (RunmodeGetPrimary(&suri.runmodeslist) == RUNMODE_ENGINE_ANALYSIS) {
                 exit(EXIT_SUCCESS);
             }
         }
@@ -2587,21 +2689,25 @@ int main(int argc, char **argv)
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         RunModeInitializeOutputs();
         StatsSetupPostConfig();
     }
 
-    if (suri.run_mode == RUNMODE_CONF_TEST){
+    if (RunmodeGetPrimary(&suri.runmodeslist) == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         MagicDeinit();
         exit(EXIT_SUCCESS);
     }
 
-    RunModeDispatch(suri.run_mode, suri.runmode_custom_mode);
-
+    RunModeDispatch(RunmodeGetPrimary(&suri.runmodeslist), suri.runmode_custom_mode);
+    for (i = 1; i < RunmodeGetNumber(&suri.runmodeslist); i++) {
+        if (suri.runmodeslist.run_mode[i] != RUNMODE_UNKNOWN) {
+            RunModeDispatch(suri.runmodeslist.run_mode[i], suri.runmode_custom_mode);
+        }
+    }
     /* In Unix socket runmode, Flow manager is started on demand */
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         /* Spawn the unix socket manager thread */
         int unix_socket = 0;
         if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
@@ -2706,7 +2812,7 @@ int main(int argc, char **argv)
 
     UnixSocketKillSocketThread();
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         /* First we need to disable the flow manager thread */
         FlowDisableFlowManagerThread();
     }
@@ -2715,7 +2821,7 @@ int main(int argc, char **argv)
     /* Disable packet acquisition first */
     TmThreadDisableReceiveThreads();
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         /* we need a packet pool for FlowForceReassembly */
         PacketPoolInit();
 
@@ -2729,7 +2835,7 @@ int main(int argc, char **argv)
 
     /* before TmThreadKillThreads, as otherwise that kills it
      * but more slowly */
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         FlowDisableFlowRecyclerThread();
     }
 
@@ -2737,7 +2843,7 @@ int main(int argc, char **argv)
     TmThreadKillThreads();
 
 
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         /* destroy the packet pool for flow reassembly after all
          * the other threads are gone. */
         PacketPoolDestroy();
@@ -2780,7 +2886,7 @@ int main(int argc, char **argv)
     OutputDeregisterAll();
     TimeDeinit();
     SCProtoNameDeInit();
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         DefragDestroy();
     }
     if (!suri.disabled_detect) {
@@ -2801,7 +2907,7 @@ int main(int argc, char **argv)
 #endif
 
 #ifdef PROFILING
-    if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
+    if (RunmodeGetPrimary(&suri.runmodeslist) != RUNMODE_UNIX_SOCKET) {
         if (profiling_rules_enabled)
             SCProfilingDump();
         SCProfilingDestroy();
