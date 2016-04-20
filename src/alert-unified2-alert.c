@@ -1390,8 +1390,8 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     struct timeval ts;
     memset(&ts, 0x00, sizeof(struct timeval));
 
-    extern int run_mode;
-    if (run_mode == RUNMODE_UNITTEST)
+    extern RunModesList runmodeslist;
+    if (RunmodeGetPrimary(&runmodeslist) == RUNMODE_UNITTEST)
         TimeGet(&ts);
     else
         gettimeofday(&ts, NULL);
