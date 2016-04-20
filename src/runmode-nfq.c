@@ -74,7 +74,8 @@ int RunModeIpsNFQAutoFp(void)
     ret = RunModeSetIPSAutoFp(NFQGetThread,
             "ReceiveNFQ",
             "VerdictNFQ",
-            "DecodeNFQ");
+            "DecodeNFQ",
+            RUNMODE_NFQ);
 #endif /* NFQ */
     return ret;
 }
@@ -94,7 +95,8 @@ int RunModeIpsNFQWorker(void)
     ret = RunModeSetIPSWorker(NFQGetThread,
             "ReceiveNFQ",
             "VerdictNFQ",
-            "DecodeNFQ");
+            "DecodeNFQ",
+            RUNMODE_NFQ);
 #endif /* NFQ */
     return ret;
 }
