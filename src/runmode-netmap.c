@@ -280,7 +280,7 @@ static int NetmapConfigGeThreadsCount(void *conf)
 
 int NetmapRunModeIsIPS()
 {
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_NETMAP);
     int ldev;
     ConfNode *if_root;
     ConfNode *if_default = NULL;
@@ -297,7 +297,7 @@ int NetmapRunModeIsIPS()
     if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        const char *live_dev = LiveGetDeviceName(ldev);
+        const char *live_dev = LiveGetDeviceName(ldev, RUNMODE_NETMAP);
         if (live_dev == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
@@ -327,7 +327,7 @@ int NetmapRunModeIsIPS()
     if (has_ids && has_ips) {
         SCLogInfo("Netmap mode using IPS and IDS mode");
         for (ldev = 0; ldev < nlive; ldev++) {
-            const char *live_dev = LiveGetDeviceName(ldev);
+            const char *live_dev = LiveGetDeviceName(ldev, RUNMODE_NETMAP);
             if (live_dev == NULL) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
                 return 0;
@@ -379,7 +379,7 @@ int RunModeIdsNetmapAutoFp(void)
                               NetmapConfigGeThreadsCount,
                               "ReceiveNetmap",
                               "DecodeNetmap", thread_name_autofp,
-                              live_dev);
+                              live_dev, RUNMODE_NETMAP);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -412,7 +412,7 @@ int RunModeIdsNetmapSingle(void)
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
                                     "DecodeNetmap", thread_name_single,
-                                    live_dev);
+                                    live_dev, RUNMODE_NETMAP);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
@@ -448,7 +448,7 @@ int RunModeIdsNetmapWorkers(void)
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
                                     "DecodeNetmap", thread_name_workers,
-                                    live_dev);
+                                    live_dev, RUNMODE_NETMAP);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
