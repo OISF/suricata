@@ -199,6 +199,8 @@ static int FilePruneFile(File *file)
         }
     }
 
+    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s", file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
+
     /* file is done when state is closed+, logging/storing is done (if any) */
     if (file->state >= FILE_STATE_CLOSED &&
         (!RunModeOutputFileEnabled() || (file->flags & FILE_LOGGED)) &&
@@ -219,6 +221,8 @@ void FilePrune(FileContainer *ffc)
             break;
 
         BUG_ON(file != ffc->head);
+
+        SCLogDebug("removing file %p", file);
 
         File *file_next = file->next;
 

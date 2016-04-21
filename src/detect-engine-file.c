@@ -88,7 +88,6 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         File *file = ffc->head;
         for (; file != NULL; file = file->next) {
             SCLogDebug("file");
-
             if (file->state == FILE_STATE_NONE) {
                 SCLogDebug("file state FILE_STATE_NONE");
                 continue;
@@ -188,6 +187,11 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         }
     }
 
+    if (r == DETECT_ENGINE_INSPECT_SIG_NO_MATCH && store_r == DETECT_ENGINE_INSPECT_SIG_MATCH) {
+        SCLogDebug("stored MATCH, current file NOMATCH");
+        SCReturnInt(DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES);
+    }
+
     if (store_r == DETECT_ENGINE_INSPECT_SIG_MATCH)
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     SCReturnInt(r);
@@ -285,8 +289,10 @@ int DetectFileInspectSmtp(ThreadVars *tv,
     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
         SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
         r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
+        SCLogDebug("match with more files ahead");
+        r = match;
     }
-
 
 end:
     SCReturnInt(r);

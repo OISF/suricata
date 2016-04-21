@@ -544,6 +544,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         engine = engine->next;
                         total_matches++;
                         continue;
+                    } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
+                        /* if the file engine matched, but indicated more
+                         * files are still in progress, we don't set inspect
+                         * flags as these would end inspection for this tx */
+                        engine = engine->next;
+                        total_matches++;
+                        continue;
                     } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
                         inspect_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                         inspect_flags |= engine->inspect_flags;
@@ -849,6 +856,13 @@ static int DoInspectItem(ThreadVars *tv,
                     flags, alstate, inspect_tx, inspect_tx_id);
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                 inspect_flags |= engine->inspect_flags;
+                engine = engine->next;
+                total_matches++;
+                continue;
+            } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
+                /* if the file engine matched, but indicated more
+                 * files are still in progress, we don't set inspect
+                 * flags as these would end inspection for this tx */
                 engine = engine->next;
                 total_matches++;
                 continue;
