@@ -406,13 +406,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         flags |= FILE_NOMD5;
     }
 
-    /* Determine whether to process files */
-    if ((flags & (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5)) ==
-            (FILE_NOSTORE | FILE_NOMAGIC | FILE_NOMD5)) {
-        SCLogDebug("File content ignored");
-        return 0;
-    }
-
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
 
