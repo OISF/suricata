@@ -1891,7 +1891,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
         /* Check for file attachment in content disposition */
         field = MimeDecFindField(entity, CTNT_DISP_STR);
         if (field != NULL) {
-            bptr = FindMimeHeaderToken(field, "filename=\"", TOK_END_STR, &blen);
+            bptr = FindMimeHeaderToken(field, "filename=", TOK_END_STR, &blen);
             if (bptr != NULL) {
                 SCLogDebug("File attachment found in disposition");
                 entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
@@ -1933,7 +1933,7 @@ static int ProcessMimeHeaders(const uint8_t *buf, uint32_t len,
 
             /* Look for file name (if not already found) */
             if (!(entity->ctnt_flags & CTNT_IS_ATTACHMENT)) {
-                bptr = FindMimeHeaderToken(field, "name=\"", TOK_END_STR, &blen);
+                bptr = FindMimeHeaderToken(field, "name=", TOK_END_STR, &blen);
                 if (bptr != NULL) {
                     SCLogDebug("File attachment found");
                     entity->ctnt_flags |= CTNT_IS_ATTACHMENT;
