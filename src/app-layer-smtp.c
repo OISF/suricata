@@ -360,6 +360,7 @@ static void SMTPPruneFiles(FileContainer *files)
 
     File *file = files->head;
     while (file) {
+        SCLogDebug("file %p, file->chunks_head %p", file, file->chunks_head);
         if (file->chunks_head) {
             uint32_t window = smtp_config.content_inspect_window;
             if (file->chunks_head->stream_offset == 0)
@@ -387,6 +388,10 @@ static void FlagDetectStateNewFile(SMTPTransaction *tx)
     if (tx && tx->de_state) {
         SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
         tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+    } else if (tx == NULL) {
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX");
+    } else if (tx->de_state == NULL) {
+        SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW NOT set, no TX DESTATE");
     }
 }
 
