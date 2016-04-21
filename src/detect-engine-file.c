@@ -106,31 +106,31 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
             if ((s->file_flags & FILE_SIG_NEED_FILENAME) && file->name == NULL) {
                 SCLogDebug("sig needs filename, but we don't have any");
-                r = 0;
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_MAGIC) && file->chunks_head == NULL) {
                 SCLogDebug("sig needs file content, but we don't have any");
-                r = 0;
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_FILECONTENT) && file->chunks_head == NULL) {
                 SCLogDebug("sig needs file content, but we don't have any");
-                r = 0;
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_MD5) && (!(file->flags & FILE_MD5))) {
                 SCLogDebug("sig needs file md5, but we don't have any");
-                r = 0;
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
             if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
                 SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
-                r = 0;
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
                 break;
             }
 
@@ -144,10 +144,10 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                         FileMatch(tv, det_ctx, f, flags, file, s, sm);
                     KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
                     if (match == 0) {
-                        r = 2;
+                        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
                         break;
                     } else if (sm->next == NULL) {
-                        r = 1;
+                        r = DETECT_ENGINE_INSPECT_SIG_MATCH;
                         break;
                     }
                 }
@@ -156,13 +156,13 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
             /* continue inspection for other files as we may want to store
              * those as well. We'll return 1 (match) regardless of their
              * results though */
-            if (r == 1)
-                store_r = 1;
+            if (r == DETECT_ENGINE_INSPECT_SIG_MATCH)
+                store_r = DETECT_ENGINE_INSPECT_SIG_MATCH;
 
             /* if this is a filestore sig, and the sig can't match
              * return 3 so we can distinguish */
-            if ((s->flags & SIG_FLAG_FILESTORE) && r == 2)
-                r = 3;
+            if ((s->flags & SIG_FLAG_FILESTORE) && r == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH)
+                r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
 
             /* continue, this file may (or may not) be unable to match
              * maybe we have more that can :) */
@@ -182,14 +182,14 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 KEYWORD_PROFILING_END(det_ctx, sm->type, (match > 0));
 
                 if (match == 1) {
-                    r = 1;
+                    r = DETECT_ENGINE_INSPECT_SIG_MATCH;
                 }
             }
         }
     }
 
-    if (store_r == 1)
-        r = 1;
+    if (store_r == DETECT_ENGINE_INSPECT_SIG_MATCH)
+        r = DETECT_ENGINE_INSPECT_SIG_MATCH;
     SCReturnInt(r);
 }
 
@@ -225,18 +225,14 @@ int DetectFileInspectHttp(ThreadVars *tv,
         ffc = htp_state->files_ts;
 
     int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
-    if (match == 1) {
+    if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-    } else if (match == 2) {
-        if (r != 1) {
-            SCLogDebug("sid %u can't match on this transaction", s->id);
-            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        }
-    } else if (match == 3) {
-        if (r != 1) {
-            SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
-            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
-        }
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
+        SCLogDebug("sid %u can't match on this transaction", s->id);
+        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
+        SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
+        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
     }
 
     return r;
@@ -281,18 +277,14 @@ int DetectFileInspectSmtp(ThreadVars *tv,
         goto end;
 
     int match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
-    if (match == 1) {
+    if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
         r = DETECT_ENGINE_INSPECT_SIG_MATCH;
-    } else if (match == 2) {
-        if (r != 1) {
-            SCLogDebug("sid %u can't match on this transaction", s->id);
-            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
-        }
-    } else if (match == 3) {
-        if (r != 1) {
-            SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
-            r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
-        }
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH) {
+        SCLogDebug("sid %u can't match on this transaction", s->id);
+        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+    } else if (match == DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE) {
+        SCLogDebug("sid %u can't match on this transaction (filestore sig)", s->id);
+        r = DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE;
     }
 
 
