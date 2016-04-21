@@ -5041,35 +5041,28 @@ int SMTPProcessDataChunkTest05(void){
             0x41, 0x3D, 0x3D, 0x0D, 0x0A,};
 
     Flow f;
+    int ret;
     FLOW_INITIALIZE(&f);
     f.alstate = SMTPStateAlloc();
+    FAIL_IF(f.alstate == NULL);
     MimeDecParseState *state = MimeDecInitParser(&f, NULL);
     ((MimeDecEntity *)state->stack->top->data)->ctnt_flags = CTNT_IS_ATTACHMENT;
+    FAIL_IF(state == NULL);
     state->body_begin = 1;
-    int ret;
-    uint64_t file_size = 0;
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
+    FAIL_IF(ret != 0);
     state->body_begin = 0;
-    if(ret){goto end;}
     SMTPState *smtp_state = (SMTPState *)((Flow *)state->data)->alstate;
     FileContainer *files = smtp_state->files_ts;
+    FAIL_IF(files == NULL);
     File *file = files->head;
-    file_size = file->size;
-
-    FileDisableStoring(&f, STREAM_TOSERVER);
-    FileDisableMagic(&f, STREAM_TOSERVER);
-    FileDisableMd5(&f, STREAM_TOSERVER);
+    FAIL_IF(file == NULL);
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
-    if(ret){goto end;}
-    printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);
-    if(file->size == file_size){
-        return 1;
-    }else{
-        return 0;
-    }
-
-    end:
-    return ret == 0;
+    FAIL_IF(ret != 0);
+    FAIL_IF(file->size != 106);
+    SMTPStateFree(smtp_state);
+    FLOW_DESTROY(&f);
+    PASS;
 }
 
 #endif /* UNITTESTS */
