@@ -1197,6 +1197,10 @@
             [],
             [[#include <sys/socket.h>
               #include <linux/if_packet.h>]])
+        AC_CHECK_DECL([SOF_TIMESTAMPING_RAW_HARDWARE],
+            AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
+            [],
+            [[#include <linux/net_tstamp.h>]])
     ])
 
   # Netmap support
