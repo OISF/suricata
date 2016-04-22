@@ -307,6 +307,7 @@ typedef enum {
     SC_ERR_DEPRECATED_CONF, /**< Deprecated configuration parameter. */
     SC_WARN_FASTER_CAPTURE_AVAILABLE,
     SC_WARN_POOR_RULE,
+    SC_ERR_ALERT_PAYLOAD_BUFFER,
 } SCError;
 
 const char *SCErrorToString(SCError);
