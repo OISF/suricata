@@ -89,6 +89,10 @@ void SCACRegisterTests(void);
 
 #define STATE_QUEUE_CONTAINER_SIZE 65536
 
+#define AC_CASE_MASK    0x80000000
+#define AC_PID_MASK     0x7FFFFFFF
+#define AC_CASE_BIT     31
+
 static int construct_both_16_and_32_state_tables = 0;
 
 /**
@@ -674,8 +678,8 @@ static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
 
         for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
             if (ctx->pid_pat_list[ctx->output_table[state].pids[k]].cs != NULL) {
-                ctx->output_table[state].pids[k] &= 0x0000FFFF;
-                ctx->output_table[state].pids[k] |= 1 << 16;
+                ctx->output_table[state].pids[k] &= AC_PID_MASK;
+                ctx->output_table[state].pids[k] |= ((uint32_t)1 << AC_CASE_BIT);
             }
         }
     }
@@ -1047,8 +1051,8 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
-                    if (pids[k] & 0xFFFF0000) {
-                        uint32_t lower_pid = pids[k] & 0x0000FFFF;
+                    if (pids[k] & AC_CASE_MASK) {
+                        uint32_t lower_pid = pids[k] & AC_PID_MASK;
                         if (SCMemcmp(pid_pat_list[lower_pid].cs,
                                      buf + i - pid_pat_list[lower_pid].patlen + 1,
                                      pid_pat_list[lower_pid].patlen) != 0) {
@@ -1087,7 +1091,7 @@ uint32_t SCACSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
-                    if (pids[k] & 0xFFFF0000) {
+                    if (pids[k] & AC_CASE_MASK) {
                         uint32_t lower_pid = pids[k] & 0x0000FFFF;
                         if (SCMemcmp(pid_pat_list[lower_pid].cs,
                                      buf + i - pid_pat_list[lower_pid].patlen + 1,
@@ -1587,7 +1591,7 @@ uint32_t SCACCudaPacketResultsProcessing(Packet *p, const MpmCtx *mpm_ctx,
          * don't copy the pattern id into the pattern_id_array.  That's
          * the only change */
         for (k = 0; k < no_of_entries; k++) {
-            if (pids[k] & 0xFFFF0000) {
+            if (pids[k] & AC_CASE_MASK) {
                 uint32_t lower_pid = pids[k] & 0x0000FFFF;
                 if (SCMemcmp(pid_pat_list[lower_pid].cs,
                              buf + offset - pid_pat_list[lower_pid].patlen + 1,
