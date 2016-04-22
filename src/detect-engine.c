@@ -1659,33 +1659,18 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     /* HSBD */
     if (det_ctx->hsbd != NULL) {
         SCLogDebug("det_ctx hsbd %u", det_ctx->hsbd_buffers_size);
-        for (i = 0; i < det_ctx->hsbd_buffers_size; i++) {
-            if (det_ctx->hsbd[i].buffer != NULL) {
-                HTPFree(det_ctx->hsbd[i].buffer, det_ctx->hsbd[i].buffer_size);
-            }
-        }
         SCFree(det_ctx->hsbd);
     }
 
     /* HSCB */
     if (det_ctx->hcbd != NULL) {
         SCLogDebug("det_ctx hcbd %u", det_ctx->hcbd_buffers_size);
-        for (i = 0; i < det_ctx->hcbd_buffers_size; i++) {
-            if (det_ctx->hcbd[i].buffer != NULL)
-                SCFree(det_ctx->hcbd[i].buffer);
-            SCLogDebug("det_ctx->hcbd[i].buffer_size %u", det_ctx->hcbd[i].buffer_size);
-        }
         SCFree(det_ctx->hcbd);
     }
 
     /* SMTP */
     if (det_ctx->smtp != NULL) {
         SCLogDebug("det_ctx smtp %u", det_ctx->smtp_buffers_size);
-        for (i = 0; i < det_ctx->smtp_buffers_size; i++) {
-            if (det_ctx->smtp[i].buffer != NULL)
-                SCFree(det_ctx->smtp[i].buffer);
-            SCLogDebug("det_ctx->smtp[i].buffer_size %u", det_ctx->smtp[i].buffer_size);
-        }
         SCFree(det_ctx->smtp);
     }
 

@@ -273,7 +273,7 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
                 fprintf(fp, "STATE:             UNKNOWN\n");
                 break;
         }
-        fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
+        fprintf(fp, "SIZE:              %"PRIu64"\n", FileSize(ff));
 
         fclose(fp);
     } else {
@@ -281,7 +281,8 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
     }
 }
 
-static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p, const File *ff, const FileData *ffd, uint8_t flags)
+static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p,
+        const File *ff, const uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
     LogFilestoreLogThread *aft = (LogFilestoreLogThread *)thread_data;
@@ -302,7 +303,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
         return 0;
     }
 
-    SCLogDebug("ff %p, ffd %p", ff, ffd);
+    SCLogDebug("ff %p, data %p, data_len %u", ff, data, data_len);
 
     snprintf(filename, sizeof(filename), "%s/file.%u",
             g_logfile_base_dir, ff->file_id);
@@ -319,7 +320,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
             return -1;
         }
     /* we can get called with a NULL ffd when we need to close */
-    } else if (ffd != NULL) {
+    } else if (data != NULL) {
         file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
         if (file_fd == -1) {
             SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
@@ -328,7 +329,7 @@ static int LogFilestoreLogger(ThreadVars *tv, void *thread_data, const Packet *p
     }
 
     if (file_fd != -1) {
-        ssize_t r = write(file_fd, (const void *)ffd->data, (size_t)ffd->len);
+        ssize_t r = write(file_fd, (const void *)data, (size_t)data_len);
         if (r == -1) {
             SCLogDebug("write failed: %s", strerror(errno));
         }

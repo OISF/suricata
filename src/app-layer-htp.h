@@ -37,6 +37,7 @@
 #include "util-file.h"
 #include "app-layer-htp-mem.h"
 #include "detect-engine-state.h"
+#include "util-streaming-buffer.h"
 
 #include <htp/htp.h>
 
@@ -139,6 +140,13 @@ enum {
 #define HTP_PCRE_HAS_MATCH      0x02    /**< Flag to indicate that the chunks
                                              matched on some rule */
 
+typedef struct HTPCfgDir_ {
+    uint32_t body_limit;
+    uint32_t inspect_min_size;
+    uint32_t inspect_window;
+    StreamingBufferConfig sbcfg;
+} HTPCfgDir;
+
 /** Need a linked list in order to keep track of these */
 typedef struct HTPCfgRec_ {
     htp_cfg_t           *cfg;
@@ -147,25 +155,18 @@ typedef struct HTPCfgRec_ {
     int                 uri_include_all; /**< use all info in uri (bool) */
 
     /** max size of the client body we inspect */
-    uint32_t            request_body_limit;
-    uint32_t            response_body_limit;
-
-    uint32_t            request_inspect_min_size;
-    uint32_t            request_inspect_window;
-
-    uint32_t            response_inspect_min_size;
-    uint32_t            response_inspect_window;
     int                 randomize;
     int                 randomize_range;
     int                 http_body_inline;
+
+    HTPCfgDir request;
+    HTPCfgDir response;
 } HTPCfgRec;
 
 /** Struct used to hold chunks of a body on a request */
 struct HtpBodyChunk_ {
-    uint8_t *data;              /**< Pointer to the data of the chunk */
     struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
-    uint64_t stream_offset;
-    uint32_t len;               /**< Length of the chunk */
+    StreamingBufferSegment sbseg;
     int logged;
 } __attribute__((__packed__));
 typedef struct HtpBodyChunk_ HtpBodyChunk;
@@ -174,6 +175,8 @@ typedef struct HtpBodyChunk_ HtpBodyChunk;
 typedef struct HtpBody_ {
     HtpBodyChunk *first; /**< Pointer to the first chunk */
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
+
+    StreamingBuffer *sb;
 
     /* Holds the length of the htp request body seen so far */
     uint64_t content_len_so_far;
@@ -245,7 +248,7 @@ typedef struct HtpState_ {
     uint64_t store_tx_id;
     FileContainer *files_ts;
     FileContainer *files_tc;
-    struct HTPCfgRec_ *cfg;
+    const struct HTPCfgRec_ *cfg;
     uint16_t flags;
     uint16_t events;
     uint16_t htp_messages_offset; /**< offset into conn->messages list */

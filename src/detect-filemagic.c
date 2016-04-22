@@ -91,40 +91,21 @@ void DetectFilemagicRegister(void)
  */
 int FilemagicGlobalLookup(File *file)
 {
-    if (file == NULL || file->chunks_head == NULL) {
+    if (file == NULL || FileSize(file) == 0) {
         SCReturnInt(-1);
     }
 
-    /* initial chunk already matching our requirement */
-    if (file->chunks_head->len >= FILEMAGIC_MIN_SIZE) {
-        file->magic = MagicGlobalLookup(file->chunks_head->data, FILEMAGIC_MIN_SIZE);
-    } else {
-        uint8_t *buf = SCMalloc(FILEMAGIC_MIN_SIZE);
-        uint32_t size = 0;
+    const uint8_t *data = NULL;
+    uint32_t data_len = 0;
+    uint64_t offset = 0;
 
-        if (likely(buf != NULL)) {
-            FileData *ffd = file->chunks_head;
-
-            for ( ; ffd != NULL; ffd = ffd->next) {
-                uint32_t copy_len = ffd->len;
-                if (size + ffd->len > FILEMAGIC_MIN_SIZE)
-                    copy_len = FILEMAGIC_MIN_SIZE - size;
-
-                memcpy(buf + size, ffd->data, copy_len);
-                size += copy_len;
-
-                if (size >= FILEMAGIC_MIN_SIZE) {
-                    file->magic = MagicGlobalLookup(buf, size);
-                    break;
-                }
-                /* file is done but smaller than FILEMAGIC_MIN_SIZE */
-                if (ffd->next == NULL && file->state >= FILE_STATE_CLOSED) {
-                    file->magic = MagicGlobalLookup(buf, size);
-                    break;
-                }
-            }
-
-            SCFree(buf);
+    StreamingBufferGetData(file->sb,
+                           &data, &data_len, &offset);
+    if (offset == 0) {
+        if (FileSize(file) >= FILEMAGIC_MIN_SIZE) {
+            file->magic = MagicGlobalLookup(data, data_len);
+        } else if (file->state >= FILE_STATE_CLOSED) {
+            file->magic = MagicGlobalLookup(data, data_len);
         }
     }
 
@@ -141,43 +122,23 @@ int FilemagicGlobalLookup(File *file)
  */
 int FilemagicThreadLookup(magic_t *ctx, File *file)
 {
-    if (ctx == NULL || file == NULL || file->chunks_head == NULL) {
+    if (ctx == NULL || file == NULL || FileSize(file) == 0) {
         SCReturnInt(-1);
     }
 
-    /* initial chunk already matching our requirement */
-    if (file->chunks_head->len >= FILEMAGIC_MIN_SIZE) {
-        file->magic = MagicThreadLookup(ctx, file->chunks_head->data, FILEMAGIC_MIN_SIZE);
-    } else {
-        uint8_t *buf = SCMalloc(FILEMAGIC_MIN_SIZE);
-        uint32_t size = 0;
+    const uint8_t *data = NULL;
+    uint32_t data_len = 0;
+    uint64_t offset = 0;
 
-        if (likely(buf != NULL)) {
-            FileData *ffd = file->chunks_head;
-
-            for ( ; ffd != NULL; ffd = ffd->next) {
-                uint32_t copy_len = ffd->len;
-                if (size + ffd->len > FILEMAGIC_MIN_SIZE)
-                    copy_len = FILEMAGIC_MIN_SIZE - size;
-
-                memcpy(buf + size, ffd->data, copy_len);
-                size += copy_len;
-
-                if (size >= FILEMAGIC_MIN_SIZE) {
-                    file->magic = MagicThreadLookup(ctx, buf, size);
-                    break;
-                }
-                /* file is done but smaller than FILEMAGIC_MIN_SIZE */
-                if (ffd->next == NULL && file->state >= FILE_STATE_CLOSED) {
-                    file->magic = MagicThreadLookup(ctx, buf, size);
-                    break;
-                }
-            }
-
-            SCFree(buf);
+    StreamingBufferGetData(file->sb,
+                           &data, &data_len, &offset);
+    if (offset == 0) {
+        if (FileSize(file) >= FILEMAGIC_MIN_SIZE) {
+            file->magic = MagicThreadLookup(ctx, data, data_len);
+        } else if (file->state >= FILE_STATE_CLOSED) {
+            file->magic = MagicThreadLookup(ctx, data, data_len);
         }
     }
-
     SCReturnInt(0);
 }
 

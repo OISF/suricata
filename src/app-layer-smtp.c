@@ -226,7 +226,7 @@ SCEnumCharMap smtp_reply_map[ ] = {
 };
 
 /* Create SMTP config structure */
-SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0};
+SMTPConfig smtp_config = { 0, { 0, 0, 0, 0, 0 }, 0, 0, 0, STREAMING_BUFFER_CONFIG_INITIALIZER};
 
 static SMTPString *SMTPStringAlloc(void);
 
@@ -320,6 +320,8 @@ static void SMTPConfigure(void) {
         }
     }
 
+    smtp_config.sbcfg.buf_size = content_limit;
+
     SCReturn;
 }
 
@@ -361,22 +363,20 @@ static void SMTPPruneFiles(FileContainer *files)
 
     File *file = files->head;
     while (file) {
-        if (file->chunks_head) {
-            uint32_t window = smtp_config.content_inspect_window;
-            if (file->chunks_head->stream_offset == 0)
-                window = MAX(window, smtp_config.content_inspect_min_size);
+        uint32_t window = smtp_config.content_inspect_window;
+        if (file->sb->stream_offset == 0)
+            window = MAX(window, smtp_config.content_inspect_min_size);
 
-            uint64_t file_size = file->content_len_so_far;
-            uint64_t data_size = file_size - file->chunks_head->stream_offset;
+        uint64_t file_size = FileSize(file);
+        uint64_t data_size = file_size - file->sb->stream_offset;
 
-            SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
-                    window, file_size, data_size);
+        SCLogDebug("window %"PRIu32", file_size %"PRIu64", data_size %"PRIu64,
+                window, file_size, data_size);
 
-            if (data_size > (window * 3)) {
-                uint64_t left_edge = file_size - window;
-                SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
-                file->content_inspected = left_edge;
-            }
+        if (data_size > (window * 3)) {
+            uint64_t left_edge = left_edge = file_size - window;
+            SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
+            file->content_inspected = left_edge;
         }
 
         file = file->next;
@@ -446,7 +446,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
                 flags |= FILE_STORE;
             }
 
-            if (FileOpenFile(files, (uint8_t *) entity->filename, entity->filename_len,
+            if (FileOpenFile(files, &smtp_config.sbcfg, (uint8_t *) entity->filename, entity->filename_len,
                     (uint8_t *) chunk, len, flags|FILE_USE_DETECT) == NULL) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
@@ -4765,8 +4765,8 @@ int SMTPParserTest14(void)
             printf("smtp-mime file name is incorrect");
             goto end;
         }
-        if(file->size != filesize){
-            printf("smtp-mime file size %"PRIu64" is incorrect", file->size);
+        if (FileSize(file) != filesize){
+            printf("smtp-mime file size %"PRIu64" is incorrect", FileSize(file));
             goto end;
         }
         static uint8_t org_binary[] = {
@@ -4787,12 +4787,12 @@ int SMTPParserTest14(void)
                 0x00, 0x00, 0x00, 0x00, 0x5C, 0x5C, 0x36, 0x36,
                 0x2E, 0x39, 0x33, 0x2E, 0x36, 0x38, 0x2E, 0x36,
                 0x5C, 0x7A, 0x00, 0x00, 0x38,};
-        uint64_t z;
-        for (z=0; z < filesize; z++){
-            if(org_binary[z] != file->chunks_head->data[z]){
-                printf("smtp-mime file data incorrect\n");
-                goto end;
-            }
+
+        if (StreamingBufferCompareRawData(file->sb,
+                    org_binary, sizeof(org_binary)) != 1)
+        {
+            printf("smtp-mime file data incorrect\n");
+            goto end;
         }
     }
 
@@ -5043,25 +5043,29 @@ int SMTPProcessDataChunkTest05(void){
     uint64_t file_size = 0;
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
     state->body_begin = 0;
-    if(ret){goto end;}
+    if (ret) {
+        goto end;
+    }
     SMTPState *smtp_state = (SMTPState *)((Flow *)state->data)->alstate;
     FileContainer *files = smtp_state->files_ts;
     File *file = files->head;
-    file_size = file->size;
+    file_size = FileSize(file);
 
     FileDisableStoring(&f, STREAM_TOSERVER);
     FileDisableMagic(&f, STREAM_TOSERVER);
     FileDisableMd5(&f, STREAM_TOSERVER);
     ret = SMTPProcessDataChunk((uint8_t *)mimemsg, sizeof(mimemsg), state);
-    if(ret){goto end;}
-    printf("%u\t%u\n", (uint32_t) file->size, (uint32_t) file_size);
-    if(file->size == file_size){
+    if (ret) {
+        goto end;
+    }
+    printf("%u\t%u\n", (uint32_t)FileSize(file), (uint32_t) file_size);
+    if (FileSize(file) == file_size) {
         return 1;
-    }else{
+    } else {
         return 0;
     }
 
-    end:
+end:
     return ret == 0;
 }
 
