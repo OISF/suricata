@@ -216,17 +216,51 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling mmaped capture on iface %s",
-                aconf->iface);
+    if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
+        if (boolval) {
+            aconf->flags |= AFP_RING_MODE;
+        } else {
+            SCLogInfo("Disabling mmaped capture on iface %s",
+                    aconf->iface);
+        }
+    } else {
         aconf->flags |= AFP_RING_MODE;
     }
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "use-emergency-flush", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling ring emergency flush on iface %s",
-                aconf->iface);
-        aconf->flags |= AFP_EMERGENCY_MODE;
+
+    if (aconf->flags & AFP_RING_MODE) {
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "mmap-locked", (int *)&boolval);
+        if (boolval) {
+            SCLogInfo("Enabling locked memory for mmap on iface %s",
+                    aconf->iface);
+            aconf->flags |= AFP_MMAP_LOCKED;
+        }
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "tpacket-v3", (int *)&boolval);
+        if (boolval) {
+            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+#ifdef HAVE_TPACKET_V3
+                SCLogInfo("Enabling tpacket v3 capture on iface %s",
+                        aconf->iface);
+                aconf->flags |= AFP_TPACKET_V3|AFP_RING_MODE;
+#else
+                SCLogNotice("System too old for tpacket v3 switching to v2");
+                aconf->flags |= AFP_RING_MODE;
+#endif
+            } else {
+                SCLogError(SC_ERR_RUNMODE,
+                        "tpacket v3 is only implemented for 'workers' running mode."
+                        " Switching to tpacket v2.");
+                aconf->flags |= AFP_RING_MODE;
+            }
+        }
+        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                               "use-emergency-flush", (int *)&boolval);
+        if (boolval) {
+            SCLogInfo("Enabling ring emergency flush on iface %s",
+                    aconf->iface);
+            aconf->flags |= AFP_EMERGENCY_MODE;
+        }
     }
 
 
@@ -347,6 +381,17 @@ void *ParseAFPConfig(const char *iface)
          * for this interface. To take burst into account we multiply the obtained
          * size by 2. */
         aconf->ring_size = max_pending_packets * 2 / aconf->threads;
+    }
+
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
+        aconf->block_size = value;
+    } else {
+        aconf->block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
+    }
+    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
+        aconf->block_timeout = value;
+    } else {
+        aconf->block_timeout = 10;
     }
 
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
