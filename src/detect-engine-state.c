@@ -721,6 +721,7 @@ static int DoInspectItem(ThreadVars *tv,
             {
                 item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
                 item->flags &= ~DE_STATE_FLAG_FULL_INSPECT;
+                item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
             }
 
             if ((flags & STREAM_TOSERVER) &&
@@ -728,6 +729,7 @@ static int DoInspectItem(ThreadVars *tv,
             {
                 item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
                 item->flags &= ~DE_STATE_FLAG_FULL_INSPECT;
+                item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
             }
         }
 
@@ -1055,6 +1057,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         }
                     }
                 }
+
+                tx_dir_state->flags &=
+                    ~(DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW|DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW);
             }
             /* if the current tx is in progress, we won't advance to any newer
              * tx' just yet. */
