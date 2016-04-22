@@ -94,6 +94,8 @@
 #include <sys/mman.h>
 #endif
 
+#include <linux/net_tstamp.h>
+
 #endif /* HAVE_AF_PACKET */
 
 extern int max_pending_packets;
@@ -1651,6 +1653,16 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
                 strerror(errno));
         return AFP_FATAL_ERROR;
     }
+
+#ifdef HAVE_HW_TIMESTAMPING
+    int req = SOF_TIMESTAMPING_RAW_HARDWARE;
+    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_TIMESTAMP, (void *) &req,
+                sizeof(req)) < 0) {
+        SCLogWarning(SC_ERR_AFP_CREATE,
+                "Can't activate hardware timestamping on packet socket: %s",
+                strerror(errno));
+    }
+#endif
 
     /* Allocate RX ring */
 #ifdef HAVE_TPACKET_V3
