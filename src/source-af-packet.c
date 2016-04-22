@@ -966,7 +966,6 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-        AFPFlushBlock(pbd);
         TmqhOutputPacketpool(ptv->tv, p);
         SCReturnInt(AFP_FAILURE);
     }
@@ -981,7 +980,10 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 
     ppd = (uint8_t *)pbd + pbd->hdr.bh1.offset_to_first_pkt;
     for (i = 0; i < num_pkts; ++i) {
-        AFPParsePacketV3(ptv, pbd, (struct tpacket3_hdr *)ppd);
+        if (unlikely(AFPParsePacketV3(ptv, pbd,
+                             (struct tpacket3_hdr *)ppd) == AFP_FAILURE)) {
+            SCReturnInt(AFP_READ_FAILURE);
+        }
         ppd = ppd + ((struct tpacket3_hdr *)ppd)->tp_next_offset;
     }
 
@@ -1075,11 +1077,22 @@ void AFPSwitchState(AFPThreadVars *ptv, int state)
 
     /* Do cleaning if switching to down state */
     if (state == AFP_STATE_DOWN) {
-        if (ptv->ring_v2) {
-            /* only used in reading phase, we can free it */
-            SCFree(ptv->ring_v2);
-            ptv->ring_v2 = NULL;
+#ifdef HAVE_TPACKET_V3
+        if (ptv->flags & AFP_TPACKET_V3) {
+            if (!ptv->ring_v3) {
+                SCFree(ptv->ring_v3);
+                ptv->ring_v3 = NULL;
+            }
+        } else {
+#endif
+            if (ptv->ring_v2) {
+                /* only used in reading phase, we can free it */
+                SCFree(ptv->ring_v2);
+                ptv->ring_v2 = NULL;
+            }
+#ifdef HAVE_TPACKET_V3
         }
+#endif
         if (ptv->socket != -1) {
             /* we need to wait for all packets to return data */
             if (SC_ATOMIC_SUB(ptv->mpeer->sock_usage, 1) == 0) {
