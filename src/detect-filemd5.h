@@ -24,13 +24,6 @@
 #ifndef __DETECT_FILEMD5_H__
 #define __DETECT_FILEMD5_H__
 
-#include "util-rohash.h"
-
-typedef struct DetectFileMd5Data {
-    ROHashTable *hash;
-    int negated;
-} DetectFileMd5Data;
-
 /* prototypes */
 void DetectFileMd5Register (void);
 
