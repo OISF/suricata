@@ -134,6 +134,15 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
                 }
                 json_object_set_new(fjs, "md5", json_string(s));
             }
+            if (ff->flags & FILE_SHA1) {
+                size_t x;
+                int i;
+                char s[256];
+                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
+                    i += snprintf(&s[i], 255-i, "%02x", ff->sha1[x]);
+                }
+                json_object_set_new(fjs, "sha1", json_string(s));
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -280,6 +289,16 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 #endif
         }
     }
+
+        const char *force_sha1 = ConfNodeLookupChildValue(conf, "force-sha1");
+        if (force_sha1 != NULL && ConfValIsTrue(force_sha1)) {
+#ifdef HAVE_NSS
+            FileForceSha1Enable();
+            SCLogInfo("forcing sha1 calculation for logged files");
+#else
+            SCLogInfo("sha1 calculation requires linking against libnss");
+#endif
+        }
 
     output_ctx->data = output_file_ctx;
     output_ctx->DeInit = OutputFileLogDeinitSub;

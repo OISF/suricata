@@ -290,6 +290,14 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
                 }
                 fprintf(fp, "\", ");
             }
+            if (ff->flags & FILE_SHA1) {
+                fprintf(fp, "\"sha1\": \"");
+                size_t x;
+                for (x = 0; x < sizeof(ff->sha1); x++) {
+                    fprintf(fp, "%02x", ff->sha1[x]);
+                }
+                fprintf(fp, "\", ");
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -438,6 +446,15 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 #endif
     }
 
+    const char *force_sha1 = ConfNodeLookupChildValue(conf, "force-sha1");
+    if (force_sha1 != NULL && ConfValIsTrue(force_sha1)) {
+#ifdef HAVE_NSS
+        FileForceSha1Enable();
+        SCLogInfo("forcing sha1 calculation for logged files");
+#else
+        SCLogInfo("sha1 calculation requires linking against libnss");
+#endif
+    }
     FileForceTrackingEnable();
     SCReturnPtr(output_ctx, "OutputCtx");
 }

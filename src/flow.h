@@ -66,40 +66,44 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_ACTION_DROP                  0x00000200
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER                 0x00000800
+#define FLOW_SGH_TOSERVER                 0x00000400
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT                 0x00001000
+#define FLOW_SGH_TOCLIENT                 0x00000800
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED         0x00002000
+#define FLOW_TOSERVER_DROP_LOGGED         0x00001000
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
+#define FLOW_TOCLIENT_DROP_LOGGED         0x00002000
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE          0x00008000
+#define FLOW_ALPROTO_DETECT_DONE          0x00004000
 
 // vacany 1x
 
 /** Pattern matcher alproto detection done */
-#define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00020000
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00008000
 /** Probing parser alproto detection done */
-#define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00040000
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00010000
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00100000
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00020000
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00200000
-#define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00800000
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00040000
+#define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00080000
 /** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_STORE_TS             0x01000000
-#define FLOW_FILE_NO_STORE_TC             0x02000000
+#define FLOW_FILE_NO_STORE_TS             0x00100000
+#define FLOW_FILE_NO_STORE_TC             0x00200000
 
 /** flow is ipv4 */
-#define FLOW_IPV4                         0x04000000
+#define FLOW_IPV4                         0x00400000
 /** flow is ipv6 */
-#define FLOW_IPV6                         0x08000000
+#define FLOW_IPV6                         0x00800000
 
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               0x10000000
-#define FLOW_FILE_NO_MD5_TC               0x20000000
+#define FLOW_FILE_NO_MD5_TS               0x01000000
+#define FLOW_FILE_NO_MD5_TC               0x02000000
+
+/** no sha1 on files in this flow */
+#define FLOW_FILE_NO_SHA1_TS              0x04000000
+#define FLOW_FILE_NO_SHA1_TC              0x08000000
 
 /** no size tracking of files in this flow */
 #define FLOW_FILE_NO_SIZE_TS              0x40000000
