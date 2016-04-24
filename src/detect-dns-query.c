@@ -55,7 +55,6 @@
 #include "app-layer-dns-common.h"
 #include "detect-dns-query.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, char *);

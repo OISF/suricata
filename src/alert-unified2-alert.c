@@ -42,8 +42,6 @@
 #include "alert-unified2-alert.h"
 #include "decode-ipv4.h"
 
-#include "flow.h"
-
 #include "host.h"
 #include "util-profiling.h"
 #include "decode.h"
@@ -61,7 +59,6 @@
 #include "app-layer-htp-xff.h"
 
 #include "output.h"
-#include "alert-unified2-alert.h"
 #include "util-privs.h"
 
 #include "stream.h"

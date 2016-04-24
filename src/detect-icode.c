@@ -264,8 +264,6 @@ void DetectICodeFree(void *ptr)
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 

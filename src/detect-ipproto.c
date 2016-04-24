@@ -560,9 +560,6 @@ static void DetectIPProtoFree(void *ptr)
 /* UNITTESTS */
 #ifdef UNITTESTS
 
-#include "detect-engine.h"
-#include "detect-parse.h"
-
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number
  */

@@ -47,7 +47,6 @@
 #include "app-layer.h"
 #include "app-layer-smtp.h"
 #include "app-layer-protos.h"
-#include "app-layer-parser.h"
 
 #include "util-validate.h"
 

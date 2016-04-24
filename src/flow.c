@@ -901,7 +901,6 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
-#include "stream-tcp-private.h"
 #include "threads.h"
 
 /**

@@ -1170,7 +1170,6 @@ void DetectEngineStateResetTxs(Flow *f)
 /*********Unittests*********/
 
 #ifdef UNITTESTS
-#include "flow-util.h"
 
 static int DeStateTest01(void)
 {

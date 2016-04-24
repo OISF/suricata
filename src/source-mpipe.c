@@ -60,7 +60,6 @@
 #include <tmc/sync.h>
 #include <tmc/task.h>
 #include <tmc/perf.h>
-#include <arch/sim.h>
 
 /* Align "p" mod "align", assuming "p" is a "void*". */
 #define ALIGN(p, align) do { (p) += -(long)(p) & ((align) - 1); } while(0)

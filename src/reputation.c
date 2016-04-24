@@ -691,13 +691,11 @@ void SRepDestroy(DetectEngineCtx *de_ctx) {
 }
 
 #ifdef UNITTESTS
-
 #include "conf-yaml-loader.h"
 #include "detect-engine.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int SRepTest01(void)

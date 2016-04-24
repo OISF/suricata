@@ -654,11 +654,7 @@ void AppLayerRegisterGlobalCounters(void)
 /***** Unittests *****/
 
 #ifdef UNITTESTS
-
 #include "stream-tcp.h"
-#include "stream-tcp-private.h"
-#include "stream-tcp-reassemble.h"
-#include "stream-tcp-inline.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 #include "util-unittest.h"

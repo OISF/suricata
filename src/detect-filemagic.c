@@ -53,7 +53,6 @@
 #include "detect-filemagic.h"
 
 #include "conf.h"
-#include "util-magic.h"
 
 static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, Signature *, SigMatch *);

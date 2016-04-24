@@ -163,7 +163,6 @@ int ActionInitConfig()
 }
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 
 /**
  * \test Check that we invalidate duplicated actions

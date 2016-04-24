@@ -264,8 +264,6 @@ void DetectDetectionFilterFree(void *df_ptr)
  * ONLY TESTS BELOW THIS COMMENT
  */
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-threshold.h"
