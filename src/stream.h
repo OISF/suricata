@@ -70,7 +70,7 @@ uint16_t StreamMsgQueueGetMinChunkLen(uint8_t);
 
 void StreamMsgReturnListToPool(void *);
 
-typedef int (*StreamSegmentCallback)(const Packet *, void *, uint8_t *, uint32_t);
+typedef int (*StreamSegmentCallback)(const Packet *, void *, const uint8_t *, uint32_t);
 int StreamSegmentForEach(const Packet *p, uint8_t flag,
                          StreamSegmentCallback CallbackFunc,
                          void *data);

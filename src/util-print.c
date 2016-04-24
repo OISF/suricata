@@ -168,7 +168,7 @@ void PrintRawDataFp(FILE *fp, const uint8_t *buf, uint32_t buflen)
 }
 
 void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
-                          uint8_t *src_buf, uint32_t src_buf_len)
+                          const uint8_t *src_buf, uint32_t src_buf_len)
 {
     int ch = 0;
     uint32_t u = 0;

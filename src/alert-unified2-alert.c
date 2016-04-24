@@ -433,7 +433,7 @@ static int Unified2ForgeFakeIPv6Header(FakeIPv6Hdr *fakehdr, const Packet *p, in
 /**
  * \brief Write a faked Packet in unified2 file for each stream segment.
  */
-static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int Unified2PrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
 {
     int ret = 1;
     Unified2AlertThread *aun = (Unified2AlertThread *)data;

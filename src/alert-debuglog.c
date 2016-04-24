@@ -136,7 +136,7 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, const Packet *p)
 
 /** \todo doc
  * assume we have aft lock */
-static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+static int AlertDebugPrintStreamSegmentCallback(const Packet *p, void *data, const uint8_t *buf, uint32_t buflen)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
 
