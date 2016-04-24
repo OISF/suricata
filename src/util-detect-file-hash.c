@@ -32,6 +32,8 @@
 
 #include "app-layer-htp.h"
 
+#ifdef HAVE_NSS
+
 /**
  * \brief Read the bytes of a hash from an hexadecimal string
  * 
@@ -371,3 +373,5 @@ void DetectFileHashFree(void *ptr)
         SCFree(filehash);
     }
 }
+
+#endif /* HAVE_NSS */
