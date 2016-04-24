@@ -154,7 +154,7 @@ OutputCtx *OutputSmtpLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_SMTP_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
