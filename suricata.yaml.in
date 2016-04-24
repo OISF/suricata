@@ -154,6 +154,8 @@ outputs:
         - files:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
+            force-sha1: no    # force logging of sha1 checksums
+            force-sha256: no  # force logging of sha256 checksums
         #- drop:
         #    alerts: no       # log alerts that caused drops
         - smtp:
@@ -349,6 +351,8 @@ outputs:
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
       force-md5: no     # force logging of md5 checksums
+      force-sha1: no    # force logging of sha1 checksums
+      force-sha256: no  # force logging of sha256 checksums
       force-filestore: no # force storing of all files
       #waldo: file.waldo # waldo file to store the file_id across runs
 
@@ -361,6 +365,8 @@ outputs:
 
       force-magic: no   # force logging magic on all logged files
       force-md5: no     # force logging of md5 checksums
+      force-sha1: no    # force logging of sha1 checksums
+      force-sha256: no  # force logging of sha256 checksums
 
   # Log TCP data after stream normalization
   # 2 types: file or dir. File logs into a single logfile. Dir creates

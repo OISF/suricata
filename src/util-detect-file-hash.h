@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,27 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Duarte Silva <duarte.silva@serializing.me>
+ *
  */
 
-#ifndef __DETECT_FILEMD5_H__
-#define __DETECT_FILEMD5_H__
+#ifndef __UTIL_DETECT_FILE_HASH_H__
+#define __UTIL_DETECT_FILE_HASH_H__
+
+#include "util-rohash.h"
+
+typedef struct DetectFileHashData {
+    ROHashTable *hash;
+    int negated;
+} DetectFileHashData;
 
 /* prototypes */
-void DetectFileMd5Register (void);
+int ReadHashString(uint8_t *, char *, char *, int, uint16_t);
+int LoadHashTable(ROHashTable *, char *, char *, int, uint32_t);
 
-#endif /* __DETECT_FILEMD5_H__ */
+int DetectFileHashMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t,
+        File *, Signature *, SigMatch *);
+int DetectFileHashSetup(DetectEngineCtx *, Signature *, char *, uint8_t);
+void DetectFileHashFree(void *);
+
+#endif /* __UTIL_DETECT_FILE_HASH_H__ */
