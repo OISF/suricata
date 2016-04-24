@@ -198,6 +198,10 @@ void FileDisableSha1(Flow *f, uint8_t);
 void FileForceSha1Enable(void);
 int FileForceSha1(void);
 
+void FileDisableSha256(Flow *f, uint8_t);
+void FileForceSha256Enable(void);
+int FileForceSha256(void);
+
 void FileForceTrackingEnable(void);
 
 void FileStoreAllFiles(FileContainer *);

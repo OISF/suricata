@@ -105,6 +105,10 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 #define FLOW_FILE_NO_SHA1_TS              0x04000000
 #define FLOW_FILE_NO_SHA1_TC              0x08000000
 
+/** no sha256 on files in this flow */
+#define FLOW_FILE_NO_SHA256_TS            0x10000000
+#define FLOW_FILE_NO_SHA256_TC            0x20000000
+
 /** no size tracking of files in this flow */
 #define FLOW_FILE_NO_SIZE_TS              0x40000000
 #define FLOW_FILE_NO_SIZE_TC              0x80000000
