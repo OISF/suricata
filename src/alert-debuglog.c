@@ -401,7 +401,7 @@ static TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **dat
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for DebugLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for AlertDebugLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

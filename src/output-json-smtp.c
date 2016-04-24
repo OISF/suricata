@@ -224,7 +224,7 @@ static TmEcode JsonSmtpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for SMTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogSMTP.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

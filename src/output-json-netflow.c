@@ -397,7 +397,7 @@ static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, void *initdata, void **da
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogNetflow.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

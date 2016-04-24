@@ -316,7 +316,7 @@ static TmEcode LogTlsStoreLogThreadInit(ThreadVars *t, void *initdata, void **da
     memset(aft, 0, sizeof(LogTlsStoreLogThread));
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for LogTlsStore. \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for LogTLSStore. \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

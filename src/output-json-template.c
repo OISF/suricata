@@ -146,7 +146,7 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, void *initdata, void **d
     }
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for Template.  \"initdata\" is NULL.");
+        SCLogDebug("Error getting context for EveLogTemplate.  \"initdata\" is NULL.");
         SCFree(thread);
         return TM_ECODE_FAILED;
     }

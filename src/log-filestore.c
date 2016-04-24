@@ -351,7 +351,7 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
 
     if (initdata == NULL)
     {
-        SCLogDebug("Error getting context for LogFilestore. \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for LogFileStore. \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

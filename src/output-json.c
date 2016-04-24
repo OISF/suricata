@@ -20,7 +20,7 @@
  *
  * \author Tom DeCanio <td@npulsetech.com>
  *
- * Logs alerts in JSON format.
+ * Logs detection and monitoring events in JSON format.
  *
  */
 
@@ -383,7 +383,7 @@ TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for AlertJson.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
