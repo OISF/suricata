@@ -1176,7 +1176,7 @@ TmEcode Unified2AlertThreadInit(ThreadVars *t, void *initdata, void **data)
     memset(aun, 0, sizeof(Unified2AlertThread));
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for Unified2Alert.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for AlertUnified2.  \"initdata\" argument NULL");
         SCFree(aun);
         return TM_ECODE_FAILED;
     }

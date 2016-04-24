@@ -470,7 +470,7 @@ static TmEcode JsonAlertLogThreadInit(ThreadVars *t, void *initdata, void **data
     memset(aft, 0, sizeof(JsonAlertLogThread));
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogAlert.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

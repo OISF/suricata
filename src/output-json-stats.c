@@ -216,7 +216,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for json stats.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogStats.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
