@@ -205,7 +205,7 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
 
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_SSH_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
