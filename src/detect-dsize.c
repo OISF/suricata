@@ -301,8 +301,8 @@ void DetectDsizeFree(void *de_ptr)
  */
 
 #ifdef UNITTESTS
-#include "detect.h"
 #include "detect-engine.h"
+
 /**
  * \test this is a test for a valid dsize value 1
  *

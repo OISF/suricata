@@ -68,7 +68,6 @@
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
 #include "app-layer-detect-proto.h"
-#include "app-layer.h"
 
 extern int sc_set_caps;
 

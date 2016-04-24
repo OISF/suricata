@@ -122,10 +122,6 @@ error:
 
 #ifdef UNITTESTS
 
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
-
 /**
  * \test DetectL3protoTestSig01 is a test for checking the working of ttl keyword
  *       by setting up the signature and later testing its working by matching

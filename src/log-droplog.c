@@ -37,7 +37,6 @@
 #include "util-debug.h"
 
 #include "decode-ipv4.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"

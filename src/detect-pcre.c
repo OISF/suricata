@@ -57,10 +57,6 @@
 #include "stream-tcp-reassemble.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
-
-#include "stream.h"
-
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"

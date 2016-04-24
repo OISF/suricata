@@ -109,7 +109,6 @@
 
 #include "util-mpm-ac.h"
 #include "util-mpm-hs.h"
-#include "detect-engine-mpm.h"
 
 #include "util-decode-asn1.h"
 

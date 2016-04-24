@@ -33,7 +33,6 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-byte-extract.h"
-#include "detect-parse.h"
 
 #include "flow-var.h"
 #include "app-layer.h"

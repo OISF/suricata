@@ -293,7 +293,6 @@ void DetectUrilenFree(void *ptr)
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "app-layer-parser.h"

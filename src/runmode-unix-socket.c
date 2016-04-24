@@ -33,7 +33,6 @@
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "stream-tcp.h"
-#include "output.h"
 #include "host.h"
 #include "defrag.h"
 #include "ippair.h"
@@ -42,8 +41,6 @@
 #include "util-profiling.h"
 
 #include "conf-yaml-loader.h"
-
-#include "detect-engine.h"
 
 static const char *default_mode = NULL;
 

@@ -156,7 +156,6 @@
 #include "detect-lua.h"
 #include "detect-iprep.h"
 #include "detect-geoip.h"
-#include "detect-dns-query.h"
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
 #include "detect-template-buffer.h"
@@ -4439,7 +4438,6 @@ void SigTableRegisterTests(void)
 #ifdef UNITTESTS
 #include "flow-util.h"
 #include "stream-tcp-reassemble.h"
-#include "util-var-name.h"
 
 static const char *dummy_conf_string =
     "%YAML 1.1\n"

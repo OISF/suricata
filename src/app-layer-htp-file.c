@@ -46,7 +46,6 @@
 
 #include "util-spm.h"
 #include "util-debug.h"
-#include "app-layer-htp.h"
 #include "util-time.h"
 
 #include "util-unittest.h"

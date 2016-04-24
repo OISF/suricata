@@ -45,7 +45,6 @@
 #include "detect-engine-tag.h"
 
 #include "detect-engine-uri.h"
-#include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"

@@ -38,7 +38,6 @@
 
 #include "util-error.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 
 /**
  * \brief Compares 2 addresses(address ranges) and returns the relationship

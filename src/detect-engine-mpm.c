@@ -54,7 +54,6 @@
 #include "util-enum.h"
 #include "util-debug.h"
 #include "util-print.h"
-#include "util-memcmp.h"
 #include "util-validate.h"
 
 const char *builtin_mpms[] = {
