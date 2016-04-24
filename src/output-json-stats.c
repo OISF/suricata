@@ -216,7 +216,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for json stats.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogStats.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -265,7 +265,7 @@ OutputCtx *OutputStatsLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 

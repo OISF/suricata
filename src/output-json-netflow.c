@@ -329,7 +329,7 @@ OutputCtx *OutputNetFlowLogInit(ConfNode *conf)
     SCLogInfo("hi");
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_NETFLOW_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
@@ -397,7 +397,7 @@ static TmEcode JsonNetFlowLogThreadInit(ThreadVars *t, void *initdata, void **da
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogNetflow.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
