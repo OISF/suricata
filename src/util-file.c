@@ -529,7 +529,7 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
 #ifdef HAVE_NSS
-        /* no storage but forced md5 */
+        /* no storage but forced md5, sha1 or sha256 */
         if (ffc->tail->md5_ctx) {
             HASH_Update(ffc->tail->md5_ctx, data, data_len);
             SCReturnInt(0);
@@ -695,7 +695,7 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
 
         if (ff->flags & FILE_NOSTORE) {
 #ifdef HAVE_NSS
-            /* no storage but md5 and sha1 */
+            /* no storage but md5, sha1 or sha256 */
             if (ff->md5_ctx)
                 HASH_Update(ff->md5_ctx, data, data_len);
             if (ff->sha1_ctx)
