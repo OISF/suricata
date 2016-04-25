@@ -34,7 +34,7 @@
 #include <ctype.h>
 #include <string.h>
 
-#define ASN1_MAX_FRAMES 128
+#define ASN1_MAX_FRAMES 256
 
 /* For future enconding type implementations */
 enum {
