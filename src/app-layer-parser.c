@@ -149,6 +149,13 @@ struct AppLayerParserState_ {
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
 
+int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto)
+{
+    uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
+
+    return (alp_ctx.ctxs[ipproto_map][alproto].StateAlloc != NULL) ? 1 : 0;
+}
+
 AppLayerParserState *AppLayerParserStateAlloc(void)
 {
     SCEnter();
