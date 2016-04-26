@@ -5076,6 +5076,8 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_synack = StatsRegisterCounter("tcp.synack", tv);
     stt->counter_tcp_rst = StatsRegisterCounter("tcp.rst", tv);
 
+    AppLayerRegisterCounters(tv, IPPROTO_TCP);
+
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx(tv);
     if (stt->ra_ctx == NULL)
@@ -5138,6 +5140,7 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
     /* clear memory */
     memset(stt, 0, sizeof(StreamTcpThread));
 
+    AppLayerDeRegisterCounters(IPPROTO_TCP);
     SCFree(stt);
     SCReturnInt(TM_ECODE_OK);
 }
