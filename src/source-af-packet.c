@@ -1751,7 +1751,8 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
     ring_buf = mmap(0, ring_buflen, PROT_READ|PROT_WRITE,
             mmap_flag, ptv->socket, 0);
     if (ring_buf == MAP_FAILED) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap");
+        SCLogError(SC_ERR_MEM_ALLOC, "Unable to mmap, error %s",
+                   strerror(errno));
         goto mmap_err;
     }
 #ifdef HAVE_TPACKET_V3
