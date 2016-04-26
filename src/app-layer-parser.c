@@ -280,9 +280,9 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
         }
     }
 
-    if (strcasecmp(node->val, "yes") == 0) {
+    if (ConfValIsTrue(node->val)) {
         goto enabled;
-    } else if (strcasecmp(node->val, "no") == 0) {
+    } else if (ConfValIsFalse(node->val)) {
         goto disabled;
     } else if (strcasecmp(node->val, "detection-only") == 0) {
         goto disabled;
