@@ -83,7 +83,7 @@ struct AppLayerParserThreadCtx_ {
 typedef struct AppLayerParserProtoCtx_
 {
     /* 0 - to_server, 1 - to_client. */
-    int (*Parser[2])(Flow *f, void *protocol_state,
+    int (*Parser[2])(ThreadVars *tv, Flow *f, void *protocol_state,
                      AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
                      void *local_storage);
@@ -110,6 +110,8 @@ typedef struct AppLayerParserProtoCtx_
     int (*StateHasTxDetectState)(void *alstate);
     DetectEngineState *(*GetTxDetectState)(void *tx);
     int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *);
+
+    void (*RegisterCounters)(ThreadVars *tv);
 
     /* Indicates the direction the parser is ready to see the data
      * the first time for a flow.  Values accepted -
@@ -145,6 +147,13 @@ struct AppLayerParserState_ {
 /* Static global version of the parser context.
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
+
+int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto)
+{
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    return (alp_ctx.ctxs[ipproto_map][alproto].StateAlloc != NULL) ? 1 : 0;
+}
 
 AppLayerParserState *AppLayerParserStateAlloc(void)
 {
@@ -301,7 +310,7 @@ int AppLayerParserConfParserEnabled(const char *ipproto,
 
 int AppLayerParserRegisterParser(uint8_t ipproto, AppProto alproto,
                       uint8_t direction,
-                      int (*Parser)(Flow *f, void *protocol_state,
+                      int (*Parser)(ThreadVars *tv, Flow *f, void *protocol_state,
                                     AppLayerParserState *pstate,
                                     uint8_t *buf, uint32_t buf_len,
                                     void *local_storage))
@@ -483,6 +492,17 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateHasTxDetectState = StateHasTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState = GetTxDetectState;
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].SetTxDetectState = SetTxDetectState;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterCountersFunc(uint8_t ipproto, AppProto alproto,
+    void (*RegisterCounters)(ThreadVars *tv))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        RegisterCounters = RegisterCounters;
 
     SCReturn;
 }
@@ -851,7 +871,7 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -905,7 +925,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
-        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](f, alstate, pstate,
+        if (p->Parser[(flags & STREAM_TOSERVER) ? 0 : 1](tv, f, alstate, pstate,
                 input, input_len,
                 alp_tctx->alproto_local_storage[f->protomap][alproto]) < 0)
         {
@@ -1066,6 +1086,18 @@ void AppLayerParserTriggerRawStreamReassembly(Flow *f)
 
     if (f != NULL && f->protoctx != NULL)
         StreamTcpReassembleTriggerRawReassembly(f->protoctx);
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterCounters(uint8_t ipproto, AppProto alproto,
+                                    ThreadVars *tv)
+{
+    SCEnter();
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    if (alp_ctx.ctxs[ipproto_map][alproto].RegisterCounters != NULL)
+        alp_ctx.ctxs[ipproto_map][alproto].RegisterCounters(tv);
 
     SCReturn;
 }
@@ -1362,7 +1394,8 @@ typedef struct TestState_ {
  *  \brief  Test parser function to test the memory deallocation of app layer
  *          parser of occurence of an error.
  */
-static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
+static int TestProtocolParser(ThreadVars *tv, Flow *f, void *test_state,
+                              AppLayerParserState *pstate,
                               uint8_t *input, uint32_t input_len,
                               void *local_data)
 {
@@ -1448,7 +1481,7 @@ static int AppLayerParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
                            testbuf, testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
@@ -1501,7 +1534,7 @@ static int AppLayerParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
