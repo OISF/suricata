@@ -1300,7 +1300,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     int r;
     TmSlot *s = (TmSlot *)slot;
     time_t last_dump = 0;
-    struct timeval current_time;
+    time_t current_time;
     int (*AFPReadFunc) (AFPThreadVars *);
     uint64_t discarded_pkts = 0;
 
@@ -1419,10 +1419,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             switch (r) {
                 case AFP_READ_OK:
                     /* Trigger one dump of stats every second */
-                    TimeGet(&current_time);
-                    if (current_time.tv_sec != last_dump) {
+                    current_time = time(NULL);
+                    if (current_time != last_dump) {
                         AFPDumpCounters(ptv);
-                        last_dump = current_time.tv_sec;
+                        last_dump = current_time;
                     }
                     break;
                 case AFP_READ_FAILURE:
