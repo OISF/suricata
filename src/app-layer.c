@@ -35,6 +35,7 @@
 #include "stream-tcp-inline.h"
 #include "flow.h"
 #include "flow-util.h"
+#include "flow-private.h"
 
 #include "util-debug.h"
 #include "util-print.h"
@@ -66,6 +67,16 @@ struct AppLayerThreadCtx_ {
 #endif
 };
 
+typedef struct AppLayerCounters_ {
+    char *name;
+    uint16_t counter_id;
+} AppLayerCounters;
+
+AppLayerCounters applayer_counters[FLOW_PROTO_MAX][ALPROTO_MAX];
+
+void AppLayerSetupCounters();
+void AppLayerDeSetupCounters();
+
 /***** L7 layer dispatchers *****/
 
 static void DisableAppLayer(Flow *f)
@@ -78,6 +89,13 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
     const TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
     return ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
             (FLOW_IS_PM_DONE(f, direction) && FLOW_IS_PP_DONE(f, direction)));
+}
+
+static void AppLayerIncFlowCounter(ThreadVars *tv, Flow *f)
+{
+    if (likely(tv)) {
+        StatsIncr(tv, applayer_counters[f->protomap][f->alproto].counter_id);
+    }
 }
 
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -163,6 +181,11 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
             f->alproto = *alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+
+            /* account flow if we have both side */
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                AppLayerIncFlowCounter(tv, f);
+            }
 
             /* if we have seen data from the other direction first, send
              * data for that direction first to the parser.  This shouldn't
@@ -497,6 +520,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            AppLayerIncFlowCounter(tv, f);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tctx->alp_tctx,
@@ -576,6 +600,8 @@ int AppLayerSetup(void)
     AppLayerParserRegisterProtocolParsers();
     AppLayerProtoDetectPrepareState();
 
+    AppLayerSetupCounters();
+
     SCReturnInt(0);
 }
 
@@ -585,6 +611,8 @@ int AppLayerDeSetup(void)
 
     AppLayerProtoDetectDeSetup();
     AppLayerParserDeSetup();
+
+    AppLayerDeSetupCounters();
 
     SCReturnInt(0);
 }
@@ -648,6 +676,94 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
 }
 
+#define IPPROTO_MAX 2
+void AppLayerSetupCounters()
+{
+    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
+    uint8_t ipproto;
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (ipproto = 0; ipproto < IPPROTO_MAX; ipproto++) {
+        uint8_t other_ipproto = (ipprotos[ipproto] == IPPROTO_TCP) ? IPPROTO_UDP : IPPROTO_TCP;
+        const char *ipproto_suffix = (ipprotos[ipproto] == IPPROTO_TCP) ? "_tcp" : "_udp";
+
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            if (alprotos[alproto] == 1) {
+                char *str = "app_layer.flow.";
+                char *alproto_str = AppLayerGetProtoName(alproto);
+                int alproto_len = strlen(alproto_str) + 1;
+                uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
+
+                if (AppLayerParserProtoIsRegistered(ipprotos[ipproto], alproto) &&
+                    AppLayerParserProtoIsRegistered(other_ipproto, alproto))
+                {
+                    applayer_counters[ipproto_map][alproto].name =
+                        SCMalloc(strlen(str) + alproto_len + strlen(ipproto_suffix));
+                    if (applayer_counters[ipproto_map][alproto].name == NULL) {
+                        return;
+                    }
+
+                    snprintf(applayer_counters[ipproto_map][alproto].name,
+                             strlen(str) + alproto_len + strlen(ipproto_suffix),
+                             "%s%s%s", str, alproto_str, ipproto_suffix);
+                } else {
+                    applayer_counters[ipproto_map][alproto].name =
+                        SCMalloc(strlen(str) + alproto_len);
+                    if (applayer_counters[ipproto_map][alproto].name == NULL) {
+                        return;
+                    }
+                    snprintf(applayer_counters[ipproto_map][alproto].name,
+                             strlen(str) + alproto_len,
+                             "%s%s", str, alproto_str);
+                }
+            }
+        }
+    }
+}
+
+void AppLayerRegisterThreadCounters(ThreadVars *tv)
+{
+    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
+    uint8_t ipproto;
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (ipproto = 0; ipproto < IPPROTO_MAX; ipproto++) {
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            if (alprotos[alproto] == 1) {
+                uint8_t ipproto_map = FlowGetProtoMapping(ipprotos[ipproto]);
+                applayer_counters[ipproto_map][alproto].counter_id =
+                    StatsRegisterCounter(applayer_counters[ipproto_map][alproto].name, tv);
+            }
+        }
+    }
+}
+
+void AppLayerDeSetupCounters()
+{
+    uint8_t ipprotos[] = { IPPROTO_TCP, IPPROTO_UDP };
+    uint8_t ipproto;
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (ipproto = 0; ipproto < IPPROTO_MAX; ipproto++) {
+        for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+            if (alprotos[alproto] == 1) {
+                if (applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name) {
+                    SCFree(applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name);
+                    applayer_counters[FlowGetProtoMapping(ipprotos[ipproto])][alproto].name = NULL;
+                }
+            }
+        }
+    }
+}
 /***** Unittests *****/
 
 #ifdef UNITTESTS
