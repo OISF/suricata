@@ -35,6 +35,7 @@
 #include "stream-tcp-inline.h"
 #include "flow.h"
 #include "flow-util.h"
+#include "flow-private.h"
 
 #include "util-debug.h"
 #include "util-print.h"
@@ -66,6 +67,13 @@ struct AppLayerThreadCtx_ {
 #endif
 };
 
+typedef struct AppLayerCounters_ {
+    char *name;
+    uint16_t counter_id;
+} AppLayerCounters;
+
+AppLayerCounters applayer_counters[FLOW_PROTO_MAX][ALPROTO_MAX];
+
 /***** L7 layer dispatchers *****/
 
 static void DisableAppLayer(Flow *f)
@@ -78,6 +86,14 @@ static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t 
     const TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
     return ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
             (FLOW_IS_PM_DONE(f, direction) && FLOW_IS_PP_DONE(f, direction)));
+}
+
+static void AppLayerIncFlowCounter(uint8_t ipproto, AppProto alproto, ThreadVars *tv)
+{
+    if (tv) {
+        uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
+        StatsIncr(tv, applayer_counters[ipproto_map][alproto].counter_id);
+    }
 }
 
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -159,6 +175,10 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     else
                         f->alproto = *alproto = *alproto_otherdir;
                 }
+            }
+            /* account flow if we have both side */
+            if (*alproto_otherdir != ALPROTO_UNKNOWN) {
+                AppLayerIncFlowCounter(IPPROTO_TCP, *alproto, tv);
             }
 
             f->alproto = *alproto;
@@ -497,6 +517,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
+            AppLayerIncFlowCounter(IPPROTO_UDP, f->alproto, tv);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
             r = AppLayerParserParse(tctx->alp_tctx,
@@ -648,6 +669,66 @@ void AppLayerRegisterGlobalCounters(void)
     StatsRegisterGlobalCounter("http.memcap", HTPMemcapGlobalCounter);
 }
 
+void AppLayerRegisterCounters(ThreadVars *tv, uint8_t ipproto)
+{
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+    uint8_t other_ipproto = (ipproto == IPPROTO_TCP) ? IPPROTO_UDP : IPPROTO_TCP;
+    const char *ipproto_suffix = (ipproto == IPPROTO_TCP) ? "_tcp" : "_udp";
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        if (alprotos[alproto] == 1) {
+            char *str = "app-layer.flow.";
+            char *alproto_str = AppLayerGetProtoName(alproto);
+            int alproto_len = strlen(alproto_str) + 1;
+            uint8_t ipproto_map = FlowGetProtoMapping(ipproto);
+
+            if (AppLayerParserProtoIsRegistered(ipproto, alproto) &&
+                AppLayerParserProtoIsRegistered(other_ipproto, alproto))
+            {
+                applayer_counters[ipproto_map][alproto].name =
+                    SCMalloc(strlen(str) + alproto_len + strlen(ipproto_suffix));
+                if (applayer_counters[ipproto_map][alproto].name == NULL) {
+                    return;
+                }
+
+                snprintf(applayer_counters[ipproto_map][alproto].name,
+                         strlen(str) + alproto_len + strlen(ipproto_suffix),
+                         "%s%s%s", str, alproto_str, ipproto_suffix);
+            } else {
+                applayer_counters[ipproto_map][alproto].name =
+                    SCMalloc(strlen(str) + alproto_len);
+                if (applayer_counters[ipproto_map][alproto].name == NULL) {
+                    return;
+                }
+                snprintf(applayer_counters[ipproto_map][alproto].name,
+                         strlen(str) + alproto_len,
+                         "%s%s", str, alproto_str);
+            }
+            applayer_counters[ipproto_map][alproto].counter_id =
+                StatsRegisterCounter(applayer_counters[ipproto_map][alproto].name, tv);
+        }
+    }
+}
+
+void AppLayerDeRegisterCounters(uint8_t ipproto)
+{
+    AppProto alproto;
+    AppProto alprotos[ALPROTO_MAX];
+
+    AppLayerProtoDetectSupportedAppProtocols(alprotos);
+
+    for (alproto = 0; alproto < ALPROTO_MAX; alproto++) {
+        if (alprotos[alproto] == 1) {
+            if (applayer_counters[FlowGetProtoMapping(ipproto)][alproto].name) {
+                SCFree(applayer_counters[FlowGetProtoMapping(ipproto)][alproto].name);
+                applayer_counters[FlowGetProtoMapping(ipproto)][alproto].name = NULL;
+            }
+        }
+    }
+}
 /***** Unittests *****/
 
 #ifdef UNITTESTS

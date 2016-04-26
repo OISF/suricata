@@ -47,6 +47,8 @@
 #include "output-json.h"
 #include "output-json-stats.h"
 
+#include "app-layer.h"
+
 #define MODULE_NAME "JsonStatsLog"
 
 #ifdef HAVE_LIBJANSSON
@@ -245,6 +247,10 @@ static TmEcode JsonStatsLogThreadDeinit(ThreadVars *t, void *data)
 
     /* clear memory */
     memset(aft, 0, sizeof(JsonStatsLogThread));
+
+    /* clear app-layer stats */
+    AppLayerDeRegisterCounters(IPPROTO_UDP);
+    AppLayerDeRegisterCounters(IPPROTO_TCP);
 
     SCFree(aft);
     return TM_ECODE_OK;
