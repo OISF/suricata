@@ -47,6 +47,8 @@
 #include "output-json.h"
 #include "output-json-stats.h"
 
+#include "app-layer.h"
+
 #define MODULE_NAME "JsonStatsLog"
 
 #ifdef HAVE_LIBJANSSON

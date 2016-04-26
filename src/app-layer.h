@@ -109,6 +109,11 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv);
  */
 void AppLayerDestroyCtxThread(AppLayerThreadCtx *tctx);
 
+/**
+ * \brief Registers per flow counters for all protocols
+ *
+ */
+void AppLayerRegisterCounters(ThreadVars *tv, uint8_t ipproto);
 
 /***** Profiling *****/
 

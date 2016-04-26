@@ -107,6 +107,9 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
     // setup OUTPUTS
 #endif
 
+    AppLayerRegisterCounters(tv, IPPROTO_UDP);
+    AppLayerRegisterCounters(tv, IPPROTO_TCP);
+
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueue));
     SCMutexInit(&fw->pq.mutex_q, NULL);
