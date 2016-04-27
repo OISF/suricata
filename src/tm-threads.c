@@ -1777,9 +1777,6 @@ void TmThreadFree(ThreadVars *tv)
 
     TmThreadDeinitMC(tv);
 
-    if (tv->name) {
-        SCFree(tv->name);
-    }
     if (tv->thread_group_name) {
         SCFree(tv->thread_group_name);
     }

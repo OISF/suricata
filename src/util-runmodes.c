@@ -442,6 +442,7 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                               const char *live_dev)
 {
     int nlive = LiveGetDeviceCount();
+    const char *live_dev_c = NULL;
     void *aconf;
 
     if (nlive > 1) {
@@ -452,8 +453,9 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
 
     if (live_dev != NULL) {
         aconf = ConfigParser(live_dev);
+        live_dev_c = live_dev;
     } else {
-        const char *live_dev_c = LiveGetDeviceName(0);
+        live_dev_c = LiveGetDeviceName(0);
         aconf = ConfigParser(live_dev_c);
         /* \todo Set threads number in config to 1 */
     }
@@ -463,7 +465,7 @@ int RunModeSetLiveCaptureSingle(ConfigIfaceParserFunc ConfigParser,
                                  recv_mod_name,
                                  decode_mod_name,
                                  thread_name,
-                                 live_dev,
+                                 live_dev_c,
                                  aconf,
                                  1);
 }
