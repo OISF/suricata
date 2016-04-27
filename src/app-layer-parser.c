@@ -130,9 +130,15 @@ struct AppLayerParserState_ {
 
     /* State version, incremented for each update.  Can wrap around. */
     uint8_t version;
+
+    /* Indicates which loggers that have already logged the transaction,
+       using the logger id (power of two) as a bitwise flag. */
+    uint32_t logged;
+
     /* Indicates the current transaction that is being inspected.
      * We have a var per direction. */
     uint64_t inspect_id[2];
+
     /* Indicates the current transaction being logged.  Unlike inspect_id,
      * we don't need a var per direction since we don't log a transaction
      * unless we have the entire transaction. */
@@ -532,6 +538,27 @@ void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate)
 
     if (pstate != NULL)
         pstate->log_id++;
+
+    SCReturn;
+}
+
+uint8_t AppLayerParserGetTransactionLogged(AppLayerParserState *pstate, int logger_id)
+{
+    SCEnter();
+
+    if (pstate != NULL)
+        if (pstate->logged & logger_id)
+            SCReturnInt(1);
+
+    SCReturnInt(0);
+}
+
+void AppLayerParserSetTransactionLogged(AppLayerParserState *pstate, int logger_id)
+{
+    SCEnter();
+
+    if (pstate != NULL)
+        pstate->logged |= logger_id;
 
     SCReturn;
 }
