@@ -58,12 +58,12 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
     uint16_t data_offset;
 
     if (likely(SEQ_GEQ(seg->seq, stream->base_seq))) {
-        stream_offset = stream->base_seq_offset + (seg->seq - stream->base_seq);
+        stream_offset = STREAM_BASE_OFFSET(stream) + (seg->seq - stream->base_seq);
         data_offset = 0;
     } else {
         /* segment is partly before base_seq */
         data_offset = stream->base_seq - seg->seq;
-        stream_offset = stream->base_seq_offset;
+        stream_offset = STREAM_BASE_OFFSET(stream);
     }
 
     SCLogDebug("stream %p buffer %p, stream_offset %"PRIu64", "
@@ -727,14 +727,13 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
             }
         }
 
-        if (left_edge > stream->base_seq_offset) {
-            uint32_t slide = left_edge - stream->base_seq_offset;
+        if (left_edge > STREAM_BASE_OFFSET(stream)) {
+            uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
             SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
             StreamingBufferSlideToOffset(stream->sb, left_edge);
-            stream->base_seq_offset += slide;
             stream->base_seq += slide;
             SCLogDebug("stream base_seq %u at stream offset %"PRIu64,
-                    stream->base_seq, stream->base_seq_offset);
+                    stream->base_seq, STREAM_BASE_OFFSET(stream));
         }
     }
 

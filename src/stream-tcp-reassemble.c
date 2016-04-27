@@ -264,7 +264,7 @@ void StreamTcpReturnStreamSegments (TcpStream *stream)
 static inline bool STREAM_LASTACK_GT_BASESEQ(const TcpStream *stream)
 {
     /* last ack not yet initialized */
-    if (stream->base_seq_offset == 0 && stream->last_ack == 0)
+    if (STREAM_BASE_OFFSET(stream) == 0 && stream->last_ack == 0)
         return false;
     if (SEQ_GT(stream->last_ack, stream->base_seq))
         return true;
@@ -651,9 +651,9 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpSession *ssn, TcpStream *stream
             SCReturnUInt(0);
         }
 
-        seg_depth = stream->base_seq_offset + size - (stream->base_seq - seq);
+        seg_depth = STREAM_BASE_OFFSET(stream) + size - (stream->base_seq - seq);
     } else {
-        seg_depth = stream->base_seq_offset + ((seq + size) - stream->base_seq);
+        seg_depth = STREAM_BASE_OFFSET(stream) + ((seq + size) - stream->base_seq);
     }
 
     /* if the base_seq has moved passed the depth window we stop
@@ -912,7 +912,7 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
 
         uint32_t delta = stream->last_ack - stream->base_seq;
         /* get max absolute offset */
-        uint64_t max_offset = stream->base_seq_offset + delta;
+        uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
 
         int64_t diff = max_offset - stream->raw_progress;
 
@@ -931,7 +931,7 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
 
         uint32_t delta = stream->last_ack - stream->base_seq;
         /* get max absolute offset */
-        uint64_t max_offset = stream->base_seq_offset + delta;
+        uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
 
         int64_t diff = max_offset - stream->raw_progress;
 
@@ -1357,7 +1357,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
     SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
     uint32_t delta = stream->last_ack - stream->base_seq;
     /* get max absolute offset */
-    last_ack_abs = stream->base_seq_offset + delta;
+    last_ack_abs = STREAM_BASE_OFFSET(stream) + delta;
     right_edge_abs = last_ack_abs;
 
     if (StreamTcpInlineMode() == TRUE) {
@@ -1366,7 +1366,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
             stream_config.reassembly_toclient_chunk_size;
         SCLogDebug("pkt SEQ %u, payload_len %u; base_seq %u => base_seq_offset %"PRIu64,
                 TCP_GET_SEQ(p), p->payload_len,
-                stream->base_seq, stream->base_seq_offset);
+                stream->base_seq, STREAM_BASE_OFFSET(stream));
 
         SCLogDebug("progress before adjust %"PRIu64", chunk_size %"PRIu32, progress, chunk_size);
 
@@ -1381,7 +1381,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
             SCLogDebug("adjusting left_edge to not be before base_seq: left_edge %u", rel_left_edge);
         }
 
-        progress = stream->base_seq_offset + (rel_left_edge - stream->base_seq);
+        progress = STREAM_BASE_OFFSET(stream) + (rel_left_edge - stream->base_seq);
         right_edge_abs = progress + chunk_size;
         SCLogDebug("working with progress %"PRIu64, progress);
 
@@ -1445,7 +1445,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
         going from 'progress' to SEQ => (progress - base_seq_offset) + base_seq;
         */
 #define GET_SEQ_FOR_PROGRESS(stream, progress) \
-            (((progress) - (stream)->base_seq_offset) + (stream->base_seq))
+            (((progress) - STREAM_BASE_OFFSET((stream))) + (stream->base_seq))
 
         /* we have data. Use it to setup StreamMsg(s) */
         StreamMsg *smsg = NULL;
