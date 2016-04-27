@@ -1208,11 +1208,6 @@ flow-timeouts:
 #       - size: 4               # Size of the (data)segment for a pool
 #         prealloc: 256         # Number of segments to prealloc and keep
 #                               # in the pool.
-#     zero-copy-size: 128       # This option sets in bytes the value at
-#                               # which segment data is passed to the app
-#                               # layer API directly. Data sizes equal to
-#                               # and higher than the value set are passed
-#                               # on directly.
 #
 stream:
   memcap: 64mb
@@ -1246,7 +1241,6 @@ stream:
     #    prealloc: 1024
     #  - size: 65535
     #    prealloc: 128
-    #zero-copy-size: 128
 
 # Host table:
 #

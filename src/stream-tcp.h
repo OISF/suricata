@@ -51,9 +51,6 @@ typedef struct TcpStreamCnf_ {
     uint32_t ssn_init_flags; /**< new ssn flags will be initialized to this */
     uint8_t segment_init_flags; /**< new seg flags will be initialized to this */
 
-    uint16_t zero_copy_size;    /**< use zero copy for app layer above segments
-                                 *   of this size */
-
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
     int midstream;
     int async_oneside;
@@ -62,7 +59,6 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toserver_chunk_size;
     uint16_t reassembly_toclient_chunk_size;
 
-    int check_overlap_different_data;
     int bypass;
 
     uint8_t flags;

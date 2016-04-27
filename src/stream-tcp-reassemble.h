@@ -59,11 +59,6 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_stream_depth;
     /** count number of streams with a unrecoverable stream gap (missing pkts) */
     uint16_t counter_tcp_reass_gap;
-#ifdef DEBUG
-    uint64_t fp1;
-    uint64_t fp2;
-    uint64_t sp;
-#endif
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
