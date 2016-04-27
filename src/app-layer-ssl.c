@@ -3876,9 +3876,9 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (app_state->flags !=
-        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_SSL_CLIENT_HS |
-         SSL_AL_FLAG_SSL_NO_SESSION_ID)) {
+    if ((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0) {
         printf("flags not set\n");
         result = 0;
         goto end;
@@ -3910,9 +3910,10 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (app_state->flags !=
-        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_SSL_CLIENT_HS |
-         SSL_AL_FLAG_SSL_NO_SESSION_ID | SSL_AL_FLAG_STATE_SERVER_HELLO)) {
+    if ((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0) {
         printf("flags not set\n");
         result = 0;
         goto end;
@@ -3945,11 +3946,13 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (app_state->flags !=
-        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_SSL_CLIENT_HS |
-         SSL_AL_FLAG_SSL_NO_SESSION_ID | SSL_AL_FLAG_STATE_SERVER_HELLO |
-         SSL_AL_FLAG_STATE_CLIENT_KEYX | SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC |
-         SSL_AL_FLAG_CHANGE_CIPHER_SPEC)) {
+    if ((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0) {
         printf("flags not set\n");
         result = 0;
         goto end;
@@ -3982,12 +3985,15 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (app_state->flags !=
-        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_SSL_CLIENT_HS |
-         SSL_AL_FLAG_SSL_NO_SESSION_ID | SSL_AL_FLAG_STATE_SERVER_HELLO |
-         SSL_AL_FLAG_STATE_CLIENT_KEYX | SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC |
-         SSL_AL_FLAG_CHANGE_CIPHER_SPEC | SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC |
-         SSL_AL_FLAG_CHANGE_CIPHER_SPEC)) {
+    if ((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0) {
         printf("flags not set\n");
         result = 0;
         goto end;
@@ -4018,12 +4024,15 @@ static int SSLParserTest23(void)
         goto end;
     }
 
-    if (app_state->flags !=
-        (SSL_AL_FLAG_STATE_CLIENT_HELLO | SSL_AL_FLAG_SSL_CLIENT_HS |
-         SSL_AL_FLAG_SSL_NO_SESSION_ID | SSL_AL_FLAG_STATE_SERVER_HELLO |
-         SSL_AL_FLAG_STATE_CLIENT_KEYX | SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC |
-         SSL_AL_FLAG_CHANGE_CIPHER_SPEC | SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC |
-         SSL_AL_FLAG_CHANGE_CIPHER_SPEC)) {
+    if ((app_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC) == 0 ||
+        (app_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC) == 0) {
         printf("flags not set\n");
         result = 0;
         goto end;
