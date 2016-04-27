@@ -55,6 +55,8 @@ typedef struct OutputModule_ {
     StatsLogger StatsLogFunc;
     AppProto alproto;
     enum OutputStreamingType stream_type;
+    int TcLogProgress;
+    int TsLogProgress;
 
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
@@ -74,6 +76,13 @@ void OutputRegisterTxModule(const char *name, const char *conf_name,
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
     AppProto alproto, TxLogger TxLogFunc);
+
+void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+    TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress);
+void OutputRegisterTxSubModuleWithProgress(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);

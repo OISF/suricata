@@ -51,6 +51,8 @@ typedef struct OutputTxLogger_ {
     struct OutputTxLogger_ *next;
     const char *name;
     TmmId module_id;
+    int TcLogProgress;
+    int TsLogProgress;
 } OutputTxLogger;
 
 static OutputTxLogger *list = NULL;
@@ -71,6 +73,8 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     op->output_ctx = output_ctx;
     op->name = name;
     op->module_id = (TmmId) module_id;
+    op->TcLogProgress = 0;
+    op->TsLogProgress = 0;
 
     if (list == NULL)
         list = op;
@@ -82,6 +86,40 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     }
 
     SCLogDebug("OutputRegisterTxLogger happy");
+    return 0;
+}
+
+int OutputRegisterTxLoggerWithProgress(const char *name, AppProto alproto,
+                                       TxLogger LogFunc, OutputCtx *output_ctx,
+                                       int tc_log_progress, int ts_log_progress)
+{
+    int module_id = TmModuleGetIdByName(name);
+    if (module_id < 0)
+        return -1;
+
+    OutputTxLogger *op = SCMalloc(sizeof(*op));
+    if (op == NULL)
+        return -1;
+    memset(op, 0x00, sizeof(*op));
+
+    op->alproto = alproto;
+    op->LogFunc = LogFunc;
+    op->output_ctx = output_ctx;
+    op->name = name;
+    op->module_id = (TmmId) module_id;
+    op->TcLogProgress = tc_log_progress;
+    op->TsLogProgress = ts_log_progress;
+
+    if (list == NULL)
+        list = op;
+    else {
+        OutputTxLogger *t = list;
+        while (t->next)
+            t = t->next;
+        t->next = op;
+    }
+
+    SCLogDebug("OutputRegisterTxLoggerWithProgress happy");
     return 0;
 }
 
@@ -119,12 +157,25 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
-    int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
-                                                       STREAM_TOSERVER);
-    int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
-                                                       STREAM_TOCLIENT);
+
+    int tx_progress_done_value_tc = 0;
+    int tx_progress_done_value_ts = 0;
+
+    if (logger->TcLogProgress) {
+        tx_progress_done_value_tc = logger->TcLogProgress;
+    } else {
+        tx_progress_done_value_tc =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                           STREAM_TOCLIENT);
+    }
+    if (logger->TsLogProgress) {
+        tx_progress_done_value_ts = logger->TsLogProgress;
+    } else {
+        tx_progress_done_value_ts =
+            AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+                                                           STREAM_TOSERVER);
+    }
+
     for (; tx_id < total_txs; tx_id++)
     {
         int proto_logged = 0;
