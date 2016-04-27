@@ -1143,7 +1143,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
+ThreadVars *TmThreadCreate(const char *name, char *inq_name, char *inqh_name,
                            char *outq_name, char *outqh_name, char *slots,
                            void * (*fn_p)(void *), int mucond)
 {
@@ -1162,9 +1162,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->perf_public_ctx.m, NULL);
 
-    tv->name = SCStrdup(name);
-    if (unlikely(tv->name == NULL))
-        goto error;
+    strlcpy(tv->name, name, sizeof(tv->name));
+
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
@@ -1267,7 +1266,7 @@ error:
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreatePacketHandler(char *name, char *inq_name,
+ThreadVars *TmThreadCreatePacketHandler(const char *name, char *inq_name,
                                         char *inqh_name, char *outq_name,
                                         char *outqh_name, char *slots)
 {
@@ -1297,7 +1296,7 @@ ThreadVars *TmThreadCreatePacketHandler(char *name, char *inq_name,
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
+ThreadVars *TmThreadCreateMgmtThread(const char *name, void *(fn_p)(void *),
                                      int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1325,7 +1324,7 @@ ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *),
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
+ThreadVars *TmThreadCreateMgmtThreadByName(const char *name, char *module,
                                      int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1358,7 +1357,7 @@ ThreadVars *TmThreadCreateMgmtThreadByName(char *name, char *module,
  *
  * \retval the newly created TV instance, or NULL on error
  */
-ThreadVars *TmThreadCreateCmdThreadByName(char *name, char *module,
+ThreadVars *TmThreadCreateCmdThreadByName(const char *name, char *module,
                                      int mucond)
 {
     ThreadVars *tv = NULL;
@@ -1778,9 +1777,6 @@ void TmThreadFree(ThreadVars *tv)
 
     TmThreadDeinitMC(tv);
 
-    if (tv->name) {
-        SCFree(tv->name);
-    }
     if (tv->thread_group_name) {
         SCFree(tv->thread_group_name);
     }

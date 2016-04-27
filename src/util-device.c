@@ -19,6 +19,8 @@
 #include "conf.h"
 #include "util-device.h"
 
+#define MAX_DEVNAME 10
+
 /**
  * \file
  *
@@ -103,6 +105,62 @@ char *LiveGetDeviceName(int number)
     }
 
     return NULL;
+}
+
+/**
+ *  \brief Shorten a device name that is to long
+ *
+ *  \param device name from config and destination for modified
+ *
+ *  \retval None, is added to destination char *newdevname
+ */
+int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
+{
+    size_t devnamelen = strlen(devname);
+
+    /* If we have to shorten the interface name */
+    if (devnamelen > MAX_DEVNAME) {
+
+        /* IF the dest length is over 10 chars long it will not do any
+         * good for the shortening. The shortening is done due to the
+         * max length of pthread names (15 chars) and we use 3 chars
+         * for the threadname indicator eg. "W#-" and one-two chars for
+         * the thread number. And if the destination buffer is under
+         * 6 chars there is point in shortening it since we must at
+         * lest enter two periodes (.) into the string..
+         */
+        if ((destlen-1) > 10 && (destlen-1) < 6) {
+            return 1;
+        }
+
+        size_t length;
+        size_t half;
+        size_t spaces;
+
+        half = (destlen-1) / 2;
+
+        /* If the destlen is an even number */
+        if (half * 2 == (destlen-1)) {
+            half = half - 1;
+        }
+
+        spaces = (destlen-1) - (half*2);
+        length = half;
+
+        /* Add the first half to the new dev name */
+        snprintf(newdevname, half+1, "%s", devname);
+
+        /* Add the amount of spaces wanted */
+        for (uint i = half; i < half+spaces; i++) {
+            length = strlcat(newdevname, ".", destlen);
+        }
+
+        snprintf(newdevname+length, half+1, "%s", devname+(devnamelen-half));
+        SCLogInfo("Shortening device name to: %s", newdevname);
+    } else {
+        strlcpy(newdevname, devname, destlen);
+    }
+    return 0;
 }
 
 /**

@@ -60,6 +60,18 @@ enum {
     RUNMODE_MAX,
 };
 
+/* Run Mode Global Thread Names */
+extern const char *thread_name_autofp;
+extern const char *thread_name_single;
+extern const char *thread_name_workers;
+extern const char *thread_name_verdict;
+extern const char *thread_name_flow_mgr;
+extern const char *thread_name_flow_rec;
+extern const char *thread_name_unix_socket;
+extern const char *thread_name_detect_loader;
+extern const char *thread_name_counter_stats;
+extern const char *thread_name_counter_wakeup;
+
 char *RunmodeGetActive(void);
 const char *RunModeGetMainMode(void);
 

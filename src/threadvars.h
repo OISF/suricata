@@ -64,7 +64,7 @@ struct TmSlot_;
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
     pthread_t t;
-    char *name;
+    char name[16];
     char *thread_group_name;
 
     SC_ATOMIC_DECLARE(unsigned int, flags);
