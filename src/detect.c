@@ -2579,6 +2579,10 @@ static int SignatureCreateMask(Signature *s)
                         s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
                         SCLogDebug("sig %u requires dns app state (dns event)", s->id);
                         break;
+                    case ALPROTO_TLS:
+                        s->mask |= SIG_MASK_REQUIRE_TLS_STATE;
+                        SCLogDebug("sig %u requires tls app state (tls event)", s->id);
+                        break;
                 }
                 break;
             }

@@ -215,6 +215,74 @@ error:
 }
 
 /**
+ * \brief Register a tx output module with progress.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
+        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+        TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress)
+{
+    if (unlikely(TxLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->InitFunc = InitFunc;
+    module->TxLogFunc = TxLogFunc;
+    module->alproto = alproto;
+    module->tc_log_progress = tc_log_progress;
+    module->ts_log_progress = ts_log_progress;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Tx logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
+        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
+        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
+        int tc_log_progress, int ts_log_progress)
+{
+    if (unlikely(TxLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
+    module->InitSubFunc = InitFunc;
+    module->TxLogFunc = TxLogFunc;
+    module->alproto = alproto;
+    module->tc_log_progress = tc_log_progress;
+    module->ts_log_progress = ts_log_progress;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Tx logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Register a file output module.
  *
  * This function will register an output module so it can be
@@ -614,22 +682,6 @@ void OutputDropLoggerDisable(void)
 {
     if (drop_loggers)
         drop_loggers--;
-}
-
-static int tls_loggers = 0;
-
-int OutputTlsLoggerEnable(void)
-{
-    if (tls_loggers)
-        return -1;
-    tls_loggers++;
-    return 0;
-}
-
-void OutputTlsLoggerDisable(void)
-{
-    if (tls_loggers)
-        tls_loggers--;
 }
 
 static int ssh_loggers = 0;

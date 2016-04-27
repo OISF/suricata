@@ -38,6 +38,9 @@ typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc, OutputCtx *);
 
+int OutputRegisterTxLoggerWithProgress(const char *name, AppProto alproto,
+        TxLogger LogFunc, OutputCtx *, int tc_log_progress, int ts_log_progress);
+
 void TmModuleTxLoggerRegister (void);
 
 void OutputTxShutdown(void);
