@@ -79,9 +79,6 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *, char );
 void StreamTcpSetDisableRawReassemblyFlag (TcpSession *ssn, char direction);
 
 void StreamTcpSetOSPolicy(TcpStream *, Packet *);
-void StreamTcpReassemblePause (TcpSession *, char );
-void StreamTcpReassembleUnPause (TcpSession *, char );
-int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
         TcpSession *ssn, TcpStream *stream, Packet *p);
@@ -102,6 +99,10 @@ int StreamTcpReassembleCheckMemcap(uint32_t size);
 
 void StreamTcpDisableAppLayer(Flow *f);
 int StreamTcpAppLayerIsDisabled(Flow *f);
+
+#ifdef UNITTESTS
+int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
+#endif
 
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 
