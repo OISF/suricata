@@ -503,18 +503,6 @@ int StreamTcpReassemblyConfig(char quiet)
         SCLogConfig("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
     StreamMsgQueuesInit(stream_chunk_prealloc);
 
-    intmax_t zero_copy_size = 128;
-    if (ConfGetInt("stream.reassembly.zero-copy-size", &zero_copy_size) == 1) {
-        if (zero_copy_size < 0 || zero_copy_size > 0xffff) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "stream.reassembly.zero-copy-size of "
-                    "%"PRIiMAX" is invalid: valid values are 0 to 65535", zero_copy_size);
-            return -1;
-        }
-    }
-    stream_config.zero_copy_size = (uint16_t)zero_copy_size;
-    if (!quiet)
-        SCLogConfig("stream.reassembly \"zero-copy-size\": %u", stream_config.zero_copy_size);
-
     stream_config.sbcnf.flags = STREAMING_BUFFER_NOFLAGS;
     stream_config.sbcnf.buf_size = 2048;
 
@@ -599,10 +587,6 @@ void StreamTcpReassembleFreeThreadCtx(TcpReassemblyThreadCtx *ra_ctx)
 {
     SCEnter();
     AppLayerDestroyCtxThread(ra_ctx->app_tctx);
-#ifdef DEBUG
-    SCLogDebug("reassembly fast path stats: fp1 %"PRIu64" fp2 %"PRIu64" sp %"PRIu64,
-            ra_ctx->fp1, ra_ctx->fp2, ra_ctx->sp);
-#endif
     SCFree(ra_ctx);
     SCReturn;
 }
