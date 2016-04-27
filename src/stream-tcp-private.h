@@ -85,9 +85,8 @@ typedef struct TcpStream_ {
                                          This will be used to validate the last_ts, when connection has been idle for
                                          longer time.(RFC 1323)*/
     /* reassembly */
-    uint32_t base_seq;              /**< seq where we are left with reassebly */
-    uint64_t base_seq_offset;       /**< offset from the start of the stream (== 0) of the current
-                                     *   base seq */
+    uint32_t base_seq;              /**< seq where we are left with reassebly. Matches STREAM_BASE_OFFSET below. */
+
     StreamingBuffer *sb;
     uint64_t app_progress;
     uint64_t raw_progress;
@@ -98,6 +97,8 @@ typedef struct TcpStream_ {
     StreamTcpSackRecord *sack_head; /**< head of list of SACK records */
     StreamTcpSackRecord *sack_tail; /**< tail of list of SACK records */
 } TcpStream;
+
+#define STREAM_BASE_OFFSET(stream)  ((stream)->sb ? (stream)->sb->stream_offset : 0)
 
 /* from /usr/include/netinet/tcp.h */
 enum
