@@ -30,6 +30,7 @@
 
 enum {
     SPM_BM, /* Boyer-Moore */
+    SPM_HS, /* Hyperscan */
     /* Other SPM matchers will go here. */
     SPM_TABLE_SIZE
 };

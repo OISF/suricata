@@ -53,6 +53,7 @@
 #include "util-spm-bs.h"
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
+#include "util-spm-hs.h"
 #include "util-clock.h"
 
 /**
@@ -89,6 +90,9 @@ void SpmTableSetup(void)
     memset(spm_table, 0, sizeof(spm_table));
 
     SpmBMRegister();
+#ifdef BUILD_HYPERSCAN
+    SpmHSRegister();
+#endif
 }
 
 SpmGlobalThreadCtx *SpmInitGlobalThreadCtx(uint16_t matcher)
