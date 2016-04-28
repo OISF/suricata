@@ -9682,11 +9682,8 @@ static int StreamTcpTest37(void)
         goto end;
     }
 
-    if (((TcpSession *)p->flow->protoctx)->client.raw_progress != 3) {
-        printf("the ssn->client.raw_progress should be 3, but it is %"PRIu64"\n",
-                ((TcpSession *)p->flow->protoctx)->client.raw_progress);
-        goto end;
-    }
+    TcpStream *stream = &(((TcpSession *)p->flow->protoctx)->client);
+    FAIL_IF(STREAM_RAW_PROGRESS(stream) != 3);
 
     StreamTcpSessionClear(p->flow->protoctx);
 
