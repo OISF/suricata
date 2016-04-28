@@ -32,33 +32,66 @@
 
 #define DNS_MAX_SIZE 256
 
-#define DNS_RECORD_TYPE_A       1
-#define DNS_RECORD_TYPE_NS      2
 
-#define DNS_RECORD_TYPE_CNAME   5
-#define DNS_RECORD_TYPE_SOA     6
+#define DNS_RECORD_TYPE_A           1
+#define DNS_RECORD_TYPE_NS          2
+#define DNS_RECORD_TYPE_MD          3   // Obsolete
+#define DNS_RECORD_TYPE_MF          4   // Obsolete
+#define DNS_RECORD_TYPE_CNAME       5
+#define DNS_RECORD_TYPE_SOA         6
+#define DNS_RECORD_TYPE_MB          7   // Experimental
+#define DNS_RECORD_TYPE_MG          8   // Experimental
+#define DNS_RECORD_TYPE_MR          9   // Experimental
+#define DNS_RECORD_TYPE_NULL        10  // Experimental
+#define DNS_RECORD_TYPE_WKS         11
+#define DNS_RECORD_TYPE_PTR         12
+#define DNS_RECORD_TYPE_HINFO       13
+#define DNS_RECORD_TYPE_MINFO       14
+#define DNS_RECORD_TYPE_MX          15
+#define DNS_RECORD_TYPE_TXT         16
+#define DNS_RECORD_TYPE_RP          17
+#define DNS_RECORD_TYPE_AFSDB       18
+#define DNS_RECORD_TYPE_X25         19
+#define DNS_RECORD_TYPE_ISDN        20
+#define DNS_RECORD_TYPE_RT          21
+#define DNS_RECORD_TYPE_NSAP        22
+#define DNS_RECORD_TYPE_NSAPPTR     23
+#define DNS_RECORD_TYPE_SIG         24
+#define DNS_RECORD_TYPE_KEY         25
+#define DNS_RECORD_TYPE_PX          26
+#define DNS_RECORD_TYPE_GPOS        27
+#define DNS_RECORD_TYPE_AAAA        28
+#define DNS_RECORD_TYPE_LOC         29
+#define DNS_RECORD_TYPE_NXT         30  // Obosolete
+#define DNS_RECORD_TYPE_SRV         33
+#define DNS_RECORD_TYPE_ATMA        34
+#define DNS_RECORD_TYPE_NAPTR       35
+#define DNS_RECORD_TYPE_KX          36
+#define DNS_RECORD_TYPE_CERT        37
+#define DNS_RECORD_TYPE_A6          38  // Obsolete
+#define DNS_RECORD_TYPE_DNAME       39
+#define DNS_RECORD_TYPE_OPT         41
+#define DNS_RECORD_TYPE_APL         42
+#define DNS_RECORD_TYPE_DS          43
+#define DNS_RECORD_TYPE_SSHFP       44
+#define DNS_RECORD_TYPE_IPSECKEY    45
+#define DNS_RECORD_TYPE_RRSIG       46
+#define DNS_RECORD_TYPE_NSEC        47
+#define DNS_RECORD_TYPE_DNSKEY      48
+#define DNS_RECORD_TYPE_DHCID       49
+#define DNS_RECORD_TYPE_NSEC3       50
+#define DNS_RECORD_TYPE_NSEC3PARAM  51
+#define DNS_RECORD_TYPE_TLSA        52
+#define DNS_RECORD_TYPE_HIP         55
+#define DNS_RECORD_TYPE_CDS         59
+#define DNS_RECORD_TYPE_CDNSKEY     60
+#define DNS_RECORD_TYPE_SPF         99  // Obsolete
+#define DNS_RECORD_TYPE_TKEY        249
+#define DNS_RECORD_TYPE_TSIG        250
+#define DNS_RECORD_TYPE_MAILA       254 // Obsolete
+#define DNS_RECORD_TYPE_ANY         255
+#define DNS_RECORD_TYPE_URI         256
 
-#define DNS_RECORD_TYPE_PTR     12
-#define DNS_RECORD_TYPE_MX      15
-#define DNS_RECORD_TYPE_TXT     16
-
-#define DNS_RECORD_TYPE_AAAA    28
-
-#define DNS_RECORD_TYPE_SRV     33
-
-#define DNS_RECORD_TYPE_NAPTR   35
-
-#define DNS_RECORD_TYPE_DS      43
-
-#define DNS_RECORD_TYPE_RRSIG   46
-#define DNS_RECORD_TYPE_NSEC    47
-
-#define DNS_RECORD_TYPE_NSEC3   50
-
-#define DNS_RECORD_TYPE_TKEY    249
-#define DNS_RECORD_TYPE_TSIG    250
-
-#define DNS_RECORD_TYPE_ANY     255
 
 #define DNS_RCODE_NOERROR       0
 #define DNS_RCODE_FORMERR       1
