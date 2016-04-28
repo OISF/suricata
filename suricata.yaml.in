@@ -1201,6 +1201,13 @@ flow-timeouts:
 #       - size: 4               # Size of the (data)segment for a pool
 #         prealloc: 256         # Number of segments to prealloc and keep
 #                               # in the pool.
+#     check-overlap-different-data: true|false
+#                               # check if a segment contains different data
+#                               # than what we've already seen for that
+#                               # position in the stream.
+#                               # This is enabled automatically if inline mode
+#                               # is used or when stream-event:reassembly_overlap_different_data;
+#                               # is used in a rule.
 #
 stream:
   memcap: 64mb
@@ -1234,6 +1241,7 @@ stream:
     #    prealloc: 1024
     #  - size: 65535
     #    prealloc: 128
+    #check-overlap-different-data: true
 
 # Host table:
 #
