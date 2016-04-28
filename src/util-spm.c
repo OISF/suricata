@@ -47,12 +47,34 @@
 #include "suricata.h"
 #include "util-unittest.h"
 
+#include "conf.h"
+
 #include "util-spm.h"
 #include "util-spm-bs.h"
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
 #include "util-clock.h"
 
+/**
+ * \brief Returns the single pattern matcher algorithm to be used, based on the
+ * spm-algo setting in yaml.
+ */
+uint16_t SinglePatternMatchDefaultMatcher(void) {
+    char *spm_algo;
+    if ((ConfGet("spm-algo", &spm_algo)) == 1) {
+        if (strcmp("bm", spm_algo) == 0) {
+            return SPM_BM;
+        }
+
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                   "Invalid spm algo supplied "
+                   "in the yaml conf file: \"%s\"",
+                   spm_algo);
+        exit(EXIT_FAILURE);
+    }
+
+    return SPM_BM; /* default to Boyer-Moore */
+}
 
 /**
  * Wrappers for building context and searching (Bs2Bm and boyermoore)

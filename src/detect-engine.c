@@ -84,6 +84,7 @@
 #include "util-action.h"
 #include "util-magic.h"
 #include "util-signal.h"
+#include "util-spm.h"
 
 #include "util-var-name.h"
 
@@ -829,6 +830,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     }
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
+    de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
     DetectEngineCtxLoadConf(de_ctx);
 
     SigGroupHeadHashInit(de_ctx);

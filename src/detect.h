@@ -587,6 +587,7 @@ typedef struct DetectEngineCtx_ {
     ThresholdCtx ths_ctx;
 
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
+    uint16_t spm_matcher; /**< spm matcher this ctx uses */
 
     /* Config options */
 
