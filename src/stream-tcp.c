@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -111,6 +111,7 @@ static SCMutex ssn_pool_mutex = SCMUTEX_INITIALIZER; /**< init only, protect ini
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
+uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
@@ -120,12 +121,28 @@ int stream_inline = 0;
 void StreamTcpIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(st_memuse, size);
+    SCLogDebug("STREAM %"PRIu64", incr %"PRIu64, StreamTcpMemuseCounter(), size);
     return;
 }
 
 void StreamTcpDecrMemuse(uint64_t size)
 {
+#ifdef DEBUG_VALIDATION
+    uint64_t presize = SC_ATOMIC_GET(st_memuse);
+    if (RunmodeIsUnittests()) {
+        BUG_ON(presize > UINT_MAX);
+    }
+#endif
+
     (void) SC_ATOMIC_SUB(st_memuse, size);
+
+#ifdef DEBUG_VALIDATION
+    if (RunmodeIsUnittests()) {
+        uint64_t postsize = SC_ATOMIC_GET(st_memuse);
+        BUG_ON(postsize > presize);
+    }
+#endif
+    SCLogDebug("STREAM %"PRIu64", decr %"PRIu64, StreamTcpMemuseCounter(), size);
     return;
 }
 
@@ -5844,6 +5861,7 @@ void TcpSessionSetReassemblyDepth(TcpSession *ssn, uint32_t size)
 
 static int StreamTcpTest01 (void)
 {
+    StreamTcpThread stt;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (unlikely(p == NULL))
         return 0;
@@ -5854,7 +5872,7 @@ static int StreamTcpTest01 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     TcpSession *ssn = StreamTcpNewSession(p, 0);
     if (ssn == NULL) {
@@ -5876,9 +5894,9 @@ static int StreamTcpTest01 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -5893,14 +5911,11 @@ end:
 static int StreamTcpTest02 (void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
-    int ret = 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
     uint8_t payload[4];
-    TcpReassemblyThreadCtx *ra_ctx = NULL;;
     TCPHdr tcph;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
@@ -5910,39 +5925,29 @@ static int StreamTcpTest02 (void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
-    if (ra_ctx == NULL) {
-        goto end;
-    }
     FLOW_INITIALIZE(&f);
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-    stt.ra_ctx = ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
-        goto end;
-    }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_ack = htonl(1);
     p->tcph->th_flags = TH_SYN | TH_ACK;
     p->flowflags = FLOW_PKT_TOCLIENT;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(1);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(2);
@@ -5953,12 +5958,10 @@ static int StreamTcpTest02 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_ack = htonl(1);
     p->tcph->th_seq = htonl(6);
@@ -5969,22 +5972,18 @@ static int StreamTcpTest02 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     StreamTcpSessionClear(p->flow->protoctx);
+    //StreamTcpUTClearSession(p->flow->protoctx);
 
-    ret = 1;
-end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    StreamTcpUTDeinit(stt.ra_ctx);
+    PASS;
 }
 
 /**
@@ -6014,7 +6013,7 @@ static int StreamTcpTest03 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6023,7 +6022,6 @@ static int StreamTcpTest03 (void)
     p->tcph = &tcph;
     int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -6058,10 +6056,9 @@ static int StreamTcpTest03 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -6092,7 +6089,7 @@ static int StreamTcpTest04 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6102,7 +6099,6 @@ static int StreamTcpTest04 (void)
 
     int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -6129,10 +6125,9 @@ static int StreamTcpTest04 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -6165,7 +6160,7 @@ static int StreamTcpTest05 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -6181,7 +6176,6 @@ static int StreamTcpTest05 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -6236,10 +6230,9 @@ static int StreamTcpTest05 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -6273,12 +6266,11 @@ static int StreamTcpTest06 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_flags = TH_FIN;
     p->tcph = &tcph;
 
-    FLOWLOCK_WRLOCK(&f);
     /* StreamTcpPacket returns -1 on unsolicited FIN */
     if (StreamTcpPacket(&tv, p, &stt, &pq) != -1) {
         printf("StreamTcpPacket failed: ");
@@ -6304,18 +6296,15 @@ static int StreamTcpTest06 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
 /**
  *  \test   Test the working on PAWS. The packet will be dropped by stream, as
  *          its timestamp is old, although the segment is in the window.
- *
- *  \retval On success it returns 1 and on failure 0.
  */
 
 static int StreamTcpTest07 (void)
@@ -6339,12 +6328,8 @@ static int StreamTcpTest07 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     stream_config.midstream = TRUE;
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6359,7 +6344,6 @@ static int StreamTcpTest07 (void)
     p->payload = payload;
     p->payload_len = 1;
 
-    FLOWLOCK_WRLOCK(&f);
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
@@ -6371,21 +6355,18 @@ static int StreamTcpTest07 (void)
 
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) != -1);
 
-    FAIL_IF (((TcpSession *) (p->flow->protoctx))->client.next_seq != 11);
+    FAIL_IF(((TcpSession *) (p->flow->protoctx))->client.next_seq != 11);
 
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
 }
 
 /**
  *  \test   Test the working on PAWS. The packet will be accpeted by engine as
  *          the timestamp is valid and it is in window.
- *
- *  \retval On success it returns 1 and on failure 0.
  */
 
 static int StreamTcpTest08 (void)
@@ -6409,12 +6390,8 @@ static int StreamTcpTest08 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     stream_config.midstream = TRUE;
-
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6429,7 +6406,6 @@ static int StreamTcpTest08 (void)
     p->payload = payload;
     p->payload_len = 1;
 
-    FLOWLOCK_WRLOCK(&f);
     FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
@@ -6445,26 +6421,21 @@ static int StreamTcpTest08 (void)
 
     StreamTcpSessionClear(p->flow->protoctx);
 
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     PASS;
 }
 
 /**
  *  \test   Test the working of No stream reassembly flag. The stream will not
  *          reassemble the segment if the flag is set.
- *
- *  \retval On success it returns 1 and on failure 0.
  */
 
 static int StreamTcpTest09 (void)
 {
-
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-    return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
@@ -6481,14 +6452,9 @@ static int StreamTcpTest09 (void)
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
-    int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     stream_config.midstream = TRUE;
-
-    //prevent L7 from kicking in
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6499,52 +6465,44 @@ static int StreamTcpTest09 (void)
     p->payload = payload;
     p->payload_len = 1;
 
-    FLOWLOCK_WRLOCK(&f);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(12);
     p->tcph->th_ack = htonl(23);
     p->tcph->th_flags = TH_ACK|TH_PUSH;
     p->flowflags = FLOW_PKT_TOSERVER;
 
+    FAIL_IF(p->flow->protoctx == NULL);
+
     StreamTcpSetSessionNoReassemblyFlag(((TcpSession *)(p->flow->protoctx)), 0);
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(23);
     p->tcph->th_flags = TH_ACK|TH_PUSH;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    if (((TcpSession *) (p->flow->protoctx))->client.seg_list->next == NULL)
-        ret = 1;
+    FAIL_IF(((TcpSession *) (p->flow->protoctx))->client.seg_list->next != NULL);
 
     StreamTcpSessionClear(p->flow->protoctx);
-end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    StreamTcpUTDeinit(stt.ra_ctx);
+    PASS;
 }
 
 /**
  *  \test   Test the setting up a TCP session when we are seeing asynchronous
  *          stream, while we see all the packets in that stream from start.
- *
- *  \retval On success it returns 1 and on failure 0.
  */
 
 static int StreamTcpTest10 (void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
@@ -6560,26 +6518,23 @@ static int StreamTcpTest10 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
+    stream_config.async_oneside = TRUE;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
     tcph.th_ack = htonl(11);
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
-    int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(11);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(11);
@@ -6590,8 +6545,7 @@ static int StreamTcpTest10 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(6);
     p->tcph->th_ack = htonl(11);
@@ -6602,53 +6556,32 @@ static int StreamTcpTest10 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    if (stream_config.async_oneside != TRUE) {
-        ret = 1;
-        goto end;
-    }
-    if (((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED) {
-        printf("failed in setting state\n");
-        goto end;
-    }
+    FAIL_IF(((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED);
 
-    if (! (((TcpSession *)(p->flow->protoctx))->flags & STREAMTCP_FLAG_ASYNC)) {
-        printf("failed in setting asynchronous session\n");
-        goto end;
-    }
+    FAIL_IF(! (((TcpSession *)(p->flow->protoctx))->flags & STREAMTCP_FLAG_ASYNC));
 
-    if (((TcpSession *)(p->flow->protoctx))->client.last_ack != 6 &&
-            ((TcpSession *)(p->flow->protoctx))->server.next_seq != 11) {
-        printf("failed in seq %"PRIu32" match\n",
-                ((TcpSession *)(p->flow->protoctx))->client.last_ack);
-        goto end;
-    }
+    FAIL_IF(((TcpSession *)(p->flow->protoctx))->client.last_ack != 6 &&
+            ((TcpSession *)(p->flow->protoctx))->server.next_seq != 11);
 
     StreamTcpSessionClear(p->flow->protoctx);
 
-    ret = 1;
-end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    StreamTcpUTDeinit(stt.ra_ctx);
+    PASS;
 }
 
 /**
  *  \test   Test the setting up a TCP session when we are seeing asynchronous
  *          stream, while we missed the SYN packet of that stream.
- *
- *  \retval On success it returns 1 and on failure 0.
  */
 
 static int StreamTcpTest11 (void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
@@ -6664,26 +6597,23 @@ static int StreamTcpTest11 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
+    stream_config.async_oneside = TRUE;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
     tcph.th_ack = htonl(1);
     tcph.th_flags = TH_SYN|TH_ACK;
     p->tcph = &tcph;
-    int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(1);
     p->tcph->th_flags = TH_ACK;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(1);
@@ -6694,8 +6624,7 @@ static int StreamTcpTest11 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(2);
     p->tcph->th_ack = htonl(1);
@@ -6706,40 +6635,20 @@ static int StreamTcpTest11 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    if (stream_config.async_oneside != TRUE) {
-        ret = 1;
-        goto end;
-    }
+    FAIL_IF(! (((TcpSession *)(p->flow->protoctx))->flags & STREAMTCP_FLAG_ASYNC));
 
-    if (! (((TcpSession *)(p->flow->protoctx))->flags & STREAMTCP_FLAG_ASYNC)) {
-        printf("failed in setting asynchronous session\n");
-        goto end;
-    }
+    FAIL_IF(((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED);
 
-    if (((TcpSession *)(p->flow->protoctx))->state != TCP_ESTABLISHED) {
-        printf("failed in setting state\n");
-        goto end;
-    }
-
-    if (((TcpSession *)(p->flow->protoctx))->server.last_ack != 2 &&
-            ((TcpSession *)(p->flow->protoctx))->client.next_seq != 1) {
-        printf("failed in seq %"PRIu32" match\n",
-                ((TcpSession *)(p->flow->protoctx))->server.last_ack);
-        goto end;
-    }
+    FAIL_IF(((TcpSession *)(p->flow->protoctx))->server.last_ack != 2 &&
+            ((TcpSession *)(p->flow->protoctx))->client.next_seq != 1);
 
     StreamTcpSessionClear(p->flow->protoctx);
-
-    ret = 1;
-end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    StreamTcpUTDeinit(stt.ra_ctx);
+    PASS;
 }
 
 /**
@@ -6769,7 +6678,7 @@ static int StreamTcpTest12 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6778,7 +6687,6 @@ static int StreamTcpTest12 (void)
     p->tcph = &tcph;
     int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -6832,10 +6740,9 @@ static int StreamTcpTest12 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -6867,7 +6774,7 @@ static int StreamTcpTest13 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6876,7 +6783,6 @@ static int StreamTcpTest13 (void)
     p->tcph = &tcph;
     int ret = 0;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -6942,10 +6848,9 @@ static int StreamTcpTest13 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7077,7 +6982,7 @@ static int StreamTcpTest14 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string in to parser */
     ConfCreateContextBackup();
@@ -7207,12 +7112,12 @@ static int StreamTcpTest14 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7243,7 +7148,7 @@ static int StreamTcp4WHSTest01 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7251,7 +7156,6 @@ static int StreamTcp4WHSTest01 (void)
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -7292,10 +7196,9 @@ static int StreamTcp4WHSTest01 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7327,7 +7230,7 @@ static int StreamTcp4WHSTest02 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7335,7 +7238,6 @@ static int StreamTcp4WHSTest02 (void)
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -7365,10 +7267,9 @@ static int StreamTcp4WHSTest02 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7384,8 +7285,7 @@ static int StreamTcp4WHSTest03 (void)
 {
     int ret = 0;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
@@ -7400,7 +7300,7 @@ static int StreamTcp4WHSTest03 (void)
     FLOW_INITIALIZE(&f);
     p->flow = &f;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7408,7 +7308,6 @@ static int StreamTcp4WHSTest03 (void)
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -7449,10 +7348,9 @@ static int StreamTcp4WHSTest03 (void)
     ret = 1;
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7491,7 +7389,7 @@ static int StreamTcpTest15 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string in to parser */
     ConfCreateContextBackup();
@@ -7523,7 +7421,6 @@ static int StreamTcpTest15 (void)
     p->payload = payload;
     p->payload_len = 3;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -7621,12 +7518,11 @@ static int StreamTcpTest15 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7665,7 +7561,7 @@ static int StreamTcpTest16 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string in to parser */
     ConfCreateContextBackup();
@@ -7795,12 +7691,12 @@ static int StreamTcpTest16 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7840,7 +7736,7 @@ static int StreamTcpTest17 (void)
     p->flow = &f;
     int ret = 0;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     /* Load the config string in to parser */
     ConfCreateContextBackup();
@@ -7970,12 +7866,12 @@ static int StreamTcpTest17 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -7983,7 +7879,7 @@ end:
             confuguration defined in 'dummy_conf_string1' */
 static int StreamTcpTest18 (void)
 {
-
+    StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
     char *ip_addr;
@@ -7999,7 +7895,7 @@ static int StreamTcpTest18 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&ipv4h, 0, sizeof(ipv4h));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
     /* Load the config string in to parser */
@@ -8022,17 +7918,17 @@ static int StreamTcpTest18 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
 static int StreamTcpTest19 (void)
 {
-
+    StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
     char *ip_addr;
@@ -8048,7 +7944,7 @@ static int StreamTcpTest19 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&ipv4h, 0, sizeof(ipv4h));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
     /* Load the config string in to parser */
@@ -8074,17 +7970,17 @@ static int StreamTcpTest19 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
 static int StreamTcpTest20 (void)
 {
-
+    StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "linux";
     char *ip_addr;
@@ -8100,7 +7996,7 @@ static int StreamTcpTest20 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&ipv4h, 0, sizeof(ipv4h));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
     /* Load the config string in to parser */
@@ -8126,17 +8022,17 @@ static int StreamTcpTest20 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
 static int StreamTcpTest21 (void)
 {
-
+    StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "linux";
     char *ip_addr;
@@ -8152,7 +8048,7 @@ static int StreamTcpTest21 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&ipv4h, 0, sizeof(ipv4h));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
     /* Load the config string in to parser */
@@ -8178,17 +8074,17 @@ static int StreamTcpTest21 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 /** \test   Test the various OS policies based on different IP addresses from
             confuguration defined in 'dummy_conf_string1' */
 static int StreamTcpTest22 (void)
 {
-
+    StreamTcpThread stt;
     struct in_addr addr;
     char os_policy_name[10] = "windows";
     char *ip_addr;
@@ -8204,7 +8100,7 @@ static int StreamTcpTest22 (void)
     memset(p, 0, SIZE_OF_PACKET);
     memset(&ipv4h, 0, sizeof(ipv4h));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     SCHInfoCleanResources();
 
     /* Load the config string in to parser */
@@ -8230,20 +8126,20 @@ static int StreamTcpTest22 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
     ConfDeInit();
     ConfRestoreContextBackup();
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
 /** \test   Test the stream mem leaks conditions. */
 static int StreamTcpTest23(void)
 {
+    StreamTcpThread stt;
     TcpSession ssn;
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     uint8_t packet[1460] = "";
     ThreadVars tv;
     PacketQueue pq;
@@ -8252,13 +8148,13 @@ static int StreamTcpTest23(void)
     FAIL_IF(p == NULL);
 
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(p, 0, SIZE_OF_PACKET);
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&tv, 0, sizeof (ThreadVars));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
+    StreamTcpUTSetupSession(&ssn);
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
@@ -8282,52 +8178,48 @@ static int StreamTcpTest23(void)
     p->tcph->th_ack = htonl(3373419609UL);
     p->payload_len = 2;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324455UL);
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 2;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324453UL);
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 6;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     FAIL_IF(ssn.client.seg_list_tail == NULL);
     FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 2);
 
-    StreamTcpReturnStreamSegments(&ssn.client);
-    StreamTcpFreeConfig(TRUE);
-    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
+    StreamTcpUTClearSession(&ssn);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
     PASS;
 }
 
 /** \test   Test the stream mem leaks conditions. */
 static int StreamTcpTest24(void)
 {
+    StreamTcpThread stt;
     TcpSession ssn;
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     FAIL_IF (p == NULL);
     Flow f;
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     uint8_t packet[1460] = "";
     ThreadVars tv;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
+    StreamTcpUTSetupSession(&ssn);
 
-    /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
-
-    memset(&ssn, 0, sizeof (TcpSession));
     memset(p, 0, SIZE_OF_PACKET);
     memset(&f, 0, sizeof (Flow));
     memset(&tv, 0, sizeof (ThreadVars));
@@ -8351,28 +8243,28 @@ static int StreamTcpTest24(void)
     p->tcph->th_ack = htonl(3373419621UL);
     p->payload_len = 4;
 
-    FAIL_IF (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF (StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324459UL);
     p->tcph->th_ack = htonl(3373419633UL);
     p->payload_len = 2;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     p->tcph->th_seq = htonl(3184324459UL);
     p->tcph->th_ack = htonl(3373419657UL);
     p->payload_len = 4;
 
-    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &ssn.client, p, &pq) == -1);
+    FAIL_IF(StreamTcpReassembleHandleSegment(&tv, stt.ra_ctx, &ssn, &ssn.client, p, &pq) == -1);
 
     FAIL_IF(ssn.client.seg_list_tail == NULL);
     FAIL_IF(TCP_SEG_LEN(ssn.client.seg_list_tail) != 4);
 
-    StreamTcpReturnStreamSegments(&ssn.client);
-    StreamTcpFreeConfig(TRUE);
-    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
+    StreamTcpUTClearSession(&ssn);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) > 0);
     PASS;
 }
 
@@ -8391,7 +8283,6 @@ static int StreamTcpTest25(void)
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     int ret = 0;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
@@ -8403,7 +8294,6 @@ static int StreamTcpTest25(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     FLOW_INITIALIZE(&f);
-    stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_CWR;
@@ -8414,9 +8304,8 @@ static int StreamTcpTest25(void)
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -8471,10 +8360,9 @@ static int StreamTcpTest25(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -8493,7 +8381,6 @@ static int StreamTcpTest26(void)
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     int ret = 0;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
@@ -8505,16 +8392,14 @@ static int StreamTcpTest26(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     FLOW_INITIALIZE(&f);
-    stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_ECN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -8569,10 +8454,9 @@ static int StreamTcpTest26(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -8591,7 +8475,6 @@ static int StreamTcpTest27(void)
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     int ret = 0;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
@@ -8603,16 +8486,14 @@ static int StreamTcpTest27(void)
     memset(&tcph, 0, sizeof (TCPHdr));
 
     FLOW_INITIALIZE(&f);
-    stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN | TH_CWR | TH_ECN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -8667,54 +8548,34 @@ static int StreamTcpTest27(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
 /** \test   Test the memcap incrementing/decrementing and memcap check */
 static int StreamTcpTest28(void)
 {
-    uint8_t ret = 0;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpThread stt;
+    StreamTcpUTInit(&stt.ra_ctx);
+
     uint32_t memuse = SC_ATOMIC_GET(st_memuse);
 
     StreamTcpIncrMemuse(500);
-    if (SC_ATOMIC_GET(st_memuse) != (memuse+500)) {
-        printf("failed in incrementing the memory");
-        goto end;
-    }
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) != (memuse+500));
 
     StreamTcpDecrMemuse(500);
-    if (SC_ATOMIC_GET(st_memuse) != memuse) {
-        printf("failed in decrementing the memory");
-        goto end;
-    }
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) != memuse);
 
-    if (StreamTcpCheckMemcap(500) != 1) {
-        printf("failed in validating the memcap");
-        goto end;
-    }
+    FAIL_IF(StreamTcpCheckMemcap(500) != 1);
 
-    if (StreamTcpCheckMemcap((memuse + stream_config.memcap)) != 0) {
-        printf("failed in validating the overflowed memcap");
-        goto end;
-    }
+    FAIL_IF(StreamTcpCheckMemcap((memuse + stream_config.memcap)) != 0);
 
-    StreamTcpFreeConfig(TRUE);
+    StreamTcpUTDeinit(stt.ra_ctx);
 
-    if (SC_ATOMIC_GET(st_memuse) != 0) {
-        printf("failed in clearing the memory");
-        goto end;
-    }
-
-    ret = 1;
-    return ret;
-end:
-    StreamTcpFreeConfig(TRUE);
-    return ret;
+    FAIL_IF(SC_ATOMIC_GET(st_memuse) != 0);
+    PASS;
 }
 
 #if 0
@@ -8734,7 +8595,6 @@ static int StreamTcpTest29(void)
     TCPHdr tcph;
     TcpSession ssn;
     IPV4Hdr ipv4h;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     struct in_addr addr;
     struct in_addr addr1;
     TCPCache tcpc;
@@ -8873,7 +8733,6 @@ static int StreamTcpTest30(void)
     TCPHdr tcph;
     TcpSession ssn;
     IPV4Hdr ipv4h;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     struct in_addr addr;
     struct in_addr addr1;
     TCPCache tcpc;
@@ -9596,7 +9455,6 @@ static int StreamTcpTest37(void)
     StreamTcpThread stt;
     uint8_t payload[4];
     TCPHdr tcph;
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     int ret = 0;
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
@@ -9609,16 +9467,14 @@ static int StreamTcpTest37(void)
 
     FLOW_INITIALIZE(&f);
 
-    stt.ra_ctx = ra_ctx;
     p->flow = &f;
     tcph.th_win = htons(5480);
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
         printf("failed in processing packet\n");
         goto end;
@@ -9695,10 +9551,9 @@ static int StreamTcpTest37(void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -9719,7 +9574,6 @@ static int StreamTcpTest38 (void)
     TCPHdr tcph;
     PacketQueue pq;
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
@@ -9737,10 +9591,8 @@ static int StreamTcpTest38 (void)
     tcph.th_flags = TH_SYN;
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
-    stt.ra_ctx = ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
-    FLOWLOCK_WRLOCK(&f);
+    StreamTcpUTInit(&stt.ra_ctx);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
         printf("failed in processing packet in StreamTcpPacket\n");
         goto end;
@@ -9855,12 +9707,9 @@ static int StreamTcpTest38 (void)
 
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    if (stt.ra_ctx != NULL)
-        StreamTcpReassembleFreeThreadCtx(stt.ra_ctx);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -9880,7 +9729,6 @@ static int StreamTcpTest39 (void)
     TCPHdr tcph;
     PacketQueue pq;
 
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx(NULL);
     memset (&f, 0, sizeof(Flow));
     memset(&tv, 0, sizeof (ThreadVars));
     memset(&stt, 0, sizeof (StreamTcpThread));
@@ -9899,11 +9747,9 @@ static int StreamTcpTest39 (void)
     p->tcph = &tcph;
     p->flowflags = FLOW_PKT_TOSERVER;
     int ret = 0;
-    stt.ra_ctx = ra_ctx;
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
         printf("failed in processing packet in StreamTcpPacket\n");
         goto end;
@@ -9996,12 +9842,9 @@ static int StreamTcpTest39 (void)
 
 end:
     StreamTcpSessionClear(p->flow->protoctx);
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
-    if (stt.ra_ctx != NULL)
-        StreamTcpReassembleFreeThreadCtx(stt.ra_ctx);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -10017,8 +9860,7 @@ static int StreamTcpTest40(void)
         0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3
     };
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     ThreadVars tv;
     DecodeThreadVars dtv;
 
@@ -10034,33 +9876,23 @@ static int StreamTcpTest40(void)
 
     DecodeVLAN(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
 
-    if(p->vlanh[0] == NULL) {
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF(p->vlanh[0] == NULL);
 
-    if(p->tcph == NULL) {
-        SCFree(p);
-        return 0;
-    }
+    FAIL_IF(p->tcph == NULL);
 
     Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
-    if (np == NULL) {
-        printf("the packet received from packet allocation is NULL: ");
-        return 0;
-    }
+    FAIL_IF(np == NULL);
 
     StreamTcpPseudoPacketSetupHeader(np,p);
 
-    if (((uint8_t *)p->tcph - (uint8_t *)p->ip4h) != ((uint8_t *)np->tcph - (uint8_t *)np->ip4h)) {
-        return 0;
-    }
+    FAIL_IF(((uint8_t *)p->tcph - (uint8_t *)p->ip4h) != ((uint8_t *)np->tcph - (uint8_t *)np->ip4h));
 
-    PACKET_RECYCLE(np);
-    PACKET_RECYCLE(p);
+    PACKET_DESTRUCTOR(np);
+    PACKET_DESTRUCTOR(p);
     FlowShutdown();
-
-    return 1;
+    PacketFree(np);
+    PacketFree(p);
+    PASS;
 }
 
 static int StreamTcpTest41(void)
@@ -10151,7 +9983,7 @@ static int StreamTcpTest42 (void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
@@ -10163,7 +9995,6 @@ static int StreamTcpTest42 (void)
     tcph.th_seq = htonl(100);
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -10216,10 +10047,9 @@ static int StreamTcpTest42 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -10245,7 +10075,7 @@ static int StreamTcpTest43 (void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
@@ -10257,7 +10087,6 @@ static int StreamTcpTest43 (void)
     tcph.th_seq = htonl(100);
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -10310,10 +10139,9 @@ static int StreamTcpTest43 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -10339,7 +10167,7 @@ static int StreamTcpTest44 (void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
 
     FLOW_INITIALIZE(&f);
     p->tcph = &tcph;
@@ -10351,7 +10179,6 @@ static int StreamTcpTest44 (void)
     tcph.th_seq = htonl(100);
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -10399,10 +10226,9 @@ static int StreamTcpTest44 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
     FLOW_DESTROY(&f);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
@@ -10428,7 +10254,7 @@ static int StreamTcpTest45 (void)
     memset(&stt, 0, sizeof (StreamTcpThread));
     memset(&tcph, 0, sizeof (TCPHdr));
 
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&stt.ra_ctx);
     stream_config.max_synack_queued = 2;
 
     FLOW_INITIALIZE(&f);
@@ -10441,7 +10267,6 @@ static int StreamTcpTest45 (void)
     tcph.th_seq = htonl(100);
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    FLOWLOCK_WRLOCK(&f);
     if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
         goto end;
 
@@ -10512,9 +10337,8 @@ static int StreamTcpTest45 (void)
 
     ret = 1;
 end:
-    StreamTcpFreeConfig(TRUE);
-    FLOWLOCK_UNLOCK(&f);
     SCFree(p);
+    StreamTcpUTDeinit(stt.ra_ctx);
     return ret;
 }
 
