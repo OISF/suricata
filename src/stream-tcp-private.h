@@ -88,9 +88,9 @@ typedef struct TcpStream_ {
     uint32_t base_seq;              /**< seq where we are left with reassebly. Matches STREAM_BASE_OFFSET below. */
 
     uint32_t app_progress_rel;      /**< app-layer progress relative to STREAM_BASE_OFFSET */
+    uint32_t raw_progress_rel;      /**< raw reassembly progress relative to STREAM_BASE_OFFSET */
 
     StreamingBuffer *sb;
-    uint64_t raw_progress;
 
     TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
     TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/
@@ -101,6 +101,7 @@ typedef struct TcpStream_ {
 
 #define STREAM_BASE_OFFSET(stream)  ((stream)->sb ? (stream)->sb->stream_offset : 0)
 #define STREAM_APP_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->app_progress_rel)
+#define STREAM_RAW_PROGRESS(stream) (STREAM_BASE_OFFSET((stream)) + (stream)->raw_progress_rel)
 
 /* from /usr/include/netinet/tcp.h */
 enum
