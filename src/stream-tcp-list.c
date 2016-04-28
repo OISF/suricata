@@ -214,6 +214,9 @@ static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, Packet *p)
  *
  *  \param buf stack allocated buffer sized p->payload_len that will be
  *             inserted into the stream buffer
+ *
+ *  \retval 1 if data was different
+ *  \retval 0 data was the same or we didn't check for differences
  */
 static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *seg, uint8_t *buf, Packet *p)
 {
@@ -244,7 +247,6 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
             if (StreamTcpInlineSegmentCompare(stream, p, list) != 0) {
                 SCLogDebug("data is different from what is in the list");
                 data_is_different = 1;
-                StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
             }
         } else {
             /* if we're not checking, assume it's different */
@@ -256,7 +258,7 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
         if (stream->os_policy == OS_POLICY_LAST) {
             /* buf will start with LAST data (from the segment),
              * so if policy is LAST we're now done here. */
-            return 0;
+            return (check_overlap_different_data && data_is_different);
         }
 
         /* start at the same seq */
@@ -400,7 +402,7 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
         memcpy(buf + seg_offset, list_data + list_offset, list_len);
         //PrintRawDataFp(stdout, buf, p->payload_len);
     }
-    return 0;
+    return (check_overlap_different_data && data_is_different);
 }
 
 #define MAX_IP_DATA (uint32_t)(65536 - 40) // min ip header and min tcp header
@@ -413,6 +415,8 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
  */
 static int DoHandleDataCheckBackwards(TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p)
 {
+    int retval = 0;
+
     SCLogDebug("check list backwards: insert data for segment %p seq %u len %u re %u",
             seg, seg->seq, TCP_SEG_LEN(seg), SEG_SEQ_RIGHT_EDGE(seg));
 
@@ -433,13 +437,13 @@ static int DoHandleDataCheckBackwards(TcpStream *stream, TcpSegment *seg, uint8_
                 SEG_SEQ_RIGHT_EDGE(list), overlap ? "yes" : "no");
 
         if (overlap) {
-            DoHandleDataOverlap(stream, list, seg, buf, p);
+            retval |= DoHandleDataOverlap(stream, list, seg, buf, p);
         }
 
         list = list->prev;
     } while (list != NULL);
 
-    return 0;
+    return retval;
 }
 
 /** \internal
@@ -450,6 +454,8 @@ static int DoHandleDataCheckBackwards(TcpStream *stream, TcpSegment *seg, uint8_
  */
 static int DoHandleDataCheckForward(TcpStream *stream, TcpSegment *seg, uint8_t *buf, Packet *p)
 {
+    int retval = 0;
+
     uint32_t seg_re = SEG_SEQ_RIGHT_EDGE(seg);
 
     SCLogDebug("check list forward: insert data for segment %p seq %u len %u re %u",
@@ -470,17 +476,20 @@ static int DoHandleDataCheckForward(TcpStream *stream, TcpSegment *seg, uint8_t 
                 TCP_SEG_LEN(list), SEG_SEQ_RIGHT_EDGE(list), overlap ? "yes" : "no");
 
         if (overlap) {
-            DoHandleDataOverlap(stream, list, seg, buf, p);
+            retval |= DoHandleDataOverlap(stream, list, seg, buf, p);
         }
 
         list = list->next;
     } while (list != NULL);
 
-    return 0;
+    return retval;
 }
 
-static int DoHandleData(TcpStream *stream, TcpSegment *seg, Packet *p)
+static int DoHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, TcpSegment *seg, Packet *p)
 {
+    int result = 0;
+
     SCLogDebug("insert data for segment %p seq %u len %u re %u",
             seg, seg->seq, TCP_SEG_LEN(seg), SEG_SEQ_RIGHT_EDGE(seg));
 
@@ -492,16 +501,22 @@ static int DoHandleData(TcpStream *stream, TcpSegment *seg, Packet *p)
 
     /* new list head  */
     if (seg->next != NULL && seg->prev == NULL) {
-        DoHandleDataCheckForward(stream, seg, buf, p);
+        result = DoHandleDataCheckForward(stream, seg, buf, p);
 
     /* new list tail */
     } else if (seg->next == NULL && seg->prev != NULL) {
-        DoHandleDataCheckBackwards(stream, seg, buf, p);
+        result = DoHandleDataCheckBackwards(stream, seg, buf, p);
 
     /* middle of the list */
     } else if (seg->next != NULL && seg->prev != NULL) {
-        DoHandleDataCheckBackwards(stream, seg, buf, p);
-        DoHandleDataCheckForward(stream, seg, buf, p);
+        result = DoHandleDataCheckBackwards(stream, seg, buf, p);
+        result |= DoHandleDataCheckForward(stream, seg, buf, p);
+    }
+
+    /* we had an overlap with different data */
+    if (result) {
+        StreamTcpSetEvent(p, STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA);
+        StatsIncr(tv, ra_ctx->counter_tcp_reass_overlap_diff_data);
     }
 
     /* insert the temp buffer now that we've (possibly) updated
@@ -511,7 +526,6 @@ static int DoHandleData(TcpStream *stream, TcpSegment *seg, Packet *p)
     }
 
     return 0;
-
 }
 
 /**
@@ -547,8 +561,11 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
 
     } else if (r == 1) {
+        /* XXX should we exclude 'retransmissions' here? */
+        StatsIncr(tv, ra_ctx->counter_tcp_reass_overlap);
+
         /* now let's consider the data in the overlap case */
-        int res = DoHandleData(stream, seg, p);
+        int res = DoHandleData(tv, ra_ctx, stream, seg, p);
         if (res < 0) {
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
