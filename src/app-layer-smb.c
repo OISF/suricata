@@ -414,7 +414,7 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
     switch (sstate->andx.andxbytesprocessed) {
         case 0:
             sstate->andx.paddingparsed = 0;
-            if (input_len >= sstate->wordcount.wordcount) {
+            if (input_len >= 26) {
                 sstate->andx.datalength = *(p + 22);
                 sstate->andx.datalength |= *(p + 23) << 8;
                 sstate->andx.dataoffset = *(p + 24);
@@ -423,8 +423,8 @@ static uint32_t SMBParseTransact(Flow *f, void *smb_state,
                 sstate->andx.datalength |= (uint64_t) *(p + 15) << 48;
                 sstate->andx.datalength |= (uint64_t) *(p + 16) << 40;
                 sstate->andx.datalength |= (uint64_t) *(p + 17) << 32;
-                sstate->bytesprocessed += sstate->wordcount.wordcount;
-                sstate->andx.andxbytesprocessed += sstate->wordcount.wordcount;
+                sstate->bytesprocessed += 26;
+                sstate->andx.andxbytesprocessed += 26;
                 SCReturnUInt(sstate->wordcount.wordcount);
             } else {
                 /* total parameter count 1 */
