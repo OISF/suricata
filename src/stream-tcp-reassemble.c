@@ -997,7 +997,7 @@ int StreamNeedsReassembly(TcpSession *ssn, int direction)
         SCLogDebug("%s: list %p app %"PRIu64" (use: %s), raw %"PRIu64" (use: %s). Stream right edge: %"PRIu64,
                 dirstr,
                 stream->seg_list,
-                stream->app_progress, use_app ? "yes" : "no",
+                STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
                 stream->raw_progress, use_raw ? "yes" : "no",
                 right_edge);
 
@@ -1008,7 +1008,7 @@ int StreamNeedsReassembly(TcpSession *ssn, int direction)
             }
         }
         if (use_app) {
-            if (right_edge > stream->app_progress) {
+            if (right_edge > STREAM_APP_PROGRESS(stream)) {
                 SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY", dirstr);
                 return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
             }
@@ -1108,10 +1108,10 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
         TcpSession *ssn, TcpStream *stream,
         Packet *p)
 {
-    const uint64_t app_progress = stream->app_progress;
-    uint64_t last_ack_abs = app_progress; /* absolute right edge of ack'd data */
+    const uint64_t app_progress = STREAM_APP_PROGRESS(stream);
+    uint64_t last_ack_abs = 0; /* absolute right edge of ack'd data */
 
-    SCLogDebug("app progress %"PRIu64, stream->app_progress);
+    SCLogDebug("app progress %"PRIu64, app_progress);
     SCLogDebug("last_ack %u, base_seq %u", stream->last_ack, stream->base_seq);
 
     if (STREAM_LASTACK_GT_BASESEQ(stream)) {
@@ -1123,19 +1123,19 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
 
     const uint8_t *mydata;
     uint32_t mydata_len;
-    GetAppBuffer(stream, &mydata, &mydata_len, stream->app_progress);
+    GetAppBuffer(stream, &mydata, &mydata_len, app_progress);
     //PrintRawDataFp(stdout, mydata, mydata_len);
 
-    SCLogDebug("stream %p data in buffer %p of len %u and offset %u",
-            stream, stream->sb, mydata_len, (uint)stream->app_progress);
+    SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
+            stream, stream->sb, mydata_len, app_progress);
 
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == 0 && (p->flags & PKT_PSEUDO_STREAM_END)) {
         //
     } else if (StreamTcpInlineMode() == 0) {
         /* see if the buffer contains unack'd data as well */
-        if (stream->app_progress + mydata_len > last_ack_abs) {
-            mydata_len = last_ack_abs - stream->app_progress;
+        if (app_progress + mydata_len > last_ack_abs) {
+            mydata_len = last_ack_abs - app_progress;
             SCLogDebug("data len adjusted to %u to make sure only ACK'd "
                     "data is considered", mydata_len);
         }
@@ -1150,13 +1150,13 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     if (r == 0 && StreamTcpIsSetStreamFlagAppProtoDetectionCompleted(stream)) {
         if (mydata_len > 0) {
             SCLogDebug("app progress %"PRIu64" increasing with data len %u to %"PRIu64,
-                    stream->app_progress, mydata_len, stream->app_progress + mydata_len);
+                    app_progress, mydata_len, app_progress + mydata_len);
 
-            stream->app_progress += mydata_len;
-            SCLogDebug("app progress now %"PRIu64, stream->app_progress);
+            stream->app_progress_rel += mydata_len;
+            SCLogDebug("app progress now %"PRIu64, STREAM_APP_PROGRESS(stream));
         }
     } else {
-        SCLogDebug("NOT UPDATED app progress now %"PRIu64, stream->app_progress);
+        SCLogDebug("NOT UPDATED app progress still %"PRIu64, app_progress);
     }
 
     SCReturnInt(0);
@@ -1242,7 +1242,7 @@ int StreamTcpReassembleAppLayer (ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
      * and state is beyond established, we send an empty msg */
     TcpSegment *seg_tail = stream->seg_list_tail;
     if (seg_tail == NULL ||
-            SEGMENT_BEFORE_OFFSET(stream, seg_tail, stream->app_progress))
+            SEGMENT_BEFORE_OFFSET(stream, seg_tail, STREAM_APP_PROGRESS(stream)))
     {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
@@ -3182,7 +3182,7 @@ static int StreamTcpReassembleTest40 (void)
 
     /* check is have the segment in the list and flagged or not */
     if (ssn.client.seg_list == NULL ||
-        SEGMENT_BEFORE_OFFSET(&ssn.client, ssn.client.seg_list, ssn.client.app_progress))
+        SEGMENT_BEFORE_OFFSET(&ssn.client, ssn.client.seg_list, STREAM_APP_PROGRESS(&ssn.client)))
 //        (ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
     {
         printf("the list is NULL or the processed segment has not been flaged (7): ");
@@ -4564,9 +4564,9 @@ static int StreamTcpReassembleInlineTest10(void)
         goto end;
     }
 
-    if (ssn.server.app_progress != 17) {
+    if (STREAM_APP_PROGRESS(&ssn.server) != 17) {
         printf("expected ssn.server.app_progress == 17got %"PRIu64": ",
-                ssn.server.app_progress);
+                STREAM_APP_PROGRESS(&ssn.server));
         goto end;
     }
 
