@@ -1211,7 +1211,11 @@
         AC_CHECK_DECL([SOF_TIMESTAMPING_RAW_HARDWARE],
             AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
             [],
-            [[#include <linux/net_tstamp.h>]])
+            [[#include <linux/net_tstamp.h>]]),
+        AC_CHECK_DECL([PACKET_FANOUT_EBPF],
+            AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
+            [],
+            [[#include <linux/if_packet.h>]])
     ])
 
   # Netmap support
@@ -1434,6 +1438,24 @@
     fi
     ;;
     esac
+
+    AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
+    if test "$LIBELF" = "no"; then
+        echo
+        echo "dead, no elf"
+        echo
+        exit 1
+    fi;
+
+    AC_CHECK_LIB(bpf,bpf_object__open,,LIBBPF="no")
+    if test "$LIBBPF" = "no"; then
+        echo
+        echo "dead, no bpf"
+        echo
+        exit 1
+    #else
+    #    CPPFLAGS="${CPPFLAGS} -I/usr/src/linux-headers-4.6.2+/include/"
+    fi;
 
   # Check for DAG support.
     AC_ARG_ENABLE(dag,
@@ -2152,7 +2174,7 @@ AC_SUBST(CONFIGURE_SYSCONDIR)
 AC_SUBST(CONFIGURE_LOCALSTATEDIR)
 AC_SUBST(PACKAGE_VERSION)
 
-AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service)
+AC_OUTPUT(Makefile src/Makefile rust/Makefile rust/Cargo.toml rust/.cargo/config qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile doc/userguide/Makefile contrib/Makefile contrib/file_processor/Makefile contrib/file_processor/Action/Makefile contrib/file_processor/Processor/Makefile contrib/tile_pcie_logd/Makefile suricata.yaml scripts/Makefile scripts/suricatasc/Makefile scripts/suricatasc/suricatasc etc/Makefile etc/suricata.logrotate etc/suricata.service src/ebpf/Makefile)
 
 SURICATA_BUILD_CONF="Suricata Configuration:
   AF_PACKET support:                       ${enable_af_packet}

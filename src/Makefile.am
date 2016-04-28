@@ -6,6 +6,8 @@ noinst_HEADERS = action-globals.h \
     util-validate.h
 bin_PROGRAMS = suricata
 
+SUBDIRS = ebpf
+
 suricata_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \

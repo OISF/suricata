@@ -30,6 +30,8 @@
  *
  */
 
+#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
+#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
 
 #include "suricata-common.h"
 #include "config.h"
@@ -55,6 +57,9 @@
 #include "util-ioctl.h"
 
 #include "source-af-packet.h"
+
+#include <linux/bpf.h>
+#include <bpf/libbpf.h>
 
 extern int max_pending_packets;
 
@@ -99,6 +104,78 @@ static void AFPDerefConfig(void *conf)
  * interface. */
 static int cluster_id_auto = 1;
 
+#ifdef HAVE_PACKET_EBPF
+#define MAX_ERRNO   4095
+
+#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
+
+static inline long IS_ERR(const void *ptr)
+{
+    return IS_ERR_VALUE((unsigned long)ptr);
+}
+
+
+static int LoadEBPFFile(const char *path, const char * section, int *val)
+{
+    int err, found, pfd;
+    struct bpf_object *bpfobj = NULL;
+    struct bpf_program *bpfprog = NULL;
+    /* FIXME we will need to close BPF at exit of runmode */
+    if (! path) {
+        SCLogError(SC_ERR_INVALID_VALUE, "No file defined to load eBPF from");
+        return -1;
+    }
+
+    bpfobj = bpf_object__open(path);
+
+    if (IS_ERR(bpfobj)) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to load eBPF objects in '%s'",
+                   path);
+        return -1;
+    }
+
+    found = 0;
+    bpf_object__for_each_program(bpfprog, bpfobj) {
+        const char *title = bpf_program__title(bpfprog, 0);
+        if (!strcmp(title, section)) {
+            bpf_program__set_type(bpfprog, BPF_PROG_TYPE_SOCKET_FILTER);
+            found = 1;
+            break;
+        }
+    }
+
+    if (found == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to find eBPF section '%s'",
+                   section);
+        return -1;
+    }
+
+    err = bpf_object__load(bpfobj);
+
+    if (err < 0) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to load eBPF object: %s (%d)",
+                   strerror(err),
+                   err);
+        return -1;
+    }
+
+    pfd = bpf_program__fd(bpfprog);
+
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Unable to find %s section", section);
+        return -1;
+    }
+
+    *val = pfd;
+    return 0;
+}
+
+#endif
+
 /**
  * \brief extract information from config file
  *
@@ -123,6 +200,7 @@ static void *ParseAFPConfig(const char *iface)
     const char *bpf_filter = NULL;
     const char *out_iface = NULL;
     int cluster_type = PACKET_FANOUT_HASH;
+    char *ebpf_file = NULL;
 
     if (iface == NULL) {
         return NULL;
@@ -145,6 +223,8 @@ static void *ParseAFPConfig(const char *iface)
     aconf->DerefFunc = AFPDerefConfig;
     aconf->flags = AFP_RING_MODE;
     aconf->bpf_filter = NULL;
+    aconf->ebpf_lb_file = NULL;
+    aconf->ebpf_lb_fd = -1;
     aconf->out_iface = NULL;
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     aconf->block_timeout = 10;
@@ -331,7 +411,13 @@ static void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
         cluster_type = PACKET_FANOUT_ROLLOVER;
-
+#ifdef HAVE_PACKET_EBPF
+    } else if (strcmp(tmpctype, "cluster_ebpf") == 0) {
+        SCLogInfo("Using ebpf based cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_EBPF;
+        cluster_type = PACKET_FANOUT_EBPF;
+#endif
     } else {
         SCLogWarning(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
     }
@@ -353,6 +439,27 @@ static void *ParseAFPConfig(const char *iface)
                 SCLogConfig("Going to use bpf filter %s", aconf->bpf_filter);
             }
         }
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-lb-file", &ebpf_file) != 1) {
+        aconf->ebpf_lb_file = NULL;
+    } else {
+        SCLogInfo("af-packet will use '%s' as eBPF load balancing file",
+                  ebpf_file);
+        aconf->ebpf_lb_file = ebpf_file;
+    }
+
+    /* One shot loading of the eBPF file */
+    if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
+#ifdef HAVE_PACKET_EBPF
+        int ret = LoadEBPFFile(aconf->ebpf_lb_file, "loadbalancer",
+                               &aconf->ebpf_lb_fd);
+        if (ret != 0) {
+            SCLogError(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
+        }
+#else
+        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+#endif
     }
 
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "buffer-size", &value)) == 1) {
