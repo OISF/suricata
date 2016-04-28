@@ -1016,11 +1016,11 @@ void DNSCreateTypeString(uint16_t type, char *str, size_t str_size)
         case DNS_RECORD_TYPE_NS:
             snprintf(str, str_size, "NS");
             break;
-        case DNS_RECORD_TYPE_AAAA:
-            snprintf(str, str_size, "AAAA");
+        case DNS_RECORD_TYPE_MD:
+            snprintf(str, str_size, "MD");
             break;
-        case DNS_RECORD_TYPE_TXT:
-            snprintf(str, str_size, "TXT");
+        case DNS_RECORD_TYPE_MF:
+            snprintf(str, str_size, "MF");
             break;
         case DNS_RECORD_TYPE_CNAME:
             snprintf(str, str_size, "CNAME");
@@ -1028,29 +1028,113 @@ void DNSCreateTypeString(uint16_t type, char *str, size_t str_size)
         case DNS_RECORD_TYPE_SOA:
             snprintf(str, str_size, "SOA");
             break;
-        case DNS_RECORD_TYPE_MX:
-            snprintf(str, str_size, "MX");
+        case DNS_RECORD_TYPE_MB:
+            snprintf(str, str_size, "MB");
+            break;
+        case DNS_RECORD_TYPE_MG:
+            snprintf(str, str_size, "MG");
+            break;
+        case DNS_RECORD_TYPE_MR:
+            snprintf(str, str_size, "MR");
+            break;
+        case DNS_RECORD_TYPE_NULL:
+            snprintf(str, str_size, "NULL");
+            break;
+        case DNS_RECORD_TYPE_WKS:
+            snprintf(str, str_size, "WKS");
             break;
         case DNS_RECORD_TYPE_PTR:
             snprintf(str, str_size, "PTR");
             break;
-        case DNS_RECORD_TYPE_ANY:
-            snprintf(str, str_size, "ANY");
+        case DNS_RECORD_TYPE_HINFO:
+            snprintf(str, str_size, "HINFO");
             break;
-        case DNS_RECORD_TYPE_TKEY:
-            snprintf(str, str_size, "TKEY");
+        case DNS_RECORD_TYPE_MINFO:
+            snprintf(str, str_size, "MINFO");
             break;
-        case DNS_RECORD_TYPE_TSIG:
-            snprintf(str, str_size, "TSIG");
+        case DNS_RECORD_TYPE_MX:
+            snprintf(str, str_size, "MX");
+            break;
+        case DNS_RECORD_TYPE_TXT:
+            snprintf(str, str_size, "TXT");
+            break;
+        case DNS_RECORD_TYPE_RP:
+            snprintf(str, str_size, "RP");
+            break;
+        case DNS_RECORD_TYPE_AFSDB:
+            snprintf(str, str_size, "AFSDB");
+            break;
+        case DNS_RECORD_TYPE_X25:
+            snprintf(str, str_size, "X25");
+            break;
+        case DNS_RECORD_TYPE_ISDN:
+            snprintf(str, str_size, "ISDN");
+            break;
+        case DNS_RECORD_TYPE_RT:
+            snprintf(str, str_size, "RT");
+            break;
+        case DNS_RECORD_TYPE_NSAP:
+            snprintf(str, str_size, "NSAP");
+            break;
+        case DNS_RECORD_TYPE_NSAPPTR:
+            snprintf(str, str_size, "NSAPPTR");
+            break;
+        case DNS_RECORD_TYPE_SIG:
+            snprintf(str, str_size, "SIG");
+            break;
+        case DNS_RECORD_TYPE_KEY:
+            snprintf(str, str_size, "KEY");
+            break;
+        case DNS_RECORD_TYPE_PX:
+            snprintf(str, str_size, "PX");
+            break;
+        case DNS_RECORD_TYPE_GPOS:
+            snprintf(str, str_size, "GPOS");
+            break;
+        case DNS_RECORD_TYPE_AAAA:
+            snprintf(str, str_size, "AAAA");
+            break;
+        case DNS_RECORD_TYPE_LOC:
+            snprintf(str, str_size, "LOC");
+            break;
+        case DNS_RECORD_TYPE_NXT:
+            snprintf(str, str_size, "NXT");
             break;
         case DNS_RECORD_TYPE_SRV:
             snprintf(str, str_size, "SRV");
             break;
+        case DNS_RECORD_TYPE_ATMA:
+            snprintf(str, str_size, "ATMA");
+            break;
         case DNS_RECORD_TYPE_NAPTR:
             snprintf(str, str_size, "NAPTR");
             break;
+        case DNS_RECORD_TYPE_KX:
+            snprintf(str, str_size, "KX");
+            break;
+        case DNS_RECORD_TYPE_CERT:
+            snprintf(str, str_size, "CERT");
+            break;
+        case DNS_RECORD_TYPE_A6:
+            snprintf(str, str_size, "A6");
+            break;
+        case DNS_RECORD_TYPE_DNAME:
+            snprintf(str, str_size, "DNAME");
+            break;
+        case DNS_RECORD_TYPE_OPT:
+            snprintf(str, str_size, "OPT");
+            break;
+        case DNS_RECORD_TYPE_APL:
+            snprintf(str, str_size, "APL");
+            break;
         case DNS_RECORD_TYPE_DS:
             snprintf(str, str_size, "DS");
+            break;
+        case DNS_RECORD_TYPE_SSHFP:
+            snprintf(str, str_size, "SSHFP");
+            break;
+        case DNS_RECORD_TYPE_IPSECKEY:
+            snprintf(str, str_size, "IPSECKEY");
             break;
         case DNS_RECORD_TYPE_RRSIG:
             snprintf(str, str_size, "RRSIG");
@@ -1058,8 +1142,47 @@ void DNSCreateTypeString(uint16_t type, char *str, size_t str_size)
         case DNS_RECORD_TYPE_NSEC:
             snprintf(str, str_size, "NSEC");
             break;
+        case DNS_RECORD_TYPE_DNSKEY:
+            snprintf(str, str_size, "DNSKEY");
+            break;
+        case DNS_RECORD_TYPE_DHCID:
+            snprintf(str, str_size, "DHCID");
+            break;
         case DNS_RECORD_TYPE_NSEC3:
             snprintf(str, str_size, "NSEC3");
+            break;
+        case DNS_RECORD_TYPE_NSEC3PARAM:
+            snprintf(str, str_size, "NSEC3PARAM");
+            break;
+        case DNS_RECORD_TYPE_TLSA:
+            snprintf(str, str_size, "TLSA");
+            break;
+        case DNS_RECORD_TYPE_HIP:
+            snprintf(str, str_size, "HIP");
+            break;
+        case DNS_RECORD_TYPE_CDS:
+            snprintf(str, str_size, "CDS");
+            break;
+        case DNS_RECORD_TYPE_CDNSKEY:
+            snprintf(str, str_size, "CDNSKEY");
+            break;
+        case DNS_RECORD_TYPE_SPF:
+            snprintf(str, str_size, "SPF");
+            break;
+        case DNS_RECORD_TYPE_TKEY:
+            snprintf(str, str_size, "TKEY");
+            break;
+        case DNS_RECORD_TYPE_TSIG:
+            snprintf(str, str_size, "TSIG");
+            break;
+        case DNS_RECORD_TYPE_MAILA:
+            snprintf(str, str_size, "MAILA");
+            break;
+        case DNS_RECORD_TYPE_ANY:
+            snprintf(str, str_size, "ANY");
+            break;
+        case DNS_RECORD_TYPE_URI:
+            snprintf(str, str_size, "URI");
             break;
         default:
             snprintf(str, str_size, "%04x/%u", type, type);
