@@ -635,13 +635,13 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
     }
 
     if (use_app && use_raw) {
-        left_edge = MIN(stream->app_progress, stream->raw_progress);
+        left_edge = MIN(STREAM_APP_PROGRESS(stream), stream->raw_progress);
         SCLogDebug("left_edge %"PRIu64", using both app:%"PRIu64", raw:%"PRIu64,
-                left_edge, stream->app_progress, stream->raw_progress);
+                left_edge, STREAM_APP_PROGRESS(stream), stream->raw_progress);
     } else if (use_app) {
-        left_edge = stream->app_progress;
+        left_edge = STREAM_APP_PROGRESS(stream);
         SCLogDebug("left_edge %"PRIu64", using app:%"PRIu64,
-                left_edge, stream->app_progress);
+                left_edge, STREAM_APP_PROGRESS(stream));
     } else if (use_raw) {
         left_edge = stream->raw_progress;
         SCLogDebug("left_edge %"PRIu64", using raw:%"PRIu64,
@@ -732,6 +732,13 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
             SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
             StreamingBufferSlideToOffset(stream->sb, left_edge);
             stream->base_seq += slide;
+
+            if (slide <= stream->app_progress_rel) {
+                stream->app_progress_rel -= slide;
+            } else {
+                stream->app_progress_rel = 0;
+            }
+
             SCLogDebug("stream base_seq %u at stream offset %"PRIu64,
                     stream->base_seq, STREAM_BASE_OFFSET(stream));
         }
