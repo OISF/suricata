@@ -914,7 +914,7 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
         /* get max absolute offset */
         uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
 
-        int64_t diff = max_offset - stream->raw_progress;
+        int64_t diff = max_offset - STREAM_RAW_PROGRESS(stream);
 
         if ((int64_t)StreamMsgQueueGetMinChunkLen(FLOW_PKT_TOSERVER) >
                 diff) {
@@ -933,7 +933,7 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
         /* get max absolute offset */
         uint64_t max_offset = STREAM_BASE_OFFSET(stream) + delta;
 
-        int64_t diff = max_offset - stream->raw_progress;
+        int64_t diff = max_offset - STREAM_RAW_PROGRESS(stream);
 
         if ((int64_t)StreamMsgQueueGetMinChunkLen(FLOW_PKT_TOCLIENT) >
                 diff) {
@@ -997,11 +997,11 @@ int StreamNeedsReassembly(TcpSession *ssn, int direction)
                 dirstr,
                 stream->seg_list,
                 STREAM_APP_PROGRESS(stream), use_app ? "yes" : "no",
-                stream->raw_progress, use_raw ? "yes" : "no",
+                STREAM_RAW_PROGRESS(stream), use_raw ? "yes" : "no",
                 right_edge);
 
         if (use_raw) {
-            if (right_edge > stream->raw_progress) {
+            if (right_edge > STREAM_RAW_PROGRESS(stream)) {
                 SCLogDebug("%s: STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY", dirstr);
                 return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
             }
@@ -1349,7 +1349,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
     SCEnter();
 
     StreamingBufferBlock *iter = NULL;
-    uint64_t progress = stream->raw_progress;
+    uint64_t progress = STREAM_RAW_PROGRESS(stream);
     uint64_t last_ack_abs = 0; /* absolute right edge of ack'd data */
     uint64_t right_edge_abs = 0;
 
@@ -1477,7 +1477,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
 
         if (mydata_offset == progress) {
             SCLogDebug("raw progress %"PRIu64" increasing with data len %u to %"PRIu64,
-                    progress, mydata_len, stream->raw_progress + mydata_len);
+                    progress, mydata_len, STREAM_RAW_PROGRESS(stream) + mydata_len);
 
             //if (StreamTcpInlineMode() == TRUE) {
             //progress = right_edge_abs;
@@ -1502,8 +1502,12 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
             break;
     }
 end:
-    stream->raw_progress = progress;
-    SCLogDebug("stream raw progress now %"PRIu64, stream->raw_progress);
+    if (progress > STREAM_RAW_PROGRESS(stream)) {
+        uint32_t slide = progress - STREAM_RAW_PROGRESS(stream);
+        stream->raw_progress_rel += slide;
+    }
+
+    SCLogDebug("stream raw progress now %"PRIu64, STREAM_RAW_PROGRESS(stream));
     return 0;
 }
 
@@ -4337,7 +4341,7 @@ static int StreamTcpReassembleInlineTest08(void)
     StreamMsg *smsg = ssn.toserver_smsg_head;
     FAIL_IF(UtTestSmsg(smsg, stream_payload1, 15) == 0);
 
-    FAIL_IF(ssn.client.raw_progress != 15);
+    FAIL_IF(STREAM_RAW_PROGRESS(&ssn.client) != 15);
     FAIL_IF(StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 17, 'D', 5) == -1);
     ssn.client.next_seq = 22;
     p->tcph->th_seq = htonl(17);
@@ -4350,7 +4354,7 @@ static int StreamTcpReassembleInlineTest08(void)
     smsg = ssn.toserver_smsg_head->next;
     FAIL_IF(UtTestSmsg(smsg, stream_payload2, 15) == 0);
 
-    FAIL_IF(ssn.client.raw_progress != 20);
+    FAIL_IF(STREAM_RAW_PROGRESS(&ssn.client) != 20);
 
     smsg = ssn.toserver_smsg_head;
     StreamMsgReturnToPool(smsg);
@@ -4439,10 +4443,7 @@ static int StreamTcpReassembleInlineTest09(void)
     if (UtTestSmsg(smsg, stream_payload2, 5) == 0)
         goto end;
 
-    if (ssn.client.raw_progress != 10) {
-        printf("raw_progress %"PRIu64", expected 10: ", ssn.client.raw_progress);
-        goto end;
-    }
+    FAIL_IF(STREAM_RAW_PROGRESS(&ssn.client) != 10);
 
     /* close the GAP and see if we properly reassemble and update base_seq */
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
@@ -4468,10 +4469,7 @@ static int StreamTcpReassembleInlineTest09(void)
     if (UtTestSmsg(smsg, stream_payload3, 20) == 0)
         goto end;
 
-    if (ssn.client.raw_progress != 20) {
-        printf("raw_progress %"PRIu64", expected 20: ", ssn.client.raw_progress);
-        goto end;
-    }
+    FAIL_IF(STREAM_RAW_PROGRESS(&ssn.client) != 20);
 
     if (ssn.client.seg_list->seq != 2) {
         printf("expected segment 1 (seq 2) to be first in the list, got seq %"PRIu32": ", ssn.client.seg_list->seq);
@@ -4615,7 +4613,7 @@ static int StreamTcpReassembleInsertTest01(void)
     FAIL_IF (UtSsnSmsgCnt(&ssn, STREAM_TOSERVER) != 1);
     StreamMsg *smsg = ssn.toserver_smsg_head;
     FAIL_IF(UtTestSmsg(smsg, stream_payload1, 20) == 0);
-    FAIL_IF(ssn.client.raw_progress != 20);
+    FAIL_IF(STREAM_RAW_PROGRESS(&ssn.client) != 20);
 
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
