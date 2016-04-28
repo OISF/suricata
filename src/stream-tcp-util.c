@@ -62,6 +62,10 @@ void StreamTcpUTInitInline(void) {
 void StreamTcpUTSetupSession(TcpSession *ssn)
 {
     memset(ssn, 0x00, sizeof(TcpSession));
+
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    ssn->client.sb = x;
+    ssn->server.sb = x;
 }
 
 void StreamTcpUTClearSession(TcpSession *ssn)
@@ -69,6 +73,7 @@ void StreamTcpUTClearSession(TcpSession *ssn)
     StreamTcpUTClearStream(&ssn->client);
     StreamTcpUTClearStream(&ssn->server);
     StreamTcpSessionCleanup(ssn);
+    memset(ssn, 0x00, sizeof(TcpSession));
 }
 
 void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
@@ -78,6 +83,9 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
     s->isn = isn;
     STREAMTCP_SET_RA_BASE_SEQ(s, isn);
     s->base_seq = isn+1;
+
+    StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+    s->sb = x;
 }
 
 void StreamTcpUTClearStream(TcpStream *s)
