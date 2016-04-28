@@ -28,7 +28,7 @@
 
 static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 {
-    if (StreamingBufferCompareRawData(stream->sb,
+    if (StreamingBufferCompareRawData(&stream->sb,
                 data, data_len) == 0)
     {
         SCReturnInt(0);

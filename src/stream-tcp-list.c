@@ -68,14 +68,14 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
 
     SCLogDebug("stream %p buffer %p, stream_offset %"PRIu64", "
                "data_offset %"PRIu16", SEQ %u BASE %u, data_len %u",
-               stream, stream->sb, stream_offset,
+               stream, &stream->sb, stream_offset,
                data_offset, seg->seq, stream->base_seq, data_len);
     BUG_ON(data_offset > data_len);
     if (data_len == data_offset) {
         SCReturnInt(0);
     }
 
-    if (StreamingBufferInsertAt(stream->sb, &seg->sbseg,
+    if (StreamingBufferInsertAt(&stream->sb, &seg->sbseg,
                 data + data_offset,
                 data_len - data_offset,
                 stream_offset) != 0) {
@@ -86,10 +86,10 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
         const uint8_t *mydata;
         uint32_t mydata_len;
         uint64_t mydata_offset;
-        StreamingBufferGetData(stream->sb, &mydata, &mydata_len, &mydata_offset);
+        StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &mydata_offset);
 
         SCLogDebug("stream %p seg %p data in buffer %p of len %u and offset %u",
-                stream, seg, stream->sb, mydata_len, (uint)mydata_offset);
+                stream, seg, &stream->sb, mydata_len, (uint)mydata_offset);
         //PrintRawDataFp(stdout, mydata, mydata_len);
     }
 #endif
@@ -111,13 +111,6 @@ static inline int InsertSegmentDataCustom(TcpStream *stream, TcpSegment *seg, ui
  */
 static int DoInsertSegment (TcpStream *stream, TcpSegment *seg, Packet *p)
 {
-    if (unlikely(stream->sb == NULL)) {
-        stream->sb = StreamingBufferInit(&stream_config.sbcnf);
-        if (stream->sb == NULL) {
-            return -1;
-        }
-    }
-
     /* before our base_seq we don't insert it in our list */
     if (SEQ_LEQ((seg->seq + TCP_SEG_LEN(seg)), stream->base_seq))
     {
@@ -369,7 +362,7 @@ static int DoHandleDataOverlap(TcpStream *stream, TcpSegment *list, TcpSegment *
         uint32_t list_seq = list->seq;
 
         const uint8_t *list_data;
-        StreamingBufferSegmentGetData(stream->sb, &list->sbseg, &list_data, &list_len);
+        StreamingBufferSegmentGetData(&stream->sb, &list->sbseg, &list_data, &list_len);
         if (list_data == NULL || list_len == 0)
             return 0;
         BUG_ON(list_len > USHRT_MAX);
@@ -629,7 +622,7 @@ static inline int StreamTcpReturnSegmentCheck(const Flow *f, TcpSession *ssn, Tc
         SCReturnInt(0);
     }
 
-    if (!(StreamingBufferSegmentIsBeforeWindow(stream->sb, &seg->sbseg))) {
+    if (!(StreamingBufferSegmentIsBeforeWindow(&stream->sb, &seg->sbseg))) {
         SCReturnInt(0);
     }
 
@@ -681,7 +674,7 @@ static inline uint64_t GetLeftEdge(TcpSession *ssn, TcpStream *stream)
         SCLogDebug("left_edge %"PRIu64", using only app:%"PRIu64,
                 left_edge, STREAM_APP_PROGRESS(stream));
     } else {
-        left_edge = STREAM_BASE_OFFSET(stream) + stream->sb->buf_offset;
+        left_edge = STREAM_BASE_OFFSET(stream) + stream->sb.buf_offset;
         SCLogDebug("no app & raw: left_edge %"PRIu64" (full stream)", left_edge);
     }
 
@@ -756,7 +749,7 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
     if (left_edge && left_edge > STREAM_BASE_OFFSET(stream)) {
         uint32_t slide = left_edge - STREAM_BASE_OFFSET(stream);
         SCLogDebug("buffer sliding %u to offset %"PRIu64, slide, left_edge);
-        StreamingBufferSlideToOffset(stream->sb, left_edge);
+        StreamingBufferSlideToOffset(&stream->sb, left_edge);
         stream->base_seq += slide;
 
         if (slide <= stream->app_progress_rel) {
@@ -764,7 +757,6 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags)
         } else {
             stream->app_progress_rel = 0;
         }
-
         if (slide <= stream->raw_progress_rel) {
             stream->raw_progress_rel -= slide;
         } else {

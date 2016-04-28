@@ -1087,15 +1087,15 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
     const uint8_t *mydata;
     uint32_t mydata_len;
 
-    if (stream->sb->block_list == NULL) {
+    if (stream->sb.block_list == NULL) {
         SCLogDebug("getting one blob");
 
-        StreamingBufferGetDataAtOffset(stream->sb, &mydata, &mydata_len, offset);
+        StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
 
         *data = mydata;
         *data_len = mydata_len;
     } else {
-        StreamingBufferBlock *blk = stream->sb->block_list;
+        StreamingBufferBlock *blk = stream->sb.block_list;
 
         if (blk->offset > offset) {
             SCLogDebug("gap, want data at offset %"PRIu64", got data at %"PRIu64,
@@ -1106,10 +1106,10 @@ static void GetAppBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data
         } else if (offset > blk->offset && offset <= (blk->offset + blk->len)) {
             SCLogDebug("get data from offset %"PRIu64". SBB %"PRIu64"/%u",
                     offset, blk->offset, blk->len);
-            StreamingBufferSBBGetDataAtOffset(stream->sb, blk, data, data_len, offset);
+            StreamingBufferSBBGetDataAtOffset(&stream->sb, blk, data, data_len, offset);
             SCLogDebug("data %p, data_len %u", *data, *data_len);
         } else {
-            StreamingBufferSBBGetData(stream->sb, blk, data, data_len);
+            StreamingBufferSBBGetData(&stream->sb, blk, data, data_len);
         }
     }
 }
@@ -1142,7 +1142,7 @@ static int ReassembleUpdateAppLayer (ThreadVars *tv,
     //PrintRawDataFp(stdout, mydata, mydata_len);
 
     SCLogDebug("stream %p data in buffer %p of len %u and offset %"PRIu64,
-            stream, stream->sb, mydata_len, app_progress);
+            stream, &stream->sb, mydata_len, app_progress);
 
     /* get window of data that is acked */
     if (StreamTcpInlineMode() == 0 && (p->flags & PKT_PSEUDO_STREAM_END)) {
@@ -1297,14 +1297,14 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
 {
     const uint8_t *mydata;
     uint32_t mydata_len;
-    if (stream->sb->block_list == NULL) {
+    if (stream->sb.block_list == NULL) {
         SCLogDebug("getting one blob");
 
         uint64_t roffset = offset;
         if (offset)
-            StreamingBufferGetDataAtOffset(stream->sb, &mydata, &mydata_len, offset);
+            StreamingBufferGetDataAtOffset(&stream->sb, &mydata, &mydata_len, offset);
         else {
-            StreamingBufferGetData(stream->sb, &mydata, &mydata_len, &roffset);
+            StreamingBufferGetData(&stream->sb, &mydata, &mydata_len, &roffset);
         }
 
         *data = mydata;
@@ -1312,7 +1312,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
         *data_offset = roffset;
     } else {
         if (*iter == NULL)
-            *iter = stream->sb->block_list;
+            *iter = stream->sb.block_list;
         if (*iter == NULL) {
             *data = NULL;
             *data_len = 0;
@@ -1332,7 +1332,7 @@ static int GetRawBuffer(TcpStream *stream, const uint8_t **data, uint32_t *data_
 
         SCLogDebug("getting multiple blobs. Iter %p, %"PRIu64"/%u (next? %s)", *iter, (*iter)->offset, (*iter)->len, (*iter)->next ? "yes":"no");
 
-        StreamingBufferSBBGetData(stream->sb, (*iter), &mydata, &mydata_len);
+        StreamingBufferSBBGetData(&stream->sb, (*iter), &mydata, &mydata_len);
 
         if ((*iter)->offset < offset) {
             uint64_t delta = offset - (*iter)->offset;
@@ -1418,7 +1418,7 @@ static int ReassembleRaw(TcpSession *ssn, TcpStream *stream, Packet *p)
 
         SCLogDebug("raw progress %"PRIu64, progress);
         SCLogDebug("stream %p data in buffer %p of len %u and offset %u",
-                stream, stream->sb, mydata_len, (uint)progress);
+                stream, &stream->sb, mydata_len, (uint)progress);
 
         if (StreamTcpInlineMode() == 0 && (p->flags & PKT_PSEUDO_STREAM_END)) {
             //
@@ -2017,7 +2017,7 @@ void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value,
 
 int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpStream *stream)
 {
-    if (StreamingBufferCompareRawData(stream->sb, stream_policy,(uint32_t)sp_size) == 0)
+    if (StreamingBufferCompareRawData(&stream->sb, stream_policy,(uint32_t)sp_size) == 0)
     {
         //PrintRawDataFp(stdout, stream_policy, sp_size);
         return 0;
@@ -2027,7 +2027,7 @@ int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpSt
 
 static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 {
-    if (StreamingBufferCompareRawData(stream->sb,
+    if (StreamingBufferCompareRawData(&stream->sb,
                 data, data_len) == 0)
     {
         SCReturnInt(0);
