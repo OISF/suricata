@@ -503,6 +503,15 @@ int StreamTcpReassemblyConfig(char quiet)
         SCLogConfig("stream.reassembly \"chunk-prealloc\": %u", stream_chunk_prealloc);
     StreamMsgQueuesInit(stream_chunk_prealloc);
 
+    int overlap_diff_data = 0;
+    ConfGetBool("stream.reassembly.check-overlap-different-data", &overlap_diff_data);
+    if (overlap_diff_data) {
+        StreamTcpReassembleConfigEnableOverlapCheck();
+    }
+    if (StreamTcpInlineMode() == TRUE) {
+        StreamTcpReassembleConfigEnableOverlapCheck();
+    }
+
     /** \todo do this for real */
     stream_config.sbcnf.flags = STREAMING_BUFFER_NOFLAGS;
     stream_config.sbcnf.buf_size = 2048;
