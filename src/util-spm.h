@@ -28,6 +28,13 @@
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
 
+enum {
+    SPM_BM, /* Boyer-Moore */
+    /* Other SPM matchers will go here. */
+};
+
+uint16_t SinglePatternMatchDefaultMatcher(void);
+
 /** Default algorithm to use: Boyer Moore */
 uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
