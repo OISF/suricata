@@ -68,7 +68,7 @@ int StreamTcpInlineSegmentCompare(TcpStream *stream, Packet *p, TcpSegment *seg)
 
     const uint8_t *seg_data;
     uint32_t seg_datalen;
-    StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+    StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
     if (seg_data == NULL || seg_datalen == 0)
         SCReturnInt(0);
 
@@ -138,7 +138,7 @@ void StreamTcpInlineSegmentReplacePacket(TcpStream *stream, Packet *p, TcpSegmen
 
     const uint8_t *seg_data;
     uint32_t seg_datalen;
-    StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+    StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
     uint32_t pend = pseq + p->payload_len;
     uint32_t tend = tseq + seg_datalen;
@@ -175,7 +175,7 @@ void StreamTcpInlineSegmentReplacePacket(TcpStream *stream, Packet *p, TcpSegmen
 
 static int VALIDATE(TcpStream *stream, uint8_t *data, uint32_t data_len)
 {
-    if (StreamingBufferCompareRawData(stream->sb,
+    if (StreamingBufferCompareRawData(&stream->sb,
                 data, data_len) == 0)
     {
         SCReturnInt(0);

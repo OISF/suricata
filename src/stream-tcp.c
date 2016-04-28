@@ -171,8 +171,7 @@ void StreamTcpStreamCleanup(TcpStream *stream)
     if (stream != NULL) {
         StreamTcpSackFreeList(stream);
         StreamTcpReturnStreamSegments(stream);
-        StreamingBufferFree(stream->sb);
-        stream->sb = NULL;
+        StreamingBufferClear(&stream->sb);
     }
 }
 
@@ -671,6 +670,10 @@ TcpSession *StreamTcpNewSession (Packet *p, int id)
         ssn->reassembly_depth = stream_config.reassembly_depth;
         ssn->flags = stream_config.ssn_init_flags;
         ssn->tcp_packet_flags = p->tcph ? p->tcph->th_flags : 0;
+
+        StreamingBuffer x = STREAMING_BUFFER_INITIALIZER(&stream_config.sbcnf);
+        ssn->client.sb = x;
+        ssn->server.sb = x;
 
         if (PKT_IS_TOSERVER(p)) {
             ssn->client.tcp_flags = p->tcph ? p->tcph->th_flags : 0;
@@ -5820,7 +5823,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     {
         const uint8_t *seg_data;
         uint32_t seg_datalen;
-        StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+        StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
         ret = CallbackFunc(p, data, seg_data, seg_datalen);
         if (ret != 1) {

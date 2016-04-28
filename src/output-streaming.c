@@ -280,7 +280,7 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
 
             const uint8_t *seg_data;
             uint32_t seg_datalen;
-            StreamingBufferSegmentGetData(stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
+            StreamingBufferSegmentGetData(&stream->sb, &seg->sbseg, &seg_data, &seg_datalen);
 
             Streamer(cbdata, f, seg_data, seg_datalen, 0, flags);
 
