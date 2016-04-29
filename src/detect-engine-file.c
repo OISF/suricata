@@ -139,6 +139,12 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
+            if ((s->file_flags & FILE_SIG_NEED_SHA256) && (!(file->flags & FILE_SHA256))) {
+                SCLogDebug("sig needs file sha256, but we don't have any");
+                r = 0;
+                break;
+            }
+
             /* run the file match functions. */
             for (sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH]; sm != NULL; sm = sm->next) {
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);

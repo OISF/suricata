@@ -423,6 +423,10 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         flags |= FILE_NOSHA1;
     }
 
+    if (flow->flags & FLOW_FILE_NO_SHA256_TS) {
+        flags |= FILE_NOSHA256;
+    }
+
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
 
