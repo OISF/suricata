@@ -316,6 +316,7 @@ typedef enum {
     SC_ERR_SSH_LOG_GENERIC,
     SC_ERR_NIC_OFFLOADING,
     SC_ERR_NO_FILES_FOR_PROTOCOL,
+    SC_ERR_INVALID_HASH,
 } SCError;
 
 const char *SCErrorToString(SCError);
