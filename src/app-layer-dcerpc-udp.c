@@ -774,6 +774,22 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 	SCReturnInt(1);
 }
 
+static int DCERPCUDPParseRequest(ThreadVars *tv, Flow *f, void *dcerpc_state,
+                                 AppLayerParserState *pstate,
+                                 uint8_t *input, uint32_t input_len,
+                                 void *local_data)
+{
+    return DCERPCUDPParse(f, dcerpc_state, pstate, input, input_len, local_data);    
+}
+
+static int DCERPCUDPParseResponse(ThreadVars *tv, Flow *f, void *dcerpc_state,
+                                  AppLayerParserState *pstate,
+                                  uint8_t *input, uint32_t input_len,
+                                  void *local_data)
+{
+    return DCERPCUDPParse(f, dcerpc_state, pstate, input, input_len, local_data);    
+}
+
 static void *DCERPCUDPStateAlloc(void)
 {
 	void *s = SCMalloc(sizeof(DCERPCUDPState));
@@ -835,9 +851,9 @@ void RegisterDCERPCUDPParsers(void)
 
     if (AppLayerParserConfParserEnabled("udp", "dcerpc")) {
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOSERVER,
-                                     DCERPCUDPParse);
+                                     DCERPCUDPParseRequest);
         AppLayerParserRegisterParser(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOCLIENT,
-                                     DCERPCUDPParse);
+                                     DCERPCUDPParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_UDP, ALPROTO_DCERPC, DCERPCUDPStateAlloc,
                                          DCERPCUDPStateFree);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_UDP, ALPROTO_DCERPC, STREAM_TOSERVER);
@@ -1062,7 +1078,9 @@ int DCERPCUDPParserTest01(void)
 	StreamTcpInitConfig(TRUE);
 
 	SCMutexLock(&f.m);
-	int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
+	int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC,
+				    STREAM_TOSERVER | STREAM_START,
+				    dcerpcrequest, requestlen);
 	if (r != 0) {
 		printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
 		result = 0;

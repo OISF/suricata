@@ -410,7 +410,8 @@ static int DetectEngineSMTPFiledataTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg, mimemsg_len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP,
+                                STREAM_TOSERVER, mimemsg, mimemsg_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         SCMutexUnlock(&f.m);
@@ -543,13 +544,15 @@ static int DetectEngineSMTPFiledataTest03(void)
 
     SCMutexLock(&f.m);
     int r = 0;
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg1, mimemsg1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+                            mimemsg1, mimemsg1_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         SCMutexUnlock(&f.m);
         goto end;
     }
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER, mimemsg2, mimemsg2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+                            mimemsg2, mimemsg2_len);
     if (r != 0) {
         printf("AppLayerParse for smtp failed. Returned %d", r);
         SCMutexUnlock(&f.m);

@@ -520,7 +520,8 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
     SCReturnUInt((uint32_t)(p - input));
 }
 
-static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
+static int SMB2Parse(Flow *f, void *smb2_state,
+                     AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len,
                      void *local_data)
 {
@@ -575,7 +576,21 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
     SCReturnInt(1);
 }
 
+static int SMB2ParseRequest(ThreadVars *tv, Flow *f, void *smb2_state,
+                            AppLayerParserState *pstate,
+                            uint8_t *input, uint32_t input_len,
+                            void *local_data)
+{
+    return SMB2Parse(f, smb2_state, pstate, input, input_len, local_data);
+}
 
+static int SMB2ParseResponse(ThreadVars *tv, Flow *f, void *smb2_state,
+                             AppLayerParserState *pstate,
+                             uint8_t *input, uint32_t input_len,
+                             void *local_data)
+{
+    return SMB2Parse(f, smb2_state, pstate, input, input_len, local_data);
+}
 static void *SMB2StateAlloc(void)
 {
     void *s = SCMalloc(sizeof(SMB2State));
@@ -600,8 +615,8 @@ void RegisterSMB2Parsers(void)
     char *proto_name = "smb2";
 
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2Parse);
-        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2Parse);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOSERVER, SMB2ParseRequest);
+        AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB2, STREAM_TOCLIENT, SMB2ParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB2, SMB2StateAlloc, SMB2StateFree);
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
@@ -641,7 +656,9 @@ int SMB2ParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_SMB2,
+                                STREAM_TOSERVER | STREAM_EOF, smb2buf,
+                                smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;
