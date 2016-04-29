@@ -938,12 +938,13 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 23)
+#define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 24)
 
-#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 24)
-#define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 25)
-#define SIG_GROUP_HEAD_MPM_TLSISSUER    (1 << 26)
-#define SIG_GROUP_HEAD_MPM_TLSSUBJECT   (1 << 27)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 28)
+#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 25)
+#define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 26)
+#define SIG_GROUP_HEAD_MPM_TLSISSUER    (1 << 27)
+#define SIG_GROUP_HEAD_MPM_TLSSUBJECT   (1 << 28)
+#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 29)
 
 #define APP_MPMS_MAX 21
 
@@ -1281,6 +1282,7 @@ int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
 int SignatureIsFileMd5Inspecting(Signature *);
 int SignatureIsFileSha1Inspecting(Signature *s);
+int SignatureIsFileSha256Inspecting(Signature *s);
 int SignatureIsFilesizeInspecting(Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);

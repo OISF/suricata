@@ -26,7 +26,6 @@
 #include "suricata-common.h"
 
 #include "util-detect-file-hash.h"
-
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
