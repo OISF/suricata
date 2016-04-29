@@ -603,9 +603,20 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
             strlcat(sha1, one, sizeof(sha1));
         }
     }
+    char sha256[65] = "";
+    char *sha256ptr = sha256;
+    if (file->flags & FILE_SHA256) {
+        size_t x;
+        for (x = 0; x < sizeof(file->sha256); x++) {
+            char one[3] = "";
+            snprintf(one, sizeof(one), "%02x", file->sha256[x]);
+            strlcat(sha256, one, sizeof(sha256));
+        }
+    }
 #else
     char *md5ptr = NULL;
     char *sha1ptr = NULL;
+    char *sha256ptr = NULL;
 #endif
 
     lua_pushnumber(luastate, file->file_id);
@@ -615,6 +626,7 @@ static int LuaCallbackFileInfoPushToStackFromFile(lua_State *luastate, const Fil
     lua_pushstring (luastate, file->magic);
     lua_pushstring(luastate, md5ptr);
     lua_pushstring(luastate, sha1ptr);
+    lua_pushstring(luastate, sha256ptr);
     return 6;
 }
 

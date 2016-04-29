@@ -328,6 +328,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NO_FILES_FOR_PROTOCOL);
         CASE_CODE (SC_ERR_INVALID_HASH);
         CASE_CODE (SC_ERR_NO_SHA1_SUPPORT);
+        CASE_CODE (SC_ERR_NO_SHA256_SUPPORT);
     }
 
     return "UNKNOWN_ERROR";

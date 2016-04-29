@@ -298,6 +298,14 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
                 }
                 fprintf(fp, "\", ");
             }
+            if (ff->flags & FILE_SHA256) {
+                fprintf(fp, "\"sha256\": \"");
+                size_t x;
+                for (x = 0; x < sizeof(ff->sha256); x++) {
+                    fprintf(fp, "%02x", ff->sha256[x]);
+                }
+                fprintf(fp, "\", ");
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:

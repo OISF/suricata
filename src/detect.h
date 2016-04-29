@@ -939,6 +939,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 24)
 #define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 25)
 #define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 26)
+#define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 27)
 
 #define APP_MPMS_MAX 19
 
@@ -1272,6 +1273,7 @@ int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
 int SignatureIsFileMd5Inspecting(Signature *);
 int SignatureIsFileSha1Inspecting(Signature *s);
+int SignatureIsFileSha256Inspecting(Signature *s);
 int SignatureIsFilesizeInspecting(Signature *);
 
 int DetectRegisterThreadCtxFuncs(DetectEngineCtx *, const char *name, void *(*InitFunc)(void *), void *data, void (*FreeFunc)(void *), int);

@@ -107,6 +107,7 @@
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
 #include "detect-filesha1.h"
+#include "detect-filesha256.h"
 #include "detect-filesize.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
@@ -1857,6 +1858,14 @@ end:
                     FileDisableSha1(pflow, STREAM_TOSERVER);
                 }
 
+                /* see if this sgh requires us to consider file sha256 */
+                if (!FileForceSha256() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
+                {
+                    SCLogDebug("disabling sha256 for flow");
+                    FileDisableSha256(pflow, STREAM_TOSERVER);
+                }
+
                 /* see if this sgh requires us to consider filesize */
                 if (pflow->sgh_toserver == NULL ||
                             !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
@@ -1894,6 +1903,14 @@ end:
                 {
                     SCLogDebug("disabling sha1 for flow");
                     FileDisableSha1(pflow, STREAM_TOCLIENT);
+                }
+
+                /* check if this flow needs sha256, if not disable it */
+                if (!FileForceSha256() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA256)))
+                {
+                    SCLogDebug("disabling sha256 for flow");
+                    FileDisableSha256(pflow, STREAM_TOCLIENT);
                 }
 
                 /* see if this sgh requires us to consider filesize */
@@ -2167,6 +2184,22 @@ int SignatureIsFileMd5Inspecting(Signature *s)
 int SignatureIsFileSha1Inspecting(Signature *s)
 {
     if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA1))
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filesha256 keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFileSha256Inspecting(Signature *s)
+{
+    if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA256))
         return 1;
 
     return 0;
@@ -4396,6 +4429,7 @@ void SigTableSetup(void)
     DetectFilemagicRegister();
     DetectFileMd5Register();
     DetectFileSha1Register();
+    DetectFileSha256Register();
     DetectFilesizeRegister();
     DetectAppLayerEventRegister();
     DetectHttpUARegister();

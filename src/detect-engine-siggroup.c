@@ -637,6 +637,12 @@ void SigGroupHeadSetFileHashFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             SCLogDebug("sgh %p has filesha1", sgh);
             break;
         }
+
+        if (SignatureIsFileSha256Inspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILESHA256;
+            SCLogDebug("sgh %p has filesha256", sgh);
+            break;
+        }
     }
 
     return;
