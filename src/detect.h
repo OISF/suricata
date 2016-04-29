@@ -305,11 +305,12 @@ typedef struct DetectPort_ {
 
 #define FILE_SIG_NEED_FILE          0x01
 #define FILE_SIG_NEED_FILENAME      0x02
-#define FILE_SIG_NEED_TYPE          0x04
-#define FILE_SIG_NEED_MAGIC         0x08    /**< need the start of the file */
-#define FILE_SIG_NEED_FILECONTENT   0x10
-#define FILE_SIG_NEED_MD5           0x20
-#define FILE_SIG_NEED_SIZE          0x40
+#define FILE_SIG_NEED_MAGIC         0x04    /**< need the start of the file */
+#define FILE_SIG_NEED_FILECONTENT   0x08
+#define FILE_SIG_NEED_MD5           0x10
+#define FILE_SIG_NEED_SHA1          0x20
+#define FILE_SIG_NEED_SHA256        0x40
+#define FILE_SIG_NEED_SIZE          0x80
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -1216,6 +1217,8 @@ enum {
     DETECT_FILESTORE,
     DETECT_FILEMAGIC,
     DETECT_FILEMD5,
+    DETECT_FILESHA1,
+    DETECT_FILESHA256,
     DETECT_FILESIZE,
 
     DETECT_L3PROTO,

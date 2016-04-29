@@ -326,6 +326,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_SSH_LOG_GENERIC);
         CASE_CODE (SC_ERR_NIC_OFFLOADING);
         CASE_CODE (SC_ERR_NO_FILES_FOR_PROTOCOL);
+        CASE_CODE (SC_ERR_INVALID_HASH);
     }
 
     return "UNKNOWN_ERROR";
