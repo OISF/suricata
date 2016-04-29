@@ -138,6 +138,7 @@ detect-file-data.c detect-file-data.h \
 detect-fileext.c detect-fileext.h \
 detect-filemagic.c detect-filemagic.h \
 detect-filemd5.c detect-filemd5.h \
+detect-filesha1.c detect-filesha1.h \
 detect-filename.c detect-filename.h \
 detect-filesize.c detect-filesize.h \
 detect-filestore.c detect-filestore.h \

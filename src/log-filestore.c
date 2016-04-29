@@ -261,6 +261,14 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
                     }
                     fprintf(fp, "\n");
                 }
+                if (ff->flags & FILE_SHA1) {
+                    fprintf(fp, "SHA1:              ");
+                    size_t x;
+                    for (x = 0; x < sizeof(ff->sha1); x++) {
+                        fprintf(fp, "%02x", ff->sha1[x]);
+                    }
+                    fprintf(fp, "\n");
+                }
 #endif
                 break;
             case FILE_STATE_TRUNCATED:

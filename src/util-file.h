@@ -189,6 +189,10 @@ void FileDisableMd5(Flow *f, uint8_t);
 void FileForceMd5Enable(void);
 int FileForceMd5(void);
 
+void FileDisableSha1(Flow *f, uint8_t);
+void FileForceSha1Enable(void);
+int FileForceSha1(void);
+
 void FileForceTrackingEnable(void);
 
 void FileStoreAllFiles(FileContainer *);
