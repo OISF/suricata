@@ -36,7 +36,7 @@
 
 /**
  * \brief Read the bytes of a hash from an hexadecimal string
- * 
+ *
  * \param hash buffer to store the resulting bytes
  * \param string hexadecimal string representing the hash
  * \param filename file name from where the string was read
@@ -76,7 +76,7 @@ int ReadHashString(uint8_t *hash, char *string, char *filename, int line_no,
 
 /**
  * \brief Store a hash into the hash table
- * 
+ *
  * \param hash_table hash table that will hold the hash
  * \param string hexadecimal string representing the hash
  * \param filename file name from where the string was read
