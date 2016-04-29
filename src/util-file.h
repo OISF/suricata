@@ -35,12 +35,16 @@
 #define FILE_NOMAGIC    0x0002
 #define FILE_NOMD5      0x0004
 #define FILE_MD5        0x0008
-#define FILE_LOGGED     0x0010
-#define FILE_NOSTORE    0x0020
-#define FILE_STORE      0x0040
-#define FILE_STORED     0x0080
-#define FILE_NOTRACK    0x0100 /**< track size of file */
-#define FILE_USE_DETECT 0x0200 /**< use content_inspected tracker */
+#define FILE_NOSHA1     0x0010
+#define FILE_SHA1       0x0020
+#define FILE_NOSHA256   0x0040
+#define FILE_SHA256     0x0080
+#define FILE_LOGGED     0x0100
+#define FILE_NOSTORE    0x0200
+#define FILE_STORE      0x0400
+#define FILE_STORED     0x0800
+#define FILE_NOTRACK    0x1000 /**< track size of file */
+#define FILE_USE_DETECT 0x2000 /**< use content_inspected tracker */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -66,6 +70,10 @@ typedef struct File_ {
 #ifdef HAVE_NSS
     HASHContext *md5_ctx;
     uint8_t md5[MD5_LENGTH];
+    HASHContext *sha1_ctx;
+    uint8_t sha1[SHA1_LENGTH];
+    HASHContext *sha256_ctx;
+    uint8_t sha256[SHA256_LENGTH];
 #endif
     uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
                                      *   flag is set */
