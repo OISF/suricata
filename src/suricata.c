@@ -2360,7 +2360,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
 #ifdef HAVE_NSS
     if (suri->run_mode != RUNMODE_CONF_TEST) {
-        /* init NSS for md5 */
+        /* init NSS for hashing */
         PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
         NSS_NoDB_Init(NULL);
     }

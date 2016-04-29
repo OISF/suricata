@@ -118,6 +118,11 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
             flags |= FILE_NOMD5;
         }
 
+        if (s->f->flags & FLOW_FILE_NO_SHA1_TC) {
+            SCLogDebug("no sha1 for this flow in toclient direction, so none for this file");
+            flags |= FILE_NOSHA1;
+        }
+
         if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TC)) {
             flags |= FILE_NOSTORE;
         }
@@ -148,6 +153,11 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         if (s->f->flags & FLOW_FILE_NO_MD5_TS) {
             SCLogDebug("no md5 for this flow in toserver direction, so none for this file");
             flags |= FILE_NOMD5;
+        }
+
+        if (s->f->flags & FLOW_FILE_NO_SHA1_TS) {
+            SCLogDebug("no sha1 for this flow in toserver direction, so none for this file");
+            flags |= FILE_NOSHA1;
         }
 
         if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TS)) {
