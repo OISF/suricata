@@ -64,7 +64,7 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 
     /* Strip leading and trailing "s. */
     if (msgstr[pos] == '\"') {
-        str = SCStrdup(msgstr+1);
+        str = SCStrdup(msgstr + pos + 1);
         if (unlikely(str == NULL))
             goto error;
         if (strlen(str) && str[strlen(str) - 1] == '\"') {
@@ -198,6 +198,36 @@ end:
     return result;
 }
 
+static int DetectMsgParseTest03(void)
+{
+    int result = 0;
+    Signature *sig = NULL;
+    char *teststringparsed = "flow stateless to_server";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg: \"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
+    if(sig == NULL)
+        goto end;
+
+    if (strcmp(sig->msg, teststringparsed) != 0) {
+        printf("got \"%s\", expected: \"%s\": ", sig->msg, teststringparsed);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (sig != NULL)
+        SigFree(sig);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -208,6 +238,7 @@ void DetectMsgRegisterTests(void)
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01, 1);
     UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02, 1);
+    UtRegisterTest("DetectMsgParseTest03", DetectMsgParseTest03, 1);
 #endif /* UNITTESTS */
 }
 
