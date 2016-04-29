@@ -105,6 +105,7 @@
 #include "detect-filestore.h"
 #include "detect-filemagic.h"
 #include "detect-filemd5.h"
+#include "detect-filesha1.h"
 #include "detect-filesize.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
@@ -1883,6 +1884,14 @@ end:
                     FileDisableMd5(pflow, STREAM_TOSERVER);
                 }
 
+                /* see if this sgh requires us to consider file sha1 */
+                if (!FileForceSha1() && (pflow->sgh_toserver == NULL ||
+                            !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
+                {
+                    SCLogDebug("disabling sha1 for flow");
+                    FileDisableSha1(pflow, STREAM_TOSERVER);
+                }
+
                 /* see if this sgh requires us to consider filesize */
                 if (pflow->sgh_toserver == NULL ||
                             !(pflow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILESIZE))
@@ -1912,6 +1921,14 @@ end:
                 {
                     SCLogDebug("disabling md5 for flow");
                     FileDisableMd5(pflow, STREAM_TOCLIENT);
+                }
+
+                /* check if this flow needs sha1, if not disable it */
+                if (!FileForceSha1() && (pflow->sgh_toclient == NULL ||
+                            !(pflow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILESHA1)))
+                {
+                    SCLogDebug("disabling sha1 for flow");
+                    FileDisableSha1(pflow, STREAM_TOCLIENT);
                 }
 
                 /* see if this sgh requires us to consider filesize */
@@ -2158,10 +2175,23 @@ int SignatureIsFilemagicInspecting(Signature *s)
  */
 int SignatureIsFileMd5Inspecting(Signature *s)
 {
-    if (s == NULL)
-        return 0;
+    if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_MD5))
+        return 1;
 
-    if (s->file_flags & FILE_SIG_NEED_MD5)
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filesha1 keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFileSha1Inspecting(Signature *s)
+{
+    if ((s != NULL) && (s->file_flags & FILE_SIG_NEED_SHA1))
         return 1;
 
     return 0;
@@ -4008,7 +4038,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SCLogDebug("sgh %p", sgh);
 
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
-        SigGroupHeadSetFileMd5Flag(de_ctx, sgh);
+        SigGroupHeadSetFileHashFlag(de_ctx, sgh);
         SigGroupHeadSetFilesizeFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
@@ -4395,6 +4425,7 @@ void SigTableSetup(void)
     DetectFilestoreRegister();
     DetectFilemagicRegister();
     DetectFileMd5Register();
+    DetectFileSha1Register();
     DetectFilesizeRegister();
     DetectAppLayerEventRegister();
     DetectHttpUARegister();
