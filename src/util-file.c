@@ -51,6 +51,11 @@ static int g_file_force_magic = 0;
  */
 static int g_file_force_md5 = 0;
 
+/** \brief switch to force sha1 calculation on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_sha1 = 0;
+
 /** \brief switch to force tracking off all files
  *         regardless of the rules.
  */
@@ -74,6 +79,11 @@ void FileForceMd5Enable(void)
     g_file_force_md5 = 1;
 }
 
+void FileForceSha1Enable(void)
+{
+    g_file_force_sha1 = 1;
+}
+
 int FileForceFilestore(void)
 {
     return g_file_force_filestore;
@@ -87,6 +97,11 @@ int FileForceMagic(void)
 int FileForceMd5(void)
 {
     return g_file_force_md5;
+}
+
+int FileForceSha1(void)
+{
+    return g_file_force_sha1;
 }
 
 void FileForceTrackingEnable(void)
@@ -289,6 +304,8 @@ static void FileFree(File *ff)
 #ifdef HAVE_NSS
     if (ff->md5_ctx)
         HASH_Destroy(ff->md5_ctx);
+    if (ff->sha1_ctx)
+        HASH_Destroy(ff->sha1_ctx);
 #endif
     SCFree(ff);
 }
@@ -363,6 +380,9 @@ static int AppendData(File *file, const uint8_t *data, uint32_t data_len)
     if (file->md5_ctx) {
         HASH_Update(file->md5_ctx, data, data_len);
     }
+    if (file->sha1_ctx) {
+        HASH_Update(file->sha1_ctx, data, data_len);
+    }
 #endif
     SCReturnInt(0);
 }
@@ -396,11 +416,13 @@ int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
 #ifdef HAVE_NSS
-        /* no storage but forced md5 */
+        /* no storage but forced hashing */
         if (ffc->tail->md5_ctx) {
-            if (ffc->tail->md5_ctx)
-                HASH_Update(ffc->tail->md5_ctx, data, data_len);
-
+            HASH_Update(ffc->tail->md5_ctx, data, data_len);
+            SCReturnInt(0);
+        }
+        if (ffc->tail->sha1_ctx) {
+            HASH_Update(ffc->tail->sha1_ctx, data, data_len);
             SCReturnInt(0);
         }
 #endif
@@ -471,6 +493,10 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         SCLogDebug("not doing md5 for this file");
         ff->flags |= FILE_NOMD5;
     }
+    if (flags & FILE_NOSHA1) {
+        SCLogDebug("not doing sha1 for this file");
+        ff->flags |= FILE_NOSHA1;
+    }
     if (flags & FILE_USE_DETECT) {
         SCLogDebug("considering content_inspect tracker when pruning");
         ff->flags |= FILE_USE_DETECT;
@@ -481,6 +507,12 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
         ff->md5_ctx = HASH_Create(HASH_AlgMD5);
         if (ff->md5_ctx != NULL) {
             HASH_Begin(ff->md5_ctx);
+        }
+    }
+    if (!(ff->flags & FILE_NOSHA1) || g_file_force_sha1) {
+        ff->sha1_ctx = HASH_Create(HASH_AlgSHA1);
+        if (ff->sha1_ctx != NULL) {
+            HASH_Begin(ff->sha1_ctx);
         }
     }
 #endif
@@ -517,9 +549,11 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
     if (data != NULL) {
         if (ff->flags & FILE_NOSTORE) {
 #ifdef HAVE_NSS
-            /* no storage but md5 */
+            /* no storage but hashing */
             if (ff->md5_ctx)
                 HASH_Update(ff->md5_ctx, data, data_len);
+            if (ff->sha1_ctx)
+                HASH_Update(ff->sha1_ctx, data, data_len);
 #endif
         } else {
             if (AppendData(ff, data, data_len) != 0) {
@@ -546,6 +580,11 @@ static int FileCloseFilePtr(File *ff, const uint8_t *data,
             unsigned int len = 0;
             HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
             ff->flags |= FILE_MD5;
+        }
+        if (ff->sha1_ctx) {
+            unsigned int len = 0;
+            HASH_End(ff->sha1_ctx, ff->sha1, &len, sizeof(ff->sha1));
+            ff->flags |= FILE_SHA1;
         }
 #endif
     }
@@ -683,6 +722,45 @@ void FileDisableMd5(Flow *f, uint8_t direction)
 }
 
 /**
+ *  \brief disable file sha1 calc for this flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+*/
+void FileDisableSha1(Flow *f, uint8_t direction)
+{
+    File *ptr = NULL;
+
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_SHA1_TS;
+    else
+        f->flags |= FLOW_FILE_NO_SHA1_TC;
+
+    FileContainer *ffc = AppLayerParserGetFiles(f->proto, f->alproto, f->alstate, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            SCLogDebug("disabling sha1 for file %p from direction %s",
+                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
+            ptr->flags |= FILE_NOSHA1;
+
+#ifdef HAVE_NSS
+            /* destroy any ctx we may have so far */
+            if (ptr->sha1_ctx != NULL) {
+                HASH_Destroy(ptr->sha1_ctx);
+                ptr->sha1_ctx = NULL;
+            }
+#endif
+        }
+    }
+
+    SCReturn;
+}
+
+/**
  *  \brief disable file size tracking for this flow
  *
  *  \param f *LOCKED* flow
@@ -731,7 +809,7 @@ void FileDisableStoringForFile(File *ff)
     ff->flags |= FILE_NOSTORE;
 
     if (ff->state == FILE_STATE_OPENED && FileSize(ff) >= (uint64_t)FileMagicSize()) {
-        if (g_file_force_md5 == 0 && g_file_force_tracking == 0) {
+        if (g_file_force_md5 == 0 && g_file_force_sha1 == 0 && g_file_force_tracking == 0) {
             (void)FileCloseFilePtr(ff, NULL, 0,
                     (FILE_TRUNCATED|FILE_NOSTORE));
         }

@@ -290,6 +290,14 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, const Packet *p, const
                 }
                 fprintf(fp, "\", ");
             }
+            if (ff->flags & FILE_SHA1) {
+                fprintf(fp, "\"sha1\": \"");
+                size_t x;
+                for (x = 0; x < sizeof(ff->sha1); x++) {
+                    fprintf(fp, "%02x", ff->sha1[x]);
+                }
+                fprintf(fp, "\", ");
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -437,7 +445,6 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
         SCLogInfo("md5 calculation requires linking against libnss");
 #endif
     }
-
     FileForceTrackingEnable();
     SCReturnPtr(output_ctx, "OutputCtx");
 }
