@@ -138,6 +138,9 @@ int LogStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
                 if (st->tstats[u].name == NULL)
                     continue;
 
+                if (!(aft->statslog_ctx->flags & LOG_STATS_NULLS) && st->tstats[u].value == 0)
+                    continue;
+
                 char line[256];
                 size_t len = snprintf(line, sizeof(line), "%-42s | %-25s | %-" PRIu64 "\n",
                         st->tstats[u].name, st->tstats[u].tm_name, st->tstats[u].value);
