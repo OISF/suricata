@@ -1192,6 +1192,15 @@
             AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Recent packet fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
+        AC_CHECK_DECL([TPACKET_V3],
+            AC_DEFINE([HAVE_TPACKET_V3],[1],[AF_PACKET tpcket_v3 support is available]),
+            [],
+            [[#include <sys/socket.h>
+              #include <linux/if_packet.h>]])
+        AC_CHECK_DECL([SOF_TIMESTAMPING_RAW_HARDWARE],
+            AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
+            [],
+            [[#include <linux/net_tstamp.h>]])
     ])
 
   # Netmap support
