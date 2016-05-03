@@ -126,10 +126,10 @@ int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
          * max length of pthread names (15 chars) and we use 3 chars
          * for the threadname indicator eg. "W#-" and one-two chars for
          * the thread number. And if the destination buffer is under
-         * 6 chars there is point in shortening it since we must at
-         * lest enter two periodes (.) into the string..
+         * 6 chars there is no point in shortening it since we must at
+         * least enter two periods (.) into the string.
          */
-        if ((destlen-1) > 10 && (destlen-1) < 6) {
+        if ((destlen-1) > 10 || (destlen-1) < 6) {
             return 1;
         }
 
