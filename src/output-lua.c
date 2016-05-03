@@ -233,86 +233,6 @@ static int LuaPacketConditionAlerts(ThreadVars *tv, const Packet *p)
 }
 
 /** \internal
- *  \brief Packet Logger for lua scripts, for tls
- *
- *  A single call to this function will run one script for a single
- *  packet. If it is called, it means that the registered condition
- *  function has returned TRUE.
- *
- *  The script is called once for each packet.
- */
-static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p)
-{
-    LogLuaThreadCtx *td = (LogLuaThreadCtx *)thread_data;
-
-    char timebuf[64];
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    SCMutexLock(&td->lua_ctx->m);
-
-    lua_getglobal(td->lua_ctx->luastate, "log");
-
-    LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
-    LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
-
-    int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
-        SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
-
-    SCMutexUnlock(&td->lua_ctx->m);
-    FLOWLOCK_WRLOCK(p->flow);
-
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
-    if (ssl_state != NULL)
-        ssl_state->flags |= SSL_AL_FLAG_STATE_LOGGED_LUA;
-
-    FLOWLOCK_UNLOCK(p->flow);
-    SCReturnInt(0);
-}
-
-static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
-{
-    if (p->flow == NULL) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
-        return FALSE;
-    }
-
-    if (!(PKT_IS_TCP(p))) {
-        return FALSE;
-    }
-
-    FLOWLOCK_RDLOCK(p->flow);
-    uint16_t proto = FlowGetAppProtocol(p->flow);
-    if (proto != ALPROTO_TLS)
-        goto dontlog;
-
-    SSLState *ssl_state = (SSLState *)FlowGetAppState(p->flow);
-    if (ssl_state == NULL) {
-        SCLogDebug("no tls state, so no request logging");
-        goto dontlog;
-    }
-
-    if (ssl_state->server_connp.cert0_issuerdn == NULL ||
-            ssl_state->server_connp.cert0_subject == NULL)
-        goto dontlog;
-
-    /* We only log the state once */
-    if (ssl_state->flags & SSL_AL_FLAG_STATE_LOGGED_LUA)
-        goto dontlog;
-
-    FLOWLOCK_UNLOCK(p->flow);
-    return TRUE;
-dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
-    return FALSE;
-}
-
-/** \internal
  *  \brief Packet Logger for lua scripts, for ssh
  *
  *  A single call to this function will run one script for a single
@@ -945,8 +865,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
             om->alproto = ALPROTO_HTTP;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
         } else if (opts.alproto == ALPROTO_TLS) {
-            om->PacketLogFunc = LuaPacketLoggerTls;
-            om->PacketConditionFunc = LuaPacketConditionTls;
+            om->TxLogFunc = LuaTxLogger;
+            om->alproto = ALPROTO_TLS;
         } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_DNS;
