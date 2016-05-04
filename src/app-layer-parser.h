@@ -125,6 +125,9 @@ void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t));
 void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
                               int (*StateHasEvents)(void *));
+void AppLayerParserRegisterLoggerFuncs(uint8_t ipproto, AppProto alproto,
+                         int (*StateGetTxLogged)(void *, uint64_t, uint32_t),
+                         void (*StateSetTxLogged)(void *, uint64_t, uint32_t));
 void AppLayerParserRegisterLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserRegisterTruncateFunc(uint8_t ipproto, AppProto alproto,
                              void (*Truncate)(void *, uint8_t));
@@ -155,6 +158,10 @@ void AppLayerParserDestroyProtocolParserLocalStorage(uint8_t ipproto, AppProto a
 
 uint64_t AppLayerParserGetTransactionLogId(AppLayerParserState *pstate);
 void AppLayerParserSetTransactionLogId(AppLayerParserState *pstate);
+void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
+                               uint64_t tx_id, uint32_t logger);
+int AppLayerParserGetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
+                              uint64_t tx_id, uint32_t logger);
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
 void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
                                 const uint8_t ipproto, const AppProto alproto, void *alstate,
