@@ -120,10 +120,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
     uint64_t total_txs = AppLayerParserGetTxCnt(p->proto, alproto, alstate);
     uint64_t tx_id = AppLayerParserGetTransactionLogId(f->alparser);
     int tx_progress_done_value_ts =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+        AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                        STREAM_TOSERVER);
     int tx_progress_done_value_tc =
-        AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
+        AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                        STREAM_TOCLIENT);
     for (; tx_id < total_txs; tx_id++)
     {
