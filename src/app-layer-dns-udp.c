@@ -422,7 +422,7 @@ void RegisterDNSUDPParsers(void)
                                        DNSGetTxCnt);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_DNS,
                                                    DNSGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_DNS,
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);

@@ -501,8 +501,8 @@ void RegisterTemplateParsers(void)
             TemplateGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP,
-            ALPROTO_TEMPLATE, TemplateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TEMPLATE,
+            TemplateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP,
             ALPROTO_TEMPLATE, TemplateGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEMPLATE,
