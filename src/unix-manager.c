@@ -659,7 +659,7 @@ static TmEcode UnixManagerReloadRules(json_t *cmd, json_t *server_msg, void *dat
     SCEnter();
     DetectEngineReloadStart();
 
-    while (DetectEngineReloadIsDone() == 0)
+    while (!DetectEngineReloadIsIdle())
         usleep(100);
 
     json_object_set_new(server_msg, "message", json_string("done"));
