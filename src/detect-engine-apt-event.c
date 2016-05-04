@@ -68,7 +68,7 @@ int DetectEngineAptEventInspect(ThreadVars *tv,
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
         if (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) ==
-            AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags))
+            AppLayerParserGetStateProgressCompletionStatus(alproto, flags))
         {
             return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
         } else {

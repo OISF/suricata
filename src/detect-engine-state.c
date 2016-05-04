@@ -581,7 +581,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             /* if this is the last tx in our list, and it's incomplete: then
              * we store the state so that ContinueDetection knows about it */
             int tx_is_done = (AppLayerParserGetStateProgress(f->proto, alproto, tx, flags) >=
-                    AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags));
+                    AppLayerParserGetStateProgressCompletionStatus(alproto, flags));
             /* see if we need to consider the next tx in our decision to add
              * a sig to the 'no inspect array'. */
             int next_tx_no_progress = 0;
@@ -1048,7 +1048,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
             if (inspect_tx != NULL) {
                 int a = AppLayerParserGetStateProgress(f->proto, alproto, inspect_tx, flags);
-                int b = AppLayerParserGetStateProgressCompletionStatus(f->proto, alproto, flags);
+                int b = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
                 if (a < b) {
                     inspect_tx_inprogress = 1;
                 }
