@@ -249,6 +249,22 @@ void *ModbusGetTx(void *alstate, uint64_t tx_id) {
     return NULL;
 }
 
+void ModbusSetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    ModbusTransaction *tx = ModbusGetTx(alstate, tx_id);
+    if (tx)
+        tx->logged |= logger;
+}
+
+int ModbusGetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    ModbusTransaction *tx = ModbusGetTx(alstate, tx_id);
+    if (tx && (tx->logged & logger))
+        return 1;
+
+    return 0;
+}
+
 uint64_t ModbusGetTxCnt(void *alstate) {
     return ((uint64_t) ((ModbusState *) alstate)->transaction_max);
 }
@@ -1471,6 +1487,8 @@ void RegisterModbusParsers(void)
 
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxCnt);
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetTxLogged,
+                                          ModbusSetTxLogged);
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateTxFree);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_MODBUS, ModbusGetAlstateProgress);
