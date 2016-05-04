@@ -364,6 +364,21 @@ static void *TemplateGetTx(void *state, uint64_t tx_id)
     return NULL;
 }
 
+static void TemplateSetTxLogged(void *state, void *vtx, uint32_t logger)
+{
+    TemplateTransaction *tx = (TemplateTransaction *)vtx;
+    tx->logged |= logger;
+}
+
+static int TemplateGetTxLogged(void *state, void *vtx, uint32_t logger)
+{
+    TemplateTransaction *tx = (TemplateTransaction *)vtx;
+    if (tx->logged & logger)
+        return 1;
+
+    return 0;
+}
+
 /**
  * \brief Called by the application layer.
  *
@@ -495,6 +510,9 @@ void RegisterTemplateParsers(void)
          * when a transaction is to be freed. */
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateTxFree);
+
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            TemplateGetTxLogged, TemplateSetTxLogged);
 
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEMPLATE,
