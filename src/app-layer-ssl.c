@@ -190,6 +190,22 @@ uint64_t SSLGetTxCnt(void *state)
     return 1;
 }
 
+void SSLSetTxLogged(void *state, void *tx, uint32_t logger)
+{
+    SSLState *ssl_state = (SSLState *)state;
+    if (ssl_state)
+        ssl_state->logged |= logger;
+}
+
+int SSLGetTxLogged(void *state, void *tx, uint32_t logger)
+{
+    SSLState *ssl_state = (SSLState *)state;
+    if (ssl_state && (ssl_state->logged & logger))
+        return 1;
+
+    return 0;
+}
+
 int SSLGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return TLS_STATE_FINISHED;
@@ -1740,6 +1756,8 @@ void RegisterSSLParsers(void)
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxCnt);
 
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_TLS, SSLGetAlstateProgress);
+
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TLS, SSLGetTxLogged, SSLSetTxLogged);
 
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TLS,
                                                                SSLGetAlstateProgressCompletionStatus);
