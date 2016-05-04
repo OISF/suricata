@@ -183,6 +183,9 @@ typedef struct SSLState_ {
     /* holds some state flags we need */
     uint32_t flags;
 
+    /* specifies which loggers are done logging */
+    uint32_t logged;
+
     /* there might be a better place to store this*/
     uint16_t hb_record_len;
 
