@@ -2786,7 +2786,7 @@ static void SuricataMainLoop(SCInstance *suri)
                 if (!(DetectEngineReloadIsStart())) {
                     DetectEngineReloadStart();
                     DetectEngineReload(suri);
-                    DetectEngineReloadSetDone();
+                    DetectEngineReloadSetIdle();
                     sigusr2_count--;
                 }
             }
@@ -2795,10 +2795,10 @@ static void SuricataMainLoop(SCInstance *suri)
             if (suri->sig_file != NULL) {
                 SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
                         "possible if -s or -S option used at runtime.");
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             } else {
                 DetectEngineReload(suri);
-                DetectEngineReloadSetDone();
+                DetectEngineReloadSetIdle();
             }
         }
 
