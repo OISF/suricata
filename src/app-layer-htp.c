@@ -2634,6 +2634,28 @@ static void *HTPStateGetTx(void *alstate, uint64_t tx_id)
         return NULL;
 }
 
+static void HTPStateSetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    htp_tx_t *tx = HTPStateGetTx(alstate, tx_id);
+    if (tx) {
+        HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (tx_ud)
+            tx_ud->logged |= logger;
+    }
+}
+
+static int HTPStateGetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    htp_tx_t *tx = HTPStateGetTx(alstate, tx_id);
+    if (tx) {
+        HtpTxUserData *tx_ud = (HtpTxUserData *) htp_tx_get_user_data(tx);
+        if (tx_ud && (tx_ud->logged & logger))
+            return 1;
+    }
+
+    return 0;
+}
+
 static int HTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
 {
     return (direction & STREAM_TOSERVER) ? HTP_REQUEST_COMPLETE : HTP_RESPONSE_COMPLETE;
@@ -2769,6 +2791,8 @@ void RegisterHTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTx);
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_HTTP, HTPStateGetTxLogged,
+                                          HTPStateSetTxLogged);
         AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_HTTP,
                                                                HTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterHasEventsFunc(IPPROTO_TCP, ALPROTO_HTTP, HTPHasEvents);
