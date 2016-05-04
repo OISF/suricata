@@ -205,6 +205,10 @@ typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
     uint8_t request_body_init;
     uint8_t response_body_init;
+
+    /* indicates which loggers that have logged */
+    uint32_t logged;
+
     HtpBody request_body;
     HtpBody response_body;
 
