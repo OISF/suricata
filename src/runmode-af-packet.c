@@ -65,6 +65,27 @@ const char *RunModeAFPGetDefaultMode(void)
     return default_mode_workers;
 }
 
+/**
+ * \brief Get the af-packet configuration node for a device.
+ *
+ * Basically hunts through the list of maps for the first one with a
+ * key of "interface", and a value of the provided interface.
+ */
+static ConfNode *AFPFindDeviceConfig(ConfNode *root, const char *iface)
+{
+    ConfNode *if_root, *item;
+    const char key[] = "interface";
+    TAILQ_FOREACH(if_root, &root->head, next) {
+        TAILQ_FOREACH(item, &if_root->head, next) {
+            if (!(strcmp(item->name, key) && strcmp(item->val, iface))) {
+                return if_root;
+            }
+        }
+    }
+
+    return NULL;
+}
+
 void RunModeIdsAFPRegister(void)
 {
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single",
@@ -163,7 +184,7 @@ void *ParseAFPConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
+    if_root = AFPFindDeviceConfig(af_packet_node, iface);
 
     if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
 
@@ -433,7 +454,7 @@ int AFPRunModeIsIPS()
             return 0;
         }
         char *copymodestr = NULL;
-        if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+        if_root = AFPFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
