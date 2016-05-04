@@ -449,13 +449,12 @@ void AppLayerParserRegisterGetTx(uint8_t ipproto, AppProto alproto,
     SCReturn;
 }
 
-void AppLayerParserRegisterGetStateProgressCompletionStatus(uint8_t ipproto,
-                                                   AppProto alproto,
+void AppLayerParserRegisterGetStateProgressCompletionStatus(AppProto alproto,
     int (*StateGetProgressCompletionStatus)(uint8_t direction))
 {
     SCEnter();
 
-    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+    alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
         StateGetProgressCompletionStatus = StateGetProgressCompletionStatus;
 
     SCReturn;
@@ -555,7 +554,7 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
     int direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(ipproto, alproto, flags);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
     void *tx;
     int state_progress;
 
@@ -663,7 +662,7 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     /* logger is disabled, return highest 'complete' tx id */
     uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, flags);
-    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->proto, f->alproto, flags);
+    int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
     void *tx;
     int state_progress;
 
@@ -739,7 +738,7 @@ int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
     SCEnter();
     int r = 0;
     if (unlikely(IS_DISRUPTED(flags))) {
-        r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
             StateGetProgressCompletionStatus(flags);
     } else {
         r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
@@ -766,12 +765,12 @@ void *AppLayerParserGetTx(uint8_t ipproto, AppProto alproto, void *alstate, uint
     SCReturnPtr(r, "void *");
 }
 
-int AppLayerParserGetStateProgressCompletionStatus(uint8_t ipproto, AppProto alproto,
-                                        uint8_t direction)
+int AppLayerParserGetStateProgressCompletionStatus(AppProto alproto,
+                                                   uint8_t direction)
 {
     SCEnter();
     int r = 0;
-    r = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+    r = alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto].
                 StateGetProgressCompletionStatus(direction);
     SCReturnInt(r);
 }
