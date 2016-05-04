@@ -622,7 +622,7 @@ int LuaRegisterExtensions(lua_State *lua_state)
     LuaRegisterDnsFunctions(lua_state);
     LuaRegisterTlsFunctions(lua_state);
     LuaRegisterSshFunctions(lua_state);
-	LuaRegisterSmtpFunctions(lua_state);
+    LuaRegisterSmtpFunctions(lua_state);
     return 0;
 }
 

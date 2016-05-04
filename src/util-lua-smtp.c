@@ -15,7 +15,6 @@
  * 02110-1301, USA.
  */
 
-
 /**
  *  \file
  *
@@ -48,19 +47,18 @@
 #include "util-file.h"
 
 /*
- * \brief Function extracts MimeDecField from
- * flow->SMTPState->SMTPTransaction->MimeDecEntity->MimeDecField
- * based on parameter name, set in previous, spesified function.
+ * \brief internal function used by SMTPGetMimeField
  *
  * \param luastate luastate stack to use and push attributes to
  * \param flow network flow of SMTP packets
  * \param name name of the attribute to extract from MimeDecField
  *
- * \retval returns number of attributes pushed to luastate stack,
- * or error int + error msg to stack
+ * \retval 1 if success mimefield found and pushed to stack. Returns error
+ * int and msg pushed to luastate stack if error occurs.
  */
 
-static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name) {
+static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name)
+{
     /* extract state from flow */
     SMTPState *state = (SMTPState *) FlowGetAppState(flow);
     /* check that state exsists */
@@ -85,7 +83,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name) {
         return LuaCallbackError(luastate, "Error: mimefield not found");
     }
     /* return extracted field. */
-    if(!(strlen((const char*) field->value) == field->value_len)){
+    if(field->value == NULL || field->value_len == 0){
         return LuaCallbackError(luastate, "Error, pointer error");
     }
 
@@ -98,7 +96,7 @@ static int GetMimeDecField(lua_State *luastate, Flow *flow, const char *name) {
  *
  * \param luastate luastate stack to pop and push attributes for I/O to lua
  *
- * \retval int 1 if success mimefield found and pushed to stack. Returns error
+ * \retval 1 if success mimefield found and pushed to stack. Returns error
  * int and msg pushed to luastate stack if error occurs.
  */
 
@@ -118,24 +116,23 @@ static int SMTPGetMimeField(lua_State *luastate)
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         FLOWLOCK_RDLOCK(flow);
         /* get specific MIME field */
-        int subject_res = GetMimeDecField(luastate, flow, name);
+        GetMimeDecField(luastate, flow, name);
         /* unlock flow mutex to allow for multithreading */
         FLOWLOCK_UNLOCK(flow);
         /* return number of fields pushed to luastate */
-        return subject_res;
     } else { /* if mutex already locked */
-        return GetMimeDecField(luastate, flow, name);
+        GetMimeDecField(luastate, flow, name);
     }
+    return 1;
 }
 
-
 /**
- * \brief creates a list of all MIME fields found in an SMTP transaction
+ * \brief Internal function used by SMTPGetMimeList
  *
  * \param luastate luastate stack to pop and push attributes for I/O to lua
  * \param flow network flow of SMTP packets
  *
- * \retval int 1 if success mimefield found and pushed to stack.
+ * \retval 1 if the mimelist table is pushed to luastate stack.
  * Returns error int and msg pushed to luastate stack if error occurs.
 */
 
@@ -176,12 +173,12 @@ static int GetMimeList(lua_State *luastate, Flow *flow)
 }
 
 /**
- * \brief function for dedicated for dev-use. Lists name and value to all MIME
- * fields which is included in the a SMTP transaction.
+ * \brief Lists name and value to all MIME fields which
+ * is included in a SMTP transaction.
  *
  * \param luastate luastate stack to pop and push attributes for I/O to lua.
  *
- * \retval int 1 if the table is pushed to lua.
+ * \retval 1 if the table is pushed to lua.
  * Returns error int and msg pushed to luastate stack if error occurs
  *
  */
@@ -199,28 +196,26 @@ static int SMTPGetMimeList(lua_State *luastate)
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Error: no flow found");
     }
-    int retval;
     /* check if flow already locked */
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         /* mutexlock flow */
         FLOWLOCK_RDLOCK(flow);
-        retval = GetMimeList(luastate, flow);
+        GetMimeList(luastate, flow);
         FLOWLOCK_UNLOCK(flow);
     } else {
-        retval = GetMimeList(luastate, flow);
+        GetMimeList(luastate, flow);
     }
-    return retval;
+    return 1;
 }
 
 /**
- * \brief Extracts mail_from parameter from SMTPState.
- * Attribute may also be available from MIME fields, although
- * there is no guarantee of it existing as MIME.
+ * \brief internal function used by SMTPGetMailFrom
  *
  * \param luastate luastate stack to pop and push attributes for I/O to lua.
  * \param flow flow to get state for SMTP
  *
- * \retval returns number of attributes pushed to luastate stack.
+ * \retval 1 if mailfrom field found.
+ * Retruns error int and msg pushed to luastate stack if error occurs
  */
 
 static int GetMailFrom(lua_State *luastate, Flow *flow)
@@ -250,7 +245,8 @@ static int GetMailFrom(lua_State *luastate, Flow *flow)
  *
  * \param luastate luastate stack to pop and push attributes for I/O to lua.
  *
- * \retval returns number of attributes pushed to luastate stack.
+ * \retval 1 if mailfrom field found.
+ * Retruns error int and msg pushed to luastate stack if error occurs
  */
 
 static int SMTPGetMailFrom(lua_State *luastate)
@@ -266,31 +262,29 @@ static int SMTPGetMailFrom(lua_State *luastate)
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Internal Error: no flow");
     }
-    int retval;
     /* check if already mutexlocked by parents */
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         /* mutexlock flow */
         FLOWLOCK_RDLOCK(flow);
-        retval = GetMailFrom(luastate, flow);
+        GetMailFrom(luastate, flow);
         FLOWLOCK_UNLOCK(flow);
     } else {
-        retval = GetMailFrom(luastate, flow);
+        GetMailFrom(luastate, flow);
     }
-    return retval;
+    return 1;
 }
 
 /**
- * \brief function loops through rcpt-list located in
- * flow->SMTPState->SMTPTransaction, adding all items to a table.
- * Then pushing it to the luastate stack.
+ * \brief intern function used by SMTPGetRcpList 
  *
  * \params luastate luastate stack for internal communication with Lua.
  * Used to hand over data to the recieveing luascript.
  *
- * \retval 1 or error - number of attibutes pushed to the luastate stack.
+ * \retval 1 if the table is pushed to lua.
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
-static int GetrcptList(lua_State *luastate, Flow *flow)
+static int GetRcptList(lua_State *luastate, Flow *flow)
 {
 
     SMTPState *state = (SMTPState *) FlowGetAppState(flow);
@@ -314,7 +308,7 @@ static int GetrcptList(lua_State *luastate, Flow *flow)
         lua_pushinteger(luastate, u++);
         lua_settable(luastate, -3);
     }
-    /* Returns 1 because we never push more then 1 item to the lua stack */
+    /* return 1 since we allways push one table to luastate */
     return 1;
 }
 
@@ -326,10 +320,11 @@ static int GetrcptList(lua_State *luastate, Flow *flow)
  * \params luastate luastate stack for internal communication with Lua.
  * Used to hand over data to the recieveing luascript.
  *
- * \retval 1 or error - number of attibutes pushed to the luastate stack.
+ * \retval 1 if the table is pushed to lua.
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
-static int SMTPGetrcptList(lua_State *luastate)
+static int SMTPGetRcptList(lua_State *luastate)
 {
     /* check protocol */
     if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
@@ -342,19 +337,29 @@ static int SMTPGetrcptList(lua_State *luastate)
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Internal error: no flow");
     }
-    int retval;
     /* check if already mutexlocked by parents */
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         /* lock flow */
         FLOWLOCK_RDLOCK(flow);
-        retval = GetrcptList(luastate, flow);
+        GetRcptList(luastate, flow);
         /* open flow */
         FLOWLOCK_UNLOCK(flow);
     } else {
-        retval = GetrcptList(luastate, flow);
+        GetRcptList(luastate, flow);
     }
-    return retval;
+    /* return 1 since we allways push one table to luastate */
+    return 1;
 }
+
+/**
+ * \brief intern function used by SMTPGetAttachmentInfo
+ *
+ * \params luastate, luastate for internal communication towards the
+ * luascripting engine.
+ *
+ * \retval 1 if the table is pushed to lua.
+ * Returns error int and msg pushed to luastate stack if error occurs
+ */
 
 static int GetAttachmentInfo(lua_State *luastate, Flow *flow)
 {
@@ -401,6 +406,7 @@ static int GetAttachmentInfo(lua_State *luastate, Flow *flow)
         lua_settable(luastate, -3);
         file = file->next;
     }
+    /* return 1 since we allways push one table to luastate */
     return 1;
 }
 
@@ -412,8 +418,8 @@ static int GetAttachmentInfo(lua_State *luastate, Flow *flow)
  * \params luastate, luastate for internal communication towards the
  * luascripting engine.
  *
- * \retval Number of attributes pushed to luastate stack, in this case number
- * of tables pushed, and two if an error was found.
+ * \retval 1 if the table is pushed to lua.
+ * Returns error int and msg pushed to luastate stack if error occurs
  */
 
 static int SMTPGetAttachmentInfo(lua_State *luastate)
@@ -431,16 +437,15 @@ static int SMTPGetAttachmentInfo(lua_State *luastate)
         return LuaCallbackError(luastate, "internal error: no flow");
     }
     /* check if flow already mutexlocked */
-    int retval;
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         /* mutexlock flow */
         FLOWLOCK_RDLOCK(flow);
-        retval = GetAttachmentInfo(luastate, flow);
+        GetAttachmentInfo(luastate, flow);
         FLOWLOCK_UNLOCK(flow);
     } else {
-        retval = GetAttachmentInfo(luastate, flow);
+        GetAttachmentInfo(luastate, flow);
     }
-    return retval;
+    return 1;
 }
 
 int LuaRegisterSmtpFunctions(lua_State *luastate)
@@ -448,8 +453,8 @@ int LuaRegisterSmtpFunctions(lua_State *luastate)
     lua_pushcfunction(luastate, SMTPGetMailFrom);
     lua_setglobal(luastate, "SMTPGetMailFrom");
 
-    lua_pushcfunction(luastate, SMTPGetrcptList);
-    lua_setglobal(luastate, "SMTPGetrcptList");
+    lua_pushcfunction(luastate, SMTPGetRcptList);
+    lua_setglobal(luastate, "SMTPGetRcptList");
 
     lua_pushcfunction(luastate, SMTPGetMimeList);
     lua_setglobal(luastate, "SMTPGetMimeList");
