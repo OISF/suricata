@@ -117,7 +117,6 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
     HtpState *htp_state = NULL;
     htp_tx_t *tx = NULL;
     uint64_t total_txs = 0;
-    uint8_t *p_xff = NULL;
 
     htp_state = (HtpState *)FlowGetAppState(p->flow);
 
@@ -146,6 +145,7 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
 
         memcpy(xff_chain, bstr_ptr(h_xff->value), bstr_len(h_xff->value));
         xff_chain[bstr_len(h_xff->value)]=0;
+        uint8_t *p_xff = NULL;
 
         if (xff_cfg->flags & XFF_REVERSE) {
             /** Get the last IP address from the chain */
