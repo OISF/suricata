@@ -25,8 +25,12 @@
 #ifndef __UTIL_UTIL_CONF_H__
 #define __UTIL_UTIL_CONF_H__
 
+#include "conf.h"
+
 TmEcode ConfigSetLogDirectory(char *name);
 char *ConfigGetLogDirectory();
 TmEcode ConfigCheckLogDirectory(char *log_dir);
+
+ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface);
 
 #endif /* __UTIL_UTIL_CONF_H__ */
