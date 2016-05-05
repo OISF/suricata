@@ -103,10 +103,11 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
     json_t *ajs = json_array();
     if (likely(ajs != NULL)) {
         char *savep = NULL;
-        char *p;
-        char *sp;
         char *to_line = BytesToString((uint8_t *)val, len);
         if (likely(to_line != NULL)) {
+            char *p;
+            char *sp;
+            
             p = strtok_r(to_line, ",", &savep);
             if (p == NULL) {
                 json_decref(ajs);
@@ -141,10 +142,11 @@ static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPT
         }
         field = MimeDecFindField(entity, "subject");
         if (field != NULL) {
-            unsigned char md5[MD5_LENGTH];
-            char smd5[256];
             char *value = BytesToString((uint8_t *)field->value , field->value_len);
             if (value) {
+                char smd5[256];
+                unsigned char md5[MD5_LENGTH];
+                
                 size_t i,x;
                 HASH_HashBuf(HASH_AlgMD5, md5, (unsigned char *)value, strlen(value));
                 for (i = 0, x = 0; x < sizeof(md5); x++) {
@@ -159,10 +161,10 @@ static void JsonEmailLogJSONMd5(OutputJsonEmailCtx *email_ctx, json_t *js, SMTPT
     if (email_ctx->flags & LOG_EMAIL_BODY_MD5) {
         MimeDecParseState *mime_state = tx->mime_state;
         if (mime_state && mime_state->md5_ctx && (mime_state->state_flag == PARSE_DONE)) {
-            size_t x;
-            int i;
             char s[256];
             if (likely(s != NULL)) {
+                int i;
+                size_t x;
                 for (i = 0, x = 0; x < sizeof(mime_state->md5); x++) {
                     i += snprintf(s + i, 255-i, "%02x", mime_state->md5[x]);
                 }
