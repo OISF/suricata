@@ -57,7 +57,6 @@ static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_
 {
     json_t *sjs = json_object();
     SMTPTransaction *tx = vtx;
-    SMTPString *rcptto_str;
     if (sjs == NULL) {
         return NULL;
     }
@@ -72,6 +71,7 @@ static json_t *JsonSmtpDataLogger(const Flow *f, void *state, void *vtx, uint64_
     if (!TAILQ_EMPTY(&tx->rcpt_to_list)) {
         json_t *js_rcptto = json_array();
         if (likely(js_rcptto != NULL)) {
+            SMTPString *rcptto_str;
             TAILQ_FOREACH(rcptto_str, &tx->rcpt_to_list, next) {
                 json_array_append_new(js_rcptto, json_string((char *)rcptto_str->str));
             }
