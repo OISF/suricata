@@ -723,10 +723,7 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
         Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
         int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
         int datalink = p->datalink;
-#ifdef HAVE_OLD_BARNYARD2
-        int ethh_offset = 0;
-        EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
-#endif
+        
         memset(hdr, 0, sizeof(Unified2AlertFileHeader));
         memset(phdr, 0, sizeof(Unified2Packet));
 
@@ -752,7 +749,8 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
         /* Fake datalink to avoid bug with old barnyard2 */
         if (PKT_IS_IPV6(p) && (!p->ethh)) {
             /* Fake this */
-            ethh_offset = 14;
+            EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
+            int ethh_offset = 14;
             datalink = DLT_EN10MB;
             phdr->linktype = htonl(datalink);
             aun->length += ethh_offset;
