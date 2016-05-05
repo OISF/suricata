@@ -346,11 +346,10 @@ void HTPStateFree(void *state)
     if (s->connp != NULL) {
         SCLogDebug("freeing HTP state");
 
-        uint64_t tx_id;
         uint64_t total_txs = HTPStateGetTxCnt(state);
         /* free the list of body chunks */
         if (s->conn != NULL) {
-            for (tx_id = 0; tx_id < total_txs; tx_id++) {
+            for (uint64_t tx_id = 0; tx_id < total_txs; tx_id++) {
                 htp_tx_t *tx = HTPStateGetTx(s, tx_id);
                 if (tx != NULL) {
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
@@ -805,7 +804,6 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
                                  void *local_data)
 {
     SCEnter();
-    int r = -1;
     int ret = 1;
 
     HtpState *hstate = (HtpState *)htp_state;
@@ -824,8 +822,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     htp_time_t ts = { f->lastts.tv_sec, f->lastts.tv_usec };
     if (input_len > 0) {
-        r = htp_connp_res_data(hstate->connp, &ts, input, input_len);
-        switch(r) {
+        switch(htp_connp_res_data(hstate->connp, &ts, input, input_len)) {
             case HTP_STREAM_ERROR:
                 hstate->flags = HTP_FLAG_STATE_ERROR;
                 hstate->flags &= ~HTP_FLAG_STATE_DATA;
