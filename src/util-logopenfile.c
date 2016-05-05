@@ -172,7 +172,7 @@ SCLogOpenFileFp(const char *path, const char *append_setting)
 {
     FILE *ret = NULL;
 
-    if (strcasecmp(append_setting, "yes") == 0) {
+    if (ConfValIsTrue(append_setting)) {
         ret = fopen(path, "a");
     } else {
         ret = fopen(path, "w");
