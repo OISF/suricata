@@ -352,9 +352,9 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
 
     ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
     if (ConfGet("mpipe.checksum-checks", &ctype) == 1) {
-        if (strcmp(ctype, "yes") == 0) {
+        if (ConfValIsTrue(ctype)) {
             ptv->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(ctype, "no") == 0)  {
+        } else if (ConfValIsFalse(ctype))  {
             ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, 
