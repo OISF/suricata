@@ -2354,7 +2354,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
         SCReturnInt(TM_ECODE_FAILED);
 
 #ifdef HAVE_NSS
-    /* init NSS for md5 */
+    /* init NSS for hashing */
     PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
     NSS_NoDB_Init(NULL);
 #endif
