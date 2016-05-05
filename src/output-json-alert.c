@@ -557,9 +557,9 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
 
     json_output_ctx->xff_cfg = xff_cfg;
 
-    uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
-
     if (conf != NULL) {
+        uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
+
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
@@ -616,7 +616,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
             }
         }
 
-	json_output_ctx->payload_buffer_size = payload_buffer_size;
+        json_output_ctx->payload_buffer_size = payload_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
     }
 }
