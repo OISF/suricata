@@ -230,9 +230,9 @@ void *ParsePfringConfig(const char *iface)
         return pfconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(pf_ring_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(pf_ring_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(pf_ring_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(pf_ring_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pfring config for "

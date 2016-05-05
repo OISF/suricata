@@ -121,9 +121,9 @@ void *ParsePcapConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(pcap_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(pcap_node, "iface");
 
-    if_default = ConfNodeLookupKeyValue(pcap_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(pcap_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pcap config for "

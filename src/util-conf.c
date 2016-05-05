@@ -25,6 +25,7 @@
 #include "suricata-common.h"
 #include "config.h"
 #include "conf.h"
+#include "util-conf.h"
 
 TmEcode ConfigSetLogDirectory(char *name)
 {
@@ -62,4 +63,31 @@ TmEcode ConfigCheckLogDirectory(char *log_dir)
             SCReturnInt(TM_ECODE_FAILED);
     }
     SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ * \brief Find the configuration node for a specific device.
+
+ * Basically hunts through the list of maps for the first one with a
+ * key of "interface", and a value of the provided interface.
+ *
+ * \param node The node to start looking for the device
+ *     configuration. Typically this would be something like the af-packet
+ *     or pf-ring node.
+ *
+ * \param iface The name of the interface to find the config for.
+ */
+ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
+{
+    ConfNode *if_node, *item;
+    TAILQ_FOREACH(if_node, &node->head, next) {
+        TAILQ_FOREACH(item, &if_node->head, next) {
+            if (strcmp(item->name, "interface") == 0 &&
+                strcmp(item->val, iface) == 0) {
+                return if_node;
+            }
+        }
+    }
+
+    return NULL;
 }

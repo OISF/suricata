@@ -163,9 +163,9 @@ void *ParseAFPConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(af_packet_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(af_packet_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find af-packet config for "
@@ -433,7 +433,7 @@ int AFPRunModeIsIPS()
             return 0;
         }
         char *copymodestr = NULL;
-        if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+        if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
