@@ -352,9 +352,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     } else {
         if (strcmp(tmpstring, "auto") == 0) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpstring, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpstring)){
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpstring, "no") == 0) {
+        } else if (ConfValIsFalse(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         }
     }
