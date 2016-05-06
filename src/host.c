@@ -196,7 +196,7 @@ void HostInitConfig(char quiet)
                 (uintmax_t)sizeof(HostHashRow));
         exit(EXIT_FAILURE);
     }
-    host_hash = SCCalloc(host_config.hash_size, sizeof(HostHashRow));
+    host_hash = SCMallocAligned(host_config.hash_size * sizeof(HostHashRow), CLS);
     if (unlikely(host_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostInitConfig. Exiting...");
         exit(EXIT_FAILURE);
@@ -284,7 +284,7 @@ void HostShutdown(void)
 
             HRLOCK_DESTROY(&host_hash[u]);
         }
-        SCFree(host_hash);
+        SCFreeAligned(host_hash);
         host_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));
