@@ -34,7 +34,7 @@ static pcre_extra *parse_regex_study = NULL;
 
 void ParseSizeInit(void)
 {
-    const char *eb;
+    const char *eb = NULL;
     int eo;
     int opts = 0;
 
