@@ -112,7 +112,7 @@ int StreamTcpUTAddPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpSes
 
 int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
 {
-    TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx, len);
+    TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx);
     if (s == NULL) {
         return -1;
     }
@@ -135,7 +135,7 @@ int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
 int StreamTcpUTAddSegmentWithByte(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t byte, uint16_t len)
 {
-    TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx, len);
+    TcpSegment *s = StreamTcpGetSegment(tv, ra_ctx);
     if (s == NULL) {
         return -1;
     }
