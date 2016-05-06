@@ -52,14 +52,14 @@ typedef struct StreamTcpSackRecord_ {
 } StreamTcpSackRecord;
 
 typedef struct TcpSegment_ {
+    PoolThreadReserved res;
     StreamingBufferSegment sbseg;
     uint16_t payload_len;       /**< actual size of the payload */
-    uint16_t pool_size;         /**< size of the memory */
+    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
+    uint8_t flags;
     uint32_t seq;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
-    /* coccinelle: TcpSegment:flags:SEGMENTTCP_FLAG */
-    uint8_t flags;
 } TcpSegment;
 
 #define TCP_SEG_LEN(seg)        (seg)->payload_len

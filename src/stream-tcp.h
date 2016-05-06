@@ -48,6 +48,7 @@ typedef struct TcpStreamCnf_ {
     uint8_t segment_init_flags; /**< new seg flags will be initialized to this */
 
     uint32_t prealloc_sessions; /**< ssns to prealloc per stream thread */
+    uint32_t prealloc_segments; /**< segments to prealloc per stream thread */
     int midstream;
     int async_oneside;
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
