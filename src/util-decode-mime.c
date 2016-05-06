@@ -1210,7 +1210,9 @@ static uint8_t ProcessBase64Remainder(const uint8_t *buf, uint32_t len,
     /* Fill in block with first few bytes of current line */
     remainder = B64_BLOCK - state->bvr_len;
     remainder = remainder < len ? remainder : len;
-    memcpy(state->bvremain + state->bvr_len, buf, remainder);
+    if (remainder && buf) {
+        memcpy(state->bvremain + state->bvr_len, buf, remainder);
+    }
     state->bvr_len += remainder;
 
     /* If data chunk buffer will be full, then clear it now */
