@@ -759,7 +759,7 @@ static inline void SCACTileInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx
             if (ctx->pattern_list[ctx->output_table[state].patterns[k]].cs != NULL) {
               /* TODO - Find better way to store this. */
                 ctx->output_table[state].patterns[k] &= 0x0FFFFFFF;
-                ctx->output_table[state].patterns[k] |= 1 << 31;
+                ctx->output_table[state].patterns[k] |= (uint32_t)1 << 31;
             }
         }
     }
