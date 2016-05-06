@@ -1487,7 +1487,7 @@ static uint32_t DetectPortHashFunc(HashListTable *ht, void *data, uint16_t datal
 
     SCLogDebug("hashing sgh %p", p);
 
-    hash = (p->port << 16) | p->port2;
+    hash = ((uint32_t)p->port << 16) | p->port2;
 
     hash %= ht->array_size;
     SCLogDebug("hash %"PRIu32, hash);
