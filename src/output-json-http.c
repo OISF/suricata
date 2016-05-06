@@ -237,9 +237,9 @@ void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx)
         h_content_type = htp_table_get_c(tx->response_headers, "content-type");
     }
     if (h_content_type != NULL) {
-        char *p;
         c = bstr_util_strdup_to_c(h_content_type->value);
         if (c != NULL) {
+            char *p;
             p = strchr(c, ';');
             if (p != NULL)
                 *p = '\0';
