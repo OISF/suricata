@@ -1195,10 +1195,9 @@ flow-timeouts:
 #
 #     chunk-prealloc: 250       # Number of preallocated stream chunks. These
 #                               # are used during stream inspection (raw).
-#     segments:                 # Settings for reassembly segment pool.
-#       - size: 4               # Size of the (data)segment for a pool
-#         prealloc: 256         # Number of segments to prealloc and keep
-#                               # in the pool.
+#
+#     segment-prealloc: 2048    # number of segments preallocated per thread
+#
 #     check-overlap-different-data: true|false
 #                               # check if a segment contains different data
 #                               # than what we've already seen for that
@@ -1220,25 +1219,7 @@ stream:
     #randomize-chunk-range: 10
     #raw: yes
     #chunk-prealloc: 250
-    #segments:
-    #  - size: 4
-    #    prealloc: 256
-    #  - size: 16
-    #    prealloc: 512
-    #  - size: 112
-    #    prealloc: 512
-    #  - size: 248
-    #    prealloc: 512
-    #  - size: 512
-    #    prealloc: 512
-    #  - size: 768
-    #    prealloc: 1024
-    # 'from_mtu' means that the size is mtu - 40,
-    # or 1460 if mtu couldn't be determined.
-    #  - size: from_mtu
-    #    prealloc: 1024
-    #  - size: 65535
-    #    prealloc: 128
+    #segment-prealloc: 2048
     #check-overlap-different-data: true
 
 # Host table:
