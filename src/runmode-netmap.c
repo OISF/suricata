@@ -159,9 +159,9 @@ static void *ParseNetmapConfig(const char *iface_name)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(netmap_node, "interface", aconf->iface_name);
+    if_root = ConfFindDeviceConfig(netmap_node, "interface", aconf->iface_name);
 
-    if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(netmap_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find netmap config for "
