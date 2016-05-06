@@ -946,10 +946,10 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                         SCReturnInt(-1);
                     }
                     sstate->smb.command = *(p + 4);
-                    sstate->smb.status = *(p + 5) << 24;
-                    sstate->smb.status |= *(p + 6) << 16;
-                    sstate->smb.status |= *(p + 7) << 8;
-                    sstate->smb.status |= *(p + 8);
+                    sstate->smb.status = (uint32_t) *(p + 5) << 24;
+                    sstate->smb.status |= (uint32_t) *(p + 6) << 16;
+                    sstate->smb.status |= (uint32_t) *(p + 7) << 8;
+                    sstate->smb.status |= (uint32_t) *(p + 8);
                     sstate->smb.flags = *(p + 9);
                     sstate->smb.flags2 = *(p + 10) << 8;
                     sstate->smb.flags2 |= *(p + 11);
