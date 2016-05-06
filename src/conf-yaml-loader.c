@@ -167,6 +167,7 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
 {
     ConfNode *node = parent;
     yaml_event_t event;
+    memset(&event, 0, sizeof(event));
     int done = 0;
     int state = 0;
     int seq_idx = 0;
