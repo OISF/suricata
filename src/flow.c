@@ -422,7 +422,7 @@ void FlowInitConfig(char quiet)
                 (uintmax_t)sizeof(FlowBucket));
         exit(EXIT_FAILURE);
     }
-    flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
+    flow_hash = SCMallocAligned(flow_config.hash_size * sizeof(FlowBucket), CLS);
     if (unlikely(flow_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
         exit(EXIT_FAILURE);
@@ -515,7 +515,7 @@ void FlowShutdown(void)
 
             FBLOCK_DESTROY(&flow_hash[u]);
         }
-        SCFree(flow_hash);
+        SCFreeAligned(flow_hash);
         flow_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
