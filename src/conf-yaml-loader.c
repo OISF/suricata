@@ -193,8 +193,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                 fprintf(stderr, "%%YAML 1.1\n---\n\n");
                 goto fail;
             }
-            int major = event.data.document_start.version_directive->major;
-            int minor = event.data.document_start.version_directive->minor;
+            int major = ver->major;
+            int minor = ver->minor;
             if (!(major == YAML_VERSION_MAJOR && minor == YAML_VERSION_MINOR)) {
                 fprintf(stderr, "ERROR: Invalid YAML version.  Must be 1.1\n");
                 goto fail;
