@@ -233,7 +233,9 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         /* TODO: Add more protocols */
     }
 
-    PacketCopyDataOffset(p, hdr_offset, payload, payload_len);
+    if (payload && payload_len) {
+        PacketCopyDataOffset(p, hdr_offset, payload, payload_len);
+    }
     SET_PKT_LEN(p, hdr_offset + payload_len);
     p->payload = GET_PKT_DATA(p)+hdr_offset;
 
