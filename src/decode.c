@@ -347,7 +347,9 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
         p->root = parent;
 
     /* copy packet and set lenght, proto */
-    PacketCopyData(p, pkt, len);
+    if (pkt && len) {
+        PacketCopyData(p, pkt, len);
+    }
     p->recursion_level = parent->recursion_level; /* NOT incremented */
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
