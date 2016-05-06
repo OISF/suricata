@@ -254,8 +254,13 @@ int StreamTcpSackUpdatePacket(TcpStream *stream, Packet *p)
 {
     int records = TCP_GET_SACK_CNT(p);
     int record = 0;
+    const uint8_t *data = TCP_GET_SACK_PTR(p);
 
-    TCPOptSackRecord *sack_rec = (TCPOptSackRecord *)(TCP_GET_SACK_PTR(p));
+    if (records == 0 || data == NULL)
+        return 0;
+
+    TCPOptSackRecord rec[records], *sack_rec = rec;
+    memcpy(&rec, data, sizeof(TCPOptSackRecord) * records);
 
     for (record = 0; record < records; record++) {
         SCLogDebug("%p last_ack %u, left edge %u, right edge %u", sack_rec,
