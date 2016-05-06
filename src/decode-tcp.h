@@ -76,20 +76,16 @@
 #define TCP_GET_RAW_WINDOW(tcph)             ntohs((tcph)->th_win)
 #define TCP_GET_RAW_URG_POINTER(tcph)        ntohs((tcph)->th_urp)
 
-/** macro for getting the first timestamp from the packet. Timestamp is in host
- *  order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TSVAL(p) \
-    (uint32_t)ntohl((*(uint32_t *)(p)->tcpvars.ts.data))
+/** macro for getting the first timestamp from the packet in host order */
+#define TCP_GET_TSVAL(p)                    ((p)->tcpvars.ts_val)
 
-/** macro for getting the second timestamp from the packet. Timestamp is in
- *  host order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TSECR(p) \
-    (uint32_t)ntohl((*(uint32_t *)((p)->tcpvars.ts.data+4)))
+/** macro for getting the second timestamp from the packet in host order. */
+#define TCP_GET_TSECR(p)                    ((p)->tcpvars.ts_ecr)
 
 #define TCP_HAS_WSCALE(p)                   ((p)->tcpvars.ws.type == TCP_OPT_WS)
 #define TCP_HAS_SACK(p)                     ((p)->tcpvars.sack.type == TCP_OPT_SACK)
 #define TCP_HAS_SACKOK(p)                   ((p)->tcpvars.sackok.type == TCP_OPT_SACKOK)
-#define TCP_HAS_TS(p)                       ((p)->tcpvars.ts.type == TCP_OPT_TS)
+#define TCP_HAS_TS(p)                       ((p)->tcpvars.ts_set == TRUE)
 #define TCP_HAS_MSS(p)                      ((p)->tcpvars.mss.type == TCP_OPT_MSS)
 
 /** macro for getting the wscale from the packet. */
@@ -146,7 +142,9 @@ typedef struct TCPHdr_
 typedef struct TCPVars_
 {
     /* commonly used and needed opts */
-    TCPOpt ts;
+    _Bool ts_set;
+    uint32_t ts_val;    /* host-order */
+    uint32_t ts_ecr;    /* host-order */
     TCPOpt sack;
     TCPOpt sackok;
     TCPOpt ws;
@@ -156,7 +154,9 @@ typedef struct TCPVars_
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
     (p)->level4_comp_csum = -1; \
-    (p)->tcpvars.ts.type = 0; \
+    (p)->tcpvars.ts_set = FALSE; \
+    (p)->tcpvars.ts_val = 0; \
+    (p)->tcpvars.ts_ecr = 0; \
     (p)->tcpvars.sack.type = 0; \
     (p)->tcpvars.sackok.type = 0; \
     (p)->tcpvars.ws.type = 0; \

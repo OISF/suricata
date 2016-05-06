@@ -124,10 +124,14 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                     if (tcp_opts[tcp_opt_cnt].len != TCP_OPT_TS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.ts.type != 0) {
+                        if (p->tcpvars.ts_set) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            SET_OPTS(p->tcpvars.ts, tcp_opts[tcp_opt_cnt]);
+                            uint32_t values[2];
+                            memcpy(&values, tcp_opts[tcp_opt_cnt].data, sizeof(values));
+                            p->tcpvars.ts_val = ntohl(values[0]);
+                            p->tcpvars.ts_ecr = ntohl(values[1]);
+                            p->tcpvars.ts_set = TRUE;
                         }
                     }
                     break;

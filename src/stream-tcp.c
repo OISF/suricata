@@ -6436,14 +6436,12 @@ end:
 static int StreamTcpTest07 (void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-        return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     uint8_t payload[1] = {0x42};
-    uint32_t data[2];
     PacketQueue pq;
 
     memset(p, 0, SIZE_OF_PACKET);
@@ -6455,7 +6453,6 @@ static int StreamTcpTest07 (void)
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
-    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
     stream_config.midstream = TRUE;
@@ -6470,45 +6467,33 @@ static int StreamTcpTest07 (void)
     tcph.th_flags = TH_ACK|TH_PUSH;
     p->tcph = &tcph;
 
-    data[0] = htonl(10);
-    data[1] = htonl(11);
-
-    p->tcpvars.ts.type = TCP_OPT_TS;
-    p->tcpvars.ts.len = 10;
-    p->tcpvars.ts.data = (uint8_t *)data;
+    p->tcpvars.ts_set = TRUE;
+    p->tcpvars.ts_val = 10;
+    p->tcpvars.ts_ecr = 11;
 
     p->payload = payload;
     p->payload_len = 1;
 
     SCMutexLock(&f.m);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(23);
     p->tcph->th_flags = TH_ACK|TH_PUSH;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    data[0] = htonl(2);
-    p->tcpvars.ts.data = (uint8_t *)data;
+    p->tcpvars.ts_val = 2;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1) {
-        if (((TcpSession *) (p->flow->protoctx))->client.next_seq != 11) {
-            printf("the timestamp values are client %"PRIu32" server %" PRIu32""
-                    " seq %" PRIu32 "\n", TCP_GET_TSVAL(p), TCP_GET_TSECR(p),
-                    ((TcpSession *) (p->flow->protoctx))->client.next_seq);
-            goto end;
-        }
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) != -1);
 
-        StreamTcpSessionClear(p->flow->protoctx);
-        ret = 1;
-    }
-end:
+    FAIL_IF (((TcpSession *) (p->flow->protoctx))->client.next_seq != 11);
+
+    StreamTcpSessionClear(p->flow->protoctx);
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    PASS;
 }
 
 /**
@@ -6520,16 +6505,13 @@ end:
 
 static int StreamTcpTest08 (void)
 {
-
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL))
-    return 0;
+    FAIL_IF(unlikely(p == NULL));
     Flow f;
     ThreadVars tv;
     StreamTcpThread stt;
     TCPHdr tcph;
     uint8_t payload[1] = {0x42};
-    uint32_t data[2];
 
     memset(p, 0, SIZE_OF_PACKET);
     PacketQueue pq;
@@ -6541,7 +6523,6 @@ static int StreamTcpTest08 (void)
 
     FLOW_INITIALIZE(&f);
     p->flow = &f;
-    int ret = 0;
 
     StreamTcpInitConfig(TRUE);
     stream_config.midstream = TRUE;
@@ -6556,47 +6537,34 @@ static int StreamTcpTest08 (void)
     tcph.th_flags = TH_ACK|TH_PUSH;
     p->tcph = &tcph;
 
-    data[0] = htonl(10);
-    data[1] = htonl(11);
-
-    p->tcpvars.ts.type = TCP_OPT_TS;
-    p->tcpvars.ts.len = 10;
-    p->tcpvars.ts.data = (uint8_t *)data;
+    p->tcpvars.ts_set = TRUE;
+    p->tcpvars.ts_val = 10;
+    p->tcpvars.ts_ecr = 11;
 
     p->payload = payload;
     p->payload_len = 1;
 
     SCMutexLock(&f.m);
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
     p->tcph->th_seq = htonl(11);
     p->tcph->th_ack = htonl(20);
     p->tcph->th_flags = TH_ACK|TH_PUSH;
     p->flowflags = FLOW_PKT_TOSERVER;
 
-    data[0] = htonl(12);
-    p->tcpvars.ts.data = (uint8_t *)data;
+    p->tcpvars.ts_val = 12;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
-        goto end;
+    FAIL_IF(StreamTcpPacket(&tv, p, &stt, &pq) == -1);
 
-    if (((TcpSession *) (p->flow->protoctx))->client.next_seq != 12) {
-        printf("the timestamp values are client %"PRIu32" server %" PRIu32 " "
-                "seq %" PRIu32 "\n", TCP_GET_TSVAL(p), TCP_GET_TSECR(p),
-                ((TcpSession *) (p->flow->protoctx))->client.next_seq);
-        goto end;
-    }
+    FAIL_IF(((TcpSession *) (p->flow->protoctx))->client.next_seq != 12);
 
     StreamTcpSessionClear(p->flow->protoctx);
 
-    ret = 1;
-end:
     StreamTcpFreeConfig(TRUE);
     SCMutexUnlock(&f.m);
     SCFree(p);
     FLOW_DESTROY(&f);
-    return ret;
+    PASS;
 }
 
 /**
