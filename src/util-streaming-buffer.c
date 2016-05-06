@@ -728,7 +728,9 @@ int StreamingBufferInsertAt(StreamingBuffer *sb, StreamingBufferSegment *seg,
                 return -1;
         }
     }
-    BUG_ON(!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset));
+    if (!DATA_FITS_AT_OFFSET(sb, data_len, rel_offset)) {
+        return -1;
+    }
 
     memcpy(sb->buf + rel_offset, data, data_len);
     seg->stream_offset = offset;
@@ -846,20 +848,22 @@ void StreamingBufferSegmentGetData(const StreamingBuffer *sb,
                                    const StreamingBufferSegment *seg,
                                    const uint8_t **data, uint32_t *data_len)
 {
-    if (seg->stream_offset >= sb->stream_offset) {
-        uint64_t offset = seg->stream_offset - sb->stream_offset;
-        *data = sb->buf + offset;
-        if (offset + seg->segment_len > sb->buf_size)
-            *data_len = sb->buf_size - offset;
-        else
-            *data_len = seg->segment_len;
-        return;
-    } else {
-        uint64_t offset = sb->stream_offset - seg->stream_offset;
-        if (offset < seg->segment_len) {
-            *data = sb->buf;
-            *data_len = seg->segment_len - offset;
+    if (likely(sb->buf)) {
+        if (seg->stream_offset >= sb->stream_offset) {
+            uint64_t offset = seg->stream_offset - sb->stream_offset;
+            *data = sb->buf + offset;
+            if (offset + seg->segment_len > sb->buf_size)
+                *data_len = sb->buf_size - offset;
+            else
+                *data_len = seg->segment_len;
             return;
+        } else {
+            uint64_t offset = sb->stream_offset - seg->stream_offset;
+            if (offset < seg->segment_len) {
+                *data = sb->buf;
+                *data_len = seg->segment_len - offset;
+                return;
+            }
         }
     }
     *data = NULL;
@@ -942,7 +946,10 @@ int StreamingBufferCompareRawData(const StreamingBuffer *sb,
         return 1;
     }
     SCLogDebug("sbdata_len %u, offset %u", sbdata_len, (uint)offset);
-    //PrintRawDataFp(stdout, sbdata,sbdata_len);
+    printf("got:\n");
+    PrintRawDataFp(stdout, sbdata,sbdata_len);
+    printf("wanted:\n");
+    PrintRawDataFp(stdout, rawdata,rawdata_len);
     return 0;
 }
 
