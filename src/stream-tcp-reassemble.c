@@ -157,6 +157,66 @@ int StreamTcpReassembleCheckMemcap(uint32_t size)
     return 0;
 }
 
+/* memory functions for the streaming buffer API */
+
+/*
+    void *(*Malloc)(size_t size);
+*/
+static void *ReassembleMalloc(size_t size)
+{
+    if (StreamTcpReassembleCheckMemcap(size) == 0)
+        return NULL;
+    void *ptr = SCMalloc(size);
+    if (ptr == NULL)
+        return NULL;
+    StreamTcpReassembleIncrMemuse(size);
+    return ptr;
+}
+
+/*
+    void *(*Calloc)(size_t n, size_t size);
+*/
+static void *ReassembleCalloc(size_t n, size_t size)
+{
+    if (StreamTcpReassembleCheckMemcap(n * size) == 0)
+        return NULL;
+    void *ptr = SCCalloc(n, size);
+    if (ptr == NULL)
+        return NULL;
+    StreamTcpReassembleIncrMemuse(n * size);
+    return ptr;
+}
+
+/*
+    void *(*Realloc)(void *ptr, size_t orig_size, size_t size);
+*/
+static void *ReassembleRealloc(void *optr, size_t orig_size, size_t size)
+{
+    if (size > orig_size) {
+        if (StreamTcpReassembleCheckMemcap(size - orig_size) == 0)
+            return NULL;
+    }
+    void *nptr = SCRealloc(optr, size);
+    if (nptr == NULL)
+        return NULL;
+
+    if (size > orig_size) {
+        StreamTcpReassembleIncrMemuse(size - orig_size);
+    } else {
+        StreamTcpReassembleDecrMemuse(orig_size - size);
+    }
+    return nptr;
+}
+
+/*
+    void (*Free)(void *ptr, size_t size);
+*/
+static void ReassembleFree(void *ptr, size_t size)
+{
+    SCFree(ptr);
+    StreamTcpReassembleDecrMemuse(size);
+}
+
 /** \brief alloc a tcp segment pool entry */
 void *TcpSegmentPoolAlloc()
 {
@@ -521,6 +581,10 @@ int StreamTcpReassemblyConfig(char quiet)
 
     stream_config.sbcnf.flags = STREAMING_BUFFER_NOFLAGS;
     stream_config.sbcnf.buf_size = 2048;
+    stream_config.sbcnf.Malloc = ReassembleMalloc;
+    stream_config.sbcnf.Calloc = ReassembleCalloc;
+    stream_config.sbcnf.Realloc = ReassembleRealloc;
+    stream_config.sbcnf.Free = ReassembleFree;
 
     return 0;
 }
