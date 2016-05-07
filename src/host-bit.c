@@ -40,7 +40,8 @@
 
 static int host_bit_id = -1;                /**< Host storage id for bits */
 
-void HostBitFreeAll(void *store) {
+void HostBitFreeAll(void *store)
+{
     GenericVar *gv = store;
     GenericVarFree(gv);
 }
@@ -82,9 +83,8 @@ static XBit *HostBitGet(Host *h, uint16_t idx)
 {
     GenericVar *gv = HostGetStorageById(h, host_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
-        if (gv->type == DETECT_XBITS && gv->idx == idx) {
+        if (gv->type == DETECT_XBITS && gv->idx == idx)
             return (XBit *)gv;
-        }
     }
 
     return NULL;
@@ -130,27 +130,24 @@ static void HostBitRemove(Host *h, uint16_t idx)
 void HostBitSet(Host *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = HostBitGet(h, idx);
-    if (fb == NULL) {
+    if (fb == NULL)
         HostBitAdd(h, idx, expire);
-    }
 }
 
 void HostBitUnset(Host *h, uint16_t idx)
 {
     XBit *fb = HostBitGet(h, idx);
-    if (fb != NULL) {
+    if (fb != NULL)
         HostBitRemove(h, idx);
-    }
 }
 
 void HostBitToggle(Host *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = HostBitGet(h, idx);
-    if (fb != NULL) {
+    if (fb != NULL)
         HostBitRemove(h, idx);
-    } else {
+    else
         HostBitAdd(h, idx, expire);
-    }
 }
 
 int HostBitIsset(Host *h, uint16_t idx, uint32_t ts)
@@ -169,9 +166,8 @@ int HostBitIsset(Host *h, uint16_t idx, uint32_t ts)
 int HostBitIsnotset(Host *h, uint16_t idx, uint32_t ts)
 {
     XBit *fb = HostBitGet(h, idx);
-    if (fb == NULL) {
+    if (fb == NULL)
         return 1;
-    }
 
     if (fb->expire < ts) {
         HostBitRemove(h,idx);
