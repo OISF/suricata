@@ -396,6 +396,7 @@ static int StreamTcpSackTest01 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -432,6 +433,7 @@ static int StreamTcpSackTest02 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -470,6 +472,7 @@ static int StreamTcpSackTest03 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -505,6 +508,7 @@ static int StreamTcpSackTest04 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -540,6 +544,7 @@ static int StreamTcpSackTest05 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -577,6 +582,7 @@ static int StreamTcpSackTest06 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -623,6 +629,7 @@ static int StreamTcpSackTest07 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -669,6 +676,7 @@ static int StreamTcpSackTest08 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -716,6 +724,7 @@ static int StreamTcpSackTest09 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -762,6 +771,7 @@ static int StreamTcpSackTest10 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -808,6 +818,7 @@ static int StreamTcpSackTest11 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -861,6 +872,7 @@ static int StreamTcpSackTest12 (void)
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -893,6 +905,7 @@ static int StreamTcpSackTest13 (void) {
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
@@ -925,6 +938,7 @@ static int StreamTcpSackTest14 (void) {
 
     retval = 1;
 end:
+    StreamTcpSackFreeList(&stream);
     SCReturnInt(retval);
 }
 
