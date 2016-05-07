@@ -103,9 +103,11 @@ void StreamTcpRegisterTests (void);
 
 void StreamTcpSessionPktFree (Packet *);
 
+void StreamTcpInitMemuse(void);
 void StreamTcpIncrMemuse(uint64_t);
 void StreamTcpDecrMemuse(uint64_t);
 int StreamTcpCheckMemcap(uint64_t);
+uint64_t StreamTcpMemuseCounter(void);
 uint64_t StreamTcpReassembleMemuseGlobalCounter(void);
 
 Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);

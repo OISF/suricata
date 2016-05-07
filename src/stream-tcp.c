@@ -119,6 +119,11 @@ SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 /* stream engine running in "inline" mode. */
 int stream_inline = 0;
 
+void StreamTcpInitMemuse(void)
+{
+    SC_ATOMIC_INIT(st_memuse);
+}
+
 void StreamTcpIncrMemuse(uint64_t size)
 {
     (void) SC_ATOMIC_ADD(st_memuse, size);
@@ -598,7 +603,7 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream.reassembly.raw: %s", enable_raw ? "enabled" : "disabled");
 
     /* init the memcap/use tracking */
-    SC_ATOMIC_INIT(st_memuse);
+    StreamTcpInitMemuse();
     StatsRegisterGlobalCounter("tcp.memuse", StreamTcpMemuseCounter);
 
     StreamTcpReassembleInit(quiet);
