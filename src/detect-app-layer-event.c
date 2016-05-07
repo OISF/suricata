@@ -44,7 +44,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-
+#include "stream-tcp-util.h"
 
 static int DetectAppLayerEventPktMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                        Packet *p, Signature *s, const SigMatchCtx *ctx);
@@ -489,7 +489,6 @@ int DetectAppLayerEventTest02(void)
 
 int DetectAppLayerEventTest03(void)
 {
-    int result = 0;
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     Packet *p = NULL;
@@ -530,70 +529,53 @@ int DetectAppLayerEventTest03(void)
     ssn.data_first_seen_dir = STREAM_TOSERVER;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF(de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_mismatch_protocol_both_directions; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    FAIL_IF(de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
+    FAIL_IF(f == NULL);
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        goto end;
+    FAIL_IF(unlikely(p == NULL));
     p->flow = f;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
-    if (ra_ctx == NULL)
-        goto end;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
+    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                             sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
+
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
+
+    FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
 
-    result = 1;
- end:
-    return result;
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    FAIL_IF(PacketAlertCheck(p, 1));
+
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
 }
 
 int DetectAppLayerEventTest04(void)
 {
-    int result = 0;
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     Packet *p = NULL;
@@ -634,70 +616,49 @@ int DetectAppLayerEventTest04(void)
     ssn.data_first_seen_dir = STREAM_TOSERVER;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF (de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_detect_protocol_only_one_direction; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    FAIL_IF(de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
+    FAIL_IF (f == NULL);
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        goto end;
+    FAIL_IF(unlikely(p == NULL));
     p->flow = f;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
-    if (ra_ctx == NULL)
-        goto end;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
+    FAIL_IF(AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
+    FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match but should have\n");
-        goto end;
-    }
+    FAIL_IF (!PacketAlertCheck(p, 1));
 
-    result = 1;
- end:
-    return result;
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
 }
 
 int DetectAppLayerEventTest05(void)
 {
-    int result = 0;
     ThreadVars tv;
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     Packet *p = NULL;
@@ -754,65 +715,45 @@ int DetectAppLayerEventTest05(void)
     ssn.data_first_seen_dir = STREAM_TOSERVER;
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF (de_ctx == NULL);
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_mismatch_protocol_both_directions; "
                                "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
+    FAIL_IF (de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
-    if (f == NULL)
-        goto end;
+    FAIL_IF (f == NULL);
     FLOW_INITIALIZE(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->flags |= FLOW_IPV4;
 
     p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        goto end;
+    FAIL_IF (unlikely(p == NULL));
     p->flow = f;
     p->src.family = AF_INET;
     p->dst.family = AF_INET;
     p->proto = IPPROTO_TCP;
 
-    ra_ctx = StreamTcpReassembleInitThreadCtx(&tv);
-    if (ra_ctx == NULL)
-        goto end;
-    StreamTcpInitConfig(TRUE);
+    StreamTcpUTInit(&ra_ctx);
 
     p->flowflags = FLOW_PKT_TOSERVER;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
-                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_ts, buf_ts,
+                              sizeof(buf_ts), STREAM_TOSERVER | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sid 1 matched but shouldn't have\n");
-        goto end;
-    }
+    FAIL_IF (PacketAlertCheck(p, 1));
 
     p->flowflags = FLOW_PKT_TOCLIENT;
-    if (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
-                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0) {
-        printf("AppLayerHandleTCPData failure\n");
-        goto end;
-    }
+    FAIL_IF (AppLayerHandleTCPData(&tv, ra_ctx, p, f, &ssn, &stream_tc, buf_tc,
+                              sizeof(buf_tc), STREAM_TOCLIENT | STREAM_START) < 0);
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (!PacketAlertCheck(p, 1)) {
-        printf("sid 1 didn't match but should have\n");
-        goto end;
-    }
+    FAIL_IF (!PacketAlertCheck(p, 1));
 
-    result = 1;
- end:
-    return result;
+    StreamTcpUTDeinit(ra_ctx);
+    PASS;
 }
 
 #endif /* UNITTESTS */
