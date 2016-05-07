@@ -235,8 +235,8 @@ static SMTPString *SMTPStringAlloc(void);
  *
  * \return none
  */
-static void SMTPConfigure(void) {
-
+static void SMTPConfigure(void)
+{
     SCEnter();
     int val;
     intmax_t imval;
@@ -247,34 +247,28 @@ static void SMTPConfigure(void) {
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
         int ret = ConfGetChildValueBool(config, "decode-mime", &val);
-        if (ret) {
+        if (ret)
             smtp_config.decode_mime = val;
-        }
 
         ret = ConfGetChildValueBool(config, "decode-base64", &val);
-        if (ret) {
+        if (ret)
             smtp_config.mime_config.decode_base64 = val;
-        }
 
         ret = ConfGetChildValueBool(config, "decode-quoted-printable", &val);
-        if (ret) {
+        if (ret)
             smtp_config.mime_config.decode_quoted_printable = val;
-        }
 
         ret = ConfGetChildValueInt(config, "header-value-depth", &imval);
-        if (ret) {
+        if (ret)
             smtp_config.mime_config.header_value_depth = (uint32_t) imval;
-        }
 
         ret = ConfGetChildValueBool(config, "extract-urls", &val);
-        if (ret) {
+        if (ret)
             smtp_config.mime_config.extract_urls = val;
-        }
 
         ret = ConfGetChildValueBool(config, "body-md5", &val);
-        if (ret) {
+        if (ret)
             smtp_config.mime_config.body_md5 = val;
-        }
     }
 
     /* Pass mime config data to MimeDec API */
@@ -317,7 +311,6 @@ static void SMTPConfigure(void) {
             }
         }
     }
-
     SCReturn;
 }
 
@@ -377,7 +370,6 @@ static void SMTPPruneFiles(FileContainer *files)
                 file->content_inspected = left_edge;
             }
         }
-
         file = file->next;
     }
 }
@@ -406,17 +398,14 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     uint16_t flags = 0;
 
     /* Set flags */
-    if (flow->flags & FLOW_FILE_NO_STORE_TS) {
+    if (flow->flags & FLOW_FILE_NO_STORE_TS)
         flags |= FILE_NOSTORE;
-    }
 
-    if (flow->flags & FLOW_FILE_NO_MAGIC_TS) {
+    if (flow->flags & FLOW_FILE_NO_MAGIC_TS)
         flags |= FILE_NOMAGIC;
-    }
 
-    if (flow->flags & FLOW_FILE_NO_MD5_TS) {
+    if (flow->flags & FLOW_FILE_NO_MD5_TS)
         flags |= FILE_NOMD5;
-    }
 
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
@@ -446,9 +435,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
 
             /* Set storage flag if applicable since only the first file in the
              * flow seems to be processed by the 'filestore' detector */
-            if (files->head != NULL && (files->head->flags & FILE_STORE)) {
+            if (files->head != NULL && (files->head->flags & FILE_STORE))
                 flags |= FILE_STORE;
-            }
 
             if (FileOpenFile(files, (uint8_t *) entity->filename, entity->filename_len,
                     (uint8_t *) chunk, len, flags|FILE_USE_DETECT) == NULL) {
@@ -500,9 +488,8 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             }
         }
 
-        if (ret == 0) {
+        if (ret == 0)
             SCLogDebug("Successfully processed file data!");
-        }
     } else {
         SCLogDebug("Body not a Ctnt_attachment");
     }
@@ -511,7 +498,6 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
         SMTPPruneFiles(files);
         FilePrune(files);
     }
-
     SCReturnInt(ret);
 }
 
@@ -561,9 +547,8 @@ static int SMTPGetLine(SMTPState *state)
              * should alert about */
             if (state->ts_current_line_db == 0) {
                 state->ts_db = SCMalloc(state->input_len);
-                if (state->ts_db == NULL) {
+                if (state->ts_db == NULL)
                     return -1;
-                }
                 state->ts_current_line_db = 1;
                 memcpy(state->ts_db, state->input, state->input_len);
                 state->ts_db_len = state->input_len;
@@ -579,20 +564,19 @@ static int SMTPGetLine(SMTPState *state)
                 state->ts_db = ptmp;
 
                 memcpy(state->ts_db + state->ts_db_len,
-                       state->input, state->input_len);
+                    state->input, state->input_len);
                 state->ts_db_len += state->input_len;
             } /* else */
             state->input += state->input_len;
             state->input_len = 0;
 
             return -1;
-
         } else {
             state->ts_current_line_lf_seen = 1;
 
             if (state->ts_current_line_db == 1) {
                 ptmp = SCRealloc(state->ts_db,
-                                 (state->ts_db_len + (lf_idx + 1 - state->input)));
+                    (state->ts_db_len + (lf_idx + 1 - state->input)));
                 if (ptmp == NULL) {
                     SCFree(state->ts_db);
                     state->ts_db = NULL;
@@ -602,7 +586,7 @@ static int SMTPGetLine(SMTPState *state)
                 state->ts_db = ptmp;
 
                 memcpy(state->ts_db + state->ts_db_len,
-                       state->input, (lf_idx + 1 - state->input));
+                    state->input, (lf_idx + 1 - state->input));
                 state->ts_db_len += (lf_idx + 1 - state->input);
 
                 if (state->ts_db_len > 1 &&
@@ -616,7 +600,6 @@ static int SMTPGetLine(SMTPState *state)
 
                 state->current_line = state->ts_db;
                 state->current_line_len = state->ts_db_len;
-
             } else {
                 state->current_line = state->input;
                 state->current_line_len = lf_idx - state->input;
@@ -632,7 +615,6 @@ static int SMTPGetLine(SMTPState *state)
 
             state->input_len -= (lf_idx - state->input) + 1;
             state->input = (lf_idx + 1);
-
             return 0;
         }
 
@@ -653,7 +635,6 @@ static int SMTPGetLine(SMTPState *state)
         }
 
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
-
         if (lf_idx == NULL) {
             /* fragmented lines.  Decoder event for special cases.  Not all
              * fragmented lines should be treated as a possible evasion
@@ -663,15 +644,14 @@ static int SMTPGetLine(SMTPState *state)
              * should alert about */
             if (state->tc_current_line_db == 0) {
                 state->tc_db = SCMalloc(state->input_len);
-                if (state->tc_db == NULL) {
+                if (state->tc_db == NULL)
                     return -1;
-                }
                 state->tc_current_line_db = 1;
                 memcpy(state->tc_db, state->input, state->input_len);
                 state->tc_db_len = state->input_len;
             } else {
                 ptmp = SCRealloc(state->tc_db,
-                                 (state->tc_db_len + state->input_len));
+                    (state->tc_db_len + state->input_len));
                 if (ptmp == NULL) {
                     SCFree(state->tc_db);
                     state->tc_db = NULL;
@@ -681,20 +661,17 @@ static int SMTPGetLine(SMTPState *state)
                 state->tc_db = ptmp;
 
                 memcpy(state->tc_db + state->tc_db_len,
-                       state->input, state->input_len);
+                    state->input, state->input_len);
                 state->tc_db_len += state->input_len;
             } /* else */
             state->input += state->input_len;
             state->input_len = 0;
-
             return -1;
-
         } else {
             state->tc_current_line_lf_seen = 1;
-
             if (state->tc_current_line_db == 1) {
                 ptmp = SCRealloc(state->tc_db,
-                                 (state->tc_db_len + (lf_idx + 1 - state->input)));
+                    (state->tc_db_len + (lf_idx + 1 - state->input)));
                 if (ptmp == NULL) {
                     SCFree(state->tc_db);
                     state->tc_db = NULL;
@@ -704,7 +681,7 @@ static int SMTPGetLine(SMTPState *state)
                 state->tc_db = ptmp;
 
                 memcpy(state->tc_db + state->tc_db_len,
-                       state->input, (lf_idx + 1 - state->input));
+                    state->input, (lf_idx + 1 - state->input));
                 state->tc_db_len += (lf_idx + 1 - state->input);
 
                 if (state->tc_db_len > 1 &&
@@ -738,7 +715,6 @@ static int SMTPGetLine(SMTPState *state)
             return 0;
         } /* else - if (lf_idx == NULL) */
     }
-
 }
 
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state, Flow *f)
@@ -748,12 +724,11 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
 
     if (state->cmds_cnt >= state->cmds_buffer_len) {
         int increment = SMTP_COMMAND_BUFFER_STEPS;
-        if ((int)(state->cmds_buffer_len + SMTP_COMMAND_BUFFER_STEPS) > (int)USHRT_MAX) {
+        if ((int)(state->cmds_buffer_len + SMTP_COMMAND_BUFFER_STEPS) > (int)USHRT_MAX)
             increment = USHRT_MAX - state->cmds_buffer_len;
-        }
 
         ptmp = SCRealloc(state->cmds,
-                         sizeof(uint8_t) * (state->cmds_buffer_len + increment));
+            sizeof(uint8_t) * (state->cmds_buffer_len + increment));
         if (ptmp == NULL) {
             SCFree(state->cmds);
             state->cmds = NULL;
@@ -761,9 +736,9 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
             return -1;
         }
         state->cmds = ptmp;
-
         state->cmds_buffer_len += increment;
     }
+
     if (state->cmds_cnt >= 1 &&
         ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
          (state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_DATA))) {
@@ -781,7 +756,6 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state,
 
     state->cmds[state->cmds_cnt] = command;
     state->cmds_cnt++;
-
     return 0;
 }
 
@@ -791,7 +765,8 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     SCEnter();
 
     state->bdat_chunk_idx += (state->current_line_len +
-                              state->current_line_delimiter_len);
+        state->current_line_delimiter_len);
+    
     if (state->bdat_chunk_idx > state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         /* decoder event */
@@ -809,10 +784,9 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
 {
     SCEnter();
 
-    if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
-        /* looks like are still waiting for a confirmination from the server */
+    /* looks like are still waiting for a confirmination from the server */
+    if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE))
         return 0;
-    }
 
     if (state->current_line_len == 1 && state->current_line[0] == '.') {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -826,37 +800,35 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             /* Complete parsing task */
             int ret = MimeDecParseComplete(state->curr_tx->mime_state);
             if (ret != MIME_DEC_OK) {
-
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_PARSE_FAILED);
                 SCLogDebug("MimeDecParseComplete() function failed");
             }
 
             /* Generate decoder events */
             MimeDecEntity *msg = state->curr_tx->mime_state->msg;
-            if (msg->anomaly_flags & ANOM_INVALID_BASE64) {
+            if (msg->anomaly_flags & ANOM_INVALID_BASE64)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_BASE64);
-            }
-            if (msg->anomaly_flags & ANOM_INVALID_QP) {
+
+            if (msg->anomaly_flags & ANOM_INVALID_QP)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_INVALID_QP);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_LINE) {
+
+            if (msg->anomaly_flags & ANOM_LONG_LINE)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_ENC_LINE) {
+
+            if (msg->anomaly_flags & ANOM_LONG_ENC_LINE)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_ENC_LINE);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME) {
+
+            if (msg->anomaly_flags & ANOM_LONG_HEADER_NAME)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_NAME);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE) {
+
+            if (msg->anomaly_flags & ANOM_LONG_HEADER_VALUE)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_LONG_HEADER_VALUE);
-            }
-            if (msg->anomaly_flags & ANOM_MALFORMED_MSG) {
+
+            if (msg->anomaly_flags & ANOM_MALFORMED_MSG)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_MALFORMED_MSG);
-            }
-            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY) {
+
+            if (msg->anomaly_flags & ANOM_LONG_BOUNDARY)
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
-            }
         }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
@@ -870,23 +842,21 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->current_line_delimiter_len,
                     state->curr_tx->mime_state);
-            if (ret != MIME_DEC_OK) {
+            if (ret != MIME_DEC_OK)
                 SCLogDebug("MimeDecParseLine() function returned an error code: %d", ret);
-            }
         }
     }
-
     return 0;
 }
 
 static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
-                                      AppLayerParserState *pstate)
+    AppLayerParserState *pstate)
 {
     return 0;
 }
 
 static int SMTPProcessReply(SMTPState *state, Flow *f,
-                            AppLayerParserState *pstate)
+    AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -903,26 +873,23 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 
     if (state->current_line_len >= 4) {
         if (state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY) {
-            if (state->current_line[3] != '-') {
+            if (state->current_line[3] != '-')
                 state->parser_state &= ~SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY;
-            }
         } else {
-            if (state->current_line[3] == '-') {
+            if (state->current_line[3] == '-')
                 state->parser_state |= SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY;
-            }
         }
     } else {
-        if (state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY) {
+        if (state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)
             state->parser_state &= ~SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY;
-        }
     }
 
     /* I don't like this pmq reset here.  We'll devise a method later, that
      * should make the use of the mpm very efficient */
     PmqReset(pmq);
     int mpm_cnt = mpm_table[SMTP_MPM].Search(smtp_mpm_ctx, smtp_mpm_thread_ctx,
-                                             pmq, state->current_line,
-                                             3);
+        pmq, state->current_line, 3);
+
     if (mpm_cnt == 0) {
         /* set decoder event - reply code invalid */
         SMTPSetEvent(state, SMTP_DECODER_EVENT_INVALID_REPLY);
@@ -983,9 +950,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
     /* if it is a multi-line reply, we need to move the index only once for all
      * the line of the reply.  We unset the multiline flag on the last
      * line of the multiline reply, following which we increment the index */
-    if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
+    if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY))
         state->cmds_idx++;
-    }
 
     /* if we have matched all the buffered commands, reset the cnt and index */
     if (state->cmds_idx == state->cmds_cnt) {
@@ -1002,9 +968,8 @@ static int SMTPParseCommandBDAT(SMTPState *state)
 
     int i = 4;
     while (i < state->current_line_len) {
-        if (state->current_line[i] != ' ') {
+        if (state->current_line[i] != ' ')
             break;
-        }
         i++;
     }
     if (i == 4) {
@@ -1017,24 +982,24 @@ static int SMTPParseCommandBDAT(SMTPState *state)
     }
     char *endptr = NULL;
     state->bdat_chunk_len = strtoul((const char *)state->current_line + i,
-                                    (char **)&endptr, 10);
-    if ((uint8_t *)endptr == state->current_line + i) {
-        /* decoder event */
+        (char **)&endptr, 10);
+    
+    /* decoder event */
+    if ((uint8_t *)endptr == state->current_line + i)
         return -1;
-    }
 
     return 0;
 }
 
-static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8_t **target, uint16_t *target_len)
+static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len,
+    uint8_t **target, uint16_t *target_len)
 {
     int i = prefix_len + 1;
     int spc_i = 0;
 
     while (i < state->current_line_len) {
-        if (state->current_line[i] != ' ') {
+        if (state->current_line[i] != ' ')
             break;
-        }
         i++;
     }
 
@@ -1042,9 +1007,8 @@ static int SMTPParseCommandWithParam(SMTPState *state, uint8_t prefix_len, uint8
        We use the space separator to detect it. */
     spc_i = i;
     while (spc_i < state->current_line_len) {
-        if (state->current_line[spc_i] == ' ') {
+        if (state->current_line[spc_i] == ' ')
             break;
-        }
         spc_i++;
     }
 
@@ -1074,8 +1038,7 @@ static int SMTPParseCommandMAILFROM(SMTPState *state)
         return 0;
     }
     return SMTPParseCommandWithParam(state, 9,
-                                     &state->curr_tx->mail_from,
-                                     &state->curr_tx->mail_from_len);
+        &state->curr_tx->mail_from, &state->curr_tx->mail_from_len);
 }
 
 static int SMTPParseCommandRCPTTO(SMTPState *state)
@@ -1115,7 +1078,7 @@ static int NoNewTx(SMTPState *state)
 }
 
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
-                              AppLayerParserState *pstate)
+    AppLayerParserState *pstate)
 {
     SCEnter();
     SMTPTransaction *tx = state->curr_tx;
@@ -1129,9 +1092,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         tx->tx_id = state->tx_cnt++;
     }
 
-    if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+    if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN))
         SMTPSetEvent(state, SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE);
-    }
 
     /* there are 2 commands that can push it into this COMMAND_DATA mode -
      * STARTTLS and DATA */
@@ -1178,32 +1140,28 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("bdat", state->current_line, 4) == 0) {
             r = SMTPParseCommandBDAT(state);
-            if (r == -1) {
+            if (r == -1)
                 SCReturnInt(-1);
-            }
             state->current_command = SMTP_COMMAND_BDAT;
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else if (state->current_line_len >= 4 &&
                    ((SCMemcmpLowercase("helo", state->current_line, 4) == 0) ||
                     SCMemcmpLowercase("ehlo", state->current_line, 4) == 0))  {
             r = SMTPParseCommandHELO(state);
-            if (r == -1) {
+            if (r == -1)
                 SCReturnInt(-1);
-            }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else if (state->current_line_len >= 9 &&
                    SCMemcmpLowercase("mail from", state->current_line, 9) == 0) {
             r = SMTPParseCommandMAILFROM(state);
-            if (r == -1) {
+            if (r == -1)
                 SCReturnInt(-1);
-            }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else if (state->current_line_len >= 7 &&
                    SCMemcmpLowercase("rcpt to", state->current_line, 7) == 0) {
             r = SMTPParseCommandRCPTTO(state);
-            if (r == -1) {
+            if (r == -1)
                 SCReturnInt(-1);
-            }
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
@@ -1211,10 +1169,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 
         /* Every command is inserted into a command buffer, to be matched
          * against reply(ies) sent by the server */
-        if (SMTPInsertCommandIntoCommandBuffer(state->current_command,
-                                               state, f) == -1) {
+        if (SMTPInsertCommandIntoCommandBuffer(state->current_command, state, f) == -1)
             SCReturnInt(-1);
-        }
 
         SCReturnInt(r);
     }
@@ -1237,9 +1193,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 }
 
 static int SMTPParse(int direction, Flow *f, SMTPState *state,
-                     AppLayerParserState *pstate, uint8_t *input,
-                     uint32_t input_len,
-                     PatternMatcherQueue *local_data)
+    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    PatternMatcherQueue *local_data)
 {
     SCEnter();
 
@@ -1273,9 +1228,8 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
 }
 
 static int SMTPParseClientRecord(Flow *f, void *alstate,
-                                 AppLayerParserState *pstate,
-                                 uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    void *local_data)
 {
     SCEnter();
 
@@ -1284,16 +1238,13 @@ static int SMTPParseClientRecord(Flow *f, void *alstate,
 }
 
 static int SMTPParseServerRecord(Flow *f, void *alstate,
-                                 AppLayerParserState *pstate,
-                                 uint8_t *input, uint32_t input_len,
-                                 void *local_data)
+    AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
+    void *local_data)
 {
     SCEnter();
 
     /* first arg 1 is toclient */
     return SMTPParse(1, f, alstate, pstate, input, input_len, local_data);
-
-    return 0;
 }
 
 /**
@@ -1333,9 +1284,8 @@ static SMTPString *SMTPStringAlloc(void)
 
 static void SMTPStringFree(SMTPString *str)
 {
-    if (str->str) {
+    if (str->str)
         SCFree(str->str);
-    }
     SCFree(str);
 }
 
@@ -1343,9 +1293,8 @@ static void *SMTPLocalStorageAlloc(void)
 {
     /* needed by the mpm */
     PatternMatcherQueue *pmq = SCMalloc(sizeof(PatternMatcherQueue));
-    if (unlikely(pmq == NULL)) {
+    if (unlikely(pmq == NULL))
         exit(EXIT_FAILURE);
-    }
     PmqSetup(pmq);
 
     return pmq;
@@ -1363,9 +1312,8 @@ static void SMTPLocalStorageFree(void *pmq)
 
 static void SMTPTransactionFree(SMTPTransaction *tx, SMTPState *state)
 {
-    if (tx->mime_state != NULL) {
+    if (tx->mime_state != NULL)
         MimeDecDeInitParser(tx->mime_state);
-    }
     /* Free list of MIME message recursively */
     MimeDecFreeEntity(tx->msg_head);
 
@@ -1400,19 +1348,14 @@ static void SMTPStateFree(void *p)
 {
     SMTPState *smtp_state = (SMTPState *)p;
 
-    if (smtp_state->cmds != NULL) {
+    if (smtp_state->cmds != NULL)
         SCFree(smtp_state->cmds);
-    }
-    if (smtp_state->ts_current_line_db) {
+    if (smtp_state->ts_current_line_db)
         SCFree(smtp_state->ts_db);
-    }
-    if (smtp_state->tc_current_line_db) {
+    if (smtp_state->tc_current_line_db)
         SCFree(smtp_state->tc_db);
-    }
-
-    if (smtp_state->helo) {
+    if (smtp_state->helo)
         SCFree(smtp_state->helo);
-    }
 
     FileContainerFree(smtp_state->files_ts);
 
@@ -1423,40 +1366,35 @@ static void SMTPStateFree(void *p)
     }
 
     SCFree(smtp_state);
-
     return;
 }
 
 static void SMTPSetMpmState(void)
 {
     smtp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
-    if (unlikely(smtp_mpm_ctx == NULL)) {
+    if (unlikely(smtp_mpm_ctx == NULL))
         exit(EXIT_FAILURE);
-    }
     memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
     smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
-    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
+    if (unlikely(smtp_mpm_thread_ctx == NULL))
         exit(EXIT_FAILURE);
-    }
     memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
     MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 
-    uint32_t i = 0;
-    for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
+    for (uint32_t i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
         /* The third argument is 3, because reply code is always 3 bytes. */
         MpmAddPatternCI(smtp_mpm_ctx, (uint8_t *)map->enum_name, 3,
                         0 /* defunct */, 0 /* defunct */,
                         i /* pattern id */, i /* rule id */ , 0 /* no flags */);
     }
-
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
 }
 
 int SMTPStateGetEventInfo(const char *event_name,
-                          int *event_id, AppLayerEventType *event_type)
+    int *event_id, AppLayerEventType *event_type)
 {
     *event_id = SCMapEnumNameToValue(event_name, smtp_decoder_event_table);
     if (*event_id == -1) {
@@ -1467,27 +1405,20 @@ int SMTPStateGetEventInfo(const char *event_name,
     }
 
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
     return 0;
 }
 
 static int SMTPRegisterPatternsForProtocolDetection(void)
 {
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "EHLO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+            "EHLO", 4, 0, STREAM_TOSERVER) < 0)
         return -1;
-    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "HELO", 4, 0, STREAM_TOSERVER) < 0)
-    {
+            "HELO", 4, 0, STREAM_TOSERVER) < 0)
         return -1;
-    }
     if (AppLayerProtoDetectPMRegisterPatternCS(IPPROTO_TCP, ALPROTO_SMTP,
-                                               "QUIT", 4, 0, STREAM_TOSERVER) < 0)
-    {
+            "QUIT", 4, 0, STREAM_TOSERVER) < 0)
         return -1;
-    }
 
     return 0;
 }
@@ -1508,8 +1439,6 @@ static void SMTPStateTransactionFree (void *state, uint64_t tx_id)
         SMTPTransactionFree(tx, state);
         break;
     }
-
-
 }
 
 /** \retval cnt highest tx id */
@@ -1517,9 +1446,8 @@ static uint64_t SMTPStateGetTxCnt(void *state)
 {
     uint64_t cnt = 0;
     SMTPState *smtp_state = state;
-    if (smtp_state) {
+    if (smtp_state)
         cnt = smtp_state->tx_cnt;
-    }
     SCLogDebug("returning %"PRIu64, cnt);
     return cnt;
 }
@@ -1541,10 +1469,10 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
         }
     }
     return NULL;
-
 }
 
-static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
+static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction)
+{
     return 1;
 }
 
@@ -1584,9 +1512,8 @@ static AppLayerDecoderEvents *SMTPGetEvents(void *state, uint64_t tx_id)
     SCLogDebug("get SMTP events for TX %"PRIu64, tx_id);
 
     SMTPTransaction *tx = SMTPStateGetTx(state, tx_id);
-    if (tx != NULL) {
+    if (tx != NULL)
         return tx->decoder_events;
-    }
     return NULL;
 }
 
