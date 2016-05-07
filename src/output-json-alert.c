@@ -265,9 +265,11 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
-            int stream = (p->proto == IPPROTO_TCP) ?
-                         (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH) ?
-                         1 : 0) : 0;
+            int stream = 0;
+            if (p->proto == IPPROTO_TCP) {
+                if (pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH | PACKET_ALERT_FLAG_STREAM_MATCH))
+                    stream = 1;
+            }
 
             /* Is this a stream?  If so, pack part of it into the payload field */
             if (stream) {
@@ -557,9 +559,9 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
 
     json_output_ctx->xff_cfg = xff_cfg;
 
-    uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
-
     if (conf != NULL) {
+        uint32_t payload_buffer_size = JSON_STREAM_BUFFER_SIZE;
+
         const char *payload = ConfNodeLookupChildValue(conf, "payload");
         const char *payload_buffer_value = ConfNodeLookupChildValue(conf, "payload-buffer-size");
         const char *packet  = ConfNodeLookupChildValue(conf, "packet");
@@ -616,7 +618,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
             }
         }
 
-	json_output_ctx->payload_buffer_size = payload_buffer_size;
+        json_output_ctx->payload_buffer_size = payload_buffer_size;
         HttpXFFGetCfg(conf, xff_cfg);
     }
 }

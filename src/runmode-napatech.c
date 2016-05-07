@@ -74,13 +74,9 @@ int NapatechRegisterDeviceStreams()
 {
     NtInfoStream_t info_stream;
     NtInfo_t info;
-    char error_buf[100];
-    int status;
-    int i;
     char live_dev_buf[9];
     int use_all_streams;
     ConfNode *ntstreams;
-    ConfNode *stream_id;
 
     if (ConfGetBool("napatech.use-all-streams", &use_all_streams) == 0)
     {
@@ -90,6 +86,9 @@ int NapatechRegisterDeviceStreams()
 
     if (use_all_streams)
     {
+        char error_buf[100];
+        int status;
+        
         SCLogInfo("Using All Napatech Streams");
         // When using the default streams we need to query the service for a list of all configured
         if ((status = NT_InfoOpen(&info_stream, "SuricataStreamInfo")) != NT_SUCCESS)
@@ -108,7 +107,7 @@ int NapatechRegisterDeviceStreams()
         }
 
         num_configured_streams = info.u.stream.data.count;
-        for (i = 0; i < num_configured_streams; i++)
+        for (int i = 0; i < num_configured_streams; i++)
         {
             // The Stream IDs do not have to be sequential
             snprintf(live_dev_buf, sizeof(live_dev_buf), "nt%d", info.u.stream.data.streamIDList[i]);
@@ -133,6 +132,7 @@ int NapatechRegisterDeviceStreams()
         }
 
         // Loop through all stream numbers in the array and register the devices
+        ConfNode *stream_id;
         TAILQ_FOREACH(stream_id, &ntstreams->head, next)
         {
             if (stream_id == NULL)
@@ -182,13 +182,13 @@ int NapatechGetThreadsCount(void *conf __attribute__((unused))) {
 static int NapatechInit(int runmode)
 {
     int ret;
-    char errbuf[100];
 
     RunModeInitialize();
     TimeModeSetLive();
 
     /* Initialize the API and check version compatibility */
     if ((ret = NT_Init(NTAPI_VERSION)) != NT_SUCCESS) {
+        char errbuf[100];
         NT_ExplainError(ret, errbuf, sizeof(errbuf));
         SCLogError(SC_ERR_NAPATECH_INIT_FAILED ,"NT_Init failed. Code 0x%X = %s", ret, errbuf);
         exit(EXIT_FAILURE);

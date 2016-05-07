@@ -42,16 +42,11 @@
  */
 
 #include "suricata-common.h"
-
 #include "detect.h"
 #include "detect-parse.h"
-
 #include "detect-modbus.h"
-
 #include "util-debug.h"
-
 #include "app-layer-modbus.h"
-
 #include "stream-tcp.h"
 
 /**
@@ -78,7 +73,8 @@ void DetectModbusRegisterTests(void);
  *
  * \param ptr pointer to DetectModbus
  */
-static void DetectModbusFree(void *ptr) {
+static void DetectModbusFree(void *ptr)
+{
     SCEnter();
     DetectModbus *modbus = (DetectModbus *) ptr;
 
@@ -109,10 +105,11 @@ static DetectModbus *DetectModbusAccessParse(char *str)
     SCEnter();
     DetectModbus *modbus = NULL;
 
-    char    arg[MAX_SUBSTRINGS];
-    int     ov[MAX_SUBSTRINGS], ret, res;
+    char arg[MAX_SUBSTRINGS];
+    int ov[MAX_SUBSTRINGS], ret, res;
 
-    ret = pcre_exec(access_parse_regex, access_parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(access_parse_regex, access_parse_regex_study,
+            str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 1)
         goto error;
@@ -154,10 +151,9 @@ static DetectModbus *DetectModbusAccessParse(char *str)
                 modbus->type |= MODBUS_TYP_COILS;
             }
             else if (strcmp(arg, "input") == 0) {
-                if (modbus->type == MODBUS_TYP_WRITE) {
+                if (modbus->type == MODBUS_TYP_WRITE)
                     /* Input access is only read access. */
                     goto error;
-                }
 
                 modbus->type |= MODBUS_TYP_INPUT;
             }
@@ -273,10 +269,11 @@ static DetectModbus *DetectModbusFunctionParse(char *str)
     SCEnter();
     DetectModbus *modbus = NULL;
 
-    char    arg[MAX_SUBSTRINGS], *ptr = arg;
-    int     ov[MAX_SUBSTRINGS], res, ret;
+    char arg[MAX_SUBSTRINGS], *ptr = arg;
+    int ov[MAX_SUBSTRINGS], res, ret;
 
-    ret = pcre_exec(function_parse_regex, function_parse_regex_study, str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(function_parse_regex, function_parse_regex_study,
+            str, strlen(str), 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 1)
         goto error;
@@ -359,8 +356,8 @@ error:
 static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    DetectModbus    *modbus = NULL;
-    SigMatch        *sm = NULL;
+    DetectModbus *modbus = NULL;
+    SigMatch *sm = NULL;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_MODBUS) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
@@ -379,8 +376,8 @@ static int DetectModbusSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (sm == NULL)
         goto error;
 
-    sm->type    = DETECT_AL_MODBUS;
-    sm->ctx     = (void *) modbus;
+    sm->type = DETECT_AL_MODBUS;
+    sm->ctx = (void *) modbus;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MODBUS_MATCH);
     s->alproto = ALPROTO_MODBUS;
@@ -401,12 +398,12 @@ error:
 void DetectModbusRegister(void)
 {
     SCEnter();
-    sigmatch_table[DETECT_AL_MODBUS].name          = "modbus";
-    sigmatch_table[DETECT_AL_MODBUS].Match         = NULL;
+    sigmatch_table[DETECT_AL_MODBUS].name = "modbus";
+    sigmatch_table[DETECT_AL_MODBUS].Match = NULL;
     sigmatch_table[DETECT_AL_MODBUS].AppLayerMatch = NULL;
-    sigmatch_table[DETECT_AL_MODBUS].alproto       = ALPROTO_MODBUS;
-    sigmatch_table[DETECT_AL_MODBUS].Setup         = DetectModbusSetup;
-    sigmatch_table[DETECT_AL_MODBUS].Free          = DetectModbusFree;
+    sigmatch_table[DETECT_AL_MODBUS].alproto = ALPROTO_MODBUS;
+    sigmatch_table[DETECT_AL_MODBUS].Setup = DetectModbusSetup;
+    sigmatch_table[DETECT_AL_MODBUS].Free = DetectModbusFree;
     sigmatch_table[DETECT_AL_MODBUS].RegisterTests = DetectModbusRegisterTests;
 
     DetectSetupParseRegexes(PARSE_REGEX_FUNCTION,
@@ -417,7 +414,6 @@ void DetectModbusRegister(void)
 
 #ifdef UNITTESTS /* UNITTESTS */
 #include "detect-engine.h"
-
 #include "util-unittest.h"
 
 /** \test Signature containing a function. */

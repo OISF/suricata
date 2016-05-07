@@ -91,7 +91,8 @@ typedef struct LogLuaThreadCtx_ {
  *
  * NOTE: The flow (f) also referenced by p->flow is locked.
  */
-static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f,
+        void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -110,9 +111,8 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     LuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
 
     SCMutexUnlock(&td->lua_ctx->m);
     SCReturnInt(0);
@@ -157,9 +157,8 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
         LuaPushTableKeyValueInt(td->lua_ctx->luastate, "tx_id", (int)(tx_id));
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
 
     SCMutexUnlock(&td->lua_ctx->m);
 
@@ -184,26 +183,23 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
     char timebuf[64];
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p)))
         /* decoder event */
         goto not_supported;
-    }
 
     char proto[16] = "";
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE)
         strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
+    else
         snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);
     uint16_t cnt;
     for (cnt = 0; cnt < p->alerts.cnt; cnt++) {
         const PacketAlert *pa = &p->alerts.alerts[cnt];
-        if (unlikely(pa->s == NULL)) {
+        if (unlikely(pa->s == NULL))
             continue;
-        }
 
         lua_getglobal(td->lua_ctx->luastate, "log");
 
@@ -216,9 +212,8 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
         //lua_newtable(td->lua_ctx->luastate);
 
         int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-        if (retval != 0) {
+        if (retval != 0)
             SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-        }
     }
     SCMutexUnlock(&td->lua_ctx->m);
 not_supported:
@@ -257,9 +252,8 @@ static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
 
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
 
     SCMutexUnlock(&td->lua_ctx->m);
     FLOWLOCK_WRLOCK(p->flow);
@@ -274,17 +268,14 @@ static int LuaPacketLoggerTls(ThreadVars *tv, void *thread_data, const Packet *p
 
 static int LuaPacketConditionTls(ThreadVars *tv, const Packet *p)
 {
-    if (p->flow == NULL) {
+    if (p->flow == NULL)
         return FALSE;
-    }
 
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p)))
         return FALSE;
-    }
 
-    if (!(PKT_IS_TCP(p))) {
+    if (!(PKT_IS_TCP(p)))
         return FALSE;
-    }
 
     FLOWLOCK_RDLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
@@ -337,9 +328,8 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
     LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
 
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
 
     SCMutexUnlock(&td->lua_ctx->m);
     FLOWLOCK_WRLOCK(p->flow);
@@ -354,17 +344,14 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
 
 static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
 {
-    if (p->flow == NULL) {
+    if (p->flow == NULL)
         return FALSE;
-    }
 
-    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p))) {
+    if (!(PKT_IS_IPV4(p)) && !(PKT_IS_IPV6(p)))
         return FALSE;
-    }
 
-    if (!(PKT_IS_TCP(p))) {
+    if (!(PKT_IS_TCP(p)))
         return FALSE;
-    }
 
     FLOWLOCK_RDLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
@@ -409,18 +396,16 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     char timebuf[64];
 
-    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p)))) {
+    if ((!(PKT_IS_IPV4(p))) && (!(PKT_IS_IPV6(p))))
         goto not_supported;
-    }
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char proto[16] = "";
-    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
+    if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE)
         strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
-    } else {
+    else
         snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
-    }
 
     /* loop through alerts stored in the packet */
     SCMutexLock(&td->lua_ctx->m);
@@ -434,9 +419,8 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     lua_newtable(td->lua_ctx->luastate);
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
     SCMutexUnlock(&td->lua_ctx->m);
 not_supported:
     SCReturnInt(0);
@@ -486,9 +470,8 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     lua_getglobal(td->lua_ctx->luastate, "log");
 
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
 }
@@ -516,14 +499,11 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     lua_getglobal(td->lua_ctx->luastate, "log");
 
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
 }
-
-
 
 static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
 {
@@ -569,9 +549,8 @@ static int LuaStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *s
     }
 
     int retval = lua_pcall(td->lua_ctx->luastate, 1, 0, 0);
-    if (retval != 0) {
+    if (retval != 0)
         SCLogInfo("failed to run script: %s", lua_tostring(td->lua_ctx->luastate, -1));
-    }
     SCMutexUnlock(&td->lua_ctx->m);
     return 0;
 
@@ -599,7 +578,8 @@ typedef struct LogLuaScriptOptions_ {
  *  \param options struct to pass script requirements/options back to caller
  *  \retval errcode 0 ok, -1 error
  */
-static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options) {
+static int LuaScriptInit(const char *filename, LogLuaScriptOptions *options)
+{
     int status;
 
     lua_State *luastate = luaL_newstate();
@@ -893,9 +873,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
 
     /* global output ctx setup */
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (unlikely(output_ctx == NULL)) {
+    if (unlikely(output_ctx == NULL))
         return NULL;
-    }
     output_ctx->data = SCCalloc(1, sizeof(LogLuaMasterCtx));
     if (unlikely(output_ctx->data == NULL)) {
         SCFree(output_ctx);
@@ -1042,9 +1021,8 @@ static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data)
 static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
 {
     LogLuaThreadCtx *td = (LogLuaThreadCtx *)data;
-    if (td == NULL) {
+    if (td == NULL)
         return TM_ECODE_OK;
-    }
 
     SCMutexLock(&td->lua_ctx->m);
     if (td->lua_ctx->deinit_once == 0) {
@@ -1060,7 +1038,8 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleLuaLogRegister (void) {
+void TmModuleLuaLogRegister (void)
+{
     tmm_modules[TMM_LUALOG].name = MODULE_NAME;
     tmm_modules[TMM_LUALOG].ThreadInit = LuaLogThreadInit;
     tmm_modules[TMM_LUALOG].ThreadDeinit = LuaLogThreadDeinit;
@@ -1074,7 +1053,8 @@ void TmModuleLuaLogRegister (void) {
 
 #else
 
-void TmModuleLuaLogRegister (void) {
+void TmModuleLuaLogRegister (void)
+{
     /* no-op */
 }
 

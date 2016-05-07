@@ -62,12 +62,11 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 #include "util-mpm-ac.h"
-
 #include "output.h"
 #include "output-flow.h"
 
 int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
-        uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
+    uint8_t *pkt, uint16_t len, PacketQueue *pq, enum DecodeTunnelProto proto)
 {
     switch (proto) {
         case DECODE_TUNNEL_PPP:
@@ -105,10 +104,8 @@ void PacketFree(Packet *p)
  * functions when decoding has been succesful.
  *
  */
-
 void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 {
-
     if (p->flags & PKT_IS_INVALID) {
         StatsIncr(tv, dtv->counter_invalid);
         int i = 0;
@@ -133,9 +130,8 @@ void PacketDecodeFinalize(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
 Packet *PacketGetFromAlloc(void)
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
-    if (unlikely(p == NULL)) {
+    if (unlikely(p == NULL))
         return NULL;
-    }
 
     memset(p, 0, SIZE_OF_PACKET);
     PACKET_INITIALIZE(p);
@@ -171,12 +167,11 @@ Packet *PacketGetFromQueueOrAlloc(void)
     /* try the pool first */
     Packet *p = PacketPoolGetPacket();
 
-    if (p == NULL) {
-        /* non fatal, we're just not processing a packet then */
+    /* non fatal, we're just not processing a packet then */
+    if (p == NULL) 
         p = PacketGetFromAlloc();
-    } else {
+    else
         PACKET_PROFILING_START(p);
-    }
 
     return p;
 }
@@ -209,10 +204,9 @@ inline int PacketCallocExtPkt(Packet *p, int datalen)
  */
 inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
 {
-    if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE)) {
-        /* too big */
+    /* too big */
+    if (unlikely(offset + datalen > MAX_PAYLOAD_SIZE))
         return -1;
-    }
 
     /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
@@ -261,11 +255,8 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
  *  \retval p the pseudo packet or NULL if out of memory
  */
 Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *parent,
-                             uint8_t *pkt, uint16_t len, enum DecodeTunnelProto proto,
-                             PacketQueue *pq)
+    uint8_t *pkt, uint16_t len, enum DecodeTunnelProto proto, PacketQueue *pq)
 {
-    int ret;
-
     SCEnter();
 
     /* get us a packet */
@@ -291,8 +282,8 @@ Packet *PacketTunnelPktSetup(ThreadVars *tv, DecodeThreadVars *dtv, Packet *pare
     /* tell new packet it's part of a tunnel */
     SET_TUNNEL_PKT(p);
 
-    ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
-                       GET_PKT_LEN(p), pq, proto);
+    int ret = DecodeTunnel(tv, dtv, p, GET_PKT_DATA(p),
+            GET_PKT_LEN(p), pq, proto);
 
     if (unlikely(ret != TM_ECODE_OK)) {
         /* Not a tunnel packet, just a pseudo packet */
@@ -336,9 +327,8 @@ Packet *PacketDefragPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 
     /* get us a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
-    if (unlikely(p == NULL)) {
+    if (unlikely(p == NULL))
         SCReturnPtr(NULL, "Packet");
-    }
 
     /* set the root ptr to the lowest layer */
     if (parent->root != NULL)
@@ -435,8 +425,7 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     return;
 }
 
-void DecodeUpdatePacketCounters(ThreadVars *tv,
-                                const DecodeThreadVars *dtv, const Packet *p)
+void DecodeUpdatePacketCounters(ThreadVars *tv, const DecodeThreadVars *dtv, const Packet *p)
 {
     StatsIncr(tv, dtv->counter_pkts);
     //StatsIncr(tv, dtv->counter_pkts_per_sec);
@@ -473,7 +462,7 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 {
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+    if ((dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
         return NULL;
     memset(dtv, 0, sizeof(DecodeThreadVars));
 
@@ -487,9 +476,8 @@ DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *tv)
 
     /** set config defaults */
     int vlanbool = 0;
-    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0) {
+    if ((ConfGetBool("vlan.use-for-tracking", &vlanbool)) == 1 && vlanbool == 0)
         dtv->vlan_disabled = 1;
-    }
     SCLogDebug("vlan tracking is %s", dtv->vlan_disabled == 0 ? "enabled" : "disabled");
 
     return dtv;
@@ -518,9 +506,8 @@ void DecodeThreadVarsFree(ThreadVars *tv, DecodeThreadVars *dtv)
 inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
 {
     SET_PKT_LEN(p, (size_t)pktlen);
-    if (unlikely(!pktdata)) {
+    if (unlikely(!pktdata))
         return -1;
-    }
     p->ext_pkt = pktdata;
     p->flags |= PKT_ZERO_COPY;
 
@@ -581,7 +568,8 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s)
 }
 
 #ifdef AFLFUZZ_DECODER
-int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder) {
+int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder)
+{
     uint8_t buffer[65536];
     int result = 1;
 

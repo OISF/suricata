@@ -63,16 +63,14 @@ SCEnumCharMap template_decoder_event_table[] = {
 static TemplateTransaction *TemplateTxAlloc(TemplateState *echo)
 {
     TemplateTransaction *tx = SCCalloc(1, sizeof(TemplateTransaction));
-    if (unlikely(tx == NULL)) {
+    if (unlikely(tx == NULL))
         return NULL;
-    }
 
     /* Increment the transaction ID on the state each time one is
      * allocated. */
     tx->tx_id = echo->transaction_max++;
 
     TAILQ_INSERT_TAIL(&echo->tx_list, tx, next);
-
     return tx;
 }
 
@@ -80,16 +78,13 @@ static void TemplateTxFree(void *tx)
 {
     TemplateTransaction *templatetx = tx;
 
-    if (templatetx->request_buffer != NULL) {
+    if (templatetx->request_buffer != NULL)
         SCFree(templatetx->request_buffer);
-    }
 
-    if (templatetx->response_buffer != NULL) {
+    if (templatetx->response_buffer != NULL)
         SCFree(templatetx->response_buffer);
-    }
 
     AppLayerDecoderEventsFreeEvents(&templatetx->decoder_events);
-
     SCFree(tx);
 }
 
@@ -97,9 +92,9 @@ static void *TemplateStateAlloc(void)
 {
     SCLogNotice("Allocating template state.");
     TemplateState *state = SCCalloc(1, sizeof(TemplateState));
-    if (unlikely(state == NULL)) {
+    if (unlikely(state == NULL))
         return NULL;
-    }
+
     TAILQ_INIT(&state->tx_list);
     return state;
 }
@@ -133,16 +128,14 @@ static void TemplateStateTxFree(void *state, uint64_t tx_id)
 
         /* Continue if this is not the transaction we are looking
          * for. */
-        if (tx->tx_id != tx_id) {
+        if (tx->tx_id != tx_id)
             continue;
-        }
 
         /* Remove and free the transaction. */
         TAILQ_REMOVE(&echo->tx_list, tx, next);
         TemplateTxFree(tx);
         return;
     }
-
     SCLogNotice("Transaction %"PRIu64" not found.", tx_id);
 }
 
@@ -158,7 +151,6 @@ static int TemplateStateGetEventInfo(const char *event_name, int *event_id,
     }
 
     *event_type = APP_LAYER_EVENT_TYPE_TRANSACTION;
-
     return 0;
 }
 
@@ -168,11 +160,9 @@ static AppLayerDecoderEvents *TemplateGetEvents(void *state, uint64_t tx_id)
     TemplateTransaction *tx;
 
     TAILQ_FOREACH(tx, &template_state->tx_list, next) {
-        if (tx->tx_id == tx_id) {
+        if (tx->tx_id == tx_id)
             return tx->decoder_events;
-        }
     }
-
     return NULL;
 }
 
@@ -217,9 +207,8 @@ static int TemplateParseRequest(Flow *f, void *state,
 
     /* Probably don't want to create a transaction in this case
      * either. */
-    if (input == NULL || input_len == 0) {
+    if (input == NULL || input_len == 0)
         return 0;
-    }
 
     /* Normally you would parse out data here and store it in the
      * transaction object, but as this is echo, we'll just record the
@@ -250,9 +239,8 @@ static int TemplateParseRequest(Flow *f, void *state,
     
     /* Make a copy of the request. */
     tx->request_buffer = SCCalloc(1, input_len);
-    if (unlikely(tx->request_buffer == NULL)) {
+    if (unlikely(tx->request_buffer == NULL))
         goto end;
-    }
     memcpy(tx->request_buffer, input, input_len);
     tx->request_buffer_len = input_len;
 
@@ -286,9 +274,8 @@ static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *psta
 
     /* Probably don't want to create a transaction in this case
      * either. */
-    if (input == NULL || input_len == 0) {
+    if (input == NULL || input_len == 0)
         return 0;
-    }
 
     /* Look up the existing transaction for this response. In the case
      * of echo, it will be the most recent transaction on the
@@ -324,9 +311,8 @@ static int TemplateParseResponse(Flow *f, void *state, AppLayerParserState *psta
 
     /* Make a copy of the response. */
     tx->response_buffer = SCCalloc(1, input_len);
-    if (unlikely(tx->response_buffer == NULL)) {
+    if (unlikely(tx->response_buffer == NULL))
         goto end;
-    }
     memcpy(tx->response_buffer, input, input_len);
     tx->response_buffer_len = input_len;
 
@@ -369,7 +355,8 @@ static void *TemplateGetTx(void *state, uint64_t tx_id)
  *
  * In most cases 1 can be returned here.
  */
-static int TemplateGetAlstateProgressCompletionStatus(uint8_t direction) {
+static int TemplateGetAlstateProgressCompletionStatus(uint8_t direction)
+{
     return 1;
 }
 
@@ -430,21 +417,18 @@ void RegisterTemplateParsers(void)
     char *proto_name = "template";
 
     /* TEMPLATE_START_REMOVE */
-    if (ConfGetNode("app-layer.protocols.template") == NULL) {
+    if (ConfGetNode("app-layer.protocols.template") == NULL)
         return;
-    }
     /* TEMPLATE_END_REMOVE */
 
     /* Check if Template TCP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
-
         SCLogNotice("Template TCP protocol detection enabled.");
 
         AppLayerProtoDetectRegisterProtocol(ALPROTO_TEMPLATE, proto_name);
 
         if (RunmodeIsUnittests()) {
-
             SCLogNotice("Unittest mode, registeringd default configuration.");
             AppLayerProtoDetectPPRegister(IPPROTO_TCP, TEMPLATE_DEFAULT_PORT,
                 ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
@@ -452,7 +436,6 @@ void RegisterTemplateParsers(void)
 
         }
         else {
-
             if (!AppLayerProtoDetectPPParseConfPorts("tcp", IPPROTO_TCP,
                     proto_name, ALPROTO_TEMPLATE, 0, TEMPLATE_MIN_FRAME_LEN,
                     TemplateProbingParser)) {
@@ -464,11 +447,8 @@ void RegisterTemplateParsers(void)
                     TEMPLATE_MIN_FRAME_LEN, STREAM_TOSERVER,
                     TemplateProbingParser);
             }
-
         }
-
     }
-
     else {
         SCLogNotice("Protocol detecter and parser disabled for Template.");
         return;

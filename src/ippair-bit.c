@@ -40,7 +40,8 @@
 
 static int ippair_bit_id = -1;                /**< IPPair storage id for bits */
 
-void XBitFreeAll(void *store) {
+void XBitFreeAll(void *store)
+{
     GenericVar *gv = store;
     GenericVarFree(gv);
 }
@@ -82,9 +83,8 @@ static XBit *IPPairBitGet(IPPair *h, uint16_t idx)
 {
     GenericVar *gv = IPPairGetStorageById(h, ippair_bit_id);
     for ( ; gv != NULL; gv = gv->next) {
-        if (gv->type == DETECT_XBITS && gv->idx == idx) {
+        if (gv->type == DETECT_XBITS && gv->idx == idx)
             return (XBit *)gv;
-        }
     }
 
     return NULL;
@@ -130,27 +130,24 @@ static void IPPairBitRemove(IPPair *h, uint16_t idx)
 void IPPairBitSet(IPPair *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
-    if (fb == NULL) {
+    if (fb == NULL)
         IPPairBitAdd(h, idx, expire);
-    }
 }
 
 void IPPairBitUnset(IPPair *h, uint16_t idx)
 {
     XBit *fb = IPPairBitGet(h, idx);
-    if (fb != NULL) {
+    if (fb != NULL)
         IPPairBitRemove(h, idx);
-    }
 }
 
 void IPPairBitToggle(IPPair *h, uint16_t idx, uint32_t expire)
 {
     XBit *fb = IPPairBitGet(h, idx);
-    if (fb != NULL) {
+    if (fb != NULL)
         IPPairBitRemove(h, idx);
-    } else {
+    else
         IPPairBitAdd(h, idx, expire);
-    }
 }
 
 int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
@@ -161,7 +158,6 @@ int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
             IPPairBitRemove(h, idx);
             return 0;
         }
-
         return 1;
     }
     return 0;
@@ -170,9 +166,8 @@ int IPPairBitIsset(IPPair *h, uint16_t idx, uint32_t ts)
 int IPPairBitIsnotset(IPPair *h, uint16_t idx, uint32_t ts)
 {
     XBit *fb = IPPairBitGet(h, idx);
-    if (fb == NULL) {
+    if (fb == NULL)
         return 1;
-    }
 
     if (fb->expire < ts) {
         IPPairBitRemove(h, idx);
