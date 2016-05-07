@@ -111,7 +111,7 @@ static int ParseXFFString(char *input, char *output, int output_size)
  * \retval 0 if the IP has not being found or error
  */
 int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
-        char *dstbuf, int dstbuflen)
+    char *dstbuf, int dstbuflen)
 {
     uint8_t xff_chain[XFF_CHAIN_MAXLEN];
     HtpState *htp_state = NULL;
@@ -136,9 +136,8 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
     }
 
     htp_header_t *h_xff = NULL;
-    if (tx->request_headers != NULL) {
+    if (tx->request_headers != NULL)
         h_xff = htp_table_get_c(tx->request_headers, xff_cfg->header);
-    }
 
     if (h_xff != NULL && bstr_len(h_xff->value) >= XFF_CHAIN_MINLEN &&
             bstr_len(h_xff->value) < XFF_CHAIN_MAXLEN) {
@@ -159,9 +158,8 @@ int HttpXFFGetIPFromTx(const Packet *p, uint64_t tx_id, HttpXFFCfg *xff_cfg,
         else {
             /** Get the first IP address from the chain */
             p_xff = memchr(xff_chain, ',', bstr_len(h_xff->value));
-            if (p_xff != NULL) {
+            if (p_xff != NULL)
                 *p_xff = 0;
-            }
             p_xff = xff_chain;
         }
         return ParseXFFString((char *)p_xff, dstbuf, dstbuflen);
@@ -256,17 +254,18 @@ void HttpXFFGetCfg(ConfNode *conf, HttpXFFCfg *result)
 
 
 #ifdef UNITTESTS
-static int XFFTest01(void) {
+static int XFFTest01(void)
+{
     char input[] = "1.2.3.4:5678";
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
+    if (r == 1 && strcmp(output, "1.2.3.4") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest02(void) {
+static int XFFTest02(void)
+{
     char input[] = "[12::34]:1234"; // thanks chort!
     char output[16];
     int r = ParseXFFString(input, output, sizeof(output));
@@ -276,73 +275,73 @@ static int XFFTest02(void) {
     return 0;
 }
 
-static int XFFTest03(void) {
+static int XFFTest03(void)
+{
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]:80"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
+    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest04(void) {
+static int XFFTest04(void)
+{
     char input[] = "[2a03:2880:1010:3f02:face:b00c:0:2]"; // thanks chort!
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0) {
+    if (r == 1 && strcmp(output, "2a03:2880:1010:3f02:face:b00c:0:2") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest05(void) {
+static int XFFTest05(void)
+{
     char input[] = "[::ffff:1.2.3.4]:1234"; // thanks double-p
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "::ffff:1.2.3.4") == 0) {
+    if (r == 1 && strcmp(output, "::ffff:1.2.3.4") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest06(void) {
+static int XFFTest06(void)
+{
     char input[] = "12::34";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "12::34") == 0) {
+    if (r == 1 && strcmp(output, "12::34") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest07(void) {
+static int XFFTest07(void)
+{
     char input[] = "1.2.3.4";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 1 && strcmp(output, "1.2.3.4") == 0) {
+    if (r == 1 && strcmp(output, "1.2.3.4") == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest08(void) {
+static int XFFTest08(void)
+{
     char input[] = "[1.2.3.4:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 0) {
+    if (r == 0)
         return 1;
-    }
     return 0;
 }
 
-static int XFFTest09(void) {
+static int XFFTest09(void)
+{
     char input[] = "999.999.999.999:1234";
     char output[46];
     int r = ParseXFFString(input, output, sizeof(output));
-    if (r == 0) {
+    if (r == 0)
         return 1;
-    }
     return 0;
 }
 
