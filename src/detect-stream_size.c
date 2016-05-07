@@ -26,10 +26,8 @@
 #include "suricata-common.h"
 #include "stream-tcp.h"
 #include "util-unittest.h"
-
 #include "detect.h"
 #include "detect-parse.h"
-
 #include "flow.h"
 #include "detect-stream_size.h"
 #include "stream-tcp-private.h"
@@ -44,7 +42,8 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 /*prototypes*/
-int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
+int DetectStreamSizeMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
+        Signature *, const SigMatchCtx *);
 static int DetectStreamSizeSetup (DetectEngineCtx *, Signature *, char *);
 void DetectStreamSizeFree(void *);
 void DetectStreamSizeRegisterTests(void);
@@ -52,7 +51,6 @@ void DetectStreamSizeRegisterTests(void);
 /**
  * \brief Registration function for stream_size: keyword
  */
-
 void DetectStreamSizeRegister(void)
 {
     sigmatch_table[DETECT_STREAM_SIZE].name = "stream_size";
@@ -76,9 +74,8 @@ void DetectStreamSizeRegister(void)
  *
  *  \retval 1 on success and 0 on failure.
  */
-
-static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode) {
-
+static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t mode)
+{
     int ret = 0;
     switch (mode) {
         case DETECTSSIZE_LT:
@@ -106,7 +103,6 @@ static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t
                 ret = 1;
             break;
     }
-
     return ret;
 }
 
@@ -121,7 +117,8 @@ static int DetectStreamSizeCompare (uint32_t diff, uint32_t stream_size, uint8_t
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+    Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
 
     int ret = 0;
@@ -153,13 +150,15 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     } else if (sd->flags & STREAM_SIZE_BOTH) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
-        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) && DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) &&
+                DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
 
     } else if (sd->flags & STREAM_SIZE_EITHER) {
         ssdiff = ssn->server.next_seq - ssn->server.isn;
         csdiff = ssn->client.next_seq - ssn->client.isn;
-        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) || DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
+        if (DetectStreamSizeCompare(ssdiff, sd->ssize, sd->mode) ||
+                DetectStreamSizeCompare(csdiff, sd->ssize, sd->mode))
             ret = 1;
     }
 
@@ -174,7 +173,6 @@ int DetectStreamSizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
  * \retval sd pointer to DetectStreamSizeData on success
  * \retval NULL on failure
  */
-
 DetectStreamSizeData *DetectStreamSizeParse (char *streamstr)
 {
 
@@ -186,9 +184,11 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr)
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, streamstr, strlen(streamstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, streamstr,
+            strlen(streamstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, streamstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %"
+                PRId32 ", string %s", ret, streamstr);
         goto error;
     }
 
@@ -217,7 +217,7 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr)
 
     sd = SCMalloc(sizeof(DetectStreamSizeData));
     if (unlikely(sd == NULL))
-    goto error;
+        goto error;
     sd->ssize = 0;
     sd->flags = 0;
 
@@ -287,7 +287,6 @@ error:
  */
 static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *streamstr)
 {
-
     DetectStreamSizeData *sd = NULL;
     SigMatch *sm = NULL;
 
@@ -328,7 +327,6 @@ void DetectStreamSizeFree(void *ptr)
  * \test DetectStreamSizeParseTest01 is a test to make sure that we parse the
  *  user options correctly, when given valid stream_size options.
  */
-
 static int DetectStreamSizeParseTest01 (void)
 {
     int result = 0;
@@ -347,7 +345,6 @@ static int DetectStreamSizeParseTest01 (void)
  * \test DetectStreamSizeParseTest02 is a test to make sure that we detect the
  *  invalid stream_size options.
  */
-
 static int DetectStreamSizeParseTest02 (void)
 {
     int result = 1;
@@ -366,10 +363,8 @@ static int DetectStreamSizeParseTest02 (void)
  * \test DetectStreamSizeParseTest03 is a test to make sure that we match the
  *  packet correctly provided valid stream size.
  */
-
 static int DetectStreamSizeParseTest03 (void)
 {
-
     int result = 0;
     DetectStreamSizeData *sd = NULL;
     TcpSession ssn;
@@ -442,10 +437,8 @@ static int DetectStreamSizeParseTest03 (void)
  * \test DetectStreamSizeParseTest04 is a test to make sure that we match the
  *  stream_size against invalid packet parameters.
  */
-
 static int DetectStreamSizeParseTest04 (void)
 {
-
     int result = 0;
     DetectStreamSizeData *sd = NULL;
     TcpSession ssn;
@@ -471,15 +464,15 @@ static int DetectStreamSizeParseTest04 (void)
 
     sd = DetectStreamSizeParse(" client , > , 8 ");
     if (sd != NULL) {
-        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8) {
+        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT &&
+                sd->ssize != 8) {
+            SCFree(p);
+            return 0;
+        }
+    } else {
         SCFree(p);
         return 0;
-        }
-    } else
-        {
-        SCFree(p);
-        return 0;
-        }
+    }
 
     client.next_seq = 20;
     client.isn = 12;
