@@ -74,17 +74,16 @@ static void DisableAppLayer(Flow *f)
     StreamTcpDisableAppLayer(f);
 }
 
-static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t direction) {
+static inline int ProtoDetectDone(const Flow *f, const TcpSession *ssn, uint8_t direction)
+{
     const TcpStream *stream = (direction & STREAM_TOSERVER) ? &ssn->client : &ssn->server;
     return ((stream->flags & STREAMTCP_STREAM_FLAG_APPPROTO_DETECTION_COMPLETED) ||
             (FLOW_IS_PM_DONE(f, direction) && FLOW_IS_PP_DONE(f, direction)));
 }
 
 int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-                          Packet *p, Flow *f,
-                          TcpSession *ssn, TcpStream *stream,
-                          uint8_t *data, uint32_t data_len,
-                          uint8_t flags)
+    Packet *p, Flow *f, TcpSession *ssn, TcpStream *stream,
+    uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
 
@@ -476,11 +475,10 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
     FLOWLOCK_WRLOCK(f);
 
     uint8_t flags = 0;
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
+    if (p->flowflags & FLOW_PKT_TOSERVER)
         flags |= STREAM_TOSERVER;
-    } else {
+    else
         flags |= STREAM_TOCLIENT;
-    }
 
     /* if we don't know the proto yet and we have received a stream
      * initializer message, we run proto detection.
@@ -491,19 +489,16 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
                    p->payload_len);
 
         PACKET_PROFILING_APP_PD_START(tctx);
-        f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx,
-                                  f,
-                                  p->payload, p->payload_len,
-                                  IPPROTO_UDP, flags);
+        f->alproto = AppLayerProtoDetectGetProto(tctx->alpd_tctx, f,
+                        p->payload, p->payload_len, IPPROTO_UDP, flags);
         PACKET_PROFILING_APP_PD_END(tctx);
 
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
-            r = AppLayerParserParse(tctx->alp_tctx,
-                              f, f->alproto, flags,
-                              p->payload, p->payload_len);
+            r = AppLayerParserParse(tctx->alp_tctx, f,
+                    f->alproto, flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
@@ -517,9 +512,8 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
             PACKET_PROFILING_APP_START(tctx, f->alproto);
-            r = AppLayerParserParse(tctx->alp_tctx,
-                              f, f->alproto, flags,
-                              p->payload, p->payload_len);
+            r = AppLayerParserParse(tctx->alp_tctx, f,
+                    f->alproto, flags, p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
         } else {
             SCLogDebug("udp session has started, but failed to detect alproto "
@@ -529,7 +523,6 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
 
     FLOWLOCK_UNLOCK(f);
     PACKET_PROFILING_APP_STORE(tctx, p);
-
     SCReturnInt(r);
 }
 
@@ -607,6 +600,7 @@ AppLayerThreadCtx *AppLayerGetCtxThread(ThreadVars *tv)
         goto error;
 
     goto done;
+
  error:
     AppLayerDestroyCtxThread(app_tctx);
     app_tctx = NULL;

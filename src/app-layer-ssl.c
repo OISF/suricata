@@ -508,8 +508,6 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
                                        uint32_t input_len, uint8_t direction)
 {
     uint8_t hb_type;
-    uint16_t payload_len;
-    uint16_t padding_len;
 
     /* expect at least 3 bytes: heartbeat type (1) + length (2) */
     if (input_len < 3) {
@@ -529,6 +527,9 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
     if ((ssl_state->flags & SSL_AL_FLAG_HB_INFLIGHT) == 0) {
         ssl_state->flags |= SSL_AL_FLAG_HB_INFLIGHT;
 
+        uint16_t payload_len;
+        uint16_t padding_len;
+        
         if (direction) {
             SCLogDebug("HeartBeat Record type sent in the toclient direction!");
             ssl_state->flags |= SSL_AL_FLAG_HB_SERVER_INIT;
@@ -767,7 +768,6 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                        AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
-    int retval = 0;
     uint8_t *initial_input = input;
 
     if (ssl_state->curr_connp->bytes_processed == 0) {
@@ -782,7 +782,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
        to read the msg_type */
     if (ssl_state->curr_connp->bytes_processed <
             (ssl_state->curr_connp->record_lengths_length + 1)) {
-        retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
+        int retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
             AppLayerDecoderEventsSetEvent(ssl_state->f,
                     TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);

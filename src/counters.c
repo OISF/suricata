@@ -37,7 +37,6 @@
 #include "util-signal.h"
 #include "unix-manager.h"
 #include "runmodes.h"
-
 #include "output.h"
 #include "output-stats.h"
 #include "output-json-stats.h"
@@ -57,7 +56,6 @@ enum {
     STATS_TYPE_AVERAGE = 2,
     STATS_TYPE_MAXIMUM = 3,
     STATS_TYPE_FUNC = 4,
-
     STATS_TYPE_MAX = 5,
 };
 
@@ -199,7 +197,8 @@ void StatsSetUI64(ThreadVars *tv, uint16_t id, uint64_t x)
     return;
 }
 
-static ConfNode *GetConfig(void) {
+static ConfNode *GetConfig(void)
+{
     ConfNode *stats = ConfGetNode("stats");
     if (stats != NULL)
         return stats;
@@ -334,9 +333,8 @@ static void *StatsMgmtThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
+    if (SCSetThreadName(tv_local->name) < 0)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);
@@ -385,19 +383,17 @@ static void *StatsMgmtThread(void *arg)
         StatsOutput(tv_local);
         SCMutexUnlock(&stats_table_mutex);
 
-        if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+        if (TmThreadsCheckFlag(tv_local, THV_KILL))
             run = 0;
-        }
     }
 
     TmThreadsSetFlag(tv_local, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
     r = tm->ThreadDeinit(tv_local, stats_thread_data);
-    if (r != TM_ECODE_OK) {
+    if (r != TM_ECODE_OK)
         SCLogError(SC_ERR_THREAD_DEINIT, "Stats Counter API "
                    "ThreadDeinit failed");
-    }
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
@@ -423,9 +419,8 @@ static void *StatsWakeupThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    if (SCSetThreadName(tv_local->name) < 0) {
+    if (SCSetThreadName(tv_local->name) < 0)
         SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
-    }
 
     if (tv_local->thread_setup_flags != 0)
         TmThreadSetupOptions(tv_local);
@@ -493,14 +488,12 @@ static void *StatsWakeupThread(void *arg)
             tv = tv->next;
         }
 
-        if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
+        if (TmThreadsCheckFlag(tv_local, THV_KILL))
             run = 0;
-        }
     }
 
     TmThreadsSetFlag(tv_local, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv_local, THV_DEINIT);
-
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
 }
@@ -512,9 +505,8 @@ static void *StatsWakeupThread(void *arg)
  */
 static void StatsReleaseCounter(StatsCounter *pc)
 {
-    if (pc != NULL) {
+    if (pc != NULL)
         SCFree(pc);
-    }
 
     return;
 }
@@ -532,8 +524,7 @@ static void StatsReleaseCounter(StatsCounter *pc)
  * \retval 0 on failure
  */
 static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
-                                              StatsPublicThreadContext *pctx,
-                                              int type_q, uint64_t (*Func)(void))
+    StatsPublicThreadContext *pctx, int type_q, uint64_t (*Func)(void))
 {
     StatsCounter **head = &pctx->head;
     StatsCounter *temp = NULL;
@@ -548,11 +539,8 @@ static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
     temp = prev = *head;
     while (temp != NULL) {
         prev = temp;
-
-        if (strcmp(name, temp->name) == 0) {
+        if (strcmp(name, temp->name) == 0)
             break;
-        }
-
         temp = temp->next;
     }
 
@@ -561,7 +549,7 @@ static uint16_t StatsRegisterQualifiedCounter(char *name, char *tm_name,
         return(temp->id);
 
     /* if we reach this point we don't have a counter registered by this name */
-    if ( (pc = SCMalloc(sizeof(StatsCounter))) == NULL)
+    if ((pc = SCMalloc(sizeof(StatsCounter))) == NULL)
         return 0;
     memset(pc, 0, sizeof(StatsCounter));
 
@@ -765,9 +753,8 @@ static int StatsOutput(ThreadVars *tv)
                     table[x].value = m->value;
                 break;
             case STATS_TYPE_AVERAGE:
-                if (m->value > 0 && m->updates > 0) {
+                if (m->value > 0 && m->updates > 0)
                     table[x].value = (uint64_t)(m->value / m->updates);
-                }
                 break;
             default:
                 table[x].value += m->value;
@@ -776,17 +763,15 @@ static int StatsOutput(ThreadVars *tv)
     }
 
     /* invoke logger(s) */
-    if (stats_loggers_active) {
+    if (stats_loggers_active)
         OutputStatsLog(tv, td, &stats_table);
-    }
     return 1;
 }
 
 #ifdef BUILD_UNIX_SOCKET
 /** \brief callback for getting stats into unix socket
  */
-TmEcode StatsOutputCounterSocket(json_t *cmd,
-                               json_t *answer, void *data)
+TmEcode StatsOutputCounterSocket(json_t *cmd, json_t *answer, void *data)
 {
     json_t *message = NULL;
     TmEcode r = TM_ECODE_OK;
@@ -817,7 +802,6 @@ void StatsInit(void)
         exit(EXIT_FAILURE);
     }
     memset(stats_ctx, 0, sizeof(StatsGlobalContext));
-
     StatsPublicThreadContextInit(&stats_ctx->global_counter_ctx);
 }
 
@@ -836,9 +820,8 @@ void StatsSpawnThreads(void)
 {
     SCEnter();
 
-    if (!stats_enabled) {
+    if (!stats_enabled)
         SCReturn;
-    }
 
     ThreadVars *tv_wakeup = NULL;
     ThreadVars *tv_mgmt = NULL;
@@ -889,9 +872,8 @@ void StatsSpawnThreads(void)
 uint16_t StatsRegisterCounter(char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 &tv->perf_public_ctx,
-                                                 STATS_TYPE_NORMAL, NULL);
+                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                  &tv->perf_public_ctx, STATS_TYPE_NORMAL, NULL);
 
     return id;
 }
@@ -910,9 +892,8 @@ uint16_t StatsRegisterCounter(char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterAvgCounter(char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 &tv->perf_public_ctx,
-                                                 STATS_TYPE_AVERAGE, NULL);
+                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                  &tv->perf_public_ctx, STATS_TYPE_AVERAGE, NULL);
 
     return id;
 }
@@ -931,9 +912,8 @@ uint16_t StatsRegisterAvgCounter(char *name, struct ThreadVars_ *tv)
 uint16_t StatsRegisterMaxCounter(char *name, struct ThreadVars_ *tv)
 {
     uint16_t id = StatsRegisterQualifiedCounter(name,
-                                                 (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
-                                                 &tv->perf_public_ctx,
-                                                 STATS_TYPE_MAXIMUM, NULL);
+                  (tv->thread_group_name != NULL) ? tv->thread_group_name : tv->name,
+                  &tv->perf_public_ctx, STATS_TYPE_MAXIMUM, NULL);
 
     return id;
 }
@@ -956,9 +936,7 @@ uint16_t StatsRegisterGlobalCounter(char *name, uint64_t (*Func)(void))
     BUG_ON(stats_ctx == NULL);
 #endif
     uint16_t id = StatsRegisterQualifiedCounter(name, NULL,
-                                                 &(stats_ctx->global_counter_ctx),
-                                                 STATS_TYPE_FUNC,
-                                                 Func);
+                  &(stats_ctx->global_counter_ctx), STATS_TYPE_FUNC, Func);
     return id;
 }
 
@@ -971,25 +949,21 @@ uint32_t CountersIdHashFunc(HashTable *ht, void *data, uint16_t datalen)
 {
     CountersIdType *t = (CountersIdType *)data;
     uint32_t hash = 0;
-    int i = 0;
 
     int len = strlen(t->string);
 
-    for (i = 0; i < len; i++)
+    for (int i = 0; i < len; i++)
         hash += tolower((unsigned char)t->string[i]);
 
     hash = hash % ht->array_size;
-
     return hash;
 }
 
 char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
-                               void *data2, uint16_t datalen2)
+    void *data2, uint16_t datalen2)
 {
     CountersIdType *t1 = (CountersIdType *)data1;
     CountersIdType *t2 = (CountersIdType *)data2;
-    int len1 = 0;
-    int len2 = 0;
 
     if (t1 == NULL || t2 == NULL)
         return 0;
@@ -997,12 +971,11 @@ char CountersIdHashCompareFunc(void *data1, uint16_t datalen1,
     if (t1->string == NULL || t2->string == NULL)
         return 0;
 
-    len1 = strlen(t1->string);
-    len2 = strlen(t2->string);
+    int len1 = strlen(t1->string);
+    int len2 = strlen(t2->string);
 
-    if (len1 == len2 && memcmp(t1->string, t2->string, len1) == 0) {
+    if (len1 == len2 && memcmp(t1->string, t2->string, len1) == 0)
         return 1;
-    }
 
     return 0;
 }
@@ -1039,10 +1012,10 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
     SCMutexLock(&stats_ctx->sts_lock);
     if (stats_ctx->counters_id_hash == NULL) {
         stats_ctx->counters_id_hash = HashTableInit(256, CountersIdHashFunc,
-                                                              CountersIdHashCompareFunc,
-                                                              CountersIdHashFreeFunc);
+                                        CountersIdHashCompareFunc, CountersIdHashFreeFunc);
         BUG_ON(stats_ctx->counters_id_hash == NULL);
     }
+
     StatsCounter *pc = pctx->head;
     while (pc != NULL) {
         CountersIdType t = { 0, pc->name }, *id = NULL;
@@ -1087,11 +1060,9 @@ static int StatsThreadRegister(const char *thread_name, StatsPublicThreadContext
  *  \retval a counter-array in this(s_id-e_id) range for this TM instance
  */
 static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
-                                      StatsPublicThreadContext *pctx,
-                                      StatsPrivateThreadContext *pca)
+    StatsPublicThreadContext *pctx, StatsPrivateThreadContext *pca)
 {
     StatsCounter *pc = NULL;
-    uint32_t i = 0;
 
     if (pctx == NULL || pca == NULL) {
         SCLogDebug("pctx/pca is NULL");
@@ -1117,7 +1088,7 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
     while (pc->id != s_id)
         pc = pc->next;
 
-    i = 1;
+    uint32_t i = 1;
     while ((pc != NULL) && (pc->id <= e_id)) {
         pca->head[i].pc = pc;
         pca->head[i].id = pc->id;
@@ -1125,7 +1096,6 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         i++;
     }
     pca->size = i - 1;
-
     pca->initialized = 1;
     return 0;
 }
@@ -1139,7 +1109,8 @@ static int StatsGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
  *  \retval pca Pointer to a counter-array for all counter of this tm instance
  *              on success; NULL on failure
  */
-static int StatsGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivateThreadContext *private)
+static int StatsGetAllCountersArray(StatsPublicThreadContext *pctx,
+    StatsPrivateThreadContext *private)
 {
     if (pctx == NULL || private == NULL)
         return -1;
@@ -1151,7 +1122,6 @@ static int StatsGetAllCountersArray(StatsPublicThreadContext *pctx, StatsPrivate
 int StatsSetupPrivate(ThreadVars *tv)
 {
     StatsGetAllCountersArray(&(tv)->perf_public_ctx, &(tv)->perf_private_ctx);
-
     StatsThreadRegister(tv->name, &(tv)->perf_public_ctx);
     return 0;
 }
@@ -1168,7 +1138,6 @@ int StatsSetupPrivate(ThreadVars *tv)
 int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadContext *pctx)
 {
     StatsLocalCounter *pcae = NULL;
-    uint32_t i = 0;
 
     if (pca == NULL || pctx == NULL) {
         SCLogDebug("pca or pctx is NULL inside StatsUpdateCounterArray");
@@ -1176,13 +1145,11 @@ int StatsUpdateCounterArray(StatsPrivateThreadContext *pca, StatsPublicThreadCon
     }
 
     pcae = pca->head;
-
     SCMutexLock(&pctx->m);
-    for (i = 1; i <= pca->size; i++) {
+    for (uint32_t i = 1; i <= pca->size; i++) {
         StatsCopyCounterValue(&pcae[i]);
     }
     SCMutexUnlock(&pctx->m);
-
     pctx->perf_flag = 0;
 
     return 1;
@@ -1212,7 +1179,6 @@ uint64_t StatsGetLocalCounterValue(ThreadVars *tv, uint16_t id)
 void StatsReleaseResources()
 {
     StatsReleaseCtx();
-
     return;
 }
 
