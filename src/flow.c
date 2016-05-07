@@ -183,24 +183,21 @@ int FlowGetPacketDirection(const Flow *f, const Packet *p)
     if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
             /* update flags and counters */
-            if (CMP_PORT(f->sp,p->sp)) {
+            if (CMP_PORT(f->sp,p->sp))
                 return TOSERVER;
-            } else {
+            else
                 return TOCLIENT;
-            }
         } else {
-            if (CMP_ADDR(&f->src,&p->src)) {
+            if (CMP_ADDR(&f->src,&p->src))
                 return TOSERVER;
-            } else {
+            else
                 return TOCLIENT;
-            }
         }
     } else if (p->proto == IPPROTO_ICMP || p->proto == IPPROTO_ICMPV6) {
-        if (CMP_ADDR(&f->src,&p->src)) {
+        if (CMP_ADDR(&f->src,&p->src))
             return TOSERVER;
-        } else {
+        else
             return TOCLIENT;
-        }
     }
 
     /* default to toserver */
@@ -218,9 +215,8 @@ int FlowGetPacketDirection(const Flow *f, const Packet *p)
 static inline int FlowUpdateSeenFlag(const Packet *p)
 {
     if (PKT_IS_ICMPV4(p)) {
-        if (ICMPV4_IS_ERROR_MSG(p)) {
+        if (ICMPV4_IS_ERROR_MSG(p))
             return 0;
-        }
     }
 
     return 1;
@@ -300,9 +296,8 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
-        if (f->proto != IPPROTO_TCP) {
+        if (f->proto != IPPROTO_TCP)
             SC_ATOMIC_SET(f->flow_state, FLOW_STATE_ESTABLISHED);
-        }
     }
 
     /*set the detection bypass flags*/
@@ -358,11 +353,11 @@ void FlowInitConfig(char quiet)
 #ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
+    flow_config.hash_rand = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
 #endif
-    flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
-    flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
-    flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
+    flow_config.hash_size = FLOW_DEFAULT_HASHSIZE;
+    flow_config.memcap = FLOW_DEFAULT_MEMCAP;
+    flow_config.prealloc = FLOW_DEFAULT_PREALLOC;
 
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
@@ -384,28 +379,22 @@ void FlowInitConfig(char quiet)
     uint32_t configval = 0;
 
     /** set config values for memcap, prealloc and hash_size */
-    if ((ConfGet("flow.memcap", &conf_val)) == 1)
-    {
+    if ((ConfGet("flow.memcap", &conf_val)) == 1) {
         if (ParseSizeStringU64(conf_val, &flow_config.memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing flow.memcap "
-                       "from conf file - %s.  Killing engine",
-                       conf_val);
+                    "from conf file - %s.  Killing engine",
+                    conf_val);
             exit(EXIT_FAILURE);
         }
     }
-    if ((ConfGet("flow.hash-size", &conf_val)) == 1)
-    {
-        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+    if ((ConfGet("flow.hash-size", &conf_val)) == 1) {
+        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val), conf_val) > 0)
             flow_config.hash_size = configval;
-        }
     }
-    if ((ConfGet("flow.prealloc", &conf_val)) == 1)
-    {
-        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
-                                    conf_val) > 0) {
+
+    if ((ConfGet("flow.prealloc", &conf_val)) == 1) {
+        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val), conf_val) > 0)
             flow_config.prealloc = configval;
-        }
     }
     SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash-size: "
                "%"PRIu32", prealloc: %"PRIu32, flow_config.memcap,
@@ -430,17 +419,15 @@ void FlowInitConfig(char quiet)
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
 
     uint32_t i = 0;
-    for (i = 0; i < flow_config.hash_size; i++) {
+    for (i = 0; i < flow_config.hash_size; i++)
         FBLOCK_INIT(&flow_hash[i]);
-    }
     (void) SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
-    if (quiet == FALSE) {
+    if (quiet == FALSE)
         SCLogInfo("allocated %llu bytes of memory for the flow hash... "
-                  "%" PRIu32 " buckets of size %" PRIuMAX "",
-                  SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
-                  (uintmax_t)sizeof(FlowBucket));
-    }
+                "%" PRIu32 " buckets of size %" PRIuMAX "",
+                SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
+                (uintmax_t)sizeof(FlowBucket));
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
@@ -490,12 +477,10 @@ void FlowShutdown(void)
     FlowPrintStats();
 
     /* free queues */
-    while((f = FlowDequeue(&flow_spare_q))) {
+    while((f = FlowDequeue(&flow_spare_q)))
         FlowFree(f);
-    }
-    while((f = FlowDequeue(&flow_recycle_q))) {
+    while((f = FlowDequeue(&flow_recycle_q)))
         FlowFree(f);
-    }
 
     /* clear and free the hash */
     if (flow_hash != NULL) {
@@ -607,40 +592,32 @@ void FlowInitFlowProto(void)
                 "emergency-closed");
 
             if (new != NULL &&
-                ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
-
-                    flow_proto[FLOW_PROTO_DEFAULT].new_timeout = configval;
-            }
+                    ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0)
+                flow_proto[FLOW_PROTO_DEFAULT].new_timeout = configval;
+            
             if (established != NULL &&
-                ByteExtractStringUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
-
+                    ByteExtractStringUint32(&configval, 10, strlen(established), established) > 0)
                 flow_proto[FLOW_PROTO_DEFAULT].est_timeout = configval;
-            }
+
             if (closed != NULL &&
-                ByteExtractStringUint32(&configval, 10, strlen(closed),
-                                        closed) > 0) {
-
+                    ByteExtractStringUint32(&configval, 10, strlen(closed), closed) > 0)
                 flow_proto[FLOW_PROTO_DEFAULT].closed_timeout = configval;
-            }
+            
             if (emergency_new != NULL &&
-                ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
-
+                ByteExtractStringUint32(&configval, 10, strlen(emergency_new), emergency_new) > 0)
                 flow_proto[FLOW_PROTO_DEFAULT].emerg_new_timeout = configval;
-            }
+            
             if (emergency_established != NULL &&
                     ByteExtractStringUint32(&configval, 10,
-                                            strlen(emergency_established),
-                                            emergency_established) > 0) {
-
+                        strlen(emergency_established),
+                        emergency_established) > 0) {
                 flow_proto[FLOW_PROTO_DEFAULT].emerg_est_timeout= configval;
             }
+
             if (emergency_closed != NULL &&
                     ByteExtractStringUint32(&configval, 10,
-                                            strlen(emergency_closed),
-                                            emergency_closed) > 0) {
-
+                        strlen(emergency_closed),
+                        emergency_closed) > 0) {
                 flow_proto[FLOW_PROTO_DEFAULT].emerg_closed_timeout = configval;
             }
         }
@@ -659,39 +636,33 @@ void FlowInitFlowProto(void)
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
-
                 flow_proto[FLOW_PROTO_TCP].new_timeout = configval;
             }
             if (established != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
-
+                    established) > 0) {
                 flow_proto[FLOW_PROTO_TCP].est_timeout = configval;
             }
             if (closed != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(closed),
-                                        closed) > 0) {
-
+                    closed) > 0) {
                 flow_proto[FLOW_PROTO_TCP].closed_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
-
+                    emergency_new) > 0) {
                 flow_proto[FLOW_PROTO_TCP].emerg_new_timeout = configval;
             }
             if (emergency_established != NULL &&
                 ByteExtractStringUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
-
+                    strlen(emergency_established),
+                    emergency_established) > 0) {
                 flow_proto[FLOW_PROTO_TCP].emerg_est_timeout = configval;
             }
             if (emergency_closed != NULL &&
                 ByteExtractStringUint32(&configval, 10,
-                                        strlen(emergency_closed),
-                                        emergency_closed) > 0) {
-
+                    strlen(emergency_closed),
+                    emergency_closed) > 0) {
                 flow_proto[FLOW_PROTO_TCP].emerg_closed_timeout = configval;
             }
         }
@@ -706,26 +677,21 @@ void FlowInitFlowProto(void)
                 "emergency-established");
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
-
                 flow_proto[FLOW_PROTO_UDP].new_timeout = configval;
             }
             if (established != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
-
+                    established) > 0) {
                 flow_proto[FLOW_PROTO_UDP].est_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
-
+                    emergency_new) > 0) {
                 flow_proto[FLOW_PROTO_UDP].emerg_new_timeout = configval;
             }
             if (emergency_established != NULL &&
                 ByteExtractStringUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
-
+                    strlen(emergency_established), emergency_established) > 0) {
                 flow_proto[FLOW_PROTO_UDP].emerg_est_timeout = configval;
             }
         }
@@ -741,26 +707,22 @@ void FlowInitFlowProto(void)
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
-
                 flow_proto[FLOW_PROTO_ICMP].new_timeout = configval;
             }
             if (established != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(established),
-                                        established) > 0) {
-
+                    established) > 0) {
                 flow_proto[FLOW_PROTO_ICMP].est_timeout = configval;
             }
             if (emergency_new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(emergency_new),
-                                        emergency_new) > 0) {
-
+                    emergency_new) > 0) {
                 flow_proto[FLOW_PROTO_ICMP].emerg_new_timeout = configval;
             }
             if (emergency_established != NULL &&
                 ByteExtractStringUint32(&configval, 10,
-                                        strlen(emergency_established),
-                                        emergency_established) > 0) {
-
+                    strlen(emergency_established),
+                    emergency_established) > 0) {
                 flow_proto[FLOW_PROTO_ICMP].emerg_est_timeout = configval;
             }
         }
@@ -776,20 +738,16 @@ void FlowInitFlowProto(void)
  *  \param  f           pointer to the flow needed to be cleared.
  *  \param  proto_map   mapped value of the protocol to FLOW_PROTO's.
  */
-
 int FlowClearMemory(Flow* f, uint8_t proto_map)
 {
     SCEnter();
 
     /* call the protocol specific free function if we have one */
-    if (flow_proto[proto_map].Freefunc != NULL) {
+    if (flow_proto[proto_map].Freefunc != NULL)
         flow_proto[proto_map].Freefunc(f->protoctx);
-    }
 
     FlowFreeStorage(f);
-
     FLOW_RECYCLE(f);
-
     SCReturnInt(1);
 }
 
@@ -800,7 +758,6 @@ int FlowClearMemory(Flow* f, uint8_t proto_map)
  *  \param   Free   Function pointer which will be called to free the protocol
  *                  specific memory.
  */
-
 int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
 {
     uint8_t proto_map;
@@ -820,7 +777,7 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
  */
 
 int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout,
-                        uint32_t est_timeout, uint32_t closed_timeout)
+        uint32_t est_timeout, uint32_t closed_timeout)
 {
     uint8_t proto_map;
     proto_map = FlowGetProtoMapping(proto);
@@ -841,10 +798,8 @@ int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout,
  *  \param   emerg_est_timeout      timeout value for the established flows.
  *  \param   emerg_closed_timeout   timeout value for the closed flows.
  */
-
 int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
-                                 uint32_t emerg_est_timeout,
-                                 uint32_t emerg_closed_timeout)
+    uint32_t emerg_est_timeout, uint32_t emerg_closed_timeout)
 {
 
     uint8_t proto_map;
@@ -876,23 +831,19 @@ void *FlowGetAppState(const Flow *f)
  */
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 {
-    if (f->proto != IPPROTO_TCP) {
+    if (f->proto != IPPROTO_TCP)
         return flags;
-    }
-    if (f->protoctx == NULL) {
+    if (f->protoctx == NULL)
         return flags;
-    }
 
     uint8_t newflags = flags;
     TcpSession *ssn = f->protoctx;
     TcpStream *stream = flags & STREAM_TOSERVER ? &ssn->client : &ssn->server;
 
-    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED)
         newflags |= STREAM_DEPTH;
-    }
-    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
+    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP)
         newflags |= STREAM_GAP;
-    }
     /* todo: handle pass case (also for UDP!) */
 
     return newflags;
