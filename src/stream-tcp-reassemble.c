@@ -83,6 +83,11 @@ TcpSegment *StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *);
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 void StreamTcpReassemblePseudoPacketCreate(TcpStream *, Packet *, PacketQueue *);
 
+void StreamTcpReassembleInitMemuse(void)
+{
+    SC_ATOMIC_INIT(ra_memuse);
+}
+
 /**
  *  \brief  Function to Increment the memory usage counter for the TCP reassembly
  *          segments
@@ -387,7 +392,7 @@ int StreamTcpReassemblyConfig(char quiet)
 int StreamTcpReassembleInit(char quiet)
 {
     /* init the memcap/use tracker */
-    SC_ATOMIC_INIT(ra_memuse);
+    StreamTcpReassembleInitMemuse();
 
     if (StreamTcpReassemblyConfig(quiet) < 0)
         return -1;
