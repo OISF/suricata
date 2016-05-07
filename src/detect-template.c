@@ -25,10 +25,8 @@
 
 #include "suricata-common.h"
 #include "util-unittest.h"
-
 #include "detect-parse.h"
 #include "detect-engine.h"
-
 #include "detect-template.h"
 
 /**
@@ -50,7 +48,8 @@ static void DetectTemplateRegisterTests (void);
  *
  * This function is called once in the 'lifetime' of the engine.
  */
-void DetectTemplateRegister(void) {
+void DetectTemplateRegister(void)
+{
     /* keyword name: this is how the keyword is used in a rule */
     sigmatch_table[DETECT_TEMPLATE].name = "template";
     /* description: listed in "suricata --list-keywords=all" */
@@ -84,7 +83,7 @@ void DetectTemplateRegister(void) {
  * \retval 1 match
  */
 static int DetectTemplateMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
-                                Signature *s, const SigMatchCtx *ctx)
+    Signature *s, const SigMatchCtx *ctx)
 {
     int ret = 0;
     const DetectTemplateData *templated = (const DetectTemplateData *) ctx;
@@ -105,10 +104,8 @@ static int DetectTemplateMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, P
     /* packet payload access */
     if (p->payload != NULL && p->payload_len > 0) {
         if (templated->arg1 == p->payload[0] &&
-            templated->arg2 == p->payload[p->payload_len - 1])
-        {
+                templated->arg2 == p->payload[p->payload_len - 1])
             ret = 1;
-        }
     }
 
     return ret;
@@ -215,7 +212,8 @@ error:
  *
  * \param ptr pointer to DetectTemplateData
  */
-static void DetectTemplateFree(void *ptr) {
+static void DetectTemplateFree(void *ptr)
+{
     DetectTemplateData *templated = (DetectTemplateData *)ptr;
 
     /* do more specific cleanup here, if needed */
@@ -228,8 +226,8 @@ static void DetectTemplateFree(void *ptr) {
 /**
  * \test description of the test
  */
-
-static int DetectTemplateParseTest01 (void) {
+static int DetectTemplateParseTest01 (void)
+{
     DetectTemplateData *templated = NULL;
     uint8_t res = 0;
 
@@ -244,7 +242,8 @@ static int DetectTemplateParseTest01 (void) {
     return res;
 }
 
-static int DetectTemplateSignatureTest01 (void) {
+static int DetectTemplateSignatureTest01 (void)
+{
     uint8_t res = 0;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -270,7 +269,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectTemplate
  */
-void DetectTemplateRegisterTests(void) {
+void DetectTemplateRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectTemplateParseTest01", DetectTemplateParseTest01);
     UtRegisterTest("DetectTemplateSignatureTest01",
