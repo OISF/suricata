@@ -62,7 +62,9 @@ void FlowFreeStorage(Flow *f)
         StorageFreeAll((Storage *)((void *)f + sizeof(Flow)), STORAGE_FLOW);
 }
 
-int FlowStorageRegister(const char *name, const unsigned int size, void *(*Alloc)(unsigned int), void (*Free)(void *)) {
+int FlowStorageRegister(const char *name, const unsigned int size,
+        void *(*Alloc)(unsigned int), void (*Free)(void *))
+{
     return StorageRegister(STORAGE_FLOW, name, size, Alloc, Free);
 }
 
@@ -101,48 +103,38 @@ static int FlowStorageTest01(void)
     FlowInitConfig(FLOW_QUIET);
 
     f = FlowAlloc();
-    if (f == NULL) {
+    if (f == NULL)
         goto error;
-    }
 
     void *ptr = FlowGetStorageById(f, id1);
-    if (ptr != NULL) {
+    if (ptr != NULL)
         goto error;
-    }
     ptr = FlowGetStorageById(f, id2);
-    if (ptr != NULL) {
+    if (ptr != NULL)
         goto error;
-    }
     ptr = FlowGetStorageById(f, id3);
-    if (ptr != NULL) {
+    if (ptr != NULL)
         goto error;
-    }
 
     void *ptr1a = FlowAllocStorageById(f, id1);
-    if (ptr1a == NULL) {
+    if (ptr1a == NULL)
         goto error;
-    }
     void *ptr2a = FlowAllocStorageById(f, id2);
-    if (ptr2a == NULL) {
+    if (ptr2a == NULL)
         goto error;
-    }
     void *ptr3a = FlowAllocStorageById(f, id3);
-    if (ptr3a == NULL) {
+    if (ptr3a == NULL)
         goto error;
-    }
 
     void *ptr1b = FlowGetStorageById(f, id1);
-    if (ptr1a != ptr1b) {
+    if (ptr1a != ptr1b)
         goto error;
-    }
     void *ptr2b = FlowGetStorageById(f, id2);
-    if (ptr2a != ptr2b) {
+    if (ptr2a != ptr2b)
         goto error;
-    }
     void *ptr3b = FlowGetStorageById(f, id3);
-    if (ptr3a != ptr3b) {
+    if (ptr3a != ptr3b)
         goto error;
-    }
 
     FlowClearMemory(f, 0);
     FlowFree(f);
@@ -162,7 +154,6 @@ error:
 static int FlowStorageTest02(void)
 {
     Flow *f = NULL;
-
     StorageInit();
 
     int id1 = FlowStorageRegister("test", sizeof(void *), NULL, StorageTestFree);
@@ -174,26 +165,21 @@ static int FlowStorageTest02(void)
 
     FlowInitConfig(FLOW_QUIET);
     f = FlowAlloc();
-    if (f == NULL) {
+    if (f == NULL)
         goto error;
-    }
 
     void *ptr = FlowGetStorageById(f, id1);
-    if (ptr != NULL) {
+    if (ptr != NULL)
         goto error;
-    }
 
     void *ptr1a = SCMalloc(128);
-    if (unlikely(ptr1a == NULL)) {
+    if (unlikely(ptr1a == NULL))
         goto error;
-    }
     FlowSetStorageById(f, id1, ptr1a);
 
     void *ptr1b = FlowGetStorageById(f, id1);
-    if (ptr1a != ptr1b) {
+    if (ptr1a != ptr1b)
         goto error;
-    }
-
 
     FlowClearMemory(f, 0);
     FlowFree(f);
@@ -213,7 +199,6 @@ error:
 static int FlowStorageTest03(void)
 {
     Flow *f = NULL;
-
     StorageInit();
 
     int id1 = FlowStorageRegister("test1", sizeof(void *), NULL, StorageTestFree);
@@ -231,44 +216,36 @@ static int FlowStorageTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     f = FlowAlloc();
-    if (f == NULL) {
+    if (f == NULL)
         goto error;
-    }
 
     void *ptr = FlowGetStorageById(f, id1);
-    if (ptr != NULL) {
+    if (ptr != NULL)
         goto error;
-    }
 
     void *ptr1a = SCMalloc(128);
-    if (unlikely(ptr1a == NULL)) {
+    if (unlikely(ptr1a == NULL))
         goto error;
-    }
     FlowSetStorageById(f, id1, ptr1a);
 
     void *ptr2a = SCMalloc(256);
-    if (unlikely(ptr2a == NULL)) {
+    if (unlikely(ptr2a == NULL))
         goto error;
-    }
     FlowSetStorageById(f, id2, ptr2a);
 
     void *ptr3a = FlowAllocStorageById(f, id3);
-    if (ptr3a == NULL) {
+    if (ptr3a == NULL)
         goto error;
-    }
 
     void *ptr1b = FlowGetStorageById(f, id1);
-    if (ptr1a != ptr1b) {
+    if (ptr1a != ptr1b)
         goto error;
-    }
     void *ptr2b = FlowGetStorageById(f, id2);
-    if (ptr2a != ptr2b) {
+    if (ptr2a != ptr2b)
         goto error;
-    }
     void *ptr3b = FlowGetStorageById(f, id3);
-    if (ptr3a != ptr3b) {
+    if (ptr3a != ptr3b)
         goto error;
-    }
 
     FlowClearMemory(f, 0);
     FlowFree(f);
