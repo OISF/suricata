@@ -2353,10 +2353,13 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (InitSignalHandler(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);
 
+
 #ifdef HAVE_NSS
-    /* init NSS for md5 */
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-    NSS_NoDB_Init(NULL);
+    if (suri->run_mode != RUNMODE_CONF_TEST) {
+        /* init NSS for md5 */
+        PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+        NSS_NoDB_Init(NULL);
+    }
 #endif
 
     if (suri->disabled_detect) {
@@ -2536,6 +2539,7 @@ int main(int argc, char **argv)
 
     if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
+        MagicDeinit();
         exit(EXIT_SUCCESS);
     }
 
