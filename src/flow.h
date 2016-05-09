@@ -43,69 +43,71 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /* per flow flags */
 
 /** Don't return this from the flow hash. It has been replaced. */
-#define FLOW_TCP_REUSED                   BIT_U32(2)
+#define FLOW_TCP_REUSED                   BIT_U32(0)
 /** no magic on files in this flow */
-#define FLOW_FILE_NO_MAGIC_TS             BIT_U32(3)
-#define FLOW_FILE_NO_MAGIC_TC             BIT_U32(4)
+#define FLOW_FILE_NO_MAGIC_TS             BIT_U32(1)
+#define FLOW_FILE_NO_MAGIC_TC             BIT_U32(2)
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET          BIT_U32(5)
+#define FLOW_TOSERVER_IPONLY_SET          BIT_U32(3)
 /** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET          BIT_U32(6)
+#define FLOW_TOCLIENT_IPONLY_SET          BIT_U32(4)
 
 /** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION          BIT_U32(7)
+#define FLOW_NOPACKET_INSPECTION          BIT_U32(5)
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION         BIT_U32(8)
+#define FLOW_NOPAYLOAD_INSPECTION         BIT_U32(6)
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP                  BIT_U32(9)
+#define FLOW_ACTION_DROP                  BIT_U32(7)
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER                 BIT_U32(10)
+#define FLOW_SGH_TOSERVER                 BIT_U32(8)
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT                 BIT_U32(11)
+#define FLOW_SGH_TOCLIENT                 BIT_U32(9)
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED         BIT_U32(12)
+#define FLOW_TOSERVER_DROP_LOGGED         BIT_U32(10)
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED         BIT_U32(13)
+#define FLOW_TOCLIENT_DROP_LOGGED         BIT_U32(11)
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE          BIT_U32(14)
+#define FLOW_ALPROTO_DETECT_DONE          BIT_U32(12)
 
 /** Pattern matcher alproto detection done */
-#define FLOW_TS_PM_ALPROTO_DETECT_DONE    BIT_U32(15)
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE    BIT_U32(13)
 /** Probing parser alproto detection done */
-#define FLOW_TS_PP_ALPROTO_DETECT_DONE    BIT_U32(16)
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE    BIT_U32(14)
 /** Pattern matcher alproto detection done */
-#define FLOW_TC_PM_ALPROTO_DETECT_DONE    BIT_U32(17)
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE    BIT_U32(15)
 /** Probing parser alproto detection done */
-#define FLOW_TC_PP_ALPROTO_DETECT_DONE    BIT_U32(18)
-#define FLOW_TIMEOUT_REASSEMBLY_DONE      BIT_U32(19)
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE    BIT_U32(16)
+#define FLOW_TIMEOUT_REASSEMBLY_DONE      BIT_U32(17)
 /** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_STORE_TS             BIT_U32(20)
-#define FLOW_FILE_NO_STORE_TC             BIT_U32(21)
+#define FLOW_FILE_NO_STORE_TS             BIT_U32(18)
+#define FLOW_FILE_NO_STORE_TC             BIT_U32(19)
 
 /** flow is ipv4 */
-#define FLOW_IPV4                         BIT_U32(22)
+#define FLOW_IPV4                         BIT_U32(20)
 /** flow is ipv6 */
-#define FLOW_IPV6                         BIT_U32(23)
+#define FLOW_IPV6                         BIT_U32(21)
 
 /** no md5 on files in this flow */
-#define FLOW_FILE_NO_MD5_TS               BIT_U32(24)
-#define FLOW_FILE_NO_MD5_TC               BIT_U32(25)
+#define FLOW_FILE_NO_MD5_TS               BIT_U32(22)
+#define FLOW_FILE_NO_MD5_TC               BIT_U32(23)
 
 /** no sha1 on files in this flow */
-#define FLOW_FILE_NO_SHA1_TS              BIT_U32(26)
-#define FLOW_FILE_NO_SHA1_TC              BIT_U32(27)
+#define FLOW_FILE_NO_SHA1_TS              BIT_U32(24)
+#define FLOW_FILE_NO_SHA1_TC              BIT_U32(25)
 
 /** no sha256 on files in this flow */
-#define FLOW_FILE_NO_SHA256_TS            BIT_U32(28)
-#define FLOW_FILE_NO_SHA256_TC            BIT_U32(29)
+#define FLOW_FILE_NO_SHA256_TS            BIT_U32(26)
+#define FLOW_FILE_NO_SHA256_TC            BIT_U32(27)
 
 /** no size tracking of files in this flow */
-#define FLOW_FILE_NO_SIZE_TS              BIT_U32(30)
-#define FLOW_FILE_NO_SIZE_TC              BIT_U32(31)
+#define FLOW_FILE_NO_SIZE_TS              BIT_U32(28)
+#define FLOW_FILE_NO_SIZE_TC              BIT_U32(29)
+/** flow has been caught midstream in server first */
+#define FLOW_ALPROTO_REVERTED             BIT_U32(30)
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
