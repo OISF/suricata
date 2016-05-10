@@ -1880,7 +1880,7 @@ static int ModbusParserTest03(void) {
                                       "(msg:\"Modbus Data mismatch\"; "
                                       "app-layer-event: "
                                       "modbus.value_mismatch; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2047,7 +2047,7 @@ static int ModbusParserTest05(void) {
                                       "(msg:\"Modbus invalid Protocol version\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_protocol_id; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2133,7 +2133,7 @@ static int ModbusParserTest06(void) {
                                       "(msg:\"Modbus unsolicited response\"; "
                                       "app-layer-event: "
                                       "modbus.unsolicited_response; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2219,7 +2219,7 @@ static int ModbusParserTest07(void) {
                                       "(msg:\"Modbus invalid Length\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2306,7 +2306,7 @@ static int ModbusParserTest08(void) {
                                       "(msg:\"Modbus Exception code invalid\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_exception_code; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2595,7 +2595,7 @@ static int ModbusParserTest11(void) {
                                       "(msg:\"Modbus invalid Length\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2682,7 +2682,7 @@ static int ModbusParserTest12(void) {
                                       "(msg:\"Modbus invalid Length\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -2899,7 +2899,7 @@ static int ModbusParserTest15(void) {
                                       "(msg:\"Modbus invalid Length\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -3008,7 +3008,7 @@ static int ModbusParserTest16(void) {
                                       "(msg:\"Modbus invalid Length\"; "
                                       "app-layer-event: "
                                       "modbus.invalid_length; "
-                                      "sid:1;)");
+                                      "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 

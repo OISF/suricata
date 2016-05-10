@@ -423,9 +423,9 @@ static int DetectEngineSMTPFiledataTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
-                              "(msg:\"file_data smtp test\"; "
-                              "file_data; content:\"message\"; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert smtp any any -> any any " "(msg:\"file_data smtp test\"; " "file_data; content:\"message\"; sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
 

@@ -1193,11 +1193,15 @@ static int SigGroupHeadTest10(void)
     if (de_ctx == NULL)
         return 0;
 
-    s = DetectEngineAppendSig(de_ctx, "alert icmp 192.168.0.0/16 any -> any any (icode:>1; itype:11; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert icmp 192.168.0.0/16 any -> any any (icode:>1; itype:11; sid:1; rev:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert icmp any any -> 192.168.0.0/16 any (icode:1; itype:5; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert icmp any any -> 192.168.0.0/16 any (icode:1; itype:5; sid:2; rev:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1239,11 +1243,15 @@ static int SigGroupHeadTest11(void)
     if (de_ctx == NULL || p == NULL)
         return 0;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any 1024: -> any 1024: (content:\"abc\"; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any 1024: -> any 1024: (content:\"abc\"; sid:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"def\"; http_client_body; sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"def\"; http_client_body; sid:2;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }

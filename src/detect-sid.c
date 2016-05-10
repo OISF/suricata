@@ -99,7 +99,8 @@ static int SidTestParse01(void)
         goto end;
 
     s = DetectEngineAppendSig(de_ctx,
-        "alert tcp 1.2.3.4 any -> any any (sid:1; gid:1;)");
+                              "alert tcp 1.2.3.4 any -> any any (sid:1; gid:1;)",
+                              NULL);
     if (s == NULL || s->id != 1)
         goto end;
 
@@ -119,8 +120,7 @@ static int SidTestParse02(void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx,
-            "alert tcp 1.2.3.4 any -> any any (sid:a; gid:1;)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:a; gid:1;)", NULL) != NULL)
         goto end;
 
     result = 1;
@@ -139,8 +139,7 @@ static int SidTestParse03(void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any (content:\"ABC\"; sid:\";)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"ABC\"; sid:\";)", NULL) != NULL)
         goto end;
 
     result = 1;

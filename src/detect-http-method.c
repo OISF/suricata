@@ -300,13 +300,11 @@ static int DetectHttpMethodTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:\"one\"; http_method; nocase; sid:1;)") == NULL) {
+    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any " "(content:\"one\"; http_method; nocase; sid:1;)", NULL) == NULL) {
         printf("DetectEngineAppend == NULL: ");
         goto end;
     }
-    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:\"one\"; nocase; http_method; sid:2;)") == NULL) {
+    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any " "(content:\"one\"; nocase; http_method; sid:2;)", NULL) == NULL) {
         printf("DetectEngineAppend == NULL: ");
         goto end;
     }

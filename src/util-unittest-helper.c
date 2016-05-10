@@ -607,7 +607,7 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, char *sigs[], int numsigs)
                        " at position %d", i);
             return 0;
         }
-        s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        s = DetectEngineAppendSig(de_ctx, sigs[i], NULL);
         if (s == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature at"
                        " position %d (%s)", i, sigs[i]);

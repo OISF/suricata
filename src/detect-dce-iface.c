@@ -883,10 +883,9 @@ static int DetectDceIfaceTestParse12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5,=0,any_frag; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5,=0,any_frag; " "sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
 
@@ -1391,10 +1390,9 @@ static int DetectDceIfaceTestParse14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5,=0; "
-                                   "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5,=0; " "sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
 
@@ -1594,17 +1592,15 @@ static int DetectDceIfaceTestParse15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                              "(msg:\"DCERPC\"; "
-                              "dce_iface:57674cd0-5200-11ce-a897-08002b2e9c6d; "
-                              "sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_iface:57674cd0-5200-11ce-a897-08002b2e9c6d; " "sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                              "(msg:\"DCERPC\"; "
-                              "dce_iface:342cfd40-3c6c-11ce-a893-08002b2e9c6d; "
-                              "sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_iface:342cfd40-3c6c-11ce-a893-08002b2e9c6d; " "sid:2;)",
+                              NULL);
     if (s == NULL)
         goto end;
 

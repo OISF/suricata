@@ -2671,7 +2671,9 @@ static int SCThresholdConfTest18(void)
         return result;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
@@ -2746,7 +2748,9 @@ static int SCThresholdConfTest19(void)
         return result;
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:2200029;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }

@@ -370,7 +370,7 @@ static int RunTest(struct TestSteps *steps, const char *sig, const char *yaml)
     f.alproto = ALPROTO_HTTP;
 
     SCLogDebug("sig %s", sig);
-    DetectEngineAppendSig(de_ctx, (char *)sig);
+    DetectEngineAppendSig(de_ctx, (char *)sig, NULL);
 
     de_ctx->flags |= DE_QUIET;
 
@@ -3656,15 +3656,9 @@ static int DetectEngineHttpServerBodyFileDataTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"match on 1st\"; "
-                               "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,1234,-8,relative,string;"
-                               "sid:1;)")))
+    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any " "(msg:\"match on 1st\"; " "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,1234,-8,relative,string;" "sid:1;)", NULL)))
         goto end;
-    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(msg:\"match on 2nd\"; "
-                               "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,5678,-8,relative,string;"
-                               "sid:2;)")))
+    if (!(DetectEngineAppendSig(de_ctx, "alert http any any -> any any " "(msg:\"match on 2nd\"; " "file_data; content:\"XYZ\"; content:\"_klm_\"; distance:0; content:\"abcd\"; distance:4; byte_test:4,=,5678,-8,relative,string;" "sid:2;)", NULL)))
         goto end;
 
     SigGroupBuild(de_ctx);

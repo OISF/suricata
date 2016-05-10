@@ -678,13 +678,15 @@ static int HostBitsTestSig02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:isset,abc,src; content:\"GET \"; sid:1;)");
+                              "alert ip any any -> any any (hostbits:isset,abc,src; content:\"GET \"; sid:1;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:isnotset,abc,dst; content:\"GET \"; sid:2;)");
+                              "alert ip any any -> any any (hostbits:isnotset,abc,dst; content:\"GET \"; sid:2;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
@@ -696,13 +698,15 @@ static int HostBitsTestSig02(void)
     }
 */
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:unset,abc,src; content:\"GET \"; sid:4;)");
+                              "alert ip any any -> any any (hostbits:unset,abc,src; content:\"GET \"; sid:4;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:toggle,abc,dst; content:\"GET \"; sid:5;)");
+                              "alert ip any any -> any any (hostbits:toggle,abc,dst; content:\"GET \"; sid:5;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
@@ -1353,22 +1357,26 @@ static int HostBitsTestSig08(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)");
+                              "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:toggle,myflow2; sid:11;)");
+                              "alert ip any any -> any any (hostbits:toggle,myflow2; sid:11;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:toggle,myflow2; sid:12;)");
+                              "alert ip any any -> any any (hostbits:toggle,myflow2; sid:12;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (hostbits:isset,myflow2; sid:13;)");
+                              "alert ip any any -> any any (hostbits:isset,myflow2; sid:13;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }

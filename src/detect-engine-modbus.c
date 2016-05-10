@@ -999,55 +999,45 @@ static int DetectEngineInspectModbusTest08(void)
 
     /* readInputsRegistersReq, Starting Address = 0x08, Quantity of Registers = 0x60 */
     /* Read access address from 9 to 104 */
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address <9;  sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address <9;  sid:1;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 9;  sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 9;  sid:2;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 5<>9;  sid:3;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 5<>9;  sid:3;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address <10;  sid:4;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address <10;  sid:4;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 5<>10;  sid:5;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 5<>10;  sid:5;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address >103;  sid:6;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address >103;  sid:6;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 103<>110;  sid:7;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 103<>110;  sid:7;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 104;  sid:8;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 104;  sid:8;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address >104;  sid:9;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address >104;  sid:9;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus access\"; "
-                                      "modbus: access read input, "
-                                      "address 104<>110;  sid:10;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus access\"; " "modbus: access read input, " "address 104<>110;  sid:10;)",
+                              NULL);
 
     if (s == NULL)
         goto end;
@@ -1184,55 +1174,45 @@ static int DetectEngineInspectModbusTest09(void)
     /* Write access register address 15 = 0x1234 (4660)     */
     /* Write access register address 16 = 0x5678 (22136)    */
     /* Write access register address 17 = 0x9ABC (39612)    */
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 15, value <4660;  sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 15, value <4660;  sid:1;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 16, value <22137;  sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 16, value <22137;  sid:2;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 17, value 39612;  sid:3;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 17, value 39612;  sid:3;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 15, value 4661;  sid:4;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 15, value 4661;  sid:4;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 16, value 20000<>22136;  sid:5;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 16, value 20000<>22136;  sid:5;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 17, value 30000<>39613;  sid:6;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 17, value 30000<>39613;  sid:6;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 15, value 4659<>5000;  sid:7;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 15, value 4659<>5000;  sid:7;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 16, value 22136<>30000;  sid:8;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 16, value 22136<>30000;  sid:8;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 17, value >39611;  sid:9;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 17, value >39611;  sid:9;)",
+                              NULL);
 
-    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
-                                      "(msg:\"Testing modbus write access\"; "
-                                      "modbus: access write holding, "
-                                      "address 15, value >4660;  sid:10;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert modbus any any -> any any " "(msg:\"Testing modbus write access\"; " "modbus: access write holding, " "address 15, value >4660;  sid:10;)",
+                              NULL);
 
     if (s == NULL)
         goto end;

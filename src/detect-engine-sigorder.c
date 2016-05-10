@@ -2314,15 +2314,21 @@ static int SCSigOrderingTest13(void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:set,bit2; flowbits:set,bit3; sid:6;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:set,bit2; flowbits:set,bit3; sid:6;)",
+                                NULL);
     if (sig == NULL) {
         goto end;
     }
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp any any -> any any (flowbits:set,bit1; flowbits:set,bit2; sid:7;)",
+                                NULL);
     if (sig == NULL) {
         goto end;
     }
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp any any -> any any (flowbits:isset,bit1; flowbits:isset,bit2; flowbits:isset,bit3; sid:5;)",
+                                NULL);
     if (sig == NULL) {
         goto end;
     }

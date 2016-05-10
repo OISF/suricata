@@ -51,7 +51,7 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
                                          SigMatch **, SigMatch **);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
-Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);
+Signature *DetectEngineAppendSig(DetectEngineCtx *, char *, char *);
 
 void SigMatchAppendSMToList(Signature *, SigMatch *, int);
 void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);

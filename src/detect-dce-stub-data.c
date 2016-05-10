@@ -1362,16 +1362,19 @@ static int DetectDceStubDataTestParse04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 02|\"; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 02|\"; sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 75|\"; sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 75|\"; sid:2;)",
+                              NULL);
     if (s == NULL)
         goto end;
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 18|\"; sid:3;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(msg:\"DCERPC\"; dce_stub_data; content:\"|00 18|\"; sid:3;)",
+                              NULL);
     if (s == NULL)
         goto end;
 

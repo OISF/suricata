@@ -103,20 +103,16 @@ static int DetectTemplateBufferTest(void)
 
     /* This rule should match. */
     s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_buffer; content:\"World!\"; "
-        "sid:1; rev:1;)");
+                              "alert tcp any any -> any any (" "msg:\"TEMPLATE Test Rule\"; " "template_buffer; content:\"World!\"; " "sid:1; rev:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
 
     /* This rule should not match. */
     s = DetectEngineAppendSig(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"TEMPLATE Test Rule\"; "
-        "template_buffer; content:\"W0rld!\"; "
-        "sid:2; rev:1;)");
+                              "alert tcp any any -> any any (" "msg:\"TEMPLATE Test Rule\"; " "template_buffer; content:\"W0rld!\"; " "sid:2; rev:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }

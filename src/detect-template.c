@@ -251,7 +251,9 @@ static int DetectTemplateSignatureTest01 (void) {
     if (de_ctx == NULL)
         goto end;
 
-    Signature *sig = DetectEngineAppendSig(de_ctx, "alert ip any any -> any any (template:1,10; sid:1; rev:1;)");
+    Signature *sig = DetectEngineAppendSig(de_ctx,
+                                           "alert ip any any -> any any (template:1,10; sid:1; rev:1;)",
+                                           NULL);
     if (sig == NULL) {
         printf("parsing signature failed: ");
         goto end;
