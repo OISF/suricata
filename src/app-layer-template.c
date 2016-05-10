@@ -364,6 +364,22 @@ static void *TemplateGetTx(void *state, uint64_t tx_id)
     return NULL;
 }
 
+static void TemplateSetTxLogged(void *state, uint64_t tx_id, uint32_t logger)
+{
+    TemplateTransaction *tx = TemplateGetTx(state, tx_id);
+    if (tx)
+        tx->logged |= logger;
+}
+
+static int TemplateGetTxLogged(void *state, uint64_t tx_id, uint32_t logger)
+{
+    TemplateTransaction *tx = TemplateGetTx(state, tx_id);
+    if (tx && (tx->logged & logger))
+        return 1;
+
+    return 0;
+}
+
 /**
  * \brief Called by the application layer.
  *
@@ -496,13 +512,16 @@ void RegisterTemplateParsers(void)
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateStateTxFree);
 
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_TEMPLATE,
+            TemplateGetTxLogged, TemplateSetTxLogged);
+
         /* Register a function to return the current transaction count. */
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_TEMPLATE,
             TemplateGetTxCnt);
 
         /* Transaction handling. */
-        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP,
-            ALPROTO_TEMPLATE, TemplateGetAlstateProgressCompletionStatus);
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_TEMPLATE,
+            TemplateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP,
             ALPROTO_TEMPLATE, TemplateGetStateProgress);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_TEMPLATE,

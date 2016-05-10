@@ -147,11 +147,11 @@ int HttpBodyIterator(Flow *f, int close, void *cbdata, uint8_t iflags)
     HtpState *s = f->alstate;
     if (s != NULL && s->conn != NULL) {
         int tx_progress_done_value_ts =
-            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP,
-                                                           ALPROTO_HTTP, STREAM_TOSERVER);
+            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
+                                                           STREAM_TOSERVER);
         int tx_progress_done_value_tc =
-            AppLayerParserGetStateProgressCompletionStatus(IPPROTO_TCP,
-                                                           ALPROTO_HTTP, STREAM_TOCLIENT);
+            AppLayerParserGetStateProgressCompletionStatus(ALPROTO_HTTP,
+                                                           STREAM_TOCLIENT);
 
         // for each tx
         uint64_t tx_id = 0;

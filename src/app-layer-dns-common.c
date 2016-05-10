@@ -236,6 +236,22 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
     }
 }
 
+void DNSSetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    DNSTransaction *tx = DNSGetTx(alstate, tx_id);
+    if (tx)
+        tx->logged |= logger;
+}
+
+int DNSGetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger)
+{
+    DNSTransaction *tx = DNSGetTx(alstate, tx_id);
+    if (tx && (tx->logged & logger))
+        return 1;
+
+    return 0;
+}
+
 /** \brief get value for 'complete' status in DNS
  *
  *  For DNS we use a simple bool. 1 means done.

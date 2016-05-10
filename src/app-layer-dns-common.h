@@ -191,6 +191,7 @@ typedef struct DNSAnswerEntry_ {
 typedef struct DNSTransaction_ {
     uint16_t tx_num;                                /**< internal: id */
     uint16_t tx_id;                                 /**< transaction id */
+    uint32_t logged;                                /**< flags for loggers done logging */
     uint8_t replied;                                /**< bool indicating request is
                                                          replied to. */
     uint8_t reply_lost;
@@ -253,6 +254,8 @@ void DNSAppLayerRegisterGetEventInfo(uint8_t ipproto, AppProto alproto);
 
 void *DNSGetTx(void *alstate, uint64_t tx_id);
 uint64_t DNSGetTxCnt(void *alstate);
+void DNSSetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger);
+int DNSGetTxLogged(void *alstate, uint64_t tx_id, uint32_t logger);
 int DNSGetAlstateProgress(void *tx, uint8_t direction);
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction);
 

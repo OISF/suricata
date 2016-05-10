@@ -66,6 +66,8 @@ typedef struct SMTPTransaction_ {
     /** id of this tx, starting at 0 */
     uint64_t tx_id;
     int done;
+    /** indicates loggers done logging */
+    uint32_t logged;
     /** the first message contained in the session */
     MimeDecEntity *msg_head;
     /** the last message contained in the session */
