@@ -147,8 +147,8 @@ static int DetectSameipSigTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(msg:\"Testing sameip\"; sameip; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing sameip\"; sameip; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

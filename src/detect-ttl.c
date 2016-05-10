@@ -322,7 +322,7 @@ static int DetectTtlInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectTt
 
     (*de_ctx)->flags |= DE_QUIET;
 
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
+    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr, NULL);
     if ((*de_ctx)->sig_list == NULL) {
         goto end;
     }
@@ -544,22 +544,30 @@ static int DetectTtlTestSig1(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"with in ttl limit\"; ttl: >16; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"with in ttl limit\"; ttl: >16; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Less than 17\"; ttl: <17; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"Less than 17\"; ttl: <17; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Greater than 5\"; ttl:15; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"Greater than 5\"; ttl:15; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Equals tcp\"; ttl: 1-30; sid:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"Equals tcp\"; ttl: 1-30; sid:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

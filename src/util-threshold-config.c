@@ -1435,7 +1435,9 @@ int SCThresholdConfTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1480,7 +1482,9 @@ int SCThresholdConfTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:100;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:100;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1524,7 +1528,9 @@ int SCThresholdConfTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1568,7 +1574,9 @@ int SCThresholdConfTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1614,17 +1622,23 @@ int SCThresholdConfTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
 
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; gid:1; sid:10;)");
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any 80 (msg:\"Threshold limit\"; gid:1; sid:10;)",
+                              NULL);
     if (sig == NULL) {
         goto end;
     }
 
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; gid:1; sid:100;)");
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any 80 (msg:\"Threshold limit\"; gid:1; sid:100;)",
+                              NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1684,7 +1698,9 @@ int SCThresholdConfTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1729,7 +1745,9 @@ int SCThresholdConfTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1775,7 +1793,9 @@ int SCThresholdConfTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1831,7 +1851,9 @@ int SCThresholdConfTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"ratefilter test\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"ratefilter test\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -1957,7 +1979,9 @@ int SCThresholdConfTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"ratefilter test\"; gid:1; sid:10;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"ratefilter test\"; gid:1; sid:10;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2057,9 +2081,15 @@ int SCThresholdConfTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test limit\"; gid:1; sid:10;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test threshold\"; gid:1; sid:11;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test both\"; gid:1; sid:12;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"event_filter test limit\"; gid:1; sid:10;)",
+                                     NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"event_filter test threshold\"; gid:1; sid:11;)",
+                              NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"event_filter test both\"; gid:1; sid:12;)",
+                              NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2176,9 +2206,15 @@ int SCThresholdConfTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test limit\"; gid:1; sid:10;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test threshold\"; gid:1; sid:11;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"event_filter test both\"; gid:1; sid:12;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"event_filter test limit\"; gid:1; sid:10;)",
+                                     NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"event_filter test threshold\"; gid:1; sid:11;)",
+                              NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"event_filter test both\"; gid:1; sid:12;)",
+                              NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2284,7 +2320,9 @@ int SCThresholdConfTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; gid:1; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2344,9 +2382,15 @@ int SCThresholdConfTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:10000;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"suppress test 2\"; gid:1; sid:10;)");
-    sig = sig->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"suppress test 3\"; gid:1; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:10000;)",
+                                     NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"suppress test 2\"; gid:1; sid:10;)",
+                              NULL);
+    sig = sig->next = SigInit(de_ctx,
+                              "alert tcp any any -> any any (msg:\"suppress test 3\"; gid:1; sid:1000;)",
+                              NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2407,7 +2451,9 @@ static int SCThresholdConfTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any any (msg:\"suppress test\"; content:\"lalala\"; gid:1; sid:10000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "drop tcp any any -> any any (msg:\"suppress test\"; content:\"lalala\"; gid:1; sid:10000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2476,7 +2522,9 @@ static int SCThresholdConfTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "drop tcp any any -> any any (msg:\"suppress test\"; gid:1; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2545,7 +2593,9 @@ static int SCThresholdConfTest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"drop tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:10000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "drop tcp 192.168.0.10 any -> 192.168.0.100 any (msg:\"suppress test\"; gid:1; sid:10000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2774,7 +2824,9 @@ static int SCThresholdConfTest20(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2834,7 +2886,9 @@ static int SCThresholdConfTest21(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Threshold limit\"; content:\"abc\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }

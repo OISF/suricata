@@ -116,8 +116,9 @@ int DetectHttpRawUriTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_uri\"; http_raw_uri; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; http_raw_uri; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -140,9 +141,9 @@ int DetectHttpRawUriTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_uri\"; content:\"one\"; "
-                               "http_raw_uri:wrong; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; content:\"one\"; " "http_raw_uri:wrong; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -165,12 +166,9 @@ int DetectHttpRawUriTest03(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_uri\"; "
-                               "content:\"one\"; http_raw_uri; "
-                               "content:\"two\"; http_raw_uri; "
-                               "content:\"three\"; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; " "content:\"one\"; http_raw_uri; " "content:\"two\"; http_raw_uri; " "content:\"three\"; http_raw_uri; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -212,10 +210,9 @@ int DetectHttpRawUriTest04(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_uri\"; "
-                               "content:\"one\"; rawbytes; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; " "content:\"one\"; rawbytes; http_raw_uri; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -240,10 +237,9 @@ int DetectHttpRawUriTest05(void)
     if ((de_ctx = DetectEngineCtxInit()) == NULL)
         goto end;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing http_raw_uri\"; "
-                "content:\"we are testing http_raw_uri keyword\"; http_raw_uri; "
-                "sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; " "content:\"we are testing http_raw_uri keyword\"; http_raw_uri; " "sid:1;)",
+                NULL);
     if (s == NULL) {
         printf("sig failed to parse\n");
         goto end;
@@ -285,9 +281,9 @@ int DetectHttpRawUriTest12(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_raw_uri; "
-                               "content:\"two\"; distance:0; http_raw_uri; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_raw_uri; " "content:\"two\"; distance:0; http_raw_uri; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -332,9 +328,9 @@ int DetectHttpRawUriTest13(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_raw_uri; "
-                               "content:\"two\"; within:5; http_raw_uri; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_raw_uri; " "content:\"two\"; within:5; http_raw_uri; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -379,8 +375,9 @@ int DetectHttpRawUriTest14(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; http_raw_uri; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; http_raw_uri; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -403,8 +400,9 @@ int DetectHttpRawUriTest15(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_raw_uri; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_raw_uri; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -427,8 +425,9 @@ int DetectHttpRawUriTest16(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -451,9 +450,9 @@ int DetectHttpRawUriTest17(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_raw_uri; "
-                               "content:\"two\"; distance:0; http_raw_uri; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_raw_uri; " "content:\"two\"; distance:0; http_raw_uri; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -498,10 +497,9 @@ int DetectHttpRawUriTest18(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_raw_uri; "
-                               "content:\"two\"; within:5; http_raw_uri; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_raw_uri; " "content:\"two\"; within:5; http_raw_uri; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;

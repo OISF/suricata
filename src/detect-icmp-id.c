@@ -350,12 +350,16 @@ int DetectIcmpIdMatchTest01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:21781; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any (icmp_id:21781; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:21782; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any (icmp_id:21782; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -435,7 +439,9 @@ int DetectIcmpIdMatchTest02 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (icmp_id:0; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any (icmp_id:0; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

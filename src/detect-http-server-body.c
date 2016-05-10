@@ -154,9 +154,9 @@ static int DetectHttpServerBodyTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_server_body\"; "
-                               "content:\"one\"; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_server_body\"; " "content:\"one\"; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -204,9 +204,9 @@ static int DetectHttpServerBodyTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_server_body\"; "
-                               "content:\"one\"; http_server_body:; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_server_body\"; " "content:\"one\"; http_server_body:; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -232,9 +232,9 @@ static int DetectHttpServerBodyTest03(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_server_body\"; "
-                               "http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_server_body\"; " "http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -260,9 +260,9 @@ static int DetectHttpServerBodyTest04(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_server_body\"; "
-                               "content:\"one\"; rawbytes; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_server_body\"; " "content:\"one\"; rawbytes; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -288,9 +288,9 @@ static int DetectHttpServerBodyTest05(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_server_body\"; "
-                               "content:\"one\"; http_server_body; nocase; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_server_body\"; " "content:\"one\"; http_server_body; nocase; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -356,10 +356,9 @@ static int DetectHttpServerBodyTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "content:\"message\"; http_server_body; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -479,10 +478,9 @@ static int DetectHttpServerBodyTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "content:\"message\"; http_server_body; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -616,10 +614,9 @@ static int DetectHttpServerBodyTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "content:\"message\"; http_server_body; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -763,10 +760,9 @@ static int DetectHttpServerBodyTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"message\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "content:\"message\"; http_server_body; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -918,10 +914,9 @@ static int DetectHttpServerBodyTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:\"MeSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "content:\"MeSSaGE\"; http_server_body; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1069,10 +1064,9 @@ static int DetectHttpServerBodyTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"MaSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "content:!\"MaSSaGE\"; http_server_body; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1212,10 +1206,9 @@ static int DetectHttpServerBodyTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "content:!\"MeSSaGE\"; http_server_body; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "content:!\"MeSSaGE\"; http_server_body; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1343,10 +1336,9 @@ static int DetectHttpServerBodyTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; http_server_body; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; http_server_body; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1740,9 +1732,9 @@ int DetectHttpServerBodyTest22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; content:\"two\"; http_server_body; "
-                               "content:\"three\"; distance:10; http_server_body; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; content:\"two\"; http_server_body; " "content:\"three\"; distance:10; http_server_body; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1795,9 +1787,9 @@ int DetectHttpServerBodyTest23(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_server_body; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; pcre:/two/; " "content:\"three\"; distance:10; http_server_body; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1849,9 +1841,9 @@ int DetectHttpServerBodyTest24(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; within:15; http_server_body; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; pcre:/two/; " "content:\"three\"; distance:10; within:15; http_server_body; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1903,10 +1895,9 @@ int DetectHttpServerBodyTest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_server_body; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; pcre:/two/; " "content:\"three\"; distance:10; http_server_body; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1959,10 +1950,9 @@ int DetectHttpServerBodyTest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; offset:10; http_server_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_server_body; within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; offset:10; http_server_body; pcre:/two/; " "content:\"three\"; distance:10; http_server_body; within:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2016,10 +2006,9 @@ int DetectHttpServerBodyTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; offset:10; http_server_body; pcre:/two/; distance:10; "
-                               "content:\"three\"; distance:10; http_server_body; depth:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; offset:10; http_server_body; pcre:/two/; distance:10; " "content:\"three\"; distance:10; http_server_body; depth:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         printf("de_ctx->sig_list != NULL: ");
         goto end;
@@ -2042,10 +2031,9 @@ int DetectHttpServerBodyTest28(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; pcre:/two/; "
-                               "content:\"three\"; http_server_body; depth:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; pcre:/two/; " "content:\"three\"; http_server_body; depth:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2098,9 +2086,9 @@ int DetectHttpServerBodyTest29(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; "
-                               "content:\"two\"; distance:0; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; " "content:\"two\"; distance:0; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2142,9 +2130,9 @@ int DetectHttpServerBodyTest30(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; "
-                               "content:\"two\"; within:5; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; " "content:\"two\"; within:5; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2186,8 +2174,9 @@ int DetectHttpServerBodyTest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2210,8 +2199,9 @@ int DetectHttpServerBodyTest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_server_body; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_server_body; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2234,8 +2224,9 @@ int DetectHttpServerBodyTest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2258,9 +2249,9 @@ int DetectHttpServerBodyTest34(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/Q; "
-                               "content:\"two\"; within:5; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(pcre:/one/Q; " "content:\"two\"; within:5; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2309,9 +2300,9 @@ int DetectHttpServerBodyTest35(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"two\"; http_server_body; "
-                               "pcre:/one/QR; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"two\"; http_server_body; " "pcre:/one/QR; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2360,9 +2351,9 @@ int DetectHttpServerBodyTest36(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/Q; "
-                               "content:\"two\"; distance:5; http_server_body; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(pcre:/one/Q; " "content:\"two\"; distance:5; http_server_body; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2456,10 +2447,9 @@ static int DetectHttpServerBodyFileDataTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "file_data; content:\"message\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2579,10 +2569,9 @@ static int DetectHttpServerBodyFileDataTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "file_data; content:\"message\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2718,10 +2707,9 @@ static int DetectHttpServerBodyFileDataTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "file_data; content:\"message\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2866,10 +2854,9 @@ static int DetectHttpServerBodyFileDataTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"message\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "file_data; content:\"message\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3021,10 +3008,9 @@ static int DetectHttpServerBodyFileDataTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
-                               "file_data; content:\"MeSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http client body test\"; " "file_data; content:\"MeSSaGE\"; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3172,10 +3158,9 @@ static int DetectHttpServerBodyFileDataTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http file_data test\"; "
-                               "file_data; content:!\"MaSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http file_data test\"; " "file_data; content:!\"MaSSaGE\"; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3315,10 +3300,9 @@ static int DetectHttpServerBodyFileDataTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http file_data test\"; "
-                               "file_data; content:!\"MeSSaGE\"; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http file_data test\"; " "file_data; content:!\"MeSSaGE\"; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -3446,10 +3430,9 @@ static int DetectHttpServerBodyFileDataTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http server body test\"; "
-                               "file_data; content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http server body test\"; " "file_data; content:\"longbufferabcdefghijklmnopqrstuvwxyz0123456789bufferend\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

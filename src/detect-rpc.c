@@ -509,27 +509,37 @@ static int DetectRpcTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, 2, 3; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, 2, 3; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, 2, *; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, 2, *; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, *, 3; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, *, 3; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, *, *; sid:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert udp any any -> any any (msg:\"RPC Get Port Call\"; rpc:100000, *, *; sid:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert udp any any -> any any (msg:\"RPC Get XXX Call.. no match\"; rpc:123456, *, 3; sid:5;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert udp any any -> any any (msg:\"RPC Get XXX Call.. no match\"; rpc:123456, *, 3; sid:5;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

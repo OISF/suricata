@@ -388,8 +388,9 @@ int LogDropLogTest01()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any "
-            "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "drop tcp any any -> any any " "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)",
+                               NULL);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -452,8 +453,9 @@ int LogDropLogTest02()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
-            "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any " "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)",
+                               NULL);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);

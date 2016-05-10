@@ -321,8 +321,9 @@ static int DetectFtpbounceTestALMatch02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                                   "(msg:\"Ftp Bounce\"; ftpbounce; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Ftp Bounce\"; ftpbounce; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -462,8 +463,9 @@ static int DetectFtpbounceTestALMatch03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any "
-                                   "(msg:\"Ftp Bounce\"; ftpbounce; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Ftp Bounce\"; ftpbounce; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

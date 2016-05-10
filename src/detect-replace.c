@@ -255,7 +255,7 @@ int DetectReplaceLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize,
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
+    de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -585,8 +585,8 @@ static int DetectReplaceParseTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"doh\"; replace:\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"doh\"; replace:\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -619,8 +619,8 @@ static int DetectReplaceParseTest02(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
-                               "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)");
+                               "alert http any any -> any any " "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -654,8 +654,8 @@ static int DetectReplaceParseTest03(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; content:\"doh\"; replace:\"don\"; http_header; sid:238012;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; content:\"doh\"; replace:\"don\"; http_header; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -688,8 +688,8 @@ static int DetectReplaceParseTest04(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; replace:\"don\"; sid:238012;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; replace:\"don\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -722,8 +722,8 @@ static int DetectReplaceParseTest05(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; replace:\"don\"; content:\"doh\"; sid:238012;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; replace:\"don\"; content:\"doh\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -756,8 +756,8 @@ static int DetectReplaceParseTest06(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; content:\"don\"; replace:\"donut\"; sid:238012;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; content:\"don\"; replace:\"donut\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -790,8 +790,8 @@ static int DetectReplaceParseTest07(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; content:\"don\"; replace:\"dou\"; content:\"jpg\"; http_header; sid:238012;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; content:\"don\"; replace:\"dou\"; content:\"jpg\"; http_header; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;

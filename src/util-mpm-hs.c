@@ -2091,15 +2091,15 @@ static int SCHSTest29(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(
-        de_ctx, "alert tcp any any -> any any "
-                "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"onetwothreefourfivesixseveneightnine\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
     de_ctx->sig_list->next =
-        SigInit(de_ctx, "alert tcp any any -> any any "
-                        "(content:\"onetwothreefourfivesixseveneightnine\"; "
-                        "fast_pattern:3,3; sid:2;)");
+        SigInit(de_ctx,
+                "alert tcp any any -> any any " "(content:\"onetwothreefourfivesixseveneightnine\"; " "fast_pattern:3,3; sid:2;)",
+                NULL);
     if (de_ctx->sig_list->next == NULL)
         goto end;
 

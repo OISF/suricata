@@ -168,10 +168,8 @@ int DetectHttpMethodTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "http_method; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"GET\"; " "http_method; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -198,9 +196,8 @@ int DetectHttpMethodTest02(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "http_method; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "http_method; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -225,10 +222,8 @@ int DetectHttpMethodTest03(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"foobar\"; "
-                               "http_method:\"GET\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"foobar\"; " "http_method:\"GET\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -253,11 +248,8 @@ int DetectHttpMethodTest04(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "fast_pattern; "
-                               "http_method; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"GET\"; " "fast_pattern; " "http_method; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -282,11 +274,8 @@ int DetectHttpMethodTest05(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "content:\"GET\"; "
-                               "rawbytes; "
-                               "http_method; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"GET\"; " "rawbytes; " "http_method; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -358,11 +347,8 @@ int DetectHttpMethodTest13(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/M\"; "
-                               "content:\"AD\"; "
-                               "within:2; http_method; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "pcre:\"/HE/M\"; " "content:\"AD\"; " "within:2; http_method; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -387,11 +373,8 @@ int DetectHttpMethodTest14(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/\"; "
-                               "content:\"AD\"; "
-                               "http_method; within:2; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "pcre:\"/HE/\"; " "content:\"AD\"; " "http_method; within:2; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -416,11 +399,8 @@ int DetectHttpMethodTest15(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_method\"; "
-                               "pcre:\"/HE/M\"; "
-                               "content:\"AD\"; "
-                               "http_method; within:2; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "pcre:\"/HE/M\"; " "content:\"AD\"; " "http_method; within:2; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -477,19 +457,15 @@ static int DetectHttpMethodSigTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"GET\"; "
-                                   "http_method; sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"GET\"; " "http_method; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                          "content:\"POST\"; "
-                          "http_method; sid:2;)");
+                          "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"POST\"; " "http_method; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -580,19 +556,15 @@ static int DetectHttpMethodSigTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"FOO\"; "
-                                   "http_method; sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"FOO\"; " "http_method; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                          "content:\"BAR\"; "
-                          "http_method; sid:2;)");
+                          "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"BAR\"; " "http_method; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -682,10 +654,8 @@ static int DetectHttpMethodSigTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"GET\"; "
-                                   "http_method; sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "content:\"GET\"; " "http_method; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         SCLogDebug("Bad signature");
         goto end;
@@ -774,15 +744,15 @@ static int DetectHttpMethodSigTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
-            "content:\"GET\"; http_method; sid:1;)");
+                                   "alert tcp any any -> any any (msg:\"Testing http_method\"; " "content:\"GET\"; http_method; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,
-            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
-            "content:!\"GET\"; http_method; sid:2;)");
+                          "alert tcp any any -> any any (msg:\"Testing http_method\"; " "content:!\"GET\"; http_method; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

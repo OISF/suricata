@@ -367,7 +367,9 @@ static int DetectSshVersionTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:1.10; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -480,7 +482,9 @@ static int DetectSshVersionTestDetect02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -591,7 +595,9 @@ static int DetectSshVersionTestDetect03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.protoversion:2_compat; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

@@ -696,7 +696,7 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
+    de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -1110,7 +1110,7 @@ int DetectContentParseTest17(void)
     if (de_ctx == NULL)
         goto end;
 
-    de_ctx->sig_list = SigInit(de_ctx, sigstr);
+    de_ctx->sig_list = SigInit(de_ctx, sigstr, NULL);
     if (de_ctx->sig_list != NULL)
         goto end;
 
@@ -1173,11 +1173,9 @@ int DetectContentParseTest19(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing dce iface, stub_data with content\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing dce iface, stub_data with content\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf ("failed dce iface, stub_data with content ");
         result = 0;
@@ -1202,11 +1200,9 @@ int DetectContentParseTest19(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub_data with contents & distance, within\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; content:\"two\"; within:10; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing dce iface, stub_data with contents & distance, within\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; content:\"two\"; within:10; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         printf("failed dce iface, stub_data with content & distance, within");
         result = 0;
@@ -1304,12 +1300,9 @@ int DetectContentParseTest19(void)
     }
     result &= (data->distance == 2);
 */
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing dce iface, stub with contents, distance, within\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "content:\"two\"; within:10; distance:2; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing dce iface, stub with contents, distance, within\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "content:\"two\"; within:10; distance:2; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1424,9 +1417,9 @@ int DetectContentParseTest19(void)
     }
     result &= (data->offset == 10 && data->depth == 13);
 */
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing content\"; "
-                      "content:\"one\"; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing content\"; " "content:\"one\"; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         printf ("failed testing content");
         result = 0;
@@ -1461,8 +1454,8 @@ int DetectContentParseTest20(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1490,8 +1483,8 @@ int DetectContentParseTest21(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1519,8 +1512,8 @@ int DetectContentParseTest22(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"boo; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"boo; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1548,8 +1541,8 @@ int DetectContentParseTest23(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:boo\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:boo\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1579,8 +1572,8 @@ int DetectContentParseTest24(void)
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert udp any any -> any any "
-                                   "(msg:\"test\"; content:    !\"boo\"; sid:238012;)");
+                                   "alert udp any any -> any any " "(msg:\"test\"; content:    !\"boo\"; sid:238012;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL: ");
         result = 0;
@@ -1618,8 +1611,8 @@ int DetectContentParseTest25(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1647,8 +1640,8 @@ int DetectContentParseTest26(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1676,8 +1669,8 @@ int DetectContentParseTest27(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1705,8 +1698,8 @@ int DetectContentParseTest28(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1734,8 +1727,8 @@ int DetectContentParseTest29(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"aast|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1763,8 +1756,8 @@ int DetectContentParseTest30(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"aast|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1792,8 +1785,8 @@ int DetectContentParseTest31(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"aast|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"aast|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1821,8 +1814,8 @@ int DetectContentParseTest32(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|asdf\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af|asdf\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1850,8 +1843,8 @@ int DetectContentParseTest33(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1879,8 +1872,8 @@ int DetectContentParseTest34(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af|af|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1908,8 +1901,8 @@ int DetectContentParseTest35(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; content:\"|af|af|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; content:\"|af|af|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1937,8 +1930,8 @@ static int DetectContentParseTest36(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -1977,8 +1970,8 @@ static int DetectContentParseTest37(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2017,8 +2010,8 @@ static int DetectContentParseTest38(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; within:8; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2060,7 +2053,7 @@ static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, rule);
+    de_ctx->sig_list = SigInit(de_ctx, rule, NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2101,8 +2094,8 @@ static int DetectContentParseTest39(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; within:8; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2141,8 +2134,8 @@ static int DetectContentParseTest40(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; distance:3; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; distance:3; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2326,7 +2319,7 @@ static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, rule);
+    de_ctx->sig_list = SigInit(de_ctx, rule, NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

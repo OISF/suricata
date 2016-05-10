@@ -611,10 +611,8 @@ static int DetectDceStubDataTestParse02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; content:\"|42 42 42 42|\";"
-                                   "sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_stub_data; content:\"|42 42 42 42|\";" "sid:1;)",
+                                   NULL);
     if (s == NULL)
         goto end;
 
@@ -1166,10 +1164,8 @@ static int DetectDceStubDataTestParse03(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; content:\"|42 42 42 42|\";"
-                                   "sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_stub_data; content:\"|42 42 42 42|\";" "sid:1;)",
+                                   NULL);
     if (s == NULL)
         goto end;
 
@@ -1668,24 +1664,18 @@ static int DetectDceStubDataTestParse05(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; content:\"|00 02|\"; "
-                                   "sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_stub_data; content:\"|00 02|\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL)
         goto end;
     s = de_ctx->sig_list->next = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; content:\"|00 75|\"; "
-                                   "sid:2;)");
+                                         "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_stub_data; content:\"|00 75|\"; " "sid:2;)",
+                                         NULL);
     if (s == NULL)
         goto end;
     s = de_ctx->sig_list->next->next = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_stub_data; content:\"|00 18|\"; "
-                                   "sid:3;)");
+                                               "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_stub_data; content:\"|00 18|\"; " "sid:3;)",
+                                               NULL);
     if (s == NULL)
         goto end;
 

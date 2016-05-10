@@ -533,7 +533,7 @@ int DetectAppLayerEventTest03(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_mismatch_protocol_both_directions; "
-                               "sid:1;)");
+                               "sid:1;)", NULL);
     FAIL_IF(de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -620,7 +620,7 @@ int DetectAppLayerEventTest04(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_detect_protocol_only_one_direction; "
-                               "sid:1;)");
+                               "sid:1;)", NULL);
     FAIL_IF(de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -719,7 +719,7 @@ int DetectAppLayerEventTest05(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(app-layer-event: applayer_mismatch_protocol_both_directions; "
-                               "sid:1;)");
+                               "sid:1;)", NULL);
     FAIL_IF (de_ctx->sig_list == NULL);
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);

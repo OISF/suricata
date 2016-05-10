@@ -370,9 +370,9 @@ static int DetectEngineInspectModbusTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                            "(msg:\"Testing modbus code function\"; "
-                                            "modbus: function 23; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus code function\"; " "modbus: function 23; sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -460,9 +460,9 @@ static int DetectEngineInspectModbusTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                           "(msg:\"Testing modbus function and subfunction\"; "
-                                           "modbus: function 8, subfunction 4;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus function and subfunction\"; " "modbus: function 8, subfunction 4;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -549,9 +549,9 @@ static int DetectEngineInspectModbusTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                           "(msg:\"Testing modbus category function\"; "
-                                           "modbus: function reserved;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus category function\"; " "modbus: function reserved;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -639,9 +639,9 @@ static int DetectEngineInspectModbusTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                       "(msg:\"Testing modbus category function\"; "
-                                       "modbus: function !assigned;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus category function\"; " "modbus: function !assigned;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -728,9 +728,9 @@ static int DetectEngineInspectModbusTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                           "(msg:\"Testing modbus access type\"; "
-                                           "modbus: access read;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus access type\"; " "modbus: access read;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -818,9 +818,9 @@ static int DetectEngineInspectModbusTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                           "(msg:\"Testing modbus access type\"; "
-                                           "modbus: access read input;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus access type\"; " "modbus: access read input;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
@@ -908,9 +908,9 @@ static int DetectEngineInspectModbusTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert modbus any any -> any any "
-                                           "(msg:\"Testing modbus address access\"; "
-                                           "modbus: access read, address 30870;  sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert modbus any any -> any any " "(msg:\"Testing modbus address access\"; " "modbus: access read, address 30870;  sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;

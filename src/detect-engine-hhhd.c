@@ -204,10 +204,9 @@ static int DetectEngineHttpHHTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:\"connect\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:\"connect\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -302,10 +301,9 @@ static int DetectEngineHttpHHTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:\"co\"; depth:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:\"co\"; depth:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -400,10 +398,9 @@ static int DetectEngineHttpHHTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:!\"ect\"; depth:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:!\"ect\"; depth:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -498,10 +495,9 @@ static int DetectEngineHttpHHTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:\"ect\"; depth:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:\"ect\"; depth:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -596,10 +592,9 @@ static int DetectEngineHttpHHTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:!\"con\"; depth:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:!\"con\"; depth:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -694,10 +689,9 @@ static int DetectEngineHttpHHTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:\"ect\"; offset:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:\"ect\"; offset:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -792,10 +786,9 @@ static int DetectEngineHttpHHTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:!\"co\"; offset:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:!\"co\"; offset:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -890,10 +883,9 @@ static int DetectEngineHttpHHTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:!\"ect\"; offset:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:!\"ect\"; offset:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -988,10 +980,9 @@ static int DetectEngineHttpHHTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host header test\"; "
-                               "content:\"con\"; offset:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host header test\"; " "content:\"con\"; offset:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1086,11 +1077,9 @@ static int DetectEngineHttpHHTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:\"ec\"; within:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:\"ec\"; within:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1185,11 +1174,9 @@ static int DetectEngineHttpHHTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:!\"ec\"; within:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:!\"ec\"; within:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1284,11 +1271,9 @@ static int DetectEngineHttpHHTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:\"ec\"; within:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:\"ec\"; within:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1383,11 +1368,9 @@ static int DetectEngineHttpHHTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:!\"ec\"; within:4; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:!\"ec\"; within:4; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1482,11 +1465,9 @@ static int DetectEngineHttpHHTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:\"ec\"; distance:2; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:\"ec\"; distance:2; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1581,11 +1562,9 @@ static int DetectEngineHttpHHTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:!\"ec\"; distance:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:!\"ec\"; distance:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1680,11 +1659,9 @@ static int DetectEngineHttpHHTest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:\"ec\"; distance:3; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:\"ec\"; distance:3; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1779,11 +1756,9 @@ static int DetectEngineHttpHHTest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"co\"; http_host;  "
-                               "content:!\"ec\"; distance:2; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"co\"; http_host;  " "content:!\"ec\"; distance:2; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1874,10 +1849,9 @@ static int DetectEngineHttpHHTest18(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"kaboom\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"kaboom\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1968,10 +1942,9 @@ static int DetectEngineHttpHHTest19(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"kaboom\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"kaboom\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2062,10 +2035,9 @@ static int DetectEngineHttpHHTest20(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"8080\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"8080\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2155,10 +2127,9 @@ static int DetectEngineHttpHHTest21(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"kaboom\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"kaboom\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2248,10 +2219,9 @@ static int DetectEngineHttpHHTest22(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"kaboom\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"kaboom\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2341,10 +2311,9 @@ static int DetectEngineHttpHHTest23(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"8080\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"8080\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2435,10 +2404,9 @@ static int DetectEngineHttpHHTest24(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"kaboom\"; http_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"kaboom\"; http_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2529,10 +2497,9 @@ static int DetectEngineHttpHHTest25(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_host header test\"; "
-                               "content:\"rabbit\"; http_host; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_host header test\"; " "content:\"rabbit\"; http_host; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

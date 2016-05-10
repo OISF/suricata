@@ -145,9 +145,9 @@ static int DetectHttpHeaderTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_header\"; " "content:\"one\"; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
@@ -187,9 +187,9 @@ static int DetectHttpHeaderTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; http_header:; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_header\"; " "content:\"one\"; http_header:; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
     else
@@ -217,9 +217,9 @@ static int DetectHttpHeaderTest03(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_header\"; " "http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
     else
@@ -247,9 +247,9 @@ static int DetectHttpHeaderTest04(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; rawbytes; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_header\"; " "content:\"one\"; rawbytes; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
     else
@@ -277,9 +277,9 @@ static int DetectHttpHeaderTest05(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_header\"; "
-                               "content:\"one\"; nocase; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_header\"; " "content:\"one\"; nocase; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
     else
@@ -342,10 +342,9 @@ static int DetectHttpHeaderTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Content-Type: text/html\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"Content-Type: text/html\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -451,10 +450,9 @@ static int DetectHttpHeaderTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Mozilla\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"Mozilla\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -578,10 +576,9 @@ static int DetectHttpHeaderTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Gecko/20091221 Firefox/3.5.7\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"Gecko/20091221 Firefox/3.5.7\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -707,10 +704,9 @@ static int DetectHttpHeaderTest09(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->mpm_matcher = DEFAULT_MPM;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Firefox/3.5.7|0D 0A|Content\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"Firefox/3.5.7|0D 0A|Content\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -835,10 +831,9 @@ static int DetectHttpHeaderTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_header;"
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_header;" "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -955,10 +950,9 @@ static int DetectHttpHeaderTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"lalalalala\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:!\"lalalalala\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1056,10 +1050,9 @@ static int DetectHttpHeaderTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:!\"User-Agent: Mozilla/5.0 \"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:!\"User-Agent: Mozilla/5.0 \"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1158,10 +1151,9 @@ static int DetectHttpHeaderTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
-                               "content:\"Host: www.openinfosecfoundation.org\"; http_header; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http header test\"; " "content:\"Host: www.openinfosecfoundation.org\"; http_header; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1219,9 +1211,9 @@ int DetectHttpHeaderTest20(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_header; "
-                               "content:\"two\"; distance:0; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_header; " "content:\"two\"; distance:0; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1263,9 +1255,9 @@ int DetectHttpHeaderTest21(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_header; "
-                               "content:\"two\"; within:5; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_header; " "content:\"two\"; within:5; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1307,8 +1299,9 @@ int DetectHttpHeaderTest22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1331,8 +1324,9 @@ int DetectHttpHeaderTest23(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; http_header; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; http_header; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1355,8 +1349,9 @@ int DetectHttpHeaderTest24(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"one\"; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1379,9 +1374,9 @@ int DetectHttpHeaderTest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/H; "
-                               "content:\"two\"; within:5; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(pcre:/one/H; " "content:\"two\"; within:5; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1430,9 +1425,9 @@ int DetectHttpHeaderTest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"two\"; http_header; "
-                               "pcre:/one/HR; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(content:\"two\"; http_header; " "pcre:/one/HR; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1481,9 +1476,9 @@ int DetectHttpHeaderTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/H; "
-                               "content:\"two\"; distance:5; http_header; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert icmp any any -> any any " "(pcre:/one/H; " "content:\"two\"; distance:5; http_header; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1566,9 +1561,9 @@ static int DetectHttpHeaderTest28(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(app-layer-event:http.host_header_ambiguous; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1653,9 +1648,9 @@ static int DetectHttpHeaderTest29(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(app-layer-event:http.host_header_ambiguous; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1740,9 +1735,9 @@ static int DetectHttpHeaderTest30(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(app-layer-event:http.host_header_ambiguous; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(app-layer-event:http.host_header_ambiguous; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

@@ -211,10 +211,9 @@ static int DetectEngineHttpStatCodeTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"200\"; http_stat_code; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"200\"; http_stat_code; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -333,10 +332,9 @@ static int DetectEngineHttpStatCodeTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"123\"; http_stat_code; offset:4; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"123\"; http_stat_code; offset:4; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -455,10 +453,9 @@ static int DetectEngineHttpStatCodeTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"789\"; http_stat_code; offset:5; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"789\"; http_stat_code; offset:5; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -593,10 +590,9 @@ static int DetectEngineHttpStatCodeTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:!\"200\"; http_stat_code; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:!\"200\"; http_stat_code; offset:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -721,10 +717,9 @@ static int DetectEngineHttpStatCodeTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"200\"; http_stat_code; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"200\"; http_stat_code; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -849,10 +844,9 @@ static int DetectEngineHttpStatCodeTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:!\"123\"; http_stat_code; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:!\"123\"; http_stat_code; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -977,10 +971,9 @@ static int DetectEngineHttpStatCodeTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:!\"123\"; http_stat_code; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:!\"123\"; http_stat_code; offset:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1105,10 +1098,9 @@ static int DetectEngineHttpStatCodeTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:!\"200\"; http_stat_code; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:!\"200\"; http_stat_code; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1233,11 +1225,9 @@ static int DetectEngineHttpStatCodeTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"200\"; http_stat_code; depth:3; "
-                               "content:\"123\"; http_stat_code; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"200\"; http_stat_code; depth:3; " "content:\"123\"; http_stat_code; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1362,11 +1352,9 @@ static int DetectEngineHttpStatCodeTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"200\"; http_stat_code; depth:3; "
-                               "content:!\"124\"; http_stat_code; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"200\"; http_stat_code; depth:3; " "content:!\"124\"; http_stat_code; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1491,11 +1479,9 @@ static int DetectEngineHttpStatCodeTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"200\"; http_stat_code; depth:3; "
-                               "content:\"124\"; http_stat_code; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"200\"; http_stat_code; depth:3; " "content:\"124\"; http_stat_code; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1620,11 +1606,9 @@ static int DetectEngineHttpStatCodeTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"20\"; http_stat_code; depth:2; "
-                               "content:\"23\"; http_stat_code; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"20\"; http_stat_code; depth:2; " "content:\"23\"; http_stat_code; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1749,11 +1733,9 @@ static int DetectEngineHttpStatCodeTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "content:\"20\"; http_stat_code; depth:3; "
-                               "content:!\"25\"; http_stat_code; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "content:\"20\"; http_stat_code; depth:3; " "content:!\"25\"; http_stat_code; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1878,11 +1860,9 @@ static int DetectEngineHttpStatCodeTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "pcre:/20/S; "
-                               "content:\"23\"; http_stat_code; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "pcre:/20/S; " "content:\"23\"; http_stat_code; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2007,11 +1987,9 @@ static int DetectEngineHttpStatCodeTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat code test\"; "
-                               "pcre:/200/S; "
-                               "content:!\"124\"; http_stat_code; distance:0; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat code test\"; " "pcre:/200/S; " "content:!\"124\"; http_stat_code; distance:0; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

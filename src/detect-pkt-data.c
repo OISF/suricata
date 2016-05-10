@@ -96,9 +96,9 @@ static int DetectPktDataTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    Signature *sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; content:\"in file data\";"
-                               " pkt_data; content:\"in pkt data\";)");
+    Signature *sig = SigInit(de_ctx,
+                             "alert tcp any any -> any any " "(file_data; content:\"in file data\";" " pkt_data; content:\"in pkt data\";)",
+                             NULL);
     de_ctx->sig_list = sig;
     if (de_ctx->sig_list == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"could not load test signature");

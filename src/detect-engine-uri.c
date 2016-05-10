@@ -216,9 +216,9 @@ static int UriTestSig01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test uricontent option\"; " "uricontent:\"one\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -338,9 +338,9 @@ static int UriTestSig02(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/one/U; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option\"; " "pcre:/one/U; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -460,9 +460,9 @@ static int UriTestSig03(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/blah/U; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option\"; " "pcre:/blah/U; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -582,9 +582,9 @@ static int UriTestSig04(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>20; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test urilen option\"; " "urilen:>20; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -704,9 +704,9 @@ static int UriTestSig05(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>4; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test urilen option\"; " "urilen:>4; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -826,9 +826,9 @@ static int UriTestSig06(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option\"; "
-                                   "pcre:/(oneself)+/U; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option\"; " "pcre:/(oneself)+/U; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -948,9 +948,9 @@ static int UriTestSig07(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen \"; "
-                                   "pcre:/(one){2,}(self)?/U; urilen:3<>20; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option with urilen \"; " "pcre:/(one){2,}(self)?/U; urilen:3<>20; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1070,9 +1070,9 @@ static int UriTestSig08(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen\"; "
-                                   "pcre:/(blabla){2,}(self)?/U; urilen:3<>20; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option with urilen\"; " "pcre:/(blabla){2,}(self)?/U; urilen:3<>20; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1192,9 +1192,9 @@ static int UriTestSig09(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U option with urilen \"; "
-                                   "pcre:/(one){2,}(self)?/U; urilen:<2; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U option with urilen \"; " "pcre:/(one){2,}(self)?/U; urilen:<2; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1314,9 +1314,9 @@ static int UriTestSig10(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent with urilen option\"; "
-                                   "uricontent:\"one\"; urilen:<2; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test uricontent with urilen option\"; " "uricontent:\"one\"; urilen:<2; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1436,10 +1436,9 @@ static int UriTestSig11(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test content, uricontent, pcre /U and urilen options\"; "
-                                   "content:\"one\"; uricontent:\"one\"; pcre:/(one){2,}(self)?/U;"
-                                   "urilen:<2; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test content, uricontent, pcre /U and urilen options\"; " "content:\"one\"; uricontent:\"one\"; pcre:/(one){2,}(self)?/U;" "urilen:<2; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1559,10 +1558,9 @@ static int UriTestSig12(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test pcre /U, uricontent and urilen option\"; "
-                                   "uricontent:\"one\"; "
-                                   "pcre:/(one)+self/U; urilen:>2; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test pcre /U, uricontent and urilen option\"; " "uricontent:\"one\"; " "pcre:/(one)+self/U; urilen:>2; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1682,9 +1680,9 @@ static int UriTestSig13(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test urilen option\"; "
-                                   "urilen:>2; uricontent:\"one\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test urilen option\"; " "urilen:>2; uricontent:\"one\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1805,9 +1803,9 @@ static int UriTestSig14(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; pcre:/one(self)?/U;sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test uricontent option\"; " "uricontent:\"one\"; pcre:/one(self)?/U;sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1928,9 +1926,9 @@ static int UriTestSig15(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Test uricontent option\"; "
-                                   "uricontent:\"one\"; pcre:/^\\/one(self)?$/U;sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Test uricontent option\"; " "uricontent:\"one\"; pcre:/^\\/one(self)?$/U;sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -2051,7 +2049,9 @@ static int UriTestSig16(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; sid:2009024; rev:9;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -2170,11 +2170,9 @@ static int UriTestSig17(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"this\"; uricontent:\"is\"; within:6; "
-                               "uricontent:\"big\"; within:8; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"this\"; uricontent:\"is\"; within:6; " "uricontent:\"big\"; within:8; " "uricontent:\"string\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2265,11 +2263,9 @@ static int UriTestSig18(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"this\"; uricontent:\"is\"; within:9; "
-                               "uricontent:\"big\"; within:12; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"this\"; uricontent:\"is\"; within:9; " "uricontent:\"big\"; within:12; " "uricontent:\"string\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2360,12 +2356,9 @@ static int UriTestSig19(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"now\"; uricontent:\"this\"; "
-                               "uricontent:\"is\"; within:12; "
-                               "uricontent:\"big\"; within:8; "
-                               "uricontent:\"string\"; within:8; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"now\"; uricontent:\"this\"; " "uricontent:\"is\"; within:12; " "uricontent:\"big\"; within:8; " "uricontent:\"string\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2456,11 +2449,9 @@ static int UriTestSig20(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"thus\"; offset:8; "
-                               "uricontent:\"is\"; within:6; "
-                               "uricontent:\"big\"; within:8; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"thus\"; offset:8; " "uricontent:\"is\"; within:6; " "uricontent:\"big\"; within:8; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2551,10 +2542,9 @@ static int UriTestSig21(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix\"; uricontent:\"this\"; within:6; "
-                               "uricontent:!\"and\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"fix\"; uricontent:\"this\"; within:6; " "uricontent:!\"and\"; distance:0; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2646,9 +2636,9 @@ static int UriTestSig22(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "pcre:/super/U; uricontent:\"nova\"; within:7; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "pcre:/super/U; uricontent:\"nova\"; within:7; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2739,9 +2729,9 @@ static int UriTestSig23(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:!\"fix_this_now\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:!\"fix_this_now\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2832,9 +2822,9 @@ static int UriTestSig24(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"we_need_to\"; uricontent:!\"fix_this_now\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"we_need_to\"; uricontent:!\"fix_this_now\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -2925,9 +2915,9 @@ static int UriTestSig25(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "pcre:/normalized/U; uricontent:\"normalized uri\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "pcre:/normalized/U; uricontent:\"normalized uri\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3018,9 +3008,9 @@ static int UriTestSig26(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix_this\"; isdataat:4,relative; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"fix_this\"; isdataat:4,relative; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3111,9 +3101,9 @@ static int UriTestSig27(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "uricontent:\"fix_this\"; isdataat:!10,relative; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "uricontent:\"fix_this\"; isdataat:!10,relative; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3237,10 +3227,8 @@ static int UriTestSig28(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"ring\"; distance:one; sid:1;)");
+                               "alert tcp any any -> any any (msg:\"dummy\"; " "uricontent:\"this\"; " "byte_extract:1,2,one,string,dec,relative; " "uricontent:\"ring\"; distance:one; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3329,10 +3317,8 @@ static int UriTestSig29(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"ring\"; distance:one; sid:1;)");
+                               "alert tcp any any -> any any (msg:\"dummy\"; " "uricontent:\"this\"; " "byte_extract:1,2,one,string,dec,relative; " "uricontent:\"ring\"; distance:one; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3421,10 +3407,8 @@ static int UriTestSig30(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"_b5ig\"; offset:one; sid:1;)");
+                               "alert tcp any any -> any any (msg:\"dummy\"; " "uricontent:\"this\"; " "byte_extract:1,2,one,string,dec,relative; " "uricontent:\"_b5ig\"; offset:one; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3513,10 +3497,8 @@ static int UriTestSig31(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"his\"; depth:one; sid:1;)");
+                               "alert tcp any any -> any any (msg:\"dummy\"; " "uricontent:\"this\"; " "byte_extract:1,2,one,string,dec,relative; " "uricontent:\"his\"; depth:one; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3605,10 +3587,8 @@ static int UriTestSig32(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any (msg:\"dummy\"; "
-                               "uricontent:\"this\"; "
-                               "byte_extract:1,2,one,string,dec,relative; "
-                               "uricontent:\"g_st\"; within:one; sid:1;)");
+                               "alert tcp any any -> any any (msg:\"dummy\"; " "uricontent:\"this\"; " "byte_extract:1,2,one,string,dec,relative; " "uricontent:\"g_st\"; within:one; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3696,9 +3676,9 @@ static int UriTestSig33(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:15; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:15; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3786,9 +3766,9 @@ static int UriTestSig34(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:15, norm; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:15, norm; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3876,9 +3856,9 @@ static int UriTestSig35(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:16; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:16; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -3966,9 +3946,9 @@ static int UriTestSig36(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:16, norm; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:16, norm; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -4056,9 +4036,9 @@ static int UriTestSig37(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:17, raw; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:17, raw; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -4146,9 +4126,9 @@ static int UriTestSig38(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"test multiple relative uricontents\"; "
-                               "urilen:18, raw; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"test multiple relative uricontents\"; " "urilen:18, raw; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

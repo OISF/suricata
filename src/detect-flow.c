@@ -1027,7 +1027,7 @@ static int DetectFlowSigTest01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     if (de_ctx->sig_list == NULL) {
         printf("signature == NULL: ");
         goto end;

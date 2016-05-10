@@ -9285,8 +9285,8 @@ static int DetectIPProtoTestSig2(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
-                               "ip_proto:!103; sid:1;)");
+                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; " "ip_proto:!103; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9370,8 +9370,8 @@ static int DetectIPProtoTestSig3(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
-                               "ip_proto:103; sid:1;)");
+                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; " "ip_proto:103; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

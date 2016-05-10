@@ -742,14 +742,16 @@ int DetectDsizeIcmpv6Test01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-            "(msg:\"ICMP Large ICMP Packet\"; dsize:>8; sid:1; rev:4;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any " "(msg:\"ICMP Large ICMP Packet\"; dsize:>8; sid:1; rev:4;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx, "alert icmp any any -> any any "
-            "(msg:\"ICMP Large ICMP Packet\"; dsize:>800; sid:2; rev:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any " "(msg:\"ICMP Large ICMP Packet\"; dsize:>800; sid:2; rev:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

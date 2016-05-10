@@ -205,7 +205,7 @@ static int DetectProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 
     (*de_ctx)->flags |= DE_QUIET;
 
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
+    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr, NULL);
     if ((*de_ctx)->sig_list == NULL) {
         goto end;
     }
@@ -515,20 +515,23 @@ static int DetectProtoTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert udp any any -> any any "
-            "(msg:\"Not tcp\"; flow:to_server; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert udp any any -> any any " "(msg:\"Not tcp\"; flow:to_server; sid:1;)",
+                                   NULL);
 
     if (s == NULL)
         goto end;
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any "
-            "(msg:\"IP\"; flow:to_server; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any " "(msg:\"IP\"; flow:to_server; sid:2;)",
+                          NULL);
 
     if (s == NULL)
         goto end;
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any "
-            "(msg:\"TCP\"; flow:to_server; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any " "(msg:\"TCP\"; flow:to_server; sid:3;)",
+                          NULL);
 
     if (s == NULL)
         goto end;
@@ -580,15 +583,17 @@ static int DetectProtoTestSig02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp-pkt any any -> any any "
-            "(msg:\"tcp-pkt\"; content:\"blah\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp-pkt any any -> any any " "(msg:\"tcp-pkt\"; content:\"blah\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("tcp-pkt sig parsing failed: ");
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp-stream any any -> any any "
-            "(msg:\"tcp-stream\"; content:\"blah\"; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp-stream any any -> any any " "(msg:\"tcp-stream\"; content:\"blah\"; sid:2;)",
+                          NULL);
     if (s == NULL) {
         printf("tcp-pkt sig parsing failed: ");
         goto end;

@@ -1151,10 +1151,8 @@ static int DetectDceOpnumTestParse08(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_opnum:9; "
-                                   "sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_opnum:9; " "sid:1;)",
+                                   NULL);
     if (s == NULL)
         goto end;
 
@@ -1690,10 +1688,8 @@ static int DetectDceOpnumTestParse09(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"DCERPC\"; "
-                                   "dce_opnum:9; "
-                                   "sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"DCERPC\"; " "dce_opnum:9; " "sid:1;)",
+                                   NULL);
     if (s == NULL)
         goto end;
 

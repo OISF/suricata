@@ -266,7 +266,7 @@ static int DetectWithinTestVarSetup(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->sig_list = SigInit(de_ctx, sig);
+    de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

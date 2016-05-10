@@ -1058,11 +1058,9 @@ int DetectPcreParseTest11(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "pcre:/bamboo/R; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "pcre:/bamboo/R; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1080,11 +1078,9 @@ int DetectPcreParseTest11(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "pcre:/bamboo/R; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "pcre:/bamboo/R; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1102,11 +1098,9 @@ int DetectPcreParseTest11(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "pcre:/bamboo/RB; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "pcre:/bamboo/RB; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1124,9 +1118,9 @@ int DetectPcreParseTest11(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "content:\"one\"; pcre:/bamboo/; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "content:\"one\"; pcre:/bamboo/; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1161,8 +1155,9 @@ static int DetectPcreParseTest12(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; pcre:/abc/R; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(file_data; pcre:/abc/R; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -1210,8 +1205,9 @@ static int DetectPcreParseTest13(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; content:\"abc\"; pcre:/def/R; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(file_data; content:\"abc\"; pcre:/def/R; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -1259,8 +1255,9 @@ static int DetectPcreParseTest14(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; pcre:/def/; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(file_data; pcre:/def/; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -1304,10 +1301,8 @@ int DetectPcreParseTest15(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative http_method\"; "
-                               "content:\"GET\"; "
-                               "http_method; pcre:\"/abc/RM\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative http_method\"; " "content:\"GET\"; " "http_method; pcre:\"/abc/RM\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1335,10 +1330,8 @@ int DetectPcreParseTest16(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative http_cookie\"; "
-                               "content:\"test\"; "
-                               "http_cookie; pcre:\"/abc/RC\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative http_cookie\"; " "content:\"test\"; " "http_cookie; pcre:\"/abc/RC\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1365,10 +1358,8 @@ int DetectPcreParseTest17(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative http_raw_header\"; "
-                               "flow:to_server; content:\"test\"; "
-                               "http_raw_header; pcre:\"/abc/RD\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative http_raw_header\"; " "flow:to_server; content:\"test\"; " "http_raw_header; pcre:\"/abc/RD\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1395,10 +1386,8 @@ int DetectPcreParseTest18(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative http_header\"; "
-                               "content:\"test\"; "
-                               "http_header; pcre:\"/abc/RH\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative http_header\"; " "content:\"test\"; " "http_header; pcre:\"/abc/RH\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1425,10 +1414,8 @@ int DetectPcreParseTest19(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relativie http_client_body\"; "
-                               "content:\"test\"; "
-                               "http_client_body; pcre:\"/abc/RP\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relativie http_client_body\"; " "content:\"test\"; " "http_client_body; pcre:\"/abc/RP\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1455,10 +1442,8 @@ int DetectPcreParseTest20(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_uri\"; "
-                               "content:\"test\"; "
-                               "http_raw_uri; pcre:\"/abc/RI\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_uri\"; " "content:\"test\"; " "http_raw_uri; pcre:\"/abc/RI\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1485,10 +1470,8 @@ int DetectPcreParseTest21(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative uricontent\"; "
-                               "uricontent:\"test\"; "
-                               "pcre:\"/abc/RU\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative uricontent\"; " "uricontent:\"test\"; " "pcre:\"/abc/RU\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1515,10 +1498,8 @@ int DetectPcreParseTest22(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing pcre relative http_uri\"; "
-                               "content:\"test\"; "
-                               "http_uri; pcre:\"/abc/RU\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing pcre relative http_uri\"; " "content:\"test\"; " "http_uri; pcre:\"/abc/RU\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list != NULL) {
         result = 1;
@@ -1545,10 +1526,8 @@ int DetectPcreParseTest23(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing inconsistent pcre relative\"; "
-                               "content:\"GET\"; "
-                               "http_cookie; pcre:\"/abc/RM\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing inconsistent pcre relative\"; " "content:\"GET\"; " "http_cookie; pcre:\"/abc/RM\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -1575,9 +1554,8 @@ int DetectPcreParseTest24(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing inconsistent pcre modifiers\"; "
-                               "pcre:\"/abc/UI\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing inconsistent pcre modifiers\"; " "pcre:\"/abc/UI\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -1604,9 +1582,8 @@ int DetectPcreParseTest25(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing inconsistent pcre modifiers\"; "
-                               "pcre:\"/abc/DH\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing inconsistent pcre modifiers\"; " "pcre:\"/abc/DH\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -1633,9 +1610,8 @@ static int DetectPcreParseTest26(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
-                               "(msg:\"Testing inconsistent pcre modifiers\"; "
-                               "pcre:\"/abc/F\"; sid:1;)");
+                               "alert http any any -> any any " "(msg:\"Testing inconsistent pcre modifiers\"; " "pcre:\"/abc/F\"; sid:1;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -1661,9 +1637,9 @@ static int DetectPcreParseTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any 80 "
-            "(content:\"baduricontent\"; http_raw_uri; "
-            "pcre:\"/^[a-z]{5}\\.html/R\"; sid:2; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any 80 " "(content:\"baduricontent\"; http_raw_uri; " "pcre:\"/^[a-z]{5}\\.html/R\"; sid:2; rev:2;)",
+                               NULL);
 
     if (de_ctx->sig_list == NULL) {
         result = 1;
@@ -1722,7 +1698,9 @@ static int DetectPcreTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/^gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/^gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1797,7 +1775,9 @@ static int DetectPcreTestSig02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/two/O\"; sid:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/two/O\"; sid:2;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1852,7 +1832,9 @@ static int DetectPcreTestSig03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:!\"/two/\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:!\"/two/\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1943,15 +1925,16 @@ static int DetectPcreModifPTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"Pcre modifier P\"; pcre:\"/DOCTYPE/P\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"Pcre modifier P\"; pcre:\"/DOCTYPE/P\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\""
-                          "Pcre modifier P (no match)\"; pcre:\"/blah/P\"; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"" "Pcre modifier P (no match)\"; pcre:\"/blah/P\"; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }
@@ -2078,15 +2061,16 @@ static int DetectPcreModifPTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"Pcre modifier P\"; pcre:\"/DOC/P\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"Pcre modifier P\"; pcre:\"/DOC/P\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\""
-                          "Pcre modifier P (no match)\"; pcre:\"/DOCTYPE/P\"; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"" "Pcre modifier P (no match)\"; pcre:\"/DOCTYPE/P\"; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }
@@ -2272,9 +2256,9 @@ static int DetectPcreTestSig09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; pcre:\"/dummy/C\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP cookie\"; pcre:\"/dummy/C\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2368,9 +2352,9 @@ static int DetectPcreTestSig10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; pcre:!\"/dummy/C\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP cookie\"; pcre:!\"/dummy/C\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2464,9 +2448,9 @@ static int DetectPcreTestSig11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP method\"; pcre:\"/POST/M\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP method\"; pcre:\"/POST/M\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2560,9 +2544,9 @@ static int DetectPcreTestSig12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP method\"; pcre:!\"/POST/M\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP method\"; pcre:!\"/POST/M\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2656,9 +2640,9 @@ static int DetectPcreTestSig13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP header\"; pcre:\"/User[-_]Agent[:]?\\sMozilla/H\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP header\"; pcre:\"/User[-_]Agent[:]?\\sMozilla/H\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2752,9 +2736,9 @@ static int DetectPcreTestSig14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP header\"; pcre:!\"/User-Agent[:]?\\s+Mozilla/H\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP header\"; pcre:!\"/User-Agent[:]?\\s+Mozilla/H\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2848,10 +2832,9 @@ static int DetectPcreTestSig15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"pcre relative HTTP cookie\"; content:\"dummy\";"
-                                   " http_cookie; pcre:\"/1234/RC\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"pcre relative HTTP cookie\"; content:\"dummy\";" " http_cookie; pcre:\"/1234/RC\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -2945,10 +2928,9 @@ static int DetectPcreTestSig16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"pcre relative HTTP method\"; content:\"PO\";"
-                                   " http_method; pcre:\"/ST/RM\"; "
-                                   " sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"pcre relative HTTP method\"; content:\"PO\";" " http_method; pcre:\"/ST/RM\"; " " sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;

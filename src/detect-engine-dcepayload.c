@@ -6526,11 +6526,11 @@ int DcePayloadTest15(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -6642,11 +6642,11 @@ int DcePayloadTest16(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -6758,11 +6758,11 @@ int DcePayloadTest17(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -6874,11 +6874,11 @@ int DcePayloadTest18(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -6990,11 +6990,11 @@ int DcePayloadTest19(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -7106,11 +7106,11 @@ int DcePayloadTest20(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
-    s->next = SigInit(de_ctx, sig2);
+    s->next = SigInit(de_ctx, sig2, NULL);
     if (s->next == NULL)
         goto end;
 
@@ -7214,7 +7214,7 @@ int DcePayloadTest21(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
@@ -7315,7 +7315,7 @@ int DcePayloadTest22(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
@@ -7417,7 +7417,7 @@ int DcePayloadTest23(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
@@ -7477,13 +7477,9 @@ int DcePayloadParseTest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "content:\"one\"; content:\"two\"; "
-                                   "content:\"three\"; within:10; "
-                                   "content:\"four\"; distance:4; "
-                                   "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "content:\"one\"; content:\"two\"; " "content:\"three\"; within:10; " "content:\"four\"; distance:4; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -7598,15 +7594,9 @@ int DcePayloadParseTest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "pkt_data; "
-                                   "content:\"one\"; "
-                                   "content:\"two\"; "
-                                   "content:\"three\"; within:5; "
-                                   "content:\"four\"; distance:10; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "pkt_data; " "content:\"one\"; " "content:\"two\"; " "content:\"three\"; within:5; " "content:\"four\"; distance:10; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -7725,14 +7715,9 @@ int DcePayloadParseTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "content:\"three\"; within:5; "
-                                   "content:\"four\"; distance:10; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "content:\"three\"; within:5; " "content:\"four\"; distance:10; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -7851,15 +7836,9 @@ int DcePayloadParseTest28(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "pkt_data; "
-                                   "content:\"three\";"
-                                   "content:\"four\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "pkt_data; " "content:\"three\";" "content:\"four\";" "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -7979,16 +7958,9 @@ int DcePayloadParseTest29(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "pkt_data; "
-                                   "pcre:/boom/; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "content:\"three\";"
-                                   "content:\"four\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "pkt_data; " "pcre:/boom/; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "content:\"three\";" "content:\"four\";" "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8121,16 +8093,9 @@ int DcePayloadParseTest30(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "pkt_data; "
-                                   "byte_jump:2,5; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "content:\"three\";"
-                                   "content:\"four\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "pkt_data; " "byte_jump:2,5; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "content:\"three\";" "content:\"four\";" "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8268,16 +8233,9 @@ int DcePayloadParseTest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "byte_jump:2,5,relative; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "pkt_data; "
-                                   "content:\"three\";"
-                                   "content:\"four\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "byte_jump:2,5,relative; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "pkt_data; " "content:\"three\";" "content:\"four\";" "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8415,16 +8373,9 @@ int DcePayloadParseTest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "byte_jump:2,5,relative; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "pkt_data; "
-                                   "content:\"three\";"
-                                   "content:\"four\"; within:4; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "byte_jump:2,5,relative; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "pkt_data; " "content:\"three\";" "content:\"four\"; within:4; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8562,16 +8513,9 @@ int DcePayloadParseTest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_stub_data; "
-                                   "pcre:/boom/R; "
-                                   "content:\"one\"; distance:10; within:5; "
-                                   "content:\"two\"; within:5;"
-                                   "pkt_data; "
-                                   "content:\"three\";"
-                                   "content:\"four\"; distance:5;"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_stub_data; " "pcre:/boom/R; " "content:\"one\"; distance:10; within:5; " "content:\"two\"; within:5;" "pkt_data; " "content:\"three\";" "content:\"four\"; distance:5;" "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8705,16 +8649,9 @@ int DcePayloadParseTest34(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "pcre:/boom/R; "
-                                   "byte_jump:1,2,relative,align,dce; "
-                                   "content:\"one\"; within:4; distance:8; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "pcre:/boom/R; " "byte_jump:1,2,relative,align,dce; " "content:\"one\"; within:4; distance:8; " "pkt_data; " "content:\"two\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8828,14 +8765,9 @@ int DcePayloadParseTest35(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "byte_test:1,=,0,0,relative,dce; "
-                                   "pkt_data; "
-                                   "content:\"one\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "byte_test:1,=,0,0,relative,dce; " "pkt_data; " "content:\"one\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8915,15 +8847,9 @@ int DcePayloadParseTest36(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "isdataat:10,relative; "
-                                   "content:\"one\"; within:4; distance:8; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "isdataat:10,relative; " "content:\"one\"; within:4; distance:8; " "pkt_data; " "content:\"two\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9020,15 +8946,9 @@ int DcePayloadParseTest37(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "byte_jump:1,2,relative,align,dce; "
-                                   "byte_test:1,=,2,0,relative,dce; "
-                                   "pkt_data; "
-                                   "content:\"one\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "byte_jump:1,2,relative,align,dce; " "byte_test:1,=,2,0,relative,dce; " "pkt_data; " "content:\"one\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9128,16 +9048,9 @@ int DcePayloadParseTest38(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "pcre:/boom/R; "
-                                   "byte_jump:1,2,relative,align,dce; "
-                                   "byte_test:1,=,2,0,relative,dce; "
-                                   "pkt_data; "
-                                   "content:\"one\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "pcre:/boom/R; " "byte_jump:1,2,relative,align,dce; " "byte_test:1,=,2,0,relative,dce; " "pkt_data; " "content:\"one\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9247,13 +9160,9 @@ int DcePayloadParseTest39(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "content:\"one\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "content:\"two\"; within:4; distance:8; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "content:\"one\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "content:\"two\"; within:4; distance:8; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9333,16 +9242,9 @@ int DcePayloadParseTest40(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "content:\"one\"; within:10; "
-                                   "content:\"two\"; distance:20; within:30; "
-                                   "byte_test:1,=,2,0,relative,dce; "
-                                   "pkt_data; "
-                                   "content:\"three\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "content:\"one\"; within:10; " "content:\"two\"; distance:20; within:30; " "byte_test:1,=,2,0,relative,dce; " "pkt_data; " "content:\"three\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9463,16 +9365,9 @@ int DcePayloadParseTest41(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "content:\"one\"; within:10; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "byte_test:1,=,2,0,relative,dce; "
-                                   "content:\"three\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "content:\"one\"; within:10; " "pkt_data; " "content:\"two\"; " "byte_test:1,=,2,0,relative,dce; " "content:\"three\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9633,7 +9528,7 @@ int DcePayloadTest42(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
@@ -9735,7 +9630,7 @@ int DcePayloadTest43(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    de_ctx->sig_list = SigInit(de_ctx, sig1, NULL);
     s = de_ctx->sig_list;
     if (s == NULL)
         goto end;
@@ -9796,16 +9691,9 @@ int DcePayloadParseTest44(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "content:\"one\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "isdataat:10,relative; "
-                                   "content:\"one\"; within:4; distance:8; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "content:\"one\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "dce_opnum:10; dce_stub_data; " "isdataat:10,relative; " "content:\"one\"; within:4; distance:8; " "pkt_data; " "content:\"two\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9923,15 +9811,9 @@ int DcePayloadParseTest45(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "content:\"one\"; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "byte_jump:1,2,relative,align,dce; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "content:\"one\"; " "dce_opnum:10; dce_stub_data; " "byte_jump:1,2,relative,align,dce; " "pkt_data; " "content:\"two\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -10035,15 +9917,9 @@ int DcePayloadParseTest46(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
-                                   "dce_iface:12345678-1234-1234-1234-123456789012; "
-                                   "content:\"one\"; "
-                                   "dce_opnum:10; dce_stub_data; "
-                                   "byte_test:1,=,2,0,relative,dce; "
-                                   "pkt_data; "
-                                   "content:\"two\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:12345678-1234-1234-1234-123456789012; " "content:\"one\"; " "dce_opnum:10; dce_stub_data; " "byte_test:1,=,2,0,relative,dce; " "pkt_data; " "content:\"two\"; " "sid:1;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

@@ -339,7 +339,9 @@ static int DetectSshSoftwareVersionTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -452,7 +454,9 @@ static int DetectSshSoftwareVersionTestDetect02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:PuTTY_2.123; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -564,7 +568,9 @@ static int DetectSshSoftwareVersionTestDetect03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:lalala-3.1.4; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ssh any any -> any any (msg:\"SSH\"; ssh.softwareversion:lalala-3.1.4; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

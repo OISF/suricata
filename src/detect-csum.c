@@ -1544,8 +1544,9 @@ int DetectCsumICMPV6Test01(void)
     de_ctx->mpm_matcher = DEFAULT_MPM;
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any any "
-                                   "(icmpv6-csum:valid; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any " "(icmpv6-csum:valid; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("SigInit failed\n");
         goto end;

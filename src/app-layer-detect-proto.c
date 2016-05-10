@@ -3331,9 +3331,9 @@ static int AppLayerProtoDetectTest16(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
-                                   "(msg:\"Test content option\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any " "(msg:\"Test content option\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -3424,9 +3424,9 @@ static int AppLayerProtoDetectTest17(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
-                                   "(msg:\"http over non standar port\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any !80 -> any any " "(msg:\"http over non standar port\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -3519,9 +3519,9 @@ static int AppLayerProtoDetectTest18(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert ftp any any -> any any "
-                                   "(msg:\"Test content option\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ftp any any -> any any " "(msg:\"Test content option\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -3610,9 +3610,9 @@ static int AppLayerProtoDetectTest19(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
-                                   "(msg:\"http over non standar port\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any !80 -> any any " "(msg:\"http over non standar port\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -3712,9 +3712,9 @@ static int AppLayerProtoDetectTest20(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
-                                   "(msg:\"Test content option\"; "
-                                   "content:\"one\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any " "(msg:\"Test content option\"; " "content:\"one\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

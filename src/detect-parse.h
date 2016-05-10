@@ -43,7 +43,7 @@ enum {
 int SigParse(DetectEngineCtx *,Signature *, char *, uint8_t);
 Signature *SigAlloc(void);
 void SigFree(Signature *s);
-Signature *SigInit(DetectEngineCtx *,char *sigstr);
+Signature *SigInit(DetectEngineCtx *,char *sigstr, char *sigerror);
 Signature *SigInitReal(DetectEngineCtx *, char *);
 SigMatch *SigMatchGetLastSMFromLists(Signature *, int, ...);
 void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,

@@ -126,24 +126,25 @@ int DetectHttpStatCodeTest01(void)
     }
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; http_stat_code; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_code\"; http_stat_code; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         printf("sid 1 parse failed to error out: ");
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; content:\"|FF F1|\";"
-            " rawbytes; http_stat_code; sid:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_code\"; content:\"|FF F1|\";" " rawbytes; http_stat_code; sid:2;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         printf("sid 2 parse failed to error out: ");
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"Testing http_stat_code\"; content:\"100\";"
-            "fast_pattern; http_stat_code; sid:3;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_code\"; content:\"100\";" "fast_pattern; http_stat_code; sid:3;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sid 3 parse failed: ");
         goto end;
@@ -175,11 +176,9 @@ int DetectHttpStatCodeTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_code\"; content:\"one\"; "
-                               "http_stat_code; content:\"200\"; http_stat_code; "
-                               "content:\"two hundred\"; nocase; http_stat_code; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_code\"; content:\"one\"; " "http_stat_code; content:\"200\"; http_stat_code; " "content:\"two hundred\"; nocase; http_stat_code; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -259,8 +258,9 @@ static int DetectHttpStatCodeSigTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-            "\"HTTP status code\"; content:\"200\"; http_stat_code; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status code\"; content:\"200\"; http_stat_code; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -360,16 +360,16 @@ static int DetectHttpStatCodeSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status code\"; content:\"no\"; "
-                                   "http_stat_code; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status code\"; content:\"no\"; " "http_stat_code; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                        "Status code\"; content:\"100\";"
-                        "http_stat_code; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"HTTP " "Status code\"; content:\"100\";" "http_stat_code; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }
@@ -476,16 +476,16 @@ static int DetectHttpStatCodeSigTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status code\"; content:\"FAIL\"; "
-                                   "http_stat_code; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status code\"; content:\"FAIL\"; " "http_stat_code; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                        "Status code nocase\"; content:\"fail\"; nocase; "
-                        "http_stat_code; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"HTTP " "Status code nocase\"; content:\"fail\"; nocase; " "http_stat_code; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }
@@ -592,16 +592,16 @@ static int DetectHttpStatCodeSigTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status code\"; content:\"200\"; "
-                                   "http_stat_code; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status code\"; content:\"200\"; " "http_stat_code; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                        "Status code negation\"; content:!\"100\"; nocase; "
-                        "http_stat_code; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"HTTP " "Status code negation\"; content:!\"100\"; nocase; " "http_stat_code; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }

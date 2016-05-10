@@ -433,10 +433,8 @@ static int DetectBase64DecodeTestSetup(void)
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"DetectBase64DecodeTestSetup\"; "
-        "base64_decode; content:\"content\"; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (" "msg:\"DetectBase64DecodeTestSetup\"; " "base64_decode; content:\"content\"; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -474,11 +472,8 @@ static int DetectBase64DecodeHttpHeaderTestSetup(void)
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any ("
-        "msg:\"DetectBase64DecodeTestSetup\"; "
-        "content:\"Authorization: basic \"; http_header; "
-        "base64_decode; content:\"content\"; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (" "msg:\"DetectBase64DecodeTestSetup\"; " "content:\"Authorization: basic \"; http_header; " "base64_decode; content:\"content\"; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -527,9 +522,8 @@ static int DetectBase64DecodeTestDecode(void)
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (msg:\"base64 test\"; " "base64_decode; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -584,9 +578,8 @@ static int DetectBase64DecodeTestDecodeWithOffset(void)
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode: offset 8; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (msg:\"base64 test\"; " "base64_decode: offset 8; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -643,9 +636,8 @@ static int DetectBase64DecodeTestDecodeLargeOffset(void)
 
     /* Offset is out of range. */
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "base64_decode: bytes 16, offset 32; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (msg:\"base64 test\"; " "base64_decode: bytes 16, offset 32; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -700,10 +692,8 @@ static int DetectBase64DecodeTestDecodeRelative(void)
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"base64 test\"; "
-        "content:\"aaaaaaaa\"; "
-        "base64_decode: relative; "
-        "sid:1; rev:1;)");
+                               "alert tcp any any -> any any (msg:\"base64 test\"; " "content:\"aaaaaaaa\"; " "base64_decode: relative; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

@@ -497,7 +497,7 @@ static int DetectUrilenInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 
     (*de_ctx)->flags |= DE_QUIET;
 
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
+    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr, NULL);
     if ((*de_ctx)->sig_list == NULL) {
         goto end;
     }
@@ -593,17 +593,15 @@ static int DetectUrilenSigTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing urilen\"; "
-                                   "urilen: <5; sid:1;)");
+                                   "alert tcp any any -> any any " "(msg:\"Testing urilen\"; " "urilen: <5; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                           "urilen: >5; sid:2;)");
+                          "alert tcp any any -> any any " "(msg:\"Testing http_method\"; " "urilen: >5; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

@@ -105,8 +105,9 @@ int DetectPriorityTest01()
         goto end;
     }
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Priority test\"; priority:2; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:2; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -127,8 +128,9 @@ int DetectPriorityTest02()
         goto end;
     }
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:1; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:1; sid:1;)",
+                  NULL);
     de_ctx->sig_list = last = sig;
     if (sig == NULL) {
         result = 0;
@@ -137,38 +139,44 @@ int DetectPriorityTest02()
         result &= (sig->prio == 1);
     }
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:boo; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:10boo; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:10boo; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:b10oo; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:b10oo; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:boo10; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:boo10; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; priority:-1; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; priority:-1; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Priority test\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Priority test\"; sid:1;)",
+                  NULL);
     if (last != NULL)
         last->next = sig;
     if (sig == NULL) {

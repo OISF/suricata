@@ -493,9 +493,9 @@ int DetectUriSigTest01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "content:\"me\"; uricontent:\"me\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\" Test uricontent\"; " "content:\"me\"; uricontent:\"me\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -561,23 +561,23 @@ static int DetectUriSigTest02(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"foo\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"oisf\"; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"oisf\"; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -676,23 +676,23 @@ static int DetectUriSigTest03(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"foo\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-   s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; sid:2;)");
+   s = s->next = SigInit(de_ctx,
+                         "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; sid:2;)",
+                         NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"self\"; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"self\"; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -784,9 +784,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"foo\"; sid:1;)",
+                NULL);
     if (s == NULL ||
         s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL ||
@@ -796,9 +796,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";sid:1;)",
+                NULL);
     if (s == NULL ||
         s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
@@ -808,10 +808,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; sid:1;)",
+                NULL);
     if (s == NULL ||
         s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
@@ -823,10 +822,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "content:\"foo\"; uricontent:\"bar\";"
-                                   " depth:10; offset: 5; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "content:\"foo\"; uricontent:\"bar\";" " depth:10; offset: 5; sid:1;)",
+                NULL);
     if (s == NULL ||
         s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
@@ -838,29 +836,25 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; within:3; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; within:3; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("sig 5 failed to parse: ");
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; distance:3; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; distance:3; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("sig 6 failed to parse: ");
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; content:"
-                                   "\"two_contents\"; within:30; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; content:" "\"two_contents\"; within:30; sid:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     } else if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
@@ -875,11 +869,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; within:30; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; uricontent:" "\"two_uricontents\"; within:30; sid:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     } else if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
@@ -894,11 +886,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; content:"
-                                   "\"two_contents\"; distance:30; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; content:" "\"two_contents\"; distance:30; sid:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     } else if (
@@ -914,11 +904,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; distance:30; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; uricontent:" "\"two_uricontents\"; distance:30; sid:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     } else if (
@@ -934,13 +922,9 @@ static int DetectUriSigTest04(void)
         goto end;
     }
 
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent and content\"; "
-                                   "uricontent:\"foo\"; content:\"bar\";"
-                                   " depth:10; offset: 5; uricontent:"
-                                   "\"two_uricontents\"; distance:30; "
-                                   "within:60; content:\"two_contents\";"
-                                   " within:70; distance:45; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:" "\" Test uricontent and content\"; " "uricontent:\"foo\"; content:\"bar\";" " depth:10; offset: 5; uricontent:" "\"two_uricontents\"; distance:30; " "within:60; content:\"two_contents\";" " within:70; distance:45; sid:1;)",
+                NULL);
     if (s == NULL) {
         printf("sig 10 failed to parse: ");
         goto end;
@@ -1030,22 +1014,23 @@ static int DetectUriSigTest05(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-            "\" Test uricontent\"; uricontent:\"foo\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:" "\" Test uricontent\"; uricontent:\"foo\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-            "\" Test uricontent\"; uricontent:\"one\"; content:\"two\"; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; uricontent:\"one\"; content:\"two\"; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-            "\" Test uricontent\"; uricontent:\"one\"; offset:1; depth:10; "
-            "uricontent:\"two\"; distance:1; within: 4; uricontent:\"three\"; "
-            "distance:1; within: 6; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; uricontent:\"one\"; offset:1; depth:10; " "uricontent:\"two\"; distance:1; within: 4; uricontent:\"three\"; " "distance:1; within: 6; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1158,33 +1143,24 @@ static int DetectUriSigTest06(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; content:\"bar\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"foo\"; content:\"bar\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; offset:1; depth:10; "
-                                   "content:\"one\"; offset:1; depth:10; "
-                                   "uricontent:\"two\"; distance:1; within: 4; "
-                                   "content:\"two\"; distance:1; within: 4; "
-                                   "uricontent:\"three\"; distance:1; within: 6; "
-                                   "content:\"/three\"; distance:0; within: 7; "
-                                   "sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; offset:1; depth:10; " "content:\"one\"; offset:1; depth:10; " "uricontent:\"two\"; distance:1; within: 4; " "content:\"two\"; distance:1; within: 4; " "uricontent:\"three\"; distance:1; within: 6; " "content:\"/three\"; distance:0; within: 7; " "sid:2;)",
+                          NULL);
 
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; offset:1; depth:10; "
-                                   "uricontent:\"two\"; distance:1; within: 4; "
-                                   "uricontent:\"three\"; distance:1; within: 6; "
-                                   "sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; offset:1; depth:10; " "uricontent:\"two\"; distance:1; within: 4; " "uricontent:\"three\"; distance:1; within: 6; " "sid:3;)",
+                          NULL);
 
     if (s == NULL) {
         goto end;
@@ -1280,33 +1256,24 @@ static int DetectUriSigTest07(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; content:\"bar\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"foo\"; content:\"bar\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; offset:1; depth:10; "
-                                   "content:\"one\"; offset:1; depth:10; "
-                                   "uricontent:\"two\"; distance:3; within: 4; "
-                                   "content:\"two\"; distance:1; within: 4; "
-                                   "uricontent:\"three\"; distance:1; within: 6; "
-                                   "content:\"/three\"; distance:0; within: 7; "
-                                   "sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; offset:1; depth:10; " "content:\"one\"; offset:1; depth:10; " "uricontent:\"two\"; distance:3; within: 4; " "content:\"two\"; distance:1; within: 4; " "uricontent:\"three\"; distance:1; within: 6; " "content:\"/three\"; distance:0; within: 7; " "sid:2;)",
+                          NULL);
 
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; offset:1; depth:10; "
-                                   "uricontent:\"two\"; distance:1; within: 4; "
-                                   "uricontent:\"six\"; distance:1; within: 6; "
-                                   "sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any (msg:" "\" Test uricontent\"; " "uricontent:\"one\"; offset:1; depth:10; " "uricontent:\"two\"; distance:1; within: 4; " "uricontent:\"six\"; distance:1; within: 6; " "sid:3;)",
+                          NULL);
 
     if (s == NULL) {
         goto end;
@@ -1373,8 +1340,8 @@ int DetectUriSigTest08(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1402,8 +1369,8 @@ int DetectUriSigTest09(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1431,8 +1398,8 @@ int DetectUriSigTest10(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"boo; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"boo; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1460,8 +1427,8 @@ int DetectUriSigTest11(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:boo\"; sid:238012;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:boo\"; sid:238012;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1491,8 +1458,8 @@ int DetectUriSigTest12(void)
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert udp any any -> any any "
-                                   "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)");
+                                   "alert udp any any -> any any " "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)",
+                                   NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL: ");
         goto end;
@@ -1529,8 +1496,8 @@ int DetectUriContentParseTest13(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1558,8 +1525,8 @@ int DetectUriContentParseTest14(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1587,8 +1554,8 @@ int DetectUriContentParseTest15(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1616,8 +1583,8 @@ int DetectUriContentParseTest16(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1645,8 +1612,8 @@ int DetectUriContentParseTest17(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"aast|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1674,8 +1641,8 @@ int DetectUriContentParseTest18(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"aast|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1703,8 +1670,8 @@ int DetectUriContentParseTest19(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"aast|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"aast|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1732,8 +1699,8 @@ int DetectUriContentParseTest20(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|asdf\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af|asdf\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1761,8 +1728,8 @@ int DetectUriContentParseTest21(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1790,8 +1757,8 @@ int DetectUriContentParseTest22(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|af\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af|af|af\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1819,8 +1786,8 @@ int DetectUriContentParseTest23(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"|af|af|af|\"; sid:1;)");
+                               "alert udp any any -> any any " "(msg:\"test\"; uricontent:\"|af|af|af|\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1848,8 +1815,8 @@ int DetectUriContentParseTest24(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; uricontent:\"\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; uricontent:\"\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;

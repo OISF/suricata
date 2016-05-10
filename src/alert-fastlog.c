@@ -298,9 +298,9 @@ static int AlertFastLogTest01()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"FastLog test\"; content:\"GET\"; " "Classtype:unknown; sid:1;)",
+                               NULL);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -343,9 +343,9 @@ static int AlertFastLogTest02()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; "
-            "Classtype:unknown; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"FastLog test\"; content:\"GET\"; " "Classtype:unknown; sid:1;)",
+                               NULL);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);

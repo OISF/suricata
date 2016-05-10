@@ -206,10 +206,9 @@ static int DetectEngineHttpUATest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CONNECT\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CONNECT\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -304,10 +303,9 @@ static int DetectEngineHttpUATest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CO\"; depth:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CO\"; depth:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -402,10 +400,9 @@ static int DetectEngineHttpUATest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_user_agent test\"; "
-                               "content:!\"ECT\"; depth:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_user_agent test\"; " "content:!\"ECT\"; depth:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -500,10 +497,9 @@ static int DetectEngineHttpUATest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"ECT\"; depth:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"ECT\"; depth:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -598,10 +594,9 @@ static int DetectEngineHttpUATest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:!\"CON\"; depth:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:!\"CON\"; depth:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -696,10 +691,9 @@ static int DetectEngineHttpUATest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"ECT\"; offset:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"ECT\"; offset:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -794,10 +788,9 @@ static int DetectEngineHttpUATest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:!\"CO\"; offset:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:!\"CO\"; offset:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -892,10 +885,9 @@ static int DetectEngineHttpUATest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:!\"ECT\"; offset:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:!\"ECT\"; offset:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -990,10 +982,9 @@ static int DetectEngineHttpUATest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CON\"; offset:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CON\"; offset:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1088,11 +1079,9 @@ static int DetectEngineHttpUATest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_user_agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:\"EC\"; within:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_user_agent test\"; " "content:\"CO\"; http_user_agent; " "content:\"EC\"; within:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1187,11 +1176,9 @@ static int DetectEngineHttpUATest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:!\"EC\"; within:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CO\"; http_user_agent; " "content:!\"EC\"; within:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1286,11 +1273,9 @@ static int DetectEngineHttpUATest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_user_agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:\"EC\"; within:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_user_agent test\"; " "content:\"CO\"; http_user_agent; " "content:\"EC\"; within:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1385,11 +1370,9 @@ static int DetectEngineHttpUATest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:!\"EC\"; within:4; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CO\"; http_user_agent; " "content:!\"EC\"; within:4; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1484,11 +1467,9 @@ static int DetectEngineHttpUATest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_user_agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:\"EC\"; distance:2; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_user_agent test\"; " "content:\"CO\"; http_user_agent; " "content:\"EC\"; distance:2; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1583,11 +1564,9 @@ static int DetectEngineHttpUATest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:!\"EC\"; distance:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CO\"; http_user_agent; " "content:!\"EC\"; distance:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1682,11 +1661,9 @@ static int DetectEngineHttpUATest16(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:\"EC\"; distance:3; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"CO\"; http_user_agent; " "content:\"EC\"; distance:3; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1781,11 +1758,9 @@ static int DetectEngineHttpUATest17(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http_user_agent test\"; "
-                               "content:\"CO\"; http_user_agent; "
-                               "content:!\"EC\"; distance:2; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http_user_agent test\"; " "content:\"CO\"; http_user_agent; " "content:!\"EC\"; distance:2; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

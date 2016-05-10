@@ -462,7 +462,9 @@ static int DetectIPRepTest01(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1;rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1;rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -524,7 +526,9 @@ static int DetectIPRepTest02(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:src,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:src,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -586,7 +590,9 @@ static int DetectIPRepTest03(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:dst,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:dst,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -649,7 +655,9 @@ static int DetectIPRepTest04(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:both,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:both,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -711,7 +719,9 @@ static int DetectIPRepTest05(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -773,7 +783,9 @@ static int DetectIPRepTest06(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -835,7 +847,9 @@ static int DetectIPRepTest07(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -898,7 +912,9 @@ static int DetectIPRepTest08(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"IPREP High value badhost\"; iprep:any,BadHosts,>,1; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -961,7 +977,9 @@ static int DetectIPRepTest09(void)
         goto end;
     }
 
-    sig = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"test\"; iprep:src,BadHosts,>,9; sid:1; rev:1;)");
+    sig = de_ctx->sig_list = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"test\"; iprep:src,BadHosts,>,9; sid:1; rev:1;)",
+                                     NULL);
     if (sig == NULL) {
         goto end;
     }

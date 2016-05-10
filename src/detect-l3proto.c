@@ -154,22 +154,30 @@ static int DetectL3protoTestSig1(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv4\"; l3_proto:ipv4; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"l3proto ipv4\"; l3_proto:ipv4; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv6\"; l3_proto:ipv6; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ipv6\"; l3_proto:ipv6; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ip4\"; l3_proto:ip4; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ip4\"; l3_proto:ip4; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ip6\"; l3_proto:ip6; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ip6\"; l3_proto:ip6; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -238,22 +246,30 @@ static int DetectL3protoTestSig2(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv4\"; l3_proto:ipv4; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"l3proto ipv4\"; l3_proto:ipv4; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv6\"; l3_proto:ipv6; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ipv6\"; l3_proto:ipv6; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ip4\"; l3_proto:ip4; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ip4\"; l3_proto:ip4; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ip6\"; l3_proto:ip6; sid:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ip6\"; l3_proto:ip6; sid:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -321,22 +337,30 @@ static int DetectL3protoTestSig3(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv4 and ip_proto udp\"; l3_proto:ipv4; ip_proto:17; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"l3proto ipv4 and ip_proto udp\"; l3_proto:ipv4; ip_proto:17; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv6 and ip_proto udp\"; l3_proto:ipv6; ip_proto:17; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ipv6 and ip_proto udp\"; l3_proto:ipv6; ip_proto:17; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ip4 and ip_proto tcp\"; l3_proto:ipv4; ip_proto:6; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ip4 and ip_proto tcp\"; l3_proto:ipv4; ip_proto:6; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"l3proto ipv6 and ip_proto tcp\"; l3_proto:ipv6; ip_proto:6; sid:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"l3proto ipv6 and ip_proto tcp\"; l3_proto:ipv6; ip_proto:6; sid:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

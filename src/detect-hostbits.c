@@ -617,7 +617,9 @@ static int HostBitsTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (hostbits:set,abc; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (hostbits:set,abc; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL) {
         printf("bad sig: ");
@@ -846,7 +848,9 @@ static int HostBitsTestSig04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_HOST_BIT);
 
@@ -934,7 +938,8 @@ static int HostBitsTestSig05(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-        "alert ip any any -> any any (hostbits:noalert; content:\"GET \"; sid:1;)");
+                                   "alert ip any any -> any any (hostbits:noalert; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL || ((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT)) {
         goto end;
@@ -1240,14 +1245,16 @@ static int HostBitsTestSig07(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-            "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)");
+                                   "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)",
+                                   NULL);
 
     if (s == NULL) {
         goto end;
     }
 
     s = s->next  = SigInit(de_ctx,
-            "alert ip any any -> any any (hostbits:isset,myflow2; sid:11;)");
+                           "alert ip any any -> any any (hostbits:isset,myflow2; sid:11;)",
+                           NULL);
 
     if (s == NULL) {
         goto end;

@@ -573,7 +573,7 @@ static int PayloadTestSig13(void)
         de_ctx->flags |= DE_QUIET;
         de_ctx->mpm_matcher = mpm_type;
 
-        de_ctx->sig_list = SigInit(de_ctx, sig);
+        de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
         if (de_ctx->sig_list == NULL) {
             printf("signature == NULL: ");
             goto end;

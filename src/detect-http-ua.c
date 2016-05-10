@@ -145,9 +145,9 @@ static int DetectHttpUATest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_user_agent\"; "
-                               "content:\"one\"; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_user_agent\"; " "content:\"one\"; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
@@ -176,9 +176,9 @@ static int DetectHttpUATest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_user_agent\"; "
-                               "content:\"one\"; http_user_agent:; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_user_agent\"; " "content:\"one\"; http_user_agent:; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -204,9 +204,9 @@ static int DetectHttpUATest03(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_user_agent\"; "
-                               "http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_user_agent\"; " "http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -232,9 +232,9 @@ static int DetectHttpUATest04(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_user_agent\"; "
-                               "content:\"one\"; rawbytes; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_user_agent\"; " "content:\"one\"; rawbytes; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -259,9 +259,9 @@ static int DetectHttpUATest05(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_user_agent\"; "
-                               "content:\"one\"; http_user_agent; nocase; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_user_agent\"; " "content:\"one\"; http_user_agent; nocase; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -321,10 +321,9 @@ static int DetectHttpUATest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"message\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"message\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -428,10 +427,9 @@ static int DetectHttpUATest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"message\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"message\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -551,10 +549,9 @@ static int DetectHttpUATest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"message\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"message\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -681,10 +678,9 @@ static int DetectHttpUATest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"body1This\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"body1This\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -811,10 +807,9 @@ static int DetectHttpUATest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"body1this\"; http_user_agent; nocase;"
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"body1this\"; http_user_agent; nocase;" "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -930,10 +925,9 @@ static int DetectHttpUATest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:!\"message\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:!\"message\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1029,10 +1023,9 @@ static int DetectHttpUATest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:!\"message\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:!\"message\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1129,10 +1122,9 @@ static int DetectHttpUATest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http user agent test\"; "
-                               "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_user_agent; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http user agent test\"; " "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_user_agent; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1404,9 +1396,9 @@ int DetectHttpUATest22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; content:\"two\"; http_user_agent; "
-                               "content:\"three\"; distance:10; http_user_agent; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; content:\"two\"; http_user_agent; " "content:\"three\"; distance:10; http_user_agent; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1459,9 +1451,9 @@ int DetectHttpUATest23(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_user_agent; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; pcre:/two/; " "content:\"three\"; distance:10; http_user_agent; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1513,9 +1505,9 @@ int DetectHttpUATest24(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; distance:10; within:15; http_user_agent; content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; pcre:/two/; " "content:\"three\"; distance:10; within:15; http_user_agent; content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1567,10 +1559,9 @@ int DetectHttpUATest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_user_agent; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; pcre:/two/; " "content:\"three\"; distance:10; http_user_agent; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1623,10 +1614,9 @@ int DetectHttpUATest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_user_agent; within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; offset:10; http_user_agent; pcre:/two/; " "content:\"three\"; distance:10; http_user_agent; within:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1680,10 +1670,9 @@ int DetectHttpUATest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_user_agent; within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; offset:10; http_user_agent; pcre:/two/; " "content:\"three\"; distance:10; http_user_agent; within:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1706,10 +1695,9 @@ int DetectHttpUATest28(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; pcre:/two/; "
-                               "content:\"three\"; http_user_agent; depth:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; pcre:/two/; " "content:\"three\"; http_user_agent; depth:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1762,9 +1750,9 @@ int DetectHttpUATest29(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; "
-                               "content:\"two\"; distance:0; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; " "content:\"two\"; distance:0; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1806,9 +1794,9 @@ int DetectHttpUATest30(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; "
-                               "content:\"two\"; within:5; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; " "content:\"two\"; within:5; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1850,8 +1838,9 @@ int DetectHttpUATest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; within:5; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; within:5; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1874,8 +1863,9 @@ int DetectHttpUATest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_user_agent; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_user_agent; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list != NULL\n");
         goto end;
@@ -1898,8 +1888,9 @@ int DetectHttpUATest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1922,9 +1913,9 @@ int DetectHttpUATest34(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/V; "
-                               "content:\"two\"; within:5; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(pcre:/one/V; " "content:\"two\"; within:5; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1973,9 +1964,9 @@ int DetectHttpUATest35(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"two\"; http_user_agent; "
-                               "pcre:/one/VR; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"two\"; http_user_agent; " "pcre:/one/VR; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2024,9 +2015,9 @@ int DetectHttpUATest36(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/V; "
-                               "content:\"two\"; distance:5; http_user_agent; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(pcre:/one/V; " "content:\"two\"; distance:5; http_user_agent; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
