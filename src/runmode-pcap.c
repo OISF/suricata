@@ -121,7 +121,7 @@ void *ParsePcapConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfFindDeviceConfig(pcap_node, "iface");
+    if_root = ConfFindDeviceConfig(pcap_node, iface);
 
     if_default = ConfFindDeviceConfig(pcap_node, "default");
 

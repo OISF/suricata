@@ -159,7 +159,7 @@ static void *ParseNetmapConfig(const char *iface_name)
         return aconf;
     }
 
-    if_root = ConfFindDeviceConfig(netmap_node, "interface", aconf->iface_name);
+    if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
 
     if_default = ConfFindDeviceConfig(netmap_node, "default");
 
