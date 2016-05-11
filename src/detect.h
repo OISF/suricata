@@ -33,6 +33,7 @@
 
 #include "packet-queue.h"
 #include "util-mpm.h"
+#include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
 #include "util-debug.h"
@@ -589,6 +590,10 @@ typedef struct DetectEngineCtx_ {
     uint16_t mpm_matcher; /**< mpm matcher this ctx uses */
     uint16_t spm_matcher; /**< spm matcher this ctx uses */
 
+    /* spm thread context prototype, built as spm matchers are constructed and
+     * later used to construct thread context for each thread. */
+    SpmGlobalThreadCtx *spm_global_thread_ctx;
+
     /* Config options */
 
     uint16_t max_uniq_toclient_groups;
@@ -817,6 +822,10 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PatternMatcherQueue pmq;
+
+    /** SPM thread context used for scanning. This has been cloned from the
+     * prototype held by DetectEngineCtx. */
+    SpmThreadCtx *spm_thread_ctx;
 
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;

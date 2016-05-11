@@ -118,7 +118,7 @@ void DetectHttpHHFree(void *ptr)
     if (hhhd->content != NULL)
         SCFree(hhhd->content);
 
-    BoyerMooreCtxDeInit(hhhd->bm_ctx);
+    SpmDestroyCtx(hhhd->spm_ctx);
     SCFree(hhhd);
 
     return;
