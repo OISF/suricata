@@ -142,6 +142,9 @@ typedef struct AppLayerProtoDetectCtx_ {
      *       implemented if needed.  Waste of space otherwise. */
     AppLayerProtoDetectCtxIpproto ctx_ipp[FLOW_PROTO_DEFAULT];
 
+    /* SPM thread context prototype. */
+    SpmThreadCtx *spm_thread_ctx;
+
     AppLayerProtoDetectProbingParser *ctx_pp;
 
     /* Indicates the protocols that have registered themselves
@@ -1240,7 +1243,7 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
     DetectContentData *cd;
     int ret = 0;
 
-    cd = DetectContentParseEncloseQuotes(pattern);
+    cd = DetectContentParseEncloseQuotes(alpd_ctx.spm_thread_ctx, pattern);
     if (cd == NULL)
         goto error;
     cd->depth = depth;
@@ -1518,6 +1521,9 @@ int AppLayerProtoDetectSetup(void)
 
     memset(&alpd_ctx, 0, sizeof(alpd_ctx));
 
+    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    alpd_ctx.spm_thread_ctx = SpmInitThreadCtx(spm_matcher);
+
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < 2; j++) {
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, MPM_AC);
@@ -1549,6 +1555,8 @@ int AppLayerProtoDetectDeSetup(void)
             }
         }
     }
+
+    SpmDestroyThreadCtx(alpd_ctx.spm_thread_ctx);
 
     AppLayerProtoDetectFreeProbingParsers(alpd_ctx.ctx_pp);
 
