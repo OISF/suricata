@@ -831,6 +831,13 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
+
+    de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);
+    if (de_ctx->spm_global_thread_ctx == NULL) {
+        SCLogDebug("Unable to alloc SpmGlobalThreadCtx.");
+        goto error;
+    }
+
     DetectEngineCtxLoadConf(de_ctx);
 
     SigGroupHeadHashInit(de_ctx);
@@ -940,6 +947,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SCRConfDeInitContext(de_ctx);
 
     SigGroupCleanup(de_ctx);
+
+    SpmDestroyGlobalThreadCtx(de_ctx->spm_global_thread_ctx);
 
     MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
 
@@ -1419,6 +1428,11 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
 
     PmqSetup(&det_ctx->pmq);
 
+    det_ctx->spm_thread_ctx = SpmMakeThreadCtx(de_ctx->spm_global_thread_ctx);
+    if (det_ctx->spm_thread_ctx == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
     /* sized to the max of our sgh settings. A max setting of 0 implies that all
      * sgh's have: sgh->non_mpm_store_cnt == 0 */
     if (de_ctx->non_mpm_store_cnt_max > 0) {
@@ -1633,6 +1647,10 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
     }
 
     PmqFree(&det_ctx->pmq);
+
+    if (det_ctx->spm_thread_ctx != NULL) {
+        SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
+    }
 
     if (det_ctx->non_mpm_id_array != NULL)
         SCFree(det_ctx->non_mpm_id_array);

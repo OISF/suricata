@@ -2225,6 +2225,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
 #ifdef __SC_CUDA_SUPPORT__
     MpmCudaEnvironmentSetup();
 #endif
+    SpmTableSetup();
 
     switch (suri->checksum_validation) {
         case 0:
