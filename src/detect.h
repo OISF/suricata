@@ -823,6 +823,10 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PatternMatcherQueue pmq;
 
+    /** SPM thread context used for scanning. This has been cloned from the
+     * prototype held by DetectEngineCtx. */
+    SpmThreadCtx *spm_thread_ctx;
+
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
 

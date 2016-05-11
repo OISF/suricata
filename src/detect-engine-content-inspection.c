@@ -279,7 +279,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * greater than sbuffer_len found is anyways NULL */
 
             /* do the actual search */
-            found = SpmScan(cd->spm_ctx, NULL, sbuffer, sbuffer_len);
+            found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer,
+                            sbuffer_len);
 
             /* next we evaluate the result in combination with the
              * negation flag. */
