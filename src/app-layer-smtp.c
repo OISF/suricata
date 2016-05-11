@@ -1545,6 +1545,21 @@ static void *SMTPStateGetTx(void *state, uint64_t id)
 
 }
 
+static void SMTPStateSetTxLogged(void *state, void *vtx, uint32_t logger)
+{
+    SMTPTransaction *tx = vtx;
+    tx->logged |= logger;
+}
+
+static int SMTPStateGetTxLogged(void *state, void *vtx, uint32_t logger)
+{
+    SMTPTransaction *tx = vtx;
+    if (tx->logged & logger)
+        return 1;
+
+    return 0;
+}
+
 static int SMTPStateGetAlstateProgressCompletionStatus(uint8_t direction) {
     return 1;
 }
@@ -1642,7 +1657,9 @@ void RegisterSMTPParsers(void)
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_TCP, ALPROTO_SMTP,
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxLogged,
+                                          SMTPStateSetTxLogged);
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_SMTP,
                                                                SMTPStateGetAlstateProgressCompletionStatus);
         AppLayerParserRegisterTruncateFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTruncate);
     } else {

@@ -83,6 +83,7 @@ typedef struct ModbusTransaction_ {
     struct ModbusState_ *modbus;
 
     uint64_t    tx_num;         /**< internal: id */
+    uint32_t    logged;         /**< flags indicating which loggers have logged */
     uint16_t    transactionId;
     uint16_t    length;
     uint8_t     function;
