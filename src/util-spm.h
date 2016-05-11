@@ -31,9 +31,36 @@
 enum {
     SPM_BM, /* Boyer-Moore */
     /* Other SPM matchers will go here. */
+    SPM_TABLE_SIZE
 };
 
 uint16_t SinglePatternMatchDefaultMatcher(void);
+
+typedef struct SpmCtx_ {
+    uint16_t matcher;
+    void *ctx;
+} SpmCtx;
+
+typedef struct SpmTableElmt_ {
+    const char *name;
+    SpmCtx *(*InitCtx)(const uint8_t *needle, uint16_t needle_len, int nocase,
+                       void **thread_ctx);
+    void (*DestroyCtx)(SpmCtx *);
+    uint8_t *(*Scan)(const SpmCtx *ctx, void *thread_ctx,
+                     const uint8_t *haystack, uint16_t haystack_len);
+} SpmTableElmt;
+
+SpmTableElmt spm_table[SPM_TABLE_SIZE];
+
+void SpmTableSetup(void);
+
+SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
+                   void **thread_ctx, uint16_t matcher);
+
+void SpmDestroyCtx(SpmCtx *ctx);
+
+uint8_t *SpmScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
+                 uint16_t haystack_len);
 
 /** Default algorithm to use: Boyer Moore */
 uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);

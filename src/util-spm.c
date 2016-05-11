@@ -59,11 +59,19 @@
  * \brief Returns the single pattern matcher algorithm to be used, based on the
  * spm-algo setting in yaml.
  */
-uint16_t SinglePatternMatchDefaultMatcher(void) {
+uint16_t SinglePatternMatchDefaultMatcher(void)
+{
     char *spm_algo;
     if ((ConfGet("spm-algo", &spm_algo)) == 1) {
-        if (strcmp("bm", spm_algo) == 0) {
-            return SPM_BM;
+        if (spm_algo != NULL) {
+            for (uint16_t i = 0; i < SPM_TABLE_SIZE; i++) {
+                if (spm_table[i].name == NULL) {
+                    continue;
+                }
+                if (strcmp(spm_table[i].name, spm_algo) == 0) {
+                    return i;
+                }
+            }
         }
 
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
@@ -74,6 +82,31 @@ uint16_t SinglePatternMatchDefaultMatcher(void) {
     }
 
     return SPM_BM; /* default to Boyer-Moore */
+}
+
+void SpmTableSetup(void)
+{
+    memset(spm_table, 0, sizeof(spm_table));
+
+    SpmBMRegister();
+}
+
+SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
+                   void **thread_ctx, uint16_t matcher)
+{
+    return spm_table[matcher].InitCtx(needle, needle_len, nocase, thread_ctx);
+}
+
+void SpmDestroyCtx(SpmCtx *ctx)
+{
+    spm_table[ctx->matcher].DestroyCtx(ctx);
+}
+
+uint8_t *SpmScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
+                 uint16_t haystack_len)
+{
+    return spm_table[ctx->matcher].Scan(ctx, thread_ctx, haystack,
+                                        haystack_len);
 }
 
 /**
