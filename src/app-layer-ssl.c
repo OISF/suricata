@@ -234,7 +234,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                         if (!(HAS_SPACE(2)))
                             goto end;
 
-                        uint16_t sni_len = ntohs(*(uint16_t *)input);
+                        uint16_t sni_len = ntohs(input[0] * 256 + input[1]);
                         input += 2;
 
                         if (!(HAS_SPACE(sni_len)))
