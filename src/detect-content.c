@@ -247,6 +247,7 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     /* Prepare Boyer Moore context for searching faster */
     cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 0, NULL, SPM_BM);
     cd->depth = 0;
     cd->offset = 0;
     cd->within = 0;
@@ -416,6 +417,7 @@ void DetectContentFree(void *ptr)
         SCReturn;
 
     BoyerMooreCtxDeInit(cd->bm_ctx);
+    SpmDestroyCtx(cd->spm_ctx);
 
     SCFree(cd);
     SCReturn;

@@ -73,6 +73,7 @@
                                        ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
 
 
+#include "util-spm.h"
 #include "util-spm-bm.h"
 
 typedef struct DetectContentData_ {
@@ -94,6 +95,8 @@ typedef struct DetectContentData_ {
     int32_t within;
     /* Boyer Moore context (for spm search) */
     BmCtx *bm_ctx;
+    /* SPM search context. */
+    SpmCtx *spm_ctx;
     /* pointer to replacement data */
     uint8_t *replace;
 } DetectContentData;

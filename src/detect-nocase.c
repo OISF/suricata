@@ -121,6 +121,9 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     /* Recreate the context with nocase chars */
     BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
 
+    SpmDestroyCtx(cd->spm_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1, NULL, SPM_BM);
+
     ret = 0;
  end:
     SCReturnInt(ret);

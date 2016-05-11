@@ -279,10 +279,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * greater than sbuffer_len found is anyways NULL */
 
             /* do the actual search */
-            if (cd->flags & DETECT_CONTENT_NOCASE)
-                found = BoyerMooreNocase(cd->content, cd->content_len, sbuffer, sbuffer_len, cd->bm_ctx);
-            else
-                found = BoyerMoore(cd->content, cd->content_len, sbuffer, sbuffer_len, cd->bm_ctx);
+            found = SpmScan(cd->spm_ctx, NULL, sbuffer, sbuffer_len);
 
             /* next we evaluate the result in combination with the
              * negation flag. */
