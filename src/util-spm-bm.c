@@ -389,7 +389,7 @@ typedef struct SpmBmCtx_ {
 } SpmBmCtx;
 
 SpmCtx *BMInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
-                  void **thread_ctx)
+                  SpmThreadCtx *thread_ctx)
 {
     SpmCtx *ctx = SCMalloc(sizeof(SpmCtx));
     if (ctx == NULL) {
@@ -444,8 +444,8 @@ void BMDestroyCtx(SpmCtx *ctx)
     SCFree(ctx);
 }
 
-uint8_t *BMScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
-                uint16_t haystack_len)
+uint8_t *BMScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                const uint8_t *haystack, uint16_t haystack_len)
 {
     const SpmBmCtx *sctx = ctx->ctx;
 
@@ -458,9 +458,42 @@ uint8_t *BMScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
     }
 }
 
+SpmThreadCtx *BMInitThreadCtx(void)
+{
+    SpmThreadCtx *thread_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    if (thread_ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmThreadCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memset(thread_ctx, 0, sizeof(*thread_ctx));
+    thread_ctx->matcher = SPM_BM;
+    return thread_ctx;
+}
+
+void BMDestroyThreadCtx(SpmThreadCtx *thread_ctx)
+{
+    if (thread_ctx == NULL) {
+        return;
+    }
+    SCFree(thread_ctx);
+}
+
+SpmThreadCtx *BMCloneThreadCtx(const SpmThreadCtx *thread_ctx) {
+    SpmThreadCtx *cloned_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    if (cloned_ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmThreadCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(cloned_ctx, thread_ctx, sizeof(*thread_ctx));
+    return cloned_ctx;
+}
+
 void SpmBMRegister(void)
 {
     spm_table[SPM_BM].name = "bm";
+    spm_table[SPM_BM].InitThreadCtx = BMInitThreadCtx;
+    spm_table[SPM_BM].DestroyThreadCtx = BMDestroyThreadCtx;
+    spm_table[SPM_BM].CloneThreadCtx = BMCloneThreadCtx;
     spm_table[SPM_BM].InitCtx = BMInitCtx;
     spm_table[SPM_BM].DestroyCtx = BMDestroyCtx;
     spm_table[SPM_BM].Scan = BMScan;

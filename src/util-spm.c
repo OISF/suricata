@@ -91,8 +91,23 @@ void SpmTableSetup(void)
     SpmBMRegister();
 }
 
+SpmThreadCtx *SpmInitThreadCtx(uint16_t matcher)
+{
+    return spm_table[matcher].InitThreadCtx();
+}
+
+void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx)
+{
+    spm_table[thread_ctx->matcher].DestroyThreadCtx(thread_ctx);
+}
+
+SpmThreadCtx *SpmCloneThreadCtx(const SpmThreadCtx *thread_ctx)
+{
+    return spm_table[thread_ctx->matcher].CloneThreadCtx(thread_ctx);
+}
+
 SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
-                   void **thread_ctx, uint16_t matcher)
+                   SpmThreadCtx *thread_ctx, uint16_t matcher)
 {
     return spm_table[matcher].InitCtx(needle, needle_len, nocase, thread_ctx);
 }
@@ -102,8 +117,8 @@ void SpmDestroyCtx(SpmCtx *ctx)
     spm_table[ctx->matcher].DestroyCtx(ctx);
 }
 
-uint8_t *SpmScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
-                 uint16_t haystack_len)
+uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                 const uint8_t *haystack, uint16_t haystack_len)
 {
     return spm_table[ctx->matcher].Scan(ctx, thread_ctx, haystack,
                                         haystack_len);

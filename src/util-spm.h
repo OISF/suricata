@@ -41,12 +41,20 @@ typedef struct SpmCtx_ {
     void *ctx;
 } SpmCtx;
 
+typedef struct SpmThreadCtx_ {
+    uint16_t matcher;
+    void *ctx;
+} SpmThreadCtx;
+
 typedef struct SpmTableElmt_ {
     const char *name;
+    SpmThreadCtx *(*InitThreadCtx)(void);
+    void (*DestroyThreadCtx)(SpmThreadCtx *thread_ctx);
+    SpmThreadCtx *(*CloneThreadCtx)(const SpmThreadCtx *thread_ctx);
     SpmCtx *(*InitCtx)(const uint8_t *needle, uint16_t needle_len, int nocase,
-                       void **thread_ctx);
+                       SpmThreadCtx *thread_ctx);
     void (*DestroyCtx)(SpmCtx *);
-    uint8_t *(*Scan)(const SpmCtx *ctx, void *thread_ctx,
+    uint8_t *(*Scan)(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
                      const uint8_t *haystack, uint16_t haystack_len);
 } SpmTableElmt;
 
@@ -54,13 +62,19 @@ SpmTableElmt spm_table[SPM_TABLE_SIZE];
 
 void SpmTableSetup(void);
 
+SpmThreadCtx *SpmInitThreadCtx(uint16_t matcher);
+
+void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx);
+
+SpmThreadCtx *SpmCloneThreadCtx(const SpmThreadCtx *thread_ctx);
+
 SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
-                   void **thread_ctx, uint16_t matcher);
+                   SpmThreadCtx *thread_ctx, uint16_t matcher);
 
 void SpmDestroyCtx(SpmCtx *ctx);
 
-uint8_t *SpmScan(const SpmCtx *ctx, void *thread_ctx, const uint8_t *haystack,
-                 uint16_t haystack_len);
+uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                 const uint8_t *haystack, uint16_t haystack_len);
 
 /** Default algorithm to use: Boyer Moore */
 uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
