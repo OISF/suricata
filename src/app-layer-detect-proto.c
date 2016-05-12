@@ -1249,7 +1249,6 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
     cd->offset = offset;
     if (!is_cs) {
         /* Rebuild as nocase */
-        BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
         uint16_t matcher = cd->spm_ctx->matcher;
         SpmDestroyCtx(cd->spm_ctx);
         cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,

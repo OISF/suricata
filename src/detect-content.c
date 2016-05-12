@@ -246,8 +246,7 @@ DetectContentData *DetectContentParse(SpmThreadCtx *spm_thread_ctx,
     memcpy(cd->content, content, len);
     cd->content_len = len;
 
-    /* Prepare Boyer Moore context for searching faster */
-    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
+    /* Prepare SPM search context. */
     cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 0, spm_thread_ctx,
                              spm_thread_ctx->matcher);
     cd->depth = 0;
@@ -419,7 +418,6 @@ void DetectContentFree(void *ptr)
     if (cd == NULL)
         SCReturn;
 
-    BoyerMooreCtxDeInit(cd->bm_ctx);
     SpmDestroyCtx(cd->spm_ctx);
 
     SCFree(cd);

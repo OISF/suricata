@@ -93,8 +93,6 @@ typedef struct DetectContentData_ {
     uint16_t offset;
     int32_t distance;
     int32_t within;
-    /* Boyer Moore context (for spm search) */
-    BmCtx *bm_ctx;
     /* SPM search context. */
     SpmCtx *spm_ctx;
     /* pointer to replacement data */

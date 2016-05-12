@@ -123,7 +123,7 @@ void DetectHttpClientBodyFree(void *ptr)
     if (hcbd->content != NULL)
         SCFree(hcbd->content);
 
-    BoyerMooreCtxDeInit(hcbd->bm_ctx);
+    SpmDestroyCtx(hcbd->spm_ctx);
     SCFree(hcbd);
 
     SCReturn;

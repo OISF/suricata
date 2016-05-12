@@ -95,7 +95,7 @@ void DetectUricontentFree(void *ptr)
     if (cd == NULL)
         SCReturn;
 
-    BoyerMooreCtxDeInit(cd->bm_ctx);
+    SpmDestroyCtx(cd->spm_ctx);
     SCFree(cd);
 
     SCReturn;
