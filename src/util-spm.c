@@ -2390,6 +2390,205 @@ int UtilSpmNocaseSearchStatsTest07()
     return 1;
 }
 
+/* Unit tests for new SPM API. */
+
+#define SPM_NO_MATCH UINT32_MAX
+
+/* Helper structure describing a particular search. */
+typedef struct SpmTestData_ {
+    const char *needle;
+    uint16_t needle_len;
+    const char *haystack;
+    uint16_t haystack_len;
+    int nocase;
+    uint32_t match_offset; /* offset in haystack, or SPM_NO_MATCH. */
+} SpmTestData;
+
+/* Helper function to conduct a search with a particular SPM matcher. */
+static int SpmTestSearch(const SpmTestData *d, uint16_t matcher)
+{
+    int ret = 1;
+    SpmThreadCtx *thread_ctx = NULL;
+    SpmCtx *ctx = NULL;
+    uint8_t *found = NULL;
+
+    thread_ctx = SpmInitThreadCtx(matcher);
+    if (thread_ctx == NULL) {
+        ret = 0;
+        goto exit;
+    }
+
+    ctx = SpmInitCtx((const uint8_t *)d->needle, d->needle_len, d->nocase,
+                     thread_ctx, matcher);
+    if (ctx == NULL) {
+        ret = 0;
+        goto exit;
+    }
+
+    found =
+        SpmScan(ctx, thread_ctx, (const uint8_t *)d->haystack, d->haystack_len);
+    if (found == NULL) {
+        if (d->match_offset != SPM_NO_MATCH) {
+            printf("  should have matched at %" PRIu32 " but didn't\n",
+                   d->match_offset);
+            ret = 0;
+        }
+    } else {
+        uint32_t offset = (uint32_t)(found - (const uint8_t *)d->haystack);
+        if (offset != d->match_offset) {
+            printf("  should have matched at %" PRIu32
+                   " but matched at %" PRIu32 "\n",
+                   d->match_offset, offset);
+            ret = 0;
+        }
+    }
+
+exit:
+    SpmDestroyCtx(ctx);
+    SpmDestroyThreadCtx(thread_ctx);
+    return ret;
+}
+
+int SpmSearchTest01() {
+    SpmTableSetup();
+    printf("\n");
+
+    /* Each of the following tests will be run against every registered SPM
+     * algorithm. */
+
+    static const SpmTestData data[] = {
+        /* Some trivial single-character case/nocase tests */
+        {"a", 1, "a", 1, 0, 0},
+        {"a", 1, "A", 1, 1, 0},
+        {"A", 1, "A", 1, 0, 0},
+        {"A", 1, "a", 1, 1, 0},
+        {"a", 1, "A", 1, 0, SPM_NO_MATCH},
+        {"A", 1, "a", 1, 0, SPM_NO_MATCH},
+        /* Nulls and odd characters */
+        {"\x00", 1, "test\x00test", 9, 0, 4},
+        {"\x00", 1, "testtest", 8, 0, SPM_NO_MATCH},
+        {"\n", 1, "new line\n", 9, 0, 8},
+        {"\n", 1, "new line\x00\n", 10, 0, 9},
+        {"\xff", 1, "abcdef\xff", 7, 0, 6},
+        {"\xff", 1, "abcdef\xff", 7, 1, 6},
+        {"$", 1, "dollar$", 7, 0, 6},
+        {"^", 1, "caret^", 6, 0, 5},
+        /* Longer literals */
+        {"Suricata", 8, "This is a Suricata test", 23, 0, 10},
+        {"Suricata", 8, "This is a suricata test", 23, 1, 10},
+        {"Suricata", 8, "This is a suriCATA test", 23, 1, 10},
+        {"suricata", 8, "This is a Suricata test", 23, 0, SPM_NO_MATCH},
+        {"Suricata", 8, "This is a Suricat_ test", 23, 0, SPM_NO_MATCH},
+        {"Suricata", 8, "This is a _uricata test", 23, 0, SPM_NO_MATCH},
+        /* First occurrence with the correct case should match */
+        {"foo", 3, "foofoofoo", 9, 0, 0},
+        {"foo", 3, "_foofoofoo", 9, 0, 1},
+        {"FOO", 3, "foofoofoo", 9, 1, 0},
+        {"FOO", 3, "_foofoofoo", 9, 1, 1},
+        {"FOO", 3, "foo Foo FOo fOo foO FOO", 23, 0, 20},
+        {"foo", 3, "Foo FOo fOo foO FOO foo", 23, 0, 20},
+    };
+
+    int ret = 1;
+
+    uint16_t matcher;
+    for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
+        const SpmTableElmt *m = &spm_table[matcher];
+        if (m->name == NULL) {
+            continue;
+        }
+        printf("matcher: %s\n", m->name);
+
+        uint32_t i;
+        for (i = 0; i < sizeof(data)/sizeof(data[0]); i++) {
+            const SpmTestData *d = &data[i];
+            if (SpmTestSearch(d, matcher) == 0) {
+                printf("  test %" PRIu32 ": fail\n", i);
+                ret = 0;
+            }
+        }
+        printf("  %" PRIu32 " tests passed\n", i);
+    }
+
+    return ret;
+}
+
+int SpmSearchTest02() {
+    SpmTableSetup();
+    printf("\n");
+
+    /* Test that we can find needles of various lengths at various alignments
+     * in the haystack. Note that these are passed to strlen. */
+
+    static const char* needles[] = {
+        /* Single bytes */
+        "a", "b", "c", ":", "/", "\x7f", "\xff",
+        /* Repeats */
+        "aa", "aaa", "aaaaaaaaaaaaaaaaaaaaaaa",
+        /* Longer literals */
+        "suricata", "meerkat", "aardvark", "raptor", "marmot", "lemming",
+        /* Mixed case */
+        "Suricata", "CAPS LOCK", "mIxEd cAsE",
+    };
+
+    int ret = 1;
+
+    uint16_t matcher;
+    for (matcher = 0; matcher < SPM_TABLE_SIZE; matcher++) {
+        const SpmTableElmt *m = &spm_table[matcher];
+        if (m->name == NULL) {
+            continue;
+        }
+        printf("matcher: %s\n", m->name);
+
+        SpmTestData d;
+
+        uint32_t i;
+        for (i = 0; i < sizeof(needles) / sizeof(needles[0]); i++) {
+            const char *needle = needles[i];
+            uint16_t prefix;
+            for (prefix = 0; prefix < 32; prefix++) {
+                d.needle = needle;
+                d.needle_len = strlen(needle);
+                uint16_t haystack_len = prefix + d.needle_len;
+                char *haystack = SCMalloc(haystack_len);
+                if (haystack == NULL) {
+                    printf("alloc failure\n");
+                    return 0;
+                }
+                memset(haystack, ' ', haystack_len);
+                memcpy(haystack + prefix, d.needle, d.needle_len);
+                d.haystack = haystack;
+                d.haystack_len = haystack_len;
+                d.nocase = 0;
+                d.match_offset = prefix;
+
+                /* Case-sensitive scan */
+                if (SpmTestSearch(&d, matcher) == 0) {
+                    printf("  test %" PRIu32 ": fail (case-sensitive)\n", i);
+                    ret = 0;
+                }
+
+                /* Case-insensitive scan */
+                d.nocase = 1;
+                uint16_t j;
+                for (j = 0; j < haystack_len; j++) {
+                    haystack[j] = toupper(haystack[j]);
+                }
+                if (SpmTestSearch(&d, matcher) == 0) {
+                    printf("  test %" PRIu32 ": fail (case-insensitive)\n", i);
+                    ret = 0;
+                }
+
+                SCFree(haystack);
+            }
+        }
+        printf("  %" PRIu32 " tests passed\n", i);
+    }
+
+    return ret;
+}
+
 #endif
 
 /* Register unittests */
@@ -2429,6 +2628,10 @@ void UtilSpmSearchRegistertests(void)
     UtRegisterTest("UtilSpmSearchOffsetsTest01", UtilSpmSearchOffsetsTest01);
     UtRegisterTest("UtilSpmSearchOffsetsNocaseTest01",
                    UtilSpmSearchOffsetsNocaseTest01);
+
+    /* new SPM API */
+    UtRegisterTest("SpmSearchTest01", SpmSearchTest01);
+    UtRegisterTest("SpmSearchTest02", SpmSearchTest02);
 
 #ifdef ENABLE_SEARCH_STATS
     /* Give some stats searching given a prepared context (look at the wrappers) */
