@@ -47,6 +47,7 @@ typedef struct OutputLoggerThreadData_ {
 typedef struct OutputTxLogger_ {
     AppProto alproto;
     TxLogger LogFunc;
+    TxLoggerCondition LogCondition;
     OutputCtx *output_ctx;
     struct OutputTxLogger_ *next;
     const char *name;
@@ -60,7 +61,7 @@ static OutputTxLogger *list = NULL;
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
                            OutputCtx *output_ctx, int tc_log_progress,
-                           int ts_log_progress)
+                           int ts_log_progress, TxLoggerCondition LogCondition)
 {
     int module_id = TmModuleGetIdByName(name);
     if (module_id < 0)
@@ -73,6 +74,7 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
 
     op->alproto = alproto;
     op->LogFunc = LogFunc;
+    op->LogCondition = LogCondition;
     op->output_ctx = output_ctx;
     op->name = name;
     op->module_id = (TmmId) module_id;
@@ -182,16 +184,25 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
                 if (!(AppLayerParserStateIssetFlag(f->alparser,
                                                    APP_LAYER_PARSER_EOF))) {
-                    if (tx_progress_tc < logger->tc_log_progress) {
-                        SCLogDebug("progress not far enough, not logging");
-                        logger_not_logged = 1;
-                        goto next;
-                    }
+                    if (logger->LogCondition) {
+                        int r = logger->LogCondition(tv, p, alstate, tx, tx_id);
+                        if (r == FALSE) {
+                            SCLogDebug("conditions not met, not logging");
+                            logger_not_logged = 1;
+                            goto next;
+                        }
+                    } else {
+                        if (tx_progress_tc < logger->tc_log_progress) {
+                            SCLogDebug("progress not far enough, not logging");
+                            logger_not_logged = 1;
+                            goto next;
+                        }
 
-                    if (tx_progress_ts < logger->ts_log_progress) {
-                        SCLogDebug("progress not far enough, not logging");
-                        logger_not_logged = 1;
-                        goto next;
+                        if (tx_progress_ts < logger->ts_log_progress) {
+                            SCLogDebug("progress not far enough, not logging");
+                            logger_not_logged = 1;
+                            goto next;
+                        }
                     }
                 }
 
