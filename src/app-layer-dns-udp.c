@@ -420,9 +420,11 @@ void RegisterDNSUDPParsers(void)
                                     DNSGetTx);
         AppLayerParserRegisterGetTxCnt(IPPROTO_UDP, ALPROTO_DNS,
                                        DNSGetTxCnt);
+        AppLayerParserRegisterLoggerFuncs(IPPROTO_UDP, ALPROTO_DNS, DNSGetTxLogged,
+                                          DNSSetTxLogged);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_UDP, ALPROTO_DNS,
                                                    DNSGetAlstateProgress);
-        AppLayerParserRegisterGetStateProgressCompletionStatus(IPPROTO_UDP, ALPROTO_DNS,
+        AppLayerParserRegisterGetStateProgressCompletionStatus(ALPROTO_DNS,
                                                                DNSGetAlstateProgressCompletionStatus);
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
