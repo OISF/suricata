@@ -41,7 +41,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
-#include "util-spm-bm.h"
+#include "util-spm.h"
 #include "threads.h"
 #include "util-unittest-helper.h"
 #include "pkt-var.h"

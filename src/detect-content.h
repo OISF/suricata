@@ -74,7 +74,6 @@
 
 
 #include "util-spm.h"
-#include "util-spm-bm.h"
 
 typedef struct DetectContentData_ {
     uint8_t *content;

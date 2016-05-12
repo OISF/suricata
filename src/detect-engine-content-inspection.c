@@ -48,7 +48,6 @@
 #include "app-layer-dcerpc.h"
 
 #include "util-spm.h"
-#include "util-spm-bm.h"
 #include "util-debug.h"
 #include "util-print.h"
 

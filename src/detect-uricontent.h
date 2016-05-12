@@ -27,7 +27,6 @@
 
 #include "detect-content.h"
 
-#include "util-spm-bm.h"
 #include "app-layer-htp.h"
 
 /* prototypes */
