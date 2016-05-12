@@ -725,6 +725,13 @@ cuda:
 
 mpm-algo: ac
 
+# Select the matching algorithm you want to use for single-pattern searches.
+#
+# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
+# available if Suricata has been built with Hyperscan support).
+
+spm-algo: bm
+
 # Defrag settings:
 
 defrag:
