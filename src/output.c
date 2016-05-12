@@ -150,16 +150,17 @@ error:
 }
 
 /**
- * \brief Register a tx output module with progress.
+ * \brief Wrapper function for tx output modules.
  *
  * This function will register an output module so it can be
  * configured with the configuration file.
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
+void OutputRegisterTxModuleWrapper(const char *name, const char *conf_name,
         OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-        TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress)
+        TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition TxLogCondition)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -174,6 +175,7 @@ void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
+    module->TxLogCondition = TxLogCondition;
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
     module->ts_log_progress = ts_log_progress;
@@ -186,10 +188,11 @@ error:
     exit(EXIT_FAILURE);
 }
 
-void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
+void OutputRegisterTxSubModuleWrapper(const char *parent_name,
         const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
         OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress)
+        int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition TxLogCondition)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -205,6 +208,7 @@ void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->TxLogFunc = TxLogFunc;
+    module->TxLogCondition = TxLogCondition;
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
     module->ts_log_progress = ts_log_progress;
@@ -215,6 +219,59 @@ void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
 error:
     SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
     exit(EXIT_FAILURE);
+}
+
+/**
+ * \brief Register a tx output module with condition.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name,
+        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+        TxLogger TxLogFunc, TxLoggerCondition TxLogCondition)
+{
+    OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
+                                  TxLogFunc, 0, 0, TxLogCondition);
+}
+
+void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
+        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
+        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
+        TxLoggerCondition TxLogCondition)
+{
+    OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
+                                     alproto, TxLogFunc, 0, 0,
+                                     TxLogCondition);
+}
+
+/**
+ * \brief Register a tx output module with progress.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
+        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+        TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress)
+{
+    OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
+                                  TxLogFunc, tc_log_progress, ts_log_progress,
+                                  NULL);
+}
+
+void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
+        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
+        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
+        int tc_log_progress, int ts_log_progress)
+{
+    OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
+                                     alproto, TxLogFunc, tc_log_progress,
+                                     ts_log_progress, NULL);
 }
 
 /**
@@ -230,9 +287,8 @@ OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
     TxLogger TxLogFunc)
 {
-    /* wrapper function */
-    OutputRegisterTxModuleWithProgress(name, conf_name, InitFunc, alproto,
-                                       TxLogFunc, 0, 0);
+    OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
+                                  TxLogFunc, 0, 0, NULL);
 }
 
 void
@@ -240,9 +296,8 @@ OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
     AppProto alproto, TxLogger TxLogFunc)
 {
-    /* wrapper function */
-    OutputRegisterTxSubModuleWithProgress(parent_name, name, conf_name,
-                                          InitFunc, alproto, TxLogFunc, 0, 0);
+    OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name,
+                                     InitFunc, alproto, TxLogFunc, 0, 0, NULL);
 }
 
 /**

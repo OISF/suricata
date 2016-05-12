@@ -618,7 +618,7 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         SCLogDebug("%s is a tx logger", module->name);
         OutputRegisterTxLogger(module->name, module->alproto,
                 module->TxLogFunc, output_ctx, module->tc_log_progress,
-                module->ts_log_progress);
+                module->ts_log_progress, module->TxLogCondition);
 
         /* need one instance of the tx logger module */
         if (tx_logger_module == NULL) {

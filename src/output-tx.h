@@ -34,10 +34,11 @@ typedef int (*TxLogger)(ThreadVars *, void *thread_data, const Packet *, Flow *f
 /** packet logger condition function pointer type,
  *  must return true for packets that should be logged
  */
-//typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
+typedef int (*TxLoggerCondition)(ThreadVars *, const Packet *, void *state);
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
-        OutputCtx *, int tc_log_progress, int ts_log_progress);
+        OutputCtx *, int tc_log_progress, int ts_log_progress,
+        TxLoggerCondition LogCondition);
 
 void TmModuleTxLoggerRegister (void);
 
