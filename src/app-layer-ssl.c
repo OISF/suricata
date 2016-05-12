@@ -170,7 +170,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 goto end;
 
             /* skip cipher suites */
-            uint16_t cipher_suites_length = ntohs(*(uint16_t *)input);
+            uint16_t cipher_suites_length = input[0] << 8 | input[1];
             input += 2;
 
             input += cipher_suites_length;
@@ -186,7 +186,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             if (!(HAS_SPACE(2)))
                 goto end;
 
-            uint16_t extensions_len = ntohs(*(uint16_t *)input);
+            uint16_t extensions_len = input[0] << 8 | input[1];
             input += 2;
 
             uint16_t processed_len = 0;
@@ -195,15 +195,14 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                 if (!(HAS_SPACE(2)))
                     goto end;
 
-                uint16_t ext_type = ntohs(*(uint16_t *)input);
+                uint16_t ext_type = input[0] << 8 | input[1];
                 input += 2;
 
                 if (!(HAS_SPACE(2)))
                     goto end;
 
-                uint16_t ext_len = ntohs(*(uint16_t *)input);
+                uint16_t ext_len = input[0] << 8 | input[1];
                 input += 2;
-
 
                 switch (ext_type) {
                     case SSL_EXTENSION_SNI:
@@ -237,7 +236,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                         if (!(HAS_SPACE(2)))
                             goto end;
 
-                        uint16_t sni_len = ntohs(*(uint16_t *)input);
+                        uint16_t sni_len = input[0] << 8 | input[1];
                         input += 2;
 
                         if (!(HAS_SPACE(sni_len)))
