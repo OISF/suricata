@@ -84,8 +84,6 @@ SC_ATOMIC_DECLARE(unsigned int, flow_flags);
 
 void FlowRegisterTests(void);
 void FlowInitFlowProto();
-int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
-int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 
 /* Run mode selected at suricata.c */
@@ -807,53 +805,6 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
     proto_map = FlowGetProtoMapping(proto);
 
     flow_proto[proto_map].Freefunc = Free;
-    return 1;
-}
-
-/**
- *  \brief   Function to set the timeout values for the specified protocol.
- *
- *  \param   proto            protocol of which timeout value is needed to be set.
- *  \param   new_timeout      timeout value for the new flows.
- *  \param   est_timeout      timeout value for the established flows.
- *  \param   closed_timeout   timeout value for the closed flows.
- */
-
-int FlowSetProtoTimeout(uint8_t proto, uint32_t new_timeout,
-                        uint32_t est_timeout, uint32_t closed_timeout)
-{
-    uint8_t proto_map;
-    proto_map = FlowGetProtoMapping(proto);
-
-    flow_proto[proto_map].new_timeout = new_timeout;
-    flow_proto[proto_map].est_timeout = est_timeout;
-    flow_proto[proto_map].closed_timeout = closed_timeout;
-
-    return 1;
-}
-
-/**
- *  \brief   Function to set the emergency timeout values for the specified
- *           protocol.
- *
- *  \param   proto                  protocol of which timeout value is needed to be set.
- *  \param   emerg_new_timeout      timeout value for the new flows.
- *  \param   emerg_est_timeout      timeout value for the established flows.
- *  \param   emerg_closed_timeout   timeout value for the closed flows.
- */
-
-int FlowSetProtoEmergencyTimeout(uint8_t proto, uint32_t emerg_new_timeout,
-                                 uint32_t emerg_est_timeout,
-                                 uint32_t emerg_closed_timeout)
-{
-
-    uint8_t proto_map;
-    proto_map = FlowGetProtoMapping(proto);
-
-    flow_proto[proto_map].emerg_new_timeout = emerg_new_timeout;
-    flow_proto[proto_map].emerg_est_timeout = emerg_est_timeout;
-    flow_proto[proto_map].emerg_closed_timeout = emerg_closed_timeout;
-
     return 1;
 }
 
