@@ -169,6 +169,8 @@ typedef struct SSLState_ {
     /* holds some state flags we need */
     uint32_t flags;
 
+    uint32_t current_flags;
+
     SSLStateConnp *curr_connp;
 
     SSLStateConnp client_connp;
