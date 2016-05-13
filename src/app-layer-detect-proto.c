@@ -142,6 +142,9 @@ typedef struct AppLayerProtoDetectCtx_ {
      *       implemented if needed.  Waste of space otherwise. */
     AppLayerProtoDetectCtxIpproto ctx_ipp[FLOW_PROTO_DEFAULT];
 
+    /* SPM thread context prototype. */
+    SpmThreadCtx *spm_thread_ctx;
+
     AppLayerProtoDetectProbingParser *ctx_pp;
 
     /* Indicates the protocols that have registered themselves
@@ -157,6 +160,7 @@ struct AppLayerProtoDetectThreadCtx_ {
     PatternMatcherQueue pmq;
     /* The value 2 is for direction(0 - toserver, 1 - toclient). */
     MpmThreadCtx mpm_tctx[FLOW_PROTO_DEFAULT][2];
+    SpmThreadCtx *spm_thread_ctx;
 };
 
 /* The global app layer proto detection context. */
@@ -167,6 +171,7 @@ static AppLayerProtoDetectCtx alpd_ctx;
 /** \internal
  *  \brief Handle SPM search for Signature */
 static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMSignature *s,
+                                                    AppLayerProtoDetectThreadCtx *tctx,
                                                     uint8_t *buf, uint16_t buflen,
                                                     uint8_t ipproto)
 {
@@ -191,10 +196,7 @@ static AppProto AppLayerProtoDetectPMMatchSignature(const AppLayerProtoDetectPMS
     SCLogDebug("s->co->offset (%"PRIu16") s->cd->depth (%"PRIu16")",
                s->cd->offset, s->cd->depth);
 
-    if (s->cd->flags & DETECT_CONTENT_NOCASE)
-        found = BoyerMooreNocase(s->cd->content, s->cd->content_len, sbuf, sbuflen, s->cd->bm_ctx);
-    else
-        found = BoyerMoore(s->cd->content, s->cd->content_len, sbuf, sbuflen, s->cd->bm_ctx);
+    found = SpmScan(s->cd->spm_ctx, tctx->spm_thread_ctx, sbuf, sbuflen);
     if (found != NULL)
         proto = s->alproto;
 
@@ -260,7 +262,7 @@ static AppProto AppLayerProtoDetectPMGetProto(AppLayerProtoDetectThreadCtx *tctx
         const AppLayerProtoDetectPMSignature *s = pm_ctx->map[tctx->pmq.rule_id_array[cnt]];
         while (s != NULL) {
             AppProto proto = AppLayerProtoDetectPMMatchSignature(s,
-                    buf, searchlen, ipproto);
+                    tctx, buf, searchlen, ipproto);
 
             /* store each unique proto once */
             if (proto != ALPROTO_UNKNOWN &&
@@ -1240,13 +1242,17 @@ static int AppLayerProtoDetectPMRegisterPattern(uint8_t ipproto, AppProto alprot
     DetectContentData *cd;
     int ret = 0;
 
-    cd = DetectContentParseEncloseQuotes(pattern);
+    cd = DetectContentParseEncloseQuotes(alpd_ctx.spm_thread_ctx, pattern);
     if (cd == NULL)
         goto error;
     cd->depth = depth;
     cd->offset = offset;
     if (!is_cs) {
-        BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
+        /* Rebuild as nocase */
+        uint16_t matcher = cd->spm_ctx->matcher;
+        SpmDestroyCtx(cd->spm_ctx);
+        cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
+                                 alpd_ctx.spm_thread_ctx, matcher);
         cd->flags |= DETECT_CONTENT_NOCASE;
     }
     if (depth < cd->content_len)
@@ -1518,6 +1524,9 @@ int AppLayerProtoDetectSetup(void)
 
     memset(&alpd_ctx, 0, sizeof(alpd_ctx));
 
+    uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    alpd_ctx.spm_thread_ctx = SpmInitThreadCtx(spm_matcher);
+
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < 2; j++) {
             MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, MPM_AC);
@@ -1549,6 +1558,8 @@ int AppLayerProtoDetectDeSetup(void)
             }
         }
     }
+
+    SpmDestroyThreadCtx(alpd_ctx.spm_thread_ctx);
 
     AppLayerProtoDetectFreeProbingParsers(alpd_ctx.ctx_pp);
 
@@ -1674,6 +1685,11 @@ AppLayerProtoDetectThreadCtx *AppLayerProtoDetectGetCtxThread(void)
         }
     }
 
+    alpd_tctx->spm_thread_ctx = SpmCloneThreadCtx(alpd_ctx.spm_thread_ctx);
+    if (alpd_tctx->spm_thread_ctx == NULL) {
+        goto error;
+    }
+
     goto end;
  error:
     if (alpd_tctx != NULL)
@@ -1699,6 +1715,9 @@ void AppLayerProtoDetectDestroyCtxThread(AppLayerProtoDetectThreadCtx *alpd_tctx
         }
     }
     PmqFree(&alpd_tctx->pmq);
+    if (alpd_tctx->spm_thread_ctx != NULL) {
+        SpmDestroyThreadCtx(alpd_tctx->spm_thread_ctx);
+    }
     SCFree(alpd_tctx);
 
     SCReturn;

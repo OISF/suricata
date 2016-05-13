@@ -117,9 +117,19 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple nocase modifiers with the same content");
         goto end;
     }
+
+    /* for consistency in later use (e.g. by MPM construction and hashing),
+     * coerce the content string to lower-case. */
+    for (uint8_t *c = cd->content; c < cd->content + cd->content_len; c++) {
+        *c = u8_tolower(*c);
+    }
+
     cd->flags |= DETECT_CONTENT_NOCASE;
     /* Recreate the context with nocase chars */
-    BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
+    uint16_t matcher = cd->spm_ctx->matcher;
+    SpmDestroyCtx(cd->spm_ctx);
+    cd->spm_ctx = SpmInitCtx(cd->content, cd->content_len, 1,
+                             de_ctx->spm_thread_ctx, matcher);
 
     ret = 0;
  end:

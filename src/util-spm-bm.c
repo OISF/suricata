@@ -34,6 +34,7 @@
 #include "suricata.h"
 
 #include "util-spm-bm.h"
+#include "util-spm.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-memcpy.h"
@@ -380,3 +381,120 @@ uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, int32_
    return NULL;
 }
 
+typedef struct SpmBmCtx_ {
+    BmCtx *bm_ctx;
+    uint8_t *needle;
+    uint16_t needle_len;
+    int nocase;
+} SpmBmCtx;
+
+SpmCtx *BMInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
+                  SpmThreadCtx *thread_ctx)
+{
+    SpmCtx *ctx = SCMalloc(sizeof(SpmCtx));
+    if (ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->matcher = SPM_BM;
+
+    SpmBmCtx *sctx = SCMalloc(sizeof(SpmBmCtx));
+    if (sctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmBmCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memset(sctx, 0, sizeof(*sctx));
+
+    sctx->needle = SCMalloc(needle_len);
+    if (sctx->needle == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc string. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(sctx->needle, needle, needle_len);
+    sctx->needle_len = needle_len;
+
+    if (nocase) {
+        sctx->bm_ctx = BoyerMooreNocaseCtxInit(sctx->needle, sctx->needle_len);
+        sctx->nocase = 1;
+    } else {
+        sctx->bm_ctx = BoyerMooreCtxInit(sctx->needle, sctx->needle_len);
+        sctx->nocase = 0;
+    }
+
+    ctx->ctx = sctx;
+    return ctx;
+}
+
+void BMDestroyCtx(SpmCtx *ctx)
+{
+    if (ctx == NULL) {
+        return;
+    }
+
+    SpmBmCtx *sctx = ctx->ctx;
+    if (sctx != NULL) {
+        BoyerMooreCtxDeInit(sctx->bm_ctx);
+        if (sctx->needle != NULL) {
+            SCFree(sctx->needle);
+        }
+        SCFree(sctx);
+    }
+
+    SCFree(ctx);
+}
+
+uint8_t *BMScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                const uint8_t *haystack, uint16_t haystack_len)
+{
+    const SpmBmCtx *sctx = ctx->ctx;
+
+    if (sctx->nocase) {
+        return BoyerMooreNocase(sctx->needle, sctx->needle_len, haystack,
+                                haystack_len, sctx->bm_ctx);
+    } else {
+        return BoyerMoore(sctx->needle, sctx->needle_len, haystack,
+                          haystack_len, sctx->bm_ctx);
+    }
+}
+
+SpmThreadCtx *BMInitThreadCtx(void)
+{
+    SpmThreadCtx *thread_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    if (thread_ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmThreadCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memset(thread_ctx, 0, sizeof(*thread_ctx));
+    thread_ctx->matcher = SPM_BM;
+    return thread_ctx;
+}
+
+void BMDestroyThreadCtx(SpmThreadCtx *thread_ctx)
+{
+    if (thread_ctx == NULL) {
+        return;
+    }
+    SCFree(thread_ctx);
+}
+
+SpmThreadCtx *BMCloneThreadCtx(const SpmThreadCtx *thread_ctx) {
+    SpmThreadCtx *cloned_ctx = SCMalloc(sizeof(SpmThreadCtx));
+    if (cloned_ctx == NULL) {
+        SCLogError(SC_ERR_FATAL, "Unable to alloc SpmThreadCtx. Exiting.");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(cloned_ctx, thread_ctx, sizeof(*thread_ctx));
+    return cloned_ctx;
+}
+
+void SpmBMRegister(void)
+{
+    spm_table[SPM_BM].name = "bm";
+    spm_table[SPM_BM].InitThreadCtx = BMInitThreadCtx;
+    spm_table[SPM_BM].DestroyThreadCtx = BMDestroyThreadCtx;
+    spm_table[SPM_BM].CloneThreadCtx = BMCloneThreadCtx;
+    spm_table[SPM_BM].InitCtx = BMInitCtx;
+    spm_table[SPM_BM].DestroyCtx = BMDestroyCtx;
+    spm_table[SPM_BM].Scan = BMScan;
+}

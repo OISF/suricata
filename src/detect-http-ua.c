@@ -119,7 +119,7 @@ void DetectHttpUAFree(void *ptr)
     if (huad->content != NULL)
         SCFree(huad->content);
 
-    BoyerMooreCtxDeInit(huad->bm_ctx);
+    SpmDestroyCtx(huad->spm_ctx);
     SCFree(huad);
 
     return;
