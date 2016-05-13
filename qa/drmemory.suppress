@@ -43,6 +43,34 @@ suricata!SigGroupBuild
 ...
 libc.so.6!__clone
 
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 3
+...
+libhs.so.*!hs_compile
+suricata!SpmInitCtx
+...
+suricata!main
+
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 4
+...
+libhs.so.*!hs_compile
+suricata!SpmInitCtx
+...
+libc.so.6!__clone
+
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 5
+...
+libhs.so.*!hs_compile
+suricata!HSBuildDatabase
+
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 6
+...
+libhs.so.*!hs_compile
+suricata!HSBuildDatabase
+
 WARNING
 name=Prefetch warnings 1
 ...
@@ -58,3 +86,26 @@ libhs.so.*!hs_scan
 suricata!SCHSSearch
 ...
 libc.so.6!__clone
+
+WARNING
+name=Prefetch warnings 3
+...
+libhs.so.*!hs_scan
+suricata!HSScan
+...
+suricata!main
+
+WARNING
+name=Prefetch warnings 4
+...
+libhs.so.*!hs_scan
+suricata!HSScan
+...
+libc.so.6!__clone
+
+WARNING
+name=Prefetch warnings 5
+...
+libhs.so.*!hs_scan
+suricata!HSScan
+*
