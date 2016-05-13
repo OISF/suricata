@@ -24,6 +24,10 @@
 #ifndef __FLOW_MANAGER_H__
 #define __FLOW_MANAGER_H__
 
+#define FlowTimeoutsReset() FlowTimeoutsInit()
+void FlowTimeoutsInit(void);
+void FlowTimeoutsEmergency(void);
+
 /** flow manager scheduling condition */
 SCCtrlCondT flow_manager_ctrl_cond;
 SCCtrlMutex flow_manager_ctrl_mutex;

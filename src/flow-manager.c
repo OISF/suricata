@@ -82,6 +82,20 @@ SC_ATOMIC_DECLARE(uint32_t, flowrec_cnt);
 
 SC_ATOMIC_EXTERN(unsigned int, flow_flags);
 
+
+typedef FlowProtoTimeout *FlowProtoTimeoutPtr;
+SC_ATOMIC_DECLARE(FlowProtoTimeoutPtr, flow_timeouts);
+
+void FlowTimeoutsInit(void)
+{
+    SC_ATOMIC_SET(flow_timeouts, flow_timeouts_normal);
+}
+
+void FlowTimeoutsEmergency(void)
+{
+    SC_ATOMIC_SET(flow_timeouts, flow_timeouts_emerg);
+}
+
 /* 1 seconds */
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 1
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
@@ -164,42 +178,25 @@ void FlowDisableFlowManagerThread(void)
  *
  *  \param f flow
  *  \param state flow state
- *  \param emergency bool indicating emergency mode 1 yes, 0 no
  *
  *  \retval timeout timeout in seconds
  */
-static inline uint32_t FlowGetFlowTimeout(const Flow *f, int state, int emergency)
+static inline uint32_t FlowGetFlowTimeout(const Flow *f, int state)
 {
     uint32_t timeout;
-
-    if (emergency) {
-        switch(state) {
-            default:
-            case FLOW_STATE_NEW:
-                timeout = flow_proto[f->protomap].emerg_new_timeout;
-                break;
-            case FLOW_STATE_ESTABLISHED:
-                timeout = flow_proto[f->protomap].emerg_est_timeout;
-                break;
-            case FLOW_STATE_CLOSED:
-                timeout = flow_proto[f->protomap].emerg_closed_timeout;
-                break;
-        }
-    } else { /* implies no emergency */
-        switch(state) {
-            default:
-            case FLOW_STATE_NEW:
-                timeout = flow_proto[f->protomap].new_timeout;
-                break;
-            case FLOW_STATE_ESTABLISHED:
-                timeout = flow_proto[f->protomap].est_timeout;
-                break;
-            case FLOW_STATE_CLOSED:
-                timeout = flow_proto[f->protomap].closed_timeout;
-                break;
-        }
+    FlowProtoTimeoutPtr flow_timeouts = SC_ATOMIC_GET(flow_timeouts);
+    switch(state) {
+        default:
+        case FLOW_STATE_NEW:
+            timeout = flow_timeouts[f->protomap].new_timeout;
+            break;
+        case FLOW_STATE_ESTABLISHED:
+            timeout = flow_timeouts[f->protomap].est_timeout;
+            break;
+        case FLOW_STATE_CLOSED:
+            timeout = flow_timeouts[f->protomap].closed_timeout;
+            break;
     }
-
     return timeout;
 }
 
@@ -208,16 +205,15 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, int state, int emergenc
  *
  *  \param f flow
  *  \param ts timestamp
- *  \param emergency bool indicating emergency mode
  *
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(const Flow *f, int state, struct timeval *ts, int emergency)
+static int FlowManagerFlowTimeout(const Flow *f, int state, struct timeval *ts)
 {
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
-    uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
+    uint32_t timeout = FlowGetFlowTimeout(f, state);
 
     /* do the timeout check */
     if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
@@ -233,7 +229,6 @@ static int FlowManagerFlowTimeout(const Flow *f, int state, struct timeval *ts, 
  *
  *  \param f flow
  *  \param ts timestamp
- *  \param emergency bool indicating emergency mode
  *
  *  \retval 0 not timed out just yet
  *  \retval 1 fully timed out, lets kill it
@@ -286,7 +281,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
         int state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
-        if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
+        if (FlowManagerFlowTimeout(f, state, ts) == 0) {
             f = f->hprev;
             continue;
         }
@@ -653,6 +648,8 @@ static TmEcode FlowManager(ThreadVars *th_v, void *thread_data)
             if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
                 SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
 
+                FlowTimeoutsReset();
+
                 emerg = FALSE;
                 prev_emerg = FALSE;
 
@@ -997,6 +994,7 @@ void TmModuleFlowManagerRegister (void)
     SCLogDebug("%s registered", tmm_modules[TMM_FLOWMANAGER].name);
 
     SC_ATOMIC_INIT(flowmgr_cnt);
+    SC_ATOMIC_INIT(flow_timeouts);
 }
 
 void TmModuleFlowRecyclerRegister (void)
@@ -1049,7 +1047,7 @@ static int FlowMgrTest01 (void)
     f.proto = IPPROTO_TCP;
 
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1108,7 +1106,7 @@ static int FlowMgrTest02 (void)
     f.proto = IPPROTO_TCP;
 
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1155,7 +1153,7 @@ static int FlowMgrTest03 (void)
     f.flags |= FLOW_EMERGENCY;
 
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);
@@ -1215,7 +1213,7 @@ static int FlowMgrTest04 (void)
     f.flags |= FLOW_EMERGENCY;
 
     int state = SC_ATOMIC_GET(f.flow_state);
-    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+    if (FlowManagerFlowTimeout(&f, state, &ts) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
         FlowQueueDestroy(&flow_spare_q);

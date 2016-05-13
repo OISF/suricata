@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -73,7 +73,10 @@ enum {
  */
 
 /** FlowProto specific timeouts and free/state functions */
-FlowProto flow_proto[FLOW_PROTO_MAX];
+
+FlowProtoTimeout flow_timeouts_normal[FLOW_PROTO_MAX];
+FlowProtoTimeout flow_timeouts_emerg[FLOW_PROTO_MAX];
+FlowProtoFreeFunc flow_freefuncs[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
 FlowQueue flow_spare_q;

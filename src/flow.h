@@ -422,15 +422,15 @@ enum {
     FLOW_STATE_CLOSED,
 };
 
-typedef struct FlowProto_ {
+typedef struct FlowProtoTimeout_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t closed_timeout;
-    uint32_t emerg_new_timeout;
-    uint32_t emerg_est_timeout;
-    uint32_t emerg_closed_timeout;
+} FlowProtoTimeout;
+
+typedef struct FlowProtoFreeFunc_ {
     void (*Freefunc)(void *);
-} FlowProto;
+} FlowProtoFreeFunc;
 
 void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);

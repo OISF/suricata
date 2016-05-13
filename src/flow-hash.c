@@ -378,6 +378,8 @@ static Flow *FlowGetNew(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p)
             if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
                 SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);
 
+                FlowTimeoutsEmergency();
+
                 /* under high load, waking up the flow mgr each time leads
                  * to high cpu usage. Flows are not timed out much faster if
                  * we check a 1000 times a second. */
