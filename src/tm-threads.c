@@ -2169,7 +2169,7 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type)
     void *newmem = SCRealloc(thread_store.threads, ((thread_store.threads_size + STEP) * sizeof(Thread)));
     BUG_ON(newmem == NULL);
     thread_store.threads = newmem;
-    memset((uint8_t *)thread_store.threads + (thread_store.threads_size * sizeof(Thread)), 0x00, STEP);
+    memset((uint8_t *)thread_store.threads + (thread_store.threads_size * sizeof(Thread)), 0x00, STEP * sizeof(Thread));
 
     Thread *t = &thread_store.threads[thread_store.threads_size];
     t->name = tv->name;
