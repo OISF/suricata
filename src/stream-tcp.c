@@ -662,12 +662,12 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
         case TCP_FIN_WAIT2:
         case TCP_CLOSING:
         case TCP_CLOSE_WAIT:
-            SC_ATOMIC_SET(p->flow->flow_state, FLOW_STATE_ESTABLISHED);
+            FlowUpdateState(p->flow, FLOW_STATE_ESTABLISHED);
             break;
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
         case TCP_CLOSED:
-            SC_ATOMIC_SET(p->flow->flow_state, FLOW_STATE_CLOSED);
+            FlowUpdateState(p->flow, FLOW_STATE_CLOSED);
             break;
     }
 }

@@ -48,6 +48,12 @@ typedef struct FlowBucket_ {
 #else
     #error Enable FBLOCK_SPIN or FBLOCK_MUTEX
 #endif
+    /** timestamp in seconds of the earliest possible moment a flow
+     *  will time out in this row. Set by the flow manager. Cleared
+     *  to 0 by workers, either when new flows are added or when a
+     *  flow state changes. The flow manager sets this to INT_MAX for
+     *  empty buckets. */
+    SC_ATOMIC_DECLARE(int32_t, next_ts);
 } __attribute__((aligned(CLS))) FlowBucket;
 
 #ifdef FBLOCK_SPIN
