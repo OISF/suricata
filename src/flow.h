@@ -416,7 +416,7 @@ typedef struct Flow_
     uint64_t tosrcbytecnt;
 } Flow;
 
-enum {
+enum FlowState {
     FLOW_STATE_NEW = 0,
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
@@ -457,6 +457,8 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
+
+void FlowUpdateState(Flow *f, enum FlowState s);
 
 /** ----- Inline functions ----- */
 

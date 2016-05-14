@@ -299,7 +299,7 @@ void FlowHandlePacketUpdate(Flow *f, Packet *p)
         p->flowflags |= FLOW_PKT_ESTABLISHED;
 
         if (f->proto != IPPROTO_TCP) {
-            SC_ATOMIC_SET(f->flow_state, FLOW_STATE_ESTABLISHED);
+            FlowUpdateState(f, FLOW_STATE_ESTABLISHED);
         }
     }
 
@@ -430,6 +430,7 @@ void FlowInitConfig(char quiet)
     uint32_t i = 0;
     for (i = 0; i < flow_config.hash_size; i++) {
         FBLOCK_INIT(&flow_hash[i]);
+        SC_ATOMIC_INIT(flow_hash[i].next_ts);
     }
     (void) SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
@@ -512,6 +513,7 @@ void FlowShutdown(void)
             }
 
             FBLOCK_DESTROY(&flow_hash[u]);
+            SC_ATOMIC_DESTROY(flow_hash[u].next_ts);
         }
         SCFreeAligned(flow_hash);
         flow_hash = NULL;
@@ -837,6 +839,18 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
     /* todo: handle pass case (also for UDP!) */
 
     return newflags;
+}
+
+void FlowUpdateState(Flow *f, enum FlowState s)
+{
+    /* set the state */
+    SC_ATOMIC_SET(f->flow_state, s);
+
+    if (f->fb) {
+        /* and reset the flow buckup next_ts value so that the flow manager
+         * has to revisit this row */
+        SC_ATOMIC_SET(f->fb->next_ts, 0);
+    }
 }
 
 /************************************Unittests*******************************/

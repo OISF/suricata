@@ -448,6 +448,7 @@ Flow *FlowGetFlowFromHashByPacket(const Packet *p)
         FlowInit(f, p);
         f->flow_hash = hash;
         f->fb = fb;
+        FlowUpdateState(f, FLOW_STATE_NEW);
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&f->lastts);
 
@@ -579,6 +580,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
         FlowInit(f, p);
         f->flow_hash = hash;
         f->fb = fb;
+        FlowUpdateState(f, FLOW_STATE_NEW);
 
         /* update the last seen timestamp of this flow */
         COPY_TIMESTAMP(&p->ts,&f->lastts);
@@ -614,6 +616,7 @@ Flow *FlowGetFlowFromHash(ThreadVars *tv, DecodeThreadVars *dtv, const Packet *p
                 FlowInit(f, p);
                 f->flow_hash = hash;
                 f->fb = fb;
+                FlowUpdateState(f, FLOW_STATE_NEW);
 
                 /* update the last seen timestamp of this flow */
                 COPY_TIMESTAMP(&p->ts,&f->lastts);
@@ -721,6 +724,7 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
         f->hnext = NULL;
         f->hprev = NULL;
         f->fb = NULL;
+        SC_ATOMIC_SET(fb->next_ts, 0);
         FBLOCK_UNLOCK(fb);
 
         int state = SC_ATOMIC_GET(f->flow_state);
@@ -741,6 +745,8 @@ static Flow *FlowGetUsedFlow(ThreadVars *tv, DecodeThreadVars *dtv)
             (void)OutputFlowLog(tv, dtv->output_flow_thread_data, f);
 
         FlowClearMemory(f, f->protomap);
+
+        FlowUpdateState(f, FLOW_STATE_NEW);
 
         FLOWLOCK_UNLOCK(f);
 
