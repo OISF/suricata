@@ -1071,6 +1071,10 @@ error:
     return NULL;
 }
 
+void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
+                          uint16_t hdrextlen, uint16_t plen,
+                          uint16_t ip6_exthdrs_cnt, IPV6GenOptHdr *ip6_exthdrs);
+
 static Packet *
 IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     int content_len)
@@ -1110,6 +1114,8 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     fh->ip6fh_nxt = IPPROTO_ICMP;
     fh->ip6fh_ident = htonl(id);
     fh->ip6fh_offlg = htons((off << 3) | mf);
+
+    DecodeIPV6FragHeader(p, (uint8_t *)fh, 8, 8 + content_len, 0, NULL);
 
     pcontent = SCCalloc(1, content_len);
     if (unlikely(pcontent == NULL))
