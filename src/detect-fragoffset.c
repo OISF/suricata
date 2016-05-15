@@ -87,7 +87,7 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     if (PKT_IS_IPV4(p)) {
         frag = IPV4_GET_IPOFFSET(p);
     } else if (PKT_IS_IPV6(p)) {
-        if(IPV6_EXTHDR_FH(p)) {
+        if (IPV6_EXTHDR_ISSET_FH(p)) {
             frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
         } else {
             return 0;

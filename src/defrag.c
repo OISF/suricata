@@ -559,26 +559,27 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
     else if (tracker->af == AF_INET6) {
         more_frags = IPV6_EXTHDR_GET_FH_FLAG(p);
         frag_offset = IPV6_EXTHDR_GET_FH_OFFSET(p);
-        data_offset = (uint8_t *)p->ip6eh.ip6fh + sizeof(IPV6FragHdr) - GET_PKT_DATA(p);
-        data_len = IPV6_GET_PLEN(p) - (
-            ((uint8_t *)p->ip6eh.ip6fh + sizeof(IPV6FragHdr)) -
-                ((uint8_t *)p->ip6h + sizeof(IPV6Hdr)));
+        data_offset = p->ip6eh.fh_data_offset;
+        data_len = p->ip6eh.fh_data_len;
         frag_end = frag_offset + data_len;
         ip_hdr_offset = (uint8_t *)p->ip6h - GET_PKT_DATA(p);
-        frag_hdr_offset = (uint8_t *)p->ip6eh.ip6fh - GET_PKT_DATA(p);
+        frag_hdr_offset = p->ip6eh.fh_header_offset;
+
+        SCLogDebug("mf %s frag_offset %u data_offset %u, data_len %u, "
+                "frag_end %u, ip_hdr_offset %u, frag_hdr_offset %u",
+                more_frags ? "true" : "false", frag_offset, data_offset,
+                data_len, frag_end, ip_hdr_offset, frag_hdr_offset);
 
         /* handle unfragmentable exthdrs */
         if (ip_hdr_offset + IPV6_HEADER_LEN < frag_hdr_offset) {
-            SCLogDebug("we have exthdrs before fraghdr %u bytes (%u hdrs total)",
-                    (uint32_t)(frag_hdr_offset - (ip_hdr_offset + IPV6_HEADER_LEN)),
-                    p->ip6eh.ip6_exthdrs_cnt);
+            SCLogDebug("we have exthdrs before fraghdr %u bytes",
+                    (uint32_t)(frag_hdr_offset - (ip_hdr_offset + IPV6_HEADER_LEN)));
 
             /* get the offset of the 'next' field in exthdr before the FH,
              * relative to the buffer start */
-            int t_offset = (int)((p->ip6eh.ip6_exthdrs[p->ip6eh.ip6_exthdrs_cnt - 2].data - 2) - GET_PKT_DATA(p));
 
             /* store offset and FH 'next' value for updating frag buffer below */
-            ip6_nh_set_offset = (int)t_offset;
+            ip6_nh_set_offset = p->ip6eh.fh_prev_hdr_offset;
             ip6_nh_set_value = IPV6_EXTHDR_GET_FH_NH(p);
             SCLogDebug("offset %d, value %u", ip6_nh_set_offset, ip6_nh_set_value);
         }
@@ -1109,7 +1110,6 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     fh->ip6fh_nxt = IPPROTO_ICMP;
     fh->ip6fh_ident = htonl(id);
     fh->ip6fh_offlg = htons((off << 3) | mf);
-    p->ip6eh.ip6fh = fh;
 
     pcontent = SCCalloc(1, content_len);
     if (unlikely(pcontent == NULL))
