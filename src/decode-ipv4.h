@@ -151,18 +151,7 @@ typedef struct IPV4Hdr_
 #define CLEAR_IPV4_PACKET(p) do { \
     (p)->ip4h = NULL; \
     (p)->level3_comp_csum = -1; \
-    (p)->ip4vars.ip_src_u32 = 0; \
-    (p)->ip4vars.ip_dst_u32 = 0; \
-    (p)->ip4vars.ip_opt_cnt = 0; \
-    (p)->ip4vars.o_rr = NULL; \
-    (p)->ip4vars.o_qs = NULL; \
-    (p)->ip4vars.o_ts = NULL; \
-    (p)->ip4vars.o_sec = NULL; \
-    (p)->ip4vars.o_lsrr = NULL; \
-    (p)->ip4vars.o_cipso = NULL; \
-    (p)->ip4vars.o_sid = NULL; \
-    (p)->ip4vars.o_ssrr = NULL; \
-    (p)->ip4vars.o_rtralt = NULL; \
+    memset(&p->ip4vars, 0x00, sizeof(p->ip4vars)); \
 } while (0)
 
 /* helper structure with parsed ipv4 info */
@@ -172,19 +161,19 @@ typedef struct IPV4Vars_
     uint32_t ip_src_u32;   /* source IP */
     uint32_t ip_dst_u32;   /* dest IP */
 
-    IPV4Opt ip_opts[IPV4_OPTMAX];
-    uint8_t ip_opt_cnt;
+    uint16_t opt_cnt;
+    _Bool rr;
+    _Bool lsrr;
+    _Bool eol;
+    _Bool nop;
+    _Bool ts;
+    _Bool sec;
+    _Bool sid;
+    _Bool qs;
+    _Bool cipso;
+    _Bool rtralt;
+    _Bool ssrr;
 
-    /* These are here for direct access and dup tracking */
-    IPV4Opt *o_rr;
-    IPV4Opt *o_qs;
-    IPV4Opt *o_ts;
-    IPV4Opt *o_sec;
-    IPV4Opt *o_lsrr;
-    IPV4Opt *o_cipso;
-    IPV4Opt *o_sid;
-    IPV4Opt *o_ssrr;
-    IPV4Opt *o_rtralt;
 } IPV4Vars;
 
 

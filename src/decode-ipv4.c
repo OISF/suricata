@@ -59,27 +59,27 @@ static int IPV4OptValidateGeneric(Packet *p, const IPV4Opt *o)
     switch (o->type) {
         /* See: RFC 4782 */
         case IPV4_OPT_QS:
-            if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < IPV4_OPT_QS_MIN) {
+            if (o->len < IPV4_OPT_QS_MIN) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         /* See: RFC 1108 */
         case IPV4_OPT_SEC:
-            if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_SEC_LEN) {
+            if (o->len != IPV4_OPT_SEC_LEN) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         case IPV4_OPT_SID:
-            if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_SID_LEN) {
+            if (o->len != IPV4_OPT_SID_LEN) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         /* See: RFC 2113 */
         case IPV4_OPT_RTRALT:
-            if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_RTRALT_LEN) {
+            if (o->len != IPV4_OPT_RTRALT_LEN) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
@@ -284,14 +284,24 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o)
     return 0;
 }
 
+typedef struct IPV4Options_ {
+    IPV4Opt o_rr;
+    IPV4Opt o_qs;
+    IPV4Opt o_ts;
+    IPV4Opt o_sec;
+    IPV4Opt o_lsrr;
+    IPV4Opt o_cipso;
+    IPV4Opt o_sid;
+    IPV4Opt o_ssrr;
+    IPV4Opt o_rtralt;
+} IPV4Options;
+
 /**
  * Decode/Validate IPv4 Options.
  */
-static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options *opts)
 {
     uint16_t plen = len;
-
-    p->IPV4_OPTS_CNT = 0;
 
 #ifdef DEBUG
     if (SCLogDebugEnabled()) {
@@ -314,17 +324,22 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
 
     while (plen)
     {
+        p->ip4vars.opt_cnt++;
+
         /* single byte options */
         if (*pkt == IPV4_OPT_EOL) {
             /** \todo What if more data exist after EOL (possible covert channel or data leakage)? */
             SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
                    *pkt, (len - plen), (len - 1));
+            p->ip4vars.eol = TRUE;
             break;
         } else if (*pkt == IPV4_OPT_NOP) {
             SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
                    *pkt, (len - plen), (len - 1));
             pkt++;
             plen--;
+
+            p->ip4vars.nop = TRUE;
 
         /* multibyte options */
         } else {
@@ -341,133 +356,129 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                 return -1;
             }
 
-            p->IPV4_OPTS[p->IPV4_OPTS_CNT].type = *pkt;
-            p->IPV4_OPTS[p->IPV4_OPTS_CNT].len  = *(pkt+1);
-            if (plen > 2)
-                p->IPV4_OPTS[p->IPV4_OPTS_CNT].data = (pkt+2);
-            else
-                p->IPV4_OPTS[p->IPV4_OPTS_CNT].data = NULL;
-
-            SCLogDebug("IPV4OPT %" PRIu16 " len %" PRIu16 " @ %" PRIu16 "/%" PRIu16 "",
-                   p->IPV4_OPTS[p->IPV4_OPTS_CNT].type, p->IPV4_OPTS[p->IPV4_OPTS_CNT].len,
-                   (len - plen), (len - 1));
+            IPV4Opt opt = {*pkt, *(pkt+1), plen > 2 ? (pkt + 2) : NULL };
 
             /* we already know that the total options len is valid,
              * so here the len of the specific option must be bad.
              * Also check for invalid lengths 0 and 1. */
-            if (unlikely(p->IPV4_OPTS[p->IPV4_OPTS_CNT].len > plen ||
-                         p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < 2)) {
+            if (unlikely(opt.len > plen || opt.len < 2)) {
                 ENGINE_SET_INVALID_EVENT(p, IPV4_OPT_INVALID_LEN);
                 return -1;
             }
-
             /* we are parsing the most commonly used opts to prevent
              * us from having to walk the opts list for these all the
              * time. */
             /** \todo Figure out which IP options are more common and list them first */
-            switch (p->IPV4_OPTS[p->IPV4_OPTS_CNT].type) {
+            switch (opt.type) {
                 case IPV4_OPT_TS:
-                    if (p->ip4vars.o_ts != NULL) {
+                    if (opts->o_ts.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateTimestamp(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
+                    } else if (IPV4OptValidateTimestamp(p, &opt)) {
                         return -1;
                     }
-                    p->ip4vars.o_ts = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_ts = opt;
+                    p->ip4vars.ts = TRUE;
                     break;
                 case IPV4_OPT_RR:
-                    if (p->ip4vars.o_rr != NULL) {
+                    if (opts->o_rr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
+                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
                         return -1;
                     }
-                    p->ip4vars.o_rr = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_rr = opt;
+                    p->ip4vars.rr = TRUE;
                     break;
                 case IPV4_OPT_QS:
-                    if (p->ip4vars.o_qs != NULL) {
+                    if (opts->o_qs.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
+                    } else if (IPV4OptValidateGeneric(p, &opt)) {
                         return -1;
                     }
-                    p->ip4vars.o_qs = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_qs = opt;
+                    p->ip4vars.qs = TRUE;
                     break;
                 case IPV4_OPT_SEC:
-                    if (p->ip4vars.o_sec != NULL) {
+                    if (opts->o_sec.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
+                    } else if (IPV4OptValidateGeneric(p, &opt)) {
                         return -1;
                     }
-                    p->ip4vars.o_sec = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_sec = opt;
+                    p->ip4vars.sec = TRUE;
                     break;
                 case IPV4_OPT_LSRR:
-                    if (p->ip4vars.o_lsrr != NULL) {
+                    if (opts->o_lsrr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
+                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
                         return -1;
                     }
-                    p->ip4vars.o_lsrr = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_lsrr = opt;
+                    p->ip4vars.lsrr = TRUE;
                     break;
                 case IPV4_OPT_CIPSO:
-                    if (p->ip4vars.o_cipso != NULL) {
+                    if (opts->o_cipso.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateCIPSO(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
+                    } else if (IPV4OptValidateCIPSO(p, &opt) != 0) {
                         return -1;
                     }
-                    p->ip4vars.o_cipso = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_cipso = opt;
+                    p->ip4vars.cipso = TRUE;
                     break;
                 case IPV4_OPT_SID:
-                    if (p->ip4vars.o_sid != NULL) {
+                    if (opts->o_sid.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
+                    } else if (IPV4OptValidateGeneric(p, &opt)) {
                         return -1;
                     }
-                    p->ip4vars.o_sid = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_sid = opt;
+                    p->ip4vars.sid = TRUE;
                     break;
                 case IPV4_OPT_SSRR:
-                    if (p->ip4vars.o_ssrr != NULL) {
+                    if (opts->o_ssrr.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
+                    } else if (IPV4OptValidateRoute(p, &opt) != 0) {
                         return -1;
                     }
-                    p->ip4vars.o_ssrr = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_ssrr = opt;
+                    p->ip4vars.ssrr = TRUE;
                     break;
                 case IPV4_OPT_RTRALT:
-                    if (p->ip4vars.o_rtralt != NULL) {
+                    if (opts->o_rtralt.type != 0) {
                         ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
-                    } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
+                    } else if (IPV4OptValidateGeneric(p, &opt)) {
                         return -1;
                     }
-                    p->ip4vars.o_rtralt = &p->IPV4_OPTS[p->IPV4_OPTS_CNT];
+                    opts->o_rtralt = opt;
+                    p->ip4vars.rtralt = TRUE;
                     break;
                 default:
-                    SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8 "",
-                           p->IPV4_OPTS[p->IPV4_OPTS_CNT].type,
-                           p->IPV4_OPTS[p->IPV4_OPTS_CNT].len);
+                    SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8,
+                           opt.type, opt.len);
                     ENGINE_SET_EVENT(p,IPV4_OPT_INVALID);
                     /* Warn - we can keep going */
                     break;
             }
 
-            pkt += p->IPV4_OPTS[p->IPV4_OPTS_CNT].len;
-            plen -= (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len);
-            p->IPV4_OPTS_CNT++;
+            pkt += opt.len;
+            plen -= opt.len;
         }
     }
 
@@ -511,7 +522,9 @@ static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
     /* save the options len */
     uint8_t ip_opt_len = IPV4_GET_HLEN(p) - IPV4_HEADER_LEN;
     if (ip_opt_len > 0) {
-        DecodeIPV4Options(p, pkt + IPV4_HEADER_LEN, ip_opt_len);
+        IPV4Options opts;
+        memset(&opts, 0x00, sizeof(opts));
+        DecodeIPV4Options(p, pkt + IPV4_HEADER_LEN, ip_opt_len, &opts);
     }
 
     return 0;
@@ -609,63 +622,20 @@ int DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 /* UNITTESTS */
 #ifdef UNITTESTS
 
-void DecodeIPV4OptionsPrint(Packet *p)
-{
-    IPV4Vars *pv = &p->ip4vars;
-
-    printf("DecodeIPV4Options: cnt=%" PRIu8
-           ",rr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",qs={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",ts={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",sec={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",lsrr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",cipso={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",sid={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",ssrr={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           ",rtralt={t=%" PRIu8 ",l=%" PRIu8 ",d=%p}"
-           "}\n",
-           pv->ip_opt_cnt,
-           (pv->o_rr ? pv->o_rr->type : 0), (pv->o_rr ? pv->o_rr->len : 0), (pv->o_rr ? pv->o_rr->data : 0),
-           (pv->o_qs ? pv->o_qs->type : 0), (pv->o_qs ? pv->o_qs->len : 0), (pv->o_qs ? pv->o_qs->data : 0),
-           (pv->o_ts ? pv->o_ts->type : 0), (pv->o_ts ? pv->o_ts->len : 0), (pv->o_ts ? pv->o_ts->data : 0),
-           (pv->o_sec ? pv->o_sec->type : 0), (pv->o_sec ? pv->o_sec->len : 0), (pv->o_sec ? pv->o_sec->data : 0),
-           (pv->o_lsrr ? pv->o_lsrr->type : 0), (pv->o_lsrr ? pv->o_lsrr->len : 0), (pv->o_lsrr ? pv->o_lsrr->data : 0),
-           (pv->o_cipso ? pv->o_cipso->type : 0), (pv->o_cipso ? pv->o_cipso->len : 0), (pv->o_cipso ? pv->o_cipso->data : 0),
-           (pv->o_sid ? pv->o_sid->type : 0), (pv->o_sid ? pv->o_sid->len : 0), (pv->o_sid ? pv->o_sid->data : 0),
-           (pv->o_ssrr ? pv->o_ssrr->type : 0), (pv->o_ssrr ? pv->o_ssrr->len : 0), (pv->o_ssrr ? pv->o_ssrr->data : 0),
-           (pv->o_rtralt ? pv->o_rtralt->type : 0), (pv->o_rtralt ? pv->o_rtralt->len : 0), (pv->o_rtralt ? pv->o_rtralt->data : 0));
-}
-
 /** \test IPV4 with no options. */
 int DecodeIPV4OptionsNONETest01(void)
 {
     uint8_t raw_opts[] = { };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    uint8_t *data = (uint8_t *)p;
-    uint16_t i;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    if (rc != 0) {
-        DecodeIPV4OptionsPrint(p);
-        SCFree(p);
-        return 0;
-    }
-
-    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
-        if (*data) {
-            /* Should not have modified packet data */
-            //printf("Data modified at offset %" PRIu16 "\n", i);
-            DecodeIPV4OptionsPrint(p);
-            SCFree(p);
-            return 0;
-        }
-    }
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
 
     SCFree(p);
-    return 1;
+    PASS;
 }
 
 /** \test IPV4 with EOL option. */
@@ -675,31 +645,13 @@ int DecodeIPV4OptionsEOLTest01(void)
         IPV4_OPT_EOL, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    uint8_t *data = (uint8_t *)p;
-    uint16_t i;
-    int rc;
-
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    if (rc != 0) {
-        DecodeIPV4OptionsPrint(p);
-        SCFree(p);
-        return 0;
-    }
-
-    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
-        if (*data) {
-            /* Should not have modified packet data */
-            //printf("Data modified at offset %" PRIu16 "\n", i);
-            DecodeIPV4OptionsPrint(p);
-            SCFree(p);
-            return 0;
-        }
-    }
-
+    FAIL_IF(unlikely(p == NULL));
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF (rc != 0);
     SCFree(p);
-    return 1;
+    PASS;
 }
 
 /** \test IPV4 with NOP option. */
@@ -709,31 +661,13 @@ int DecodeIPV4OptionsNOPTest01(void)
         IPV4_OPT_NOP, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    uint8_t *data = (uint8_t *)p;
-    uint16_t i;
-    int rc;
-
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    if (rc != 0) {
-        DecodeIPV4OptionsPrint(p);
-        SCFree(p);
-        return 0;
-    }
-
-    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
-        if (*data) {
-            /* Should not have modified packet data */
-            //printf("Data modified at offset %" PRIu16 "\n", i);
-            DecodeIPV4OptionsPrint(p);
-            SCFree(p);
-            return 0;
-        }
-    }
-
+    FAIL_IF(unlikely(p == NULL));
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF (rc != 0);
     SCFree(p);
-    return 1;
+    PASS;
 }
 
 /** \test IPV4 with RR option. */
@@ -747,25 +681,15 @@ int DecodeIPV4OptionsRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_RR)
-        && (p->IPV4_OPTS[0].len == 0x27)
-        && (p->ip4vars.o_rr == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_rr.type != IPV4_OPT_RR);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with RR option (len too large). */
@@ -779,20 +703,15 @@ int DecodeIPV4OptionsRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with RR option (ptr too large). */
@@ -806,20 +725,15 @@ int DecodeIPV4OptionsRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with RR option (ptr not in 4 byte increment). */
@@ -833,20 +747,15 @@ int DecodeIPV4OptionsRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_rr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with QS option. */
@@ -856,25 +765,15 @@ int DecodeIPV4OptionsQSTest01(void)
         IPV4_OPT_QS, 0x08, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",qs=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_qs, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_QS)
-        && (p->IPV4_OPTS[0].len == 0x08)
-        && (p->ip4vars.o_qs == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_qs.type != IPV4_OPT_QS);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with QS option (len too small) */
@@ -884,20 +783,15 @@ int DecodeIPV4OptionsQSTest02(void)
         IPV4_OPT_QS, 0x07, 0x0d, 0x00, 0xbe, 0xef, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",qs=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_qs, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_qs.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with TS option. */
@@ -911,25 +805,15 @@ int DecodeIPV4OptionsTSTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_TS)
-        && (p->IPV4_OPTS[0].len == 0x24)
-        && (p->ip4vars.o_ts == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_ts.type != IPV4_OPT_TS);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with TS option (ptr too small). */
@@ -943,20 +827,15 @@ int DecodeIPV4OptionsTSTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with TS option (ptr too large). */
@@ -970,20 +849,15 @@ int DecodeIPV4OptionsTSTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with TS option (ptr not valid). */
@@ -997,20 +871,15 @@ int DecodeIPV4OptionsTSTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ts.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SEC option. */
@@ -1021,25 +890,15 @@ int DecodeIPV4OptionsSECTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sec=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sec, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_SEC)
-        && (p->IPV4_OPTS[0].len == 0x0b)
-        && (p->ip4vars.o_sec == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_sec.type != IPV4_OPT_SEC);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SEC option (invalid length). */
@@ -1050,20 +909,15 @@ int DecodeIPV4OptionsSECTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sec=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sec, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_sec.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with LSRR option. */
@@ -1077,25 +931,15 @@ int DecodeIPV4OptionsLSRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_LSRR)
-        && (p->IPV4_OPTS[0].len == 0x27)
-        && (p->ip4vars.o_lsrr == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_lsrr.type != IPV4_OPT_LSRR);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with LSRR option (len too large). */
@@ -1109,20 +953,15 @@ int DecodeIPV4OptionsLSRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with LSRR option (ptr too large). */
@@ -1136,20 +975,15 @@ int DecodeIPV4OptionsLSRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with LSRR option (ptr not in 4 byte increment). */
@@ -1163,20 +997,15 @@ int DecodeIPV4OptionsLSRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_lsrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with CIPSO option. */
@@ -1188,25 +1017,15 @@ int DecodeIPV4OptionsCIPSOTest01(void)
         0x00, 0x04, 0x00, 0x02, 0x00, 0x02, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_cipso, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_CIPSO)
-        && (p->IPV4_OPTS[0].len == 0x18)
-        && (p->ip4vars.o_cipso == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_cipso.type != IPV4_OPT_CIPSO);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SID option. */
@@ -1216,25 +1035,15 @@ int DecodeIPV4OptionsSIDTest01(void)
         IPV4_OPT_SID, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sid=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sid, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_SID)
-        && (p->IPV4_OPTS[0].len == 0x04)
-        && (p->ip4vars.o_sid == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_sid.type != IPV4_OPT_SID);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SID option (len invalid. */
@@ -1244,20 +1053,15 @@ int DecodeIPV4OptionsSIDTest02(void)
         IPV4_OPT_SID, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sid=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sid, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_sid.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SSRR option. */
@@ -1271,25 +1075,15 @@ int DecodeIPV4OptionsSSRRTest01(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_SSRR)
-        && (p->IPV4_OPTS[0].len == 0x27)
-        && (p->ip4vars.o_ssrr == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_ssrr.type != IPV4_OPT_SSRR);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SSRR option (len too large). */
@@ -1303,20 +1097,15 @@ int DecodeIPV4OptionsSSRRTest02(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SSRR option (ptr too large). */
@@ -1330,20 +1119,15 @@ int DecodeIPV4OptionsSSRRTest03(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with SSRR option (ptr not in 4 byte increment). */
@@ -1357,20 +1141,15 @@ int DecodeIPV4OptionsSSRRTest04(void)
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_ssrr.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with RTRALT option. */
@@ -1380,25 +1159,15 @@ int DecodeIPV4OptionsRTRALTTest01(void)
         IPV4_OPT_RTRALT, 0x04, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rtralt=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rtralt, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (   (rc == 0)
-        && (p->IPV4_OPTS_CNT == 1)
-        && (p->IPV4_OPTS[0].type == IPV4_OPT_RTRALT)
-        && (p->IPV4_OPTS[0].len == 0x04)
-        && (p->ip4vars.o_rtralt == &p->IPV4_OPTS[0]))
-    {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc != 0);
+    FAIL_IF(opts.o_rtralt.type != IPV4_OPT_RTRALT);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 /** \test IPV4 with RTRALT option (len invalid. */
@@ -1408,20 +1177,15 @@ int DecodeIPV4OptionsRTRALTTest02(void)
         IPV4_OPT_RTRALT, 0x05, 0xbe, 0xef, 0x00, 0x00, 0x00, 0x00
     };
     Packet *p = PacketGetFromAlloc();
-    if (unlikely(p == NULL))
-        return 0;
-    int rc;
+    FAIL_IF(unlikely(p == NULL));
 
-    rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts));
-    //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rtralt=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rtralt, (uintmax_t)&p.IPV4_OPTS[0]);
-    if (rc != 0) {
-        SCFree(p);
-        return 1;
-    }
-
-    DecodeIPV4OptionsPrint(p);
+    IPV4Options opts;
+    memset(&opts, 0x00, sizeof(opts));
+    int rc = DecodeIPV4Options(p, raw_opts, sizeof(raw_opts), &opts);
+    FAIL_IF(rc == 0);
+    FAIL_IF(opts.o_rtralt.type != 0);
     SCFree(p);
-    return 0;
+    PASS;
 }
 
 static int IPV4CalculateValidChecksumtest01(void)

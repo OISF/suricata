@@ -82,31 +82,44 @@ void DetectIpOptsRegister (void)
  */
 int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    int ipopt = 0;
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
-        return ret;
+        return 0;
 
     /* IPV4_OPT_ANY matches on any options */
-
-    if (p->IPV4_OPTS_CNT && (de->ipopt == IPV4_OPT_ANY)) {
+    if (p->ip4vars.opt_cnt && (de->ipopt == IPV4_OPT_ANY)) {
         return 1;
     }
 
-    /* Loop through instead of using o_xxx direct access fields so that
-     * future options do not require any modification here.
-     */
-
-    while(ipopt < p->IPV4_OPTS_CNT) {
-        if (p->IPV4_OPTS[ipopt].type == de->ipopt) {
-            return 1;
-        }
-        ipopt++;
+    switch (de->ipopt) {
+        case IPV4_OPT_RR:
+            return (p->ip4vars.rr);
+            break;
+        case IPV4_OPT_LSRR:
+            return (p->ip4vars.lsrr);
+            break;
+        case IPV4_OPT_EOL:
+            return (p->ip4vars.eol);
+            break;
+        case IPV4_OPT_NOP:
+            return (p->ip4vars.nop);
+            break;
+        case IPV4_OPT_TS:
+            return (p->ip4vars.ts);
+            break;
+        case IPV4_OPT_SEC:
+            return (p->ip4vars.sec);
+            break;
+        case IPV4_OPT_SSRR:
+            return (p->ip4vars.ssrr);
+            break;
+        case IPV4_OPT_SID:
+            return (p->ip4vars.sid);
+            break;
     }
 
-    return ret;
+    return 0;
 }
 
 /**
@@ -268,9 +281,7 @@ int IpOptsTestParse03 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
-
-    p->IPV4_OPTS_CNT++;
+    p->ip4vars.rr = TRUE;
 
     de = DetectIpOptsParse("rr");
 
@@ -320,9 +331,7 @@ int IpOptsTestParse04 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
-
-    p->IPV4_OPTS_CNT++;
+    p->ip4vars.rr = TRUE;
 
     de = DetectIpOptsParse("lsrr");
 
