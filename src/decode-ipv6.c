@@ -101,6 +101,49 @@ static int DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint
     return TM_ECODE_OK;
 }
 
+#ifndef UNITTESTS // ugly, but we need this in defrag tests
+static inline
+#endif
+void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
+                          uint16_t hdrextlen, uint16_t plen,
+                          uint16_t ip6_exthdrs_cnt, IPV6GenOptHdr *ip6_exthdrs)
+{
+    uint16_t frag_offset = (*(pkt + 2) << 8 | *(pkt + 3)) & 0xFFF8;
+    int frag_morefrags   = (*(pkt + 2) << 8 | *(pkt + 3)) & 0x0001;
+
+    p->ip6eh.fh_offset = frag_offset;
+    p->ip6eh.fh_more_frags_set = frag_morefrags ? TRUE : FALSE;
+    p->ip6eh.fh_nh = *pkt;
+
+    uint32_t fh_id;
+    memcpy(&fh_id, pkt+4, 4);
+    p->ip6eh.fh_id = ntohl(fh_id);
+
+    SCLogDebug("IPV6 FH: offset %u, mf %s, nh %u, id %u/%x",
+            p->ip6eh.fh_offset,
+            p->ip6eh.fh_more_frags_set ? "true" : "false",
+            p->ip6eh.fh_nh,
+            p->ip6eh.fh_id, p->ip6eh.fh_id);
+
+    // store header offset, data offset
+    uint16_t frag_hdr_offset = (uint16_t)(pkt - GET_PKT_DATA(p));
+    uint16_t data_offset = (uint16_t)(frag_hdr_offset + hdrextlen);
+    uint16_t data_len = plen - hdrextlen;
+
+    p->ip6eh.fh_header_offset = frag_hdr_offset;
+    p->ip6eh.fh_data_offset = data_offset;
+    p->ip6eh.fh_data_len = data_len;
+
+    /* if we have a prev hdr, store the type and offset of it */
+    if (ip6_exthdrs_cnt > 1) {
+        p->ip6eh.fh_prev_hdr_offset = frag_hdr_offset - ip6_exthdrs[ip6_exthdrs_cnt - 1].len;
+    }
+
+    SCLogDebug("IPV6 FH: frag_hdr_offset %u, data_offset %u, data_len %u",
+            p->ip6eh.fh_header_offset, p->ip6eh.fh_data_offset,
+            p->ip6eh.fh_data_len);
+}
+
 static void
 DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -429,46 +472,15 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 /* set the header flag first */
                 IPV6_EXTHDR_SET_FH(p);
 
-                uint16_t frag_offset = (*(pkt + 2) << 8 | *(pkt + 3)) & 0xFFF8;
-                int frag_morefrags   = (*(pkt + 2) << 8 | *(pkt + 3)) & 0x0001;
-
-                p->ip6eh.fh_offset = frag_offset;
-                p->ip6eh.fh_more_frags_set = frag_morefrags ? TRUE : FALSE;
-                p->ip6eh.fh_nh = *pkt;
-
-                uint32_t fh_id;
-                memcpy(&fh_id, pkt+4, 4);
-                p->ip6eh.fh_id = ntohl(fh_id);
-
-                SCLogDebug("IPV6 FH: offset %u, mf %s, nh %u, id %u/%x",
-                    p->ip6eh.fh_offset,
-                    p->ip6eh.fh_more_frags_set ? "true" : "false",
-                    p->ip6eh.fh_nh,
-                    p->ip6eh.fh_id, p->ip6eh.fh_id);
-
-                // store header offset, data offset
-                uint16_t frag_hdr_offset = (uint16_t)(pkt - GET_PKT_DATA(p));
-                uint16_t data_offset = (uint16_t)(frag_hdr_offset + hdrextlen);
-                uint16_t data_len = plen - hdrextlen;
-
-                p->ip6eh.fh_header_offset = frag_hdr_offset;
-                p->ip6eh.fh_data_offset = data_offset;
-                p->ip6eh.fh_data_len = data_len;
-
-                /* if we have a prev hdr, store the type and offset of it */
-                if (ip6_exthdrs_cnt > 1) {
-                    p->ip6eh.fh_prev_hdr_offset = frag_hdr_offset - ip6_exthdrs[ip6_exthdrs_cnt - 1].len;
-                }
-
-                SCLogDebug("IPV6 FH: frag_hdr_offset %u, data_offset %u, data_len %u",
-                    p->ip6eh.fh_header_offset, p->ip6eh.fh_data_offset,
-                    p->ip6eh.fh_data_len);
+                /* parse the header and setup the vars */
+                DecodeIPV6FragHeader(p, pkt, hdrextlen, plen,
+                        ip6_exthdrs_cnt, ip6_exthdrs);
 
                 /* if FH has offset 0 and no more fragments are coming, we
                  * parse this packet further right away, no defrag will be
                  * needed. It is a useless FH then though, so we do set an
                  * decoder event. */
-                if (frag_morefrags == 0 && frag_offset == 0) {
+                if (p->ip6eh.fh_more_frags_set == 0 && p->ip6eh.fh_offset == 0) {
                     ENGINE_SET_EVENT(p, IPV6_EXTHDR_USELESS_FH);
 
                     nh = *pkt;
