@@ -463,7 +463,17 @@ static int PacketToDataV4(const Packet *p, const PacketAlert *pa, idmef_alert_t 
  */
 static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
-    return 0;
+    SCEnter();
+
+    AddIntData(alert, "ip_ver", IPV6_GET_VER(p));
+    AddIntData(alert, "ip_class", IPV6_GET_CLASS(p));
+    AddIntData(alert, "ip_flow", IPV6_GET_FLOW(p));
+    AddIntData(alert, "ip_nh", IPV6_GET_NH(p));
+    AddIntData(alert, "ip_plen", IPV6_GET_PLEN(p));
+    AddIntData(alert, "ip_hlim", IPV6_GET_HLIM(p));
+    AddIntData(alert, "ip_proto", IPV6_GET_L4PROTO(p));
+
+    SCReturnInt(0);
 }
 
 
@@ -530,6 +540,12 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             AddIntData(alert, "icmp_code", ICMPV4_GET_CODE(p));
             AddIntData(alert, "icmp_sum", ICMPV4_GET_RAW_CSUM(p));
 
+        }
+
+        else if ( PKT_IS_ICMPV6(p) ) {
+            AddIntData(alert, "icmp_type", ICMPV6_GET_TYPE(p));
+            AddIntData(alert, "icmp_code", ICMPV6_GET_CODE(p));
+            AddIntData(alert, "icmp_csum", ICMPV6_GET_RAW_CSUM(p));
         }
     }
 
