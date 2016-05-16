@@ -1333,34 +1333,34 @@ end:
 void DetectAsn1RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectAsn1TestParse01", DetectAsn1TestParse01, 1);
-    UtRegisterTest("DetectAsn1TestParse02", DetectAsn1TestParse02, 1);
-    UtRegisterTest("DetectAsn1TestParse03", DetectAsn1TestParse03, 1);
+    UtRegisterTest("DetectAsn1TestParse01", DetectAsn1TestParse01);
+    UtRegisterTest("DetectAsn1TestParse02", DetectAsn1TestParse02);
+    UtRegisterTest("DetectAsn1TestParse03", DetectAsn1TestParse03);
 
-    UtRegisterTest("DetectAsn1TestParse04", DetectAsn1TestParse04, 1);
-    UtRegisterTest("DetectAsn1TestParse05", DetectAsn1TestParse05, 1);
-    UtRegisterTest("DetectAsn1TestParse06", DetectAsn1TestParse06, 1);
+    UtRegisterTest("DetectAsn1TestParse04", DetectAsn1TestParse04);
+    UtRegisterTest("DetectAsn1TestParse05", DetectAsn1TestParse05);
+    UtRegisterTest("DetectAsn1TestParse06", DetectAsn1TestParse06);
 
-    UtRegisterTest("DetectAsn1TestParse07", DetectAsn1TestParse07, 1);
-    UtRegisterTest("DetectAsn1TestParse08", DetectAsn1TestParse08, 1);
-    UtRegisterTest("DetectAsn1TestParse09", DetectAsn1TestParse09, 1);
+    UtRegisterTest("DetectAsn1TestParse07", DetectAsn1TestParse07);
+    UtRegisterTest("DetectAsn1TestParse08", DetectAsn1TestParse08);
+    UtRegisterTest("DetectAsn1TestParse09", DetectAsn1TestParse09);
 
-    UtRegisterTest("DetectAsn1TestParse10", DetectAsn1TestParse10, 1);
-    UtRegisterTest("DetectAsn1TestParse11", DetectAsn1TestParse11, 1);
-    UtRegisterTest("DetectAsn1TestParse12", DetectAsn1TestParse12, 1);
-    UtRegisterTest("DetectAsn1TestParse13", DetectAsn1TestParse13, 1);
-    UtRegisterTest("DetectAsn1TestParse14", DetectAsn1TestParse14, 1);
-    UtRegisterTest("DetectAsn1TestParse15", DetectAsn1TestParse15, 1);
-    UtRegisterTest("DetectAsn1Test01 - oversize_len", DetectAsn1Test01, 1);
-    UtRegisterTest("DetectAsn1Test02 - oversize_len", DetectAsn1Test02, 1);
-    UtRegisterTest("DetectAsn1Test03 - bitstring_ovf", DetectAsn1Test03, 1);
-    UtRegisterTest("DetectAsn1Test04 - bitstring_ovf", DetectAsn1Test04, 1);
-    UtRegisterTest("DetectAsn1Test05 - double_ovf", DetectAsn1Test05, 1);
-    UtRegisterTest("DetectAsn1Test06 - double_ovf", DetectAsn1Test06, 1);
-    UtRegisterTest("DetectAsn1TestReal01", DetectAsn1TestReal01, 1);
-    UtRegisterTest("DetectAsn1TestReal02", DetectAsn1TestReal02, 1);
-    UtRegisterTest("DetectAsn1TestReal03", DetectAsn1TestReal03, 1);
-    UtRegisterTest("DetectAsn1TestReal04", DetectAsn1TestReal04, 1);
+    UtRegisterTest("DetectAsn1TestParse10", DetectAsn1TestParse10);
+    UtRegisterTest("DetectAsn1TestParse11", DetectAsn1TestParse11);
+    UtRegisterTest("DetectAsn1TestParse12", DetectAsn1TestParse12);
+    UtRegisterTest("DetectAsn1TestParse13", DetectAsn1TestParse13);
+    UtRegisterTest("DetectAsn1TestParse14", DetectAsn1TestParse14);
+    UtRegisterTest("DetectAsn1TestParse15", DetectAsn1TestParse15);
+    UtRegisterTest("DetectAsn1Test01 - oversize_len", DetectAsn1Test01);
+    UtRegisterTest("DetectAsn1Test02 - oversize_len", DetectAsn1Test02);
+    UtRegisterTest("DetectAsn1Test03 - bitstring_ovf", DetectAsn1Test03);
+    UtRegisterTest("DetectAsn1Test04 - bitstring_ovf", DetectAsn1Test04);
+    UtRegisterTest("DetectAsn1Test05 - double_ovf", DetectAsn1Test05);
+    UtRegisterTest("DetectAsn1Test06 - double_ovf", DetectAsn1Test06);
+    UtRegisterTest("DetectAsn1TestReal01", DetectAsn1TestReal01);
+    UtRegisterTest("DetectAsn1TestReal02", DetectAsn1TestReal02);
+    UtRegisterTest("DetectAsn1TestReal03", DetectAsn1TestReal03);
+    UtRegisterTest("DetectAsn1TestReal04", DetectAsn1TestReal04);
 
 #endif /* UNITTESTS */
 }

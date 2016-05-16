@@ -49,6 +49,9 @@ typedef struct TmModule_ {
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
 
+    /** terminates the capture loop in PktAcqLoop */
+    TmEcode (*PktAcqBreakLoop)(ThreadVars *, void *);
+
     TmEcode (*Management)(ThreadVars *, void *);
 
     /** global Init/DeInit */

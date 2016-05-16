@@ -61,10 +61,6 @@ static void DetectIPProtoFree(void *);
 
 void DetectIPProtoRegister(void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_IPPROTO].name = "ip_proto";
     sigmatch_table[DETECT_IPPROTO].desc = "match on the IP protocol in the packet-header";
     sigmatch_table[DETECT_IPPROTO].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Header_keywords#ip_proto";
@@ -73,27 +69,7 @@ void DetectIPProtoRegister(void)
     sigmatch_table[DETECT_IPPROTO].Free  = DetectIPProtoFree;
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
-                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
-error:
-    if (parse_regex)
-        pcre_free(parse_regex);
-    if (parse_regex_study)
-        pcre_free_study(parse_regex_study);
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -583,9 +559,6 @@ static void DetectIPProtoFree(void *ptr)
 
 /* UNITTESTS */
 #ifdef UNITTESTS
-
-#include "detect-engine.h"
-#include "detect-parse.h"
 
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number
@@ -9241,7 +9214,7 @@ static int DetectIPProtoTestSig1(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     if (p == NULL)
-        goto end;
+        return 0;
 
     char *sigs[4];
     sigs[0] = "alert ip any any -> any any "
@@ -9268,9 +9241,6 @@ static int DetectIPProtoTestSig1(void)
     result = UTHGenericTest(&p, 1, sigs, sid, results, 4);
 
     UTHFreePacket(p);
-end:
-    DetectSigGroupPrintMemory();
-    DetectAddressPrintMemory();
     return result;
 }
 
@@ -9454,156 +9424,156 @@ end:
 static void DetectIPProtoRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIPProtoTestParse01", DetectIPProtoTestParse01, 1);
-    UtRegisterTest("DetectIPProtoTestParse02", DetectIPProtoTestParse02, 1);
-    UtRegisterTest("DetectIPProtoTestSetup01", DetectIPProtoTestSetup01, 1);
-    UtRegisterTest("DetectIPProtoTestSetup02", DetectIPProtoTestSetup02, 1);
-    UtRegisterTest("DetectIPProtoTestSetup03", DetectIPProtoTestSetup03, 1);
-    UtRegisterTest("DetectIPProtoTestSetup04", DetectIPProtoTestSetup04, 1);
-    UtRegisterTest("DetectIPProtoTestSetup05", DetectIPProtoTestSetup05, 1);
-    UtRegisterTest("DetectIPProtoTestSetup06", DetectIPProtoTestSetup06, 1);
-    UtRegisterTest("DetectIPProtoTestSetup07", DetectIPProtoTestSetup07, 1);
-    UtRegisterTest("DetectIPProtoTestSetup08", DetectIPProtoTestSetup08, 1);
-    UtRegisterTest("DetectIPProtoTestSetup09", DetectIPProtoTestSetup09, 1);
-    UtRegisterTest("DetectIPProtoTestSetup10", DetectIPProtoTestSetup10, 1);
-    UtRegisterTest("DetectIPProtoTestSetup11", DetectIPProtoTestSetup11, 1);
-    UtRegisterTest("DetectIPProtoTestSetup12", DetectIPProtoTestSetup12, 1);
-    UtRegisterTest("DetectIPProtoTestSetup13", DetectIPProtoTestSetup13, 1);
-    UtRegisterTest("DetectIPProtoTestSetup14", DetectIPProtoTestSetup14, 1);
-    UtRegisterTest("DetectIPProtoTestSetup15", DetectIPProtoTestSetup15, 1);
-    UtRegisterTest("DetectIPProtoTestSetup16", DetectIPProtoTestSetup16, 1);
-    UtRegisterTest("DetectIPProtoTestSetup17", DetectIPProtoTestSetup17, 1);
-    UtRegisterTest("DetectIPProtoTestSetup18", DetectIPProtoTestSetup18, 1);
-    UtRegisterTest("DetectIPProtoTestSetup19", DetectIPProtoTestSetup19, 1);
-    UtRegisterTest("DetectIPProtoTestSetup20", DetectIPProtoTestSetup20, 1);
-    UtRegisterTest("DetectIPProtoTestSetup21", DetectIPProtoTestSetup21, 1);
-    UtRegisterTest("DetectIPProtoTestSetup22", DetectIPProtoTestSetup22, 1);
-    UtRegisterTest("DetectIPProtoTestSetup23", DetectIPProtoTestSetup23, 1);
-    UtRegisterTest("DetectIPProtoTestSetup24", DetectIPProtoTestSetup24, 1);
-    UtRegisterTest("DetectIPProtoTestSetup25", DetectIPProtoTestSetup25, 1);
-    UtRegisterTest("DetectIPProtoTestSetup26", DetectIPProtoTestSetup26, 1);
-    UtRegisterTest("DetectIPProtoTestSetup27", DetectIPProtoTestSetup27, 1);
-    UtRegisterTest("DetectIPProtoTestSetup28", DetectIPProtoTestSetup28, 1);
-    UtRegisterTest("DetectIPProtoTestSetup29", DetectIPProtoTestSetup29, 1);
-    UtRegisterTest("DetectIPProtoTestSetup30", DetectIPProtoTestSetup30, 1);
-    UtRegisterTest("DetectIPProtoTestSetup31", DetectIPProtoTestSetup31, 1);
-    UtRegisterTest("DetectIPProtoTestSetup32", DetectIPProtoTestSetup32, 1);
-    UtRegisterTest("DetectIPProtoTestSetup33", DetectIPProtoTestSetup33, 1);
-    UtRegisterTest("DetectIPProtoTestSetup34", DetectIPProtoTestSetup34, 1);
-    UtRegisterTest("DetectIPProtoTestSetup35", DetectIPProtoTestSetup35, 1);
-    UtRegisterTest("DetectIPProtoTestSetup36", DetectIPProtoTestSetup36, 1);
-    UtRegisterTest("DetectIPProtoTestSetup37", DetectIPProtoTestSetup37, 1);
-    UtRegisterTest("DetectIPProtoTestSetup38", DetectIPProtoTestSetup38, 1);
-    UtRegisterTest("DetectIPProtoTestSetup39", DetectIPProtoTestSetup39, 1);
-    UtRegisterTest("DetectIPProtoTestSetup40", DetectIPProtoTestSetup40, 1);
-    UtRegisterTest("DetectIPProtoTestSetup41", DetectIPProtoTestSetup41, 1);
-    UtRegisterTest("DetectIPProtoTestSetup42", DetectIPProtoTestSetup42, 1);
-    UtRegisterTest("DetectIPProtoTestSetup43", DetectIPProtoTestSetup43, 1);
-    UtRegisterTest("DetectIPProtoTestSetup44", DetectIPProtoTestSetup44, 1);
-    UtRegisterTest("DetectIPProtoTestSetup45", DetectIPProtoTestSetup45, 1);
-    UtRegisterTest("DetectIPProtoTestSetup46", DetectIPProtoTestSetup46, 1);
-    UtRegisterTest("DetectIPProtoTestSetup47", DetectIPProtoTestSetup47, 1);
-    UtRegisterTest("DetectIPProtoTestSetup48", DetectIPProtoTestSetup48, 1);
-    UtRegisterTest("DetectIPProtoTestSetup49", DetectIPProtoTestSetup49, 1);
-    UtRegisterTest("DetectIPProtoTestSetup50", DetectIPProtoTestSetup50, 1);
-    UtRegisterTest("DetectIPProtoTestSetup51", DetectIPProtoTestSetup51, 1);
-    UtRegisterTest("DetectIPProtoTestSetup52", DetectIPProtoTestSetup52, 1);
-    UtRegisterTest("DetectIPProtoTestSetup53", DetectIPProtoTestSetup53, 1);
-    UtRegisterTest("DetectIPProtoTestSetup54", DetectIPProtoTestSetup54, 1);
-    UtRegisterTest("DetectIPProtoTestSetup55", DetectIPProtoTestSetup55, 1);
-    UtRegisterTest("DetectIPProtoTestSetup56", DetectIPProtoTestSetup56, 1);
-    UtRegisterTest("DetectIPProtoTestSetup57", DetectIPProtoTestSetup57, 1);
-    UtRegisterTest("DetectIPProtoTestSetup58", DetectIPProtoTestSetup58, 1);
-    UtRegisterTest("DetectIPProtoTestSetup59", DetectIPProtoTestSetup59, 1);
-    UtRegisterTest("DetectIPProtoTestSetup60", DetectIPProtoTestSetup60, 1);
-    UtRegisterTest("DetectIPProtoTestSetup61", DetectIPProtoTestSetup61, 1);
-    UtRegisterTest("DetectIPProtoTestSetup62", DetectIPProtoTestSetup62, 1);
-    UtRegisterTest("DetectIPProtoTestSetup63", DetectIPProtoTestSetup63, 1);
-    UtRegisterTest("DetectIPProtoTestSetup64", DetectIPProtoTestSetup64, 1);
-    UtRegisterTest("DetectIPProtoTestSetup65", DetectIPProtoTestSetup65, 1);
-    UtRegisterTest("DetectIPProtoTestSetup66", DetectIPProtoTestSetup66, 1);
-    UtRegisterTest("DetectIPProtoTestSetup67", DetectIPProtoTestSetup67, 1);
-    UtRegisterTest("DetectIPProtoTestSetup68", DetectIPProtoTestSetup68, 1);
-    UtRegisterTest("DetectIPProtoTestSetup69", DetectIPProtoTestSetup69, 1);
-    UtRegisterTest("DetectIPProtoTestSetup70", DetectIPProtoTestSetup70, 1);
-    UtRegisterTest("DetectIPProtoTestSetup71", DetectIPProtoTestSetup71, 1);
-    UtRegisterTest("DetectIPProtoTestSetup72", DetectIPProtoTestSetup72, 1);
-    UtRegisterTest("DetectIPProtoTestSetup73", DetectIPProtoTestSetup73, 1);
-    UtRegisterTest("DetectIPProtoTestSetup74", DetectIPProtoTestSetup74, 1);
-    UtRegisterTest("DetectIPProtoTestSetup75", DetectIPProtoTestSetup75, 1);
-    UtRegisterTest("DetectIPProtoTestSetup76", DetectIPProtoTestSetup76, 1);
-    UtRegisterTest("DetectIPProtoTestSetup77", DetectIPProtoTestSetup77, 1);
-    UtRegisterTest("DetectIPProtoTestSetup78", DetectIPProtoTestSetup78, 1);
-    UtRegisterTest("DetectIPProtoTestSetup79", DetectIPProtoTestSetup79, 1);
-    UtRegisterTest("DetectIPProtoTestSetup80", DetectIPProtoTestSetup80, 1);
-    UtRegisterTest("DetectIPProtoTestSetup81", DetectIPProtoTestSetup81, 1);
-    UtRegisterTest("DetectIPProtoTestSetup82", DetectIPProtoTestSetup82, 1);
-    UtRegisterTest("DetectIPProtoTestSetup83", DetectIPProtoTestSetup83, 1);
-    UtRegisterTest("DetectIPProtoTestSetup84", DetectIPProtoTestSetup84, 1);
-    UtRegisterTest("DetectIPProtoTestSetup85", DetectIPProtoTestSetup85, 1);
-    UtRegisterTest("DetectIPProtoTestSetup86", DetectIPProtoTestSetup86, 1);
-    UtRegisterTest("DetectIPProtoTestSetup87", DetectIPProtoTestSetup87, 1);
-    UtRegisterTest("DetectIPProtoTestSetup88", DetectIPProtoTestSetup88, 1);
-    UtRegisterTest("DetectIPProtoTestSetup89", DetectIPProtoTestSetup89, 1);
-    UtRegisterTest("DetectIPProtoTestSetup90", DetectIPProtoTestSetup90, 1);
-    UtRegisterTest("DetectIPProtoTestSetup91", DetectIPProtoTestSetup91, 1);
-    UtRegisterTest("DetectIPProtoTestSetup92", DetectIPProtoTestSetup92, 1);
-    UtRegisterTest("DetectIPProtoTestSetup93", DetectIPProtoTestSetup93, 1);
-    UtRegisterTest("DetectIPProtoTestSetup94", DetectIPProtoTestSetup94, 1);
-    UtRegisterTest("DetectIPProtoTestSetup95", DetectIPProtoTestSetup95, 1);
-    UtRegisterTest("DetectIPProtoTestSetup96", DetectIPProtoTestSetup96, 1);
-    UtRegisterTest("DetectIPProtoTestSetup97", DetectIPProtoTestSetup97, 1);
-    UtRegisterTest("DetectIPProtoTestSetup98", DetectIPProtoTestSetup98, 1);
-    UtRegisterTest("DetectIPProtoTestSetup99", DetectIPProtoTestSetup99, 1);
-    UtRegisterTest("DetectIPProtoTestSetup100", DetectIPProtoTestSetup100, 1);
-    UtRegisterTest("DetectIPProtoTestSetup101", DetectIPProtoTestSetup101, 1);
-    UtRegisterTest("DetectIPProtoTestSetup102", DetectIPProtoTestSetup102, 1);
-    UtRegisterTest("DetectIPProtoTestSetup103", DetectIPProtoTestSetup103, 1);
-    UtRegisterTest("DetectIPProtoTestSetup104", DetectIPProtoTestSetup104, 1);
-    UtRegisterTest("DetectIPProtoTestSetup105", DetectIPProtoTestSetup105, 1);
-    UtRegisterTest("DetectIPProtoTestSetup106", DetectIPProtoTestSetup106, 1);
-    UtRegisterTest("DetectIPProtoTestSetup107", DetectIPProtoTestSetup107, 1);
-    UtRegisterTest("DetectIPProtoTestSetup108", DetectIPProtoTestSetup108, 1);
-    UtRegisterTest("DetectIPProtoTestSetup109", DetectIPProtoTestSetup109, 1);
-    UtRegisterTest("DetectIPProtoTestSetup110", DetectIPProtoTestSetup110, 1);
-    UtRegisterTest("DetectIPProtoTestSetup111", DetectIPProtoTestSetup111, 1);
-    UtRegisterTest("DetectIPProtoTestSetup112", DetectIPProtoTestSetup112, 1);
-    UtRegisterTest("DetectIPProtoTestSetup113", DetectIPProtoTestSetup113, 1);
-    UtRegisterTest("DetectIPProtoTestSetup114", DetectIPProtoTestSetup114, 1);
-    UtRegisterTest("DetectIPProtoTestSetup115", DetectIPProtoTestSetup115, 1);
-    UtRegisterTest("DetectIPProtoTestSetup116", DetectIPProtoTestSetup116, 1);
-    UtRegisterTest("DetectIPProtoTestSetup117", DetectIPProtoTestSetup117, 1);
-    UtRegisterTest("DetectIPProtoTestSetup118", DetectIPProtoTestSetup118, 1);
-    UtRegisterTest("DetectIPProtoTestSetup119", DetectIPProtoTestSetup119, 1);
-    UtRegisterTest("DetectIPProtoTestSetup120", DetectIPProtoTestSetup120, 1);
-    UtRegisterTest("DetectIPProtoTestSetup121", DetectIPProtoTestSetup121, 1);
-    UtRegisterTest("DetectIPProtoTestSetup122", DetectIPProtoTestSetup122, 1);
-    UtRegisterTest("DetectIPProtoTestSetup123", DetectIPProtoTestSetup123, 1);
-    UtRegisterTest("DetectIPProtoTestSetup124", DetectIPProtoTestSetup124, 1);
-    UtRegisterTest("DetectIPProtoTestSetup125", DetectIPProtoTestSetup125, 1);
-    UtRegisterTest("DetectIPProtoTestSetup126", DetectIPProtoTestSetup126, 1);
-    UtRegisterTest("DetectIPProtoTestSetup127", DetectIPProtoTestSetup127, 1);
-    UtRegisterTest("DetectIPProtoTestSetup128", DetectIPProtoTestSetup128, 1);
-    UtRegisterTest("DetectIPProtoTestSetup129", DetectIPProtoTestSetup129, 1);
-    UtRegisterTest("DetectIPProtoTestSetup130", DetectIPProtoTestSetup130, 1);
-    UtRegisterTest("DetectIPProtoTestSetup131", DetectIPProtoTestSetup131, 1);
-    UtRegisterTest("DetectIPProtoTestSetup132", DetectIPProtoTestSetup132, 1);
-    UtRegisterTest("DetectIPProtoTestSetup133", DetectIPProtoTestSetup133, 1);
-    UtRegisterTest("DetectIPProtoTestSetup134", DetectIPProtoTestSetup134, 1);
-    UtRegisterTest("DetectIPProtoTestSetup135", DetectIPProtoTestSetup135, 1);
-    UtRegisterTest("DetectIPProtoTestSetup136", DetectIPProtoTestSetup136, 1);
-    UtRegisterTest("DetectIPProtoTestSetup137", DetectIPProtoTestSetup137, 1);
-    UtRegisterTest("DetectIPProtoTestSetup138", DetectIPProtoTestSetup138, 1);
-    UtRegisterTest("DetectIPProtoTestSetup139", DetectIPProtoTestSetup139, 1);
-    UtRegisterTest("DetectIPProtoTestSetup140", DetectIPProtoTestSetup140, 1);
-    UtRegisterTest("DetectIPProtoTestSetup141", DetectIPProtoTestSetup141, 1);
-    UtRegisterTest("DetectIPProtoTestSetup142", DetectIPProtoTestSetup142, 1);
-    UtRegisterTest("DetectIPProtoTestSetup143", DetectIPProtoTestSetup143, 1);
-    UtRegisterTest("DetectIPProtoTestSetup144", DetectIPProtoTestSetup144, 1);
-    UtRegisterTest("DetectIPProtoTestSetup145", DetectIPProtoTestSetup145, 1);
+    UtRegisterTest("DetectIPProtoTestParse01", DetectIPProtoTestParse01);
+    UtRegisterTest("DetectIPProtoTestParse02", DetectIPProtoTestParse02);
+    UtRegisterTest("DetectIPProtoTestSetup01", DetectIPProtoTestSetup01);
+    UtRegisterTest("DetectIPProtoTestSetup02", DetectIPProtoTestSetup02);
+    UtRegisterTest("DetectIPProtoTestSetup03", DetectIPProtoTestSetup03);
+    UtRegisterTest("DetectIPProtoTestSetup04", DetectIPProtoTestSetup04);
+    UtRegisterTest("DetectIPProtoTestSetup05", DetectIPProtoTestSetup05);
+    UtRegisterTest("DetectIPProtoTestSetup06", DetectIPProtoTestSetup06);
+    UtRegisterTest("DetectIPProtoTestSetup07", DetectIPProtoTestSetup07);
+    UtRegisterTest("DetectIPProtoTestSetup08", DetectIPProtoTestSetup08);
+    UtRegisterTest("DetectIPProtoTestSetup09", DetectIPProtoTestSetup09);
+    UtRegisterTest("DetectIPProtoTestSetup10", DetectIPProtoTestSetup10);
+    UtRegisterTest("DetectIPProtoTestSetup11", DetectIPProtoTestSetup11);
+    UtRegisterTest("DetectIPProtoTestSetup12", DetectIPProtoTestSetup12);
+    UtRegisterTest("DetectIPProtoTestSetup13", DetectIPProtoTestSetup13);
+    UtRegisterTest("DetectIPProtoTestSetup14", DetectIPProtoTestSetup14);
+    UtRegisterTest("DetectIPProtoTestSetup15", DetectIPProtoTestSetup15);
+    UtRegisterTest("DetectIPProtoTestSetup16", DetectIPProtoTestSetup16);
+    UtRegisterTest("DetectIPProtoTestSetup17", DetectIPProtoTestSetup17);
+    UtRegisterTest("DetectIPProtoTestSetup18", DetectIPProtoTestSetup18);
+    UtRegisterTest("DetectIPProtoTestSetup19", DetectIPProtoTestSetup19);
+    UtRegisterTest("DetectIPProtoTestSetup20", DetectIPProtoTestSetup20);
+    UtRegisterTest("DetectIPProtoTestSetup21", DetectIPProtoTestSetup21);
+    UtRegisterTest("DetectIPProtoTestSetup22", DetectIPProtoTestSetup22);
+    UtRegisterTest("DetectIPProtoTestSetup23", DetectIPProtoTestSetup23);
+    UtRegisterTest("DetectIPProtoTestSetup24", DetectIPProtoTestSetup24);
+    UtRegisterTest("DetectIPProtoTestSetup25", DetectIPProtoTestSetup25);
+    UtRegisterTest("DetectIPProtoTestSetup26", DetectIPProtoTestSetup26);
+    UtRegisterTest("DetectIPProtoTestSetup27", DetectIPProtoTestSetup27);
+    UtRegisterTest("DetectIPProtoTestSetup28", DetectIPProtoTestSetup28);
+    UtRegisterTest("DetectIPProtoTestSetup29", DetectIPProtoTestSetup29);
+    UtRegisterTest("DetectIPProtoTestSetup30", DetectIPProtoTestSetup30);
+    UtRegisterTest("DetectIPProtoTestSetup31", DetectIPProtoTestSetup31);
+    UtRegisterTest("DetectIPProtoTestSetup32", DetectIPProtoTestSetup32);
+    UtRegisterTest("DetectIPProtoTestSetup33", DetectIPProtoTestSetup33);
+    UtRegisterTest("DetectIPProtoTestSetup34", DetectIPProtoTestSetup34);
+    UtRegisterTest("DetectIPProtoTestSetup35", DetectIPProtoTestSetup35);
+    UtRegisterTest("DetectIPProtoTestSetup36", DetectIPProtoTestSetup36);
+    UtRegisterTest("DetectIPProtoTestSetup37", DetectIPProtoTestSetup37);
+    UtRegisterTest("DetectIPProtoTestSetup38", DetectIPProtoTestSetup38);
+    UtRegisterTest("DetectIPProtoTestSetup39", DetectIPProtoTestSetup39);
+    UtRegisterTest("DetectIPProtoTestSetup40", DetectIPProtoTestSetup40);
+    UtRegisterTest("DetectIPProtoTestSetup41", DetectIPProtoTestSetup41);
+    UtRegisterTest("DetectIPProtoTestSetup42", DetectIPProtoTestSetup42);
+    UtRegisterTest("DetectIPProtoTestSetup43", DetectIPProtoTestSetup43);
+    UtRegisterTest("DetectIPProtoTestSetup44", DetectIPProtoTestSetup44);
+    UtRegisterTest("DetectIPProtoTestSetup45", DetectIPProtoTestSetup45);
+    UtRegisterTest("DetectIPProtoTestSetup46", DetectIPProtoTestSetup46);
+    UtRegisterTest("DetectIPProtoTestSetup47", DetectIPProtoTestSetup47);
+    UtRegisterTest("DetectIPProtoTestSetup48", DetectIPProtoTestSetup48);
+    UtRegisterTest("DetectIPProtoTestSetup49", DetectIPProtoTestSetup49);
+    UtRegisterTest("DetectIPProtoTestSetup50", DetectIPProtoTestSetup50);
+    UtRegisterTest("DetectIPProtoTestSetup51", DetectIPProtoTestSetup51);
+    UtRegisterTest("DetectIPProtoTestSetup52", DetectIPProtoTestSetup52);
+    UtRegisterTest("DetectIPProtoTestSetup53", DetectIPProtoTestSetup53);
+    UtRegisterTest("DetectIPProtoTestSetup54", DetectIPProtoTestSetup54);
+    UtRegisterTest("DetectIPProtoTestSetup55", DetectIPProtoTestSetup55);
+    UtRegisterTest("DetectIPProtoTestSetup56", DetectIPProtoTestSetup56);
+    UtRegisterTest("DetectIPProtoTestSetup57", DetectIPProtoTestSetup57);
+    UtRegisterTest("DetectIPProtoTestSetup58", DetectIPProtoTestSetup58);
+    UtRegisterTest("DetectIPProtoTestSetup59", DetectIPProtoTestSetup59);
+    UtRegisterTest("DetectIPProtoTestSetup60", DetectIPProtoTestSetup60);
+    UtRegisterTest("DetectIPProtoTestSetup61", DetectIPProtoTestSetup61);
+    UtRegisterTest("DetectIPProtoTestSetup62", DetectIPProtoTestSetup62);
+    UtRegisterTest("DetectIPProtoTestSetup63", DetectIPProtoTestSetup63);
+    UtRegisterTest("DetectIPProtoTestSetup64", DetectIPProtoTestSetup64);
+    UtRegisterTest("DetectIPProtoTestSetup65", DetectIPProtoTestSetup65);
+    UtRegisterTest("DetectIPProtoTestSetup66", DetectIPProtoTestSetup66);
+    UtRegisterTest("DetectIPProtoTestSetup67", DetectIPProtoTestSetup67);
+    UtRegisterTest("DetectIPProtoTestSetup68", DetectIPProtoTestSetup68);
+    UtRegisterTest("DetectIPProtoTestSetup69", DetectIPProtoTestSetup69);
+    UtRegisterTest("DetectIPProtoTestSetup70", DetectIPProtoTestSetup70);
+    UtRegisterTest("DetectIPProtoTestSetup71", DetectIPProtoTestSetup71);
+    UtRegisterTest("DetectIPProtoTestSetup72", DetectIPProtoTestSetup72);
+    UtRegisterTest("DetectIPProtoTestSetup73", DetectIPProtoTestSetup73);
+    UtRegisterTest("DetectIPProtoTestSetup74", DetectIPProtoTestSetup74);
+    UtRegisterTest("DetectIPProtoTestSetup75", DetectIPProtoTestSetup75);
+    UtRegisterTest("DetectIPProtoTestSetup76", DetectIPProtoTestSetup76);
+    UtRegisterTest("DetectIPProtoTestSetup77", DetectIPProtoTestSetup77);
+    UtRegisterTest("DetectIPProtoTestSetup78", DetectIPProtoTestSetup78);
+    UtRegisterTest("DetectIPProtoTestSetup79", DetectIPProtoTestSetup79);
+    UtRegisterTest("DetectIPProtoTestSetup80", DetectIPProtoTestSetup80);
+    UtRegisterTest("DetectIPProtoTestSetup81", DetectIPProtoTestSetup81);
+    UtRegisterTest("DetectIPProtoTestSetup82", DetectIPProtoTestSetup82);
+    UtRegisterTest("DetectIPProtoTestSetup83", DetectIPProtoTestSetup83);
+    UtRegisterTest("DetectIPProtoTestSetup84", DetectIPProtoTestSetup84);
+    UtRegisterTest("DetectIPProtoTestSetup85", DetectIPProtoTestSetup85);
+    UtRegisterTest("DetectIPProtoTestSetup86", DetectIPProtoTestSetup86);
+    UtRegisterTest("DetectIPProtoTestSetup87", DetectIPProtoTestSetup87);
+    UtRegisterTest("DetectIPProtoTestSetup88", DetectIPProtoTestSetup88);
+    UtRegisterTest("DetectIPProtoTestSetup89", DetectIPProtoTestSetup89);
+    UtRegisterTest("DetectIPProtoTestSetup90", DetectIPProtoTestSetup90);
+    UtRegisterTest("DetectIPProtoTestSetup91", DetectIPProtoTestSetup91);
+    UtRegisterTest("DetectIPProtoTestSetup92", DetectIPProtoTestSetup92);
+    UtRegisterTest("DetectIPProtoTestSetup93", DetectIPProtoTestSetup93);
+    UtRegisterTest("DetectIPProtoTestSetup94", DetectIPProtoTestSetup94);
+    UtRegisterTest("DetectIPProtoTestSetup95", DetectIPProtoTestSetup95);
+    UtRegisterTest("DetectIPProtoTestSetup96", DetectIPProtoTestSetup96);
+    UtRegisterTest("DetectIPProtoTestSetup97", DetectIPProtoTestSetup97);
+    UtRegisterTest("DetectIPProtoTestSetup98", DetectIPProtoTestSetup98);
+    UtRegisterTest("DetectIPProtoTestSetup99", DetectIPProtoTestSetup99);
+    UtRegisterTest("DetectIPProtoTestSetup100", DetectIPProtoTestSetup100);
+    UtRegisterTest("DetectIPProtoTestSetup101", DetectIPProtoTestSetup101);
+    UtRegisterTest("DetectIPProtoTestSetup102", DetectIPProtoTestSetup102);
+    UtRegisterTest("DetectIPProtoTestSetup103", DetectIPProtoTestSetup103);
+    UtRegisterTest("DetectIPProtoTestSetup104", DetectIPProtoTestSetup104);
+    UtRegisterTest("DetectIPProtoTestSetup105", DetectIPProtoTestSetup105);
+    UtRegisterTest("DetectIPProtoTestSetup106", DetectIPProtoTestSetup106);
+    UtRegisterTest("DetectIPProtoTestSetup107", DetectIPProtoTestSetup107);
+    UtRegisterTest("DetectIPProtoTestSetup108", DetectIPProtoTestSetup108);
+    UtRegisterTest("DetectIPProtoTestSetup109", DetectIPProtoTestSetup109);
+    UtRegisterTest("DetectIPProtoTestSetup110", DetectIPProtoTestSetup110);
+    UtRegisterTest("DetectIPProtoTestSetup111", DetectIPProtoTestSetup111);
+    UtRegisterTest("DetectIPProtoTestSetup112", DetectIPProtoTestSetup112);
+    UtRegisterTest("DetectIPProtoTestSetup113", DetectIPProtoTestSetup113);
+    UtRegisterTest("DetectIPProtoTestSetup114", DetectIPProtoTestSetup114);
+    UtRegisterTest("DetectIPProtoTestSetup115", DetectIPProtoTestSetup115);
+    UtRegisterTest("DetectIPProtoTestSetup116", DetectIPProtoTestSetup116);
+    UtRegisterTest("DetectIPProtoTestSetup117", DetectIPProtoTestSetup117);
+    UtRegisterTest("DetectIPProtoTestSetup118", DetectIPProtoTestSetup118);
+    UtRegisterTest("DetectIPProtoTestSetup119", DetectIPProtoTestSetup119);
+    UtRegisterTest("DetectIPProtoTestSetup120", DetectIPProtoTestSetup120);
+    UtRegisterTest("DetectIPProtoTestSetup121", DetectIPProtoTestSetup121);
+    UtRegisterTest("DetectIPProtoTestSetup122", DetectIPProtoTestSetup122);
+    UtRegisterTest("DetectIPProtoTestSetup123", DetectIPProtoTestSetup123);
+    UtRegisterTest("DetectIPProtoTestSetup124", DetectIPProtoTestSetup124);
+    UtRegisterTest("DetectIPProtoTestSetup125", DetectIPProtoTestSetup125);
+    UtRegisterTest("DetectIPProtoTestSetup126", DetectIPProtoTestSetup126);
+    UtRegisterTest("DetectIPProtoTestSetup127", DetectIPProtoTestSetup127);
+    UtRegisterTest("DetectIPProtoTestSetup128", DetectIPProtoTestSetup128);
+    UtRegisterTest("DetectIPProtoTestSetup129", DetectIPProtoTestSetup129);
+    UtRegisterTest("DetectIPProtoTestSetup130", DetectIPProtoTestSetup130);
+    UtRegisterTest("DetectIPProtoTestSetup131", DetectIPProtoTestSetup131);
+    UtRegisterTest("DetectIPProtoTestSetup132", DetectIPProtoTestSetup132);
+    UtRegisterTest("DetectIPProtoTestSetup133", DetectIPProtoTestSetup133);
+    UtRegisterTest("DetectIPProtoTestSetup134", DetectIPProtoTestSetup134);
+    UtRegisterTest("DetectIPProtoTestSetup135", DetectIPProtoTestSetup135);
+    UtRegisterTest("DetectIPProtoTestSetup136", DetectIPProtoTestSetup136);
+    UtRegisterTest("DetectIPProtoTestSetup137", DetectIPProtoTestSetup137);
+    UtRegisterTest("DetectIPProtoTestSetup138", DetectIPProtoTestSetup138);
+    UtRegisterTest("DetectIPProtoTestSetup139", DetectIPProtoTestSetup139);
+    UtRegisterTest("DetectIPProtoTestSetup140", DetectIPProtoTestSetup140);
+    UtRegisterTest("DetectIPProtoTestSetup141", DetectIPProtoTestSetup141);
+    UtRegisterTest("DetectIPProtoTestSetup142", DetectIPProtoTestSetup142);
+    UtRegisterTest("DetectIPProtoTestSetup143", DetectIPProtoTestSetup143);
+    UtRegisterTest("DetectIPProtoTestSetup144", DetectIPProtoTestSetup144);
+    UtRegisterTest("DetectIPProtoTestSetup145", DetectIPProtoTestSetup145);
 
-    UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1, 1);
-    UtRegisterTest("DetectIPProtoTestSig2", DetectIPProtoTestSig2, 1);
-    UtRegisterTest("DetectIPProtoTestSig3", DetectIPProtoTestSig3, 1);
+    UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1);
+    UtRegisterTest("DetectIPProtoTestSig2", DetectIPProtoTestSig2);
+    UtRegisterTest("DetectIPProtoTestSig3", DetectIPProtoTestSig3);
 #endif /* UNITTESTS */
 }

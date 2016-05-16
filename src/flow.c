@@ -355,10 +355,11 @@ void FlowInitConfig(char quiet)
     FlowQueueInit(&flow_spare_q);
     FlowQueueInit(&flow_recycle_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     flow_config.hash_rand   = (int)( FLOW_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     flow_config.hash_size   = FLOW_DEFAULT_HASHSIZE;
     flow_config.memcap      = FLOW_DEFAULT_MEMCAP;
     flow_config.prealloc    = FLOW_DEFAULT_PREALLOC;
@@ -421,7 +422,7 @@ void FlowInitConfig(char quiet)
                 (uintmax_t)sizeof(FlowBucket));
         exit(EXIT_FAILURE);
     }
-    flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
+    flow_hash = SCMallocAligned(flow_config.hash_size * sizeof(FlowBucket), CLS);
     if (unlikely(flow_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
         exit(EXIT_FAILURE);
@@ -476,10 +477,6 @@ void FlowInitConfig(char quiet)
  *  \warning Not thread safe */
 static void FlowPrintStats (void)
 {
-#ifdef FLOWBITS_STATS
-    SCLogInfo("flowbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
-        flowbits_added, flowbits_removed, flowbits_memuse_max);
-#endif /* FLOWBITS_STATS */
     return;
 }
 
@@ -518,7 +515,7 @@ void FlowShutdown(void)
 
             FBLOCK_DESTROY(&flow_hash[u]);
         }
-        SCFree(flow_hash);
+        SCFreeAligned(flow_hash);
         flow_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
@@ -904,7 +901,6 @@ uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags)
 /************************************Unittests*******************************/
 
 #ifdef UNITTESTS
-#include "stream-tcp-private.h"
 #include "threads.h"
 
 /**
@@ -1135,11 +1131,15 @@ static int FlowTest09 (void)
 void FlowRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
-    UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function", FlowTest02, 1);
-    UtRegisterTest("FlowTest07 -- Test flow Allocations when it reach memcap", FlowTest07, 1);
-    UtRegisterTest("FlowTest08 -- Test flow Allocations when it reach memcap", FlowTest08, 1);
-    UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap", FlowTest09, 1);
+    UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01);
+    UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function",
+                   FlowTest02);
+    UtRegisterTest("FlowTest07 -- Test flow Allocations when it reach memcap",
+                   FlowTest07);
+    UtRegisterTest("FlowTest08 -- Test flow Allocations when it reach memcap",
+                   FlowTest08);
+    UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap",
+                   FlowTest09);
 
     FlowMgrRegisterTests();
     RegisterFlowStorageTests();

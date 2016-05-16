@@ -39,7 +39,6 @@
 #include "app-layer-template.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogTemplateFileCtx_ {
     LogFileCtx *file_ctx;
@@ -57,7 +56,6 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 {
     TemplateTransaction *templatetx = tx;
     LogTemplateLogThread *thread = thread_data;
-    MemBuffer *buffer = thread->buffer;
     json_t *js, *templatejs;
 
     SCLogNotice("Logging template transaction %"PRIu64".", templatetx->tx_id);
@@ -91,8 +89,8 @@ static int JsonTemplateLogger(ThreadVars *tv, void *thread_data,
 
     json_object_set_new(js, "template", templatejs);
 
-    MemBufferReset(buffer);
-    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, buffer);
+    MemBufferReset(thread->buffer);
+    OutputJSONBuffer(js, thread->templatelog_ctx->file_ctx, &thread->buffer);
 
     json_decref(js);
     return TM_ECODE_OK;
@@ -148,7 +146,7 @@ static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, void *initdata, void **d
     }
 
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for Template.  \"initdata\" is NULL.");
+        SCLogDebug("Error getting context for EveLogTemplate.  \"initdata\" is NULL.");
         SCFree(thread);
         return TM_ECODE_FAILED;
     }

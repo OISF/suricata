@@ -893,7 +893,8 @@ static int ConfTestGetNonExistant(void)
     char name[] = "non-existant-value";
     char *value;
 
-    return !ConfGet(name, &value);
+    FAIL_IF(ConfGet(name, &value));
+    PASS;
 }
 
 /**
@@ -905,17 +906,14 @@ static int ConfTestSetAndGet(void)
     char value[] = "some-value";
     char *value0;
 
-    if (ConfSet(name, value) != 1)
-        return 0;
-    if (ConfGet(name, &value0) != 1)
-        return 0;
-    if (strcmp(value, value0) != 0)
-        return 0;
+    FAIL_IF(ConfSet(name, value) != 1);
+    FAIL_IF(ConfGet(name, &value0) != 1);
+    FAIL_IF(strcmp(value, value0) != 0);
 
     /* Cleanup. */
     ConfRemove(name);
 
-    return 1;
+    PASS;
 }
 
 /**
@@ -928,21 +926,16 @@ static int ConfTestOverrideValue1(void)
     char value0[] = "some-value";
     char value1[] = "new-value";
     char *val;
-    int rc;
 
-    if (ConfSet(name, value0) != 1)
-        return 0;
-    if (ConfSet(name, value1) != 1)
-        return 0;
-    if (ConfGet(name, &val) != 1)
-        return 0;
-
-    rc = !strcmp(val, value1);
+    FAIL_IF(ConfSet(name, value0) != 1);
+    FAIL_IF(ConfSet(name, value1) != 1);
+    FAIL_IF(ConfGet(name, &val) != 1);
+    FAIL_IF(strcmp(val, value1));
 
     /* Cleanup. */
     ConfRemove(name);
 
-    return rc;
+    PASS;
 }
 
 /**
@@ -954,21 +947,16 @@ static int ConfTestOverrideValue2(void)
     char value0[] = "some-value";
     char value1[] = "new-value";
     char *val;
-    int rc;
 
-    if (ConfSetFinal(name, value0) != 1)
-        return 0;
-    if (ConfSet(name, value1) != 0)
-        return 0;
-    if (ConfGet(name, &val) != 1)
-        return 0;
-
-    rc = !strcmp(val, value0);
+    FAIL_IF(ConfSetFinal(name, value0) != 1);
+    FAIL_IF(ConfSet(name, value1) != 0);
+    FAIL_IF(ConfGet(name, &val) != 1);
+    FAIL_IF(strcmp(val, value0));
 
     /* Cleanup. */
     ConfRemove(name);
 
-    return rc;
+    PASS;
 }
 
 /**
@@ -979,34 +967,22 @@ static int ConfTestGetInt(void)
     char name[] = "some-int.x";
     intmax_t val;
 
-    if (ConfSet(name, "0") != 1)
-        return 0;
-    if (ConfGetInt(name, &val) != 1)
-        return 0;
+    FAIL_IF(ConfSet(name, "0") != 1);
+    FAIL_IF(ConfGetInt(name, &val) != 1);
+    FAIL_IF(val != 0);
 
-    if (val != 0)
-        return 0;
+    FAIL_IF(ConfSet(name, "-1") != 1);
+    FAIL_IF(ConfGetInt(name, &val) != 1);
+    FAIL_IF(val != -1);
 
-    if (ConfSet(name, "-1") != 1)
-        return 0;
-    if (ConfGetInt(name, &val) != 1)
-        return 0;
-    if (val != -1)
-        return 0;
+    FAIL_IF(ConfSet(name, "0xffff") != 1);
+    FAIL_IF(ConfGetInt(name, &val) != 1);
+    FAIL_IF(val != 0xffff);
 
-    if (ConfSet(name, "0xffff") != 1)
-        return 0;
-    if (ConfGetInt(name, &val) != 1)
-        return 0;
-    if (val != 0xffff)
-        return 0;
+    FAIL_IF(ConfSet(name, "not-an-int") != 1);
+    FAIL_IF(ConfGetInt(name, &val) != 0);
 
-    if (ConfSet(name, "not-an-int") != 1)
-        return 0;
-    if (ConfGetInt(name, &val) != 0)
-        return 0;
-
-    return 1;
+    PASS;
 }
 
 /**
@@ -1032,29 +1008,22 @@ static int ConfTestGetBool(void)
     size_t u;
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
-        if (ConfSet(name, trues[u]) != 1)
-            return 0;
-        if (ConfGetBool(name, &val) != 1)
-            return 0;
-        if (val != 1)
-            return 0;
+        FAIL_IF(ConfSet(name, trues[u]) != 1);
+        FAIL_IF(ConfGetBool(name, &val) != 1);
+        FAIL_IF(val != 1);
     }
 
     for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
-        if (ConfSet(name, falses[u]) != 1)
-            return 0;
-        if (ConfGetBool(name, &val) != 1)
-            return 0;
-        if (val != 0)
-            return 0;
+        FAIL_IF(ConfSet(name, falses[u]) != 1);
+        FAIL_IF(ConfGetBool(name, &val) != 1);
+        FAIL_IF(val != 0);
     }
 
-    return 1;
+    PASS;
 }
 
 static int ConfNodeLookupChildTest(void)
 {
-    int retval = 0;
     char *test_vals[] = { "one", "two", "three" };
     size_t u;
 
@@ -1069,45 +1038,30 @@ static int ConfNodeLookupChildTest(void)
     }
 
     child = ConfNodeLookupChild(parent, "one");
-    if (child == NULL)
-        goto end;
-    if (strcmp(child->name, "one") != 0)
-        goto end;
-    if (strcmp(child->val, "one") != 0)
-        goto end;
+    FAIL_IF(child == NULL);
+    FAIL_IF(strcmp(child->name, "one") != 0);
+    FAIL_IF(strcmp(child->val, "one") != 0);
 
     child = ConfNodeLookupChild(parent, "two");
-    if (child == NULL)
-        goto end;
-    if (strcmp(child->name, "two") != 0)
-        goto end;
-    if (strcmp(child->val, "two") != 0)
-        goto end;
+    FAIL_IF(child == NULL);
+    FAIL_IF(strcmp(child->name, "two") != 0);
+    FAIL_IF(strcmp(child->val, "two") != 0);
 
     child = ConfNodeLookupChild(parent, "three");
-    if (child == NULL)
-        goto end;
-    if (strcmp(child->name, "three") != 0)
-        goto end;
-    if (strcmp(child->val, "three") != 0)
-        goto end;
+    FAIL_IF(child == NULL);
+    FAIL_IF(strcmp(child->name, "three") != 0);
+    FAIL_IF(strcmp(child->val, "three") != 0);
 
     child = ConfNodeLookupChild(parent, "four");
-    if (child != NULL)
-        goto end;
+    FAIL_IF(child != NULL);
 
-    if (ConfNodeLookupChild(NULL, NULL) != NULL) {
-        goto end;
-    }
+    FAIL_IF(ConfNodeLookupChild(NULL, NULL) != NULL);
 
-    retval = 1;
-
-end:
     if (parent != NULL) {
         ConfNodeFree(parent);
     }
 
-    return retval;
+    PASS;
 }
 
 static int ConfNodeLookupChildValueTest(void)
@@ -1127,36 +1081,28 @@ static int ConfNodeLookupChildValueTest(void)
     }
 
     value = (char *)ConfNodeLookupChildValue(parent, "one");
-    if (value == NULL)
-        return 0;
-    if (strcmp(value, "one") != 0)
-        return 0;
+    FAIL_IF(value == NULL);
+    FAIL_IF(strcmp(value, "one") != 0);
 
     value = (char *)ConfNodeLookupChildValue(parent, "two");
-    if (value == NULL)
-        return 0;
-    if (strcmp(value, "two") != 0)
-        return 0;
+    FAIL_IF(value == NULL);
+    FAIL_IF(strcmp(value, "two") != 0);
 
     value = (char *)ConfNodeLookupChildValue(parent, "three");
-    if (value == NULL)
-        return 0;
-    if (strcmp(value, "three") != 0)
-        return 0;
+    FAIL_IF(value == NULL);
+    FAIL_IF(strcmp(value, "three") != 0);
 
     value = (char *)ConfNodeLookupChildValue(parent, "four");
-    if (value != NULL)
-        return 0;
+    FAIL_IF(value != NULL);
 
     ConfNodeFree(parent);
 
-    return 1;
+    PASS;
 }
 
 static int ConfGetChildValueWithDefaultTest(void)
 {
     char  *val = "";
-    int ret = 1;
     ConfCreateContextBackup();
     ConfInit();
     ConfSet("af-packet.0.interface", "eth0");
@@ -1166,21 +1112,16 @@ static int ConfGetChildValueWithDefaultTest(void)
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
     ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
-    if (strcmp(val, "cluster_cpu")) {
-        ConfDeInit();
-        ConfRestoreContextBackup();
-        return 0;
-    }
+    FAIL_IF(strcmp(val, "cluster_cpu"));
 
     ConfSet("af-packet.0.cluster-type", "cluster_flow");
     ConfGetChildValueWithDefault(root, dflt, "cluster-type", &val);
 
-    if (strcmp(val, "cluster_flow")) {
-        ret = 0;
-    }
+    FAIL_IF(strcmp(val, "cluster_flow"));
+
     ConfDeInit();
     ConfRestoreContextBackup();
-    return ret;
+    PASS;
 }
 
 static int ConfGetChildValueIntWithDefaultTest(void)
@@ -1195,21 +1136,16 @@ static int ConfGetChildValueIntWithDefaultTest(void)
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
     ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
-    if (val != 2) {
-        ConfDeInit();
-        ConfRestoreContextBackup();
-        return 0;
-    }
+    FAIL_IF(val != 2);
 
     ConfSet("af-packet.0.threads", "1");
     ConfGetChildValueIntWithDefault(root, dflt, "threads", &val);
+    FAIL_IF(val != 1);
 
     ConfDeInit();
     ConfRestoreContextBackup();
-    if (val != 1) {
-        return 0;
-    }
-    return 1;
+
+    PASS;
 }
 
 static int ConfGetChildValueBoolWithDefaultTest(void)
@@ -1224,21 +1160,16 @@ static int ConfGetChildValueBoolWithDefaultTest(void)
     ConfNode *root = ConfGetNode("af-packet.0");
     ConfNode *dflt = ConfGetNode("af-packet.1");
     ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
-    if (val == 0) {
-        ConfDeInit();
-        ConfRestoreContextBackup();
-        return 0;
-    }
+    FAIL_IF(val == 0);
 
     ConfSet("af-packet.0.use-mmap", "no");
     ConfGetChildValueBoolWithDefault(root, dflt, "use-mmap", &val);
+    FAIL_IF(val);
 
     ConfDeInit();
     ConfRestoreContextBackup();
-    if (val) {
-        return 0;
-    }
-    return 1;
+
+    PASS;
 }
 
 /**
@@ -1249,22 +1180,19 @@ static int ConfNodeRemoveTest(void)
     ConfCreateContextBackup();
     ConfInit();
 
-    if (ConfSet("some.nested.parameter", "blah") != 1)
-        return 0;
+    FAIL_IF(ConfSet("some.nested.parameter", "blah") != 1);
 
     ConfNode *node = ConfGetNode("some.nested.parameter");
-    if (node == NULL)
-        return 0;
+    FAIL_IF(node == NULL);
     ConfNodeRemove(node);
 
     node = ConfGetNode("some.nested.parameter");
-    if (node != NULL)
-        return 0;
+    FAIL_IF(node != NULL);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 static int ConfSetTest(void)
@@ -1273,37 +1201,31 @@ static int ConfSetTest(void)
     ConfInit();
 
     /* Set some value with 2 levels. */
-    if (ConfSet("one.two", "three") != 1)
-        return 0;
+    FAIL_IF(ConfSet("one.two", "three") != 1);
     ConfNode *n = ConfGetNode("one.two");
-    if (n == NULL)
-        return 0;
+    FAIL_IF(n == NULL);
 
     /* Set another 2 level parameter with the same first level, this
      * used to trigger a bug that caused the second level of the name
      * to become a first level node. */
-    if (ConfSet("one.three", "four") != 1)
-        return 0;
+    FAIL_IF(ConfSet("one.three", "four") != 1);
 
     n = ConfGetNode("one.three");
-    if (n == NULL)
-        return 0;
+    FAIL_IF(n == NULL);
 
     /* A top level node of "three" should not exist. */
     n = ConfGetNode("three");
-    if (n != NULL)
-        return 0;
+    FAIL_IF(n != NULL);
 
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return 1;
+    PASS;
 }
 
 static int ConfGetNodeOrCreateTest(void)
 {
     ConfNode *node;
-    int ret = 0;
 
     ConfCreateContextBackup();
     ConfInit();
@@ -1311,236 +1233,140 @@ static int ConfGetNodeOrCreateTest(void)
     /* Get a node that should not exist, give it a value, re-get it
      * and make sure the second time it returns the existing node. */
     node = ConfGetNodeOrCreate("node0", 0);
-    if (node == NULL) {
-        fprintf(stderr, "returned null\n");
-        goto end;
-    }
-    if (node->parent == NULL || node->parent != root) {
-        fprintf(stderr, "unexpected parent node\n");
-        goto end;
-    }
-    if (node->val != NULL) {
-        fprintf(stderr, "node already existed\n");
-        goto end;
-    }
+    FAIL_IF(node == NULL);
+    FAIL_IF(node->parent == NULL || node->parent != root);
+    FAIL_IF(node->val != NULL);
     node->val = SCStrdup("node0");
     node = ConfGetNodeOrCreate("node0", 0);
-    if (node == NULL) {
-        fprintf(stderr, "returned null\n");
-        goto end;
-    }
-    if (node->val == NULL) {
-        fprintf(stderr, "new node was allocated\n");
-        goto end;
-    }
-    if (strcmp(node->val, "node0") != 0) {
-        fprintf(stderr, "node did not have expected value\n");
-        goto end;
-    }
+    FAIL_IF(node == NULL);
+    FAIL_IF(node->val == NULL);
+    FAIL_IF(strcmp(node->val, "node0") != 0);
 
     /* Do the same, but for something deeply nested. */
     node = ConfGetNodeOrCreate("parent.child.grandchild", 0);
-    if (node == NULL) {
-        fprintf(stderr, "returned null\n");
-        goto end;
-    }
-    if (node->parent == NULL || node->parent == root) {
-        fprintf(stderr, "unexpected parent node\n");
-        goto end;
-    }
-    if (node->val != NULL) {
-        fprintf(stderr, "node already existed\n");
-        goto end;
-    }
+    FAIL_IF(node == NULL);
+    FAIL_IF(node->parent == NULL || node->parent == root);
+    FAIL_IF(node->val != NULL);
     node->val = SCStrdup("parent.child.grandchild");
     node = ConfGetNodeOrCreate("parent.child.grandchild", 0);
-    if (node == NULL) {
-        fprintf(stderr, "returned null\n");
-        goto end;
-    }
-    if (node->val == NULL) {
-        fprintf(stderr, "new node was allocated\n");
-        goto end;
-    }
-    if (strcmp(node->val, "parent.child.grandchild") != 0) {
-        fprintf(stderr, "node did not have expected value\n");
-        goto end;
-    }
+    FAIL_IF(node == NULL);
+    FAIL_IF(node->val == NULL);
+    FAIL_IF(strcmp(node->val, "parent.child.grandchild") != 0);
 
     /* Test that 2 child nodes have the same root. */
     ConfNode *child1 = ConfGetNodeOrCreate("parent.kids.child1", 0);
     ConfNode *child2 = ConfGetNodeOrCreate("parent.kids.child2", 0);
-    if (child1 == NULL || child2 == NULL) {
-        fprintf(stderr, "returned null\n");
-        goto end;
-    }
-    if (child1->parent != child2->parent) {
-        fprintf(stderr, "child nodes have different parents\n");
-        goto end;
-    }
-    if (strcmp(child1->parent->name, "kids") != 0) {
-        fprintf(stderr, "parent node had unexpected name\n");
-        goto end;
-    }
+    FAIL_IF(child1 == NULL || child2 == NULL);
+    FAIL_IF(child1->parent != child2->parent);
+    FAIL_IF(strcmp(child1->parent->name, "kids") != 0);
 
-    ret = 1;
-
-end:
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return ret;
+    PASS;
 }
 
 static int ConfNodePruneTest(void)
 {
-    int ret = 0;
     ConfNode *node;
 
     ConfCreateContextBackup();
     ConfInit();
 
     /* Test that final nodes exist after a prune. */
-    if (ConfSet("node.notfinal", "notfinal") != 1)
-        goto end;
-    if (ConfSetFinal("node.final", "final") != 1)
-        goto end;
-    if (ConfGetNode("node.notfinal") == NULL)
-        goto end;
-    if (ConfGetNode("node.final") == NULL)
-        goto end;
-    if ((node = ConfGetNode("node")) == NULL)
-        goto end;
+    FAIL_IF(ConfSet("node.notfinal", "notfinal") != 1);
+    FAIL_IF(ConfSetFinal("node.final", "final") != 1);
+    FAIL_IF(ConfGetNode("node.notfinal") == NULL);
+    FAIL_IF(ConfGetNode("node.final") == NULL);
+    FAIL_IF((node = ConfGetNode("node")) == NULL);
     ConfNodePrune(node);
-    if (ConfGetNode("node.notfinal") != NULL)
-        goto end;
-    if (ConfGetNode("node.final") == NULL)
-        goto end;
+    FAIL_IF(ConfGetNode("node.notfinal") != NULL);
+    FAIL_IF(ConfGetNode("node.final") == NULL);
 
     /* Test that everything under a final node exists after a prune. */
-    if (ConfSet("node.final.one", "one") != 1)
-        goto end;
-    if (ConfSet("node.final.two", "two") != 1)
-        goto end;
+    FAIL_IF(ConfSet("node.final.one", "one") != 1);
+    FAIL_IF(ConfSet("node.final.two", "two") != 1);
     ConfNodePrune(node);
-    if (ConfNodeLookupChild(node, "final") == NULL)
-        goto end;
-    if (ConfGetNode("node.final.one") == NULL)
-        goto end;
-    if (ConfGetNode("node.final.two") == NULL)
-        goto end;
+    FAIL_IF(ConfNodeLookupChild(node, "final") == NULL);
+    FAIL_IF(ConfGetNode("node.final.one") == NULL);
+    FAIL_IF(ConfGetNode("node.final.two") == NULL);
 
-    ret = 1;
-
-end:
     ConfDeInit();
     ConfRestoreContextBackup();
 
-    return ret;
+    PASS;
 }
 
 int ConfNodeIsSequenceTest(void)
 {
-    int retval = 0;
     ConfNode *node = ConfNodeNew();
-    if (node == NULL) {
-        goto end;
-    }
-    if (ConfNodeIsSequence(node)) {
-        goto end;
-    }
+    FAIL_IF(node == NULL);
+    FAIL_IF(ConfNodeIsSequence(node));
     node->is_seq = 1;
-    if (!ConfNodeIsSequence(node)) {
-        goto end;
-    }
+    FAIL_IF(!ConfNodeIsSequence(node));
 
-    retval = 1;
-
-end:
     if (node != NULL) {
         ConfNodeFree(node);
     }
-    return retval;
+    PASS;
 }
 
 static int ConfSetFromStringTest(void)
 {
-    int retval = 0;
     ConfNode *n;
 
     ConfCreateContextBackup();
     ConfInit();
 
-    if (!ConfSetFromString("stream.midstream=true", 0)) {
-        goto end;
-    }
+    FAIL_IF_NOT(ConfSetFromString("stream.midstream=true", 0));
     n = ConfGetNode("stream.midstream");
-    if (n == NULL) {
-        goto end;
-    }
-    if (n->val == NULL || strcmp("true", n->val)) {
-        goto end;
-    }
+    FAIL_IF_NULL(n);
+    FAIL_IF_NULL(n->val);
+    FAIL_IF(strcmp("true", n->val));
 
-    if (!ConfSetFromString("stream.midstream =false", 0)) {
-        goto end;
-    }
+    FAIL_IF_NOT(ConfSetFromString("stream.midstream =false", 0));
     n = ConfGetNode("stream.midstream");
-    if (n == NULL) {
-        goto end;
-    }
-    if (n->val == NULL || strcmp("false", n->val)) {
-        goto end;
-    }
+    FAIL_IF_NULL(n);
+    FAIL_IF(n->val == NULL || strcmp("false", n->val));
 
-    if (!ConfSetFromString("stream.midstream= true", 0)) {
-        goto end;
-    }
+    FAIL_IF_NOT(ConfSetFromString("stream.midstream= true", 0));
     n = ConfGetNode("stream.midstream");
-    if (n == NULL) {
-        goto end;
-    }
-    if (n->val == NULL || strcmp("true", n->val)) {
-        goto end;
-    }
+    FAIL_IF_NULL(n);
+    FAIL_IF(n->val == NULL || strcmp("true", n->val));
 
-    if (!ConfSetFromString("stream.midstream = false", 0)) {
-        goto end;
-    }
+    FAIL_IF_NOT(ConfSetFromString("stream.midstream = false", 0));
     n = ConfGetNode("stream.midstream");
-    if (n == NULL) {
-        goto end;
-    }
-    if (n->val == NULL || strcmp("false", n->val)) {
-        goto end;
-    }
+    FAIL_IF_NULL(n);
+    FAIL_IF(n->val == NULL || strcmp("false", n->val));
 
-    retval = 1;
-end:
     ConfDeInit();
     ConfRestoreContextBackup();
-    return retval;
+    PASS;
 }
 
 void ConfRegisterTests(void)
 {
-    UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant, 1);
-    UtRegisterTest("ConfSetTest", ConfSetTest, 1);
-    UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet, 1);
-    UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1, 1);
-    UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2, 1);
-    UtRegisterTest("ConfTestGetInt", ConfTestGetInt, 1);
-    UtRegisterTest("ConfTestGetBool", ConfTestGetBool, 1);
-    UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest, 1);
-    UtRegisterTest("ConfNodeLookupChildValueTest", ConfNodeLookupChildValueTest, 1);
-    UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest, 1);
-    UtRegisterTest("ConfGetChildValueWithDefaultTest", ConfGetChildValueWithDefaultTest, 1);
-    UtRegisterTest("ConfGetChildValueIntWithDefaultTest", ConfGetChildValueIntWithDefaultTest, 1);
-    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest", ConfGetChildValueBoolWithDefaultTest, 1);
-    UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest, 1);
-    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest, 1);
-    UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest, 1);
-    UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest, 1);
+    UtRegisterTest("ConfTestGetNonExistant", ConfTestGetNonExistant);
+    UtRegisterTest("ConfSetTest", ConfSetTest);
+    UtRegisterTest("ConfTestSetAndGet", ConfTestSetAndGet);
+    UtRegisterTest("ConfTestOverrideValue1", ConfTestOverrideValue1);
+    UtRegisterTest("ConfTestOverrideValue2", ConfTestOverrideValue2);
+    UtRegisterTest("ConfTestGetInt", ConfTestGetInt);
+    UtRegisterTest("ConfTestGetBool", ConfTestGetBool);
+    UtRegisterTest("ConfNodeLookupChildTest", ConfNodeLookupChildTest);
+    UtRegisterTest("ConfNodeLookupChildValueTest",
+                   ConfNodeLookupChildValueTest);
+    UtRegisterTest("ConfNodeRemoveTest", ConfNodeRemoveTest);
+    UtRegisterTest("ConfGetChildValueWithDefaultTest",
+                   ConfGetChildValueWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueIntWithDefaultTest",
+                   ConfGetChildValueIntWithDefaultTest);
+    UtRegisterTest("ConfGetChildValueBoolWithDefaultTest",
+                   ConfGetChildValueBoolWithDefaultTest);
+    UtRegisterTest("ConfGetNodeOrCreateTest", ConfGetNodeOrCreateTest);
+    UtRegisterTest("ConfNodePruneTest", ConfNodePruneTest);
+    UtRegisterTest("ConfNodeIsSequenceTest", ConfNodeIsSequenceTest);
+    UtRegisterTest("ConfSetFromStringTest", ConfSetFromStringTest);
 }
 
 #endif /* UNITTESTS */

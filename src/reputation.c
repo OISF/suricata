@@ -25,12 +25,12 @@
  * IP Reputation Module, initial API for IPV4 and IPV6 feed
  */
 
+#include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-ip.h"
 #include "util-radix-tree.h"
 #include "util-unittest.h"
-#include "suricata-common.h"
 #include "threads.h"
 #include "util-print.h"
 #include "host.h"
@@ -691,13 +691,11 @@ void SRepDestroy(DetectEngineCtx *de_ctx) {
 }
 
 #ifdef UNITTESTS
-
 #include "conf-yaml-loader.h"
 #include "detect-engine.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int SRepTest01(void)
@@ -2325,30 +2323,30 @@ void SCReputationRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("SCReputationTestIPV4AddRemoveHost01",
-                   SCReputationTestIPV4AddRemoveHost01, 1);
+                   SCReputationTestIPV4AddRemoveHost01);
     UtRegisterTest("SCReputationTestIPV6AddRemoveHost01",
-                   SCReputationTestIPV6AddRemoveHost01, 1);
+                   SCReputationTestIPV6AddRemoveHost01);
 
     UtRegisterTest("SCReputationTestIPV4BestExactMatch01",
-                   SCReputationTestIPV4BestExactMatch01, 1);
+                   SCReputationTestIPV4BestExactMatch01);
 
     UtRegisterTest("SCReputationTestIPV4AddRemoveHost02",
-                   SCReputationTestIPV4AddRemoveHost02, 1);
+                   SCReputationTestIPV4AddRemoveHost02);
     UtRegisterTest("SCReputationTestIPV6AddRemoveHost02",
-                   SCReputationTestIPV6AddRemoveHost02, 1);
+                   SCReputationTestIPV6AddRemoveHost02);
 
     UtRegisterTest("SCReputationTestIPV4Update01",
-                   SCReputationTestIPV4Update01, 1);
+                   SCReputationTestIPV4Update01);
     UtRegisterTest("SCReputationTestIPV6Update01",
-                   SCReputationTestIPV6Update01, 1);
+                   SCReputationTestIPV6Update01);
 
-    UtRegisterTest("SRepTest01", SRepTest01, 1);
-    UtRegisterTest("SRepTest02", SRepTest02, 1);
-    UtRegisterTest("SRepTest03", SRepTest03, 1);
-    UtRegisterTest("SRepTest04", SRepTest04, 1);
-    UtRegisterTest("SRepTest05", SRepTest05, 1);
-    UtRegisterTest("SRepTest06", SRepTest06, 1);
-    UtRegisterTest("SRepTest07", SRepTest07, 1);
+    UtRegisterTest("SRepTest01", SRepTest01);
+    UtRegisterTest("SRepTest02", SRepTest02);
+    UtRegisterTest("SRepTest03", SRepTest03);
+    UtRegisterTest("SRepTest04", SRepTest04);
+    UtRegisterTest("SRepTest05", SRepTest05);
+    UtRegisterTest("SRepTest06", SRepTest06);
+    UtRegisterTest("SRepTest07", SRepTest07);
 #endif /* UNITTESTS */
 }
 

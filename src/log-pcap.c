@@ -471,7 +471,7 @@ static PcapLogData *PcapLogDataCopy(const PcapLogData *pl)
 static TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 {
     if (initdata == NULL) {
-        SCLogDebug("Error getting context for PcapLog. \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for LogPcap. \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
 

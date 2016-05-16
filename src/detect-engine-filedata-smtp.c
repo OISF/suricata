@@ -47,7 +47,8 @@
 #include "app-layer.h"
 #include "app-layer-smtp.h"
 #include "app-layer-protos.h"
-#include "app-layer-parser.h"
+
+#include "util-validate.h"
 
 #include "conf.h"
 #include "conf-yaml-loader.h"
@@ -88,6 +89,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
                                                uint32_t *buffer_len,
                                                uint32_t *stream_start_offset)
 {
+    SCEnter();
     int index = 0;
     uint8_t *buffer = NULL;
     *buffer_len = 0;
@@ -108,7 +110,9 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
             if (det_ctx->smtp[(tx_id - det_ctx->smtp_start_tx_id)].buffer_len != 0) {
                 *buffer_len = det_ctx->smtp[(tx_id - det_ctx->smtp_start_tx_id)].buffer_len;
                 *stream_start_offset = det_ctx->smtp[(tx_id - det_ctx->smtp_start_tx_id)].offset;
-                return det_ctx->smtp[(tx_id - det_ctx->smtp_start_tx_id)].buffer;
+                buffer = det_ctx->smtp[(tx_id - det_ctx->smtp_start_tx_id)].buffer;
+
+                SCReturnPtr(buffer, "uint8_t");
             }
         } else {
             if (SMTPCreateSpace(det_ctx, (tx_id - det_ctx->smtp_start_tx_id) + 1) < 0)
@@ -121,6 +125,11 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
         }
         index = (tx_id - det_ctx->smtp_start_tx_id);
     }
+
+    SCLogDebug("smtp_config.content_limit %u, smtp_config.content_inspect_min_size %u",
+                smtp_config.content_limit, smtp_config.content_inspect_min_size);
+
+    SCLogDebug("file %p size %"PRIu64", state %d", curr_file, curr_file->content_len_so_far, curr_file->state);
 
     /* no new data */
     if (curr_file->content_inspected == curr_file->content_len_so_far) {
@@ -137,7 +146,7 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
     if ((smtp_config.content_limit == 0 ||
          curr_file->content_len_so_far < smtp_config.content_limit) &&
         curr_file->content_len_so_far < smtp_config.content_inspect_min_size &&
-        !(flags & STREAM_EOF)) {
+        !(flags & STREAM_EOF) && !(curr_file->state > FILE_STATE_OPENED)) {
         SCLogDebug("we still haven't seen the entire content. "
                    "Let's defer content inspection till we see the "
                    "entire content.");
@@ -188,12 +197,15 @@ static uint8_t *DetectEngineSMTPGetBufferForTX(uint64_t tx_id,
 
     /* updat inspected tracker */
     curr_file->content_inspected = curr_file->chunks_tail->stream_offset + curr_file->chunks_tail->len;
+    SCLogDebug("curr_file->content_inspected now %"PRIu64, curr_file->content_inspected);
 
     buffer = det_ctx->smtp[index].buffer;
     *buffer_len = det_ctx->smtp[index].buffer_len;
     *stream_start_offset = det_ctx->smtp[index].offset;
+
 end:
-    return buffer;
+    SCLogDebug("buffer %p, len %u", buffer, *buffer_len);
+    SCReturnPtr(buffer, "uint8_t");
 }
 
 int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
@@ -256,6 +268,36 @@ void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx)
     det_ctx->smtp_start_tx_id = 0;
 
     return;
+}
+
+/**
+ * \brief SMTP Filedata match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param buffer     Buffer to inspect.
+ * \param buffer_len buffer length.
+ * \param flags      Flags
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
+                              const uint8_t *buffer, const uint32_t buffer_len,
+                              const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL);
+
+    if (buffer_len >= det_ctx->sgh->mpm_smtp_filedata_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
 }
 
 int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
@@ -346,7 +388,7 @@ static int DetectEngineSMTPFiledataTest01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST|PKT_STREAM_EOF;
     f.alproto = ALPROTO_SMTP;
 
     StreamTcpInitConfig(TRUE);
@@ -542,7 +584,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    return result == 0;
 }
 
 #endif /* UNITTESTS */
@@ -551,11 +593,11 @@ void DetectEngineSMTPFiledataRegisterTests(void)
 {
     #ifdef UNITTESTS
     UtRegisterTest("DetectEngineSMTPFiledataTest01",
-                   DetectEngineSMTPFiledataTest01, 1);
+                   DetectEngineSMTPFiledataTest01);
     UtRegisterTest("DetectEngineSMTPFiledataTest02",
-                   DetectEngineSMTPFiledataTest02, 1);
+                   DetectEngineSMTPFiledataTest02);
     UtRegisterTest("DetectEngineSMTPFiledataTest03",
-                   DetectEngineSMTPFiledataTest03, 0);
+                   DetectEngineSMTPFiledataTest03);
     #endif /* UNITTESTS */
 
     return;

@@ -141,9 +141,8 @@ void StatsThreadCleanup(struct ThreadVars_ *);
     } while (0)
 
 #ifdef BUILD_UNIX_SOCKET
-#include <jansson.h>
 TmEcode StatsOutputCounterSocket(json_t *cmd,
-                               json_t *answer, void *data);
+                                 json_t *answer, void *data);
 #endif
 
 #endif /* __COUNTERS_H__ */

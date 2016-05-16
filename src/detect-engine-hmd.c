@@ -56,6 +56,36 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http method match -- searches for one pattern per signature.
+ *
+ * \param det_ctx    Detection engine thread ctx.
+ * \param method     Method to inspect.
+ * \param method_len Method length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *raw_method, const uint32_t raw_method_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
+
+    if (raw_method_len >= det_ctx->sgh->mpm_hmd_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, raw_method, raw_method_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                  HtpState *htp_state, uint8_t flags,
@@ -65,11 +95,11 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     htp_tx_t *tx = (htp_tx_t *)txv;
     if (tx->request_method == NULL)
         goto end;
+
     cnt = HttpMethodPatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(tx->request_method),
+                                  (const uint8_t *)bstr_ptr(tx->request_method),
                                   bstr_len(tx->request_method),
                                   flags);
-
  end:
     return cnt;
 }
@@ -1785,39 +1815,39 @@ void DetectEngineHttpMethodRegisterTests(void)
 
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpMethodTest01",
-                   DetectEngineHttpMethodTest01, 1);
+                   DetectEngineHttpMethodTest01);
     UtRegisterTest("DetectEngineHttpMethodTest02",
-                   DetectEngineHttpMethodTest02, 1);
+                   DetectEngineHttpMethodTest02);
     UtRegisterTest("DetectEngineHttpMethodTest03",
-                   DetectEngineHttpMethodTest03, 1);
+                   DetectEngineHttpMethodTest03);
     UtRegisterTest("DetectEngineHttpMethodTest04",
-                   DetectEngineHttpMethodTest04, 1);
+                   DetectEngineHttpMethodTest04);
     UtRegisterTest("DetectEngineHttpMethodTest05",
-                   DetectEngineHttpMethodTest05, 1);
+                   DetectEngineHttpMethodTest05);
     UtRegisterTest("DetectEngineHttpMethodTest06",
-                   DetectEngineHttpMethodTest06, 1);
+                   DetectEngineHttpMethodTest06);
     UtRegisterTest("DetectEngineHttpMethodTest07",
-                   DetectEngineHttpMethodTest07, 1);
+                   DetectEngineHttpMethodTest07);
     UtRegisterTest("DetectEngineHttpMethodTest08",
-                   DetectEngineHttpMethodTest08, 1);
+                   DetectEngineHttpMethodTest08);
     UtRegisterTest("DetectEngineHttpMethodTest09",
-                   DetectEngineHttpMethodTest09, 1);
+                   DetectEngineHttpMethodTest09);
     UtRegisterTest("DetectEngineHttpMethodTest10",
-                   DetectEngineHttpMethodTest10, 1);
+                   DetectEngineHttpMethodTest10);
     UtRegisterTest("DetectEngineHttpMethodTest11",
-                   DetectEngineHttpMethodTest11, 1);
+                   DetectEngineHttpMethodTest11);
     UtRegisterTest("DetectEngineHttpMethodTest12",
-                   DetectEngineHttpMethodTest12, 1);
+                   DetectEngineHttpMethodTest12);
     UtRegisterTest("DetectEngineHttpMethodTest13",
-                   DetectEngineHttpMethodTest13, 1);
+                   DetectEngineHttpMethodTest13);
     UtRegisterTest("DetectEngineHttpMethodTest14",
-                   DetectEngineHttpMethodTest14, 1);
+                   DetectEngineHttpMethodTest14);
     UtRegisterTest("DetectEngineHttpMethodTest15",
-                   DetectEngineHttpMethodTest15, 1);
+                   DetectEngineHttpMethodTest15);
     UtRegisterTest("DetectEngineHttpMethodTest16",
-                   DetectEngineHttpMethodTest16, 1);
+                   DetectEngineHttpMethodTest16);
     UtRegisterTest("DetectEngineHttpMethodTest17",
-                   DetectEngineHttpMethodTest17, 1);
+                   DetectEngineHttpMethodTest17);
 #endif /* UNITTESTS */
 
     return;

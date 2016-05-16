@@ -62,6 +62,7 @@
 #endif /* __SC_CUDA_SUPPORT__ */
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
+TmEcode PfringBreakLoop(ThreadVars *tv, void *data);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
@@ -175,6 +176,7 @@ void TmModuleReceivePfringRegister (void)
     tmm_modules[TMM_RECEIVEPFRING].ThreadInit = ReceivePfringThreadInit;
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
     tmm_modules[TMM_RECEIVEPFRING].PktAcqLoop = ReceivePfringLoop;
+    tmm_modules[TMM_RECEIVEPFRING].PktAcqBreakLoop = PfringBreakLoop;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = ReceivePfringThreadExitStats;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = ReceivePfringThreadDeinit;
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
@@ -249,7 +251,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * is not defined nor used in PF_RING code. And vlan_id is set to 0
      * in PF_RING kernel code when there is no VLAN. */
     if ((!ptv->vlan_disabled) && h->extended_hdr.parsed_pkt.vlan_id) {
-        p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id;
+        p->vlan_id[0] = h->extended_hdr.parsed_pkt.vlan_id & 0x0fff;
         p->vlan_idx = 1;
         p->vlanh[0] = NULL;
     }
@@ -352,7 +354,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             PacketSetData(p, pkt_buffer, hdr.caplen);
         }
 
-        if (r == 1) {
+        if (likely(r == 1)) {
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
 
@@ -368,6 +370,14 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
                 PfringDumpCounters(ptv);
                 last_dump = p->ts.tv_sec;
             }
+        } else if (unlikely(r == 0)) {
+            if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+                SCReturnInt(TM_ECODE_OK);
+            }
+
+            /* pfring didn't use the packet yet */
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, p);
+
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
@@ -375,6 +385,31 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         }
         StatsSyncCountersIfSignalled(tv);
     }
+
+    return TM_ECODE_OK;
+}
+
+/**
+ * \brief Stop function for ReceivePfringLoop.
+ *
+ * This function forces ReceivePfringLoop to stop the
+ * execution, exiting the packet capture loop.
+ *
+ * \param tv pointer to ThreadVars
+ * \param data pointer that gets cast into PfringThreadVars for ptv
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on failure
+ */
+TmEcode PfringBreakLoop(ThreadVars *tv, void *data)
+{
+    PfringThreadVars *ptv = (PfringThreadVars *)data;
+
+    /* Safety check */
+    if (ptv->pd == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
+    pfring_breakloop(ptv->pd);
 
     return TM_ECODE_OK;
 }
@@ -464,10 +499,10 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         pfconf->DerefFunc(pfconf);
         SCFree(ptv);
         return TM_ECODE_FAILED;
-    } else {
-        pfring_set_application_name(ptv->pd, PROG_NAME);
-        pfring_version(ptv->pd, &version);
     }
+
+    pfring_set_application_name(ptv->pd, PROG_NAME);
+    pfring_version(ptv->pd, &version);
 
     /* We only set cluster info if the number of pfring threads is greater than 1 */
     ptv->threads = pfconf->threads;

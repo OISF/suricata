@@ -121,9 +121,9 @@ void *ParsePcapConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(pcap_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(pcap_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(pcap_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(pcap_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pcap config for "
@@ -191,9 +191,9 @@ void *ParsePcapConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpctype, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpctype, "no") == 0) {
+        } else if (ConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface);
@@ -242,7 +242,7 @@ int RunModeIdsPcapSingle(void)
     ret = RunModeSetLiveCaptureSingle(ParsePcapConfig,
                                     PcapConfigGeThreadsCount,
                                     "ReceivePcap",
-                                    "DecodePcap", "PcapLive",
+                                    "DecodePcap", thread_name_single,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -283,7 +283,7 @@ int RunModeIdsPcapAutoFp(void)
     ret = RunModeSetLiveCaptureAutoFp(ParsePcapConfig,
                               PcapConfigGeThreadsCount,
                               "ReceivePcap",
-                              "DecodePcap", "RxPcap",
+                              "DecodePcap", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -315,7 +315,7 @@ int RunModeIdsPcapWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(ParsePcapConfig,
                                     PcapConfigGeThreadsCount,
                                     "ReceivePcap",
-                                    "DecodePcap", "RxPcap",
+                                    "DecodePcap", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");

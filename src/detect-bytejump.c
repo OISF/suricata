@@ -64,10 +64,6 @@ void DetectBytejumpRegisterTests(void);
 
 void DetectBytejumpRegister (void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_BYTEJUMP].name = "byte_jump";
     sigmatch_table[DETECT_BYTEJUMP].Match = DetectBytejumpMatch;
     sigmatch_table[DETECT_BYTEJUMP].Setup = DetectBytejumpSetup;
@@ -76,25 +72,7 @@ void DetectBytejumpRegister (void)
 
     sigmatch_table[DETECT_BYTEJUMP].flags |= SIGMATCH_PAYLOAD;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE,"pcre compile of \"%s\" failed "
-               "at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY,"pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    /* XXX */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /** \brief Byte jump match function
@@ -1404,26 +1382,26 @@ end:
 void DetectBytejumpRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectBytejumpTestParse01", DetectBytejumpTestParse01, 1);
-    UtRegisterTest("DetectBytejumpTestParse02", DetectBytejumpTestParse02, 1);
-    UtRegisterTest("DetectBytejumpTestParse03", DetectBytejumpTestParse03, 1);
-    UtRegisterTest("DetectBytejumpTestParse04", DetectBytejumpTestParse04, 1);
-    UtRegisterTest("DetectBytejumpTestParse05", DetectBytejumpTestParse05, 1);
-    UtRegisterTest("DetectBytejumpTestParse06", DetectBytejumpTestParse06, 1);
-    UtRegisterTest("DetectBytejumpTestParse07", DetectBytejumpTestParse07, 1);
-    UtRegisterTest("DetectBytejumpTestParse08", DetectBytejumpTestParse08, 1);
-    UtRegisterTest("DetectBytejumpTestParse09", DetectBytejumpTestParse09, 1);
-    UtRegisterTest("DetectBytejumpTestParse10", DetectBytejumpTestParse10, 1);
-    UtRegisterTest("DetectBytejumpTestParse11", DetectBytejumpTestParse11, 1);
-    UtRegisterTest("DetectBytejumpTestParse12", DetectBytejumpTestParse12, 1);
+    UtRegisterTest("DetectBytejumpTestParse01", DetectBytejumpTestParse01);
+    UtRegisterTest("DetectBytejumpTestParse02", DetectBytejumpTestParse02);
+    UtRegisterTest("DetectBytejumpTestParse03", DetectBytejumpTestParse03);
+    UtRegisterTest("DetectBytejumpTestParse04", DetectBytejumpTestParse04);
+    UtRegisterTest("DetectBytejumpTestParse05", DetectBytejumpTestParse05);
+    UtRegisterTest("DetectBytejumpTestParse06", DetectBytejumpTestParse06);
+    UtRegisterTest("DetectBytejumpTestParse07", DetectBytejumpTestParse07);
+    UtRegisterTest("DetectBytejumpTestParse08", DetectBytejumpTestParse08);
+    UtRegisterTest("DetectBytejumpTestParse09", DetectBytejumpTestParse09);
+    UtRegisterTest("DetectBytejumpTestParse10", DetectBytejumpTestParse10);
+    UtRegisterTest("DetectBytejumpTestParse11", DetectBytejumpTestParse11);
+    UtRegisterTest("DetectBytejumpTestParse12", DetectBytejumpTestParse12);
 
-    UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01, 1);
-    UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02, 1);
-    UtRegisterTest("DetectByteJumpTestPacket03", DetectByteJumpTestPacket03, 1);
-    UtRegisterTest("DetectByteJumpTestPacket04", DetectByteJumpTestPacket04, 1);
-    UtRegisterTest("DetectByteJumpTestPacket05", DetectByteJumpTestPacket05, 1);
-    UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06, 1);
-    UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07, 1);
+    UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01);
+    UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02);
+    UtRegisterTest("DetectByteJumpTestPacket03", DetectByteJumpTestPacket03);
+    UtRegisterTest("DetectByteJumpTestPacket04", DetectByteJumpTestPacket04);
+    UtRegisterTest("DetectByteJumpTestPacket05", DetectByteJumpTestPacket05);
+    UtRegisterTest("DetectByteJumpTestPacket06", DetectByteJumpTestPacket06);
+    UtRegisterTest("DetectByteJumpTestPacket07", DetectByteJumpTestPacket07);
 #endif /* UNITTESTS */
 }
 

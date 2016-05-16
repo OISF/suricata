@@ -191,7 +191,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
                  * case we already logged the current ffd, which
                  * is the last in our list. */
                 if (ffd->stored == 1) {
-                    if (!(file_close == 1 || ffd->next == NULL)) {
+                    if (!(file_close == 1 && ffd->next == NULL)) {
                         continue;
                     }
 
@@ -199,6 +199,7 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
                     // so really a 'close' msg
                     write_ffd = NULL;
                     flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
+                    SCLogDebug("OUTPUT_FILEDATA_FLAG_CLOSE set");
                 }
 
                 /* store */
@@ -216,13 +217,17 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
                  * loggers */
                 if ((file_close || file_trunc) && ff->state < FILE_STATE_CLOSED) {
                     ff->state = FILE_STATE_TRUNCATED;
+                    SCLogDebug("ff->state = FILE_STATE_TRUNCATED set");
                 }
 
                 /* for the last data chunk we have, also tell the logger
                  * we're closing up */
-                if (ffd->next == NULL && ff->state >= FILE_STATE_CLOSED)
+                if (ffd->next == NULL && ff->state >= FILE_STATE_CLOSED) {
                     flags |= OUTPUT_FILEDATA_FLAG_CLOSE;
+                    SCLogDebug("OUTPUT_FILEDATA_FLAG_CLOSE set");
+                }
 
+                SCLogDebug("ff %p ffd %p flags %02x", ff, write_ffd, flags);
                 /* do the actual logging */
                 file_logged = CallLoggers(tv, store, p, ff, write_ffd, flags);
 
@@ -434,6 +439,8 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
         g_waldo_deinit = 1;
     }
     SCMutexUnlock(&g_waldo_mutex);
+
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 

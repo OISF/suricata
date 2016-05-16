@@ -150,7 +150,7 @@ static int UDPV4CalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_udp) + 3);
 
-    return (csum == UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
+    return (csum != UDPV4CalculateChecksum((uint16_t *) raw_ipshdr,
                                            (uint16_t *)raw_udp,
                                            sizeof(raw_udp)));
 }
@@ -195,7 +195,7 @@ static int UDPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 60)));
 
-    return (csum == UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    return (csum != UDPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                            (uint16_t *)(raw_ipv6 + 54), 20));
 }
 #endif /* UNITTESTS */
@@ -204,13 +204,13 @@ void DecodeUDPV4RegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("UDPV4CalculateValidChecksumtest01",
-                   UDPV4CalculateValidChecksumtest01, 1);
+                   UDPV4CalculateValidChecksumtest01);
     UtRegisterTest("UDPV4CalculateInvalidChecksumtest02",
-                   UDPV4CalculateInvalidChecksumtest02, 0);
+                   UDPV4CalculateInvalidChecksumtest02);
     UtRegisterTest("UDPV6CalculateValidChecksumtest03",
-                   UDPV6CalculateValidChecksumtest03, 1);
+                   UDPV6CalculateValidChecksumtest03);
     UtRegisterTest("UDPV6CalculateInvalidChecksumtest04",
-                   UDPV6CalculateInvalidChecksumtest04, 0);
+                   UDPV6CalculateInvalidChecksumtest04);
 #endif /* UNITTESTS */
 }
 /**

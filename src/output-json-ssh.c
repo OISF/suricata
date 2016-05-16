@@ -50,7 +50,6 @@
 #include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define MODULE_NAME "LogSshLog"
 
@@ -93,7 +92,6 @@ void JsonSshLogJSON(json_t *tjs, SshState *ssh_state)
 static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 {
     JsonSshLogThread *aft = (JsonSshLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     OutputSshCtx *ssh_ctx = aft->sshlog_ctx;
 
     if (unlikely(p->flow == NULL)) {
@@ -125,13 +123,13 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     JsonSshLogJSON(tjs, ssh_state);
 
     json_object_set_new(js, "ssh", tjs);
 
-    OutputJSONBuffer(js, ssh_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, ssh_ctx->file_ctx, &aft->buffer);
     json_object_clear(js);
     json_decref(js);
 
@@ -152,7 +150,7 @@ static TmEcode JsonSshLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogSSH.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -207,7 +205,7 @@ OutputCtx *OutputSshLogInit(ConfNode *conf)
 
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_SSH_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 

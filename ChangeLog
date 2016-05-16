@@ -1,3 +1,67 @@
+3.0.1 -- 2016-04-04
+
+Feature #1704: hyperscan mpm integration
+Feature #1661: Improved support for xbits/hostbits (in particular ip_pair) when running with multiple threads
+Bug #1697: byte_extract incompatibility with Snort.
+Bug #1737: Stats not reset between PCAPs when Suricata runs in socket mode
+
+3.0.1RC1 -- 2016-03-23
+
+Feature #1535: Expose the certificate itself in TLS-lua
+Feature #1696: improve logged flow_id
+Feature #1700: enable "relro" and "now" in compile options for 3.0
+Feature #1734: gre: support transparent ethernet bridge decoding
+Feature #1740: Create counters for decode-events errors
+Bug #873: suricata.yaml: .mgc is NOT actually added to value for magic file
+Bug #1166: tls: CID 1197759: Resource leak (RESOURCE_LEAK)
+Bug #1268: suricata and macos/darwin: [ERRCODE: SC_ERR_MAGIC_LOAD(197)] - magic_load failed: File 5.19 supports only version 12 magic files. `/usr/share/file/magic.mgc' is version 7
+Bug #1359: memory leak
+Bug #1411: Suricata generates huge load when nfq_create_queue failed
+Bug #1570: stream.inline defaults to IDS mode if missing
+Bug #1591: afpacket: unsupported datalink type 65534 on tun device
+Bug #1619: Per-Thread Delta Stats Broken
+Bug #1638: rule parsing issues: rev
+Bug #1641: Suricata won't build with --disable-unix-socket when libjansson is enabled
+Bug #1646: smtp: fix inspected tracker values
+Bug #1660: segv when using --set on a list
+Bug #1669: Suricate 3.0RC3 segfault after 10 hours
+Bug #1670: Modbus compiler warnings on Fedora 23
+Bug #1671: Cygwin Windows compilation with libjansson from source
+Bug #1674: Cannot use 'tag:session' after base64_data keyword
+Bug #1676: gentoo build error
+Bug #1679: sensor-name configuration parameter specified in wrong place in default suricata.yaml
+Bug #1680: Output sensor name in json
+Bug #1684: eve: stream payload has wrong direction in IPS mode
+Bug #1686: Conflicting "no" for "totals" and "threads" in stats output
+Bug #1689: Stack overflow in case of variables misconfiguration
+Bug #1693: Crash on Debian with libpcre 8.35
+Bug #1695: Unix Socket missing dump-counters mode
+Bug #1698: Segmentation Fault at detect-engine-content-inspection.c:438 (master)
+Bug #1699: CUDA build broken
+Bug #1701: memory leaks
+Bug #1702: TLS SNI parsing issue
+Bug #1703: extreme slow down in HTTP multipart parsing
+Bug #1706: smtp memory leaks
+Bug #1707: malformed json if message is too big
+Bug #1708: dcerpc memory leak
+Bug #1709: http memory leak
+Bug #1715: nfq: broken time stamps with recent Linux kernel 4.4
+Bug #1717: Memory leak on Suricata 3.0 with Netmap
+Bug #1719: fileinfo output wrong in eve in http
+Bug #1720: flowbit memleak
+Bug #1724: alert-debuglog: non-decoder events won't trigger rotation.
+Bug #1725: smtp logging memleak
+Bug #1727: unix socket runmode per pcap memory leak
+Bug #1728: unix manager command channel memory leaks
+Bug #1729: PCRE jit is disabled/blacklisted when it should not
+Bug #1731: detect-tls memory leak
+Bug #1735: cppcheck: Shifting a negative value is undefined behaviour
+Bug #1736: tls-sni: memory leaks on malformed traffic
+Bug #1742: vlan use-for-tracking including Priority in hashing
+Bug #1743: compilation with musl c library fails
+Bug #1744: tls: out of bounds memory read on malformed traffic
+Optimization #1642: Add --disable-python option
+
 3.0 -- 2016-01-27
 
 Bug #1673: smtp: crash during mime parsing

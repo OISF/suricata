@@ -52,6 +52,12 @@
 #define DETECT_ENGINE_INSPECT_SIG_MATCH 1
 #define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH 2
 #define DETECT_ENGINE_INSPECT_SIG_CANT_MATCH_FILESTORE 3
+/** hack to work around a file inspection limitation. Since there can be
+ *  multiple files in a TX and the detection engine really don't know
+ *  about that, we have to give the file inspection engine a way to
+ *  indicate that one of the files matched, but that there are still
+ *  more files that have ongoing inspection. */
+#define DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES 4
 
 /** number of DeStateStoreItem's in one DeStateStore object */
 #define DE_STATE_CHUNK_SIZE             15

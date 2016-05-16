@@ -41,7 +41,6 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 
-#include "flow-bit.h"
 #include "util-var-name.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -67,28 +66,7 @@ void DetectFlowbitsRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 
@@ -315,69 +293,38 @@ void DetectFlowbitFree (void *ptr)
 
 static int FlowBitsTestParse01(void)
 {
-    int ret = 0;
     char command[16] = "", name[16] = "";
 
     /* Single argument version. */
-    if (!DetectFlowbitParse("noalert", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "noalert") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("noalert", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "noalert") != 0);
 
     /* No leading or trailing spaces. */
-    if (!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set,flowbit", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading space. */
-    if (!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set, flowbit", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Trailing space. */
-    if (!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set,flowbit ", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
     /* Leading and trailing space. */
-    if (!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
-            sizeof(name))) {
-        goto end;
-    }
-    if (strcmp(command, "set") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "flowbit") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectFlowbitParse("set, flowbit ", command, sizeof(command), name,
+            sizeof(name)));
+    FAIL_IF(strcmp(command, "set") != 0);
+    FAIL_IF(strcmp(name, "flowbit") != 0);
 
-    ret = 1;
-end:
-    return ret;
+    PASS;
 }
 
 /**
@@ -452,7 +399,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -574,7 +521,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -652,7 +599,7 @@ end:
 
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -716,7 +663,7 @@ static int FlowBitsTestSig04(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     SCFree(p);
-    return result;
+    PASS_IF(result);
 
 end:
 
@@ -734,7 +681,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -796,7 +743,7 @@ static int FlowBitsTestSig05(void)
     DetectEngineCtxFree(de_ctx);
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 end:
 
     if (de_ctx != NULL) {
@@ -813,7 +760,7 @@ end:
     }
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -898,7 +845,7 @@ static int FlowBitsTestSig06(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result);
 end:
 
     if (de_ctx != NULL) {
@@ -917,7 +864,7 @@ end:
     if(gv) GenericVarFree(gv);
     FLOW_DESTROY(&f);
     SCFree(p);
-    return result;
+    PASS_IF(result);
 }
 
 /**
@@ -1004,7 +951,7 @@ static int FlowBitsTestSig07(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 end:
 
     if (de_ctx != NULL) {
@@ -1024,7 +971,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 }
 
 /**
@@ -1113,7 +1060,7 @@ static int FlowBitsTestSig08(void)
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 end:
 
     if (de_ctx != NULL) {
@@ -1133,7 +1080,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
+    PASS_IF(result == 0);
 }
 #endif /* UNITTESTS */
 
@@ -1143,14 +1090,14 @@ end:
 void FlowBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01, 1);
-    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01, 0);
-    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02, 0);
-    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03, 0);
-    UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04, 1);
-    UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05, 1);
-    UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06, 1);
-    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07, 0);
-    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08, 0);
+    UtRegisterTest("FlowBitsTestParse01", FlowBitsTestParse01);
+    UtRegisterTest("FlowBitsTestSig01", FlowBitsTestSig01);
+    UtRegisterTest("FlowBitsTestSig02", FlowBitsTestSig02);
+    UtRegisterTest("FlowBitsTestSig03", FlowBitsTestSig03);
+    UtRegisterTest("FlowBitsTestSig04", FlowBitsTestSig04);
+    UtRegisterTest("FlowBitsTestSig05", FlowBitsTestSig05);
+    UtRegisterTest("FlowBitsTestSig06", FlowBitsTestSig06);
+    UtRegisterTest("FlowBitsTestSig07", FlowBitsTestSig07);
+    UtRegisterTest("FlowBitsTestSig08", FlowBitsTestSig08);
 #endif /* UNITTESTS */
 }

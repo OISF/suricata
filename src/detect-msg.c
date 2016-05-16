@@ -51,23 +51,25 @@ static int DetectMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *msgstr)
 {
     char *str = NULL;
     uint16_t len;
+    uint16_t pos = 0;
+    uint16_t slen = 0;
 
-    if (strlen(msgstr) == 0)
+    slen = strlen(msgstr);
+    if (slen == 0)
         goto error;
 
-    /* strip "'s */
-    if (msgstr[0] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
-        str = SCStrdup(msgstr+1);
+    /* skip the first spaces */
+    while (pos < slen && isspace((unsigned char)msgstr[pos]))
+        pos++;
+
+    /* Strip leading and trailing "s. */
+    if (msgstr[pos] == '\"') {
+        str = SCStrdup(msgstr + pos + 1);
         if (unlikely(str == NULL))
             goto error;
-        str[strlen(msgstr)-2] = '\0';
-    } else if (msgstr[1] == '\"' && msgstr[strlen(msgstr)-1] == '\"') {
-        /* XXX do this parsing in a better way */
-        str = SCStrdup(msgstr+2);
-        if (unlikely(str == NULL))
-            goto error;
-        str[strlen(msgstr)-3] = '\0';
-        //printf("DetectMsgSetup: format hack applied: \'%s\'\n", str);
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str)-1] = '\0';
+        }
     } else {
         SCLogError(SC_ERR_INVALID_VALUE, "format error \'%s\'", msgstr);
         goto error;
@@ -196,6 +198,36 @@ end:
     return result;
 }
 
+static int DetectMsgParseTest03(void)
+{
+    int result = 0;
+    Signature *sig = NULL;
+    char *teststringparsed = "flow stateless to_server";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
+    SCClassConfLoadClassficationConfigFile(de_ctx, fd);
+
+    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg: \"flow stateless to_server\"; flow:stateless,to_server; content:\"flowstatelesscheck\"; classtype:bad-unknown; sid: 40000002; rev: 1;)");
+    if(sig == NULL)
+        goto end;
+
+    if (strcmp(sig->msg, teststringparsed) != 0) {
+        printf("got \"%s\", expected: \"%s\": ", sig->msg, teststringparsed);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (sig != NULL)
+        SigFree(sig);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -204,8 +236,9 @@ end:
 void DetectMsgRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01, 1);
-    UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02, 1);
+    UtRegisterTest("DetectMsgParseTest01", DetectMsgParseTest01);
+    UtRegisterTest("DetectMsgParseTest02", DetectMsgParseTest02);
+    UtRegisterTest("DetectMsgParseTest03", DetectMsgParseTest03);
 #endif /* UNITTESTS */
 }
 

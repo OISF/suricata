@@ -73,12 +73,14 @@ static int DetectL3ProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     char *str = optstr;
     char dubbed = 0;
 
-    /* strip "'s */
-    if (optstr[0] == '\"' && optstr[strlen(optstr) - 1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (optstr[0] == '\"') {
         str = SCStrdup(optstr + 1);
         if (unlikely(str == NULL))
             goto error;
-        str[strlen(optstr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 
@@ -119,10 +121,6 @@ error:
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
-#include "detect-engine.h"
-#include "detect-engine-mpm.h"
 
 /**
  * \test DetectL3protoTestSig01 is a test for checking the working of ttl keyword
@@ -384,8 +382,8 @@ end:
 void DetectL3protoRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectL3protoTestSig1",  DetectL3protoTestSig1, 1);
-    UtRegisterTest("DetectL3protoTestSig2",  DetectL3protoTestSig2, 1);
-    UtRegisterTest("DetectL3protoTestSig3",  DetectL3protoTestSig3, 1);
+    UtRegisterTest("DetectL3protoTestSig1", DetectL3protoTestSig1);
+    UtRegisterTest("DetectL3protoTestSig2", DetectL3protoTestSig2);
+    UtRegisterTest("DetectL3protoTestSig3", DetectL3protoTestSig3);
 #endif /* UNITTESTS */
 }

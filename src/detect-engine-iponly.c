@@ -2284,36 +2284,36 @@ int IPOnlyTestSig17(void)
 void IPOnlyRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IPOnlyTestSig01", IPOnlyTestSig01, 1);
-    UtRegisterTest("IPOnlyTestSig02", IPOnlyTestSig02, 1);
-    UtRegisterTest("IPOnlyTestSig03", IPOnlyTestSig03, 1);
-    UtRegisterTest("IPOnlyTestSig04", IPOnlyTestSig04, 1);
+    UtRegisterTest("IPOnlyTestSig01", IPOnlyTestSig01);
+    UtRegisterTest("IPOnlyTestSig02", IPOnlyTestSig02);
+    UtRegisterTest("IPOnlyTestSig03", IPOnlyTestSig03);
+    UtRegisterTest("IPOnlyTestSig04", IPOnlyTestSig04);
 
-    UtRegisterTest("IPOnlyTestSig05", IPOnlyTestSig05, 1);
-    UtRegisterTest("IPOnlyTestSig06", IPOnlyTestSig06, 1);
+    UtRegisterTest("IPOnlyTestSig05", IPOnlyTestSig05);
+    UtRegisterTest("IPOnlyTestSig06", IPOnlyTestSig06);
 /* \todo fix it.  We have disabled this unittest because 599 exposes 608,
  * which is why these unittests fail.  When we fix 608, we need to renable
  * these sigs */
 #if 0
     UtRegisterTest("IPOnlyTestSig07", IPOnlyTestSig07, 1);
 #endif
-    UtRegisterTest("IPOnlyTestSig08", IPOnlyTestSig08, 1);
+    UtRegisterTest("IPOnlyTestSig08", IPOnlyTestSig08);
 
-    UtRegisterTest("IPOnlyTestSig09", IPOnlyTestSig09, 1);
-    UtRegisterTest("IPOnlyTestSig10", IPOnlyTestSig10, 1);
+    UtRegisterTest("IPOnlyTestSig09", IPOnlyTestSig09);
+    UtRegisterTest("IPOnlyTestSig10", IPOnlyTestSig10);
 /* \todo fix it.  We have disabled this unittest because 599 exposes 608,
  * which is why these unittests fail.  When we fix 608, we need to renable
  * these sigs */
 #if 0
     UtRegisterTest("IPOnlyTestSig11", IPOnlyTestSig11, 1);
 #endif
-    UtRegisterTest("IPOnlyTestSig12", IPOnlyTestSig12, 1);
-    UtRegisterTest("IPOnlyTestSig13", IPOnlyTestSig13, 1);
-    UtRegisterTest("IPOnlyTestSig14", IPOnlyTestSig14, 1);
-    UtRegisterTest("IPOnlyTestSig15", IPOnlyTestSig15, 1);
-    UtRegisterTest("IPOnlyTestSig16", IPOnlyTestSig16, 1);
+    UtRegisterTest("IPOnlyTestSig12", IPOnlyTestSig12);
+    UtRegisterTest("IPOnlyTestSig13", IPOnlyTestSig13);
+    UtRegisterTest("IPOnlyTestSig14", IPOnlyTestSig14);
+    UtRegisterTest("IPOnlyTestSig15", IPOnlyTestSig15);
+    UtRegisterTest("IPOnlyTestSig16", IPOnlyTestSig16);
 
-    UtRegisterTest("IPOnlyTestSig17", IPOnlyTestSig17, 1);
+    UtRegisterTest("IPOnlyTestSig17", IPOnlyTestSig17);
 #endif
 
     return;

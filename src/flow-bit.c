@@ -68,16 +68,6 @@ static void FlowBitAdd(Flow *f, uint16_t idx)
         fb->idx = idx;
         fb->next = NULL;
         GenericVarAppend(&f->flowvar, (GenericVar *)fb);
-
-        //printf("FlowBitAdd: adding flowbit with idx %" PRIu32 "\n", idx);
-#ifdef FLOWBITS_STATS
-        SCMutexLock(&flowbits_mutex);
-        flowbits_added++;
-        flowbits_memuse += sizeof(FlowBit);
-        if (flowbits_memuse > flowbits_memuse_max)
-            flowbits_memuse_max = flowbits_memuse;
-        SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
     }
 }
 
@@ -88,48 +78,30 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
         return;
 
     GenericVarRemove(&f->flowvar, (GenericVar *)fb);
-
-    //printf("FlowBitRemove: remove flowbit with idx %" PRIu32 "\n", idx);
-#ifdef FLOWBITS_STATS
-    SCMutexLock(&flowbits_mutex);
-    flowbits_removed++;
-    if (flowbits_memuse >= sizeof(FlowBit))
-        flowbits_memuse -= sizeof(FlowBit);
-    else {
-        printf("ERROR: flowbits memory usage going below 0!\n");
-        flowbits_memuse = 0;
-    }
-    SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
+    FlowBitFree(fb);
 }
 
 void FlowBitSetNoLock(Flow *f, uint16_t idx)
 {
-    FlowBit *fb = FlowBitGet(f, idx);
-    if (fb == NULL) {
-        FlowBitAdd(f, idx);
-    }
+    FlowBitAdd(f, idx);
 }
 
 void FlowBitSet(Flow *f, uint16_t idx)
 {
     FLOWLOCK_WRLOCK(f);
-    FlowBitSetNoLock(f, idx);
+    FlowBitAdd(f, idx);
     FLOWLOCK_UNLOCK(f);
 }
 
 void FlowBitUnsetNoLock(Flow *f, uint16_t idx)
 {
-    FlowBit *fb = FlowBitGet(f, idx);
-    if (fb != NULL) {
-        FlowBitRemove(f, idx);
-    }
+    FlowBitRemove(f, idx);
 }
 
 void FlowBitUnset(Flow *f, uint16_t idx)
 {
     FLOWLOCK_WRLOCK(f);
-    FlowBitUnsetNoLock(f, idx);
+    FlowBitRemove(f, idx);
     FLOWLOCK_UNLOCK(f);
 }
 
@@ -184,18 +156,6 @@ void FlowBitFree(FlowBit *fb)
         return;
 
     SCFree(fb);
-
-#ifdef FLOWBITS_STATS
-    SCMutexLock(&flowbits_mutex);
-    flowbits_removed++;
-    if (flowbits_memuse >= sizeof(FlowBit))
-        flowbits_memuse -= sizeof(FlowBit);
-    else {
-        printf("ERROR: flowbits memory usage going below 0!\n");
-        flowbits_memuse = 0;
-    }
-    SCMutexUnlock(&flowbits_mutex);
-#endif /* FLOWBITS_STATS */
 }
 
 
@@ -467,17 +427,17 @@ end:
 void FlowBitRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("FlowBitTest01", FlowBitTest01, 1);
-    UtRegisterTest("FlowBitTest02", FlowBitTest02, 1);
-    UtRegisterTest("FlowBitTest03", FlowBitTest03, 1);
-    UtRegisterTest("FlowBitTest04", FlowBitTest04, 1);
-    UtRegisterTest("FlowBitTest05", FlowBitTest05, 1);
-    UtRegisterTest("FlowBitTest06", FlowBitTest06, 1);
-    UtRegisterTest("FlowBitTest07", FlowBitTest07, 1);
-    UtRegisterTest("FlowBitTest08", FlowBitTest08, 1);
-    UtRegisterTest("FlowBitTest09", FlowBitTest09, 1);
-    UtRegisterTest("FlowBitTest10", FlowBitTest10, 1);
-    UtRegisterTest("FlowBitTest11", FlowBitTest11, 1);
+    UtRegisterTest("FlowBitTest01", FlowBitTest01);
+    UtRegisterTest("FlowBitTest02", FlowBitTest02);
+    UtRegisterTest("FlowBitTest03", FlowBitTest03);
+    UtRegisterTest("FlowBitTest04", FlowBitTest04);
+    UtRegisterTest("FlowBitTest05", FlowBitTest05);
+    UtRegisterTest("FlowBitTest06", FlowBitTest06);
+    UtRegisterTest("FlowBitTest07", FlowBitTest07);
+    UtRegisterTest("FlowBitTest08", FlowBitTest08);
+    UtRegisterTest("FlowBitTest09", FlowBitTest09);
+    UtRegisterTest("FlowBitTest10", FlowBitTest10);
+    UtRegisterTest("FlowBitTest11", FlowBitTest11);
 #endif /* UNITTESTS */
 }
 

@@ -418,6 +418,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     else if (p->flowflags & FLOW_PKT_TOCLIENT)
         flags = STREAM_TOCLIENT;
 
+    LuaStateSetThreadVars(tluajit->luastate, tv);
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
             p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
 
@@ -2076,12 +2077,12 @@ end:
 void DetectLuaRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("LuaMatchTest01", LuaMatchTest01, 1);
-    UtRegisterTest("LuaMatchTest02", LuaMatchTest02, 1);
-    UtRegisterTest("LuaMatchTest03", LuaMatchTest03, 1);
-    UtRegisterTest("LuaMatchTest04", LuaMatchTest04, 1);
-    UtRegisterTest("LuaMatchTest05", LuaMatchTest05, 1);
-    UtRegisterTest("LuaMatchTest06", LuaMatchTest06, 1);
+    UtRegisterTest("LuaMatchTest01", LuaMatchTest01);
+    UtRegisterTest("LuaMatchTest02", LuaMatchTest02);
+    UtRegisterTest("LuaMatchTest03", LuaMatchTest03);
+    UtRegisterTest("LuaMatchTest04", LuaMatchTest04);
+    UtRegisterTest("LuaMatchTest05", LuaMatchTest05);
+    UtRegisterTest("LuaMatchTest06", LuaMatchTest06);
 #endif
 }
 

@@ -33,7 +33,6 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-byte-extract.h"
-#include "detect-parse.h"
 
 #include "flow-var.h"
 #include "app-layer.h"
@@ -62,12 +61,14 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* strip "'s */
-    if (depthstr[0] == '\"' && depthstr[strlen(depthstr) - 1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (depthstr[0] == '\"') {
         str = SCStrdup(depthstr + 1);
         if (unlikely(str == NULL))
             goto end;
-        str[strlen(depthstr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 

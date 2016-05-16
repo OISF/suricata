@@ -53,6 +53,36 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
+#include "util-validate.h"
+
+/**
+ * \brief Http stat msg match -- searches for one pattern per signature.
+ *
+ * \param det_ctx      Detection engine thread ctx.
+ * \param stat_msg     Stat msg to inspect.
+ * \param stat_msg_len Stat msg length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *stat_msg, const uint32_t stat_msg_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsmd_ctx_tc == NULL);
+
+    if (stat_msg_len >= det_ctx->sgh->mpm_hsmd_ctx_tc->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
+                    &det_ctx->pmq, stat_msg, stat_msg_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against http stat msg.
@@ -71,9 +101,8 @@ int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
 
     cnt = HttpStatMsgPatternSearch(det_ctx,
-                                   (uint8_t *)bstr_ptr(tx->response_message),
+                                   (const uint8_t *)bstr_ptr(tx->response_message),
                                    bstr_len(tx->response_message), flags);
-
 end:
     SCReturnInt(cnt);
 }
@@ -2058,35 +2087,35 @@ void DetectEngineHttpStatMsgRegisterTests(void)
 
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpStatMsgTest01",
-                   DetectEngineHttpStatMsgTest01, 1);
+                   DetectEngineHttpStatMsgTest01);
     UtRegisterTest("DetectEngineHttpStatMsgTest02",
-                   DetectEngineHttpStatMsgTest02, 1);
+                   DetectEngineHttpStatMsgTest02);
     UtRegisterTest("DetectEngineHttpStatMsgTest03",
-                   DetectEngineHttpStatMsgTest03, 1);
+                   DetectEngineHttpStatMsgTest03);
     UtRegisterTest("DetectEngineHttpStatMsgTest04",
-                   DetectEngineHttpStatMsgTest04, 1);
+                   DetectEngineHttpStatMsgTest04);
     UtRegisterTest("DetectEngineHttpStatMsgTest05",
-                   DetectEngineHttpStatMsgTest05, 1);
+                   DetectEngineHttpStatMsgTest05);
     UtRegisterTest("DetectEngineHttpStatMsgTest06",
-                   DetectEngineHttpStatMsgTest06, 1);
+                   DetectEngineHttpStatMsgTest06);
     UtRegisterTest("DetectEngineHttpStatMsgTest07",
-                   DetectEngineHttpStatMsgTest07, 1);
+                   DetectEngineHttpStatMsgTest07);
     UtRegisterTest("DetectEngineHttpStatMsgTest08",
-                   DetectEngineHttpStatMsgTest08, 1);
+                   DetectEngineHttpStatMsgTest08);
     UtRegisterTest("DetectEngineHttpStatMsgTest09",
-                   DetectEngineHttpStatMsgTest09, 1);
+                   DetectEngineHttpStatMsgTest09);
     UtRegisterTest("DetectEngineHttpStatMsgTest10",
-                   DetectEngineHttpStatMsgTest10, 1);
+                   DetectEngineHttpStatMsgTest10);
     UtRegisterTest("DetectEngineHttpStatMsgTest11",
-                   DetectEngineHttpStatMsgTest11, 1);
+                   DetectEngineHttpStatMsgTest11);
     UtRegisterTest("DetectEngineHttpStatMsgTest12",
-                   DetectEngineHttpStatMsgTest12, 1);
+                   DetectEngineHttpStatMsgTest12);
     UtRegisterTest("DetectEngineHttpStatMsgTest13",
-                   DetectEngineHttpStatMsgTest13, 1);
+                   DetectEngineHttpStatMsgTest13);
     UtRegisterTest("DetectEngineHttpStatMsgTest14",
-                   DetectEngineHttpStatMsgTest14, 1);
+                   DetectEngineHttpStatMsgTest14);
     UtRegisterTest("DetectEngineHttpStatMsgTest15",
-                   DetectEngineHttpStatMsgTest15, 1);
+                   DetectEngineHttpStatMsgTest15);
 #endif /* UNITTESTS */
 
     return;

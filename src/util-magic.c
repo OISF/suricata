@@ -58,14 +58,23 @@ int MagicInit(void)
     }
 
     (void)ConfGet("magic-file", &filename);
-    if (filename != NULL) {
-        SCLogInfo("using magic-file %s", filename);
 
-        if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+
+    if (filename != NULL) {
+        if (strlen(filename) == 0) {
+            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
+            SCLogInfo("using system default magic-file");
+            filename = NULL;
         }
-        fclose(fd);
+        else {
+            SCLogInfo("using magic-file %s", filename);
+
+            if ( (fd = fopen(filename, "r")) == NULL) {
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                goto error;
+            }
+            fclose(fd);
+        }
     }
 
     if (magic_load(g_magic_ctx, filename) != 0) {
@@ -94,7 +103,7 @@ error:
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen)
+char *MagicGlobalLookup(const uint8_t *buf, uint32_t buflen)
 {
     const char *result = NULL;
     char *magic = NULL;
@@ -123,7 +132,7 @@ char *MagicGlobalLookup(uint8_t *buf, uint32_t buflen)
  *
  *  \retval result pointer to null terminated string
  */
-char *MagicThreadLookup(magic_t *ctx, uint8_t *buf, uint32_t buflen)
+char *MagicThreadLookup(magic_t *ctx, const uint8_t *buf, uint32_t buflen)
 {
     const char *result = NULL;
     char *magic = NULL;
@@ -658,19 +667,20 @@ end:
 void MagicRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MagicInitTest01", MagicInitTest01, 1);
-    UtRegisterTest("MagicInitTest02", MagicInitTest02, 1);
-    UtRegisterTest("MagicDetectTest01", MagicDetectTest01, 1);
+    UtRegisterTest("MagicInitTest01", MagicInitTest01);
+    UtRegisterTest("MagicInitTest02", MagicInitTest02);
+    UtRegisterTest("MagicDetectTest01", MagicDetectTest01);
     //UtRegisterTest("MagicDetectTest02", MagicDetectTest02, 1);
-    UtRegisterTest("MagicDetectTest03", MagicDetectTest03, 1);
-    UtRegisterTest("MagicDetectTest04", MagicDetectTest04, 1);
-    UtRegisterTest("MagicDetectTest05", MagicDetectTest05, 1);
+    UtRegisterTest("MagicDetectTest03", MagicDetectTest03);
+    UtRegisterTest("MagicDetectTest04", MagicDetectTest04);
+    UtRegisterTest("MagicDetectTest05", MagicDetectTest05);
     //UtRegisterTest("MagicDetectTest06", MagicDetectTest06, 1);
-    UtRegisterTest("MagicDetectTest07", MagicDetectTest07, 1);
-    UtRegisterTest("MagicDetectTest08", MagicDetectTest08, 1);
+    UtRegisterTest("MagicDetectTest07", MagicDetectTest07);
+    UtRegisterTest("MagicDetectTest08", MagicDetectTest08);
     /* fails in valgrind, somehow it returns different pointers then.
     UtRegisterTest("MagicDetectTest09", MagicDetectTest09, 1); */
 
-    UtRegisterTest("MagicDetectTest10ValgrindError", MagicDetectTest10ValgrindError, 1);
+    UtRegisterTest("MagicDetectTest10ValgrindError",
+                   MagicDetectTest10ValgrindError);
 #endif /* UNITTESTS */
 }

@@ -47,7 +47,7 @@
 #include "util-unittest-helper.h"
 #include "stream-tcp.h"
 
-#define DETECT_DCE_IFACE_PCRE_PARSE_ARGS "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
+#define PARSE_REGEX "^\\s*([0-9a-zA-Z]{8}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{4}-[0-9a-zA-Z]{12})(?:\\s*,(<|>|=|!)([0-9]{1,5}))?(?:\\s*,(any_frag))?\\s*$"
 
 static pcre *parse_regex = NULL;
 static pcre_extra *parse_regex_study = NULL;
@@ -62,10 +62,6 @@ void DetectDceIfaceFree(void *);
  */
 void DetectDceIfaceRegister(void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_DCE_IFACE].name = "dce_iface";
     sigmatch_table[DETECT_DCE_IFACE].alproto = ALPROTO_DCERPC;
     sigmatch_table[DETECT_DCE_IFACE].Match = NULL;
@@ -76,25 +72,7 @@ void DetectDceIfaceRegister(void)
 
     sigmatch_table[DETECT_DCE_IFACE].flags |= SIGMATCH_PAYLOAD;
 
-    parse_regex = pcre_compile(DETECT_DCE_IFACE_PCRE_PARSE_ARGS, opts, &eb,
-                               &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_DCE_IFACE_PCRE_PARSE_ARGS, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
- error:
-    /* we need to handle error?! */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -1812,25 +1790,25 @@ void DetectDceIfaceRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01, 1);
-    UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02, 1);
-    UtRegisterTest("DetectDceIfaceTestParse03", DetectDceIfaceTestParse03, 1);
-    UtRegisterTest("DetectDceIfaceTestParse04", DetectDceIfaceTestParse04, 1);
-    UtRegisterTest("DetectDceIfaceTestParse05", DetectDceIfaceTestParse05, 1);
-    UtRegisterTest("DetectDceIfaceTestParse06", DetectDceIfaceTestParse06, 1);
-    UtRegisterTest("DetectDceIfaceTestParse07", DetectDceIfaceTestParse07, 1);
-    UtRegisterTest("DetectDceIfaceTestParse08", DetectDceIfaceTestParse08, 1);
-    UtRegisterTest("DetectDceIfaceTestParse09", DetectDceIfaceTestParse09, 1);
-    UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10, 1);
-    UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11, 1);
-    UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12, 1);
+    UtRegisterTest("DetectDceIfaceTestParse01", DetectDceIfaceTestParse01);
+    UtRegisterTest("DetectDceIfaceTestParse02", DetectDceIfaceTestParse02);
+    UtRegisterTest("DetectDceIfaceTestParse03", DetectDceIfaceTestParse03);
+    UtRegisterTest("DetectDceIfaceTestParse04", DetectDceIfaceTestParse04);
+    UtRegisterTest("DetectDceIfaceTestParse05", DetectDceIfaceTestParse05);
+    UtRegisterTest("DetectDceIfaceTestParse06", DetectDceIfaceTestParse06);
+    UtRegisterTest("DetectDceIfaceTestParse07", DetectDceIfaceTestParse07);
+    UtRegisterTest("DetectDceIfaceTestParse08", DetectDceIfaceTestParse08);
+    UtRegisterTest("DetectDceIfaceTestParse09", DetectDceIfaceTestParse09);
+    UtRegisterTest("DetectDceIfaceTestParse10", DetectDceIfaceTestParse10);
+    UtRegisterTest("DetectDceIfaceTestParse11", DetectDceIfaceTestParse11);
+    UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12);
     /* Disabled because of bug_753.  Would be enabled, once we rewrite
      * dce parser */
 #if 0
     UtRegisterTest("DetectDceIfaceTestParse13", DetectDceIfaceTestParse13, 1);
 #endif
-    UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14, 1);
-    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15, 1);
+    UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14);
+    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15);
 #endif
 
     return;

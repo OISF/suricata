@@ -93,15 +93,15 @@ struct in6_addr *ValidateIPV6Address(const char *addr_str)
  */
 void MaskIPNetblock(uint8_t *stream, uint8_t netmask, uint16_t key_bitlen)
 {
-    int mask = 0;
+    uint32_t mask = 0;
     int i = 0;
     int bytes = key_bitlen / 8;
 
     for (i = 0; i < bytes; i++) {
-        mask = -1;
+        mask = UINT_MAX;
         if ( ((i + 1) * 8) > netmask) {
             if ( ((i + 1) * 8 - netmask) < 8)
-                mask = -1 << ((i + 1) * 8 - netmask);
+                mask = UINT_MAX << ((i + 1) * 8 - netmask);
             else
                 mask = 0;
         }

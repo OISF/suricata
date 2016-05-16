@@ -45,15 +45,11 @@
 #include "util-crypt.h"
 
 #include "output-json.h"
+#include "output-json-stats.h"
 
 #define MODULE_NAME "JsonStatsLog"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
-
-#define JSON_STATS_TOTALS  (1<<0)
-#define JSON_STATS_THREADS (1<<1)
-#define JSON_STATS_DELTAS  (1<<2)
 
 typedef struct OutputStatsCtx_ {
     LogFileCtx *file_ctx;
@@ -91,29 +87,18 @@ static json_t *OutputStats2Json(json_t *js, const char *key)
     return value;
 }
 
-static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
+/** \brief turn StatsTable into a json object
+ *  \param flags JSON_STATS_* flags for controlling output
+ */
+json_t *StatsToJSON(const StatsTable *st, uint8_t flags)
 {
-    SCEnter();
-    JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     const char delta_suffix[] = "_delta";
-
     struct timeval tval;
     gettimeofday(&tval, NULL);
 
-    json_t *js = json_object();
-    if (unlikely(js == NULL))
-        return 0;
-
-    char timebuf[64];
-    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
-    json_object_set_new(js, "timestamp", json_string(timebuf));
-
-    json_object_set_new(js, "event_type", json_string("stats"));
     json_t *js_stats = json_object();
     if (unlikely(js_stats == NULL)) {
-        json_decref(js);
-        return 0;
+        return NULL;
     }
 
     /* Uptime, in seconds. */
@@ -121,7 +106,7 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
         json_integer((int)difftime(tval.tv_sec, st->start_time)));
 
     uint32_t u = 0;
-    if (aft->statslog_ctx->flags & JSON_STATS_TOTALS) {
+    if (flags & JSON_STATS_TOTALS) {
         for (u = 0; u < st->nstats; u++) {
             if (st->stats[u].name == NULL)
                 continue;
@@ -134,7 +119,8 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
             if (js_type != NULL) {
                 json_object_set_new(js_type, shortname,
                     json_integer(st->stats[u].value));
-                if (aft->statslog_ctx->flags & JSON_STATS_DELTAS) {
+
+                if (flags & JSON_STATS_DELTAS) {
                     char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
                     snprintf(deltaname, sizeof(deltaname), "%s%s", shortname,
                         delta_suffix);
@@ -146,12 +132,12 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
     }
 
     /* per thread stats - stored in a "threads" object. */
-    if (st->tstats != NULL && (aft->statslog_ctx->flags & JSON_STATS_THREADS)) {
+    if (st->tstats != NULL && (flags & JSON_STATS_THREADS)) {
         /* for each thread (store) */
         json_t *threads = json_object();
         if (unlikely(threads == NULL)) {
-            json_decref(js);
-            return 0;
+            json_decref(js_stats);
+            return NULL;
         }
         uint32_t x;
         for (x = 0; x < st->ntstats; x++) {
@@ -170,7 +156,7 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
                 if (js_type != NULL) {
                     json_object_set_new(js_type, shortname, json_integer(st->tstats[u].value));
 
-                    if (aft->statslog_ctx->flags & JSON_STATS_DELTAS) {
+                    if (flags & JSON_STATS_DELTAS) {
                         char deltaname[strlen(shortname) + strlen(delta_suffix) + 1];
                         snprintf(deltaname, sizeof(deltaname), "%s%s",
                             shortname, delta_suffix);
@@ -182,11 +168,35 @@ static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *
         }
         json_object_set_new(js_stats, "threads", threads);
     }
+    return js_stats;
+}
+
+static int JsonStatsLogger(ThreadVars *tv, void *thread_data, const StatsTable *st)
+{
+    SCEnter();
+    JsonStatsLogThread *aft = (JsonStatsLogThread *)thread_data;
+
+    struct timeval tval;
+    gettimeofday(&tval, NULL);
+
+    json_t *js = json_object();
+    if (unlikely(js == NULL))
+        return 0;
+    char timebuf[64];
+    CreateIsoTimeString(&tval, timebuf, sizeof(timebuf));
+    json_object_set_new(js, "timestamp", json_string(timebuf));
+    json_object_set_new(js, "event_type", json_string("stats"));
+
+    json_t *js_stats = StatsToJSON(st, aft->statslog_ctx->flags);
+    if (js_stats == NULL) {
+        json_decref(js);
+        return 0;
+    }
 
     json_object_set_new(js, "stats", js_stats);
 
-    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, buffer);
-    MemBufferReset(buffer);
+    OutputJSONBuffer(js, aft->statslog_ctx->file_ctx, &aft->buffer);
+    MemBufferReset(aft->buffer);
 
     json_object_clear(js_stats);
     json_object_del(js, "stats");
@@ -206,7 +216,7 @@ static TmEcode JsonStatsLogThreadInit(ThreadVars *t, void *initdata, void **data
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for json stats.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogStats.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -255,7 +265,7 @@ OutputCtx *OutputStatsLogInit(ConfNode *conf)
 {
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_STATS_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
@@ -326,6 +336,14 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *threads = ConfNodeLookupChildValue(conf, "threads");
         const char *deltas = ConfNodeLookupChildValue(conf, "deltas");
         SCLogDebug("totals %s threads %s deltas %s", totals, threads, deltas);
+
+        if ((totals != NULL && ConfValIsFalse(totals)) &&
+                (threads != NULL && ConfValIsFalse(threads))) {
+            SCFree(stats_ctx);
+            SCLogError(SC_ERR_JSON_STATS_LOG_NEGATED,
+                    "Cannot disable both totals and threads in stats logging");
+            return NULL;
+        }
 
         if (totals != NULL && ConfValIsFalse(totals)) {
             stats_ctx->flags &= ~JSON_STATS_TOTALS;

@@ -70,30 +70,7 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].RegisterTests = DetectFilesizeRegisterTests;
     sigmatch_table[DETECT_FILESIZE].flags |= SIGMATCH_PAYLOAD; /** XXX necessary? */
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    if (parse_regex != NULL)
-        SCFree(parse_regex);
-    if (parse_regex_study != NULL)
-        SCFree(parse_regex_study);
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -342,11 +319,9 @@ static void DetectFilesizeFree(void *ptr)
 }
 
 #ifdef UNITTESTS
-
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
@@ -522,11 +497,11 @@ end:
 void DetectFilesizeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFilesizeParseTest01", DetectFilesizeParseTest01, 1);
-    UtRegisterTest("DetectFilesizeParseTest02", DetectFilesizeParseTest02, 1);
-    UtRegisterTest("DetectFilesizeParseTest03", DetectFilesizeParseTest03, 1);
-    UtRegisterTest("DetectFilesizeParseTest04", DetectFilesizeParseTest04, 1);
-    UtRegisterTest("DetectFilesizeParseTest05", DetectFilesizeParseTest05, 1);
-    UtRegisterTest("DetectFilesizeSetpTest01", DetectFilesizeSetpTest01, 1);
+    UtRegisterTest("DetectFilesizeParseTest01", DetectFilesizeParseTest01);
+    UtRegisterTest("DetectFilesizeParseTest02", DetectFilesizeParseTest02);
+    UtRegisterTest("DetectFilesizeParseTest03", DetectFilesizeParseTest03);
+    UtRegisterTest("DetectFilesizeParseTest04", DetectFilesizeParseTest04);
+    UtRegisterTest("DetectFilesizeParseTest05", DetectFilesizeParseTest05);
+    UtRegisterTest("DetectFilesizeSetpTest01", DetectFilesizeSetpTest01);
 #endif /* UNITTESTS */
 }

@@ -82,28 +82,7 @@ void DetectHostbitsRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_HOSTBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 static int DetectHostbitMatchToggle (Packet *p, const DetectXbitsData *fd)
@@ -1456,18 +1435,18 @@ end:
 void HostBitsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01, 1);
-    UtRegisterTest("HostBitsTestSig01", HostBitsTestSig01, 1);
-    UtRegisterTest("HostBitsTestSig02", HostBitsTestSig02, 1);
+    UtRegisterTest("HostBitsTestParse01", HostBitsTestParse01);
+    UtRegisterTest("HostBitsTestSig01", HostBitsTestSig01);
+    UtRegisterTest("HostBitsTestSig02", HostBitsTestSig02);
 #if 0
     UtRegisterTest("HostBitsTestSig03", HostBitsTestSig03, 0);
 #endif
-    UtRegisterTest("HostBitsTestSig04", HostBitsTestSig04, 1);
-    UtRegisterTest("HostBitsTestSig05", HostBitsTestSig05, 1);
+    UtRegisterTest("HostBitsTestSig04", HostBitsTestSig04);
+    UtRegisterTest("HostBitsTestSig05", HostBitsTestSig05);
 #if 0
     UtRegisterTest("HostBitsTestSig06", HostBitsTestSig06, 1);
 #endif
-    UtRegisterTest("HostBitsTestSig07", HostBitsTestSig07, 1);
-    UtRegisterTest("HostBitsTestSig08", HostBitsTestSig08, 1);
+    UtRegisterTest("HostBitsTestSig07", HostBitsTestSig07);
+    UtRegisterTest("HostBitsTestSig08", HostBitsTestSig08);
 #endif /* UNITTESTS */
 }

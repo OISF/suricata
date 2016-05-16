@@ -68,6 +68,7 @@ void StreamTcpUTClearSession(TcpSession *ssn)
 {
     StreamTcpUTClearStream(&ssn->client);
     StreamTcpUTClearStream(&ssn->server);
+    StreamTcpSessionCleanup(ssn);
 }
 
 void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
@@ -80,7 +81,7 @@ void StreamTcpUTSetupStream(TcpStream *s, uint32_t isn)
 
 void StreamTcpUTClearStream(TcpStream *s)
 {
-    StreamTcpReturnStreamSegments(s);
+    StreamTcpStreamCleanup(s);
 }
 
 int StreamTcpUTAddSegmentWithPayload(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, TcpStream *stream, uint32_t seq, uint8_t *payload, uint16_t len)
@@ -256,9 +257,9 @@ end:
 void StreamTcpUtilRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StreamTcpUtilTest01", StreamTcpUtilTest01, 1);
-    UtRegisterTest("StreamTcpUtilStreamTest01", StreamTcpUtilStreamTest01, 1);
-    UtRegisterTest("StreamTcpUtilStreamTest02", StreamTcpUtilStreamTest02, 1);
+    UtRegisterTest("StreamTcpUtilTest01", StreamTcpUtilTest01);
+    UtRegisterTest("StreamTcpUtilStreamTest01", StreamTcpUtilStreamTest01);
+    UtRegisterTest("StreamTcpUtilStreamTest02", StreamTcpUtilStreamTest02);
 #endif /* UNITTESTS */
 }
 

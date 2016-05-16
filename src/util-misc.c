@@ -34,7 +34,7 @@ static pcre_extra *parse_regex_study = NULL;
 
 void ParseSizeInit(void)
 {
-    const char *eb;
+    const char *eb = NULL;
     int eo;
     int opts = 0;
 
@@ -1134,7 +1134,8 @@ int UtilMiscParseSizeStringTest01(void)
 void UtilMiscRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("UtilMiscParseSizeStringTest01", UtilMiscParseSizeStringTest01, 1);
+    UtRegisterTest("UtilMiscParseSizeStringTest01",
+                   UtilMiscParseSizeStringTest01);
 #endif /* UNITTESTS */
 
     return;

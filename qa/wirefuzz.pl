@@ -2,7 +2,7 @@
 #Author:William Metcalf <william.metcalf@gmail.com>
 #File:wirefuzz.pl
 
-#Copyright (C) 2010 Open Information Security Foundation
+#Copyright (C) 2010-2015 Open Information Security Foundation
 
 #You can copy, redistribute or modify this Program under the terms of
 #the GNU General Public License version 2 as published by the Free
@@ -55,7 +55,7 @@ use Capture::Tiny 'capture';
 use List::Util 'shuffle';
 use Devel::GDB;
 use File::Find;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use File::Basename;
 
 #globals
@@ -64,7 +64,9 @@ my @tmpfiles;
 my @files;
 my $suricatabin;
 my $loopnum;
+my $loopnum_per_file = 0;
 my $rules;
+my $rules_exclusive = 0;
 my $logdir;
 my $configfile;
 my $editeratio;
@@ -80,7 +82,7 @@ my $keeplogs;
 my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s x=s k y z=s h help) );
+GetOptions( \%config, qw(n=s N=s r=s c=s e=s v=s p=s l=s s=s S=s x=s k y z=s h help) );
 
 &parseopts();
 
@@ -97,7 +99,7 @@ sub parseopts {
         @tmpfiles = <$config{r}>;
         if(@tmpfiles eq 0){
             print "parseopts: Pcap filemask was invalid we couldn't find any matching files\n";
-            exit;
+            exit(1);
         } else {
             #escapes for filenames
             foreach my $file (@tmpfiles) {
@@ -142,7 +144,7 @@ sub parseopts {
         }
         else {
             print "parseopts: suricata bin file is not a text or a bin exiting.\n";
-            exit;
+            exit(1);
         }
     }
     else {
@@ -150,14 +152,31 @@ sub parseopts {
         &printhelp();
     }
 
+    if ( $config{n} && $config{N} ) {
+        print "ERROR: can't mix -n and -N\n";
+        exit(1);
+    }
+
     #number of times to loop
     if ( $config{n} ) {
         $loopnum = $config{n};
+        $loopnum_per_file = 1;
         print "parseopts: looping through the pcaps " . $loopnum . " times or until we have an error\n";
     }
     else {
-        print "parseopts: looping through the pcaps forever or until we have an error\n";
         $loopnum = "infinity";
+    }
+
+    if ( $config{N} ) {
+        $loopnum = $config{N};
+        print "parseopts: looping through the pcaps " . $loopnum . " times or until we have an error\n";
+    }
+    else {
+        $loopnum = "infinity";
+    }
+
+    if ( $loopnum == "infinity") {
+        print "parseopts: looping through the pcaps forever or until we have an error\n";
     }
 
     #rules file do we have a path and does it exist
@@ -169,9 +188,19 @@ sub parseopts {
         print("parseopts: rules file not specified or doesn't exist\n");
     }
 
+    # exclusive rules file: do we have a path and does it exist
+    if ( $config{S} && -e $config{S} ) {
+        $rules = $config{S};
+        $rules_exclusive = 1;
+        print "parseopts: telling suricata to use rules file exclusively " . $rules . "\n";
+    }
+    else {
+        print("parseopts: rules file not specified or doesn't exist\n");
+    }
+
     #log dir does it exist
     if ( $config{l} && -e $config{l} ) {
-        $logdir = $config{l};
+        $logdir = $config{l} . "/";
         print "parseopts: using log dir " . $logdir . "\n";
     }
     else {
@@ -199,7 +228,7 @@ sub parseopts {
         }
         else {
             print "parseopts: error ratio specified but outside of range. Valid range is 0.00-1.0\n";
-            exit;
+            exit(1);
         }
     }
     else {
@@ -275,7 +304,9 @@ sub printhelp {
         -h or help <this output>
         -r=<filemask for pcaps to read>
         -n=<(optional) number of iterations or if not specified will run until error>
+        -N=<(optional) number of iterations of all files in the test set>
         -s=<(optional) path to ids rules file will be passed as -s to suricata>
+        -S=<(optional) path to ids rules file will be passed as -S to suricata>
         -e=<(optional) editcap error ratio to introduce if not specified will not fuzz. Valid range for this is 0.00 - 1.0>
         -p=<path to the suricata bin>
         -l=<(optional) log dir for output if not specified will use current directory.>
@@ -352,7 +383,7 @@ while ( $successcnt < $loopnum ) {
                 #this could still cause us to loop forever if all pcaps are bad but it's better than nothing.
                 if ( @files < 2 ) {
                     print "editcap: had an error and this was our only pcap:" . $editcaperr . "\n";
-                    exit;
+                    exit(1);
                 }
                 else {
                     print "editcap: had an error going to the next pcap:" . $editcaperr . "\n";
@@ -361,7 +392,7 @@ while ( $successcnt < $loopnum ) {
             }
             elsif ( $editcap_sys_signal eq 2 ) {
                 print "editcap: system() got a ctl+c we are bailing as well\n";
-                exit;
+                exit(1);
 
             }
             else {
@@ -426,7 +457,11 @@ while ( $successcnt < $loopnum ) {
             . $fuzzedfile . " -l "
             . $logdir;
         if ( defined $rules ) {
-            $fullcmd = $fullcmd . " -s " . $rules;
+            if ($rules_exclusive == 1) {
+                $fullcmd = $fullcmd . " -S " . $rules;
+            } else {
+                $fullcmd = $fullcmd . " -s " . $rules;
+            }
         }
         print "suricata: $fullcmd \n";
         my $starttime = time();
@@ -457,7 +492,9 @@ while ( $successcnt < $loopnum ) {
                 $knownerr = 1;
             }
             if ( $knownerr eq 1 ) {
-                $successcnt++;
+                if ($loopnum_per_file == 1) {
+                    $successcnt++;
+                }
                 print "suricata: we have run with success " . $successcnt . " times\n";
                 if( $keeplogs eq "yes" ) {
                     &keep_logs($fuzzedfilename);
@@ -482,7 +519,7 @@ while ( $successcnt < $loopnum ) {
                 }else{
                     &generate_report($report, $fullcmd, $out, $err, $exit, "none");
                 }
-                exit;
+                exit(1);
             }
         }
         elsif ( $suricata_sys_signal eq 2 ) {
@@ -494,18 +531,10 @@ while ( $successcnt < $loopnum ) {
             exit;
         }
         else {
-            if ( $out =~ /Max memuse of stream engine \d+ \(in use (\d+)\)/ ) {
-                if ($1 != 0) {
-                    $report = $logdir . $fuzzedfilename . "-OUT.txt";
-                    &generate_report($report, $fullcmd, $out, $err, $exit, "none");
-                    print "Stream leak detected " . $1 . " was still in use at exit see " . $report . " for more details\n";
-                    exit;
-                }
-            } else {
-                print "Stream mem counter could not be found in output\n";
+            if ($loopnum_per_file == 1) {
+                $successcnt++;
             }
 
-            $successcnt++;
             print "suricata: we have run with success " . $successcnt . " times\n";
             print "******************Suricata Complete**********************\n";
             if( $keeplogs eq "yes" ) {
@@ -516,6 +545,16 @@ while ( $successcnt < $loopnum ) {
             &clean_logs($fuzzedfilename,$file_was_fuzzed);
             print "******************Next Packet or Exit *******************\n";
         }
+
+        if ($successcnt >= $loopnum) {
+            last;
+        }
+    }
+    if ($loopnum_per_file == 0) {
+        $successcnt++;
+    }
+    if ($successcnt >= $loopnum) {
+        last;
     }
 }
 
@@ -576,15 +615,14 @@ sub clean_logs {
         #system("$rmcmd");
     }
 
-    if ( unlink(<$logdir . unified*>) > 0 ) {
-        print "clean_logs: removed unified logs for next run \n";
+    foreach my $file (glob "$logdir/unified2.* $logdir/*.log $logdir/*.json") {
+        #print $file . "\n";
+        if (unlink($file) <= 0) {
+            print "clean_logs: failed to delete log file $file\n";
+        }
     }
-    else {
-        print "clean_logs: failed to delete unified logs\n:";
-    }
-    print "******************Log Cleanup Complete**********************\n";
-    return;
 
+    return;
 }
 
 sub keep_logs {

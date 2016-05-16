@@ -420,7 +420,7 @@ static int MD5MatchTest01(void)
 void DetectFileMd5RegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("MD5MatchTest01", MD5MatchTest01, 1);
+    UtRegisterTest("MD5MatchTest01", MD5MatchTest01);
 #endif
 }
 

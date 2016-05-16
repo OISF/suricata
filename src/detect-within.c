@@ -36,7 +36,6 @@
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
 #include "app-layer.h"
-#include "detect-parse.h"
 
 #include "flow-var.h"
 
@@ -74,12 +73,14 @@ static int DetectWithinSetup(DetectEngineCtx *de_ctx, Signature *s, char *within
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* strip "'s */
-    if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (withinstr[0] == '\"') {
         str = SCStrdup(withinstr+1);
         if (unlikely(str == NULL))
             goto end;
-        str[strlen(withinstr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 
@@ -285,8 +286,8 @@ end:
 void DetectWithinRegisterTests(void)
 {
     #ifdef UNITTESTS
-    UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01, 1);
-    UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02, 1);
-    UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup, 1);
+    UtRegisterTest("DetectWithinTestPacket01", DetectWithinTestPacket01);
+    UtRegisterTest("DetectWithinTestPacket02", DetectWithinTestPacket02);
+    UtRegisterTest("DetectWithinTestVarSetup", DetectWithinTestVarSetup);
     #endif /* UNITTESTS */
 }

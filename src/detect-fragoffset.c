@@ -61,25 +61,7 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].Free = DetectFragOffsetFree;
     sigmatch_table[DETECT_FRAGOFFSET].RegisterTests = DetectFragOffsetRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE,"pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY,"pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -256,8 +238,6 @@ void DetectFragOffsetFree (void *ptr)
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -299,9 +279,9 @@ int DetectFragOffsetParseTest03 (void)
     fragoff = DetectFragOffsetParse("badc");
     if (fragoff != NULL) {
         DetectFragOffsetFree(fragoff);
-        return 1;
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 /**
@@ -387,10 +367,10 @@ end:
 void DetectFragOffsetRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFragOffsetParseTest01", DetectFragOffsetParseTest01, 1);
-    UtRegisterTest("DetectFragOffsetParseTest02", DetectFragOffsetParseTest02, 1);
-    UtRegisterTest("DetectFragOffsetParseTest03", DetectFragOffsetParseTest03, 0);
-    UtRegisterTest("DetectFragOffsetMatchTest01", DetectFragOffsetMatchTest01, 1);
+    UtRegisterTest("DetectFragOffsetParseTest01", DetectFragOffsetParseTest01);
+    UtRegisterTest("DetectFragOffsetParseTest02", DetectFragOffsetParseTest02);
+    UtRegisterTest("DetectFragOffsetParseTest03", DetectFragOffsetParseTest03);
+    UtRegisterTest("DetectFragOffsetMatchTest01", DetectFragOffsetMatchTest01);
 #endif /* UNITTESTS */
 }
 

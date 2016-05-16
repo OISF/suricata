@@ -39,10 +39,12 @@ typedef struct TmqhFlowCtx_ {
 
     TmqhFlowMode *queues;
 
-    SC_ATOMIC_DECLARE(uint16_t, round_robin_idx);
+    SC_ATOMIC_DECLARE(int16_t, round_robin_idx);
 } TmqhFlowCtx;
 
 void TmqhFlowRegister (void);
 void TmqhFlowRegisterTests(void);
+
+void TmqhFlowPrintAutofpHandler(void);
 
 #endif /* __TMQH_FLOW_H__ */

@@ -163,9 +163,9 @@ FILE *SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx, FILE *fd)
 static char *SCClassConfGetConfFilename(const DetectEngineCtx *de_ctx)
 {
     char *log_filename = NULL;
-    char config_value[256] = "";
 
     if (de_ctx != NULL && strlen(de_ctx->config_prefix) > 0) {
+        char config_value[256];
         snprintf(config_value, sizeof(config_value),
                  "%s.classification-file", de_ctx->config_prefix);
 
@@ -827,12 +827,12 @@ void SCClassConfRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("SCClassConfTest01", SCClassConfTest01, 1);
-    UtRegisterTest("SCClassConfTest02", SCClassConfTest02, 1);
-    UtRegisterTest("SCClassConfTest03", SCClassConfTest03, 1);
-    UtRegisterTest("SCClassConfTest04", SCClassConfTest04, 1);
-    UtRegisterTest("SCClassConfTest05", SCClassConfTest05, 1);
-    UtRegisterTest("SCClassConfTest06", SCClassConfTest06, 1);
+    UtRegisterTest("SCClassConfTest01", SCClassConfTest01);
+    UtRegisterTest("SCClassConfTest02", SCClassConfTest02);
+    UtRegisterTest("SCClassConfTest03", SCClassConfTest03);
+    UtRegisterTest("SCClassConfTest04", SCClassConfTest04);
+    UtRegisterTest("SCClassConfTest05", SCClassConfTest05);
+    UtRegisterTest("SCClassConfTest06", SCClassConfTest06);
 
 #endif /* UNITTESTS */
 

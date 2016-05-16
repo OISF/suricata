@@ -230,9 +230,9 @@ void *ParsePfringConfig(const char *iface)
         return pfconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(pf_ring_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(pf_ring_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(pf_ring_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(pf_ring_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find pfring config for "
@@ -354,9 +354,9 @@ void *ParsePfringConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpctype, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpctype)) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpctype, "no") == 0) {
+        } else if (ConfValIsFalse(tmpctype)) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else if (strcmp(tmpctype, "rx-only") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
@@ -437,7 +437,7 @@ int RunModeIdsPfringAutoFp(void)
     ret = RunModeSetLiveCaptureAutoFp(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -474,7 +474,7 @@ int RunModeIdsPfringSingle(void)
     ret = RunModeSetLiveCaptureSingle(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_single,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
@@ -511,7 +511,7 @@ int RunModeIdsPfringWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",
-                              "DecodePfring", "RxPFR",
+                              "DecodePfring", thread_name_workers,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");

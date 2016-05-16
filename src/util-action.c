@@ -163,7 +163,6 @@ int ActionInitConfig()
 }
 
 #ifdef UNITTESTS
-#include "util-unittest.h"
 
 /**
  * \test Check that we invalidate duplicated actions
@@ -1598,30 +1597,30 @@ void UtilActionRegisterTests(void)
 {
 #ifdef UNITTESTS
     /* Generic tests */
-    UtRegisterTest("UtilActionTest01", UtilActionTest01, 1);
-    UtRegisterTest("UtilActionTest02", UtilActionTest02, 1);
-    UtRegisterTest("UtilActionTest02", UtilActionTest02, 1);
-    UtRegisterTest("UtilActionTest03", UtilActionTest03, 1);
-    UtRegisterTest("UtilActionTest04", UtilActionTest04, 1);
-    UtRegisterTest("UtilActionTest05", UtilActionTest05, 1);
-    UtRegisterTest("UtilActionTest06", UtilActionTest06, 1);
-    UtRegisterTest("UtilActionTest07", UtilActionTest07, 1);
-    UtRegisterTest("UtilActionTest08", UtilActionTest08, 1);
-    UtRegisterTest("UtilActionTest09", UtilActionTest09, 1);
-    UtRegisterTest("UtilActionTest10", UtilActionTest10, 1);
-    UtRegisterTest("UtilActionTest11", UtilActionTest11, 1);
-    UtRegisterTest("UtilActionTest12", UtilActionTest12, 1);
-    UtRegisterTest("UtilActionTest13", UtilActionTest13, 1);
-    UtRegisterTest("UtilActionTest14", UtilActionTest14, 1);
-    UtRegisterTest("UtilActionTest15", UtilActionTest15, 1);
-    UtRegisterTest("UtilActionTest16", UtilActionTest16, 1);
-    UtRegisterTest("UtilActionTest17", UtilActionTest17, 1);
-    UtRegisterTest("UtilActionTest18", UtilActionTest18, 1);
-    UtRegisterTest("UtilActionTest19", UtilActionTest19, 1);
-    UtRegisterTest("UtilActionTest20", UtilActionTest20, 1);
-    UtRegisterTest("UtilActionTest21", UtilActionTest21, 1);
-    UtRegisterTest("UtilActionTest22", UtilActionTest22, 1);
-    UtRegisterTest("UtilActionTest23", UtilActionTest23, 1);
-    UtRegisterTest("UtilActionTest24", UtilActionTest24, 1);
+    UtRegisterTest("UtilActionTest01", UtilActionTest01);
+    UtRegisterTest("UtilActionTest02", UtilActionTest02);
+    UtRegisterTest("UtilActionTest02", UtilActionTest02);
+    UtRegisterTest("UtilActionTest03", UtilActionTest03);
+    UtRegisterTest("UtilActionTest04", UtilActionTest04);
+    UtRegisterTest("UtilActionTest05", UtilActionTest05);
+    UtRegisterTest("UtilActionTest06", UtilActionTest06);
+    UtRegisterTest("UtilActionTest07", UtilActionTest07);
+    UtRegisterTest("UtilActionTest08", UtilActionTest08);
+    UtRegisterTest("UtilActionTest09", UtilActionTest09);
+    UtRegisterTest("UtilActionTest10", UtilActionTest10);
+    UtRegisterTest("UtilActionTest11", UtilActionTest11);
+    UtRegisterTest("UtilActionTest12", UtilActionTest12);
+    UtRegisterTest("UtilActionTest13", UtilActionTest13);
+    UtRegisterTest("UtilActionTest14", UtilActionTest14);
+    UtRegisterTest("UtilActionTest15", UtilActionTest15);
+    UtRegisterTest("UtilActionTest16", UtilActionTest16);
+    UtRegisterTest("UtilActionTest17", UtilActionTest17);
+    UtRegisterTest("UtilActionTest18", UtilActionTest18);
+    UtRegisterTest("UtilActionTest19", UtilActionTest19);
+    UtRegisterTest("UtilActionTest20", UtilActionTest20);
+    UtRegisterTest("UtilActionTest21", UtilActionTest21);
+    UtRegisterTest("UtilActionTest22", UtilActionTest22);
+    UtRegisterTest("UtilActionTest23", UtilActionTest23);
+    UtRegisterTest("UtilActionTest24", UtilActionTest24);
 #endif
 }

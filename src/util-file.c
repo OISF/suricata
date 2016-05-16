@@ -36,6 +36,11 @@
 #include "app-layer-parser.h"
 #include "util-validate.h"
 
+/** \brief switch to force filestore on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_filestore = 0;
+
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
  */
@@ -55,6 +60,11 @@ static int g_file_force_tracking = 0;
 static void FileFree(File *);
 static void FileDataFree(FileData *);
 
+void FileForceFilestoreEnable(void)
+{
+    g_file_force_filestore = 1;
+}
+
 void FileForceMagicEnable(void)
 {
     g_file_force_magic = 1;
@@ -63,6 +73,11 @@ void FileForceMagicEnable(void)
 void FileForceMd5Enable(void)
 {
     g_file_force_md5 = 1;
+}
+
+int FileForceFilestore(void)
+{
+    return g_file_force_filestore;
 }
 
 int FileForceMagic(void)
@@ -158,6 +173,14 @@ static int FilePruneFile(File *file)
         SCLogDebug("fd %p", fd);
 
         if (file->flags & FILE_NOSTORE || fd->stored == 1) {
+            /* keep chunks in memory as long as we still need to
+             * inspect them or parts of them */
+            if (file->flags & FILE_USE_DETECT) {
+                uint64_t right_edge = fd->stream_offset + fd->len;
+                if (file->content_inspected < right_edge)
+                    break;
+            }
+
             file->chunks_head = fd->next;
             if (file->chunks_tail == fd)
                 file->chunks_tail = fd->next;
@@ -175,6 +198,8 @@ static int FilePruneFile(File *file)
             break;
         }
     }
+
+    SCLogDebug("file->state %d. Is >= FILE_STATE_CLOSED: %s", file->state, (file->state >= FILE_STATE_CLOSED) ? "yes" : "no");
 
     /* file is done when state is closed+, logging/storing is done (if any) */
     if (file->state >= FILE_STATE_CLOSED &&
@@ -196,6 +221,8 @@ void FilePrune(FileContainer *ffc)
             break;
 
         BUG_ON(file != ffc->head);
+
+        SCLogDebug("removing file %p", file);
 
         File *file_next = file->next;
 
@@ -276,7 +303,7 @@ void FileContainerFree(FileContainer *ffc)
  *
  *  \retval new FileData object
  */
-static FileData *FileDataAlloc(uint8_t *data, uint32_t data_len)
+static FileData *FileDataAlloc(const uint8_t *data, uint32_t data_len)
 {
     FileData *new = SCMalloc(sizeof(FileData));
     if (unlikely(new == NULL)) {
@@ -324,7 +351,7 @@ static void FileDataFree(FileData *ffd)
  *
  *  \retval new File object or NULL on error
  */
-static File *FileAlloc(uint8_t *name, uint16_t name_len)
+static File *FileAlloc(const uint8_t *name, uint16_t name_len)
 {
     File *new = SCMalloc(sizeof(File));
     if (unlikely(new == NULL)) {
@@ -450,7 +477,7 @@ static int FileStoreNoStoreCheck(File *ff)
  *  \retval -1 error
  *  \retval -2 no store for this file
  */
-int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
+int FileAppendData(FileContainer *ffc, const uint8_t *data, uint32_t data_len)
 {
     SCEnter();
 
@@ -522,8 +549,8 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len)
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *ffc, uint8_t *name,
-        uint16_t name_len, uint8_t *data, uint32_t data_len, uint8_t flags)
+File *FileOpenFile(FileContainer *ffc, const uint8_t *name, uint16_t name_len,
+        const uint8_t *data, uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -534,8 +561,8 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         SCReturnPtr(NULL, "File");
     }
 
-    if (flags & FILE_STORE) {
-        ff->flags |= FILE_STORE;
+    if (flags & FILE_STORE || g_file_force_filestore) {
+        FileStore(ff);
     } else if (flags & FILE_NOSTORE) {
         SCLogDebug("not storing this file");
         ff->flags |= FILE_NOSTORE;
@@ -547,6 +574,10 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     if (flags & FILE_NOMD5) {
         SCLogDebug("not doing md5 for this file");
         ff->flags |= FILE_NOMD5;
+    }
+    if (flags & FILE_USE_DETECT) {
+        SCLogDebug("considering content_inspect tracker when pruning");
+        ff->flags |= FILE_USE_DETECT;
     }
 
 #ifdef HAVE_NSS
@@ -585,8 +616,8 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
     SCReturnPtr(ff, "File");
 }
 
-static int FileCloseFilePtr(File *ff, uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+static int FileCloseFilePtr(File *ff, const uint8_t *data,
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -661,8 +692,8 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *ffc, uint8_t *data,
-        uint32_t data_len, uint8_t flags)
+int FileCloseFile(FileContainer *ffc, const uint8_t *data,
+        uint32_t data_len, uint16_t flags)
 {
     SCEnter();
 
@@ -882,7 +913,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t file_id)
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->file_id == file_id) {
-                ptr->flags |= FILE_STORE;
+                FileStore(ptr);
             }
         }
     }
@@ -897,7 +928,7 @@ void FileStoreAllFilesForTx(FileContainer *fc, uint64_t tx_id)
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->txid == tx_id) {
-                ptr->flags |= FILE_STORE;
+                FileStore(ptr);
             }
         }
     }
@@ -911,7 +942,7 @@ void FileStoreAllFiles(FileContainer *fc)
 
     if (fc != NULL) {
         for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
-            ptr->flags |= FILE_STORE;
+            FileStore(ptr);
         }
     }
 }

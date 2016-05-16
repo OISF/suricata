@@ -45,9 +45,9 @@
  * to be reallocated to other writers.
  */
 
-#ifdef __SC_CUDA_SUPPORT__
 
 #include "suricata-common.h"
+#ifdef __SC_CUDA_SUPPORT__
 #include "suricata.h"
 
 #include "util-atomic.h"
@@ -1344,12 +1344,12 @@ int CudaBufferTest06(void)
 void CudaBufferRegisterUnittests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("CudaBufferTest01", CudaBufferTest01, 1);
-    UtRegisterTest("CudaBufferTest02", CudaBufferTest02, 1);
-    UtRegisterTest("CudaBufferTest03", CudaBufferTest03, 1);
-    UtRegisterTest("CudaBufferTest04", CudaBufferTest04, 1);
-    UtRegisterTest("CudaBufferTest05", CudaBufferTest05, 1);
-    UtRegisterTest("CudaBufferTest06", CudaBufferTest06, 1);
+    UtRegisterTest("CudaBufferTest01", CudaBufferTest01);
+    UtRegisterTest("CudaBufferTest02", CudaBufferTest02);
+    UtRegisterTest("CudaBufferTest03", CudaBufferTest03);
+    UtRegisterTest("CudaBufferTest04", CudaBufferTest04);
+    UtRegisterTest("CudaBufferTest05", CudaBufferTest05);
+    UtRegisterTest("CudaBufferTest06", CudaBufferTest06);
 #endif
 
     return;

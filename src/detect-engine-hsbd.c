@@ -62,6 +62,8 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
+#include "util-validate.h"
+
 #define BUFFER_STEP 50
 
 static inline int HSBDCreateSpace(DetectEngineThreadCtx *det_ctx, uint64_t size)
@@ -313,6 +315,35 @@ static uint8_t *DetectEngineHSBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_id,
     return buffer;
 }
 
+/** \brief Http server body pattern match -- searches for one pattern per
+ *         signature.
+ *
+ *  \param det_ctx  Detection engine thread ctx.
+ *  \param body     The request body to inspect.
+ *  \param body_len Body length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *body, const uint32_t body_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hsbd_ctx_tc == NULL);
+
+    if (body_len >= det_ctx->sgh->mpm_hsbd_ctx_tc->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
+                    &det_ctx->pmq, body, body_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
 int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
                                      DetectEngineThreadCtx *det_ctx, Flow *f,
                                      HtpState *htp_state, uint8_t flags,
@@ -321,7 +352,7 @@ int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
     uint32_t cnt = 0;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
-    uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, idx,
+    const uint8_t *buffer = DetectEngineHSBDGetBufferForTX(tx, idx,
                                                      de_ctx, det_ctx,
                                                      f, htp_state,
                                                      flags,
@@ -4425,86 +4456,86 @@ void DetectEngineHttpServerBodyRegisterTests(void)
 
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpServerBodyTest01",
-                   DetectEngineHttpServerBodyTest01, 1);
+                   DetectEngineHttpServerBodyTest01);
     UtRegisterTest("DetectEngineHttpServerBodyTest02",
-                   DetectEngineHttpServerBodyTest02, 1);
+                   DetectEngineHttpServerBodyTest02);
     UtRegisterTest("DetectEngineHttpServerBodyTest03",
-                   DetectEngineHttpServerBodyTest03, 1);
+                   DetectEngineHttpServerBodyTest03);
     UtRegisterTest("DetectEngineHttpServerBodyTest04",
-                   DetectEngineHttpServerBodyTest04, 1);
+                   DetectEngineHttpServerBodyTest04);
     UtRegisterTest("DetectEngineHttpServerBodyTest05",
-                   DetectEngineHttpServerBodyTest05, 1);
+                   DetectEngineHttpServerBodyTest05);
     UtRegisterTest("DetectEngineHttpServerBodyTest06",
-                   DetectEngineHttpServerBodyTest06, 1);
+                   DetectEngineHttpServerBodyTest06);
     UtRegisterTest("DetectEngineHttpServerBodyTest07",
-                   DetectEngineHttpServerBodyTest07, 1);
+                   DetectEngineHttpServerBodyTest07);
     UtRegisterTest("DetectEngineHttpServerBodyTest08",
-                   DetectEngineHttpServerBodyTest08, 1);
+                   DetectEngineHttpServerBodyTest08);
     UtRegisterTest("DetectEngineHttpServerBodyTest09",
-                   DetectEngineHttpServerBodyTest09, 1);
+                   DetectEngineHttpServerBodyTest09);
     UtRegisterTest("DetectEngineHttpServerBodyTest10",
-                   DetectEngineHttpServerBodyTest10, 1);
+                   DetectEngineHttpServerBodyTest10);
     UtRegisterTest("DetectEngineHttpServerBodyTest11",
-                   DetectEngineHttpServerBodyTest11, 1);
+                   DetectEngineHttpServerBodyTest11);
     UtRegisterTest("DetectEngineHttpServerBodyTest12",
-                   DetectEngineHttpServerBodyTest12, 1);
+                   DetectEngineHttpServerBodyTest12);
     UtRegisterTest("DetectEngineHttpServerBodyTest13",
-                   DetectEngineHttpServerBodyTest13, 1);
+                   DetectEngineHttpServerBodyTest13);
     UtRegisterTest("DetectEngineHttpServerBodyTest14",
-                   DetectEngineHttpServerBodyTest14, 1);
+                   DetectEngineHttpServerBodyTest14);
     UtRegisterTest("DetectEngineHttpServerBodyTest15",
-                   DetectEngineHttpServerBodyTest15, 1);
+                   DetectEngineHttpServerBodyTest15);
     UtRegisterTest("DetectEngineHttpServerBodyTest16",
-                   DetectEngineHttpServerBodyTest16, 1);
+                   DetectEngineHttpServerBodyTest16);
     UtRegisterTest("DetectEngineHttpServerBodyTest17",
-                   DetectEngineHttpServerBodyTest17, 1);
+                   DetectEngineHttpServerBodyTest17);
     UtRegisterTest("DetectEngineHttpServerBodyTest18",
-                   DetectEngineHttpServerBodyTest18, 1);
+                   DetectEngineHttpServerBodyTest18);
     UtRegisterTest("DetectEngineHttpServerBodyTest19",
-                   DetectEngineHttpServerBodyTest19, 1);
+                   DetectEngineHttpServerBodyTest19);
     UtRegisterTest("DetectEngineHttpServerBodyTest20",
-                   DetectEngineHttpServerBodyTest20, 1);
+                   DetectEngineHttpServerBodyTest20);
     UtRegisterTest("DetectEngineHttpServerBodyTest21",
-                   DetectEngineHttpServerBodyTest21, 1);
+                   DetectEngineHttpServerBodyTest21);
     UtRegisterTest("DetectEngineHttpServerBodyTest22",
-                   DetectEngineHttpServerBodyTest22, 1);
+                   DetectEngineHttpServerBodyTest22);
 
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest01",
-                   DetectEngineHttpServerBodyFileDataTest01, 1);
+                   DetectEngineHttpServerBodyFileDataTest01);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest02",
-                   DetectEngineHttpServerBodyFileDataTest02, 1);
+                   DetectEngineHttpServerBodyFileDataTest02);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest03",
-                   DetectEngineHttpServerBodyFileDataTest03, 1);
+                   DetectEngineHttpServerBodyFileDataTest03);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest04",
-                   DetectEngineHttpServerBodyFileDataTest04, 1);
+                   DetectEngineHttpServerBodyFileDataTest04);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest05",
-                  DetectEngineHttpServerBodyFileDataTest05, 1);
+                   DetectEngineHttpServerBodyFileDataTest05);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest06",
-                  DetectEngineHttpServerBodyFileDataTest06, 1);
+                   DetectEngineHttpServerBodyFileDataTest06);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest07",
-                  DetectEngineHttpServerBodyFileDataTest07, 1);
+                   DetectEngineHttpServerBodyFileDataTest07);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest08",
-                  DetectEngineHttpServerBodyFileDataTest08, 1);
+                   DetectEngineHttpServerBodyFileDataTest08);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest09",
-                  DetectEngineHttpServerBodyFileDataTest09, 1);
+                   DetectEngineHttpServerBodyFileDataTest09);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest10",
-                  DetectEngineHttpServerBodyFileDataTest10, 1);
+                   DetectEngineHttpServerBodyFileDataTest10);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest11",
-                  DetectEngineHttpServerBodyFileDataTest11, 1);
+                   DetectEngineHttpServerBodyFileDataTest11);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest12",
-                  DetectEngineHttpServerBodyFileDataTest12, 1);
+                   DetectEngineHttpServerBodyFileDataTest12);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest13",
-                  DetectEngineHttpServerBodyFileDataTest13, 1);
+                   DetectEngineHttpServerBodyFileDataTest13);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest14",
-                  DetectEngineHttpServerBodyFileDataTest14, 1);
+                   DetectEngineHttpServerBodyFileDataTest14);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest15",
-                  DetectEngineHttpServerBodyFileDataTest15, 1);
+                   DetectEngineHttpServerBodyFileDataTest15);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest16",
-                  DetectEngineHttpServerBodyFileDataTest16, 1);
+                   DetectEngineHttpServerBodyFileDataTest16);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest17",
-                  DetectEngineHttpServerBodyFileDataTest17, 1);
+                   DetectEngineHttpServerBodyFileDataTest17);
     UtRegisterTest("DetectEngineHttpServerBodyFileDataTest18",
-                  DetectEngineHttpServerBodyFileDataTest18, 1);
+                   DetectEngineHttpServerBodyFileDataTest18);
 
 #endif /* UNITTESTS */
 

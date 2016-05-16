@@ -240,7 +240,7 @@ static int DecodeVLANtest03 (void)
     DecodeVLAN(&tv, &dtv, p, raw_vlan, sizeof(raw_vlan), NULL);
 
 
-    if(p->vlanh == NULL) {
+    if(p->vlanh[0] == NULL) {
         goto error;
     }
 
@@ -268,9 +268,9 @@ error:
 void DecodeVLANRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeVLANtest01", DecodeVLANtest01, 1);
-    UtRegisterTest("DecodeVLANtest02", DecodeVLANtest02, 1);
-    UtRegisterTest("DecodeVLANtest03", DecodeVLANtest03, 1);
+    UtRegisterTest("DecodeVLANtest01", DecodeVLANtest01);
+    UtRegisterTest("DecodeVLANtest02", DecodeVLANtest02);
+    UtRegisterTest("DecodeVLANtest03", DecodeVLANtest03);
 #endif /* UNITTESTS */
 }
 

@@ -146,7 +146,7 @@ static void DetectAckFree(void *ptr)
  * \internal
  * \brief This test tests sameip success and failure.
  */
-static int DetectAckSigTest01Real(int mpm_type)
+static int DetectAckSigTest01(void)
 {
     Packet *p1 = NULL;
     Packet *p2 = NULL;
@@ -173,7 +173,6 @@ static int DetectAckSigTest01Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     /* These three are crammed in here as there is no Parse */
@@ -261,30 +260,6 @@ end:
     return result;
 }
 
-/**
- * \test DetectAckSigTest01B2g tests sameip under B2g MPM
- */
-static int DetectAckSigTest01B2g(void)
-{
-    return DetectAckSigTest01Real(MPM_B2G);
-}
-
-/**
- * \test DetectAckSigTest01B2g tests sameip under B3g MPM
- */
-static int DetectAckSigTest01B3g(void)
-{
-    return DetectAckSigTest01Real(MPM_B3G);
-}
-
-/**
- * \test DetectAckSigTest01B2g tests sameip under WuManber MPM
- */
-static int DetectAckSigTest01Wm(void)
-{
-    return DetectAckSigTest01Real(MPM_WUMANBER);
-}
-
 #endif /* UNITTESTS */
 
 /**
@@ -294,9 +269,7 @@ static int DetectAckSigTest01Wm(void)
 static void DetectAckRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectAckSigTest01B2g", DetectAckSigTest01B2g, 1);
-    UtRegisterTest("DetectAckSigTest01B3g", DetectAckSigTest01B3g, 1);
-    UtRegisterTest("DetectAckSigTest01Wm", DetectAckSigTest01Wm, 1);
+    UtRegisterTest("DetectAckSigTest01", DetectAckSigTest01);
 #endif /* UNITTESTS */
 }
 

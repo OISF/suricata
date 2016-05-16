@@ -349,7 +349,7 @@ PcieFile *TileOpenPcieFp(LogFileCtx *log_ctx, const char *path,
                          const char *append_setting)
 {
     PcieFile *ret = NULL;
-    if (strcasecmp(append_setting, "yes") == 0) {
+    if (ConfValIsTrue(append_setting)) {
         ret = TileOpenPcieFpInternal(path, 'a');
     } else {
         ret = TileOpenPcieFpInternal(path, 'w');

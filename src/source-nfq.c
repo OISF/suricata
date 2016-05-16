@@ -186,6 +186,7 @@ void TmModuleReceiveNFQRegister (void)
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = NULL;
     tmm_modules[TMM_RECEIVENFQ].PktAcqLoop = ReceiveNFQLoop;
+    tmm_modules[TMM_RECEIVENFQ].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
@@ -473,7 +474,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     }
 
     ret = nfq_get_timestamp(tb, &p->ts);
-    if (ret != 0) {
+    if (ret != 0 || p->ts.tv_sec == 0) {
         memset (&p->ts, 0, sizeof(struct timeval));
         gettimeofday(&p->ts, NULL);
     }
@@ -709,7 +710,7 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->tv = tv;
 
     int r = NFQInitThread(ntv, (max_pending_packets * NFQ_BURST_FACTOR));
-    if (r < 0) {
+    if (r != TM_ECODE_OK) {
         SCLogError(SC_ERR_NFQ_THREAD_INIT, "nfq thread failed to initialize");
 
         SCMutexUnlock(&nfq_init_lock);

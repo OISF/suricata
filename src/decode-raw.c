@@ -100,7 +100,7 @@ static int DecodeRawTest01 (void)
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
     SCFree(p);
-    return 1;
+    return 0;
     }
 
     FlowInitConfig(FLOW_QUIET);
@@ -110,13 +110,13 @@ static int DecodeRawTest01 (void)
         printf("expected a valid ipv6 header but it was NULL: ");
         FlowShutdown();
         SCFree(p);
-        return 1;
+        return 0;
     }
 
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
-    return 0;
+    return 1;
 
 }
 /** DecodeRawtest02
@@ -146,7 +146,7 @@ static int DecodeRawTest02 (void)
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
     SCFree(p);
-    return 1;
+    return 0;
     }
 
     FlowInitConfig(FLOW_QUIET);
@@ -157,13 +157,13 @@ static int DecodeRawTest02 (void)
         PACKET_RECYCLE(p);
         FlowShutdown();
         SCFree(p);
-        return 1;
+        return 0;
     }
 
     PACKET_RECYCLE(p);
     FlowShutdown();
     SCFree(p);
-    return 0;
+    return 1;
 }
 /** DecodeRawtest03
  *  \brief Valid Raw packet
@@ -194,18 +194,17 @@ static int DecodeRawTest03 (void)
 
     if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
         SCFree(p);
-        return 1;
+        return 0;
     }
 
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
-    if (ENGINE_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
+    if (!ENGINE_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
+        printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
         FlowShutdown();
         SCFree(p);
         return 0;
-    } else {
-        printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
     }
     PACKET_RECYCLE(p);
     FlowShutdown();
@@ -222,9 +221,9 @@ static int DecodeRawTest03 (void)
 void DecodeRawRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeRawTest01", DecodeRawTest01, 0);
-    UtRegisterTest("DecodeRawTest02", DecodeRawTest02, 0);
-    UtRegisterTest("DecodeRawTest03", DecodeRawTest03, 0);
+    UtRegisterTest("DecodeRawTest01", DecodeRawTest01);
+    UtRegisterTest("DecodeRawTest02", DecodeRawTest02);
+    UtRegisterTest("DecodeRawTest03", DecodeRawTest03);
 #endif /* UNITTESTS */
 }
 /**

@@ -42,8 +42,16 @@
 #include "pkt-var.h"
 #include "host.h"
 
+#define SET_OPTS(dst, src) \
+    (dst).type = (src).type; \
+    (dst).len  = (src).len; \
+    (dst).data = (src).data
+
 static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
 {
+    uint8_t tcp_opt_cnt = 0;
+    TCPOpt tcp_opts[TCP_OPTMAX];
+
     uint16_t plen = len;
     while (plen)
     {
@@ -68,81 +76,85 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                 return -1;
             }
 
-            p->TCP_OPTS[p->TCP_OPTS_CNT].type = *pkt;
-            p->TCP_OPTS[p->TCP_OPTS_CNT].len  = *(pkt+1);
+            tcp_opts[tcp_opt_cnt].type = *pkt;
+            tcp_opts[tcp_opt_cnt].len  = *(pkt+1);
             if (plen > 2)
-                p->TCP_OPTS[p->TCP_OPTS_CNT].data = (pkt+2);
+                tcp_opts[tcp_opt_cnt].data = (pkt+2);
             else
-                p->TCP_OPTS[p->TCP_OPTS_CNT].data = NULL;
+                tcp_opts[tcp_opt_cnt].data = NULL;
 
             /* we are parsing the most commonly used opts to prevent
              * us from having to walk the opts list for these all the
              * time. */
-            switch (p->TCP_OPTS[p->TCP_OPTS_CNT].type) {
+            switch (tcp_opts[tcp_opt_cnt].type) {
                 case TCP_OPT_WS:
-                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_WS_LEN) {
+                    if (tcp_opts[tcp_opt_cnt].len != TCP_OPT_WS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.ws != NULL) {
+                        if (p->tcpvars.ws.type != 0) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            p->tcpvars.ws = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                            SET_OPTS(p->tcpvars.ws, tcp_opts[tcp_opt_cnt]);
                         }
                     }
                     break;
                 case TCP_OPT_MSS:
-                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_MSS_LEN) {
+                    if (tcp_opts[tcp_opt_cnt].len != TCP_OPT_MSS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.mss != NULL) {
+                        if (p->tcpvars.mss.type != 0) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            p->tcpvars.mss = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                            SET_OPTS(p->tcpvars.mss, tcp_opts[tcp_opt_cnt]);
                         }
                     }
                     break;
                 case TCP_OPT_SACKOK:
-                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_SACKOK_LEN) {
+                    if (tcp_opts[tcp_opt_cnt].len != TCP_OPT_SACKOK_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.sackok != NULL) {
+                        if (p->tcpvars.sackok.type != 0) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            p->tcpvars.sackok = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                            SET_OPTS(p->tcpvars.sackok, tcp_opts[tcp_opt_cnt]);
                         }
                     }
                     break;
                 case TCP_OPT_TS:
-                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_TS_LEN) {
+                    if (tcp_opts[tcp_opt_cnt].len != TCP_OPT_TS_LEN) {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.ts != NULL) {
+                        if (p->tcpvars.ts_set) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            p->tcpvars.ts = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                            uint32_t values[2];
+                            memcpy(&values, tcp_opts[tcp_opt_cnt].data, sizeof(values));
+                            p->tcpvars.ts_val = ntohl(values[0]);
+                            p->tcpvars.ts_ecr = ntohl(values[1]);
+                            p->tcpvars.ts_set = TRUE;
                         }
                     }
                     break;
                 case TCP_OPT_SACK:
-                    SCLogDebug("SACK option, len %u", p->TCP_OPTS[p->TCP_OPTS_CNT].len);
-                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len < TCP_OPT_SACK_MIN_LEN ||
-                            p->TCP_OPTS[p->TCP_OPTS_CNT].len > TCP_OPT_SACK_MAX_LEN ||
-                            !((p->TCP_OPTS[p->TCP_OPTS_CNT].len - 2) % 8 == 0))
+                    SCLogDebug("SACK option, len %u", tcp_opts[tcp_opt_cnt].len);
+                    if (tcp_opts[tcp_opt_cnt].len < TCP_OPT_SACK_MIN_LEN ||
+                            tcp_opts[tcp_opt_cnt].len > TCP_OPT_SACK_MAX_LEN ||
+                            !((tcp_opts[tcp_opt_cnt].len - 2) % 8 == 0))
                     {
                         ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
-                        if (p->tcpvars.sack != NULL) {
+                        if (p->tcpvars.sack.type != 0) {
                             ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
-                            p->tcpvars.sack = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                            SET_OPTS(p->tcpvars.sack, tcp_opts[tcp_opt_cnt]);
                         }
                     }
                     break;
             }
 
-            pkt += p->TCP_OPTS[p->TCP_OPTS_CNT].len;
-            plen -= (p->TCP_OPTS[p->TCP_OPTS_CNT].len);
-            p->TCP_OPTS_CNT++;
+            pkt += tcp_opts[tcp_opt_cnt].len;
+            plen -= (tcp_opts[tcp_opt_cnt].len);
+            tcp_opt_cnt++;
         }
     }
     return 0;
@@ -197,9 +209,9 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
 #ifdef DEBUG
     SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s",
         GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_HLEN(p), len,
-        p->tcpvars.sackok ? "SACKOK " : "", p->tcpvars.sack ? "SACK " : "",
-        p->tcpvars.ws ? "WS " : "", p->tcpvars.ts ? "TS " : "",
-        p->tcpvars.mss ? "MSS " : "");
+        TCP_HAS_SACKOK(p) ? "SACKOK " : "", TCP_HAS_SACK(p) ? "SACK " : "",
+        TCP_HAS_WSCALE(p) ? "WS " : "", TCP_HAS_TS(p) ? "TS " : "",
+        TCP_HAS_MSS(p) ? "MSS " : "");
 #endif
 
     /* Flow is an integral part of us */
@@ -245,7 +257,7 @@ static int TCPCalculateInvalidChecksumtest02(void)
 
     csum = *( ((uint16_t *)raw_tcp) + 8);
 
-    return (csum == TCPCalculateChecksum((uint16_t *) raw_ipshdr,
+    return (csum != TCPCalculateChecksum((uint16_t *) raw_ipshdr,
                                          (uint16_t *)raw_tcp, sizeof(raw_tcp)));
 }
 
@@ -291,7 +303,7 @@ static int TCPV6CalculateInvalidChecksumtest04(void)
 
     csum = *( ((uint16_t *)(raw_ipv6 + 70)));
 
-    return (csum == TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
+    return (csum != TCPV6CalculateChecksum((uint16_t *)(raw_ipv6 + 14 + 8),
                                            (uint16_t *)(raw_ipv6 + 54), 32));
 }
 
@@ -468,7 +480,7 @@ static int TCPGetSackTest01(void)
         goto end;
     }
 
-    if (p->tcpvars.sack == NULL) {
+    if (!TCP_HAS_SACK(p)) {
         printf("tcp packet sack not decoded: ");
         goto end;
     }
@@ -503,17 +515,17 @@ void DecodeTCPRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("TCPCalculateValidChecksumtest01",
-                   TCPCalculateValidChecksumtest01, 1);
+                   TCPCalculateValidChecksumtest01);
     UtRegisterTest("TCPCalculateInvalidChecksumtest02",
-                   TCPCalculateInvalidChecksumtest02, 0);
+                   TCPCalculateInvalidChecksumtest02);
     UtRegisterTest("TCPV6CalculateValidChecksumtest03",
-                   TCPV6CalculateValidChecksumtest03, 1);
+                   TCPV6CalculateValidChecksumtest03);
     UtRegisterTest("TCPV6CalculateInvalidChecksumtest04",
-                   TCPV6CalculateInvalidChecksumtest04, 0);
-    UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
-    UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
-    UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);
-    UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01, 1);
+                   TCPV6CalculateInvalidChecksumtest04);
+    UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01);
+    UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02);
+    UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03);
+    UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01);
 #endif /* UNITTESTS */
 }
 /**

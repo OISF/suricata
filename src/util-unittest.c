@@ -24,6 +24,14 @@
  * Unit test framework
  */
 
+/**
+ * \defgroup Testing Testing
+ *
+ * \brief Unit testing support functions.
+ *
+ * @{
+ */
+
 #include "suricata-common.h"
 #include "runmodes.h"
 #include "util-unittest.h"
@@ -37,6 +45,8 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static UtTest *ut_list;
+
+int unittests_fatal = 0;
 
 /**
  * \brief Allocate UtTest list member
@@ -85,11 +95,9 @@ static int UtAppendTest(UtTest **list, UtTest *test)
  *
  * \param name Unit test name
  * \param TestFn Unit test function
- * \param evalue Unit test function return value
- *
  */
 
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue)
+void UtRegisterTest(char *name, int(*TestFn)(void))
 {
     UtTest *ut = UtAllocTest();
     if (ut == NULL)
@@ -97,7 +105,6 @@ void UtRegisterTest(char *name, int(*TestFn)(void), int evalue)
 
     ut->name = name;
     ut->TestFn = TestFn;
-    ut->evalue = evalue;
     ut->next = NULL;
 
     /* append */
@@ -184,12 +191,6 @@ uint32_t UtRunTests(char *regex_arg)
     uint32_t good = 0, bad = 0, matchcnt = 0;
     int ret = 0, rcomp = 0;
     int ov[MAX_SUBSTRINGS];
-    int failure_fatal;
-
-    if (ConfGetBool("unittests.failure-fatal", &failure_fatal) != 1) {
-        SCLogDebug("ConfGetBool could not load the value.");
-        failure_fatal = 0;
-    }
 
     rcomp = UtRegex(regex_arg);
 
@@ -206,9 +207,9 @@ uint32_t UtRunTests(char *regex_arg)
                 TimeSetToCurrentTime();
 
                 ret = ut->TestFn();
-                printf("%s\n", (ret == ut->evalue) ? "pass" : "FAILED");
-                if (ret != ut->evalue) {
-                    if (failure_fatal == 1) {
+                printf("%s\n", ret ? "pass" : "FAILED");
+                if (!ret) {
+                    if (unittests_fatal == 1) {
                         fprintf(stderr, "ERROR: unittest failed.\n");
                         exit(EXIT_FAILURE);
                     }
@@ -292,9 +293,10 @@ int UtSelftestTrue(void)
 
 int UtSelftestFalse(void)
 {
-    if (0)return 1;
-    else  return 0;
+    if (0)return 0;
+    else  return 1;
 }
+
 #endif /* UNITTESTS */
 
 /** \brief Run self tests
@@ -311,8 +313,8 @@ int UtRunSelftest (char *regex_arg)
 
     UtInitialize();
 
-    UtRegisterTest("true",  UtSelftestTrue,  1);
-    UtRegisterTest("false", UtSelftestFalse, 0);
+    UtRegisterTest("true", UtSelftestTrue);
+    UtRegisterTest("false", UtSelftestFalse);
 
     int ret = UtRunTests(regex_arg);
     if (ret == 0)
@@ -324,3 +326,7 @@ int UtRunSelftest (char *regex_arg)
 #endif /* UNITTESTS */
     return 0;
 }
+
+/**
+ * @}
+ */

@@ -118,13 +118,14 @@ outputs:
       #    batch-size: 10 ## number of entry to keep in buffer
       types:
         - alert:
-            # payload: yes           # enable dumping payload in Base64
-            # payload-printable: yes # enable dumping payload in printable (lossy) format
-            # packet: yes            # enable dumping of packet (without stream segments)
-            # http: yes              # enable dumping of http fields
-            # tls: yes               # enable dumping of tls fields
-            # ssh: yes               # enable dumping of ssh fields
-            # smtp: yes              # enable dumping of smtp fields
+            # payload: yes             # enable dumping payload in Base64
+            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
+            # payload-printable: yes   # enable dumping payload in printable (lossy) format
+            # packet: yes              # enable dumping of packet (without stream segments)
+            # http: yes                # enable dumping of http fields
+            # tls: yes                 # enable dumping of tls fields
+            # ssh: yes                 # enable dumping of ssh fields
+            # smtp: yes                # enable dumping of smtp fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -349,6 +350,7 @@ outputs:
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
       force-md5: no     # force logging of md5 checksums
+      force-filestore: no # force storing of all files
       #waldo: file.waldo # waldo file to store the file_id across runs
 
   # output module to log files tracked in a easily parsable json format
@@ -395,7 +397,7 @@ outputs:
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
-magic-file: @e_magic_file@
+@e_magic_file_comment@magic-file: @e_magic_file@
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
@@ -590,22 +592,35 @@ legacy:
 # might end up taking too much time in the content inspection code.
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  On not specifying a value, we use no limits on the recursion.
-detect-engine:
-  - profile: medium
-  - custom-values:
-      toclient-src-groups: 2
-      toclient-dst-groups: 2
-      toclient-sp-groups: 2
-      toclient-dp-groups: 3
-      toserver-src-groups: 2
-      toserver-dst-groups: 4
-      toserver-sp-groups: 2
-      toserver-dp-groups: 25
-  - sgh-mpm-context: auto
-  - inspection-recursion-limit: 3000
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
   # If set to yes, the loading of signatures will be made after the capture
   # is started. This will limit the downtime in IPS mode.
-  #- delayed-detect: yes
+  #delayed-detect: yes
+
+  # the grouping values above control how many groups are created per
+  # direction. Port whitelisting forces that port to get it's own group.
+  # Very common ports will benefit, as well as ports with many expensive
+  # rules.
+  grouping:
+    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+    #udp-whitelist: 53, 135, 5060
+
+  profiling:
+    # Log the rules that made it past the prefilter stage, per packet
+    # default is off. The threshold setting determines how many rules
+    # must have made it past pre-filter for that rule to trigger the
+    # logging.
+    #inspect-logging-threshold: 200
+    grouping:
+      dump-to-disk: false
+      include-rules: false      # very verbose
+      include-mpm-stats: false
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
@@ -698,8 +713,8 @@ cuda:
 # ac, ac-bs and ac-gfbs.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
-# signature groups, specified by the conf - "detect-engine.sgh-mpm-context".
-# Selecting "ac" as the mpm would require "detect-engine.sgh-mpm-context"
+# signature groups, specified by the conf - "detect.sgh-mpm-context".
+# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
 # to be set to "single", because of ac's memory requirements, unless the
 # ruleset is small enough to fit in one's memory, in which case one can
 # use "full" with "ac".  Rest of the mpms can be run in "full" mode.
@@ -709,35 +724,6 @@ cuda:
 # max-pending-packets setting above as well if you use b2g_cuda.
 
 mpm-algo: ac
-
-# The memory settings for hash size of these algorithms can vary from lowest
-# (2048) - low (4096) - medium (8192) - high (16384) - higher (32768) - max
-# (65536). The bloomfilter sizes of these algorithms can vary from low (512) -
-# medium (1024) - high (2048).
-#
-# For B2g/B3g algorithms, there is a support for two different scan/search
-# algorithms. For B2g the scan algorithms are B2gScan & B2gScanBNDMq, and
-# search algorithms are B2gSearch & B2gSearchBNDMq. For B3g scan algorithms
-# are B3gScan & B3gScanBNDMq, and search algorithms are B3gSearch &
-# B3gSearchBNDMq.
-#
-# For B2g the different scan/search algorithms and, hash and bloom
-# filter size settings. For B3g the different scan/search algorithms and, hash
-# and bloom filter size settings. For wumanber the hash and bloom filter size
-# settings.
-
-pattern-matcher:
-  - b2g:
-      search-algo: B2gSearchBNDMq
-      hash-size: low
-      bf-size: medium
-  - b3g:
-      search-algo: B3gSearchBNDMq
-      hash-size: low
-      bf-size: medium
-  - wumanber:
-      hash-size: low
-      bf-size: medium
 
 # Defrag settings:
 
@@ -879,9 +865,10 @@ flow-timeouts:
 #                               # This lower the risk of some evasion technics but could lead
 #                               # detection change between runs. It is set to 'yes' by default.
 #     randomize-chunk-range: 10 # If randomize-chunk-size is active, the value of chunk-size is
-#                               # a random value between (1 - randomize-chunk-range/100)*randomize-chunk-size
-#                               # and (1 + randomize-chunk-range/100)*randomize-chunk-size. Default value
-#                               # of randomize-chunk-range is 10.
+#                               # a random value between (1 - randomize-chunk-range/100)*toserver-chunk-size
+#                               # and (1 + randomize-chunk-range/100)*toserver-chunk-size and the same
+#                               # calculation for toclient-chunk-size.
+#                               # Default value of randomize-chunk-range is 10.
 #
 #     raw: yes                  # 'Raw' reassembly enabled or disabled.
 #                               # raw is for content inspection by detection
@@ -1129,7 +1116,7 @@ rule-files:
  - compromised.rules
  - drop.rules
  - dshield.rules
- - emerging-activex.rules
+# - emerging-activex.rules
  - emerging-attack_response.rules
  - emerging-chat.rules
  - emerging-current_events.rules
@@ -1137,11 +1124,11 @@ rule-files:
  - emerging-dos.rules
  - emerging-exploit.rules
  - emerging-ftp.rules
- - emerging-games.rules
- - emerging-icmp_info.rules
+# - emerging-games.rules
+# - emerging-icmp_info.rules
 # - emerging-icmp.rules
  - emerging-imap.rules
- - emerging-inappropriate.rules
+# - emerging-inappropriate.rules
  - emerging-malware.rules
  - emerging-misc.rules
  - emerging-mobile_malware.rules
@@ -1152,7 +1139,7 @@ rule-files:
  - emerging-rpc.rules
  - emerging-scada.rules
  - emerging-scan.rules
- - emerging-shellcode.rules
+# - emerging-shellcode.rules
  - emerging-smtp.rules
  - emerging-snmp.rules
  - emerging-sql.rules
@@ -1163,7 +1150,7 @@ rule-files:
  - emerging-voip.rules
  - emerging-web_client.rules
  - emerging-web_server.rules
- - emerging-web_specific_apps.rules
+# - emerging-web_specific_apps.rules
  - emerging-worm.rules
  - tor.rules
  - decoder-events.rules # available in suricata sources under rules dir
@@ -1330,9 +1317,9 @@ app-layer:
         body-md5: no
       # Configure inspected-tracker for file_data keyword
       inspected-tracker:
-        content-limit: 1000
-        content-inspect-min-size: 1000
-        content-inspect-window: 1000
+        content-limit: 100000
+        content-inspect-min-size: 32768
+        content-inspect-window: 4096
     imap:
       enabled: detection-only
     msn:
@@ -1522,6 +1509,12 @@ profiling:
   keywords:
     enabled: yes
     filename: keyword_perf.log
+    append: yes
+
+  # per rulegroup profiling
+  rulegroups:
+    enabled: yes
+    filename: rule_group_perf.log
     append: yes
 
   # packet profiling

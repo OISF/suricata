@@ -67,28 +67,7 @@ void DetectIdRegister (void)
     sigmatch_table[DETECT_ID].Free  = DetectIdFree;
     sigmatch_table[DETECT_ID].RegisterTests = DetectIdRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-	SCLogDebug("registering id rule option");
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -374,11 +353,11 @@ end:
 void DetectIdRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01, 1);
-    UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02, 1);
-    UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03, 1);
-    UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04, 1);
-    UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01, 1);
+    UtRegisterTest("DetectIdTestParse01", DetectIdTestParse01);
+    UtRegisterTest("DetectIdTestParse02", DetectIdTestParse02);
+    UtRegisterTest("DetectIdTestParse03", DetectIdTestParse03);
+    UtRegisterTest("DetectIdTestParse04", DetectIdTestParse04);
+    UtRegisterTest("DetectIdTestMatch01", DetectIdTestMatch01);
 
 #endif /* UNITTESTS */
 }

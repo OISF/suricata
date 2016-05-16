@@ -64,27 +64,7 @@ void DetectICodeRegister (void)
     sigmatch_table[DETECT_ICODE].Free = DetectICodeFree;
     sigmatch_table[DETECT_ICODE].RegisterTests = DetectICodeRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -284,8 +264,6 @@ void DetectICodeFree(void *ptr)
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -515,14 +493,14 @@ end:
 void DetectICodeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectICodeParseTest01", DetectICodeParseTest01, 1);
-    UtRegisterTest("DetectICodeParseTest02", DetectICodeParseTest02, 1);
-    UtRegisterTest("DetectICodeParseTest03", DetectICodeParseTest03, 1);
-    UtRegisterTest("DetectICodeParseTest04", DetectICodeParseTest04, 1);
-    UtRegisterTest("DetectICodeParseTest05", DetectICodeParseTest05, 1);
-    UtRegisterTest("DetectICodeParseTest06", DetectICodeParseTest06, 1);
-    UtRegisterTest("DetectICodeParseTest07", DetectICodeParseTest07, 1);
-    UtRegisterTest("DetectICodeParseTest08", DetectICodeParseTest08, 1);
-    UtRegisterTest("DetectICodeMatchTest01", DetectICodeMatchTest01, 1);
+    UtRegisterTest("DetectICodeParseTest01", DetectICodeParseTest01);
+    UtRegisterTest("DetectICodeParseTest02", DetectICodeParseTest02);
+    UtRegisterTest("DetectICodeParseTest03", DetectICodeParseTest03);
+    UtRegisterTest("DetectICodeParseTest04", DetectICodeParseTest04);
+    UtRegisterTest("DetectICodeParseTest05", DetectICodeParseTest05);
+    UtRegisterTest("DetectICodeParseTest06", DetectICodeParseTest06);
+    UtRegisterTest("DetectICodeParseTest07", DetectICodeParseTest07);
+    UtRegisterTest("DetectICodeParseTest08", DetectICodeParseTest08);
+    UtRegisterTest("DetectICodeMatchTest01", DetectICodeMatchTest01);
 #endif /* UNITTESTS */
 }

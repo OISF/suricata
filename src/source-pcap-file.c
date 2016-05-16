@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2014 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -59,8 +59,6 @@
 
 extern int max_pending_packets;
 
-//static int pcap_max_read_packets = 0;
-
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
     int (*Decoder)(ThreadVars *, DecodeThreadVars *, Packet *, u_int8_t *, u_int16_t, PacketQueue *);
@@ -72,9 +70,6 @@ typedef struct PcapFileGlobalVars_ {
     SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
 
 } PcapFileGlobalVars;
-
-/** max packets < 65536 */
-//#define PCAP_FILE_MAX_PKTS 256
 
 typedef struct PcapFileThreadVars_
 {
@@ -108,12 +103,11 @@ TmEcode DecodePcapFileThreadDeinit(ThreadVars *tv, void *data);
 
 void TmModuleReceivePcapFileRegister (void)
 {
-    memset(&pcap_g, 0x00, sizeof(pcap_g));
-
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit = ReceivePcapFileThreadInit;
     tmm_modules[TMM_RECEIVEPCAPFILE].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop = ReceivePcapFileLoop;
+    tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = ReceivePcapFileThreadDeinit;
     tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
@@ -135,6 +129,7 @@ void TmModuleDecodePcapFileRegister (void)
 
 void PcapFileGlobalInit()
 {
+    memset(&pcap_g, 0x00, sizeof(pcap_g));
     SC_ATOMIC_INIT(pcap_g.invalid_checksums);
 }
 
@@ -260,8 +255,10 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
 TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
+
     char *tmpbpfstring = NULL;
     char *tmpstring = NULL;
+
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
@@ -302,14 +299,15 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     } else {
         SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
 
-        if(pcap_compile(pcap_g.pcap_handle,&pcap_g.filter,tmpbpfstring,1,0) < 0) {
-            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(pcap_g.pcap_handle));
+        if (pcap_compile(pcap_g.pcap_handle, &pcap_g.filter, tmpbpfstring, 1, 0) < 0) {
+            SCLogError(SC_ERR_BPF,"bpf compilation error %s",
+                    pcap_geterr(pcap_g.pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
         }
 
-        if(pcap_setfilter(pcap_g.pcap_handle,&pcap_g.filter) < 0) {
-            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(pcap_g.pcap_handle));
+        if (pcap_setfilter(pcap_g.pcap_handle, &pcap_g.filter) < 0) {
+            SCLogError(SC_ERR_BPF,"could not set bpf filter %s", pcap_geterr(pcap_g.pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
         }
@@ -318,7 +316,7 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     pcap_g.datalink = pcap_datalink(pcap_g.pcap_handle);
     SCLogDebug("datalink %" PRId32 "", pcap_g.datalink);
 
-    switch(pcap_g.datalink) {
+    switch (pcap_g.datalink) {
         case LINKTYPE_LINUX_SLL:
             pcap_g.Decoder = DecodeSll;
             break;
@@ -354,9 +352,9 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data)
     } else {
         if (strcmp(tmpstring, "auto") == 0) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpstring, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpstring)){
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpstring, "no") == 0) {
+        } else if (ConfValIsFalse(tmpstring)) {
             pcap_g.conf_checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         }
     }

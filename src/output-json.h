@@ -24,20 +24,27 @@
 #ifndef __OUTPUT_JSON_H__
 #define __OUTPUT_JSON_H__
 
-void TmModuleOutputJsonRegister (void);
-
-#ifdef HAVE_LIBJANSSON
-
 #include "suricata-common.h"
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
+void TmModuleOutputJsonRegister (void);
+
+#ifdef HAVE_LIBJANSSON
+/* helper struct for OutputJSONMemBufferCallback */
+typedef struct OutputJSONMemBufferWrapper_ {
+    MemBuffer **buffer; /**< buffer to use & expand as needed */
+    size_t expand_by;   /**< expand by this size */
+} OutputJSONMemBufferWrapper;
+
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data);
+
 void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
-json_t *CreateJSONHeader(Packet *p, int direction_sensative, char *event_type);
-json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event_type, uint32_t tx_id);
+json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
+json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
 TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer);
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 
 enum JsonFormat { COMPACT, INDENT };

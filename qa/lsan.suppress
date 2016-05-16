@@ -1,0 +1,2 @@
+# a bit heavy handed, but it seems that llvm-symbolizer can't figure out the symbols w/o compiling our own libmagic?
+leak:libmagic.so

@@ -626,6 +626,7 @@ typedef struct DecodeThreadVars_
 
     uint16_t counter_flow_memcap;
 
+     uint16_t counter_invalid_events[DECODE_EVENT_PACKET_MAX];
     /* thread data for flow logging api: only used at forced
      * flow recycle during lookups */
     void *output_flow_thread_data;
@@ -905,6 +906,13 @@ int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 
 void AddressDebugPrint(Address *);
+
+#ifdef AFLFUZZ_DECODER
+typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+         uint8_t *pkt, uint16_t len, PacketQueue *pq);
+
+int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
+#endif
 
 /** \brief Set the No payload inspection Flag for the packet.
  *

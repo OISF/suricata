@@ -237,9 +237,10 @@ void PrintStringsToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32
 
 static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
 {
-    struct in6_addr * insrc = (struct in6_addr *) src;
     int i;
     char s_part[6];
+    uint16_t x[8];
+    memcpy(&x, src, 16);
 
     /* current IPv6 format is fixed size */
     if (size < 8 * 5) {
@@ -248,7 +249,7 @@ static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
     }
     memset(dst, 0, size);
     for(i = 0; i < 8; i++) {
-        snprintf(s_part, 6, "%04x:", htons(insrc->s6_addr16[i]));
+        snprintf(s_part, sizeof(s_part), "%04x:", htons(x[i]));
         strlcat(dst, s_part, size);
     }
     /* suppress last ':' */

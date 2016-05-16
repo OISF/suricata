@@ -145,7 +145,15 @@
 #include "app-layer.h"
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
+#include "app-layer-ssl.h"
+#include "app-layer-dns-tcp.h"
+#include "app-layer-ssh.h"
+#include "app-layer-ftp.h"
+#include "app-layer-smtp.h"
+#include "app-layer-smb.h"
+#include "app-layer-modbus.h"
 
+#include "util-decode-der.h"
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
 #include "util-cidr.h"
@@ -194,6 +202,7 @@
 #include "util-cuda-buffer.h"
 #include "util-mpm-ac.h"
 #endif
+#include "util-mpm-hs.h"
 #include "util-storage.h"
 #include "host-storage.h"
 
@@ -273,37 +282,27 @@ int RunmodeGetCurrent(void)
     return run_mode;
 }
 
+/** signal handlers
+ *
+ *  WARNING: don't use the SCLog* API in the handlers. The API is complex
+ *  with memory allocation possibly happening, calls to syslog, json message
+ *  construction, etc.
+ */
+
 static void SignalHandlerSigint(/*@unused@*/ int sig)
 {
     sigint_count = 1;
-    suricata_ctl_flags |= SURICATA_STOP;
 }
 static void SignalHandlerSigterm(/*@unused@*/ int sig)
 {
     sigterm_count = 1;
-    suricata_ctl_flags |= SURICATA_KILL;
-}
-
-void SignalHandlerSigusr2StartingUp(int sig)
-{
-    SCLogInfo("Live rule reload only possible after engine completely started.");
-}
-
-void SignalHandlerSigusr2DelayedDetect(int sig)
-{
-    SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload blocked while delayed detect is still loading.");
-}
-
-void SignalHandlerSigusr2SigFileStartup(int sig)
-{
-    SCLogInfo("Live rule reload not possible if -s or -S option used at runtime.");
 }
 
 /**
  * SIGUSR2 handler.  Just set sigusr2_count.  The main loop will act on
  * it.
  */
-void SignalHandlerSigusr2(int sig)
+static void SignalHandlerSigusr2(int sig)
 {
     sigusr2_count = 1;
 }
@@ -433,6 +432,7 @@ static int SetBpfString(int optind, char *argv[])
     if(strlen(bpf_filter) > 0) {
         if (ConfSetFinal("bpf-filter", bpf_filter) != 1) {
             SCLogError(SC_ERR_FATAL, "Failed to set bpf filter.");
+            SCFree(bpf_filter);
             return TM_ECODE_FAILED;
         }
     }
@@ -590,6 +590,7 @@ void usage(const char *progname)
     printf("\t--pfring-cluster-id <id>             : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type>         : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
+    printf("\t--simulate-ips                       : force engine into IPS mode. Useful for QA\n");
 #ifdef HAVE_LIBCAP_NG
     printf("\t--user <user>                        : run suricata as this user after init\n");
     printf("\t--group <group>                      : run suricata as this group after init\n");
@@ -778,8 +779,19 @@ void SCPrintBuildInfo(void)
 #if __SSP_ALL__ == 2
     printf("compiled with -fstack-protector-all\n");
 #endif
-#ifdef _FORTIFY_SOURCE
-    printf("compiled with _FORTIFY_SOURCE=%d\n", _FORTIFY_SOURCE);
+/*
+ * Workaround for special defines of _FORTIFY_SOURCE like
+ * FORTIFY_SOURCE=((defined __OPTIMIZE && OPTIMIZE > 0) ? 2 : 0)
+ * which is used by Gentoo for example and would result in the error
+ * 'defined' undeclared when _FORTIFY_SOURCE used via %d in printf func
+ *
+ */
+#if _FORTIFY_SOURCE == 2
+    printf("compiled with _FORTIFY_SOURCE=2\n");
+#elif _FORTIFY_SOURCE == 1
+    printf("compiled with _FORTIFY_SOURCE=1\n");
+#elif _FORTIFY_SOURCE == 0
+    printf("compiled with _FORTIFY_SOURCE=0\n");
 #endif
 #ifdef CLS
     printf("L1 cache line size (CLS)=%d\n", CLS);
@@ -916,12 +928,12 @@ void RegisterAllModules()
 
 }
 
-TmEcode LoadYamlConfig(char *conf_filename)
+static TmEcode LoadYamlConfig(void)
 {
     SCEnter();
 
     if (conf_filename == NULL)
-        SCReturnInt(TM_ECODE_OK);
+        conf_filename = DEFAULT_CONF_FILE;
 
     if (ConfYamlLoadFile(conf_filename) != 0) {
         /* Error already displayed. */
@@ -971,6 +983,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             /* not an error condition if we have a 1.0 config */
             LiveBuildDeviceList("pfring");
         }
+#ifdef HAVE_AF_PACKET
     } else if (run_mode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
         if (strlen(pcap_dev)) {
@@ -989,6 +1002,7 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
                 EngineModeSetIPS();
             }
         }
+#endif
 #ifdef HAVE_NETMAP
     } else if (run_mode == RUNMODE_NETMAP) {
         /* iface has been set on command line */
@@ -1095,6 +1109,85 @@ static void SCPrintElapsedTime(SCInstance *suri)
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 }
 
+static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
+{
+#ifdef HAVE_AF_PACKET
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_AFP_DEV;
+        if (optarg) {
+            LiveRegisterDevice(optarg);
+            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+            strlcpy(suri->pcap_dev, optarg,
+                    ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                     (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+        }
+    } else if (suri->run_mode == RUNMODE_AFP_DEV) {
+        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                "multiple devices to get packets is experimental.");
+        if (optarg) {
+            LiveRegisterDevice(optarg);
+        } else {
+            SCLogInfo("Multiple af-packet option without interface on each is useless");
+        }
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                "has been specified");
+        usage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+#else
+    SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
+            "host, make sure to pass --enable-af-packet to "
+            "configure when building.");
+    return TM_ECODE_FAILED;
+#endif
+}
+
+static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
+{
+    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+
+    if (optarg != NULL) {
+        /* some windows shells require escaping of the \ in \Device. Otherwise
+         * the backslashes are stripped. We put them back here. */
+        if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
+            snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
+        } else {
+            strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
+            PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
+        }
+
+        if (strcmp(suri->pcap_dev, optarg) != 0) {
+            SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
+        } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
+            SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
+            return TM_ECODE_FAILED;
+        }
+    }
+
+    if (suri->run_mode == RUNMODE_UNKNOWN) {
+        suri->run_mode = RUNMODE_PCAP_DEV;
+        LiveRegisterDevice(suri->pcap_dev);
+    } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
+#ifdef OS_WIN32
+        SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
+                "support is not (yet) supported on Windows.");
+        return TM_ECODE_FAILED;
+#else
+        SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                "multiple pcap devices to get packets is experimental.");
+        LiveRegisterDevice(suri->pcap_dev);
+#endif
+    } else {
+        SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                "has been specified");
+        usage(suri->progname);
+        return TM_ECODE_FAILED;
+    }
+    return TM_ECODE_OK;
+}
+
 static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 {
     int opt;
@@ -1107,6 +1200,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
     int list_keywords = 0;
     int build_info = 0;
     int conf_test = 0;
+#ifdef AFLFUZZ_CONF_TEST
+    int conf_test_force_success = 0;
+#endif
     int engine_analysis = 0;
     int set_log_directory = 0;
     int ret = TM_ECODE_OK;
@@ -1126,6 +1222,28 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
+        {"simulate-ips", 0, 0 , 0},
+        {"afl-rules", required_argument, 0 , 0},
+        {"afl-http-request", required_argument, 0 , 0},
+        {"afl-http", required_argument, 0 , 0},
+        {"afl-tls-request", required_argument, 0 , 0},
+        {"afl-tls", required_argument, 0 , 0},
+        {"afl-dns-request", required_argument, 0 , 0},
+        {"afl-dns", required_argument, 0 , 0},
+        {"afl-ssh-request", required_argument, 0 , 0},
+        {"afl-ssh", required_argument, 0 , 0},
+        {"afl-ftp-request", required_argument, 0 , 0},
+        {"afl-ftp", required_argument, 0 , 0},
+        {"afl-smtp-request", required_argument, 0 , 0},
+        {"afl-smtp", required_argument, 0 , 0},
+        {"afl-smb-request", required_argument, 0 , 0},
+        {"afl-smb", required_argument, 0 , 0},
+        {"afl-modbus-request", required_argument, 0 , 0},
+        {"afl-modbus", required_argument, 0 , 0},
+        {"afl-mime", required_argument, 0 , 0},
+
+        {"afl-decoder-ppp", required_argument, 0 , 0},
+        {"afl-der", required_argument, 0, 0},
 #ifdef BUILD_UNIX_SOCKET
         {"unix-socket", optional_argument, 0, 0},
 #endif
@@ -1160,6 +1278,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"set", required_argument, 0, 0},
 #ifdef HAVE_NFLOG
         {"nflog", optional_argument, 0, 0},
+#endif
+#ifdef AFLFUZZ_CONF_TEST
+        {"afl-parse-rules", 0, &conf_test_force_success, 1},
 #endif
         {NULL, 0, NULL, 0}
     };
@@ -1213,38 +1334,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* HAVE_PFRING */
             }
-            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0){
-#ifdef HAVE_AF_PACKET
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_AFP_DEV;
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                        strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    }
-                } else if (suri->run_mode == RUNMODE_AFP_DEV) {
-                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                            "multiple devices to get packets is experimental.");
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                    } else {
-                        SCLogInfo("Multiple af-packet option without interface on each is useless");
-                        break;
-                    }
-                } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                            "has been specified");
-                    usage(argv[0]);
+            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0)
+            {
+                if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
-#else
-                SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
-                        "host, make sure to pass --enable-af-packet to "
-                        "configure when building.");
-                return TM_ECODE_FAILED;
-#endif
             } else if (strcmp((long_opts[option_index]).name , "netmap") == 0){
 #ifdef HAVE_NETMAP
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
@@ -1286,31 +1380,122 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 return TM_ECODE_FAILED;
 #endif /* HAVE_NFLOG */
             } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
-                if (suri->run_mode == RUNMODE_UNKNOWN) {
-                    suri->run_mode = RUNMODE_PCAP_DEV;
-                    if (optarg) {
-                        LiveRegisterDevice(optarg);
-                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                        strlcpy(suri->pcap_dev, optarg,
-                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
-                    }
-                } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-                    SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                            "support is not (yet) supported on Windows.");
-                    return TM_ECODE_FAILED;
-#else
-                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                            "multiple pcap devices to get packets is experimental.");
-                    LiveRegisterDevice(optarg);
-#endif
-                } else {
-                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                            "has been specified");
-                    usage(argv[0]);
+                if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                     return TM_ECODE_FAILED;
                 }
+#ifdef AFLFUZZ_RULES
+            } else if(strcmp((long_opts[option_index]).name, "afl-rules") == 0) {
+                exit(RuleParseDataFromFile(optarg));
+#endif
+#ifdef AFLFUZZ_APPLAYER
+            } else if(strcmp((long_opts[option_index]).name, "afl-http-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterHTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_HTTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-http") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterHTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_HTTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-tls-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSSLParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_TLS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-tls") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSSLParsers();
+                exit(AppLayerParserFromFile(ALPROTO_TLS, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-dns-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterDNSTCPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_DNS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-dns") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterDNSTCPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_DNS, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-ssh-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSSHParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SSH, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-ssh") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSSHParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SSH, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-ftp-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterFTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_FTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-ftp") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterFTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_FTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                AppLayerParserSetup();
+                RegisterSMTPParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SMTP, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-smtp") == 0) {
+                //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                AppLayerParserSetup();
+                RegisterSMTPParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SMTP, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-smb-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                RegisterSMBParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_SMB, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-smb") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterSMBParsers();
+                exit(AppLayerParserFromFile(ALPROTO_SMB, optarg));
+
+            } else if(strcmp((long_opts[option_index]).name, "afl-modbus-request") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterModbusParsers();
+                exit(AppLayerParserRequestFromFile(ALPROTO_MODBUS, optarg));
+            } else if(strcmp((long_opts[option_index]).name, "afl-modbus") == 0) {
+                //printf("arg: //%s\n", optarg);
+                AppLayerParserSetup();
+                RegisterModbusParsers();
+                exit(AppLayerParserFromFile(ALPROTO_MODBUS, optarg));
+#endif
+#ifdef AFLFUZZ_MIME
+            } else if(strcmp((long_opts[option_index]).name, "afl-mime") == 0) {
+                //printf("arg: //%s\n", optarg);
+                exit(MimeParserDataFromFile(optarg));
+#endif
+#ifdef AFLFUZZ_DECODER
+            } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0) {
+                StatsInit();
+                MpmTableSetup();
+                AppLayerProtoDetectSetup();
+                DefragInit();
+                FlowInitConfig(FLOW_QUIET);
+                //printf("arg: //%s\n", optarg);
+                exit(DecoderParseDataFromFile(optarg, DecodePPP));
+#endif
+#ifdef AFLFUZZ_DER
+            } else if(strcmp((long_opts[option_index]).name, "afl-der") == 0) {
+                //printf("arg: //%s\n", optarg);
+                exit(DerParseDataFromFile(optarg));
+#endif
+            } else if(strcmp((long_opts[option_index]).name, "simulate-ips") == 0) {
+                SCLogInfo("Setting IPS mode");
+                EngineModeSetIPS();
             } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSetFinal("engine.init-failure-fatal", "1") != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
@@ -1388,10 +1573,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
-                if (ConfSetFinal("unittests.failure-fatal", "1") != 1) {
-                    fprintf(stderr, "ERROR: Failed to set unittests failure-fatal.\n");
-                    return TM_ECODE_FAILED;
-                }
+                unittests_fatal = 1;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 return TM_ECODE_FAILED;
@@ -1522,48 +1704,47 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             suri->run_mode = RUNMODE_PRINT_USAGE;
             return TM_ECODE_OK;
         case 'i':
-            memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-
             if (optarg == NULL) {
                 SCLogError(SC_ERR_INITIALIZATION, "no option argument (optarg) for -i");
                 return TM_ECODE_FAILED;
             }
-
-            /* some windows shells require escaping of the \ in \Device. Otherwise
-             * the backslashes are stripped. We put them back here. */
-            if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
-                snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
-            } else {
-                strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
-                PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
-            }
-
-            if (strcmp(suri->pcap_dev, optarg) != 0) {
-                SCLogInfo("translated %s to pcap device %s", optarg, suri->pcap_dev);
-            } else if (strlen(suri->pcap_dev) > 0 && isdigit((unsigned char)suri->pcap_dev[0])) {
-                SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
+#ifdef HAVE_AF_PACKET
+            if (ParseCommandLineAfpacket(suri, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
-
-            if (suri->run_mode == RUNMODE_UNKNOWN) {
-                suri->run_mode = RUNMODE_PCAP_DEV;
-                LiveRegisterDevice(suri->pcap_dev);
-            } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
-#ifdef OS_WIN32
-                SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                        "support is not (yet) supported on Windows.");
-                return TM_ECODE_FAILED;
-#else
-                SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                        "multiple pcap devices to get packets is experimental.");
-                LiveRegisterDevice(suri->pcap_dev);
+#else /* not afpacket */
+            /* warn user if netmap or pf-ring are available */
+#if defined HAVE_PFRING || HAVE_NETMAP
+            int i = 0;
+#ifdef HAVE_PFRING
+            i++;
 #endif
-            } else {
-                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                                                     "has been specified");
-                usage(argv[0]);
+#ifdef HAVE_NETMAP
+            i++;
+#endif
+            SCLogWarning(SC_WARN_FASTER_CAPTURE_AVAILABLE, "faster capture "
+                    "option%s %s available:"
+#ifdef HAVE_PFRING
+                    " PF_RING (--pfring-int=%s)"
+#endif
+#ifdef HAVE_NETMAP
+                    " NETMAP (--netmap=%s)"
+#endif
+                    ". Use --pcap=%s to suppress this warning",
+                    i == 1 ? "" : "s", i == 1 ? "is" : "are"
+#ifdef HAVE_PFRING
+                    , optarg
+#endif
+#ifdef HAVE_NETMAP
+                    , optarg
+#endif
+                    , optarg
+                    );
+#endif /* have faster methods */
+            if (ParseCommandLinePcapLive(suri, optarg) != TM_ECODE_OK) {
                 return TM_ECODE_FAILED;
             }
+#endif
             break;
         case 'l':
             if (optarg == NULL) {
@@ -1716,6 +1897,11 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         SCLogError(SC_ERR_INITIALIZATION, "can't use -s/-S when detection is disabled");
         return TM_ECODE_FAILED;
     }
+#ifdef AFLFUZZ_CONF_TEST
+    if (conf_test && conf_test_force_success) {
+        (void)ConfSetFinal("engine.init-failure-fatal", "0");
+    }
+#endif
 
     if ((suri->run_mode == RUNMODE_UNIX_SOCKET) && set_log_directory) {
         SCLogError(SC_ERR_INITIALIZATION, "can't use -l and unix socket runmode at the same time");
@@ -1812,6 +1998,7 @@ static int InitSignalHandler(SCInstance *suri)
 {
     /* registering signals we use */
     UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
     UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
     UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
     UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
@@ -1884,6 +2071,8 @@ int StartInternalRunMode(SCInstance *suri, int argc, char **argv)
             return TM_ECODE_DONE;
         case RUNMODE_LIST_UNITTEST:
             RunUnittests(1, suri->regex_arg);
+        case RUNMODE_UNITTEST:
+            RunUnittests(0, suri->regex_arg);
 #ifdef OS_WIN32
         case RUNMODE_INSTALL_SERVICE:
             if (SCServiceInstall(argc, argv)) {
@@ -1926,6 +2115,9 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
     /* Set the global run mode */
     run_mode = suri->run_mode;
 
+    if (!CheckValidDaemonModes(suri->daemon, suri->run_mode)) {
+        return TM_ECODE_FAILED;
+    }
 
     return TM_ECODE_OK;
 }
@@ -1936,12 +2128,14 @@ static void SetupDelayedDetect(SCInstance *suri)
     if (suri->offline) {
         suri->delayed_detect = 0;
     } else {
-        ConfNode *denode = NULL;
-        ConfNode *decnf = ConfGetNode("detect-engine");
-        if (decnf != NULL) {
-            TAILQ_FOREACH(denode, &decnf->head, next) {
-                if (strcmp(denode->val, "delayed-detect") == 0) {
-                    (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+        if (ConfGetBool("detect.delayed-detect", &suri->delayed_detect) != 1) {
+            ConfNode *denode = NULL;
+            ConfNode *decnf = ConfGetNode("detect-engine");
+            if (decnf != NULL) {
+                TAILQ_FOREACH(denode, &decnf->head, next) {
+                    if (strcmp(denode->val, "delayed-detect") == 0) {
+                        (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);
+                    }
                 }
             }
         }
@@ -2118,6 +2312,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (suri->run_mode != RUNMODE_UNIX_SOCKET) {
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
+        SCProfilingSghsGlobalInit();
         SCProfilingInit();
     }
 #endif /* PROFILING */
@@ -2146,16 +2341,41 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     DetectEngineRegisterAppInspectionEngines();
 
-    if (suri->sig_file != NULL)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
-    else
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2StartingUp);
-
     StorageFinalize();
 
     TmModuleRunInit();
 
     PcapLogProfileSetup();
+
+    if (MayDaemonize(suri) != TM_ECODE_OK)
+        SCReturnInt(TM_ECODE_FAILED);
+
+    if (InitSignalHandler(suri) != TM_ECODE_OK)
+        SCReturnInt(TM_ECODE_FAILED);
+
+
+#ifdef HAVE_NSS
+    if (suri->run_mode != RUNMODE_CONF_TEST) {
+        /* init NSS for md5 */
+        PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+        NSS_NoDB_Init(NULL);
+    }
+#endif
+
+    if (suri->disabled_detect) {
+        /* disable raw reassembly */
+        (void)ConfSetFinal("stream.reassembly.raw", "false");
+    }
+
+    HostInitConfig(HOST_VERBOSE);
+
+    if (MagicInit() != 0)
+        SCReturnInt(TM_ECODE_FAILED);
+
+    SCAsn1LoadConfig();
+
+    CoredumpLoadConfig();
+
     SCReturnInt(TM_ECODE_OK);
 }
 
@@ -2164,6 +2384,7 @@ int main(int argc, char **argv)
     SCInstance suri;
 
     SCInstanceInit(&suri);
+    suri.progname = argv[0];
 
     sc_set_caps = FALSE;
 
@@ -2199,6 +2420,10 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    if (FinalizeRunMode(&suri, argv) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
     switch (StartInternalRunMode(&suri, argc, argv)) {
         case TM_ECODE_DONE:
             exit(EXIT_SUCCESS);
@@ -2206,22 +2431,11 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
-    if (FinalizeRunMode(&suri, argv) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
-    if (suri.run_mode == RUNMODE_UNITTEST)
-        RunUnittests(0, suri.regex_arg);
-
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
     CudaBufferInit();
 #endif
-
-    if (!CheckValidDaemonModes(suri.daemon, suri.run_mode)) {
-        exit(EXIT_FAILURE);
-    }
 
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalInits();
@@ -2231,12 +2445,8 @@ int main(int argc, char **argv)
         StatsInit();
     }
 
-    if (conf_filename == NULL)
-        conf_filename = DEFAULT_CONF_FILE;
-
-    /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig(conf_filename) != TM_ECODE_OK) {
+    if (LoadYamlConfig() != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -2261,33 +2471,12 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (MayDaemonize(&suri) != TM_ECODE_OK)
-        exit(EXIT_FAILURE);
-
-    if (InitSignalHandler(&suri) != TM_ECODE_OK)
-        exit(EXIT_FAILURE);
-
-#ifdef HAVE_NSS
-    /* init NSS for md5 */
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-    NSS_NoDB_Init(NULL);
-#endif
-
-    if (suri.disabled_detect) {
-        /* disable raw reassembly */
-        (void)ConfSetFinal("stream.reassembly.raw", "false");
-    }
-
-    HostInitConfig(HOST_VERBOSE);
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         FlowInitConfig(FLOW_VERBOSE);
         StreamTcpInitConfig(STREAM_VERBOSE);
         IPPairInitConfig(IPPAIR_VERBOSE);
         AppLayerRegisterGlobalCounters();
     }
-
-    if (MagicInit() != 0)
-        exit(EXIT_FAILURE);
 
     DetectEngineCtx *de_ctx = NULL;
     if (!suri.disabled_detect) {
@@ -2304,7 +2493,8 @@ int main(int argc, char **argv)
                     "detection engine contexts failed.");
             exit(EXIT_FAILURE);
         }
-        if (suri.delayed_detect || (mt_enabled && !default_tenant)) {
+        if ((suri.delayed_detect || (mt_enabled && !default_tenant)) &&
+            (suri.run_mode != RUNMODE_CONF_TEST)) {
             de_ctx = DetectEngineCtxInitMinimal();
         } else {
             de_ctx = DetectEngineCtxInit();
@@ -2334,10 +2524,6 @@ int main(int argc, char **argv)
         RegisterAppLayerGetActiveTxIdFunc(AppLayerTransactionGetActiveLogOnly);
     }
 
-    SCAsn1LoadConfig();
-
-    CoredumpLoadConfig();
-
     SCSetStartTime(&suri);
 
     SCDropMainThreadCaps(suri.userid, suri.groupid);
@@ -2347,8 +2533,13 @@ int main(int argc, char **argv)
         StatsSetupPostConfig();
     }
 
-    if(suri.run_mode == RUNMODE_CONF_TEST){
+    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
+        MagicDeinit();
         exit(EXIT_SUCCESS);
     }
 
@@ -2374,14 +2565,6 @@ int main(int argc, char **argv)
         StatsSpawnThreads();
     }
 
-#ifdef __SC_CUDA_SUPPORT__
-    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
-        SCACCudaStartDispatcher();
-#endif
-
-    /* Check if the alloted queues have at least 1 reader and writer */
-    TmValidateQueueState();
-
     /* Wait till all the threads have been initialized */
     if (TmThreadWaitOnThreadInit() == TM_ECODE_FAILED) {
         SCLogError(SC_ERR_INITIALIZATION, "Engine initialization failed, "
@@ -2404,11 +2587,6 @@ int main(int argc, char **argv)
     if (suri.delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
         DetectEngineReload(NULL, &suri);
-
-        if (suri.sig_file != NULL)
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
-        else
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
@@ -2422,9 +2600,14 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
+        if (sigterm_count) {
+            suricata_ctl_flags |= SURICATA_KILL;
+        } else if (sigint_count) {
+            suricata_ctl_flags |= SURICATA_STOP;
+        }
+
         if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
             SCLogNotice("Signal Received.  Stopping engine.");
-
             break;
         }
 
@@ -2436,11 +2619,28 @@ int main(int argc, char **argv)
         }
 
         if (sigusr2_count > 0) {
-            DetectEngineReload(conf_filename, &suri);
-            sigusr2_count--;
+            if (suri.sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                sigusr2_count--;
+            } else {
+                if (!(DetectEngineReloadIsStart())) {
+                    DetectEngineReloadStart();
+                    DetectEngineReload(conf_filename, &suri);
+                    DetectEngineReloadSetDone();
+                    sigusr2_count--;
+                }
+            }
+
         } else if (DetectEngineReloadIsStart()) {
-            DetectEngineReload(conf_filename, &suri);
-            DetectEngineReloadSetDone();
+            if (suri.sig_file != NULL) {
+                SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload not "
+                        "possible if -s or -S option used at runtime.");
+                DetectEngineReloadSetDone();
+            } else {
+                DetectEngineReload(conf_filename, &suri);
+                DetectEngineReloadSetDone();
+            }
         }
 
         usleep(10* 1000);
@@ -2561,6 +2761,10 @@ int main(int argc, char **argv)
 
     SC_ATOMIC_DESTROY(engine_stage);
 
+#ifdef BUILD_HYPERSCAN
+    MpmHSGlobalCleanup();
+#endif
+
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
         MpmCudaBufferDeSetup();
@@ -2568,5 +2772,6 @@ int main(int argc, char **argv)
 #endif
     ConfDeInit();
 
+    DetectParseFreeRegexes();
     exit(engine_retval);
 }

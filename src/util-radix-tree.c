@@ -496,9 +496,6 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     SCRadixNode *parent = NULL;
     SCRadixNode *inter_node = NULL;
     SCRadixNode *bottom_node = NULL;
-
-    SCRadixPrefix *prefix = NULL;
-
     void *ptmp;
 
     uint8_t *stream = NULL;
@@ -519,14 +516,14 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     /* chop the ip address against a netmask */
     MaskIPNetblock(key_stream, netmask, key_bitlen);
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
-                                       netmask)) == NULL) {
-        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
-        return NULL;
-    }
-
     /* the very first element in the radix tree */
     if (tree->head == NULL) {
+        SCRadixPrefix *prefix = NULL;
+        if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
+                        netmask)) == NULL) {
+            SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+            return NULL;
+        }
         node = SCRadixCreateNode();
         if (node == NULL)
             return NULL;
@@ -558,8 +555,8 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     node = tree->head;
-    stream = prefix->stream;
-    bitlen = prefix->bitlen;
+    stream = key_stream;
+    bitlen = key_bitlen;
 
     /* we walk down the tree only when we satisfy 2 conditions.  The first one
      * being the incoming prefix is shorter than the differ bit of the current
@@ -695,13 +692,19 @@ static SCRadixNode *SCRadixAddKey(uint8_t *key_stream, uint16_t key_bitlen,
                 }
             }
         } else {
-            node->prefix = SCRadixCreatePrefix(prefix->stream, prefix->bitlen,
+            node->prefix = SCRadixCreatePrefix(key_stream, key_bitlen,
                                                user, 255);
         }
         return node;
     }
 
     /* create the leaf node for the new key */
+    SCRadixPrefix *prefix = NULL;
+    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, user,
+                    netmask)) == NULL) {
+        SCLogError(SC_ERR_RADIX_TREE_GENERIC, "Error creating prefix");
+        return NULL;
+    }
     new_node = SCRadixCreateNode();
     new_node->prefix = prefix;
     new_node->bit = prefix->bitlen;
@@ -1124,7 +1127,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     SCRadixPrefix *prefix = NULL;
 
-    int mask = 0;
+    uint32_t mask = 0;
     int i = 0;
 
     if (node == NULL)
@@ -1154,7 +1157,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     i = prefix->bitlen / 8;
     if (SCMemcmp(node->prefix->stream, prefix->stream, i) == 0) {
-        mask = -1 << (8 - prefix->bitlen % 8);
+        mask = UINT_MAX << (8 - prefix->bitlen % 8);
 
         if (prefix->bitlen % 8 == 0 ||
             (node->prefix->stream[i] & mask) == (prefix->stream[i] & mask)) {
@@ -1331,7 +1334,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
                                                     SCRadixNode *node, void **user_data_result)
 {
     SCRadixNode *netmask_node = NULL;
-    int mask = 0;
+    uint32_t mask = 0;
     int bytes = 0;
     int i = 0;
     int j = 0;
@@ -1348,10 +1351,10 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
     for (j = 0; j < netmask_node->netmask_cnt; j++) {
         bytes = key_bitlen / 8;
         for (i = 0; i < bytes; i++) {
-            mask = -1;
+            mask = UINT_MAX;
             if ( ((i + 1) * 8) > netmask_node->netmasks[j]) {
                 if ( ((i + 1) * 8 - netmask_node->netmasks[j]) < 8)
-                    mask = -1 << ((i + 1) * 8 - netmask_node->netmasks[j]);
+                    mask = UINT_MAX << ((i + 1) * 8 - netmask_node->netmasks[j]);
                 else
                     mask = 0;
             }
@@ -1374,7 +1377,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
             return NULL;
 
         if (SCMemcmp(node->prefix->stream, key_stream, bytes) == 0) {
-            mask = -1 << (8 - key_bitlen % 8);
+            mask = UINT_MAX << (8 - key_bitlen % 8);
 
             if (key_bitlen % 8 == 0 ||
                 (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
@@ -1403,7 +1406,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
         return NULL;
 
     SCRadixNode *node = tree->head;
-    int mask = 0;
+    uint32_t mask = 0;
     int bytes = 0;
     uint8_t tmp_stream[255];
 
@@ -1432,7 +1435,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     bytes = key_bitlen / 8;
     if (SCMemcmp(node->prefix->stream, tmp_stream, bytes) == 0) {
-        mask = -1 << (8 - key_bitlen % 8);
+        mask = UINT_MAX << (8 - key_bitlen % 8);
 
         if (key_bitlen % 8 == 0 ||
             (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
@@ -4178,50 +4181,50 @@ void SCRadixRegisterTests(void)
 #ifdef UNITTESTS
     //UtRegisterTest("SCRadixTestInsertion01", SCRadixTestInsertion01, 1);
     //UtRegisterTest("SCRadixTestInsertion02", SCRadixTestInsertion02, 1);
-    UtRegisterTest("SCRadixTestIPV4Insertion03", SCRadixTestIPV4Insertion03, 1);
-    UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04, 1);
+    UtRegisterTest("SCRadixTestIPV4Insertion03", SCRadixTestIPV4Insertion03);
+    UtRegisterTest("SCRadixTestIPV4Removal04", SCRadixTestIPV4Removal04);
     //UtRegisterTest("SCRadixTestCharacterInsertion05",
     //               SCRadixTestCharacterInsertion05, 1);
     //UtRegisterTest("SCRadixTestCharacterRemoval06",
     //               SCRadixTestCharacterRemoval06, 1);
-    UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07, 1);
-    UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08, 1);
+    UtRegisterTest("SCRadixTestIPV6Insertion07", SCRadixTestIPV6Insertion07);
+    UtRegisterTest("SCRadixTestIPV6Removal08", SCRadixTestIPV6Removal08);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion09",
-                   SCRadixTestIPV4NetblockInsertion09, 1);
+                   SCRadixTestIPV4NetblockInsertion09);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion10",
-                   SCRadixTestIPV4NetblockInsertion10, 1);
+                   SCRadixTestIPV4NetblockInsertion10);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion11",
-                   SCRadixTestIPV4NetblockInsertion11, 1);
+                   SCRadixTestIPV4NetblockInsertion11);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion12",
-                   SCRadixTestIPV4NetblockInsertion12, 1);
+                   SCRadixTestIPV4NetblockInsertion12);
     UtRegisterTest("SCRadixTestIPV6NetblockInsertion13",
-                   SCRadixTestIPV6NetblockInsertion13, 1);
+                   SCRadixTestIPV6NetblockInsertion13);
     UtRegisterTest("SCRadixTestIPV6NetblockInsertion14",
-                   SCRadixTestIPV6NetblockInsertion14, 1);
+                   SCRadixTestIPV6NetblockInsertion14);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch15",
-                   SCRadixTestIPV4NetBlocksAndBestSearch15, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch15);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch16",
-                   SCRadixTestIPV4NetBlocksAndBestSearch16, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch16);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch17",
-                   SCRadixTestIPV4NetBlocksAndBestSearch17, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch17);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch18",
-                   SCRadixTestIPV4NetBlocksAndBestSearch18, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch18);
     UtRegisterTest("SCRadixTestIPV4NetBlocksAndBestSearch19",
-                   SCRadixTestIPV4NetBlocksAndBestSearch19, 1);
+                   SCRadixTestIPV4NetBlocksAndBestSearch19);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch20",
-                   SCRadixTestIPV6NetBlocksAndBestSearch20, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch20);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch21",
-                   SCRadixTestIPV6NetBlocksAndBestSearch21, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch21);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch22",
-                   SCRadixTestIPV6NetBlocksAndBestSearch22, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch22);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch23",
-                   SCRadixTestIPV6NetBlocksAndBestSearch23, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch23);
     UtRegisterTest("SCRadixTestIPV6NetBlocksAndBestSearch24",
-                   SCRadixTestIPV6NetBlocksAndBestSearch24, 1);
+                   SCRadixTestIPV6NetBlocksAndBestSearch24);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion25",
-                   SCRadixTestIPV4NetblockInsertion25, 1);
+                   SCRadixTestIPV4NetblockInsertion25);
     UtRegisterTest("SCRadixTestIPV4NetblockInsertion26",
-                   SCRadixTestIPV4NetblockInsertion26, 1);
+                   SCRadixTestIPV4NetblockInsertion26);
 #endif
 
     return;

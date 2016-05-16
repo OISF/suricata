@@ -233,7 +233,9 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         /* TODO: Add more protocols */
     }
 
-    PacketCopyDataOffset(p, hdr_offset, payload, payload_len);
+    if (payload && payload_len) {
+        PacketCopyDataOffset(p, hdr_offset, payload, payload_len);
+    }
     SET_PKT_LEN(p, hdr_offset + payload_len);
     p->payload = GET_PKT_DATA(p)+hdr_offset;
 
@@ -1066,15 +1068,17 @@ int UTHBuildPacketSrcDstPortsTest02(void)
 void UTHRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("UTHBuildPacketRealTest01", UTHBuildPacketRealTest01, 1);
-    UtRegisterTest("UTHBuildPacketRealTest02", UTHBuildPacketRealTest02, 1);
-    UtRegisterTest("UTHBuildPacketTest01", UTHBuildPacketTest01, 1);
-    UtRegisterTest("UTHBuildPacketTest02", UTHBuildPacketTest02, 1);
-    UtRegisterTest("UTHBuildPacketSrcDstTest01", UTHBuildPacketSrcDstTest01, 1);
-    UtRegisterTest("UTHBuildPacketSrcDstTest02", UTHBuildPacketSrcDstTest02, 1);
-    UtRegisterTest("UTHBuildPacketSrcDstPortsTest01", UTHBuildPacketSrcDstPortsTest01, 1);
-    UtRegisterTest("UTHBuildPacketSrcDstPortsTest02", UTHBuildPacketSrcDstPortsTest02, 1);
-    UtRegisterTest("UTHBuildPacketOfFlowsTest01", UTHBuildPacketOfFlowsTest01, 1);
+    UtRegisterTest("UTHBuildPacketRealTest01", UTHBuildPacketRealTest01);
+    UtRegisterTest("UTHBuildPacketRealTest02", UTHBuildPacketRealTest02);
+    UtRegisterTest("UTHBuildPacketTest01", UTHBuildPacketTest01);
+    UtRegisterTest("UTHBuildPacketTest02", UTHBuildPacketTest02);
+    UtRegisterTest("UTHBuildPacketSrcDstTest01", UTHBuildPacketSrcDstTest01);
+    UtRegisterTest("UTHBuildPacketSrcDstTest02", UTHBuildPacketSrcDstTest02);
+    UtRegisterTest("UTHBuildPacketSrcDstPortsTest01",
+                   UTHBuildPacketSrcDstPortsTest01);
+    UtRegisterTest("UTHBuildPacketSrcDstPortsTest02",
+                   UTHBuildPacketSrcDstPortsTest02);
+    UtRegisterTest("UTHBuildPacketOfFlowsTest01", UTHBuildPacketOfFlowsTest01);
 
 #endif /* UNITTESTS */
 }

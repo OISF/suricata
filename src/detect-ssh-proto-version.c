@@ -80,28 +80,7 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-	SCLogDebug("registering ssh.protoversion rule option");
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -689,12 +668,15 @@ end:
 void DetectSshVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01, 1);
-    UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02, 1);
-    UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03, 1);
-    UtRegisterTest("DetectSshVersionTestDetect01", DetectSshVersionTestDetect01, 1);
-    UtRegisterTest("DetectSshVersionTestDetect02", DetectSshVersionTestDetect02, 1);
-    UtRegisterTest("DetectSshVersionTestDetect03", DetectSshVersionTestDetect03, 1);
+    UtRegisterTest("DetectSshVersionTestParse01", DetectSshVersionTestParse01);
+    UtRegisterTest("DetectSshVersionTestParse02", DetectSshVersionTestParse02);
+    UtRegisterTest("DetectSshVersionTestParse03", DetectSshVersionTestParse03);
+    UtRegisterTest("DetectSshVersionTestDetect01",
+                   DetectSshVersionTestDetect01);
+    UtRegisterTest("DetectSshVersionTestDetect02",
+                   DetectSshVersionTestDetect02);
+    UtRegisterTest("DetectSshVersionTestDetect03",
+                   DetectSshVersionTestDetect03);
 #endif /* UNITTESTS */
 }
 

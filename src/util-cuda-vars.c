@@ -21,8 +21,8 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
+#include "suricata-common.h"
 #ifdef __SC_CUDA_SUPPORT__
-
 #include "suricata.h"
 #include "util-mpm.h"
 #include "util-cuda-handlers.h"

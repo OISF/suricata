@@ -33,12 +33,16 @@
 #include "util-debug.h"
 #include "util-signal.h"
 
+#include "util-buffer.h"
+
 #include <sys/un.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #ifdef BUILD_UNIX_SOCKET
 #include <jansson.h>
+
+#include "output-json.h"
 
 // MSG_NOSIGNAL does not exists on OS X
 #ifdef OS_DARWIN
@@ -65,8 +69,10 @@ typedef struct Task_ {
     TAILQ_ENTRY(Task_) next;
 } Task;
 
+#define CLIENT_BUFFER_SIZE 4096
 typedef struct UnixClient_ {
     int fd;
+    MemBuffer *mbuf; /**< buffer for response construction */
     TAILQ_ENTRY(UnixClient_) next;
 } UnixClient;
 
@@ -219,6 +225,30 @@ void UnixCommandSetMaxFD(UnixCommand *this)
     }
 }
 
+static UnixClient *UnixClientAlloc(void)
+{
+    UnixClient *uclient = SCMalloc(sizeof(UnixClient));
+    if (unlikely(uclient == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
+        return NULL;
+    }
+    uclient->mbuf = MemBufferCreateNew(CLIENT_BUFFER_SIZE);
+    if (uclient->mbuf == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client send buffer");
+        SCFree(uclient);
+        return NULL;
+    }
+    return uclient;
+}
+
+static void UnixClientFree(UnixClient *c)
+{
+    if (c != NULL) {
+        MemBufferFree(c->mbuf);
+        SCFree(c);
+    }
+}
+
 /**
  * \brief Close the unix socket
  */
@@ -243,26 +273,42 @@ void UnixCommandClose(UnixCommand  *this, int fd)
 
     close(item->fd);
     UnixCommandSetMaxFD(this);
-    SCFree(item);
-}
-
-/**
- * \brief Callback function used to send message to socket
- */
-int UnixCommandSendCallback(const char *buffer, size_t size, void *data)
-{
-    int fd = *(int *) data;
-
-    if (send(fd, buffer, size, MSG_NOSIGNAL) == -1) {
-        SCLogInfo("Unable to send block: %s", strerror(errno));
-        return -1;
-    }
-
-    return 0;
+    UnixClientFree(item);
 }
 
 #define UNIX_PROTO_VERSION_LENGTH 200
 #define UNIX_PROTO_VERSION "0.1"
+
+int UnixCommandSendJSONToClient(UnixClient *client, json_t *js)
+{
+    MemBufferReset(client->mbuf);
+
+    OutputJSONMemBufferWrapper wrapper = {
+        .buffer = &client->mbuf,
+        .expand_by = CLIENT_BUFFER_SIZE
+    };
+
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
+            JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
+            JSON_ESCAPE_SLASH);
+    if (r != 0) {
+        SCLogWarning(SC_ERR_SOCKET, "unable to serialize JSON object");
+        return -1;
+    }
+
+    if (send(client->fd, (const char *)MEMBUFFER_BUFFER(client->mbuf),
+                MEMBUFFER_OFFSET(client->mbuf), MSG_NOSIGNAL) == -1)
+    {
+        SCLogWarning(SC_ERR_SOCKET, "unable to send block of size "
+                "%"PRIuMAX": %s", (uintmax_t)MEMBUFFER_OFFSET(client->mbuf),
+                strerror(errno));
+        return -1;
+    }
+
+    SCLogDebug("sent message of size %"PRIuMAX" to client socket %d",
+            (uintmax_t)MEMBUFFER_OFFSET(client->mbuf), client->fd);
+    return 0;
+}
 
 /**
  * \brief Accept a new client on unix socket
@@ -347,23 +393,29 @@ int UnixCommandAccept(UnixCommand *this)
     }
     json_object_set_new(server_msg, "return", json_string("OK"));
 
-    if (json_dump_callback(server_msg, UnixCommandSendCallback, &client, 0) == -1) {
-        SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+    uclient = UnixClientAlloc();
+    if (unlikely(uclient == NULL)) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new client");
         json_decref(server_msg);
         close(client);
         return 0;
     }
+    uclient->fd = client;
+
+    if (UnixCommandSendJSONToClient(uclient, server_msg) != 0) {
+        SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
+
+        UnixClientFree(uclient);
+        json_decref(server_msg);
+        close(client);
+        return 0;
+    }
+
     json_decref(server_msg);
 
     /* client connected */
     SCLogDebug("Unix socket: client connected");
 
-    uclient = SCMalloc(sizeof(UnixClient));
-    if (unlikely(uclient == NULL)) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate new cient");
-        return 0;
-    }
-    uclient->fd = client;
     TAILQ_INSERT_TAIL(&this->clients, uclient, next);
     UnixCommandSetMaxFD(this);
     return 1;
@@ -453,10 +505,8 @@ int UnixCommandExecute(UnixCommand * this, char *command, UnixClient *client)
             break;
     }
 
-    /* send answer */
-    if (json_dump_callback(server_msg, UnixCommandSendCallback, &client->fd, 0) == -1) {
-        SCLogWarning(SC_ERR_SOCKET, "Unable to send command");
-        goto error_cmd;
+    if (UnixCommandSendJSONToClient(client, server_msg) != 0) {
+        goto error;
     }
 
     json_decref(jsoncmd);
@@ -530,6 +580,9 @@ int UnixMain(UnixCommand * this)
     }
 
     if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+        TAILQ_FOREACH_SAFE(uclient, &this->clients, next, tclient) {
+            UnixCommandClose(this, uclient->fd);
+        }
         return 1;
     }
 
@@ -713,7 +766,7 @@ TmEcode UnixManagerListCommand(json_t *cmd,
     }
 
     TAILQ_FOREACH(lcmd, &gcmd->commands, next) {
-        json_array_append(jarray, json_string(lcmd->name));
+        json_array_append_new(jarray, json_string(lcmd->name));
         i++;
     }
 
@@ -941,7 +994,7 @@ void UnixManagerThreadSpawn(int mode)
     SCCtrlCondInit(&unix_manager_ctrl_cond, NULL);
     SCCtrlMutexInit(&unix_manager_ctrl_mutex, NULL);
 
-    tv_unixmgr = TmThreadCreateCmdThreadByName("UnixManagerThread",
+    tv_unixmgr = TmThreadCreateCmdThreadByName(thread_name_unix_socket,
                                           "UnixManager", 0);
 
     if (tv_unixmgr == NULL) {

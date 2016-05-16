@@ -66,10 +66,6 @@ void DetectBytetestRegisterTests(void);
 
 void DetectBytetestRegister (void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_BYTETEST].name = "byte_test";
     sigmatch_table[DETECT_BYTETEST].Match = DetectBytetestMatch;
     sigmatch_table[DETECT_BYTETEST].Setup = DetectBytetestSetup;
@@ -78,25 +74,7 @@ void DetectBytetestRegister (void)
 
     sigmatch_table[DETECT_BYTETEST].flags |= SIGMATCH_PAYLOAD;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
-                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    /* XXX */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /** \brief Bytetest detection code
@@ -1548,33 +1526,33 @@ end:
 void DetectBytetestRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectBytetestTestParse01", DetectBytetestTestParse01, 1);
-    UtRegisterTest("DetectBytetestTestParse02", DetectBytetestTestParse02, 1);
-    UtRegisterTest("DetectBytetestTestParse03", DetectBytetestTestParse03, 1);
-    UtRegisterTest("DetectBytetestTestParse04", DetectBytetestTestParse04, 1);
-    UtRegisterTest("DetectBytetestTestParse05", DetectBytetestTestParse05, 1);
-    UtRegisterTest("DetectBytetestTestParse06", DetectBytetestTestParse06, 1);
-    UtRegisterTest("DetectBytetestTestParse07", DetectBytetestTestParse07, 1);
-    UtRegisterTest("DetectBytetestTestParse08", DetectBytetestTestParse08, 1);
-    UtRegisterTest("DetectBytetestTestParse09", DetectBytetestTestParse09, 1);
-    UtRegisterTest("DetectBytetestTestParse10", DetectBytetestTestParse10, 1);
-    UtRegisterTest("DetectBytetestTestParse11", DetectBytetestTestParse11, 1);
-    UtRegisterTest("DetectBytetestTestParse12", DetectBytetestTestParse12, 1);
-    UtRegisterTest("DetectBytetestTestParse13", DetectBytetestTestParse13, 1);
-    UtRegisterTest("DetectBytetestTestParse14", DetectBytetestTestParse14, 1);
-    UtRegisterTest("DetectBytetestTestParse15", DetectBytetestTestParse15, 1);
-    UtRegisterTest("DetectBytetestTestParse17", DetectBytetestTestParse17, 1);
-    UtRegisterTest("DetectBytetestTestParse18", DetectBytetestTestParse18, 1);
-    UtRegisterTest("DetectBytetestTestParse19", DetectBytetestTestParse19, 1);
-    UtRegisterTest("DetectBytetestTestParse20", DetectBytetestTestParse20, 1);
-    UtRegisterTest("DetectBytetestTestParse21", DetectBytetestTestParse21, 1);
-    UtRegisterTest("DetectBytetestTestParse22", DetectBytetestTestParse22, 1);
+    UtRegisterTest("DetectBytetestTestParse01", DetectBytetestTestParse01);
+    UtRegisterTest("DetectBytetestTestParse02", DetectBytetestTestParse02);
+    UtRegisterTest("DetectBytetestTestParse03", DetectBytetestTestParse03);
+    UtRegisterTest("DetectBytetestTestParse04", DetectBytetestTestParse04);
+    UtRegisterTest("DetectBytetestTestParse05", DetectBytetestTestParse05);
+    UtRegisterTest("DetectBytetestTestParse06", DetectBytetestTestParse06);
+    UtRegisterTest("DetectBytetestTestParse07", DetectBytetestTestParse07);
+    UtRegisterTest("DetectBytetestTestParse08", DetectBytetestTestParse08);
+    UtRegisterTest("DetectBytetestTestParse09", DetectBytetestTestParse09);
+    UtRegisterTest("DetectBytetestTestParse10", DetectBytetestTestParse10);
+    UtRegisterTest("DetectBytetestTestParse11", DetectBytetestTestParse11);
+    UtRegisterTest("DetectBytetestTestParse12", DetectBytetestTestParse12);
+    UtRegisterTest("DetectBytetestTestParse13", DetectBytetestTestParse13);
+    UtRegisterTest("DetectBytetestTestParse14", DetectBytetestTestParse14);
+    UtRegisterTest("DetectBytetestTestParse15", DetectBytetestTestParse15);
+    UtRegisterTest("DetectBytetestTestParse17", DetectBytetestTestParse17);
+    UtRegisterTest("DetectBytetestTestParse18", DetectBytetestTestParse18);
+    UtRegisterTest("DetectBytetestTestParse19", DetectBytetestTestParse19);
+    UtRegisterTest("DetectBytetestTestParse20", DetectBytetestTestParse20);
+    UtRegisterTest("DetectBytetestTestParse21", DetectBytetestTestParse21);
+    UtRegisterTest("DetectBytetestTestParse22", DetectBytetestTestParse22);
 
-    UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01, 1);
-    UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02, 1);
-    UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03, 1);
-    UtRegisterTest("DetectByteTestTestPacket04", DetectByteTestTestPacket04, 1);
-    UtRegisterTest("DetectByteTestTestPacket05", DetectByteTestTestPacket05, 1);
+    UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01);
+    UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02);
+    UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03);
+    UtRegisterTest("DetectByteTestTestPacket04", DetectByteTestTestPacket04);
+    UtRegisterTest("DetectByteTestTestPacket05", DetectByteTestTestPacket05);
 #endif /* UNITTESTS */
 }
 

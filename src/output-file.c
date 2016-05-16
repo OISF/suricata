@@ -249,6 +249,8 @@ static TmEcode OutputFileLogThreadDeinit(ThreadVars *tv, void *thread_data)
         store = next_store;
         logger = logger->next;
     }
+
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 

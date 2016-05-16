@@ -351,7 +351,7 @@ static TmEcode LogFilestoreLogThreadInit(ThreadVars *t, void *initdata, void **d
 
     if (initdata == NULL)
     {
-        SCLogDebug("Error getting context for LogFilestore. \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for LogFileStore. \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -427,12 +427,6 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
  * */
 static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 {
-    LogFileCtx *logfile_ctx = LogFileNewCtx();
-    if (logfile_ctx == NULL) {
-        SCLogDebug("Could not create new LogFilestoreCtx");
-        return NULL;
-    }
-
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL))
         return NULL;
@@ -456,6 +450,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
             snprintf(g_logfile_base_dir, sizeof(g_logfile_base_dir),
                     "%s/%s", s_default_log_dir, s_base_dir);
         }
+    }
+
+    const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
+    if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
+        FileForceFilestoreEnable();
+        SCLogInfo("forcing filestore of all files");
     }
 
     const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");

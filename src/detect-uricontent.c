@@ -83,15 +83,6 @@ void DetectUricontentRegister (void)
 }
 
 /**
- * \brief   pass on the uricontent_max_id
- * \param   de_ctx  pointer to the detect egine context whose max id is asked
- */
-uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
-{
-    return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
-}
-
-/**
  * \brief this function will Free memory associated with DetectContentData
  *
  * \param cd pointer to DetectUricotentData
@@ -197,72 +188,6 @@ int DetectUricontentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentst
     SCReturnInt(0);
 error:
     SCReturnInt(-1);
-}
-
-/**
- * \brief   Checks if the content sent as the argument, has a uricontent which
- *          has been provided in the rule. This match function matches the
- *          normalized http uri against the given rule using multi pattern
- *          search algorithms.
- *
- * \param det_ctx       Pointer to the detection engine thread context
- * \param content       Pointer to the uri content currently being matched
- * \param content_len   Content_len of the received uri content
- *
- * \retval 1 if the uri contents match; 0 no match
- */
-static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ctx,
-                                                   uint8_t *uri, uint16_t uri_len, uint8_t flags)
-{
-    int ret = 0;
-    /* run the pattern matcher against the uri */
-    if (det_ctx->sgh->mpm_uricontent_minlen > uri_len) {
-        SCLogDebug("not searching as uri len is smaller than the "
-                   "shortest uricontent length we need to match");
-    } else {
-        SCLogDebug("search: (%p, minlen %" PRIu32 ", sgh->sig_cnt "
-                "%" PRIu32 ")", det_ctx->sgh,
-                det_ctx->sgh->mpm_uricontent_minlen, det_ctx->sgh->sig_cnt);
-
-        ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
-
-        SCLogDebug("post search: cnt %" PRIu32, ret);
-    }
-    return ret;
-}
-
-/**
- *  \brief Run the pattern matcher against the uri(s)
- *
- *  We run against _all_ uri(s) we have as the pattern matcher will
- *  flag each sig that has a match. We need to do this for all uri(s)
- *  to not miss possible events.
- *
- *  \param f locked flow
- *  \param htp_state initialized htp state
- *
- *  \warning Make sure the flow/state is locked
- *  \todo what should we return? Just the fact that we matched?
- */
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags,
-                                    void *txv, uint64_t idx)
-{
-    SCEnter();
-
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    uint32_t cnt = 0;
-
-    if (tx_ud == NULL || tx_ud->request_uri_normalized == NULL)
-        goto end;
-    cnt = DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
-                                          bstr_ptr(tx_ud->request_uri_normalized),
-                                          bstr_len(tx_ud->request_uri_normalized),
-                                          flags);
-
-end:
-    SCReturnUInt(cnt);
 }
 
 /*
@@ -635,7 +560,6 @@ static int DetectUriSigTest02(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
@@ -751,7 +675,6 @@ static int DetectUriSigTest03(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
@@ -1106,7 +1029,6 @@ static int DetectUriSigTest05(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
@@ -1235,7 +1157,6 @@ static int DetectUriSigTest06(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
@@ -1358,7 +1279,6 @@ static int DetectUriSigTest07(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
@@ -1949,35 +1869,35 @@ int DetectUriContentParseTest24(void)
 void HttpUriRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTTPUriTest01", HTTPUriTest01, 1);
-    UtRegisterTest("HTTPUriTest02", HTTPUriTest02, 1);
-    UtRegisterTest("HTTPUriTest03", HTTPUriTest03, 1);
-    UtRegisterTest("HTTPUriTest04", HTTPUriTest04, 1);
+    UtRegisterTest("HTTPUriTest01", HTTPUriTest01);
+    UtRegisterTest("HTTPUriTest02", HTTPUriTest02);
+    UtRegisterTest("HTTPUriTest03", HTTPUriTest03);
+    UtRegisterTest("HTTPUriTest04", HTTPUriTest04);
 
-    UtRegisterTest("DetectUriSigTest01", DetectUriSigTest01, 1);
-    UtRegisterTest("DetectUriSigTest02", DetectUriSigTest02, 1);
-    UtRegisterTest("DetectUriSigTest03", DetectUriSigTest03, 1);
-    UtRegisterTest("DetectUriSigTest04 - Modifiers", DetectUriSigTest04, 1);
-    UtRegisterTest("DetectUriSigTest05 - Inspection", DetectUriSigTest05, 1);
-    UtRegisterTest("DetectUriSigTest06 - Inspection", DetectUriSigTest06, 1);
-    UtRegisterTest("DetectUriSigTest07 - Inspection", DetectUriSigTest07, 1);
-    UtRegisterTest("DetectUriSigTest08", DetectUriSigTest08, 1);
-    UtRegisterTest("DetectUriSigTest09", DetectUriSigTest09, 1);
-    UtRegisterTest("DetectUriSigTest10", DetectUriSigTest10, 1);
-    UtRegisterTest("DetectUriSigTest11", DetectUriSigTest11, 1);
-    UtRegisterTest("DetectUriSigTest12", DetectUriSigTest12, 1);
+    UtRegisterTest("DetectUriSigTest01", DetectUriSigTest01);
+    UtRegisterTest("DetectUriSigTest02", DetectUriSigTest02);
+    UtRegisterTest("DetectUriSigTest03", DetectUriSigTest03);
+    UtRegisterTest("DetectUriSigTest04 - Modifiers", DetectUriSigTest04);
+    UtRegisterTest("DetectUriSigTest05 - Inspection", DetectUriSigTest05);
+    UtRegisterTest("DetectUriSigTest06 - Inspection", DetectUriSigTest06);
+    UtRegisterTest("DetectUriSigTest07 - Inspection", DetectUriSigTest07);
+    UtRegisterTest("DetectUriSigTest08", DetectUriSigTest08);
+    UtRegisterTest("DetectUriSigTest09", DetectUriSigTest09);
+    UtRegisterTest("DetectUriSigTest10", DetectUriSigTest10);
+    UtRegisterTest("DetectUriSigTest11", DetectUriSigTest11);
+    UtRegisterTest("DetectUriSigTest12", DetectUriSigTest12);
 
-    UtRegisterTest("DetectUriContentParseTest13", DetectUriContentParseTest13, 1);
-    UtRegisterTest("DetectUriContentParseTest14", DetectUriContentParseTest14, 1);
-    UtRegisterTest("DetectUriContentParseTest15", DetectUriContentParseTest15, 1);
-    UtRegisterTest("DetectUriContentParseTest16", DetectUriContentParseTest16, 1);
-    UtRegisterTest("DetectUriContentParseTest17", DetectUriContentParseTest17, 1);
-    UtRegisterTest("DetectUriContentParseTest18", DetectUriContentParseTest18, 1);
-    UtRegisterTest("DetectUriContentParseTest19", DetectUriContentParseTest19, 1);
-    UtRegisterTest("DetectUriContentParseTest20", DetectUriContentParseTest20, 1);
-    UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21, 1);
-    UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22, 1);
-    UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23, 1);
-    UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24, 1);
+    UtRegisterTest("DetectUriContentParseTest13", DetectUriContentParseTest13);
+    UtRegisterTest("DetectUriContentParseTest14", DetectUriContentParseTest14);
+    UtRegisterTest("DetectUriContentParseTest15", DetectUriContentParseTest15);
+    UtRegisterTest("DetectUriContentParseTest16", DetectUriContentParseTest16);
+    UtRegisterTest("DetectUriContentParseTest17", DetectUriContentParseTest17);
+    UtRegisterTest("DetectUriContentParseTest18", DetectUriContentParseTest18);
+    UtRegisterTest("DetectUriContentParseTest19", DetectUriContentParseTest19);
+    UtRegisterTest("DetectUriContentParseTest20", DetectUriContentParseTest20);
+    UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21);
+    UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22);
+    UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23);
+    UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24);
 #endif /* UNITTESTS */
 }

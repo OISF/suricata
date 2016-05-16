@@ -373,13 +373,15 @@ void SCAsn1CtxDestroy(Asn1Ctx *ac)
     if (ac == NULL)
         return;
 
-    uint16_t i = 0;
-    for (; i < ac->cur_frame; i++) {
+    for (uint16_t i = 0; i < asn1_max_frames_config; i++) {
         Asn1Node *node = ASN1CTX_GET_NODE(ac, i);
-        if (node !=  NULL) {
-            SCFree(node);
+        if (node == NULL) {
+            break;
         }
+        SCFree(node);
     }
+
+    SCFree(ac->asn1_stack);
     SCFree(ac);
 }
 
@@ -886,19 +888,19 @@ end:
 void DecodeAsn1RegisterTests(void)
 {
 #ifdef UNITTESTS
-     UtRegisterTest("DecodeAsn1Test01", DecodeAsn1Test01, 1);
-     UtRegisterTest("DecodeAsn1Test02", DecodeAsn1Test02, 1);
-     UtRegisterTest("DecodeAsn1Test03", DecodeAsn1Test03, 1);
+     UtRegisterTest("DecodeAsn1Test01", DecodeAsn1Test01);
+     UtRegisterTest("DecodeAsn1Test02", DecodeAsn1Test02);
+     UtRegisterTest("DecodeAsn1Test03", DecodeAsn1Test03);
 
-     UtRegisterTest("DecodeAsn1Test04", DecodeAsn1Test04, 1);
-     UtRegisterTest("DecodeAsn1Test05", DecodeAsn1Test05, 1);
-     UtRegisterTest("DecodeAsn1Test06", DecodeAsn1Test06, 1);
+     UtRegisterTest("DecodeAsn1Test04", DecodeAsn1Test04);
+     UtRegisterTest("DecodeAsn1Test05", DecodeAsn1Test05);
+     UtRegisterTest("DecodeAsn1Test06", DecodeAsn1Test06);
 
-     UtRegisterTest("DecodeAsn1Test07", DecodeAsn1Test07, 1);
-     UtRegisterTest("DecodeAsn1Test08", DecodeAsn1Test08, 1);
-     UtRegisterTest("DecodeAsn1Test09", DecodeAsn1Test09, 1);
+     UtRegisterTest("DecodeAsn1Test07", DecodeAsn1Test07);
+     UtRegisterTest("DecodeAsn1Test08", DecodeAsn1Test08);
+     UtRegisterTest("DecodeAsn1Test09", DecodeAsn1Test09);
 
-     UtRegisterTest("DecodeAsn1Test10", DecodeAsn1Test10, 1);
+     UtRegisterTest("DecodeAsn1Test10", DecodeAsn1Test10);
 #endif
 }
 

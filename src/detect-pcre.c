@@ -57,10 +57,6 @@
 #include "stream-tcp-reassemble.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-htp.h"
-
-#include "stream.h"
-
 
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
@@ -97,9 +93,6 @@ void DetectPcreRegister (void)
 
     sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
     intmax_t val = 0;
 
     if (!ConfGetInt("pcre.match-limit", &val)) {
@@ -130,38 +123,26 @@ void DetectPcreRegister (void)
         }
     }
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
+    /* setup the capture regex, as it needs PCRE_UNGREEDY we do it manually */
+    const char *eb;
+    int eo;
+    int opts = PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
 
-    opts |= PCRE_UNGREEDY; /* pkt_http_ua should be pkt, http_ua, for this reason the UNGREEDY */
     parse_capture_regex = pcre_compile(PARSE_CAPTURE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_capture_regex == NULL)
+    if (parse_capture_regex == NULL)
     {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
-        goto error;
+        FatalError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_CAPTURE_REGEX, eo, eb);
     }
 
     parse_capture_regex_study = pcre_study(parse_capture_regex, 0, &eb);
     if(eb != NULL)
     {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
+        FatalError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
     }
-    return;
 
-error:
-    /* XXX */
+    DetectParseRegexAddToFreeList(parse_capture_regex, parse_capture_regex_study);
     return;
 }
 
@@ -306,8 +287,12 @@ static DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr,
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
-    size_t slen = strlen(regexstr);
-    char re[slen], op_str[64] = "";
+    /* take the size of the whole input as buffer size for the regex we will
+     * extract below. Add 1 to please Coverity's alloc_strlen test. */
+    size_t slen = strlen(regexstr) + 1;
+    char re[slen];
+
+    char op_str[64] = "";
     uint16_t pos = 0;
     uint8_t negate = 0;
 
@@ -577,7 +562,7 @@ error:
     if (pd != NULL && pd->re != NULL)
         pcre_free(pd->re);
     if (pd != NULL && pd->sd != NULL)
-        pcre_free(pd->sd);
+        pcre_free_study(pd->sd);
     if (pd)
         SCFree(pd);
     return NULL;
@@ -591,7 +576,10 @@ static int DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, Detec
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
     char type_str[16] = "";
-    size_t cap_buffer_len = strlen(regexstr);
+
+    /* take the size of the whole input as buffer size for the string we will
+     * extract below. Add 1 to please Coverity's alloc_strlen test. */
+    size_t cap_buffer_len = strlen(regexstr) + 1;
     char capture_str[cap_buffer_len];
     memset(capture_str, 0x00, cap_buffer_len);
 
@@ -800,7 +788,7 @@ void DetectPcreFree(void *ptr)
     if (pd->re != NULL)
         pcre_free(pd->re);
     if (pd->sd != NULL)
-        pcre_free(pd->sd);
+        pcre_free_study(pd->sd);
 
     SCFree(pd);
     return;
@@ -1691,7 +1679,7 @@ static int DetectPcreParseTest27(void)
     return result;
 }
 
-static int DetectPcreTestSig01Real(int mpm_type)
+static int DetectPcreTestSig01(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1732,7 +1720,6 @@ static int DetectPcreTestSig01Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/^gEt/i\"; pcre:\"/\\/two\\//U; pcre:\"/GET \\/two\\//\"; pcre:\"/\\s+HTTP/R\"; sid:1;)");
@@ -1774,20 +1761,8 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig01B2g (void)
-{
-    return DetectPcreTestSig01Real(MPM_B2G);
-}
-static int DetectPcreTestSig01B3g (void)
-{
-    return DetectPcreTestSig01Real(MPM_B3G);
-}
-static int DetectPcreTestSig01Wm (void)
-{
-    return DetectPcreTestSig01Real(MPM_WUMANBER);
-}
 
-static int DetectPcreTestSig02Real(int mpm_type)
+static int DetectPcreTestSig02(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1820,7 +1795,6 @@ static int DetectPcreTestSig02Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; pcre:\"/two/O\"; sid:2;)");
@@ -1847,23 +1821,11 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-static int DetectPcreTestSig02B2g (void)
-{
-    return DetectPcreTestSig02Real(MPM_B2G);
-}
-static int DetectPcreTestSig02B3g (void)
-{
-    return DetectPcreTestSig02Real(MPM_B3G);
-}
-static int DetectPcreTestSig02Wm (void)
-{
-    return DetectPcreTestSig02Real(MPM_WUMANBER);
-}
 
 /**
  * \test DetectPcreTestSig03Real negation test ! outside of "" this sig should not match
  */
-static int DetectPcreTestSig03Real(int mpm_type)
+static int DetectPcreTestSig03(void)
 {
     uint8_t *buf = (uint8_t *)
         "GET /one/ HTTP/1.1\r\n"
@@ -1888,7 +1850,6 @@ static int DetectPcreTestSig03Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"GET\"; pcre:!\"/two/\"; sid:1;)");
@@ -1913,19 +1874,6 @@ static int DetectPcreTestSig03Real(int mpm_type)
 end:
     UTHFreePackets(&p, 1);
     return result;
-}
-
-static int DetectPcreTestSig03B2g (void)
-{
-    return DetectPcreTestSig03Real(MPM_B2G);
-}
-static int DetectPcreTestSig03B3g (void)
-{
-    return DetectPcreTestSig03Real(MPM_B3G);
-}
-static int DetectPcreTestSig03Wm (void)
-{
-    return DetectPcreTestSig03Real(MPM_WUMANBER);
 }
 
 /**
@@ -4126,67 +4074,80 @@ end:
 void DetectPcreRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01, 1);
-    UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02, 1);
-    UtRegisterTest("DetectPcreParseTest03", DetectPcreParseTest03, 1);
-    UtRegisterTest("DetectPcreParseTest04", DetectPcreParseTest04, 1);
-    UtRegisterTest("DetectPcreParseTest05", DetectPcreParseTest05, 1);
-    UtRegisterTest("DetectPcreParseTest06", DetectPcreParseTest06, 1);
-    UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07, 1);
-    UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08, 1);
-    UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09, 1);
-    UtRegisterTest("DetectPcreParseTest10", DetectPcreParseTest10, 1);
-    UtRegisterTest("DetectPcreParseTest11", DetectPcreParseTest11, 1);
-    UtRegisterTest("DetectPcreParseTest12", DetectPcreParseTest12, 1);
-    UtRegisterTest("DetectPcreParseTest13", DetectPcreParseTest13, 1);
-    UtRegisterTest("DetectPcreParseTest14", DetectPcreParseTest14, 1);
-    UtRegisterTest("DetectPcreParseTest15", DetectPcreParseTest15, 1);
-    UtRegisterTest("DetectPcreParseTest16", DetectPcreParseTest16, 1);
-    UtRegisterTest("DetectPcreParseTest17", DetectPcreParseTest17, 1);
-    UtRegisterTest("DetectPcreParseTest18", DetectPcreParseTest18, 1);
-    UtRegisterTest("DetectPcreParseTest19", DetectPcreParseTest19, 1);
-    UtRegisterTest("DetectPcreParseTest20", DetectPcreParseTest20, 1);
-    UtRegisterTest("DetectPcreParseTest21", DetectPcreParseTest21, 1);
-    UtRegisterTest("DetectPcreParseTest22", DetectPcreParseTest22, 1);
-    UtRegisterTest("DetectPcreParseTest23", DetectPcreParseTest23, 1);
-    UtRegisterTest("DetectPcreParseTest24", DetectPcreParseTest24, 1);
-    UtRegisterTest("DetectPcreParseTest25", DetectPcreParseTest25, 1);
-    UtRegisterTest("DetectPcreParseTest26", DetectPcreParseTest26, 1);
-    UtRegisterTest("DetectPcreParseTest27", DetectPcreParseTest27, 1);
+    UtRegisterTest("DetectPcreParseTest01", DetectPcreParseTest01);
+    UtRegisterTest("DetectPcreParseTest02", DetectPcreParseTest02);
+    UtRegisterTest("DetectPcreParseTest03", DetectPcreParseTest03);
+    UtRegisterTest("DetectPcreParseTest04", DetectPcreParseTest04);
+    UtRegisterTest("DetectPcreParseTest05", DetectPcreParseTest05);
+    UtRegisterTest("DetectPcreParseTest06", DetectPcreParseTest06);
+    UtRegisterTest("DetectPcreParseTest07", DetectPcreParseTest07);
+    UtRegisterTest("DetectPcreParseTest08", DetectPcreParseTest08);
+    UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09);
+    UtRegisterTest("DetectPcreParseTest10", DetectPcreParseTest10);
+    UtRegisterTest("DetectPcreParseTest11", DetectPcreParseTest11);
+    UtRegisterTest("DetectPcreParseTest12", DetectPcreParseTest12);
+    UtRegisterTest("DetectPcreParseTest13", DetectPcreParseTest13);
+    UtRegisterTest("DetectPcreParseTest14", DetectPcreParseTest14);
+    UtRegisterTest("DetectPcreParseTest15", DetectPcreParseTest15);
+    UtRegisterTest("DetectPcreParseTest16", DetectPcreParseTest16);
+    UtRegisterTest("DetectPcreParseTest17", DetectPcreParseTest17);
+    UtRegisterTest("DetectPcreParseTest18", DetectPcreParseTest18);
+    UtRegisterTest("DetectPcreParseTest19", DetectPcreParseTest19);
+    UtRegisterTest("DetectPcreParseTest20", DetectPcreParseTest20);
+    UtRegisterTest("DetectPcreParseTest21", DetectPcreParseTest21);
+    UtRegisterTest("DetectPcreParseTest22", DetectPcreParseTest22);
+    UtRegisterTest("DetectPcreParseTest23", DetectPcreParseTest23);
+    UtRegisterTest("DetectPcreParseTest24", DetectPcreParseTest24);
+    UtRegisterTest("DetectPcreParseTest25", DetectPcreParseTest25);
+    UtRegisterTest("DetectPcreParseTest26", DetectPcreParseTest26);
+    UtRegisterTest("DetectPcreParseTest27", DetectPcreParseTest27);
 
-    UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
-    UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
-    UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
-    UtRegisterTest("DetectPcreTestSig02B2g -- pcre test", DetectPcreTestSig02B2g, 1);
-    UtRegisterTest("DetectPcreTestSig02B3g -- pcre test", DetectPcreTestSig02B3g, 1);
-    UtRegisterTest("DetectPcreTestSig02Wm -- pcre test", DetectPcreTestSig02Wm, 1);
-    UtRegisterTest("DetectPcreTestSig03B2g -- negated pcre test", DetectPcreTestSig03B2g, 1);
-    UtRegisterTest("DetectPcreTestSig03B3g -- negated pcre test", DetectPcreTestSig03B3g, 1);
-    UtRegisterTest("DetectPcreTestSig03Wm -- negated pcre test", DetectPcreTestSig03Wm, 1);
+    UtRegisterTest("DetectPcreTestSig01 -- pcre test", DetectPcreTestSig01);
+    UtRegisterTest("DetectPcreTestSig02 -- pcre test", DetectPcreTestSig02);
+    UtRegisterTest("DetectPcreTestSig03 -- negated pcre test",
+                   DetectPcreTestSig03);
 
-    UtRegisterTest("DetectPcreModifPTest04 -- Modifier P", DetectPcreModifPTest04, 1);
-    UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented", DetectPcreModifPTest05, 1);
-    UtRegisterTest("DetectPcreTestSig06", DetectPcreTestSig06, 1);
-    UtRegisterTest("DetectPcreTestSig07 -- anchored pcre", DetectPcreTestSig07, 1);
-    UtRegisterTest("DetectPcreTestSig08 -- anchored pcre", DetectPcreTestSig08, 1);
-    UtRegisterTest("DetectPcreTestSig09 -- Cookie modifier", DetectPcreTestSig09, 1);
-    UtRegisterTest("DetectPcreTestSig10 -- negated Cookie modifier", DetectPcreTestSig10, 1);
-    UtRegisterTest("DetectPcreTestSig11 -- Method modifier", DetectPcreTestSig11, 1);
-    UtRegisterTest("DetectPcreTestSig12 -- negated Method modifier", DetectPcreTestSig12, 1);
-    UtRegisterTest("DetectPcreTestSig13 -- Header modifier", DetectPcreTestSig13, 1);
-    UtRegisterTest("DetectPcreTestSig14 -- negated Header modifier", DetectPcreTestSig14, 1);
-    UtRegisterTest("DetectPcreTestSig15 -- relative Cookie modifier", DetectPcreTestSig15, 1);
-    UtRegisterTest("DetectPcreTestSig16 -- relative Method modifier", DetectPcreTestSig16, 1);
+    UtRegisterTest("DetectPcreModifPTest04 -- Modifier P",
+                   DetectPcreModifPTest04);
+    UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented",
+                   DetectPcreModifPTest05);
+    UtRegisterTest("DetectPcreTestSig06", DetectPcreTestSig06);
+    UtRegisterTest("DetectPcreTestSig07 -- anchored pcre",
+                   DetectPcreTestSig07);
+    UtRegisterTest("DetectPcreTestSig08 -- anchored pcre",
+                   DetectPcreTestSig08);
+    UtRegisterTest("DetectPcreTestSig09 -- Cookie modifier",
+                   DetectPcreTestSig09);
+    UtRegisterTest("DetectPcreTestSig10 -- negated Cookie modifier",
+                   DetectPcreTestSig10);
+    UtRegisterTest("DetectPcreTestSig11 -- Method modifier",
+                   DetectPcreTestSig11);
+    UtRegisterTest("DetectPcreTestSig12 -- negated Method modifier",
+                   DetectPcreTestSig12);
+    UtRegisterTest("DetectPcreTestSig13 -- Header modifier",
+                   DetectPcreTestSig13);
+    UtRegisterTest("DetectPcreTestSig14 -- negated Header modifier",
+                   DetectPcreTestSig14);
+    UtRegisterTest("DetectPcreTestSig15 -- relative Cookie modifier",
+                   DetectPcreTestSig15);
+    UtRegisterTest("DetectPcreTestSig16 -- relative Method modifier",
+                   DetectPcreTestSig16);
 
-    UtRegisterTest("DetectPcreTxBodyChunksTest01", DetectPcreTxBodyChunksTest01, 1);
-    UtRegisterTest("DetectPcreTxBodyChunksTest02 -- modifier P, body chunks per tx", DetectPcreTxBodyChunksTest02, 1);
-    UtRegisterTest("DetectPcreTxBodyChunksTest03 -- modifier P, body chunks per tx", DetectPcreTxBodyChunksTest03, 1);
+    UtRegisterTest("DetectPcreTxBodyChunksTest01",
+                   DetectPcreTxBodyChunksTest01);
+    UtRegisterTest("DetectPcreTxBodyChunksTest02 -- modifier P, body chunks per tx",
+                   DetectPcreTxBodyChunksTest02);
+    UtRegisterTest("DetectPcreTxBodyChunksTest03 -- modifier P, body chunks per tx",
+                   DetectPcreTxBodyChunksTest03);
 
-    UtRegisterTest("DetectPcreFlowvarCapture01 -- capture for http_header", DetectPcreFlowvarCapture01, 1);
-    UtRegisterTest("DetectPcreFlowvarCapture02 -- capture for http_header", DetectPcreFlowvarCapture02, 1);
-    UtRegisterTest("DetectPcreFlowvarCapture03 -- capture for http_header", DetectPcreFlowvarCapture03, 1);
+    UtRegisterTest("DetectPcreFlowvarCapture01 -- capture for http_header",
+                   DetectPcreFlowvarCapture01);
+    UtRegisterTest("DetectPcreFlowvarCapture02 -- capture for http_header",
+                   DetectPcreFlowvarCapture02);
+    UtRegisterTest("DetectPcreFlowvarCapture03 -- capture for http_header",
+                   DetectPcreFlowvarCapture03);
 
-    UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost, 1);
+    UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost);
 
 #endif /* UNITTESTS */
 }

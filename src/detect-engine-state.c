@@ -415,6 +415,7 @@ static void StoreStateTxHandleFiles(DetectEngineThreadCtx *det_ctx, Flow *f,
                                     DetectEngineState *destate, const uint8_t flags,
                                     const uint64_t tx_id, const uint16_t file_no_match)
 {
+    SCLogDebug("tx %u, file_no_match %u", (uint)tx_id, file_no_match);
     DeStateStoreFileNoMatchCnt(destate, file_no_match, flags);
     if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, destate, flags) == 1) {
         FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT | STREAM_TOSERVER), tx_id);
@@ -464,6 +465,8 @@ static void StoreStateTx(DetectEngineThreadCtx *det_ctx,
             SCLogDebug("destate created for %"PRIu64, tx_id);
         }
 
+        SCLogDebug("file_no_match %u", file_no_match);
+
         if (check_before_add == 0 || DeStateSearchState(destate, flags, s->num) == 0)
             DeStateSignatureAppend(destate, s, inspect_flags, flags);
         DeStateStoreStateVersion(f, alversion, flags);
@@ -484,6 +487,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
     int alert_cnt = 0;
     int check_before_add = 0;
+
+    SCLogDebug("rule %u", s->id);
 
     FLOWLOCK_WRLOCK(f);
     /* TX based matches (inspect engines) */
@@ -516,20 +521,33 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         for (; tx_id < total_txs; tx_id++) {
             int total_matches = 0;
             void *tx = AppLayerParserGetTx(f->proto, alproto, alstate, tx_id);
+            SCLogDebug("tx %p", tx);
             if (tx == NULL)
                 continue;
             det_ctx->tx_id = tx_id;
             det_ctx->tx_id_set = 1;
+
             DetectEngineAppInspectionEngine *engine = app_inspection_engine[f->protomap][alproto][direction];
+            SCLogDebug("engine %p", engine);
             inspect_flags = 0;
             while (engine != NULL) {
+                SCLogDebug("engine %p", engine);
+                SCLogDebug("inspect_flags %x", inspect_flags);
                 if (s->sm_lists[engine->sm_list] != NULL) {
                     KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                     int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                              flags, alstate,
                                              tx, tx_id);
+                    SCLogDebug("engine %p match %d", engine, match);
                     if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                         inspect_flags |= engine->inspect_flags;
+                        engine = engine->next;
+                        total_matches++;
+                        continue;
+                    } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
+                        /* if the file engine matched, but indicated more
+                         * files are still in progress, we don't set inspect
+                         * flags as these would end inspection for this tx */
                         engine = engine->next;
                         total_matches++;
                         continue;
@@ -545,6 +563,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 }
                 engine = engine->next;
             }
+            SCLogDebug("inspect_flags %x", inspect_flags);
             /* all the engines seem to be exhausted at this point.  If we
              * didn't have a match in one of the engines we would have
              * broken off and engine wouldn't be NULL.  Hence the alert. */
@@ -712,6 +731,8 @@ static int DoInspectItem(ThreadVars *tv,
 {
     Signature *s = de_ctx->sig_array[item->sid];
 
+    SCLogDebug("file_no_match %u, sid %u", *file_no_match, s->id);
+
     /* check if a sig in state 'full inspect' needs to be reconsidered
      * as the result of a new file in the existing tx */
     if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
@@ -719,22 +740,26 @@ static int DoInspectItem(ThreadVars *tv,
             if ((flags & STREAM_TOCLIENT) &&
                     (dir_state_flags & DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW))
             {
+                SCLogDebug("~DE_STATE_FLAG_FILE_TC_INSPECT");
                 item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
                 item->flags &= ~DE_STATE_FLAG_FULL_INSPECT;
+                item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
             }
 
             if ((flags & STREAM_TOSERVER) &&
                     (dir_state_flags & DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW))
             {
+                SCLogDebug("~DE_STATE_FLAG_FILE_TS_INSPECT");
                 item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
                 item->flags &= ~DE_STATE_FLAG_FULL_INSPECT;
+                item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
             }
         }
 
         if (item->flags & DE_STATE_FLAG_FULL_INSPECT) {
             if (TxIsLast(inspect_tx_id, total_txs) || inprogress || next_tx_no_progress) {
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
-                SCLogDebug("skip and bypass: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
+                SCLogDebug("skip and bypass %u: tx %u packet %u", s->id, (uint)inspect_tx_id, (uint)p->pcap_cnt);
             } else {
                 SCLogDebug("just skip: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
 
@@ -756,17 +781,23 @@ static int DoInspectItem(ThreadVars *tv,
 
     /* check if a sig in state 'cant match' needs to be reconsidered
      * as the result of a new file in the existing tx */
+    SCLogDebug("item->flags %x", item->flags);
     if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+        SCLogDebug("DE_STATE_FLAG_SIG_CANT_MATCH");
+
         if ((flags & STREAM_TOSERVER) &&
                 (item->flags & DE_STATE_FLAG_FILE_TS_INSPECT) &&
                 (dir_state_flags & DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW))
         {
+            SCLogDebug("unset ~DE_STATE_FLAG_FILE_TS_INSPECT ~DE_STATE_FLAG_SIG_CANT_MATCH");
             item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
             item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
+
         } else if ((flags & STREAM_TOCLIENT) &&
                 (item->flags & DE_STATE_FLAG_FILE_TC_INSPECT) &&
                 (dir_state_flags & DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW))
         {
+            SCLogDebug("unset ~DE_STATE_FLAG_FILE_TC_INSPECT ~DE_STATE_FLAG_SIG_CANT_MATCH");
             item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
             item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
         } else {
@@ -819,11 +850,19 @@ static int DoInspectItem(ThreadVars *tv,
         if (!(item->flags & engine->inspect_flags) &&
                 s->sm_lists[engine->sm_list] != NULL)
         {
+            SCLogDebug("inspect_flags %x", inspect_flags);
             KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
             int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                     flags, alstate, inspect_tx, inspect_tx_id);
             if (match == DETECT_ENGINE_INSPECT_SIG_MATCH) {
                 inspect_flags |= engine->inspect_flags;
+                engine = engine->next;
+                total_matches++;
+                continue;
+            } else if (match == DETECT_ENGINE_INSPECT_SIG_MATCH_MORE_FILES) {
+                /* if the file engine matched, but indicated more
+                 * files are still in progress, we don't set inspect
+                 * flags as these would end inspection for this tx */
                 engine = engine->next;
                 total_matches++;
                 continue;
@@ -839,6 +878,7 @@ static int DoInspectItem(ThreadVars *tv,
         }
         engine = engine->next;
     }
+    SCLogDebug("inspect_flags %x", inspect_flags);
     if (total_matches > 0 && (engine == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)) {
         if (engine == NULL)
             alert = 1;
@@ -1023,6 +1063,8 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 DetectEngineStateDirection *tx_dir_state = &tx_de_state->dir_state[direction];
                 DeStateStore *tx_store = tx_dir_state->head;
 
+                SCLogDebug("tx_dir_state->filestore_cnt %u", tx_dir_state->filestore_cnt);
+
                 /* see if we need to consider the next tx in our decision to add
                  * a sig to the 'no inspect array'. */
                 if (!TxIsLast(inspect_tx_id, total_txs)) {
@@ -1055,6 +1097,9 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                         }
                     }
                 }
+
+                tx_dir_state->flags &=
+                    ~(DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW|DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW);
             }
             /* if the current tx is in progress, we won't advance to any newer
              * tx' just yet. */
@@ -1170,7 +1215,6 @@ void DetectEngineStateResetTxs(Flow *f)
 /*********Unittests*********/
 
 #ifdef UNITTESTS
-#include "flow-util.h"
 
 static int DeStateTest01(void)
 {
@@ -2326,16 +2370,16 @@ end:
 void DeStateRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DeStateTest01", DeStateTest01, 1);
-    UtRegisterTest("DeStateTest02", DeStateTest02, 1);
-    UtRegisterTest("DeStateTest03", DeStateTest03, 1);
-    UtRegisterTest("DeStateSigTest01", DeStateSigTest01, 1);
-    UtRegisterTest("DeStateSigTest02", DeStateSigTest02, 1);
-    UtRegisterTest("DeStateSigTest03", DeStateSigTest03, 1);
-    UtRegisterTest("DeStateSigTest04", DeStateSigTest04, 1);
-    UtRegisterTest("DeStateSigTest05", DeStateSigTest05, 1);
-    UtRegisterTest("DeStateSigTest06", DeStateSigTest06, 1);
-    UtRegisterTest("DeStateSigTest07", DeStateSigTest07, 1);
+    UtRegisterTest("DeStateTest01", DeStateTest01);
+    UtRegisterTest("DeStateTest02", DeStateTest02);
+    UtRegisterTest("DeStateTest03", DeStateTest03);
+    UtRegisterTest("DeStateSigTest01", DeStateSigTest01);
+    UtRegisterTest("DeStateSigTest02", DeStateSigTest02);
+    UtRegisterTest("DeStateSigTest03", DeStateSigTest03);
+    UtRegisterTest("DeStateSigTest04", DeStateSigTest04);
+    UtRegisterTest("DeStateSigTest05", DeStateSigTest05);
+    UtRegisterTest("DeStateSigTest06", DeStateSigTest06);
+    UtRegisterTest("DeStateSigTest07", DeStateSigTest07);
 #endif
 
     return;

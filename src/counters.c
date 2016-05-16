@@ -36,7 +36,11 @@
 #include "util-privs.h"
 #include "util-signal.h"
 #include "unix-manager.h"
+#include "runmodes.h"
+
 #include "output.h"
+#include "output-stats.h"
+#include "output-json-stats.h"
 
 /* Time interval for syncing the local counters with the global ones */
 #define STATS_WUT_TTS 3
@@ -101,6 +105,8 @@ void StatsReleaseCounters(StatsCounter *head);
 /** stats table is filled each interval and passed to the
  *  loggers. Initialized at first use. */
 static StatsTable stats_table = { NULL, NULL, 0, 0, 0, {0 , 0}};
+static SCMutex stats_table_mutex = SCMUTEX_INITIALIZER;
+static int stats_loggers_active = 1;
 
 static uint16_t counters_global_id = 0;
 
@@ -216,6 +222,10 @@ static ConfNode *GetConfig(void) {
 static void StatsInitCtx(void)
 {
     SCEnter();
+#ifdef AFLFUZZ_DISABLE_MGTTHREADS
+    stats_enabled = FALSE;
+    SCReturn;
+#endif
     ConfNode *stats = GetConfig();
     if (stats != NULL) {
         const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
@@ -230,9 +240,18 @@ static void StatsInitCtx(void)
     }
 
     if (!OutputStatsLoggersRegistered()) {
-        SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
-        stats_enabled = FALSE;
-        SCReturn;
+        stats_loggers_active = 0;
+
+        /* if the unix command socket is enabled we do the background
+         * stats sync just in case someone runs 'dump-counters' */
+        int unix_socket = 0;
+        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
+            unix_socket = 0;
+        if (unix_socket == 0) {
+            SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
+            stats_enabled = FALSE;
+            SCReturn;
+        }
     }
 
     /* Store the engine start time */
@@ -274,12 +293,14 @@ static void StatsReleaseCtx()
     if (stats_ctx->counters_id_hash != NULL) {
         HashTableFree(stats_ctx->counters_id_hash);
         stats_ctx->counters_id_hash = NULL;
+        counters_global_id = 0;
     }
 
     StatsPublicThreadContextCleanup(&stats_ctx->global_counter_ctx);
     SCFree(stats_ctx);
     stats_ctx = NULL;
 
+    SCMutexLock(&stats_table_mutex);
     /* free stats table */
     if (stats_table.tstats != NULL) {
         SCFree(stats_table.tstats);
@@ -291,6 +312,7 @@ static void StatsReleaseCtx()
         stats_table.stats = NULL;
     }
     memset(&stats_table, 0, sizeof(stats_table));
+    SCMutexUnlock(&stats_table_mutex);
 
     return;
 }
@@ -359,7 +381,9 @@ static void *StatsMgmtThread(void *arg)
         SCCtrlCondTimedwait(tv_local->ctrl_cond, tv_local->ctrl_mutex, &cond_time);
         SCCtrlMutexUnlock(tv_local->ctrl_mutex);
 
+        SCMutexLock(&stats_table_mutex);
         StatsOutput(tv_local);
+        SCMutexUnlock(&stats_table_mutex);
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             run = 0;
@@ -704,6 +728,9 @@ static int StatsOutput(ThreadVars *tv)
 
             uint32_t offset = (thread * stats_table.nstats) + c;
             StatsRecord *r = &stats_table.tstats[offset];
+            /* xfer previous value to pvalue and reset value */
+            r->pvalue = r->value;
+            r->value = 0;
             r->name = table[c].name;
             r->tm_name = sts->name;
 
@@ -749,20 +776,32 @@ static int StatsOutput(ThreadVars *tv)
     }
 
     /* invoke logger(s) */
-    OutputStatsLog(tv, td, &stats_table);
+    if (stats_loggers_active) {
+        OutputStatsLog(tv, td, &stats_table);
+    }
     return 1;
 }
 
 #ifdef BUILD_UNIX_SOCKET
-/**
- *  \todo reimplement this, probably based on stats-json
+/** \brief callback for getting stats into unix socket
  */
 TmEcode StatsOutputCounterSocket(json_t *cmd,
                                json_t *answer, void *data)
 {
-    json_object_set_new(answer, "message",
-            json_string("not implemented"));
-    return TM_ECODE_FAILED;
+    json_t *message = NULL;
+    TmEcode r = TM_ECODE_OK;
+
+    SCMutexLock(&stats_table_mutex);
+    if (stats_table.start_time == 0) {
+        r = TM_ECODE_FAILED;
+        message = json_string("stats not yet synchronized");
+    } else {
+        message = StatsToJSON(&stats_table, JSON_STATS_TOTALS|JSON_STATS_THREADS);
+    }
+    SCMutexUnlock(&stats_table_mutex);
+
+    json_object_set_new(answer, "message", message);
+    return r;
 }
 #endif /* BUILD_UNIX_SOCKET */
 
@@ -805,7 +844,7 @@ void StatsSpawnThreads(void)
     ThreadVars *tv_mgmt = NULL;
 
     /* spawn the stats wakeup thread */
-    tv_wakeup = TmThreadCreateMgmtThread("StatsWakeupThread",
+    tv_wakeup = TmThreadCreateMgmtThread(thread_name_counter_wakeup,
                                          StatsWakeupThread, 1);
     if (tv_wakeup == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE, "TmThreadCreateMgmtThread "
@@ -820,7 +859,7 @@ void StatsSpawnThreads(void)
     }
 
     /* spawn the stats mgmt thread */
-    tv_mgmt = TmThreadCreateMgmtThread("StatsMgmtThread",
+    tv_mgmt = TmThreadCreateMgmtThread(thread_name_counter_stats,
                                        StatsMgmtThread, 1);
     if (tv_mgmt == NULL) {
         SCLogError(SC_ERR_THREAD_CREATE,
@@ -1252,7 +1291,7 @@ static int StatsTestCounterReg02()
 
     memset(&pctx, 0, sizeof(StatsPublicThreadContext));
 
-    return RegisterCounter(NULL, NULL, &pctx);
+    return RegisterCounter(NULL, NULL, &pctx) == 0;
 }
 
 static int StatsTestCounterReg03()
@@ -1350,7 +1389,7 @@ static int StatsTestCntArraySize07()
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    PASS_IF(result == 2);
 }
 
 static int StatsTestUpdateCounter08()
@@ -1375,7 +1414,7 @@ static int StatsTestUpdateCounter08()
     StatsReleaseCounters(tv.perf_public_ctx.head);
     StatsReleasePrivateThreadContext(pca);
 
-    return result;
+    return result == 101;
 }
 
 static int StatsTestUpdateCounter09()
@@ -1485,16 +1524,16 @@ static int StatsTestCounterValues11()
 void StatsRegisterTests()
 {
 #ifdef UNITTESTS
-    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02, 0);
-    UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03, 1);
-    UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04, 1);
-    UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05, 1);
-    UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06, 1);
-    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07, 2);
-    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08, 101);
-    UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09, 1);
+    UtRegisterTest("StatsTestCounterReg02", StatsTestCounterReg02);
+    UtRegisterTest("StatsTestCounterReg03", StatsTestCounterReg03);
+    UtRegisterTest("StatsTestCounterReg04", StatsTestCounterReg04);
+    UtRegisterTest("StatsTestGetCntArray05", StatsTestGetCntArray05);
+    UtRegisterTest("StatsTestGetCntArray06", StatsTestGetCntArray06);
+    UtRegisterTest("StatsTestCntArraySize07", StatsTestCntArraySize07);
+    UtRegisterTest("StatsTestUpdateCounter08", StatsTestUpdateCounter08);
+    UtRegisterTest("StatsTestUpdateCounter09", StatsTestUpdateCounter09);
     UtRegisterTest("StatsTestUpdateGlobalCounter10",
-                   StatsTestUpdateGlobalCounter10, 1);
-    UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11, 1);
+                   StatsTestUpdateGlobalCounter10);
+    UtRegisterTest("StatsTestCounterValues11", StatsTestCounterValues11);
 #endif
 }

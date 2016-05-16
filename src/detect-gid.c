@@ -36,8 +36,6 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "[0-9]+"
-
 static int DetectGidSetup (DetectEngineCtx *, Signature *, char *);
 
 /**
@@ -195,8 +193,8 @@ end:
 void GidRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("GidTestParse01", GidTestParse01, 1);
-    UtRegisterTest("GidTestParse02", GidTestParse02, 1);
-    UtRegisterTest("GidTestParse03", GidTestParse03, 1);
+    UtRegisterTest("GidTestParse01", GidTestParse01);
+    UtRegisterTest("GidTestParse02", GidTestParse02);
+    UtRegisterTest("GidTestParse03", GidTestParse03);
 #endif /* UNITTESTS */
 }

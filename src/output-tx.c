@@ -125,10 +125,10 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
     int tx_progress_done_value_tc =
         AppLayerParserGetStateProgressCompletionStatus(p->proto, alproto,
                                                        STREAM_TOCLIENT);
-    int proto_logged = 0;
-
     for (; tx_id < total_txs; tx_id++)
     {
+        int proto_logged = 0;
+
         void *tx = AppLayerParserGetTx(p->proto, alproto, alstate, tx_id);
         if (tx == NULL) {
             SCLogDebug("tx is NULL not logging");
@@ -260,6 +260,8 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
         store = next_store;
         logger = logger->next;
     }
+
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 

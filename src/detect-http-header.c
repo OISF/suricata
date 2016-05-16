@@ -1789,30 +1789,30 @@ static int DetectHttpHeaderTest30(void)
 void DetectHttpHeaderRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectHttpHeaderTest01", DetectHttpHeaderTest01, 1);
-    UtRegisterTest("DetectHttpHeaderTest02", DetectHttpHeaderTest02, 1);
-    UtRegisterTest("DetectHttpHeaderTest03", DetectHttpHeaderTest03, 1);
-    UtRegisterTest("DetectHttpHeaderTest04", DetectHttpHeaderTest04, 1);
-    UtRegisterTest("DetectHttpHeaderTest05", DetectHttpHeaderTest05, 1);
-    UtRegisterTest("DetectHttpHeaderTest06", DetectHttpHeaderTest06, 1);
-    UtRegisterTest("DetectHttpHeaderTest07", DetectHttpHeaderTest07, 1);
-    UtRegisterTest("DetectHttpHeaderTest08", DetectHttpHeaderTest08, 1);
-    UtRegisterTest("DetectHttpHeaderTest09", DetectHttpHeaderTest09, 1);
-    UtRegisterTest("DetectHttpHeaderTest10", DetectHttpHeaderTest10, 1);
-    UtRegisterTest("DetectHttpHeaderTest11", DetectHttpHeaderTest11, 1);
-    UtRegisterTest("DetectHttpHeaderTest12", DetectHttpHeaderTest12, 1);
-    UtRegisterTest("DetectHttpHeaderTest13", DetectHttpHeaderTest13, 1);
-    UtRegisterTest("DetectHttpHeaderTest20", DetectHttpHeaderTest20, 1);
-    UtRegisterTest("DetectHttpHeaderTest21", DetectHttpHeaderTest21, 1);
-    UtRegisterTest("DetectHttpHeaderTest22", DetectHttpHeaderTest22, 1);
-    UtRegisterTest("DetectHttpHeaderTest23", DetectHttpHeaderTest23, 1);
-    UtRegisterTest("DetectHttpHeaderTest24", DetectHttpHeaderTest24, 1);
-    UtRegisterTest("DetectHttpHeaderTest25", DetectHttpHeaderTest25, 1);
-    UtRegisterTest("DetectHttpHeaderTest26", DetectHttpHeaderTest26, 1);
-    UtRegisterTest("DetectHttpHeaderTest27", DetectHttpHeaderTest27, 1);
-    UtRegisterTest("DetectHttpHeaderTest28", DetectHttpHeaderTest28, 1);
-    UtRegisterTest("DetectHttpHeaderTest29", DetectHttpHeaderTest29, 1);
-    UtRegisterTest("DetectHttpHeaderTest30", DetectHttpHeaderTest30, 1);
+    UtRegisterTest("DetectHttpHeaderTest01", DetectHttpHeaderTest01);
+    UtRegisterTest("DetectHttpHeaderTest02", DetectHttpHeaderTest02);
+    UtRegisterTest("DetectHttpHeaderTest03", DetectHttpHeaderTest03);
+    UtRegisterTest("DetectHttpHeaderTest04", DetectHttpHeaderTest04);
+    UtRegisterTest("DetectHttpHeaderTest05", DetectHttpHeaderTest05);
+    UtRegisterTest("DetectHttpHeaderTest06", DetectHttpHeaderTest06);
+    UtRegisterTest("DetectHttpHeaderTest07", DetectHttpHeaderTest07);
+    UtRegisterTest("DetectHttpHeaderTest08", DetectHttpHeaderTest08);
+    UtRegisterTest("DetectHttpHeaderTest09", DetectHttpHeaderTest09);
+    UtRegisterTest("DetectHttpHeaderTest10", DetectHttpHeaderTest10);
+    UtRegisterTest("DetectHttpHeaderTest11", DetectHttpHeaderTest11);
+    UtRegisterTest("DetectHttpHeaderTest12", DetectHttpHeaderTest12);
+    UtRegisterTest("DetectHttpHeaderTest13", DetectHttpHeaderTest13);
+    UtRegisterTest("DetectHttpHeaderTest20", DetectHttpHeaderTest20);
+    UtRegisterTest("DetectHttpHeaderTest21", DetectHttpHeaderTest21);
+    UtRegisterTest("DetectHttpHeaderTest22", DetectHttpHeaderTest22);
+    UtRegisterTest("DetectHttpHeaderTest23", DetectHttpHeaderTest23);
+    UtRegisterTest("DetectHttpHeaderTest24", DetectHttpHeaderTest24);
+    UtRegisterTest("DetectHttpHeaderTest25", DetectHttpHeaderTest25);
+    UtRegisterTest("DetectHttpHeaderTest26", DetectHttpHeaderTest26);
+    UtRegisterTest("DetectHttpHeaderTest27", DetectHttpHeaderTest27);
+    UtRegisterTest("DetectHttpHeaderTest28", DetectHttpHeaderTest28);
+    UtRegisterTest("DetectHttpHeaderTest29", DetectHttpHeaderTest29);
+    UtRegisterTest("DetectHttpHeaderTest30", DetectHttpHeaderTest30);
 #endif /* UNITTESTS */
 
     return;

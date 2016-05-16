@@ -20,7 +20,7 @@
  *
  * \author Tom DeCanio <td@npulsetech.com>
  *
- * Logs alerts in JSON format.
+ * Logs detection and monitoring events in JSON format.
  *
  */
 
@@ -38,7 +38,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -109,15 +108,13 @@ void OutputJsonRegisterTests (void)
 
 #else /* implied we do have JSON support */
 
-#include <jansson.h>
-
 #define DEFAULT_LOG_FILENAME "eve.json"
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_INFO
 #define MODULE_NAME "OutputJSON"
 
-#define OUTPUT_BUFFER_SIZE 65535
+#define OUTPUT_BUFFER_SIZE 65536
 
 TmEcode OutputJson (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode OutputJsonThreadInit(ThreadVars *, void *, void **);
@@ -169,15 +166,11 @@ void CreateJSONFlowId(json_t *js, const Flow *f)
 {
     if (f == NULL)
         return;
-#if __WORDSIZE == 64
-    uint64_t addr = (uint64_t)f;
-#else
-    uint32_t addr = (uint32_t)f;
-#endif
-    json_object_set_new(js, "flow_id", json_integer(addr));
+    json_object_set_new(js, "flow_id", json_integer(f->flow_hash));
 }
 
-json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
+json_t *CreateJSONHeader(const Packet *p, int direction_sensitive,
+                         const char *event_type)
 {
     char timebuf[64];
     char srcip[46], dstip[46];
@@ -323,7 +316,8 @@ json_t *CreateJSONHeader(Packet *p, int direction_sensitive, char *event_type)
     return js;
 }
 
-json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event_type, uint32_t tx_id)
+json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive,
+                                 const char *event_type, uint64_t tx_id)
 {
     json_t *js = CreateJSONHeader(p, direction_sensitive, event_type);
     if (unlikely(js == NULL))
@@ -335,42 +329,42 @@ json_t *CreateJSONHeaderWithTxId(Packet *p, int direction_sensitive, char *event
     return js;
 }
 
-static int MemBufferCallback(const char *str, size_t size, void *data)
+int OutputJSONMemBufferCallback(const char *str, size_t size, void *data)
 {
-    MemBuffer *memb = data;
-#if 0 // can't expand, need a MemBuffer **
-    /* since we can have many threads, the buffer might not be big enough.
-     *              * Expand if necessary. */
-    if (MEMBUFFER_OFFSET(memb) + size > MEMBUFFER_SIZE(memb)) {
-        MemBufferExpand(&memb, OUTPUT_BUFFER_SIZE);
+    OutputJSONMemBufferWrapper *wrapper = data;
+    MemBuffer **memb = wrapper->buffer;
+
+    if (MEMBUFFER_OFFSET(*memb) + size >= MEMBUFFER_SIZE(*memb)) {
+        MemBufferExpand(memb, wrapper->expand_by);
     }
-#endif
-    MemBufferWriteRaw(memb, str, size);
+
+    MemBufferWriteRaw((*memb), str, size);
     return 0;
 }
 
-int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer *buffer)
+int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer)
 {
     if (file_ctx->sensor_name) {
         json_object_set_new(js, "host",
                             json_string(file_ctx->sensor_name));
     }
 
-    if (file_ctx->prefix)
-        MemBufferWriteRaw(buffer, file_ctx->prefix, file_ctx->prefix_len);
+    if (file_ctx->prefix) {
+        MemBufferWriteRaw((*buffer), file_ctx->prefix, file_ctx->prefix_len);
+    }
 
-    int r = json_dump_callback(js, MemBufferCallback, buffer,
+    OutputJSONMemBufferWrapper wrapper = {
+        .buffer = buffer,
+        .expand_by = OUTPUT_BUFFER_SIZE
+    };
+
+    int r = json_dump_callback(js, OutputJSONMemBufferCallback, &wrapper,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-                            JSON_ESCAPE_SLASH
-#else
-                            0
-#endif
-                            );
+            JSON_ESCAPE_SLASH);
     if (r != 0)
         return TM_ECODE_OK;
 
-    LogFileWrite(file_ctx, buffer);
+    LogFileWrite(file_ctx, *buffer);
     return 0;
 }
 
@@ -388,7 +382,7 @@ TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for AlertJson.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -428,7 +422,17 @@ OutputCtx *OutputJsonInitCtx(ConfNode *conf)
 {
     OutputJsonCtx *json_ctx = SCCalloc(1, sizeof(OutputJsonCtx));;
 
+    /* First lookup a sensor-name value in this outputs configuration
+     * node (deprecated). If that fails, lookup the global one. */
     const char *sensor_name = ConfNodeLookupChildValue(conf, "sensor-name");
+    if (sensor_name != NULL) {
+        SCLogWarning(SC_ERR_DEPRECATED_CONF,
+            "Found deprecated eve-log setting \"sensor-name\". "
+            "Please set sensor-name globally.");
+    }
+    else {
+        (void)ConfGet("sensor-name", (char **)&sensor_name);
+    }
 
     if (unlikely(json_ctx == NULL)) {
         SCLogDebug("AlertJsonInitCtx: Could not create new LogFileCtx");

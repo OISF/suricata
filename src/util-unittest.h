@@ -24,6 +24,12 @@
  * Unit test framework
  */
 
+/**
+ * \addtogroup Testing
+ *
+ * @{
+ */
+
 #ifndef __UTIL_UNITTEST_H__
 #define __UTIL_UNITTEST_H__
 
@@ -33,14 +39,12 @@ typedef struct UtTest_ {
 
     char *name;
     int(*TestFn)(void);
-    int evalue;
 
     struct UtTest_ *next;
 
 } UtTest;
 
-
-void UtRegisterTest(char *name, int(*TestFn)(void), int evalue);
+void UtRegisterTest(char *name, int(*TestFn)(void));
 uint32_t UtRunTests(char *regex_arg);
 void UtInitialize(void);
 void UtCleanup(void);
@@ -48,7 +52,64 @@ int UtRunSelftest (char *regex_arg);
 void UtListTests(char *regex_arg);
 void UtRunModeRegister(void);
 
+extern int unittests_fatal;
+
+/**
+ * \brief Fail a test if expression evaluates to false.
+ */
+#define FAIL_IF(expr) do {                             \
+        if (unittests_fatal) {                         \
+            BUG_ON(expr);                              \
+        } else if (expr) {                             \
+            return 0;                                  \
+        }                                              \
+    } while (0)
+
+/**
+ * \brief Fail a test if expression to true.
+ */
+#define FAIL_IF_NOT(expr) do { \
+        FAIL_IF(!(expr));      \
+    } while (0)
+
+/**
+ * \brief Fail a test if expression evaluates to NULL.
+ */
+#define FAIL_IF_NULL(expr) do {                 \
+        FAIL_IF(NULL == expr);                  \
+    } while (0)
+
+/**
+ * \brief Fail a test if expression evaluates to non-NULL.
+ */
+#define FAIL_IF_NOT_NULL(expr) do { \
+        FAIL_IF(NULL != expr);      \
+    } while (0)
+
+/**
+ * \brief Pass the test.
+ *
+ * Only to be used at the end of a function instead instead of "return 1."
+ */
+#define PASS do { \
+        return 1; \
+    } while (0)
+
 #endif
+
+/**
+ * \brief Pass the test if expression evaluates to true.
+ *
+ * Only to be used at the end of a function instead of returning the
+ * result of an expression.
+ */
+#define PASS_IF(expr) do { \
+        FAIL_IF(!(expr));  \
+        PASS;              \
+    } while (0)
 
 #endif /* __UTIL_UNITTEST_H__ */
 
+/**
+ * @}
+ */

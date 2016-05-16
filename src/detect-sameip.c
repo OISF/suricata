@@ -119,7 +119,7 @@ error:
  * \internal
  * \brief This test tests sameip success and failure.
  */
-static int DetectSameipSigTest01Real(int mpm_type)
+static int DetectSameipSigTest01(void)
 {
     uint8_t *buf = (uint8_t *)
                     "GET / HTTP/1.0\r\n"
@@ -144,7 +144,6 @@ static int DetectSameipSigTest01Real(int mpm_type)
         goto end;
     }
 
-    de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
@@ -182,30 +181,6 @@ end:
     return result;
 }
 
-/**
- * \test DetectSameipSigTest01B2g tests sameip under B2g MPM
- */
-static int DetectSameipSigTest01B2g(void)
-{
-    return DetectSameipSigTest01Real(MPM_B2G);
-}
-
-/**
- * \test DetectSameipSigTest01B2g tests sameip under B3g MPM
- */
-static int DetectSameipSigTest01B3g(void)
-{
-    return DetectSameipSigTest01Real(MPM_B3G);
-}
-
-/**
- * \test DetectSameipSigTest01B2g tests sameip under WuManber MPM
- */
-static int DetectSameipSigTest01Wm(void)
-{
-    return DetectSameipSigTest01Real(MPM_WUMANBER);
-}
-
 #endif /* UNITTESTS */
 
 /**
@@ -215,8 +190,6 @@ static int DetectSameipSigTest01Wm(void)
 static void DetectSameipRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSameipSigTest01B2g", DetectSameipSigTest01B2g, 1);
-    UtRegisterTest("DetectSameipSigTest01B3g", DetectSameipSigTest01B3g, 1);
-    UtRegisterTest("DetectSameipSigTest01Wm", DetectSameipSigTest01Wm, 1);
+    UtRegisterTest("DetectSameipSigTest01", DetectSameipSigTest01);
 #endif /* UNITTESTS */
 }

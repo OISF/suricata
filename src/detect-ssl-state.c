@@ -78,42 +78,8 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-	SCLogDebug("registering ssl_state rule option");
-
-    /* PARSE_REGEX1 */
-    parse_regex1 = pcre_compile(PARSE_REGEX1, opts, &eb, &eo, NULL);
-    if (parse_regex1 == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   PARSE_REGEX1, eo, eb);
-        goto error;
-    }
-
-    parse_regex1_study = pcre_study(parse_regex1, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    /* PARSE_REGEX2 */
-    parse_regex2 = pcre_compile(PARSE_REGEX2, opts, &eb, &eo, NULL);
-    if (parse_regex2 == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   PARSE_REGEX2, eo, eb);
-        goto error;
-    }
-
-    parse_regex2_study = pcre_study(parse_regex2, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX1, &parse_regex1, &parse_regex1_study);
+    DetectSetupParseRegexes(PARSE_REGEX2, &parse_regex2, &parse_regex2_study);
 }
 
 /**
@@ -261,6 +227,7 @@ DetectSslStateData *DetectSslStateParse(char *arg)
         pcre_free_substring(str1);
         str1 = str2;
     }
+    pcre_free_substring(str1);
 
     if ( (ssd = SCMalloc(sizeof(DetectSslStateData))) == NULL) {
         goto error;
@@ -900,13 +867,13 @@ static int DetectSslStateTest07(void)
 void DetectSslStateRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01, 1);
-    UtRegisterTest("DetectSslStateTest02", DetectSslStateTest02, 1);
-    UtRegisterTest("DetectSslStateTest03", DetectSslStateTest03, 1);
-    UtRegisterTest("DetectSslStateTest04", DetectSslStateTest04, 1);
-    UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05, 1);
-    UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06, 1);
-    UtRegisterTest("DetectSslStateTest07", DetectSslStateTest07, 1);
+    UtRegisterTest("DetectSslStateTest01", DetectSslStateTest01);
+    UtRegisterTest("DetectSslStateTest02", DetectSslStateTest02);
+    UtRegisterTest("DetectSslStateTest03", DetectSslStateTest03);
+    UtRegisterTest("DetectSslStateTest04", DetectSslStateTest04);
+    UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05);
+    UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06);
+    UtRegisterTest("DetectSslStateTest07", DetectSslStateTest07);
 #endif
 
     return;

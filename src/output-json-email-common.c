@@ -54,7 +54,6 @@
 #include "output-json-email-common.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define LOG_EMAIL_DEFAULT       0
 #define LOG_EMAIL_EXTENDED      (1<<0)
@@ -120,6 +119,9 @@ static json_t* JsonEmailJsonArrayFromCommaList(const uint8_t *val, size_t len)
                 sp = SkipWhiteSpaceTill(p, savep);
                 json_array_append_new(ajs, json_string(sp));
             }
+        } else {
+            json_decref(ajs);
+            return NULL;
         }
         SCFree(to_line);
     }
@@ -251,6 +253,7 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
                 SCLogDebug("no smtp state, so no request logging");
+                json_decref(sjs);
                 SCReturnPtr(NULL, "json_t");
             }
             SMTPTransaction *tx = vtx;
@@ -260,10 +263,12 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             break;
         default:
             /* don't know how we got here */
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
     }
     if ((mime_state != NULL)) {
         if (entity == NULL) {
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
         }
 
@@ -303,8 +308,10 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
             }
         }
 
-        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL)
+        if (mime_state->stack == NULL || mime_state->stack->top == NULL || mime_state->stack->top->data == NULL) {
+            json_decref(sjs);
             SCReturnPtr(NULL, "json_t");
+        }
 
         entity = (MimeDecEntity *)mime_state->stack->top->data;
         int attch_cnt = 0;
@@ -371,6 +378,10 @@ TmEcode JsonEmailLogJson(JsonEmailLogThread *aft, json_t *js, const Packet *p, F
     json_t *sjs = JsonEmailLogJsonData(f, state, vtx, tx_id);
     OutputJsonEmailCtx *email_ctx = aft->emaillog_ctx;
     SMTPTransaction *tx = (SMTPTransaction *) vtx;
+
+    if (sjs == NULL) {
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     if ((email_ctx->flags & LOG_EMAIL_EXTENDED) || (email_ctx->fields != 0))
         JsonEmailLogJSONCustom(email_ctx, sjs, tx);

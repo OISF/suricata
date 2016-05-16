@@ -1837,11 +1837,16 @@ static int DetectDceStubDataTestParse05(void)
 void DetectDceStubDataRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDceStubDataTestParse01", DetectDceStubDataTestParse01, 1);
-    UtRegisterTest("DetectDceStubDataTestParse02", DetectDceStubDataTestParse02, 1);
-    UtRegisterTest("DetectDceStubDataTestParse03", DetectDceStubDataTestParse03, 1);
-    UtRegisterTest("DetectDceStubDataTestParse04", DetectDceStubDataTestParse04, 1);
-    UtRegisterTest("DetectDceStubDataTestParse05", DetectDceStubDataTestParse05, 1);
+    UtRegisterTest("DetectDceStubDataTestParse01",
+                   DetectDceStubDataTestParse01);
+    UtRegisterTest("DetectDceStubDataTestParse02",
+                   DetectDceStubDataTestParse02);
+    UtRegisterTest("DetectDceStubDataTestParse03",
+                   DetectDceStubDataTestParse03);
+    UtRegisterTest("DetectDceStubDataTestParse04",
+                   DetectDceStubDataTestParse04);
+    UtRegisterTest("DetectDceStubDataTestParse05",
+                   DetectDceStubDataTestParse05);
 #endif
 
     return;

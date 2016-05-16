@@ -68,27 +68,7 @@ void DetectTosRegister(void)
     sigmatch_table[DETECT_TOS].Free = DetectTosFree;
     sigmatch_table[DETECT_TOS].RegisterTests = DetectTosRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at "
-                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -412,18 +392,18 @@ end:
 void DetectTosRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTosTest01", DetectTosTest01, 1);
-    UtRegisterTest("DetectTosTest02", DetectTosTest02, 1);
-    UtRegisterTest("DetectTosTest03", DetectTosTest03, 1);
-    UtRegisterTest("DetectTosTest04", DetectTosTest04, 1);
-    UtRegisterTest("DetectTosTest05", DetectTosTest05, 1);
-    UtRegisterTest("DetectTosTest06", DetectTosTest06, 1);
-    UtRegisterTest("DetectTosTest07", DetectTosTest07, 1);
-    UtRegisterTest("DetectTosTest08", DetectTosTest08, 1);
-    UtRegisterTest("DetectTosTest09", DetectTosTest09, 1);
-    UtRegisterTest("DetectTosTest10", DetectTosTest10, 1);
-    UtRegisterTest("DetectTosTest11", DetectTosTest11, 1);
-    UtRegisterTest("DetectTosTest12", DetectTosTest12, 1);
+    UtRegisterTest("DetectTosTest01", DetectTosTest01);
+    UtRegisterTest("DetectTosTest02", DetectTosTest02);
+    UtRegisterTest("DetectTosTest03", DetectTosTest03);
+    UtRegisterTest("DetectTosTest04", DetectTosTest04);
+    UtRegisterTest("DetectTosTest05", DetectTosTest05);
+    UtRegisterTest("DetectTosTest06", DetectTosTest06);
+    UtRegisterTest("DetectTosTest07", DetectTosTest07);
+    UtRegisterTest("DetectTosTest08", DetectTosTest08);
+    UtRegisterTest("DetectTosTest09", DetectTosTest09);
+    UtRegisterTest("DetectTosTest10", DetectTosTest10);
+    UtRegisterTest("DetectTosTest11", DetectTosTest11);
+    UtRegisterTest("DetectTosTest12", DetectTosTest12);
 #endif
 
     return;

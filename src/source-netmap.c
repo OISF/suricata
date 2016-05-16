@@ -80,7 +80,7 @@
 
 #endif /* HAVE_NETMAP */
 
-extern int max_pending_packets;
+extern intmax_t max_pending_packets;
 
 #ifndef HAVE_NETMAP
 
@@ -632,13 +632,17 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     char const *active_runmode = RunmodeGetActive();
     if ((aconf->copy_mode != NETMAP_COPY_MODE_NONE) && active_runmode
             && !strcmp("workers", active_runmode)) {
-        if (likely(ntv->ifsrc->mem == ntv->ifdst->mem)) {
-            ntv->flags |= NETMAP_FLAG_ZERO_COPY;
-            SCLogInfo("Enabling zero copy mode for %s->%s",
-                      aconf->iface_name, aconf->out_iface_name);
-        } else {
-            SCLogInfo("Unable to set zero copy mode for %s->%s",
-                      aconf->iface_name, aconf->out_iface_name);
+        ntv->flags |= NETMAP_FLAG_ZERO_COPY;
+        SCLogInfo("Enabling zero copy mode for %s->%s",
+                  aconf->iface_name, aconf->out_iface_name);
+    } else {
+        uint16_t ring_size = ntv->ifsrc->rings[0].rx->num_slots;
+        if (ring_size > max_pending_packets) {
+            SCLogError(SC_ERR_NETMAP_CREATE,
+                       "Packet pool size (%" PRIuMAX ") must be greater or equal than %s ring size (%" PRIu16 "). "
+                       "Increase max_pending_packets option.",
+                       max_pending_packets, aconf->iface_name, ring_size);
+            goto error_dst;
         }
     }
 
@@ -659,7 +663,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
 
     if (GetIfaceOffloading(aconf->iface) == 1) {
         SCLogWarning(SC_ERR_NETMAP_CREATE,
-                     "Using mmap mode with GRO or LRO activated can lead to capture problems");
+                     "Using netmap mode with GRO or LRO activated can lead to capture problems");
     }
 
     *data = (void *)ntv;
@@ -767,6 +771,10 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
     uint32_t avail = nm_ring_space(rx);
     uint32_t cur = rx->cur;
 
+    if (!(ntv->flags & NETMAP_FLAG_ZERO_COPY)) {
+        PacketPoolWaitForN(avail);
+    }
+
     while (likely(avail-- > 0)) {
         struct netmap_slot *slot = &rx->slot[cur];
         unsigned char *slot_data = (unsigned char *)NETMAP_BUF(rx, slot->buf_idx);
@@ -780,7 +788,7 @@ static int NetmapRingRead(NetmapThreadVars *ntv, int ring_id)
             }
         }
 
-        Packet *p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketPoolGetPacket();
         if (unlikely(p == NULL)) {
             SCReturnInt(NETMAP_FAILURE);
         }
@@ -893,6 +901,9 @@ static TmEcode ReceiveNetmapLoop(ThreadVars *tv, void *data, void *slot)
             /* no events, timeout */
             SCLogDebug("(%s:%d-%d) Poll timeout", ntv->ifsrc->ifname,
                        ntv->src_ring_from, ntv->src_ring_to);
+
+            /* poll timed out, lets see if we need to inject a fake packet  */
+            TmThreadsCaptureInjectPacket(tv, ntv->slot, NULL);
             continue;
         }
 
@@ -1069,6 +1080,7 @@ void TmModuleReceiveNetmapRegister(void)
     tmm_modules[TMM_RECEIVENETMAP].ThreadInit = ReceiveNetmapThreadInit;
     tmm_modules[TMM_RECEIVENETMAP].Func = NULL;
     tmm_modules[TMM_RECEIVENETMAP].PktAcqLoop = ReceiveNetmapLoop;
+    tmm_modules[TMM_RECEIVENETMAP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVENETMAP].ThreadExitPrintStats = ReceiveNetmapThreadExitStats;
     tmm_modules[TMM_RECEIVENETMAP].ThreadDeinit = ReceiveNetmapThreadDeinit;
     tmm_modules[TMM_RECEIVENETMAP].RegisterTests = NULL;

@@ -28,7 +28,7 @@
 /* packet decoder events */
 enum {
     /* IPV4 EVENTS */
-    IPV4_PKT_TOO_SMALL = 1,         /**< ipv4 pkt smaller than minimum header size */
+    IPV4_PKT_TOO_SMALL = 0,         /**< ipv4 pkt smaller than minimum header size */
     IPV4_HLEN_TOO_SMALL,            /**< ipv4 header smaller than minimum size */
     IPV4_IPLEN_SMALLER_THAN_HLEN,   /**< ipv4 pkt len smaller than ip header size */
     IPV4_TRUNC_PKT,                 /**< truncated ipv4 packet */
@@ -58,6 +58,8 @@ enum {
     ICMPV6_IPV6_UNKNOWN_VER,        /**< unknown version in icmpv6 packet */
     ICMPV6_IPV6_TRUNC_PKT,          /**< truncated icmpv6 packet */
     ICMPV6_MLD_MESSAGE_WITH_INVALID_HL, /**< invalid MLD that doesn't have HL 1 */
+    ICMPV6_UNASSIGNED_TYPE,         /**< unsassigned ICMPv6 type */
+    ICMPV6_EXPERIMENTATION_TYPE,    /**< uprivate experimentation ICMPv6 type */
 
     /* IPV6 EVENTS */
     IPV6_PKT_TOO_SMALL,             /**< ipv6 packet smaller than minimum size */
@@ -150,6 +152,44 @@ enum {
     LTNULL_PKT_TOO_SMALL,           /**< pkt too small for lt:null */
     LTNULL_UNSUPPORTED_TYPE,        /**< pkt has a type that the decoder doesn't support */
 
+    /* SCTP EVENTS */
+    SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
+
+    /* Fragmentation reasembly events. */
+    IPV4_FRAG_PKT_TOO_LARGE,
+    IPV6_FRAG_PKT_TOO_LARGE,
+    IPV4_FRAG_OVERLAP,
+    IPV6_FRAG_OVERLAP,
+    IPV4_FRAG_TOO_LARGE,
+    IPV6_FRAG_TOO_LARGE,
+
+    /* Fragment ignored due to internal error */
+    IPV4_FRAG_IGNORED,
+    IPV6_FRAG_IGNORED,
+
+    /* IPv4 in IPv6 events */
+    IPV4_IN_IPV6_PKT_TOO_SMALL,
+    IPV4_IN_IPV6_WRONG_IP_VER,
+
+    /* IPv6 in IPv6 events */
+    IPV6_IN_IPV6_PKT_TOO_SMALL,
+    IPV6_IN_IPV6_WRONG_IP_VER,
+
+    /* MPLS decode events. */
+    MPLS_HEADER_TOO_SMALL,
+    MPLS_BAD_LABEL_ROUTER_ALERT,
+    MPLS_BAD_LABEL_IMPLICIT_NULL,
+    MPLS_BAD_LABEL_RESERVED,
+    MPLS_UNKNOWN_PAYLOAD_TYPE,
+
+    /* ERSPAN events */
+    ERSPAN_HEADER_TOO_SMALL,
+    ERSPAN_UNSUPPORTED_VERSION,
+    ERSPAN_TOO_MANY_VLAN_LAYERS,
+
+    /* END OF DECODE EVENTS ON SINGLE PACKET */
+    DECODE_EVENT_PACKET_MAX,
+
     /* STREAM EVENTS */
     STREAM_3WHS_ACK_IN_WRONG_DIR,
     STREAM_3WHS_ASYNC_WRONG_SEQ,
@@ -212,41 +252,19 @@ enum {
 
     STREAM_REASSEMBLY_OVERLAP_DIFFERENT_DATA,
 
-    /* SCTP EVENTS */
-    SCTP_PKT_TOO_SMALL, /**< sctp packet smaller than minimum size */
-
-    /* Fragmentation reasembly events. */
-    IPV4_FRAG_PKT_TOO_LARGE,
-    IPV6_FRAG_PKT_TOO_LARGE,
-    IPV4_FRAG_OVERLAP,
-    IPV6_FRAG_OVERLAP,
-    IPV4_FRAG_TOO_LARGE,
-    IPV6_FRAG_TOO_LARGE,
-    /* Fragment ignored due to internal error */
-    IPV4_FRAG_IGNORED,
-    IPV6_FRAG_IGNORED,
-
-    /* IPv4 in IPv6 events */
-    IPV4_IN_IPV6_PKT_TOO_SMALL,
-    IPV4_IN_IPV6_WRONG_IP_VER,
-    /* IPv6 in IPv6 events */
-    IPV6_IN_IPV6_PKT_TOO_SMALL,
-    IPV6_IN_IPV6_WRONG_IP_VER,
-
-    /* MPLS decode events. */
-    MPLS_HEADER_TOO_SMALL,
-    MPLS_BAD_LABEL_ROUTER_ALERT,
-    MPLS_BAD_LABEL_IMPLICIT_NULL,
-    MPLS_BAD_LABEL_RESERVED,
-    MPLS_UNKNOWN_PAYLOAD_TYPE,
-
-    /* ERSPAN events */
-    ERSPAN_HEADER_TOO_SMALL,
-    ERSPAN_UNSUPPORTED_VERSION,
-    ERSPAN_TOO_MANY_VLAN_LAYERS,
-
     /* should always be last! */
     DECODE_EVENT_MAX,
 };
+
+#define EVENT_IS_DECODER_PACKET_ERROR(e)    \
+    ((e) < (DECODE_EVENT_PACKET_MAX))
+
+/* supported decoder events */
+
+struct DecodeEvents_ {
+    char *event_name;
+    uint8_t code;
+};
+extern const struct DecodeEvents_ DEvents[DECODE_EVENT_MAX];
 
 #endif /* __DECODE_EVENTS_H__ */

@@ -2109,13 +2109,13 @@ static int SSHParserTest19(void)
         goto end;
     }
 
-    char *name = SCMalloc(256);
+    char *name = SCCalloc(1, 256);
     if (name == NULL)
         goto end;
-    memset(name, 0x00, 256);
-    strlcpy(name, (char *)sshbuf3, strlen((char *)sshbuf3) - 1);
+    strlcpy(name, (char *)sshbuf3, 256);
+    name[strlen(name) - 1] = '\0'; // strip \r
 
-    if (strncmp((char*)ssh_state->srv_hdr.software_version, name, strlen(name)) != 0) {
+    if (strcmp((char*)ssh_state->srv_hdr.software_version, name) != 0) {
         printf("Client version string not parsed correctly: ");
         goto end;
     }
@@ -2578,30 +2578,30 @@ end:
 void SSHParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("SSHParserTest01 - ToServer", SSHParserTest01, 1);
-    UtRegisterTest("SSHParserTest02 - ToServer", SSHParserTest02, 1);
-    UtRegisterTest("SSHParserTest03 - ToServer", SSHParserTest03, 1);
-    UtRegisterTest("SSHParserTest04 - ToClient", SSHParserTest04, 1);
-    UtRegisterTest("SSHParserTest05 - ToClient", SSHParserTest05, 1);
-    UtRegisterTest("SSHParserTest06 - ToClient", SSHParserTest06, 1);
-    UtRegisterTest("SSHParserTest07 - ToServer 2 chunks", SSHParserTest07, 1);
-    UtRegisterTest("SSHParserTest08 - ToServer 3 chunks", SSHParserTest08, 1);
-    UtRegisterTest("SSHParserTest09 - ToClient 2 chunks", SSHParserTest09, 1);
-    UtRegisterTest("SSHParserTest10 - ToClient 3 chunks", SSHParserTest10, 1);
-    UtRegisterTest("SSHParserTest11 - ToClient 4 chunks", SSHParserTest11, 1);
-    UtRegisterTest("SSHParserTest12 - ToClient 4 chunks", SSHParserTest12, 1);
-    UtRegisterTest("SSHParserTest13 - ToClient 4 chunks", SSHParserTest13, 1);
-    UtRegisterTest("SSHParserTest14 - ToClient 4 chunks", SSHParserTest14, 1);
-    UtRegisterTest("SSHParserTest15", SSHParserTest15, 1);
-    UtRegisterTest("SSHParserTest16", SSHParserTest16, 1);
-    UtRegisterTest("SSHParserTest17", SSHParserTest17, 1);
-    UtRegisterTest("SSHParserTest18", SSHParserTest18, 1);
-    UtRegisterTest("SSHParserTest19", SSHParserTest19, 1);
-    UtRegisterTest("SSHParserTest20", SSHParserTest20, 1);
-    UtRegisterTest("SSHParserTest21", SSHParserTest21, 1);
-    UtRegisterTest("SSHParserTest22", SSHParserTest22, 1);
-    UtRegisterTest("SSHParserTest23", SSHParserTest23, 1);
-    UtRegisterTest("SSHParserTest24", SSHParserTest24, 1);
+    UtRegisterTest("SSHParserTest01 - ToServer", SSHParserTest01);
+    UtRegisterTest("SSHParserTest02 - ToServer", SSHParserTest02);
+    UtRegisterTest("SSHParserTest03 - ToServer", SSHParserTest03);
+    UtRegisterTest("SSHParserTest04 - ToClient", SSHParserTest04);
+    UtRegisterTest("SSHParserTest05 - ToClient", SSHParserTest05);
+    UtRegisterTest("SSHParserTest06 - ToClient", SSHParserTest06);
+    UtRegisterTest("SSHParserTest07 - ToServer 2 chunks", SSHParserTest07);
+    UtRegisterTest("SSHParserTest08 - ToServer 3 chunks", SSHParserTest08);
+    UtRegisterTest("SSHParserTest09 - ToClient 2 chunks", SSHParserTest09);
+    UtRegisterTest("SSHParserTest10 - ToClient 3 chunks", SSHParserTest10);
+    UtRegisterTest("SSHParserTest11 - ToClient 4 chunks", SSHParserTest11);
+    UtRegisterTest("SSHParserTest12 - ToClient 4 chunks", SSHParserTest12);
+    UtRegisterTest("SSHParserTest13 - ToClient 4 chunks", SSHParserTest13);
+    UtRegisterTest("SSHParserTest14 - ToClient 4 chunks", SSHParserTest14);
+    UtRegisterTest("SSHParserTest15", SSHParserTest15);
+    UtRegisterTest("SSHParserTest16", SSHParserTest16);
+    UtRegisterTest("SSHParserTest17", SSHParserTest17);
+    UtRegisterTest("SSHParserTest18", SSHParserTest18);
+    UtRegisterTest("SSHParserTest19", SSHParserTest19);
+    UtRegisterTest("SSHParserTest20", SSHParserTest20);
+    UtRegisterTest("SSHParserTest21", SSHParserTest21);
+    UtRegisterTest("SSHParserTest22", SSHParserTest22);
+    UtRegisterTest("SSHParserTest23", SSHParserTest23);
+    UtRegisterTest("SSHParserTest24", SSHParserTest24);
 #endif /* UNITTESTS */
 }
 

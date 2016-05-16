@@ -141,10 +141,11 @@ void HostInitConfig(char quiet)
     SC_ATOMIC_INIT(host_prune_idx);
     HostQueueInit(&host_spare_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     host_config.hash_rand   = (int)( HOST_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     host_config.hash_size   = HOST_DEFAULT_HASHSIZE;
     host_config.memcap      = HOST_DEFAULT_MEMCAP;
     host_config.prealloc    = HOST_DEFAULT_PREALLOC;
@@ -195,7 +196,7 @@ void HostInitConfig(char quiet)
                 (uintmax_t)sizeof(HostHashRow));
         exit(EXIT_FAILURE);
     }
-    host_hash = SCCalloc(host_config.hash_size, sizeof(HostHashRow));
+    host_hash = SCMallocAligned(host_config.hash_size * sizeof(HostHashRow), CLS);
     if (unlikely(host_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostInitConfig. Exiting...");
         exit(EXIT_FAILURE);
@@ -283,7 +284,7 @@ void HostShutdown(void)
 
             HRLOCK_DESTROY(&host_hash[u]);
         }
-        SCFree(host_hash);
+        SCFreeAligned(host_hash);
         host_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));

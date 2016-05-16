@@ -49,7 +49,26 @@
 
 #include "source-pfring.h"
 
+#include "tmqh-flow.h"
+
+#ifdef __SC_CUDA_SUPPORT__
+#include "util-cuda-buffer.h"
+#include "util-mpm-ac.h"
+#endif
+
 int debuglog_enabled = 0;
+
+/* Runmode Global Thread Names */
+const char *thread_name_autofp = "RX";
+const char *thread_name_single = "W";
+const char *thread_name_workers = "W";
+const char *thread_name_verdict = "TX";
+const char *thread_name_flow_mgr = "FM";
+const char *thread_name_flow_rec = "FR";
+const char *thread_name_unix_socket = "US";
+const char *thread_name_detect_loader = "DL";
+const char *thread_name_counter_stats = "CS";
+const char *thread_name_counter_wakeup = "CW";
 
 /**
  * \brief Holds description for a runmode.
@@ -360,16 +379,32 @@ void RunModeDispatch(int runmode, const char *custom_mode)
     }
 
     /* Export the custom mode */
+    if (active_runmode) {
+        SCFree(active_runmode);
+    }
     active_runmode = SCStrdup(custom_mode);
     if (unlikely(active_runmode == NULL)) {
         SCLogError(SC_ERR_MEM_ALLOC, "Unable to dup active mode");
         exit(EXIT_FAILURE);
     }
 
+    if (strcasecmp(active_runmode, "autofp") == 0) {
+        TmqhFlowPrintAutofpHandler();
+    }
+
     mode->RunModeFunc();
 
     if (local_custom_mode != NULL)
         SCFree(local_custom_mode);
+
+#ifdef __SC_CUDA_SUPPORT__
+    if (PatternMatchDefaultMatcher() == MPM_AC_CUDA)
+        SCACCudaStartDispatcher();
+#endif
+
+    /* Check if the alloted queues have at least 1 reader and writer */
+    TmValidateQueueState();
+
     return;
 }
 
@@ -819,6 +854,13 @@ void RunModeInitializeOutputs(void)
         } else if (strcmp(output->val, "lua") == 0) {
             SCLogDebug("handle lua");
 
+            if (output_ctx == NULL)
+                continue;
+
+            OutputModule *lua_module = OutputGetModuleByConfName(output->val);
+            BUG_ON(lua_module == NULL);
+            AddOutputToFreeList(lua_module, output_ctx);
+
             ConfNode *scripts = ConfNodeLookupChild(output_config, "scripts");
             BUG_ON(scripts == NULL); //TODO
 
@@ -843,6 +885,7 @@ void RunModeInitializeOutputs(void)
                     continue;
                 }
 
+                AddOutputToFreeList(m, sub_output_ctx);
                 SetupOutput(m->name, m, sub_output_ctx);
             }
 

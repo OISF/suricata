@@ -61,6 +61,18 @@
                                         ((c)->flags & DETECT_CONTENT_DEPTH) || \
                                         ((c)->flags & DETECT_CONTENT_OFFSET) ))
 
+/* if a pattern has no depth/offset limits, no relative specifiers and isn't
+ * chopped for the mpm, we can take the mpm and consider this pattern a match
+ * w/o futher inspection. Warning: this may still mean other patterns depend
+ * on this pattern that force match validation anyway. */
+#define DETECT_CONTENT_MPM_IS_CONCLUSIVE(c) \
+                                    !( ((c)->flags & DETECT_CONTENT_DISTANCE) || \
+                                       ((c)->flags & DETECT_CONTENT_WITHIN)   || \
+                                       ((c)->flags & DETECT_CONTENT_DEPTH)    || \
+                                       ((c)->flags & DETECT_CONTENT_OFFSET)   || \
+                                       ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
+
+
 #include "util-spm-bm.h"
 
 typedef struct DetectContentData_ {
@@ -69,6 +81,8 @@ typedef struct DetectContentData_ {
     uint16_t replace_len;
     /* for chopped fast pattern, the length */
     uint16_t fp_chop_len;
+    /* for chopped fast pattern, the offset */
+    uint16_t fp_chop_offset;
     /* would want to move PatIntId here and flags down to remove the padding
      * gap, but I think the first four members was used as a template for
      * casting.  \todo check this and fix it if posssible */
@@ -76,8 +90,6 @@ typedef struct DetectContentData_ {
     PatIntId id;
     uint16_t depth;
     uint16_t offset;
-    /* for chopped fast pattern, the offset */
-    uint16_t fp_chop_offset;
     int32_t distance;
     int32_t within;
     /* Boyer Moore context (for spm search) */

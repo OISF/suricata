@@ -53,7 +53,6 @@
 #include "detect-filemagic.h"
 
 #include "conf.h"
-#include "util-magic.h"
 
 static int DetectFilemagicMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, Signature *, SigMatch *);
@@ -322,13 +321,20 @@ static void *DetectFilemagicThreadInit(void *data)
 
     (void)ConfGet("magic-file", &filename);
     if (filename != NULL) {
-        SCLogInfo("using magic-file %s", filename);
-
-        if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-            goto error;
+        if (strlen(filename) == 0) {
+            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
+            SCLogInfo("using system default magic-file");
+            filename = NULL;
         }
-        fclose(fd);
+        else {
+            SCLogInfo("using magic-file %s", filename);
+
+            if ( (fd = fopen(filename, "r")) == NULL) {
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                goto error;
+            }
+            fclose(fd);
+        }
     }
 
     if (magic_load(t->ctx, filename) != 0) {
@@ -491,8 +497,8 @@ int DetectFilemagicTestParse03 (void)
 void DetectFilemagicRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01, 1);
-    UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02, 1);
-    UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03, 1);
+    UtRegisterTest("DetectFilemagicTestParse01", DetectFilemagicTestParse01);
+    UtRegisterTest("DetectFilemagicTestParse02", DetectFilemagicTestParse02);
+    UtRegisterTest("DetectFilemagicTestParse03", DetectFilemagicTestParse03);
 #endif /* UNITTESTS */
 }

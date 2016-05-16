@@ -60,7 +60,6 @@
 #include <tmc/sync.h>
 #include <tmc/task.h>
 #include <tmc/perf.h>
-#include <arch/sim.h>
 
 /* Align "p" mod "align", assuming "p" is a "void*". */
 #define ALIGN(p, align) do { (p) += -(long)(p) & ((align) - 1); } while(0)
@@ -173,6 +172,7 @@ void TmModuleReceiveMpipeRegister (void)
     tmm_modules[TMM_RECEIVEMPIPE].ThreadInit = ReceiveMpipeThreadInit;
     tmm_modules[TMM_RECEIVEMPIPE].Func = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].PktAcqLoop = ReceiveMpipeLoop;
+    tmm_modules[TMM_RECEIVEMPIPE].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].ThreadExitPrintStats = ReceiveMpipeThreadExitStats;
     tmm_modules[TMM_RECEIVEMPIPE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEMPIPE].RegisterTests = NULL;
@@ -352,9 +352,9 @@ TmEcode ReceiveMpipeLoop(ThreadVars *tv, void *data, void *slot)
 
     ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
     if (ConfGet("mpipe.checksum-checks", &ctype) == 1) {
-        if (strcmp(ctype, "yes") == 0) {
+        if (ConfValIsTrue(ctype)) {
             ptv->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(ctype, "no") == 0)  {
+        } else if (ConfValIsFalse(ctype))  {
             ptv->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, 

@@ -60,25 +60,7 @@ void DetectIcmpIdRegister (void)
     sigmatch_table[DETECT_ICMP_ID].Free = DetectIcmpIdFree;
     sigmatch_table[DETECT_ICMP_ID].RegisterTests = DetectIcmpIdRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -266,8 +248,6 @@ void DetectIcmpIdFree (void *ptr)
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -488,13 +468,13 @@ end:
 void DetectIcmpIdRegisterTests (void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01, 1);
-    UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02, 1);
-    UtRegisterTest("DetectIcmpIdParseTest03", DetectIcmpIdParseTest03, 1);
-    UtRegisterTest("DetectIcmpIdParseTest04", DetectIcmpIdParseTest04, 1);
-    UtRegisterTest("DetectIcmpIdParseTest05", DetectIcmpIdParseTest05, 1);
-    UtRegisterTest("DetectIcmpIdMatchTest01", DetectIcmpIdMatchTest01, 1);
-    UtRegisterTest("DetectIcmpIdMatchTest02", DetectIcmpIdMatchTest02, 1);
+    UtRegisterTest("DetectIcmpIdParseTest01", DetectIcmpIdParseTest01);
+    UtRegisterTest("DetectIcmpIdParseTest02", DetectIcmpIdParseTest02);
+    UtRegisterTest("DetectIcmpIdParseTest03", DetectIcmpIdParseTest03);
+    UtRegisterTest("DetectIcmpIdParseTest04", DetectIcmpIdParseTest04);
+    UtRegisterTest("DetectIcmpIdParseTest05", DetectIcmpIdParseTest05);
+    UtRegisterTest("DetectIcmpIdMatchTest01", DetectIcmpIdMatchTest01);
+    UtRegisterTest("DetectIcmpIdMatchTest02", DetectIcmpIdMatchTest02);
 #endif /* UNITTESTS */
 }
 

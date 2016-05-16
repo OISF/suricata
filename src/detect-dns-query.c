@@ -55,7 +55,6 @@
 #include "app-layer-dns-common.h"
 #include "detect-dns-query.h"
 
-#include "util-unittest.h"
 #include "util-unittest-helper.h"
 
 static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, char *);
@@ -96,41 +95,6 @@ static int DetectDnsQuerySetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     s->list = DETECT_SM_LIST_DNSQUERYNAME_MATCH;
     s->alproto = ALPROTO_DNS;
     return 0;
-}
-
-/**
- *  \brief Run the pattern matcher against the queries
- *
- *  \param f locked flow
- *  \param dns_state initialized dns state
- *
- *  \warning Make sure the flow/state is locked
- *  \todo what should we return? Just the fact that we matched?
- */
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  DNSState *dns_state, uint8_t flags, void *txv,
-                                  uint64_t tx_id)
-{
-    SCEnter();
-
-    DNSTransaction *tx = (DNSTransaction *)txv;
-    DNSQueryEntry *query = NULL;
-    uint8_t *buffer;
-    uint16_t buffer_len;
-    uint32_t cnt = 0;
-
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        SCLogDebug("tx %p query %p", tx, query);
-
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
-
-        cnt += DnsQueryPatternSearch(det_ctx,
-                buffer, buffer_len,
-                flags);
-    }
-
-    SCReturnUInt(cnt);
 }
 
 #ifdef UNITTESTS
@@ -1169,12 +1133,15 @@ end:
 static void DetectDnsQueryRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01, 1);
-    UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02, 1);
-    UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03, 1);
-    UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing", DetectDnsQueryTest04, 1);
-    UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx", DetectDnsQueryTest05, 1);
-    UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06, 1);
-    UtRegisterTest("DetectDnsQueryTest07 -- app layer event", DetectDnsQueryTest07, 1);
+    UtRegisterTest("DetectDnsQueryTest01", DetectDnsQueryTest01);
+    UtRegisterTest("DetectDnsQueryTest02", DetectDnsQueryTest02);
+    UtRegisterTest("DetectDnsQueryTest03 -- tcp", DetectDnsQueryTest03);
+    UtRegisterTest("DetectDnsQueryTest04 -- tcp splicing",
+                   DetectDnsQueryTest04);
+    UtRegisterTest("DetectDnsQueryTest05 -- tcp splicing/multi tx",
+                   DetectDnsQueryTest05);
+    UtRegisterTest("DetectDnsQueryTest06 -- pcre", DetectDnsQueryTest06);
+    UtRegisterTest("DetectDnsQueryTest07 -- app layer event",
+                   DetectDnsQueryTest07);
 #endif
 }

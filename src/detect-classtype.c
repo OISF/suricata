@@ -37,7 +37,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
-#define DETECT_CLASSTYPE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"
+#define PARSE_REGEX "^\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*$"
 
 static pcre *regex = NULL;
 static pcre_extra *regex_study = NULL;
@@ -50,12 +50,6 @@ void DetectClasstypeRegisterTests(void);
  */
 void DetectClasstypeRegister(void)
 {
-    const char *eb = NULL;
-    int eo;
-    int opts = 0;
-
-    SCLogDebug("Registering the Classtype keyword handler");
-
     sigmatch_table[DETECT_CLASSTYPE].name = "classtype";
     sigmatch_table[DETECT_CLASSTYPE].desc = "information about the classification of rules and alerts";
     sigmatch_table[DETECT_CLASSTYPE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Meta-settings#Classtype";
@@ -64,21 +58,7 @@ void DetectClasstypeRegister(void)
     sigmatch_table[DETECT_CLASSTYPE].Free  = NULL;
     sigmatch_table[DETECT_CLASSTYPE].RegisterTests = DetectClasstypeRegisterTests;
 
-    regex = pcre_compile(DETECT_CLASSTYPE_REGEX, opts, &eb, &eo, NULL);
-    if (regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                   DETECT_CLASSTYPE_REGEX, eo, eb);
-        goto end;
-    }
-
-    regex_study = pcre_study(regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto end;
-    }
-
- end:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &regex, &regex_study);
 }
 
 /**
@@ -333,9 +313,9 @@ void DetectClasstypeRegisterTests(void)
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01, 1);
-    UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02, 1);
-    UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03, 1);
+    UtRegisterTest("DetectClasstypeTest01", DetectClasstypeTest01);
+    UtRegisterTest("DetectClasstypeTest02", DetectClasstypeTest02);
+    UtRegisterTest("DetectClasstypeTest03", DetectClasstypeTest03);
 
 #endif /* UNITTESTS */
 

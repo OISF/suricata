@@ -285,8 +285,9 @@ static void *HTPStateAlloc(void)
     SCEnter();
 
     HtpState *s = HTPMalloc(sizeof(HtpState));
-    if (unlikely(s == NULL))
-        goto error;
+    if (unlikely(s == NULL)) {
+        SCReturnPtr(NULL, "void");
+    }
 
     memset(s, 0x00, sizeof(HtpState));
 
@@ -299,13 +300,6 @@ static void *HTPStateAlloc(void)
 #endif
 
     SCReturnPtr((void *)s, "void");
-
-error:
-    if (s != NULL) {
-        HTPFree(s, sizeof(HtpState));
-    }
-
-    SCReturnPtr(NULL, "void");
 }
 
 static void HtpTxUserDataFree(HtpState *state, HtpTxUserData *htud)
@@ -1083,49 +1077,6 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud)
     SCReturnInt(0);
 }
 
-/**
- *  \brief Setup boundary buffers
- */
-static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
-        uint8_t **expected_boundary, uint8_t *expected_boundary_len,
-        uint8_t **expected_boundary_end, uint8_t *expected_boundary_end_len)
-{
-    uint8_t *eb = NULL;
-    uint8_t *ebe = NULL;
-
-    uint8_t eb_len = htud->boundary_len + 2;
-    eb = (uint8_t *)HTPMalloc(eb_len);
-    if (eb == NULL) {
-        goto error;
-    }
-    memset(eb, '-', eb_len);
-    memcpy(eb + 2, htud->boundary, htud->boundary_len);
-
-    uint8_t ebe_len = htud->boundary_len + 4;
-    ebe = (uint8_t *)HTPMalloc(ebe_len);
-    if (ebe == NULL) {
-        goto error;
-    }
-    memset(ebe, '-', ebe_len);
-    memcpy(ebe + 2, htud->boundary, htud->boundary_len);
-
-    *expected_boundary = eb;
-    *expected_boundary_len = eb_len;
-    *expected_boundary_end = ebe;
-    *expected_boundary_end_len = ebe_len;
-
-    SCReturnInt(0);
-
-error:
-    if (eb != NULL) {
-        HTPFree(eb, eb_len);
-    }
-    if (ebe != NULL) {
-        HTPFree(ebe, ebe_len);
-    }
-    SCReturnInt(-1);
-}
-
 #define C_D_HDR "content-disposition:"
 #define C_D_HDR_LEN 20
 #define C_T_HDR "content-type:"
@@ -1275,14 +1226,36 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
     *chunks_buffer_len = buf_len;
 }
 
+static void FlagDetectStateNewFile(HtpTxUserData *tx, int dir)
+{
+    if (tx && tx->de_state) {
+        if (dir == STREAM_TOSERVER) {
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW set");
+            tx->de_state->dir_state[0].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TS_NEW;
+        } else if (STREAM_TOCLIENT) {
+            SCLogDebug("DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW set");
+            tx->de_state->dir_state[1].flags |= DETECT_ENGINE_STATE_FLAG_FILE_TC_NEW;
+        }
+    }
+}
+
+/**
+ *  \brief Setup boundary buffers
+ */
+static void HtpRequestBodySetupBoundary(HtpTxUserData *htud,
+        uint8_t *boundary, uint32_t boundary_len)
+{
+    memset(boundary, '-', boundary_len);
+    memcpy(boundary + 2, htud->boundary, htud->boundary_len);
+}
+
 int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                                   void *tx, uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
-    uint8_t *expected_boundary = NULL;
-    uint8_t *expected_boundary_end = NULL;
-    uint8_t expected_boundary_len = 0;
-    uint8_t expected_boundary_end_len = 0;
+    uint8_t boundary[htud->boundary_len + 4]; /**< size limited to HTP_BOUNDARY_MAX + 4 */
+    uint8_t expected_boundary_len = htud->boundary_len + 2;
+    uint8_t expected_boundary_end_len = htud->boundary_len + 4;
     int tx_progress = 0;
 
 #ifdef PRINT
@@ -1291,21 +1264,18 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
     printf("CHUNK END: \n");
 #endif
 
-    if (HtpRequestBodySetupBoundary(htud, &expected_boundary, &expected_boundary_len,
-                &expected_boundary_end, &expected_boundary_end_len) < 0) {
-        goto end;
-    }
+    HtpRequestBodySetupBoundary(htud, boundary, htud->boundary_len + 4);
 
     /* search for the header start, header end and form end */
     uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            expected_boundary, expected_boundary_len);
+            boundary, expected_boundary_len);
     uint8_t *header_end = NULL;
     if (header_start != NULL) {
         header_end = Bs2bmSearch(header_start, chunks_buffer_len - (header_start - chunks_buffer),
                 (uint8_t *)"\r\n\r\n", 4);
     }
     uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len,
-            expected_boundary_end, expected_boundary_end_len);
+            boundary, expected_boundary_end_len);
 
     SCLogDebug("header_start %p, header_end %p, form_end %p", header_start,
             header_end, form_end);
@@ -1442,7 +1412,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
                 /* or is it? */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        expected_boundary, expected_boundary_len);
+                        boundary, expected_boundary_len);
                 if (header_next != NULL) {
                     filedata_len -= (form_end - header_next);
                 }
@@ -1471,6 +1441,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                         goto end;
                     }
                 }
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
                 htud->request_body.body_parsed += (header_end - chunks_buffer);
                 htud->tsflags &= ~HTP_FILENAME_SET;
@@ -1495,7 +1466,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 /* form doesn't end in this chunk, but part might. Lets
                  * see if have another coming up */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
-                        expected_boundary, expected_boundary_len);
+                        boundary, expected_boundary_len);
                 SCLogDebug("header_next %p", header_next);
                 if (header_next == NULL) {
                     /* no, but we'll handle the file data when we see the
@@ -1515,6 +1486,8 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     } else if (result == -2) {
                         htud->tsflags |= HTP_DONTSTORE;
                     }
+                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
+
                 } else if (header_next - filedata > 2) {
                     filedata_len = header_next - filedata - 2;
                     SCLogDebug("filedata_len %u", filedata_len);
@@ -1531,6 +1504,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                             goto end;
                         }
                     }
+                    FlagDetectStateNewFile(htud, STREAM_TOSERVER);
 
                     htud->tsflags &= ~HTP_FILENAME_SET;
                     htud->request_body.body_parsed += (header_end - chunks_buffer);
@@ -1545,21 +1519,27 @@ next:
         uint32_t cursizeread = header_end - chunks_buffer;
         header_start = Bs2bmSearch(header_end + 4,
                 chunks_buffer_len - (cursizeread + 4),
-                expected_boundary, expected_boundary_len);
+                boundary, expected_boundary_len);
         if (header_start != NULL) {
             header_end = Bs2bmSearch(header_end + 4,
                     chunks_buffer_len - (cursizeread + 4),
                     (uint8_t *) "\r\n\r\n", 4);
         }
     }
-end:
-    if (expected_boundary != NULL) {
-        HTPFree(expected_boundary, expected_boundary_len);
-    }
-    if (expected_boundary_end != NULL) {
-        HTPFree(expected_boundary_end, expected_boundary_end_len);
+
+    /* if we're parsing the multipart and we're not currently processing a
+     * file, we move the body pointer forward. */
+    if (form_end == NULL && !(htud->tsflags & HTP_FILENAME_SET) && header_start == NULL) {
+        if (chunks_buffer_len > expected_boundary_end_len) {
+            uint32_t move = chunks_buffer_len - expected_boundary_end_len + 1;
+
+            htud->request_body.body_parsed += move;
+            SCLogDebug("form not ready, file not set, parsing non-file "
+                    "record: moved %u", move);
+        }
     }
 
+end:
     SCLogDebug("htud->request_body.body_parsed %"PRIu64, htud->request_body.body_parsed);
     return 0;
 }
@@ -1605,6 +1585,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tsflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
                 htud->tsflags |= HTP_FILENAME_SET;
                 htud->tsflags &= ~HTP_DONTSTORE;
             }
@@ -1658,6 +1639,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tsflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOSERVER);
                 htud->tsflags |= HTP_FILENAME_SET;
                 htud->tsflags &= ~HTP_DONTSTORE;
             }
@@ -1725,6 +1707,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             } else if (result == -2) {
                 htud->tcflags |= HTP_DONTSTORE;
             } else {
+                FlagDetectStateNewFile(htud, STREAM_TOCLIENT);
                 htud->tcflags |= HTP_FILENAME_SET;
                 htud->tcflags &= ~HTP_DONTSTORE;
             }
@@ -1831,7 +1814,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        HtpBodyAppendChunk(tx_ud, &tx_ud->request_body, (uint8_t *)d->data, len);
+        HtpBodyAppendChunk(&tx_ud->request_body, d->data, len);
 
         uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
@@ -1930,9 +1913,15 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        HtpBodyAppendChunk(tx_ud, &tx_ud->response_body, (uint8_t *)d->data, len);
+        HtpBodyAppendChunk(&tx_ud->response_body, d->data, len);
 
         HtpResponseBodyHandle(hstate, tx_ud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+    } else {
+        if (tx_ud->tcflags & HTP_FILENAME_SET) {
+            SCLogDebug("closing file that was being stored");
+            (void)HTPFileClose(hstate, NULL, 0, FILE_TRUNCATED, STREAM_TOCLIENT);
+            tx_ud->tcflags &= ~HTP_FILENAME_SET;
+        }
     }
 
     /* set the new chunk flag */
@@ -2114,7 +2103,7 @@ static int HTPCallbackDoubleDecodePath(htp_tx_t *tx)
 static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0)
+    if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
@@ -2151,7 +2140,7 @@ static int HTPCallbackRequestHeaderData(htp_tx_data_t *tx_data)
 static int HTPCallbackResponseHeaderData(htp_tx_data_t *tx_data)
 {
     void *ptmp;
-    if (tx_data->len == 0)
+    if (tx_data->len == 0 || tx_data->tx == NULL)
         return HTP_OK;
 
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx_data->tx);
@@ -2193,7 +2182,11 @@ static void HTPConfigSetDefaultsPhase1(HTPCfgRec *cfg_prec)
     cfg_prec->request_inspect_window = HTP_CONFIG_DEFAULT_REQUEST_INSPECT_WINDOW;
     cfg_prec->response_inspect_min_size = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_MIN_SIZE;
     cfg_prec->response_inspect_window = HTP_CONFIG_DEFAULT_RESPONSE_INSPECT_WINDOW;
+#ifndef AFLFUZZ_NO_RANDOM
     cfg_prec->randomize = HTP_CONFIG_DEFAULT_RANDOMIZE;
+#else
+    cfg_prec->randomize = 0;
+#endif
     cfg_prec->randomize_range = HTP_CONFIG_DEFAULT_RANDOMIZE_RANGE;
 
     htp_config_register_request_header_data(cfg_prec->cfg, HTPCallbackRequestHeaderData);
@@ -2472,7 +2465,9 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     (size_t)HTP_CONFIG_DEFAULT_FIELD_LIMIT_SOFT,
                     (size_t)limit);
         } else if (strcasecmp("randomize-inspection-sizes", p->name) == 0) {
+#ifndef AFLFUZZ_NO_RANDOM
             cfg_prec->randomize = ConfValIsTrue(p->val);
+#endif
         } else if (strcasecmp("randomize-inspection-range", p->name) == 0) {
             uint32_t range = atoi(p->val);
             if (range > 100) {
@@ -5646,9 +5641,9 @@ static int HTPBodyReassemblyTest01(void)
     uint8_t chunk1[] = "--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
     uint8_t chunk2[] = "POST /uri HTTP/1.1\r\nHost: hostname.com\r\nKeep-Alive: 115\r\nAccept-Charset: utf-8\r\nUser-Agent: Mozilla/5.0 (X11; Linux i686; rv:9.0.1) Gecko/20100101 Firefox/9.0.1\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\nConnection: keep-alive\r\nContent-length: 68102\r\nReferer: http://otherhost.com\r\nAccept-Encoding: gzip\r\nContent-Type: multipart/form-data; boundary=e5a320f21416a02493a0a6f561b1c494\r\nCookie: blah\r\nAccept-Language: us\r\n\r\n--e5a320f21416a02493a0a6f561b1c494\r\nContent-Disposition: form-data; name=\"uploadfile\"; filename=\"D2GUef.jpg\"\r";
 
-    int r = HtpBodyAppendChunk(&htud, &htud.request_body, (uint8_t *)chunk1, sizeof(chunk1)-1);
+    int r = HtpBodyAppendChunk(&htud.request_body, chunk1, sizeof(chunk1)-1);
     BUG_ON(r != 0);
-    r = HtpBodyAppendChunk(&htud, &htud.request_body, (uint8_t *)chunk2, sizeof(chunk2)-1);
+    r = HtpBodyAppendChunk(&htud.request_body, chunk2, sizeof(chunk2)-1);
     BUG_ON(r != 0);
 
     uint8_t *chunks_buffer = NULL;
@@ -6473,47 +6468,47 @@ end:
 void HTPParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTPParserTest01", HTPParserTest01, 1);
-    UtRegisterTest("HTPParserTest01a", HTPParserTest01a, 1);
-    UtRegisterTest("HTPParserTest02", HTPParserTest02, 1);
-    UtRegisterTest("HTPParserTest03", HTPParserTest03, 1);
-    UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);
-    UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
-    UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
-    UtRegisterTest("HTPParserTest07", HTPParserTest07, 1);
-    UtRegisterTest("HTPParserTest08", HTPParserTest08, 1);
-    UtRegisterTest("HTPParserTest09", HTPParserTest09, 1);
-    UtRegisterTest("HTPParserTest10", HTPParserTest10, 1);
-    UtRegisterTest("HTPParserTest11", HTPParserTest11, 1);
-    UtRegisterTest("HTPParserTest12", HTPParserTest12, 1);
-    UtRegisterTest("HTPParserTest13", HTPParserTest13, 1);
-    UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
-    UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
-    UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
+    UtRegisterTest("HTPParserTest01", HTPParserTest01);
+    UtRegisterTest("HTPParserTest01a", HTPParserTest01a);
+    UtRegisterTest("HTPParserTest02", HTPParserTest02);
+    UtRegisterTest("HTPParserTest03", HTPParserTest03);
+    UtRegisterTest("HTPParserTest04", HTPParserTest04);
+    UtRegisterTest("HTPParserTest05", HTPParserTest05);
+    UtRegisterTest("HTPParserTest06", HTPParserTest06);
+    UtRegisterTest("HTPParserTest07", HTPParserTest07);
+    UtRegisterTest("HTPParserTest08", HTPParserTest08);
+    UtRegisterTest("HTPParserTest09", HTPParserTest09);
+    UtRegisterTest("HTPParserTest10", HTPParserTest10);
+    UtRegisterTest("HTPParserTest11", HTPParserTest11);
+    UtRegisterTest("HTPParserTest12", HTPParserTest12);
+    UtRegisterTest("HTPParserTest13", HTPParserTest13);
+    UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01);
+    UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02);
+    UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03);
 #if 0 /* disabled when we upgraded to libhtp 0.5.x */
     UtRegisterTest("HTPParserConfigTest04", HTPParserConfigTest04, 1);
 #endif
 
-    UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01, 1);
-    UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02, 1);
-    UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03, 1);
-    UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04, 1);
-    UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05, 1);
-    UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06, 1);
-    UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07, 1);
-    UtRegisterTest("HTPParserDecodingTest08", HTPParserDecodingTest08, 1);
-    UtRegisterTest("HTPParserDecodingTest09", HTPParserDecodingTest09, 1);
+    UtRegisterTest("HTPParserDecodingTest01", HTPParserDecodingTest01);
+    UtRegisterTest("HTPParserDecodingTest02", HTPParserDecodingTest02);
+    UtRegisterTest("HTPParserDecodingTest03", HTPParserDecodingTest03);
+    UtRegisterTest("HTPParserDecodingTest04", HTPParserDecodingTest04);
+    UtRegisterTest("HTPParserDecodingTest05", HTPParserDecodingTest05);
+    UtRegisterTest("HTPParserDecodingTest06", HTPParserDecodingTest06);
+    UtRegisterTest("HTPParserDecodingTest07", HTPParserDecodingTest07);
+    UtRegisterTest("HTPParserDecodingTest08", HTPParserDecodingTest08);
+    UtRegisterTest("HTPParserDecodingTest09", HTPParserDecodingTest09);
 
-    UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01, 1);
+    UtRegisterTest("HTPBodyReassemblyTest01", HTPBodyReassemblyTest01);
 
-    UtRegisterTest("HTPSegvTest01", HTPSegvTest01, 1);
+    UtRegisterTest("HTPSegvTest01", HTPSegvTest01);
 
-    UtRegisterTest("HTPParserTest14", HTPParserTest14, 1);
-    UtRegisterTest("HTPParserTest15", HTPParserTest15, 1);
-    UtRegisterTest("HTPParserTest16", HTPParserTest16, 1);
-    UtRegisterTest("HTPParserTest17", HTPParserTest17, 1);
-    UtRegisterTest("HTPParserTest18", HTPParserTest18, 1);
-    UtRegisterTest("HTPParserTest19", HTPParserTest19, 1);
+    UtRegisterTest("HTPParserTest14", HTPParserTest14);
+    UtRegisterTest("HTPParserTest15", HTPParserTest15);
+    UtRegisterTest("HTPParserTest16", HTPParserTest16);
+    UtRegisterTest("HTPParserTest17", HTPParserTest17);
+    UtRegisterTest("HTPParserTest18", HTPParserTest18);
+    UtRegisterTest("HTPParserTest19", HTPParserTest19);
 
     HTPFileParserRegisterTests();
     HTPXFFParserRegisterTests();

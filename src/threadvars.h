@@ -48,6 +48,11 @@ struct TmSlot_;
 #define THV_KILL_PKTACQ (1 << 9)    /**< flag thread to stop packet acq */
 #define THV_FLOW_LOOP (1 << 10)   /**< thread is in flow shutdown loop */
 
+/** signal thread's capture method to create a fake packet to force through
+ *  the engine. This is to force timely handling of maintenance taks like
+ *  rule reloads even if no packets are read by the capture method. */
+#define THV_CAPTURE_INJECT_PKT (1<<11)
+
 /** Thread flags set and read by threads, to control the threads, when they
  *  encounter certain conditions like failure */
 #define THV_RESTART_THREAD 0x01 /** restart the thread */
@@ -59,7 +64,7 @@ struct TmSlot_;
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
     pthread_t t;
-    char *name;
+    char name[16];
     char *thread_group_name;
 
     SC_ATOMIC_DECLARE(unsigned int, flags);

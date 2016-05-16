@@ -159,9 +159,9 @@ static void *ParseNetmapConfig(const char *iface_name)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(netmap_node, "interface", aconf->iface_name);
+    if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
 
-    if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(netmap_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find netmap config for "
@@ -254,9 +254,9 @@ static void *ParseNetmapConfig(const char *iface_name)
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpctype, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpctype, "no") == 0) {
+        } else if (ConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface_name);
@@ -372,7 +372,7 @@ int RunModeIdsNetmapAutoFp(void)
                               ParseNetmapConfig,
                               NetmapConfigGeThreadsCount,
                               "ReceiveNetmap",
-                              "DecodeNetmap", "RxNetmap",
+                              "DecodeNetmap", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -405,7 +405,7 @@ int RunModeIdsNetmapSingle(void)
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
-                                    "DecodeNetmap", "NetmapPkt",
+                                    "DecodeNetmap", thread_name_single,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -441,7 +441,7 @@ int RunModeIdsNetmapWorkers(void)
                                     ParseNetmapConfig,
                                     NetmapConfigGeThreadsCount,
                                     "ReceiveNetmap",
-                                    "DecodeNetmap", "NetmapPkt",
+                                    "DecodeNetmap", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");

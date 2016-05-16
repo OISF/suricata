@@ -66,28 +66,7 @@ void DetectRpcRegister (void)
     sigmatch_table[DETECT_RPC].Free  = DetectRpcFree;
     sigmatch_table[DETECT_RPC].RegisterTests = DetectRpcRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    /* XXX */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /*
@@ -585,8 +564,6 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    DetectSigGroupPrintMemory();
-    DetectAddressPrintMemory();
     UTHFreePackets(&p, 1);
 end:
     return result;
@@ -599,11 +576,11 @@ end:
 void DetectRpcRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectRpcTestParse01", DetectRpcTestParse01, 1);
-    UtRegisterTest("DetectRpcTestParse02", DetectRpcTestParse02, 1);
-    UtRegisterTest("DetectRpcTestParse03", DetectRpcTestParse03, 1);
-    UtRegisterTest("DetectRpcTestParse04", DetectRpcTestParse04, 1);
-    UtRegisterTest("DetectRpcTestParse05", DetectRpcTestParse05, 1);
-    UtRegisterTest("DetectRpcTestSig01", DetectRpcTestSig01, 1);
+    UtRegisterTest("DetectRpcTestParse01", DetectRpcTestParse01);
+    UtRegisterTest("DetectRpcTestParse02", DetectRpcTestParse02);
+    UtRegisterTest("DetectRpcTestParse03", DetectRpcTestParse03);
+    UtRegisterTest("DetectRpcTestParse04", DetectRpcTestParse04);
+    UtRegisterTest("DetectRpcTestParse05", DetectRpcTestParse05);
+    UtRegisterTest("DetectRpcTestSig01", DetectRpcTestSig01);
 #endif /* UNITTESTS */
 }

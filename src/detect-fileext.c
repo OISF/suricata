@@ -308,8 +308,8 @@ int DetectFileextTestParse03 (void)
 void DetectFileextRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectFileextTestParse01", DetectFileextTestParse01, 1);
-    UtRegisterTest("DetectFileextTestParse02", DetectFileextTestParse02, 1);
-    UtRegisterTest("DetectFileextTestParse03", DetectFileextTestParse03, 1);
+    UtRegisterTest("DetectFileextTestParse01", DetectFileextTestParse01);
+    UtRegisterTest("DetectFileextTestParse02", DetectFileextTestParse02);
+    UtRegisterTest("DetectFileextTestParse03", DetectFileextTestParse03);
 #endif /* UNITTESTS */
 }

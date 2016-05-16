@@ -189,6 +189,7 @@ static inline void SCLogPrintToSyslog(int syslog_log_level, const char *msg)
 }
 
 #ifdef HAVE_LIBJANSSON
+#include <jansson.h>
 /**
  */
 int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
@@ -232,12 +233,7 @@ int SCLogMessageJSON(struct timeval *tval, char *buffer, size_t buffer_size,
 
     char *js_s = json_dumps(js,
             JSON_PRESERVE_ORDER|JSON_COMPACT|JSON_ENSURE_ASCII|
-#ifdef JSON_ESCAPE_SLASH
-            JSON_ESCAPE_SLASH
-#else
-            0
-#endif
-            );
+            JSON_ESCAPE_SLASH);
     snprintf(buffer, buffer_size, "%s", js_s);
     free(js_s);
 
@@ -1641,11 +1637,11 @@ void SCLogRegisterTests()
 
 #ifdef UNITTESTS
 
-    UtRegisterTest("SCLogTestInit01", SCLogTestInit01, 1);
-    UtRegisterTest("SCLogTestInit02", SCLogTestInit02, 1);
-    UtRegisterTest("SCLogTestInit03", SCLogTestInit03, 1);
-    UtRegisterTest("SCLogTestInit04", SCLogTestInit04, 1);
-    UtRegisterTest("SCLogTestInit05", SCLogTestInit05, 1);
+    UtRegisterTest("SCLogTestInit01", SCLogTestInit01);
+    UtRegisterTest("SCLogTestInit02", SCLogTestInit02);
+    UtRegisterTest("SCLogTestInit03", SCLogTestInit03);
+    UtRegisterTest("SCLogTestInit04", SCLogTestInit04);
+    UtRegisterTest("SCLogTestInit05", SCLogTestInit05);
 
 #endif /* UNITTESTS */
 

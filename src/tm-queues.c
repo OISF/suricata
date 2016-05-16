@@ -52,7 +52,10 @@ Tmq* TmqCreateQueue(char *name)
         goto error;
 
     Tmq *q = &tmqs[tmq_id];
-    q->name = name;
+    q->name = SCStrdup(name);
+    if (q->name == NULL)
+        goto error;
+
     q->id = tmq_id++;
     /* for cuda purposes */
     q->q_type = 0;
@@ -90,6 +93,12 @@ void TmqDebugList(void)
 
 void TmqResetQueues(void)
 {
+    uint16_t i;
+    for (i = 0; i < TMQ_MAX_QUEUES; i++) {
+        if (tmqs[i].name) {
+            SCFree(tmqs[i].name);
+        }
+    }
     memset(&tmqs, 0x00, sizeof(tmqs));
     tmq_id = 0;
 }

@@ -71,7 +71,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "3.0dev"
+#define PROG_VER "3.1dev"
 
 /* workaround SPlint error (don't know __gnuc_va_list) */
 #ifdef S_SPLINT_S
@@ -155,6 +155,7 @@ typedef struct SCInstance_ {
     struct timeval start_time;
 
     char *log_dir;
+    const char *progname; /**< pointer to argv[0] */
 } SCInstance;
 
 
@@ -181,11 +182,6 @@ extern char *conf_filename;
 void EngineStop(void);
 void EngineKill(void);
 void EngineDone(void);
-
-/* live rule swap required this to be made static */
-void SignalHandlerSigusr2(int);
-void SignalHandlerSigusr2EngineShutdown(int);
-void SignalHandlerSigusr2Idle(int sig);
 
 int RunmodeIsUnittests(void);
 int RunmodeGetCurrent(void);

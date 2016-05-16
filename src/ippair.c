@@ -137,10 +137,11 @@ void IPPairInitConfig(char quiet)
     SC_ATOMIC_INIT(ippair_prune_idx);
     IPPairQueueInit(&ippair_spare_q);
 
+#ifndef AFLFUZZ_NO_RANDOM
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
     ippair_config.hash_rand   = (int)( IPPAIR_DEFAULT_HASHSIZE * (rand_r(&seed) / RAND_MAX + 1.0));
-
+#endif
     ippair_config.hash_size   = IPPAIR_DEFAULT_HASHSIZE;
     ippair_config.memcap      = IPPAIR_DEFAULT_MEMCAP;
     ippair_config.prealloc    = IPPAIR_DEFAULT_PREALLOC;
@@ -191,7 +192,7 @@ void IPPairInitConfig(char quiet)
                 (uintmax_t)sizeof(IPPairHashRow));
         exit(EXIT_FAILURE);
     }
-    ippair_hash = SCCalloc(ippair_config.hash_size, sizeof(IPPairHashRow));
+    ippair_hash = SCMallocAligned(ippair_config.hash_size * sizeof(IPPairHashRow), CLS);
     if (unlikely(ippair_hash == NULL)) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in IPPairInitConfig. Exiting...");
         exit(EXIT_FAILURE);
@@ -279,7 +280,7 @@ void IPPairShutdown(void)
 
             HRLOCK_DESTROY(&ippair_hash[u]);
         }
-        SCFree(ippair_hash);
+        SCFreeAligned(ippair_hash);
         ippair_hash = NULL;
     }
     (void) SC_ATOMIC_SUB(ippair_memuse, ippair_config.hash_size * sizeof(IPPairHashRow));

@@ -56,6 +56,36 @@
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
 
+#include "util-validate.h"
+
+/**
+ * \brief Http raw uri match -- searches for one pattern per signature.
+ *
+ * \param det_ctx Detection engine thread ctx.
+ * \param uri     Raw uri to inspect.
+ * \param uri_len Raw uri length.
+ *
+ *  \retval ret Number of matches.
+ */
+static inline uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
+        const uint8_t *uri, const uint32_t uri_len,
+        const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
+
+    if (uri_len >= det_ctx->sgh->mpm_hrud_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
+                    &det_ctx->pmq, uri, uri_len);
+    }
+
+    SCReturnUInt(ret);
+}
 
 /**
  * \brief Run the mpm against raw http uris.
@@ -72,10 +102,10 @@ int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     uint32_t cnt = 0;
     if (tx->request_uri == NULL)
         goto end;
-    cnt = HttpRawUriPatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(tx->request_uri),
-                                  bstr_len(tx->request_uri), flags);
 
+    cnt = HttpRawUriPatternSearch(det_ctx,
+                                  (const uint8_t *)bstr_ptr(tx->request_uri),
+                                  bstr_len(tx->request_uri), flags);
 end:
     SCReturnInt(cnt);
 }
@@ -3503,7 +3533,6 @@ static int DetectEngineHttpRawUriTest29(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3598,7 +3627,6 @@ static int DetectEngineHttpRawUriTest30(void)
     if (de_ctx == NULL) {
         goto end;
     }
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
@@ -3658,65 +3686,65 @@ void DetectEngineHttpRawUriRegisterTests(void)
 {
 #ifdef UNITTESTS
     UtRegisterTest("DetectEngineHttpRawUriTest01",
-                   DetectEngineHttpRawUriTest01, 1);
+                   DetectEngineHttpRawUriTest01);
     UtRegisterTest("DetectEngineHttpRawUriTest02",
-                   DetectEngineHttpRawUriTest02, 1);
+                   DetectEngineHttpRawUriTest02);
     UtRegisterTest("DetectEngineHttpRawUriTest03",
-                   DetectEngineHttpRawUriTest03, 1);
+                   DetectEngineHttpRawUriTest03);
     UtRegisterTest("DetectEngineHttpRawUriTest04",
-                   DetectEngineHttpRawUriTest04, 1);
+                   DetectEngineHttpRawUriTest04);
     UtRegisterTest("DetectEngineHttpRawUriTest05",
-                   DetectEngineHttpRawUriTest05, 1);
+                   DetectEngineHttpRawUriTest05);
     UtRegisterTest("DetectEngineHttpRawUriTest06",
-                   DetectEngineHttpRawUriTest06, 1);
+                   DetectEngineHttpRawUriTest06);
     UtRegisterTest("DetectEngineHttpRawUriTest07",
-                   DetectEngineHttpRawUriTest07, 1);
+                   DetectEngineHttpRawUriTest07);
     UtRegisterTest("DetectEngineHttpRawUriTest08",
-                   DetectEngineHttpRawUriTest08, 1);
+                   DetectEngineHttpRawUriTest08);
     UtRegisterTest("DetectEngineHttpRawUriTest09",
-                   DetectEngineHttpRawUriTest09, 1);
+                   DetectEngineHttpRawUriTest09);
     UtRegisterTest("DetectEngineHttpRawUriTest10",
-                   DetectEngineHttpRawUriTest10, 1);
+                   DetectEngineHttpRawUriTest10);
     UtRegisterTest("DetectEngineHttpRawUriTest11",
-                   DetectEngineHttpRawUriTest11, 1);
+                   DetectEngineHttpRawUriTest11);
     UtRegisterTest("DetectEngineHttpRawUriTest12",
-                   DetectEngineHttpRawUriTest12, 1);
+                   DetectEngineHttpRawUriTest12);
     UtRegisterTest("DetectEngineHttpRawUriTest13",
-                   DetectEngineHttpRawUriTest13, 1);
+                   DetectEngineHttpRawUriTest13);
     UtRegisterTest("DetectEngineHttpRawUriTest14",
-                   DetectEngineHttpRawUriTest14, 1);
+                   DetectEngineHttpRawUriTest14);
     UtRegisterTest("DetectEngineHttpRawUriTest15",
-                   DetectEngineHttpRawUriTest15, 1);
+                   DetectEngineHttpRawUriTest15);
     UtRegisterTest("DetectEngineHttpRawUriTest16",
-                   DetectEngineHttpRawUriTest16, 1);
+                   DetectEngineHttpRawUriTest16);
     UtRegisterTest("DetectEngineHttpRawUriTest17",
-                   DetectEngineHttpRawUriTest17, 1);
+                   DetectEngineHttpRawUriTest17);
     UtRegisterTest("DetectEngineHttpRawUriTest18",
-                   DetectEngineHttpRawUriTest18, 1);
+                   DetectEngineHttpRawUriTest18);
     UtRegisterTest("DetectEngineHttpRawUriTest19",
-                   DetectEngineHttpRawUriTest19, 1);
+                   DetectEngineHttpRawUriTest19);
     UtRegisterTest("DetectEngineHttpRawUriTest20",
-                   DetectEngineHttpRawUriTest20, 1);
+                   DetectEngineHttpRawUriTest20);
     UtRegisterTest("DetectEngineHttpRawUriTest21",
-                   DetectEngineHttpRawUriTest21, 1);
+                   DetectEngineHttpRawUriTest21);
     UtRegisterTest("DetectEngineHttpRawUriTest22",
-                   DetectEngineHttpRawUriTest22, 1);
+                   DetectEngineHttpRawUriTest22);
     UtRegisterTest("DetectEngineHttpRawUriTest23",
-                   DetectEngineHttpRawUriTest23, 1);
+                   DetectEngineHttpRawUriTest23);
     UtRegisterTest("DetectEngineHttpRawUriTest24",
-                   DetectEngineHttpRawUriTest24, 1);
+                   DetectEngineHttpRawUriTest24);
     UtRegisterTest("DetectEngineHttpRawUriTest25",
-                   DetectEngineHttpRawUriTest25, 1);
+                   DetectEngineHttpRawUriTest25);
     UtRegisterTest("DetectEngineHttpRawUriTest26",
-                   DetectEngineHttpRawUriTest26, 1);
+                   DetectEngineHttpRawUriTest26);
     UtRegisterTest("DetectEngineHttpRawUriTest27",
-                   DetectEngineHttpRawUriTest27, 1);
+                   DetectEngineHttpRawUriTest27);
     UtRegisterTest("DetectEngineHttpRawUriTest28",
-                   DetectEngineHttpRawUriTest28, 1);
+                   DetectEngineHttpRawUriTest28);
     UtRegisterTest("DetectEngineHttpRawUriTest29",
-                   DetectEngineHttpRawUriTest29, 1);
+                   DetectEngineHttpRawUriTest29);
     UtRegisterTest("DetectEngineHttpRawUriTest30",
-                   DetectEngineHttpRawUriTest30, 1);
+                   DetectEngineHttpRawUriTest30);
 #endif /* UNITTESTS */
 
     return;

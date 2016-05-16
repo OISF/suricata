@@ -70,30 +70,7 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
     sigmatch_table[DETECT_AL_URILEN].flags |= SIGMATCH_PAYLOAD;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogDebug("pcre compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogDebug("pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    if (parse_regex != NULL)
-        pcre_free(parse_regex);
-    if (parse_regex_study != NULL)
-        pcre_free_study(parse_regex_study);
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -316,7 +293,6 @@ void DetectUrilenFree(void *ptr)
 #include "stream.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "app-layer-parser.h"
@@ -684,17 +660,17 @@ end:
 void DetectUrilenRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectUrilenParseTest01", DetectUrilenParseTest01, 1);
-    UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02, 1);
-    UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03, 1);
-    UtRegisterTest("DetectUrilenParseTest04", DetectUrilenParseTest04, 1);
-    UtRegisterTest("DetectUrilenParseTest05", DetectUrilenParseTest05, 1);
-    UtRegisterTest("DetectUrilenParseTest06", DetectUrilenParseTest06, 1);
-    UtRegisterTest("DetectUrilenParseTest07", DetectUrilenParseTest07, 1);
-    UtRegisterTest("DetectUrilenParseTest08", DetectUrilenParseTest08, 1);
-    UtRegisterTest("DetectUrilenParseTest09", DetectUrilenParseTest09, 1);
-    UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10, 1);
-    UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01, 1);
-    UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01, 1);
+    UtRegisterTest("DetectUrilenParseTest01", DetectUrilenParseTest01);
+    UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02);
+    UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03);
+    UtRegisterTest("DetectUrilenParseTest04", DetectUrilenParseTest04);
+    UtRegisterTest("DetectUrilenParseTest05", DetectUrilenParseTest05);
+    UtRegisterTest("DetectUrilenParseTest06", DetectUrilenParseTest06);
+    UtRegisterTest("DetectUrilenParseTest07", DetectUrilenParseTest07);
+    UtRegisterTest("DetectUrilenParseTest08", DetectUrilenParseTest08);
+    UtRegisterTest("DetectUrilenParseTest09", DetectUrilenParseTest09);
+    UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10);
+    UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01);
+    UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01);
 #endif /* UNITTESTS */
 }

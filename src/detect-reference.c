@@ -63,27 +63,7 @@ void DetectReferenceRegister(void)
     sigmatch_table[DETECT_REFERENCE].Free  = NULL;
     sigmatch_table[DETECT_REFERENCE].RegisterTests = ReferenceRegisterTests;
 
-    const char *eb;
-    int opts = 0;
-    int eo;
-
-    opts |= PCRE_CASELESS;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
-                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -367,9 +347,9 @@ cleanup:
 void ReferenceRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01, 1);
-    UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02, 1);
-    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03, 1);
+    UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01);
+    UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02);
+    UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03);
 #endif /* UNITTESTS */
 
     return;

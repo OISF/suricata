@@ -607,22 +607,22 @@ static int ByteTest16 (void)
 void ByteRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("ByteTest01", ByteTest01, 1);
-    UtRegisterTest("ByteTest02", ByteTest02, 1);
-    UtRegisterTest("ByteTest03", ByteTest03, 1);
-    UtRegisterTest("ByteTest04", ByteTest04, 1);
-    UtRegisterTest("ByteTest05", ByteTest05, 1);
-    UtRegisterTest("ByteTest06", ByteTest06, 1);
-    UtRegisterTest("ByteTest07", ByteTest07, 1);
-    UtRegisterTest("ByteTest08", ByteTest08, 1);
-    UtRegisterTest("ByteTest09", ByteTest09, 1);
-    UtRegisterTest("ByteTest10", ByteTest10, 1);
-    UtRegisterTest("ByteTest11", ByteTest11, 1);
-    UtRegisterTest("ByteTest12", ByteTest12, 1);
-    UtRegisterTest("ByteTest13", ByteTest13, 1);
-    UtRegisterTest("ByteTest14", ByteTest14, 1);
-    UtRegisterTest("ByteTest15", ByteTest15, 1);
-    UtRegisterTest("ByteTest16", ByteTest16, 1);
+    UtRegisterTest("ByteTest01", ByteTest01);
+    UtRegisterTest("ByteTest02", ByteTest02);
+    UtRegisterTest("ByteTest03", ByteTest03);
+    UtRegisterTest("ByteTest04", ByteTest04);
+    UtRegisterTest("ByteTest05", ByteTest05);
+    UtRegisterTest("ByteTest06", ByteTest06);
+    UtRegisterTest("ByteTest07", ByteTest07);
+    UtRegisterTest("ByteTest08", ByteTest08);
+    UtRegisterTest("ByteTest09", ByteTest09);
+    UtRegisterTest("ByteTest10", ByteTest10);
+    UtRegisterTest("ByteTest11", ByteTest11);
+    UtRegisterTest("ByteTest12", ByteTest12);
+    UtRegisterTest("ByteTest13", ByteTest13);
+    UtRegisterTest("ByteTest14", ByteTest14);
+    UtRegisterTest("ByteTest15", ByteTest15);
+    UtRegisterTest("ByteTest16", ByteTest16);
 #endif /* UNITTESTS */
 }
 

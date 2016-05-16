@@ -262,6 +262,19 @@ int DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
             break;
         }
 
+        case ETHERNET_TYPE_BRIDGE:
+            {
+                if (pq != NULL) {
+                    Packet *tp = PacketTunnelPktSetup(tv, dtv, p, pkt + header_len,
+                            len - header_len, DECODE_TUNNEL_ETHERNET, pq);
+                    if (tp != NULL) {
+                        PKT_SET_SRC(tp, PKT_SRC_DECODER_GRE);
+                        PacketEnqueue(pq,tp);
+                    }
+                }
+                break;
+            }
+
         default:
             return TM_ECODE_OK;
     }
@@ -390,9 +403,9 @@ static int DecodeGREtest03 (void)
 void DecodeGRERegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeGREtest01", DecodeGREtest01, 1);
-    UtRegisterTest("DecodeGREtest02", DecodeGREtest02, 1);
-    UtRegisterTest("DecodeGREtest03", DecodeGREtest03, 1);
+    UtRegisterTest("DecodeGREtest01", DecodeGREtest01);
+    UtRegisterTest("DecodeGREtest02", DecodeGREtest02);
+    UtRegisterTest("DecodeGREtest03", DecodeGREtest03);
 #endif /* UNITTESTS */
 }
 /**

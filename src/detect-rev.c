@@ -46,13 +46,14 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     char *str = rawstr;
     char dubbed = 0;
 
-    /* strip "'s */
-    if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (rawstr[0] == '\"') {
         str = SCStrdup(rawstr+1);
         if (unlikely(str == NULL))
             return -1;
-
-        str[strlen(rawstr)-2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(rawstr)-1] = '\0';
+        }
         dubbed = 1;
     }
 

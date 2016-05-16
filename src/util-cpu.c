@@ -23,9 +23,9 @@
  * Retrieve CPU information (configured CPUs, online CPUs)
  */
 
+#include "suricata-common.h"
 #include "util-error.h"
 #include "util-debug.h"
-#include "suricata-common.h"
 
 /**
  * Ok, if they should use sysconf, check that they have the macro's
@@ -221,7 +221,7 @@ uint64_t UtilCpuGetTicks(void)
 #endif
 
 #else /* #if defined(__GNU__) */
-#warning Using inferior version of UtilCpuGetTicks
+//#warning Using inferior version of UtilCpuGetTicks
     struct timeval now;
     gettimeofday(&now, NULL);
     val = (now.tv_sec * 1000000) + now.tv_usec;

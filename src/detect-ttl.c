@@ -61,26 +61,7 @@ void DetectTtlRegister(void)
     sigmatch_table[DETECT_TTL].Free = DetectTtlFree;
     sigmatch_table[DETECT_TTL].RegisterTests = DetectTtlRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    if (parse_regex != NULL) SCFree(parse_regex);
-    if (parse_regex_study != NULL) SCFree(parse_regex_study);
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
     return;
 }
 
@@ -313,8 +294,6 @@ void DetectTtlFree(void *ptr)
 }
 
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 
@@ -625,14 +604,14 @@ end:
 void DetectTtlRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTtlParseTest01", DetectTtlParseTest01, 1);
-    UtRegisterTest("DetectTtlParseTest02", DetectTtlParseTest02, 1);
-    UtRegisterTest("DetectTtlParseTest03", DetectTtlParseTest03, 1);
-    UtRegisterTest("DetectTtlParseTest04", DetectTtlParseTest04, 1);
-    UtRegisterTest("DetectTtlParseTest05", DetectTtlParseTest05, 1);
-    UtRegisterTest("DetectTtlParseTest06", DetectTtlParseTest06, 1);
-    UtRegisterTest("DetectTtlParseTest07", DetectTtlParseTest07, 1);
-    UtRegisterTest("DetectTtlSetpTest01", DetectTtlSetpTest01, 1);
-    UtRegisterTest("DetectTtlTestSig1",  DetectTtlTestSig1, 1);
+    UtRegisterTest("DetectTtlParseTest01", DetectTtlParseTest01);
+    UtRegisterTest("DetectTtlParseTest02", DetectTtlParseTest02);
+    UtRegisterTest("DetectTtlParseTest03", DetectTtlParseTest03);
+    UtRegisterTest("DetectTtlParseTest04", DetectTtlParseTest04);
+    UtRegisterTest("DetectTtlParseTest05", DetectTtlParseTest05);
+    UtRegisterTest("DetectTtlParseTest06", DetectTtlParseTest06);
+    UtRegisterTest("DetectTtlParseTest07", DetectTtlParseTest07);
+    UtRegisterTest("DetectTtlSetpTest01", DetectTtlSetpTest01);
+    UtRegisterTest("DetectTtlTestSig1", DetectTtlTestSig1);
 #endif /* UNITTESTS */
 }

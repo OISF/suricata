@@ -38,9 +38,6 @@ static void DetectBase64DecodeRegisterTests(void);
 
 void DetectBase64DecodeRegister(void)
 {
-    const char *pcre_errptr;
-    int pcre_erroffset;
-
     sigmatch_table[DETECT_BASE64_DECODE].name = "base64_decode";
     sigmatch_table[DETECT_BASE64_DECODE].desc =
         "Decodes base64 encoded data.";
@@ -54,20 +51,7 @@ void DetectBase64DecodeRegister(void)
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_PAYLOAD;
     sigmatch_table[DETECT_BASE64_DECODE].flags |= SIGMATCH_OPTIONAL_OPT;
 
-    decode_pcre = pcre_compile(decode_pattern, 0, &pcre_errptr, &pcre_erroffset,
-        NULL);
-    if (decode_pcre == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Failed to compile pattern \"%s\" at"
-            " offset %d: %s", decode_pattern, pcre_erroffset, pcre_errptr);
-        exit(EXIT_FAILURE);
-    }
-
-    decode_pcre_study = pcre_study(decode_pcre, 0, &pcre_errptr);
-    if (pcre_errptr != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "Failed to study pattern \"%s\": %s",
-            decode_pattern, pcre_errptr);
-        exit(EXIT_FAILURE);
-    }
+    DetectSetupParseRegexes(decode_pattern, &decode_pcre, &decode_pcre_study);
 }
 
 int DetectBase64DecodeDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
@@ -310,6 +294,9 @@ static int DetectBase64DecodeSetup(DetectEngineCtx *de_ctx, Signature *s,
         }
         else {
             sm_list = SigMatchListSMBelongsTo(s, pm);
+            if (sm_list < 0) {
+                goto error;
+            }
         }
     }
 
@@ -344,10 +331,7 @@ static void DetectBase64DecodeFree(void *ptr)
 
 
 #ifdef UNITTESTS
-
-#include "detect.h"
 #include "detect-engine.h"
-#include "detect-parse.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "app-layer-parser.h"
@@ -760,19 +744,17 @@ end:
 static void DetectBase64DecodeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse,
-        1);
-    UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup,
-        1);
+    UtRegisterTest("DetectBase64TestDecodeParse", DetectBase64TestDecodeParse);
+    UtRegisterTest("DetectBase64DecodeTestSetup", DetectBase64DecodeTestSetup);
     UtRegisterTest("DetectBase64DecodeHttpHeaderTestSetup",
-        DetectBase64DecodeHttpHeaderTestSetup, 1);
-    UtRegisterTest("DetectBase64DecodeTestDecode", DetectBase64DecodeTestDecode,
-        1);
+                   DetectBase64DecodeHttpHeaderTestSetup);
+    UtRegisterTest("DetectBase64DecodeTestDecode",
+                   DetectBase64DecodeTestDecode);
     UtRegisterTest("DetectBase64DecodeTestDecodeWithOffset",
-        DetectBase64DecodeTestDecodeWithOffset, 1);
+                   DetectBase64DecodeTestDecodeWithOffset);
     UtRegisterTest("DetectBase64DecodeTestDecodeLargeOffset",
-        DetectBase64DecodeTestDecodeLargeOffset, 1);
+                   DetectBase64DecodeTestDecodeLargeOffset);
     UtRegisterTest("DetectBase64DecodeTestDecodeRelative",
-        DetectBase64DecodeTestDecodeRelative, 1);
+                   DetectBase64DecodeTestDecodeRelative);
 #endif /* UNITTESTS */
 }

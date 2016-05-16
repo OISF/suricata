@@ -63,27 +63,7 @@ void DetectStreamSizeRegister(void)
     sigmatch_table[DETECT_STREAM_SIZE].Free = DetectStreamSizeFree;
     sigmatch_table[DETECT_STREAM_SIZE].RegisterTests = DetectStreamSizeRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    if (parse_regex != NULL) SCFree(parse_regex);
-    if (parse_regex_study != NULL) SCFree(parse_regex_study);
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -523,10 +503,10 @@ static int DetectStreamSizeParseTest04 (void)
 void DetectStreamSizeRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01, 1);
-    UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02, 1);
-    UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03, 1);
-    UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04, 1);
+    UtRegisterTest("DetectStreamSizeParseTest01", DetectStreamSizeParseTest01);
+    UtRegisterTest("DetectStreamSizeParseTest02", DetectStreamSizeParseTest02);
+    UtRegisterTest("DetectStreamSizeParseTest03", DetectStreamSizeParseTest03);
+    UtRegisterTest("DetectStreamSizeParseTest04", DetectStreamSizeParseTest04);
 #endif /* UNITTESTS */
 }
 

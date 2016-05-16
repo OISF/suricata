@@ -490,7 +490,7 @@ static void ModbusExceptionResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t exception;
+    uint8_t exception = 0;
 
     /* Exception code (1 byte) */
     if (ModbusExtractUint8(modbus, &exception, input, input_len, offset))
@@ -596,7 +596,7 @@ static void ModbusParseReadResponse(ModbusTransaction   *tx,
                                     uint16_t            *offset)
 {
     SCEnter();
-    uint8_t count;
+    uint8_t count = 0;
 
     /* Count (1 bytes) */
     if (ModbusExtractUint8(modbus, &count, input, input_len, offset))
@@ -646,8 +646,8 @@ static int ModbusParseWriteRequest(ModbusTransaction   *tx,
                                    uint16_t            *offset)
 {
     SCEnter();
-    uint16_t    quantity = 1, word;
-    uint8_t     byte, count = 1, type = tx->type;
+    uint16_t    quantity = 1, word = 0;
+    uint8_t     byte = 0, count = 1, type = tx->type;
 
     int i = 0;
 
@@ -773,7 +773,7 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
                                      uint16_t            *offset)
 {
     SCEnter();
-    uint16_t    address, quantity, word;
+    uint16_t    address = 0, quantity = 0, word = 0;
     uint8_t     type = tx->type;
 
     /* Starting Address (2 bytes) */
@@ -784,13 +784,17 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
         goto error;
 
     if (type & MODBUS_TYP_SINGLE) {
-        /* Outputs/Registers value (2 bytes) */
-        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
-            goto end;
+        /* Check if Outputs/Registers value has been stored */
+        if (tx->data != NULL)
+        {
+            /* Outputs/Registers value (2 bytes) */
+            if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+                goto end;
 
-        /* Check with Outputs/Registers from request */
-        if (word != tx->data[0])
-            goto error;
+            /* Check with Outputs/Registers from request */
+            if (word != tx->data[0])
+                goto error;
+        }
     } else if (type & MODBUS_TYP_MULTIPLE) {
         /* Quantity (2 bytes) */
         if (ModbusExtractUint16(modbus, &quantity, input, input_len, offset))
@@ -811,20 +815,25 @@ static void ModbusParseWriteResponse(ModbusTransaction   *tx,
         if (quantity != tx->write.quantity)
             goto error;
     } else {
-        /* And_Mask value (2 bytes) */
-        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
-            goto end;
+        /* Check if And_Mask and Or_Mask values have been stored */
+        if (tx->data != NULL)
+        {
+            /* And_Mask value (2 bytes) */
+            if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+                goto end;
 
-        /* Check And_Mask value according to the request */
-        if (word != tx->data[0])
-            goto error;
+            /* Check And_Mask value according to the request */
+            if (word != tx->data[0])
+                goto error;
 
-        /* And_Or_Mask value (2 bytes) */
-        if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+            /* And_Or_Mask value (2 bytes) */
+            if (ModbusExtractUint16(modbus, &word, input, input_len, offset))
+                goto end;
 
-        /* Check Or_Mask value according to the request */
-        if (word != tx->data[1])
-            goto error;
+            /* Check Or_Mask value according to the request */
+            if (word != tx->data[1])
+                goto error;
+        }
 
         /* The length of Mask Write Register (code 22) function response is 8   */
         /* Modbus Application Protocol Specification V1.1b3 6.16                */
@@ -863,7 +872,7 @@ static int ModbusParseDiagnosticRequest(ModbusTransaction   *tx,
                                         uint16_t            *offset)
 {
     SCEnter();
-    uint16_t data;
+    uint16_t data = 0;
 
     /* Sub-function (2 bytes) */
     if (ModbusExtractUint16(modbus, &(tx->subFunction), input, input_len, offset))
@@ -961,7 +970,7 @@ static void ModbusParseRequestPDU(ModbusTransaction *tx,
 {
     SCEnter();
     uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
-    uint8_t     count;
+    uint8_t     count = 0;
 
     int i = 0;
 
@@ -1118,7 +1127,7 @@ static void ModbusParseResponsePDU(ModbusTransaction    *tx,
 {
     SCEnter();
     uint16_t    offset = (uint16_t) sizeof(ModbusHeader);
-    uint8_t     count, error = FALSE, function, mei;
+    uint8_t     count = 0, error = FALSE, function = 0, mei = 0;
 
     /* Standard function codes used on MODBUS application layer protocol (1 byte) */
     if (ModbusExtractUint8(modbus, &function, input, input_len, &offset))
@@ -1433,7 +1442,9 @@ void RegisterModbusParsers(void)
                                                 proto_name, ALPROTO_MODBUS,
                                                 0, sizeof(ModbusHeader),
                                                 ModbusProbingParser)) {
+#ifndef AFLFUZZ_APPLAYER
                 return;
+#endif
             }
         }
 
@@ -1448,11 +1459,16 @@ void RegisterModbusParsers(void)
         }
         SCLogInfo("Modbus request flood protection level: %u", request_flood);
     } else {
+#ifndef AFLFUZZ_APPLAYER
         SCLogInfo("Protocol detection and parser disabled for %s protocol.", proto_name);
         return;
+#endif
     }
-
+#ifndef AFLFUZZ_APPLAYER
     if (AppLayerParserConfParserEnabled("tcp", proto_name)) {
+#else
+    if (1) {
+#endif
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOSERVER, ModbusParseRequest);
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_MODBUS, STREAM_TOCLIENT, ModbusParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_MODBUS, ModbusStateAlloc, ModbusStateFree);
@@ -1522,6 +1538,31 @@ static uint8_t readCoilsErrorRsp[] = {/* Transaction ID */    0x00, 0x00,
                                       /* Function code */     0x81,
                                       /* Exception code */    0x05};
 
+/* Modbus Application Protocol Specification V1.1b3 6.6: Write Single register */
+/* Example of a request to write register 2 to 00 03 hex */
+static uint8_t writeSingleRegisterReq[] = {/* Transaction ID */     0x00, 0x0A,
+                                           /* Protocol ID */        0x00, 0x00,
+                                           /* Length */             0x00, 0x06,
+                                           /* Unit ID */            0x00,
+                                           /* Function code */      0x06,
+                                           /* Register Address */   0x00, 0x01,
+                                           /* Register Value */     0x00, 0x03};
+
+static uint8_t invalidWriteSingleRegisterReq[] = {/* Transaction ID */      0x00, 0x0A,
+                                                  /* Protocol ID */         0x00, 0x00,
+                                                  /* Length */              0x00, 0x04,
+                                                  /* Unit ID */             0x00,
+                                                  /* Function code */       0x06,
+                                                  /* Register Address */    0x00, 0x01};
+
+static uint8_t writeSingleRegisterRsp[] = {/* Transaction ID */         0x00, 0x0A,
+                                           /* Protocol ID */            0x00, 0x00,
+                                           /* Length */                 0x00, 0x06,
+                                           /* Unit ID */                0x00,
+                                           /* Function code */          0x06,
+                                           /* Register Address */       0x00, 0x01,
+                                           /* Register Value */         0x00, 0x03};
+
 /* Modbus Application Protocol Specification V1.1b3 6.12: Write Multiple registers */
 /* Example of a request to write two registers starting at 2 to 00 0A and 01 02 hex */
 static uint8_t writeMultipleRegistersReq[] = {/* Transaction ID */          0x00, 0x0A,
@@ -1542,6 +1583,34 @@ static uint8_t writeMultipleRegistersRsp[] = {/* Transaction ID */          0x00
                                               /* Function code */           0x10,
                                               /* Starting Address */        0x00, 0x01,
                                               /* Quantity of Registers */   0x00, 0x02};
+
+/* Modbus Application Protocol Specification V1.1b3 6.16: Mask Write Register */
+/* Example of a request to mask write to register 5 */
+static uint8_t maskWriteRegisterReq[] = {/* Transaction ID */       0x00, 0x0A,
+                                         /* Protocol ID */          0x00, 0x00,
+                                         /* Length */               0x00, 0x08,
+                                         /* Unit ID */              0x00,
+                                         /* Function code */        0x16,
+                                         /* Reference Address */    0x00, 0x04,
+                                         /* And_Mask */             0x00, 0xF2,
+                                         /* Or_Mask */              0x00, 0x25};
+
+static uint8_t invalidMaskWriteRegisterReq[] = {/* Transaction ID */    0x00, 0x0A,
+                                                /* Protocol ID */       0x00, 0x00,
+                                                /* Length */            0x00, 0x06,
+                                                /* Unit ID */           0x00,
+                                                /* Function code */     0x16,
+                                                /* Reference Address */ 0x00, 0x04,
+                                                /* And_Mask */          0x00, 0xF2};
+
+static uint8_t maskWriteRegisterRsp[] = {/* Transaction ID */       0x00, 0x0A,
+                                         /* Protocol ID */          0x00, 0x00,
+                                         /* Length */               0x00, 0x08,
+                                         /* Unit ID */              0x00,
+                                         /* Function code */        0x16,
+                                         /* Reference Address */    0x00, 0x04,
+                                         /* And_Mask */             0x00, 0xF2,
+                                         /* Or_Mask */              0x00, 0x25};
 
 /* Modbus Application Protocol Specification V1.1b3 6.17: Read/Write Multiple registers */
 /* Example of a request to read six registers starting at register 4, */
@@ -2643,21 +2712,389 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
+
+/** \test Send Modbus Mask Write register request/response. */
+static int ModbusParserTest13(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    TcpSession ssn;
+
+    int result = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                    maskWriteRegisterReq, sizeof(maskWriteRegisterReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
+
+    if ((tx->function != 22) || (tx->data[0] != 0x00F2) || (tx->data[1] != 0x0025)) {
+        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
+        printf("expected And_Mask %" PRIu8 ", got %" PRIu8 ": ", 0x00F2, tx->data[0]);
+        printf("expected Or_Mask %" PRIu8 ", got %" PRIu8 ": ", 0x0025, tx->data[1]);
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                                maskWriteRegisterRsp, sizeof(maskWriteRegisterRsp));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (modbus_state->transaction_max !=1) {
+        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test Send Modbus Write single register request/response. */
+static int ModbusParserTest14(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    Flow f;
+    TcpSession ssn;
+
+    int result = 0;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                    writeSingleRegisterReq, sizeof(writeSingleRegisterReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
+
+    if ((tx->function != 6) || (tx->write.address != 0x0001) || (tx->data[0] != 0x0003)) {
+        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
+        printf("expected data %" PRIu8 ", got %" PRIu8 ": ", 0x03, tx->data[0]);
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                                writeSingleRegisterRsp, sizeof(writeSingleRegisterRsp));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (modbus_state->transaction_max !=1) {
+        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test Send invalid Modbus Mask Write register request. */
+static int ModbusParserTest15(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    int result = 0;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Length\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_length; "
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                    invalidMaskWriteRegisterReq,
+                                    sizeof(invalidMaskWriteRegisterReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
+
+    if (tx->function != 22) {
+        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                                maskWriteRegisterRsp, sizeof(maskWriteRegisterRsp));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (modbus_state->transaction_max !=1) {
+        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Send invalid Modbus Mask Write register request. */
+static int ModbusParserTest16(void) {
+    AppLayerParserThreadCtx *alp_tctx = AppLayerParserThreadCtxAlloc();
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    TcpSession ssn;
+    ThreadVars tv;
+
+    int result = 0;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.alproto   = ALPROTO_MODBUS;
+    f.protoctx  = (void *)&ssn;
+    f.proto     = IPPROTO_TCP;
+    f.flags     |= FLOW_IPV4;
+
+    p->flow         = &f;
+    p->flags        |= PKT_HAS_FLOW | PKT_STREAM_EST;
+    p->flowflags    |= FLOW_PKT_TOSERVER | FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = DetectEngineAppendSig(de_ctx, "alert modbus any any -> any any "
+                                      "(msg:\"Modbus invalid Length\"; "
+                                      "app-layer-event: "
+                                      "modbus.invalid_length; "
+                                      "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCMutexLock(&f.m);
+    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOSERVER,
+                                invalidWriteSingleRegisterReq, sizeof(invalidWriteSingleRegisterReq));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    ModbusState    *modbus_state = f.alstate;
+    if (modbus_state == NULL) {
+        printf("no modbus state: ");
+        goto end;
+    }
+
+    ModbusTransaction *tx = ModbusGetTx(modbus_state, 0);
+
+    if ((tx->function != 6) || (tx->write.address != 0x0001)) {
+        printf("expected function %" PRIu8 ", got %" PRIu8 ": ", 16, tx->function);
+        printf("expected write address %" PRIu8 ", got %" PRIu8 ": ", 0x01, tx->write.address);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    SCMutexLock(&f.m);
+    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_MODBUS, STREAM_TOCLIENT,
+                                writeSingleRegisterRsp, sizeof(writeSingleRegisterRsp));
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        SCMutexUnlock(&f.m);
+        goto end;
+    }
+    SCMutexUnlock(&f.m);
+
+    if (modbus_state->transaction_max !=1) {
+        printf("expected transaction_max %" PRIu8 ", got %" PRIu64 ": ", 1, modbus_state->transaction_max);
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    if (alp_tctx != NULL)
+        AppLayerParserThreadCtxFree(alp_tctx);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
 #endif /* UNITTESTS */
 
 void ModbusParserRegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("ModbusParserTest01 - Modbus Read Coils request", ModbusParserTest01, 1);
-    UtRegisterTest("ModbusParserTest02 - Modbus Write Multiple registers request", ModbusParserTest02, 1);
-    UtRegisterTest("ModbusParserTest03 - Modbus Read/Write Multiple registers request", ModbusParserTest03, 1);
-    UtRegisterTest("ModbusParserTest04 - Modbus Force Listen Only Mode request", ModbusParserTest04, 1);
-    UtRegisterTest("ModbusParserTest05 - Modbus invalid Protocol version", ModbusParserTest05, 1);
-    UtRegisterTest("ModbusParserTest06 - Modbus unsolicited response", ModbusParserTest06, 1);
-    UtRegisterTest("ModbusParserTest07 - Modbus invalid Length request", ModbusParserTest07, 1);
-    UtRegisterTest("ModbusParserTest08 - Modbus Exception code invalid", ModbusParserTest08, 1);
-    UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets", ModbusParserTest09, 1);
-    UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet", ModbusParserTest10, 1);
-    UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request", ModbusParserTest11, 1);
-    UtRegisterTest("ModbusParserTest12 - Modbus invalid PDU Length", ModbusParserTest12, 1);
+    UtRegisterTest("ModbusParserTest01 - Modbus Read Coils request",
+                   ModbusParserTest01);
+    UtRegisterTest("ModbusParserTest02 - Modbus Write Multiple registers request",
+                   ModbusParserTest02);
+    UtRegisterTest("ModbusParserTest03 - Modbus Read/Write Multiple registers request",
+                   ModbusParserTest03);
+    UtRegisterTest("ModbusParserTest04 - Modbus Force Listen Only Mode request",
+                   ModbusParserTest04);
+    UtRegisterTest("ModbusParserTest05 - Modbus invalid Protocol version",
+                   ModbusParserTest05);
+    UtRegisterTest("ModbusParserTest06 - Modbus unsolicited response",
+                   ModbusParserTest06);
+    UtRegisterTest("ModbusParserTest07 - Modbus invalid Length request",
+                   ModbusParserTest07);
+    UtRegisterTest("ModbusParserTest08 - Modbus Exception code invalid",
+                   ModbusParserTest08);
+    UtRegisterTest("ModbusParserTest09 - Modbus fragmentation - 1 ADU in 2 TCP packets",
+                   ModbusParserTest09);
+    UtRegisterTest("ModbusParserTest10 - Modbus fragmentation - 2 ADU in 1 TCP packet",
+                   ModbusParserTest10);
+    UtRegisterTest("ModbusParserTest11 - Modbus exceeded Length request",
+                   ModbusParserTest11);
+    UtRegisterTest("ModbusParserTest12 - Modbus invalid PDU Length",
+                   ModbusParserTest12);
+    UtRegisterTest("ModbusParserTest13 - Modbus Mask Write register request",
+                   ModbusParserTest13);
+    UtRegisterTest("ModbusParserTest14 - Modbus Write single register request",
+                   ModbusParserTest14);
+    UtRegisterTest("ModbusParserTest15 - Modbus invalid Mask Write register request",
+                   ModbusParserTest15);
+    UtRegisterTest("ModbusParserTest16 - Modbus invalid Write single register request",
+                   ModbusParserTest16);
 #endif /* UNITTESTS */
 }

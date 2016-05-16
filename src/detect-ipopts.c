@@ -64,28 +64,7 @@ void DetectIpOptsRegister (void)
     sigmatch_table[DETECT_IPOPTS].Free  = DetectIpOptsFree;
     sigmatch_table[DETECT_IPOPTS].RegisterTests = IpOptsRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
-
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -261,10 +240,10 @@ int IpOptsTestParse02 (void)
     de = DetectIpOptsParse("invalidopt");
     if (de) {
         DetectIpOptsFree(de);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -361,14 +340,15 @@ int IpOptsTestParse04 (void)
 
     if(ret) {
         SCFree(p);
-        return 1;
+        return 0;
     }
 
+    /* Error expected. */
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
     SCFree(p);
-    return 0;
+    return 1;
 }
 #endif /* UNITTESTS */
 
@@ -378,9 +358,9 @@ error:
 void IpOptsRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01, 1);
-    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02, 0);
-    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03, 1);
-    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04, 0);
+    UtRegisterTest("IpOptsTestParse01", IpOptsTestParse01);
+    UtRegisterTest("IpOptsTestParse02", IpOptsTestParse02);
+    UtRegisterTest("IpOptsTestParse03", IpOptsTestParse03);
+    UtRegisterTest("IpOptsTestParse04", IpOptsTestParse04);
 #endif /* UNITTESTS */
 }

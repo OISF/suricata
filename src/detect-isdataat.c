@@ -75,26 +75,7 @@ void DetectIsdataatRegister(void)
 
     sigmatch_table[DETECT_ISDATAAT].flags |= SIGMATCH_PAYLOAD;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    /* XXX */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -1225,25 +1206,25 @@ end:
 void DetectIsdataatRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01, 1);
-    UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02, 1);
-    UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
-    UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04, 1);
-    UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05, 1);
-    UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06, 1);
-    UtRegisterTest("DetectIsdataatTestParse07", DetectIsdataatTestParse07, 1);
-    UtRegisterTest("DetectIsdataatTestParse08", DetectIsdataatTestParse08, 1);
-    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09, 1);
-    UtRegisterTest("DetectIsdataatTestParse10", DetectIsdataatTestParse10, 1);
-    UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11, 1);
-    UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12, 1);
-    UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13, 1);
-    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14, 1);
-    UtRegisterTest("DetectIsdataatTestParse15", DetectIsdataatTestParse15, 1);
-    UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16, 1);
+    UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01);
+    UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02);
+    UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03);
+    UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04);
+    UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05);
+    UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06);
+    UtRegisterTest("DetectIsdataatTestParse07", DetectIsdataatTestParse07);
+    UtRegisterTest("DetectIsdataatTestParse08", DetectIsdataatTestParse08);
+    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09);
+    UtRegisterTest("DetectIsdataatTestParse10", DetectIsdataatTestParse10);
+    UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11);
+    UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12);
+    UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13);
+    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14);
+    UtRegisterTest("DetectIsdataatTestParse15", DetectIsdataatTestParse15);
+    UtRegisterTest("DetectIsdataatTestParse16", DetectIsdataatTestParse16);
 
-    UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
-    UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
-    UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03, 1);
+    UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01);
+    UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02);
+    UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03);
 #endif
 }

@@ -36,7 +36,6 @@
 #include "util-debug.h"
 
 #include "decode-ipv4.h"
-#include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
@@ -59,7 +58,6 @@
 #define MODULE_NAME "JsonDropLog"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 #define LOG_DROP_ALERTS 1
 
@@ -85,7 +83,6 @@ typedef struct JsonDropLogThread_ {
 static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
 {
     uint16_t proto = 0;
-    MemBuffer *buffer = (MemBuffer *)aft->buffer;
     json_t *js = CreateJSONHeader((Packet *)p, 0, "drop");//TODO const
     if (unlikely(js == NULL))
         return TM_ECODE_OK;
@@ -97,7 +94,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
     }
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(aft->buffer);
 
     if (PKT_IS_IPV4(p)) {
         json_object_set_new(djs, "len", json_integer(IPV4_GET_IPLEN(p)));
@@ -168,7 +165,7 @@ static int DropLogJSON (JsonDropLogThread *aft, const Packet *p)
         }
     }
 
-    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, aft->drop_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "drop");
     json_object_clear(js);
     json_decref(js);
@@ -186,7 +183,7 @@ static TmEcode JsonDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for AlertFastLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogDrop.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
@@ -220,23 +217,6 @@ static TmEcode JsonDropLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
-{
-    OutputDropLoggerDisable();
-
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    SCFree(output_ctx);
-}
-
-static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
-{
-    OutputDropLoggerDisable();
-
-    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
-    SCFree(output_ctx);
-}
-
 static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
 {
     if (drop_ctx != NULL) {
@@ -244,6 +224,25 @@ static void JsonDropOutputCtxFree(JsonDropOutputCtx *drop_ctx)
             LogFileFreeCtx(drop_ctx->file_ctx);
         SCFree(drop_ctx);
     }
+}
+
+static void JsonDropLogDeInitCtx(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    JsonDropOutputCtx *drop_ctx = output_ctx->data;
+    JsonDropOutputCtxFree(drop_ctx);
+    SCFree(output_ctx);
+}
+
+static void JsonDropLogDeInitCtxSub(OutputCtx *output_ctx)
+{
+    OutputDropLoggerDisable();
+
+    JsonDropOutputCtx *drop_ctx = output_ctx->data;
+    SCFree(drop_ctx);
+    SCLogDebug("cleaning up sub output_ctx %p", output_ctx);
+    SCFree(output_ctx);
 }
 
 #define DEFAULT_LOG_FILENAME "drop.json"

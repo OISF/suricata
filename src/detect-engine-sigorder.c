@@ -199,6 +199,7 @@ static inline int SCSigGetFlowintType(Signature *sig)
                 fi->modifier == FLOWINT_MODIFIER_NE ||
                 fi->modifier == FLOWINT_MODIFIER_GE ||
                 fi->modifier == FLOWINT_MODIFIER_GT ||
+                fi->modifier == FLOWINT_MODIFIER_NOTSET ||
                 fi->modifier == FLOWINT_MODIFIER_ISSET) {
                 read++;
             } else {
@@ -2184,18 +2185,18 @@ void SCSigRegisterSignatureOrderingTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("SCSigOrderingTest01", SCSigOrderingTest01, 1);
-    UtRegisterTest("SCSigOrderingTest02", SCSigOrderingTest02, 1);
-    UtRegisterTest("SCSigOrderingTest03", SCSigOrderingTest03, 1);
-    UtRegisterTest("SCSigOrderingTest04", SCSigOrderingTest04, 1);
-    UtRegisterTest("SCSigOrderingTest05", SCSigOrderingTest05, 1);
-    UtRegisterTest("SCSigOrderingTest06", SCSigOrderingTest06, 1);
-    UtRegisterTest("SCSigOrderingTest07", SCSigOrderingTest07, 1);
-    UtRegisterTest("SCSigOrderingTest08", SCSigOrderingTest08, 1);
-    UtRegisterTest("SCSigOrderingTest09", SCSigOrderingTest09, 1);
-    UtRegisterTest("SCSigOrderingTest10", SCSigOrderingTest10, 1);
-    UtRegisterTest("SCSigOrderingTest11", SCSigOrderingTest11, 1);
-    UtRegisterTest("SCSigOrderingTest12", SCSigOrderingTest12, 1);
-    UtRegisterTest("SCSigOrderingTest13", SCSigOrderingTest13, 1);
+    UtRegisterTest("SCSigOrderingTest01", SCSigOrderingTest01);
+    UtRegisterTest("SCSigOrderingTest02", SCSigOrderingTest02);
+    UtRegisterTest("SCSigOrderingTest03", SCSigOrderingTest03);
+    UtRegisterTest("SCSigOrderingTest04", SCSigOrderingTest04);
+    UtRegisterTest("SCSigOrderingTest05", SCSigOrderingTest05);
+    UtRegisterTest("SCSigOrderingTest06", SCSigOrderingTest06);
+    UtRegisterTest("SCSigOrderingTest07", SCSigOrderingTest07);
+    UtRegisterTest("SCSigOrderingTest08", SCSigOrderingTest08);
+    UtRegisterTest("SCSigOrderingTest09", SCSigOrderingTest09);
+    UtRegisterTest("SCSigOrderingTest10", SCSigOrderingTest10);
+    UtRegisterTest("SCSigOrderingTest11", SCSigOrderingTest11);
+    UtRegisterTest("SCSigOrderingTest12", SCSigOrderingTest12);
+    UtRegisterTest("SCSigOrderingTest13", SCSigOrderingTest13);
 #endif
 }

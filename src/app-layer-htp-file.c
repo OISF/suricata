@@ -46,7 +46,6 @@
 
 #include "util-spm.h"
 #include "util-debug.h"
-#include "app-layer-htp.h"
 #include "util-time.h"
 
 #include "util-unittest.h"
@@ -76,8 +75,9 @@
  *  \retval -1 error
  *  \retval -2 not handling files on this flow
  */
-int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
-        uint8_t *data, uint32_t data_len, uint64_t txid, uint8_t direction)
+int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
+        const uint8_t *data, uint32_t data_len,
+        uint64_t txid, uint8_t direction)
 {
     int retval = 0;
     uint8_t flags = 0;
@@ -201,7 +201,7 @@ end:
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len,
+int HTPFileStoreChunk(HtpState *s, const uint8_t *data, uint32_t data_len,
         uint8_t direction)
 {
     SCEnter();
@@ -255,7 +255,7 @@ end:
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len,
+int HTPFileClose(HtpState *s, const uint8_t *data, uint32_t data_len,
         uint8_t flags, uint8_t direction)
 {
     SCEnter();
@@ -1620,16 +1620,16 @@ end:
 void HTPFileParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("HTPFileParserTest01", HTPFileParserTest01, 1);
-    UtRegisterTest("HTPFileParserTest02", HTPFileParserTest02, 1);
-    UtRegisterTest("HTPFileParserTest03", HTPFileParserTest03, 1);
-    UtRegisterTest("HTPFileParserTest04", HTPFileParserTest04, 1);
-    UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05, 1);
-    UtRegisterTest("HTPFileParserTest06", HTPFileParserTest06, 1);
-    UtRegisterTest("HTPFileParserTest07", HTPFileParserTest07, 1);
-    UtRegisterTest("HTPFileParserTest08", HTPFileParserTest08, 1);
-    UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09, 1);
-    UtRegisterTest("HTPFileParserTest10", HTPFileParserTest10, 1);
-    UtRegisterTest("HTPFileParserTest11", HTPFileParserTest11, 1);
+    UtRegisterTest("HTPFileParserTest01", HTPFileParserTest01);
+    UtRegisterTest("HTPFileParserTest02", HTPFileParserTest02);
+    UtRegisterTest("HTPFileParserTest03", HTPFileParserTest03);
+    UtRegisterTest("HTPFileParserTest04", HTPFileParserTest04);
+    UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05);
+    UtRegisterTest("HTPFileParserTest06", HTPFileParserTest06);
+    UtRegisterTest("HTPFileParserTest07", HTPFileParserTest07);
+    UtRegisterTest("HTPFileParserTest08", HTPFileParserTest08);
+    UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09);
+    UtRegisterTest("HTPFileParserTest10", HTPFileParserTest10);
+    UtRegisterTest("HTPFileParserTest11", HTPFileParserTest11);
 #endif /* UNITTESTS */
 }

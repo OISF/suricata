@@ -77,6 +77,8 @@ enum {
     DCERPC_FIELD_MAX,
 };
 
+void DCERPCUuidListFree(DCERPCUuidEntryList *list);
+
 /* \brief hexdump function from libdnet, used for debugging only */
 void hexdump(/*Flow *f,*/ const void *buf, size_t len)
 {
@@ -875,28 +877,19 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
-    DCERPCUuidEntry *item;
     uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 16:
                 dcerpc->dcerpcbindbindack.numctxitems = 0;
                 if (input_len >= 12) {
-                    while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
-                        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
-                        SCFree(item);
-                    }
+                    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
                     if (dcerpc->dcerpchdr.type == BIND) {
-                        while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.accepted_uuid_list))) {
-                            TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.accepted_uuid_list, item, next);
-                            SCFree(item);
-                        }
-                        TAILQ_INIT(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
+                        DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
                     }
                     dcerpc->dcerpcbindbindack.uuid_internal_id = 0;
                     dcerpc->dcerpcbindbindack.numctxitems = *(p + 8);
                     dcerpc->dcerpcbindbindack.numctxitemsleft = dcerpc->dcerpcbindbindack.numctxitems;
-                    TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
                     dcerpc->bytesprocessed += 12;
                     SCReturnUInt(12U);
                 } else {
@@ -949,21 +942,13 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                     break;
                 /* fall through */
             case 24:
-                while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
-                    TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
-                    SCFree(item);
-                }
+                DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
                 if (dcerpc->dcerpchdr.type == BIND) {
-                    while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.accepted_uuid_list))) {
-                        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.accepted_uuid_list, item, next);
-                        SCFree(item);
-                    }
-                    TAILQ_INIT(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
+                    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
                 }
                 dcerpc->dcerpcbindbindack.uuid_internal_id = 0;
                 dcerpc->dcerpcbindbindack.numctxitems = *(p++);
                 dcerpc->dcerpcbindbindack.numctxitemsleft = dcerpc->dcerpcbindbindack.numctxitems;
-                TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
                 if (!(--input_len))
                     break;
                 /* fall through */
@@ -1310,19 +1295,19 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                         dcerpc->dcerpchdr.frag_length |= *(p + 9) << 8;
                         dcerpc->dcerpchdr.auth_length = *(p + 10);
                         dcerpc->dcerpchdr.auth_length |= *(p + 11) << 8;
-                        dcerpc->dcerpchdr.call_id = *(p + 12) << 24;
-                        dcerpc->dcerpchdr.call_id |= *(p + 13) << 16;
-                        dcerpc->dcerpchdr.call_id |= *(p + 14) << 8;
-                        dcerpc->dcerpchdr.call_id |= *(p + 15);
+                        dcerpc->dcerpchdr.call_id = (uint32_t) *(p + 12) << 24;
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 13) << 16;
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 14) << 8;
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 15);
                     } else {
                         dcerpc->dcerpchdr.frag_length = *(p + 8) << 8;
                         dcerpc->dcerpchdr.frag_length |= *(p + 9);
                         dcerpc->dcerpchdr.auth_length = *(p + 10) << 8;
                         dcerpc->dcerpchdr.auth_length |= *(p + 11);
-                        dcerpc->dcerpchdr.call_id = *(p + 12);
-                        dcerpc->dcerpchdr.call_id |= *(p + 13) << 8;
-                        dcerpc->dcerpchdr.call_id |= *(p + 14) << 16;
-                        dcerpc->dcerpchdr.call_id |= *(p + 15) << 24;
+                        dcerpc->dcerpchdr.call_id = (uint32_t) *(p + 12);
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 13) << 8;
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 14) << 16;
+                        dcerpc->dcerpchdr.call_id |= (uint32_t) *(p + 15) << 24;
                     }
                     dcerpc->bytesprocessed = DCERPC_HDR_LEN;
                     SCReturnInt(16);
@@ -1397,22 +1382,22 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     break;
                 /* fall through */
             case 12:
-                dcerpc->dcerpchdr.call_id = *(p++);
+                dcerpc->dcerpchdr.call_id = (uint32_t) *(p++);
                 if (!(--input_len))
                     break;
                 /* fall through */
             case 13:
-                dcerpc->dcerpchdr.call_id |= *(p++) << 8;
+                dcerpc->dcerpchdr.call_id |= (uint32_t) *(p++) << 8;
                 if (!(--input_len))
                     break;
                 /* fall through */
             case 14:
-                dcerpc->dcerpchdr.call_id |= *(p++) << 16;
+                dcerpc->dcerpchdr.call_id |= (uint32_t) *(p++) << 16;
                 if (!(--input_len))
                     break;
                 /* fall through */
             case 15:
-                dcerpc->dcerpchdr.call_id |= *(p++) << 24;
+                dcerpc->dcerpchdr.call_id |= (uint32_t) *(p++) << 24;
                 if (!(dcerpc->dcerpchdr.packed_drep[0] & 0x10)) {
                     dcerpc->dcerpchdr.frag_length = SCByteSwap16(dcerpc->dcerpchdr.frag_length);
                     dcerpc->dcerpchdr.auth_length = SCByteSwap16(dcerpc->dcerpchdr.auth_length);
@@ -1952,49 +1937,60 @@ static int DCERPCParseResponse(Flow *f, void *dcerpc_state,
                        local_data, 1);
 }
 
+void DCERPCInit(DCERPC *dcerpc)
+{
+    dcerpc->transaction_id = 1;
+
+    TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
+    TAILQ_INIT(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
+}
+
 static void *DCERPCStateAlloc(void)
 {
     SCEnter();
 
-    DCERPCState *s = SCMalloc(sizeof(DCERPCState));
+    DCERPCState *s = SCCalloc(1, sizeof(DCERPCState));
     if (unlikely(s == NULL)) {
         SCReturnPtr(NULL, "void");
     }
-    memset(s, 0, sizeof(DCERPCState));
 
-    s->dcerpc.transaction_id = 1;
+    DCERPCInit(&s->dcerpc);
 
     SCReturnPtr((void *)s, "void");
+}
+
+void DCERPCUuidListFree(DCERPCUuidEntryList *list)
+{
+    DCERPCUuidEntry *entry;
+
+    while ((entry = TAILQ_FIRST(list))) {
+        TAILQ_REMOVE(list, entry, next);
+        SCFree(entry);
+    }
+}
+
+void DCERPCCleanup(DCERPC *dcerpc)
+{
+    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.uuid_list);
+    DCERPCUuidListFree(&dcerpc->dcerpcbindbindack.accepted_uuid_list);
+
+    if (dcerpc->dcerpcrequest.stub_data_buffer != NULL) {
+        SCFree(dcerpc->dcerpcrequest.stub_data_buffer);
+        dcerpc->dcerpcrequest.stub_data_buffer = NULL;
+        dcerpc->dcerpcrequest.stub_data_buffer_len = 0;
+    }
+    if (dcerpc->dcerpcresponse.stub_data_buffer != NULL) {
+        SCFree(dcerpc->dcerpcresponse.stub_data_buffer);
+        dcerpc->dcerpcresponse.stub_data_buffer = NULL;
+        dcerpc->dcerpcresponse.stub_data_buffer_len = 0;
+    }
 }
 
 static void DCERPCStateFree(void *s)
 {
     DCERPCState *sstate = (DCERPCState *) s;
 
-    DCERPCUuidEntry *item;
-
-    while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.uuid_list))) {
-        //printUUID("Free", item);
-        TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.uuid_list, item, next);
-        SCFree(item);
-    }
-
-    while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.accepted_uuid_list))) {
-        //printUUID("Free", item);
-        TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.accepted_uuid_list, item, next);
-        SCFree(item);
-    }
-
-    if (sstate->dcerpc.dcerpcrequest.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcrequest.stub_data_buffer_len = 0;
-    }
-    if (sstate->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
-        SCFree(sstate->dcerpc.dcerpcresponse.stub_data_buffer);
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer = NULL;
-        sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
-    }
+    DCERPCCleanup(&sstate->dcerpc);
 
     SCFree(s);
 }
@@ -6386,25 +6382,25 @@ end:
 void DCERPCParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01, 1);
-    UtRegisterTest("DCERPCParserTest02", DCERPCParserTest02, 1);
-    UtRegisterTest("DCERPCParserTest03", DCERPCParserTest03, 1);
-    UtRegisterTest("DCERPCParserTest04", DCERPCParserTest04, 1);
-    UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05, 1);
-    UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06, 1);
-    UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07, 1);
-    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08, 1);
-    UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09, 1);
-    UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10, 1);
-    UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
-    UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12, 1);
-    UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13, 1);
-    UtRegisterTest("DCERPCParserTest14", DCERPCParserTest14, 1);
-    UtRegisterTest("DCERPCParserTest15", DCERPCParserTest15, 1);
-    UtRegisterTest("DCERPCParserTest16", DCERPCParserTest16, 1);
-    UtRegisterTest("DCERPCParserTest17", DCERPCParserTest17, 1);
-    UtRegisterTest("DCERPCParserTest18", DCERPCParserTest18, 1);
-    UtRegisterTest("DCERPCParserTest19", DCERPCParserTest19, 1);
+    UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01);
+    UtRegisterTest("DCERPCParserTest02", DCERPCParserTest02);
+    UtRegisterTest("DCERPCParserTest03", DCERPCParserTest03);
+    UtRegisterTest("DCERPCParserTest04", DCERPCParserTest04);
+    UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05);
+    UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06);
+    UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07);
+    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08);
+    UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09);
+    UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10);
+    UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11);
+    UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12);
+    UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13);
+    UtRegisterTest("DCERPCParserTest14", DCERPCParserTest14);
+    UtRegisterTest("DCERPCParserTest15", DCERPCParserTest15);
+    UtRegisterTest("DCERPCParserTest16", DCERPCParserTest16);
+    UtRegisterTest("DCERPCParserTest17", DCERPCParserTest17);
+    UtRegisterTest("DCERPCParserTest18", DCERPCParserTest18);
+    UtRegisterTest("DCERPCParserTest19", DCERPCParserTest19);
 #endif /* UNITTESTS */
 
     return;

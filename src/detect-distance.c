@@ -32,7 +32,6 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "app-layer.h"
-#include "detect-parse.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -70,12 +69,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     SigMatch *pm = NULL;
     int ret = -1;
 
-    /* strip "'s */
-    if (distancestr[0] == '\"' && distancestr[strlen(distancestr) - 1] == '\"') {
+    /* Strip leading and trailing "s. */
+    if (distancestr[0] == '\"') {
         str = SCStrdup(distancestr + 1);
         if (unlikely(str == NULL))
             goto end;
-        str[strlen(distancestr) - 2] = '\0';
+        if (strlen(str) && str[strlen(str) - 1] == '\"') {
+            str[strlen(str) - 1] = '\0';
+        }
         dubbed = 1;
     }
 
@@ -187,7 +188,6 @@ static int DetectDistanceTest01(void)
         goto end;
     }
 
-    de_ctx->mpm_matcher = MPM_B2G;
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (content:\"|AA BB|\"; content:\"|CC DD EE FF 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE|\"; distance: 4; within: 19; sid:1; rev:1;)");
@@ -263,8 +263,9 @@ end:
 void DetectDistanceRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDistanceTest01 -- distance / within mix", DetectDistanceTest01, 1);
-    UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01, 1);
+    UtRegisterTest("DetectDistanceTest01 -- distance / within mix",
+                   DetectDistanceTest01);
+    UtRegisterTest("DetectDistanceTestPacket01", DetectDistanceTestPacket01);
 #endif /* UNITTESTS */
 }
 

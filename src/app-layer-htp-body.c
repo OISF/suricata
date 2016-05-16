@@ -47,7 +47,6 @@
 
 #include "util-spm.h"
 #include "util-debug.h"
-#include "app-layer-htp.h"
 #include "app-layer-htp-file.h"
 #include "util-time.h"
 
@@ -73,7 +72,7 @@
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(HtpBody *body, const uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -85,16 +84,14 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 
     if (body->first == NULL) {
         /* New chunk */
-        bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
+        bd = (HtpBodyChunk *)HTPCalloc(1, sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
         bd->len = len;
         bd->stream_offset = 0;
-        bd->next = NULL;
-        bd->logged = 0;
 
-        bd->data = HTPMalloc(len);
+        bd->data = HTPCalloc(1, len);
         if (bd->data == NULL) {
             goto error;
         }
@@ -104,16 +101,14 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 
         body->content_len_so_far = len;
     } else {
-        bd = (HtpBodyChunk *)HTPMalloc(sizeof(HtpBodyChunk));
+        bd = (HtpBodyChunk *)HTPCalloc(1, sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
         bd->len = len;
         bd->stream_offset = body->content_len_so_far;
-        bd->next = NULL;
-        bd->logged = 0;
 
-        bd->data = HTPMalloc(len);
+        bd->data = HTPCalloc(1, len);
         if (bd->data == NULL) {
             goto error;
         }

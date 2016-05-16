@@ -33,7 +33,6 @@
 #include "flow-manager.h"
 #include "flow-timeout.h"
 #include "stream-tcp.h"
-#include "output.h"
 #include "host.h"
 #include "defrag.h"
 #include "ippair.h"
@@ -42,8 +41,6 @@
 #include "util-profiling.h"
 
 #include "conf-yaml-loader.h"
-
-#include "detect-engine.h"
 
 static const char *default_mode = NULL;
 
@@ -360,7 +357,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
             }
         }
         if (cfile->tenant_id > 0) {
-            char tstr[16] = "";
+            char tstr[16];
             snprintf(tstr, sizeof(tstr), "%d", cfile->tenant_id);
             if (ConfSet("pcap-file.tenant-id", tstr) != 1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENTS,
@@ -381,6 +378,7 @@ TmEcode UnixSocketPcapFilesCheck(void *data)
 #ifdef PROFILING
         SCProfilingRulesGlobalInit();
         SCProfilingKeywordsGlobalInit();
+        SCProfilingSghsGlobalInit();
         SCProfilingInit();
 #endif /* PROFILING */
         DefragInit();

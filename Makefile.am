@@ -29,9 +29,9 @@ install-rules:
 	install -d "$(DESTDIR)$(e_sysconfrulesdir)"
 if HAVE_FETCH_COMMAND
 if HAVE_WGET_COMMAND
-	$(HAVE_WGET) -qO - http://rules.emergingthreats.net/open/suricata-2.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
+	$(HAVE_WGET) -qO - https://rules.emergingthreats.net/open/suricata-3.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
 else
-	$(HAVE_CURL) -s http://rules.emergingthreats.net/open/suricata-2.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
+	$(HAVE_CURL) -s https://rules.emergingthreats.net/open/suricata-3.0/emerging.rules.tar.gz | tar -x -z -C "$(DESTDIR)$(e_sysconfdir)" -f -
 endif
 else
 	@echo "UNABLE to load ruleset wget or curl are not installed on system."
@@ -42,6 +42,7 @@ endif
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)http-events.rules" || install -m 600 "$(top_srcdir)/rules/http-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)dns-events.rules" || install -m 600 "$(top_srcdir)/rules/dns-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@test -e "$(DESTDIR)$(e_sysconfrulesdir)modbus-events.rules" || install -m 600 "$(top_srcdir)/rules/modbus-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
+	@test -e "$(DESTDIR)$(e_sysconfrulesdir)app-layer-events.rules" || install -m 600 "$(top_srcdir)/rules/app-layer-events.rules" "$(DESTDIR)$(e_sysconfrulesdir)"
 	@echo ""
 	@echo "You can now start suricata by running as root something like '$(DESTDIR)$(bindir)/suricata -c $(DESTDIR)$(e_sysconfdir)/suricata.yaml -i eth0'."
 	@echo ""

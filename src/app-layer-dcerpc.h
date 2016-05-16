@@ -36,6 +36,8 @@ typedef struct DCERPCState_ {
     uint8_t data_needed_for_dir;
 } DCERPCState;
 
+void DCERPCInit(DCERPC *dcerpc);
+void DCERPCCleanup(DCERPC *dcerpc);
 void RegisterDCERPCParsers(void);
 void DCERPCParserTests(void);
 void DCERPCParserRegisterTests(void);

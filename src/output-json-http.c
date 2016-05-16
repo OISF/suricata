@@ -50,7 +50,6 @@
 #include "output-json.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogHttpFileCtx_ {
     LogFileCtx *file_ctx;
@@ -92,6 +91,8 @@ typedef enum {
     HTTP_FIELD_X_REQUESTED_WITH,
     HTTP_FIELD_DNT,
     HTTP_FIELD_X_FORWARDED_PROTO,
+    HTTP_FIELD_X_AUTHENTICATED_USER,
+    HTTP_FIELD_X_FLASH_VERSION,
     HTTP_FIELD_ACCEPT_RANGES,
     HTTP_FIELD_AGE,
     HTTP_FIELD_ALLOW,
@@ -147,6 +148,8 @@ struct {
     { "x_requested_with", "x-requested-with", LOG_HTTP_REQUEST },
     { "dnt", "dnt", LOG_HTTP_REQUEST },
     { "x_forwarded_proto", "x-forwarded-proto", LOG_HTTP_REQUEST },
+    { "x_authenticated_user", "x-authenticated-user", LOG_HTTP_REQUEST },
+    { "x_flash_version", "x-flash-version", LOG_HTTP_REQUEST },
     { "accept_range", "accept-range", 0 },
     { "age", "age", 0 },
     { "allow", "allow", 0 },
@@ -371,7 +374,6 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
 
     htp_tx_t *tx = txptr;
     JsonHttpLogThread *jhl = (JsonHttpLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
     json_t *js = CreateJSONHeaderWithTxId((Packet *)p, 1, "http", tx_id); //TODO const
     if (unlikely(js == NULL))
@@ -380,11 +382,11 @@ static int JsonHttpLogger(ThreadVars *tv, void *thread_data, const Packet *p, Fl
     SCLogDebug("got a HTTP request and now logging !!");
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(jhl->buffer);
 
     JsonHttpLogJSON(jhl, js, tx, tx_id);
 
-    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->httplog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "http");
 
     json_object_clear(js);
@@ -547,7 +549,7 @@ static TmEcode JsonHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogHTTP.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

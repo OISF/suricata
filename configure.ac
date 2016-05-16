@@ -1,5 +1,6 @@
-    AC_INIT(suricata, 3.0dev)
+    AC_INIT(suricata, 3.1dev)
     m4_ifndef([AM_SILENT_RULES], [m4_define([AM_SILENT_RULES],[])])AM_SILENT_RULES([yes])
+    m4_ifndef([AS_VERSION_COMPARE], [AC_DEFUN([AS_VERSION_COMPARE],[])])
     AC_CONFIG_HEADERS([config.h])
     AC_CONFIG_SRCDIR([src/suricata.c])
     AC_CONFIG_MACRO_DIR(m4)
@@ -57,7 +58,7 @@
 
     case "$compiler" in
         clang)
-            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration"
+            CLANG_CFLAGS="-Wextra -Werror-implicit-function-declaration -Wno-error=unused-command-line-argument"
             AC_MSG_CHECKING([clang __sync_bool_compare_and_swap support])
             AC_TRY_COMPILE([#include <stdio.h>],
                 [ unsigned int i = 0; (void)__sync_bool_compare_and_swap(&i, 1, 1);],
@@ -113,17 +114,24 @@
         exit 1
     fi
 
+    AC_ARG_ENABLE(python,
+           AS_HELP_STRING([--enable-python], [Enable python]),,[enable_python=yes])
     AC_PATH_PROG(HAVE_PYTHON_CONFIG, python, "no")
+    if test "x$enable_python" = "xno" ; then
+        echo
+        echo "   Warning! python disabled, you will not be      "
+        echo "   able to install surictasc unix socket client   "
+        echo
+        enable_python="no"
+    fi
     if test "$HAVE_PYTHON_CONFIG" = "no"; then
         echo
         echo "   Warning! python not found, you will not be     "
         echo "   able to install surictasc unix socket client   "
         echo
         enable_python="no"
-    else
-        enable_python="yes"
     fi
-    AM_CONDITIONAL([HAVE_PYTHON], [test "$HAVE_PYTHON_CONFIG" != "no"])
+    AM_CONDITIONAL([HAVE_PYTHON], [test "x$enable_python" = "xyes"])
 
     AC_PATH_PROG(HAVE_WGET, wget, "no")
     if test "$HAVE_WGET" = "no"; then
@@ -140,6 +148,7 @@
     # Checks for libraries.
 
     # Checks for header files.
+    AC_CHECK_HEADERS([stddef.h])
     AC_CHECK_HEADERS([arpa/inet.h assert.h ctype.h errno.h fcntl.h inttypes.h])
     AC_CHECK_HEADERS([getopt.h])
     AC_CHECK_HEADERS([limits.h netdb.h netinet/in.h poll.h sched.h signal.h])
@@ -208,7 +217,8 @@
     fi
     echo -n "installation for $host OS... "
 
-    e_magic_file="/usr/share/file/magic"
+    e_magic_file=""
+    e_magic_file_comment="#"
     case "$host" in
         *-*-*freebsd*)
             LUA_PC_NAME="lua-5.1"
@@ -216,14 +226,12 @@
             CFLAGS="${CFLAGS} -DOS_FREEBSD"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
-            e_magic_file="/usr/share/misc/magic"
             ;;
         *-*-openbsd*)
             LUA_PC_NAME="lua51"
             CFLAGS="${CFLAGS} -D__OpenBSD__"
             CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
             LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
-            e_magic_file="/usr/local/share/misc/magic.mgc"
             ;;
         *darwin*|*Darwin*)
             LUA_PC_NAME="lua-5.1"
@@ -251,9 +259,33 @@
     esac
     AC_MSG_RESULT(ok)
 
+    # enable modifications for AFL fuzzing
+    AC_ARG_ENABLE(afl,
+           AS_HELP_STRING([--enable-afl], Enable AFL fuzzing logic[])], [enable_afl="$enableval"],[enable_afl=no])
+
+    AS_IF([test "x$enable_afl" = "xyes"], [
+        AC_DEFINE([AFLFUZZ_NO_RANDOM], [1], [Disable all use of random functions])
+        AC_DEFINE([AFLFUZZ_DISABLE_MGTTHREADS], [1], [Disable all management threads])
+        AC_DEFINE([AFLFUZZ_PCAP_RUNMODE], [1], [Enable special AFL 'single' runmode])
+        AC_DEFINE([AFLFUZZ_CONF_TEST], [1], [Enable special --afl-parse-rules commandline option])
+        AC_DEFINE([AFLFUZZ_APPLAYER], [1], [Enable --afl-$proto-request commandline option])
+        AC_DEFINE([AFLFUZZ_MIME], [1], [Enable --afl-mime commandline option])
+        AC_DEFINE([AFLFUZZ_DECODER], [1], [Enable --afl-decoder-$proto commandline option])
+        AC_DEFINE([AFLFUZZ_DER], [1], [Enable --afl-der commandline option])
+        AC_DEFINE([AFLFUZZ_RULES], [1], [Enable --afl-rules commandline option])
+
+        # test for AFL PERSISTANT_MODE support
+        CFLAGS_ORIG=$CFLAGS
+        CFLAGS="-Werror"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[while (__AFL_LOOP(1000))]])],
+                [AC_DEFINE([AFLFUZZ_PERSISTANT_MODE], [1], [Enable AFL PERSISTANT_MODE])],
+                [])
+        CFLAGS=$CFLAGS_ORIG
+    ])
+
   # disable TLS on user request
     AC_ARG_ENABLE(threading-tls,
-           AS_HELP_STRING([--disable-threading-tls], [Disable TLS (thread local storage)])], [enable_tls="$enableval"],[enable_tls=yes])
+           AS_HELP_STRING([--disable-threading-tls], [Disable TLS (thread local storage)]), [enable_tls="$enableval"],[enable_tls=yes])
     AS_IF([test "x$enable_tls" = "xyes"], [
         # check if our target supports thread local storage
         AC_MSG_CHECKING(for thread local storage __thread support)
@@ -411,7 +443,7 @@
     ])
 
     AC_ARG_ENABLE(coccinelle,
-           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check])],[enable_coccinelle="$enableval"],[enable_coccinelle=yes])
+           AS_HELP_STRING([--disable-coccinelle], [Disable coccinelle QA steps during make check]),[enable_coccinelle="$enableval"],[enable_coccinelle=yes])
     AS_IF([test "x$enable_coccinelle" = "xyes"], [
         AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
         if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
@@ -426,7 +458,7 @@
 
   # disable detection
     AC_ARG_ENABLE(detection,
-           AS_HELP_STRING([--disable-detection], [Disable Detection Modules])], [enable_detection="$enableval"],[enable_detection=yes])
+           AS_HELP_STRING([--disable-detection], [Disable Detection Modules]), [enable_detection="$enableval"],[enable_detection=yes])
     AS_IF([test "x$enable_detection" = "xno"], [
         AC_DEFINE([HAVE_DETECT_DISABLED], [1], [Detection is disabled])
     ])
@@ -463,13 +495,29 @@
         LDFLAGS="${LDFLAGS} -L${with_libpcre_libraries}"
     fi
     PCRE=""
-    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no",-lpthread)
+    AC_CHECK_LIB(pcre, pcre_get_substring,, PCRE="no")
     if test "$PCRE" = "no"; then
         echo
         echo "   ERROR!  pcre library not found, go get it"
         echo "   from www.pcre.org."
         echo
         exit 1
+    fi
+
+    # libpcre 8.35 (especially on debian) has a known issue that results in segfaults
+    # see https://redmine.openinfosecfoundation.org/issues/1693
+    if test "$with_libpcre_libraries" = "no"; then
+        PKG_CHECK_MODULES(LIBPCREVERSION, [libpcre = 8.35],[libpcre_buggy_found="yes"],[libprce_buggy_found="no"])
+        if test "$libpcre_buggy_found" = "yes"; then
+            echo
+            echo "   Warning! vulnerable libpcre version 8.35 found"
+            echo "   This version has a known issue that could result in segfaults"
+            echo "   please upgrade to a newer version of pcre which you can get from"
+            echo "   www.pcre.org. For more information, see issue #1693"
+            echo
+            echo "   Continuing for now with JIT disabled..."
+            echo
+        fi
     fi
 
     # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
@@ -519,6 +567,11 @@
         [ pcre_jit_available=yes ], [ pcre_jit_available=no ]
         )
 
+    # bug 1693, libpcre 8.35 is broken and debian jessie is still using that
+    if test "$libpcre_buggy_found" = "yes"; then
+        pcre_jit_available="no, libpcre 8.35 blacklisted"
+    fi
+
     if test "x$pcre_jit_available" = "xyes"; then
        AC_MSG_RESULT(yes)
        AC_DEFINE([PCRE_HAVE_JIT], [1], [Pcre with JIT compiler support enabled])
@@ -556,6 +609,44 @@
     else
         AC_MSG_RESULT(no)
     fi
+
+  # libhs
+    enable_hyperscan="no"
+
+    # Try pkg-config first:
+    PKG_CHECK_MODULES([libhs], libhs,, [with_pkgconfig_libhs=no])
+    if test "$with_pkgconfig_libhs" != "no"; then
+        CPPFLAGS="${CPPFLAGS} ${libhs_CFLAGS}"
+        LIBS="${LIBS} ${libhs_LIBS}"
+    fi
+
+    AC_ARG_WITH(libhs_includes,
+            [  --with-libhs-includes=DIR  libhs include directory],
+            [with_libhs_includes="$withval"],[with_libhs_includes=no])
+    AC_ARG_WITH(libhs_libraries,
+            [  --with-libhs-libraries=DIR    libhs library directory],
+            [with_libhs_libraries="$withval"],[with_libhs_libraries="no"])
+
+    if test "$with_libhs_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libhs_includes}"
+    fi
+    AC_CHECK_HEADER(hs.h,HYPERSCAN="yes",HYPERSCAN="no")
+    if test "$HYPERSCAN" = "yes"; then
+        if test "$with_libhs_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libhs_libraries}"
+        fi
+
+        AC_CHECK_LIB(hs,hs_compile,,HYPERSCAN="no")
+        enable_hyperscan="yes"
+        if test "$HYPERSCAN" = "no"; then
+            echo
+            echo "   Hyperscan headers are present, but link test failed."
+            echo "   Check that you have a shared library and C++ linkage available."
+            echo
+            enable_hyperscan="no"
+        fi
+    fi
+    AS_IF([test "x$enable_hyperscan" = "xyes"], [AC_DEFINE([BUILD_HYPERSCAN], [1], [Intel Hyperscan support enabled])])
 
   # libyaml
     AC_ARG_WITH(libyaml_includes,
@@ -903,7 +994,9 @@
 
     AC_MSG_CHECKING(for libnet.h version 1.1.x)
     if test "$LIBNET_INC_DIR" != ""; then
-        if eval "grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep -v '1.[[12]]' >/dev/null"; then
+        LIBNET_VER=`grep LIBNET_VERSION $LIBNET_INC_DIR/libnet.h | grep '1.[[12]]' | sed 's/[[^"]]*"\([[^"]]*\).*/\1/'`
+
+        if test -z "$LIBNET_VER" ; then
             AC_MSG_RESULT(no)
             LIBNET_DETECT_FAIL="yes"
             LIBNET_FAIL_WARN($libnet_dir)
@@ -945,6 +1038,15 @@
                 fi
                 LIBS="${TMPLIBS}"
             fi
+
+            # See if we have libnet 1.1.6 or newer - these versions handle capabilities correctly
+            # Some patched 1.1.4 versions are also good, but it's not guaranteed for all distros.
+            #
+            # Details: https://bugzilla.redhat.com/show_bug.cgi?id=589770
+            AS_VERSION_COMPARE([LIBNET_VER], [1.1.6],
+                [],
+                [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))],
+                [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))])
         fi
     else
         LIBNET_DETECT_FAIL="yes"
@@ -971,7 +1073,7 @@
     AC_CHECK_HEADERS([pcap.h pcap/pcap.h pcap/bpf.h])
 
     LIBPCAP=""
-    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
+    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
     if test "$LIBPCAP" = "no"; then
         echo
         echo "   ERROR!  libpcap library not found, go get it"
@@ -1207,7 +1309,7 @@
                 [  --with-cuda-nvcc=DIR  cuda nvcc compiler directory],
                 [with_cuda_nvcc="$withval"],[with_cuda_nvcc=no])
 
-        AC_DEFINE([SC_CUDA_SUPPORT__],[1],(CUDA support enabled))
+        AC_DEFINE([__SC_CUDA_SUPPORT__],[1],(CUDA support enabled))
 
         if test "$with_cuda_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_cuda_includes}"
@@ -1264,6 +1366,7 @@
         fi
     ])
     AM_CONDITIONAL([BUILD_CUDA], [test "x$enable_cuda" = "xyes"])
+    AM_CONDITIONAL([__SC_CUDA_SUPPORT__], [test "x$enable_cuda" = "xyes"])
 
 
   # Check for libcap-ng
@@ -1574,8 +1677,14 @@
                 LDFLAGS="${LDFLAGS} ${LUA_LIBS}"
             fi
 
-            AC_DEFINE([HAVE_LUA],[1],[liblua available])
-            enable_lua="yes"
+            if test "$LUA" = "no"; then
+                AC_CHECK_LIB(lua, luaL_openlibs,, LUA="no")
+            fi
+
+            if test "$LUA" = "yes"; then
+                AC_DEFINE([HAVE_LUA],[1],[liblua available])
+                enable_lua="yes"
+            fi
         else
 	        echo
                 echo "   ERROR!  liblua headers not found, go get them"
@@ -1803,6 +1912,7 @@ if test "$WINDOWS_PATH" = "yes"; then
   e_sysconfdir="$e_winbase\\\\"
   e_sysconfrulesdir="$e_winbase\\\\rules\\\\"
   e_magic_file="$e_winbase\\\\magic.mgc"
+  e_magic_file_comment=""
   e_logdir="$e_winbase\\\\log"
   e_logfilesdir="$e_logdir\\\\files"
   e_logcertsdir="$e_logdir\\\\certs"
@@ -1824,6 +1934,7 @@ AC_SUBST(e_sysconfrulesdir)
 AC_SUBST(e_localstatedir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
+AC_SUBST(e_magic_file_comment)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
@@ -1859,6 +1970,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   Non-bundled htp:                         ${enable_non_bundled_htp}
   Old barnyard2 support:                   ${enable_old_barnyard2}
   CUDA enabled:                            ${enable_cuda}
+  Hyperscan support:                       ${enable_hyperscan}
 
   Suricatasc install:                      ${enable_python}
 

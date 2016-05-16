@@ -66,28 +66,7 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    /* XXX */
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /*
@@ -1087,41 +1066,41 @@ static int DetectFlowSigTest01(void)
 void DetectFlowRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFlowTestParse01", DetectFlowTestParse01, 1);
-    UtRegisterTest("DetectFlowTestParse02", DetectFlowTestParse02, 1);
-    UtRegisterTest("DetectFlowTestParse03", DetectFlowTestParse03, 1);
-    UtRegisterTest("DetectFlowTestParse04", DetectFlowTestParse04, 1);
-    UtRegisterTest("DetectFlowTestParse05", DetectFlowTestParse05, 1);
-    UtRegisterTest("DetectFlowTestParse06", DetectFlowTestParse06, 1);
-    UtRegisterTest("DetectFlowTestParse07", DetectFlowTestParse07, 1);
-    UtRegisterTest("DetectFlowTestParse08", DetectFlowTestParse08, 1);
-    UtRegisterTest("DetectFlowTestParse09", DetectFlowTestParse09, 1);
-    UtRegisterTest("DetectFlowTestParse10", DetectFlowTestParse10, 1);
-    UtRegisterTest("DetectFlowTestParse11", DetectFlowTestParse11, 1);
-    UtRegisterTest("DetectFlowTestParseNocase01", DetectFlowTestParseNocase01, 1);
-    UtRegisterTest("DetectFlowTestParseNocase02", DetectFlowTestParseNocase02, 1);
-    UtRegisterTest("DetectFlowTestParseNocase03", DetectFlowTestParseNocase03, 1);
-    UtRegisterTest("DetectFlowTestParseNocase04", DetectFlowTestParseNocase04, 1);
-    UtRegisterTest("DetectFlowTestParseNocase05", DetectFlowTestParseNocase05, 1);
-    UtRegisterTest("DetectFlowTestParseNocase06", DetectFlowTestParseNocase06, 1);
-    UtRegisterTest("DetectFlowTestParseNocase07", DetectFlowTestParseNocase07, 1);
-    UtRegisterTest("DetectFlowTestParseNocase08", DetectFlowTestParseNocase08, 1);
-    UtRegisterTest("DetectFlowTestParseNocase09", DetectFlowTestParseNocase09, 1);
-    UtRegisterTest("DetectFlowTestParseNocase10", DetectFlowTestParseNocase10, 1);
-    UtRegisterTest("DetectFlowTestParseNocase11", DetectFlowTestParseNocase11, 1);
-    UtRegisterTest("DetectFlowTestParse12", DetectFlowTestParse12, 1);
-    UtRegisterTest("DetectFlowTestParse13", DetectFlowTestParse13, 1);
-    UtRegisterTest("DetectFlowTestParse14", DetectFlowTestParse14, 1);
-    UtRegisterTest("DetectFlowTestParse15", DetectFlowTestParse15, 1);
-    UtRegisterTest("DetectFlowTestParse16", DetectFlowTestParse16, 1);
-    UtRegisterTest("DetectFlowTestParse17", DetectFlowTestParse17, 1);
-    UtRegisterTest("DetectFlowTestParse18", DetectFlowTestParse18, 1);
-    UtRegisterTest("DetectFlowTestParseNocase18", DetectFlowTestParseNocase18, 1);
-    UtRegisterTest("DetectFlowTestParse19", DetectFlowTestParse19, 1);
-    UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20, 1);
-    UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20, 1);
-    UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21, 1);
+    UtRegisterTest("DetectFlowTestParse01", DetectFlowTestParse01);
+    UtRegisterTest("DetectFlowTestParse02", DetectFlowTestParse02);
+    UtRegisterTest("DetectFlowTestParse03", DetectFlowTestParse03);
+    UtRegisterTest("DetectFlowTestParse04", DetectFlowTestParse04);
+    UtRegisterTest("DetectFlowTestParse05", DetectFlowTestParse05);
+    UtRegisterTest("DetectFlowTestParse06", DetectFlowTestParse06);
+    UtRegisterTest("DetectFlowTestParse07", DetectFlowTestParse07);
+    UtRegisterTest("DetectFlowTestParse08", DetectFlowTestParse08);
+    UtRegisterTest("DetectFlowTestParse09", DetectFlowTestParse09);
+    UtRegisterTest("DetectFlowTestParse10", DetectFlowTestParse10);
+    UtRegisterTest("DetectFlowTestParse11", DetectFlowTestParse11);
+    UtRegisterTest("DetectFlowTestParseNocase01", DetectFlowTestParseNocase01);
+    UtRegisterTest("DetectFlowTestParseNocase02", DetectFlowTestParseNocase02);
+    UtRegisterTest("DetectFlowTestParseNocase03", DetectFlowTestParseNocase03);
+    UtRegisterTest("DetectFlowTestParseNocase04", DetectFlowTestParseNocase04);
+    UtRegisterTest("DetectFlowTestParseNocase05", DetectFlowTestParseNocase05);
+    UtRegisterTest("DetectFlowTestParseNocase06", DetectFlowTestParseNocase06);
+    UtRegisterTest("DetectFlowTestParseNocase07", DetectFlowTestParseNocase07);
+    UtRegisterTest("DetectFlowTestParseNocase08", DetectFlowTestParseNocase08);
+    UtRegisterTest("DetectFlowTestParseNocase09", DetectFlowTestParseNocase09);
+    UtRegisterTest("DetectFlowTestParseNocase10", DetectFlowTestParseNocase10);
+    UtRegisterTest("DetectFlowTestParseNocase11", DetectFlowTestParseNocase11);
+    UtRegisterTest("DetectFlowTestParse12", DetectFlowTestParse12);
+    UtRegisterTest("DetectFlowTestParse13", DetectFlowTestParse13);
+    UtRegisterTest("DetectFlowTestParse14", DetectFlowTestParse14);
+    UtRegisterTest("DetectFlowTestParse15", DetectFlowTestParse15);
+    UtRegisterTest("DetectFlowTestParse16", DetectFlowTestParse16);
+    UtRegisterTest("DetectFlowTestParse17", DetectFlowTestParse17);
+    UtRegisterTest("DetectFlowTestParse18", DetectFlowTestParse18);
+    UtRegisterTest("DetectFlowTestParseNocase18", DetectFlowTestParseNocase18);
+    UtRegisterTest("DetectFlowTestParse19", DetectFlowTestParse19);
+    UtRegisterTest("DetectFlowTestParse20", DetectFlowTestParse20);
+    UtRegisterTest("DetectFlowTestParseNocase20", DetectFlowTestParseNocase20);
+    UtRegisterTest("DetectFlowTestParse21", DetectFlowTestParse21);
 
-    UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01, 1);
+    UtRegisterTest("DetectFlowSigTest01", DetectFlowSigTest01);
 #endif /* UNITTESTS */
 }

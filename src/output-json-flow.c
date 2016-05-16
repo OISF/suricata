@@ -49,7 +49,6 @@
 #include "stream-tcp-private.h"
 
 #ifdef HAVE_LIBJANSSON
-#include <jansson.h>
 
 typedef struct LogJsonFileCtx_ {
     LogFileCtx *file_ctx;
@@ -247,7 +246,7 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
 
         TcpSession *ssn = f->protoctx;
 
-        char hexflags[3] = "";
+        char hexflags[3];
         snprintf(hexflags, sizeof(hexflags), "%02x",
                 ssn ? ssn->tcp_packet_flags : 0);
         json_object_set_new(tjs, "tcp_flags", json_string(hexflags));
@@ -313,10 +312,9 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 {
     SCEnter();
     JsonFlowLogThread *jhl = (JsonFlowLogThread *)thread_data;
-    MemBuffer *buffer = (MemBuffer *)jhl->buffer;
 
     /* reset */
-    MemBufferReset(buffer);
+    MemBufferReset(jhl->buffer);
 
     json_t *js = CreateJSONHeaderFromFlow(f, "flow"); //TODO const
     if (unlikely(js == NULL))
@@ -324,7 +322,7 @@ static int JsonFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
 
     JsonFlowLogJSON(jhl, js, f);
 
-    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, buffer);
+    OutputJSONBuffer(js, jhl->flowlog_ctx->file_ctx, &jhl->buffer);
     json_object_del(js, "http");
 
     json_object_clear(js);
@@ -348,7 +346,7 @@ OutputCtx *OutputFlowLogInit(ConfNode *conf)
     SCLogInfo("hi");
     LogFileCtx *file_ctx = LogFileNewCtx();
     if(file_ctx == NULL) {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
+        SCLogError(SC_ERR_FLOW_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
@@ -417,7 +415,7 @@ static TmEcode JsonFlowLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for HTTPLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for EveLogFlow.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

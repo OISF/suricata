@@ -196,18 +196,18 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 				sstate->dcerpc.dcerpchdrudp.activityuuid[14] = *(p + 54);
 				sstate->dcerpc.dcerpchdrudp.activityuuid[15] = *(p + 55);
 				if (sstate->dcerpc.dcerpchdrudp.drep[0] == 0x10) {
-					sstate->dcerpc.dcerpchdrudp.server_boot = *(p + 56);
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 57) << 8;
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 58) << 16;
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 59) << 24;
-					sstate->dcerpc.dcerpchdrudp.if_vers = *(p + 60);
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 61) << 8;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 62) << 16;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 63) << 24;
-					sstate->dcerpc.dcerpchdrudp.seqnum = *(p + 64);
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 65) << 8;
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 66) << 16;
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 67) << 24;
+					sstate->dcerpc.dcerpchdrudp.server_boot = (uint32_t) *(p + 56);
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 57) << 8;
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 58) << 16;
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 59) << 24;
+					sstate->dcerpc.dcerpchdrudp.if_vers = (uint32_t) *(p + 60);
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 61) << 8;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 62) << 16;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 63) << 24;
+					sstate->dcerpc.dcerpchdrudp.seqnum = (uint32_t) *(p + 64);
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 65) << 8;
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 66) << 16;
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 67) << 24;
 					sstate->dcerpc.dcerpchdrudp.opnum = *(p + 68);
 					sstate->dcerpc.dcerpchdrudp.opnum |= *(p + 69) << 8;
 					sstate->dcerpc.dcerpchdrudp.ihint = *(p + 70);
@@ -219,18 +219,18 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 					sstate->dcerpc.dcerpchdrudp.fragnum = *(p + 76);
 					sstate->dcerpc.dcerpchdrudp.fragnum |= *(p + 77) << 8;
 				} else {
-					sstate->dcerpc.dcerpchdrudp.server_boot = *(p + 56) << 24;
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 57) << 16;
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 58) << 8;
-					sstate->dcerpc.dcerpchdrudp.server_boot |= *(p + 59);
-					sstate->dcerpc.dcerpchdrudp.if_vers = *(p + 60) << 24;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 61) << 16;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 62) << 8;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 63);
-					sstate->dcerpc.dcerpchdrudp.seqnum = *(p + 64) << 24;
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 65) << 16;
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 66) << 8;
-					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 67);
+					sstate->dcerpc.dcerpchdrudp.server_boot = (uint32_t) *(p + 56) << 24;
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 57) << 16;
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 58) << 8;
+					sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p + 59);
+					sstate->dcerpc.dcerpchdrudp.if_vers = (uint32_t) *(p + 60) << 24;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 61) << 16;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 62) << 8;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p + 63);
+					sstate->dcerpc.dcerpchdrudp.seqnum = (uint32_t) *(p + 64) << 24;
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 65) << 16;
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 66) << 8;
+					sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p + 67);
 					sstate->dcerpc.dcerpchdrudp.opnum = *(p + 68) << 24;
 					sstate->dcerpc.dcerpchdrudp.opnum |= *(p + 69) << 16;
 					sstate->dcerpc.dcerpchdrudp.ihint = *(p + 70) << 8;
@@ -553,62 +553,62 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 				break;
             /* fall through */
 		case 56:
-			sstate->dcerpc.dcerpchdrudp.server_boot = *(p++);
+			sstate->dcerpc.dcerpchdrudp.server_boot = (uint32_t) *(p++);
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 57:
-			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 8;
+			sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p++) << 8;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 58:
-			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 16;
+			sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p++) << 16;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 59:
-			sstate->dcerpc.dcerpchdrudp.server_boot |= *(p++) << 24;
+			sstate->dcerpc.dcerpchdrudp.server_boot |= (uint32_t) *(p++) << 24;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 60:
-			sstate->dcerpc.dcerpchdrudp.if_vers = *(p++);
+			sstate->dcerpc.dcerpchdrudp.if_vers = (uint32_t) *(p++);
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 61:
-			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 8;
+			sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p++) << 8;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 62:
-			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 16;
+			sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p++) << 16;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 63:
-			sstate->dcerpc.dcerpchdrudp.if_vers |= *(p++) << 24;
+			sstate->dcerpc.dcerpchdrudp.if_vers |= (uint32_t) *(p++) << 24;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 64:
-			sstate->dcerpc.dcerpchdrudp.seqnum = *(p++);
+			sstate->dcerpc.dcerpchdrudp.seqnum = (uint32_t) *(p++);
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 65:
-			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 8;
+			sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p++) << 8;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 66:
-			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 16;
+			sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p++) << 16;
 			if (!(--input_len))
 				break;
             /* fall through */
 		case 67:
-			sstate->dcerpc.dcerpchdrudp.seqnum |= *(p++) << 24;
+			sstate->dcerpc.dcerpchdrudp.seqnum |= (uint32_t) *(p++) << 24;
 			if (!(--input_len))
 				break;
             /* fall through */
@@ -1110,6 +1110,6 @@ end:
 
 void DCERPCUDPParserRegisterTests(void)
 {
-	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01, 1);
+	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01);
 }
 #endif

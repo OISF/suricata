@@ -100,10 +100,6 @@ void DetectByteExtractFree(void *);
  */
 void DetectByteExtractRegister(void)
 {
-    const char *eb;
-    int eo;
-    int opts = 0;
-
     sigmatch_table[DETECT_BYTE_EXTRACT].name = "byte_extract";
     sigmatch_table[DETECT_BYTE_EXTRACT].Match = NULL;
     sigmatch_table[DETECT_BYTE_EXTRACT].AppLayerMatch = NULL;
@@ -113,22 +109,7 @@ void DetectByteExtractRegister(void)
 
     sigmatch_table[DETECT_BYTE_EXTRACT].flags |= SIGMATCH_PAYLOAD;
 
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed "
-                   "at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-
-    return;
- error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
@@ -465,11 +446,8 @@ static inline DetectByteExtractData *DetectByteExtractParse(char *arg)
 
     if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_STRING) {
         if (bed->base == DETECT_BYTE_EXTRACT_BASE_NONE) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Base not specified for "
-                       "byte_extract, though string was specified.  "
-                       "The right options are (string, hex), (string, oct) "
-                       "or (string, dec)");
-            goto error;
+            /* Default to decimal if base not specified. */
+            bed->base = DETECT_BYTE_EXTRACT_BASE_DEC;
         }
         if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "byte_extract can't have "
@@ -4815,82 +4793,125 @@ int DetectByteExtractTest63(void)
     return result;
 }
 
+int DetectByteExtractTestParseNoBase(void)
+{
+    int result = 0;
+
+    DetectByteExtractData *bed = DetectByteExtractParse("4, 2, one, string");
+    if (bed == NULL)
+        goto end;
+
+    if (bed->nbytes != 4) {
+        goto end;
+    }
+    if (bed->offset != 2) {
+        goto end;
+    }
+    if (strcmp(bed->name, "one") != 0) {
+        goto end;
+    }
+    if (bed->flags != DETECT_BYTE_EXTRACT_FLAG_STRING) {
+        goto end;
+    }
+    if (bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE) {
+        goto end;
+    }
+    if (bed->base != DETECT_BYTE_EXTRACT_BASE_DEC) {
+        goto end;
+    }
+    if (bed->align_value != 0) {
+        goto end;
+    }
+    if (bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+
+    result = 1;
+ end:
+    if (bed != NULL)
+        DetectByteExtractFree(bed);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectByteExtractRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectByteExtractTest01", DetectByteExtractTest01, 1);
-    UtRegisterTest("DetectByteExtractTest02", DetectByteExtractTest02, 1);
-    UtRegisterTest("DetectByteExtractTest03", DetectByteExtractTest03, 1);
-    UtRegisterTest("DetectByteExtractTest04", DetectByteExtractTest04, 1);
-    UtRegisterTest("DetectByteExtractTest05", DetectByteExtractTest05, 1);
-    UtRegisterTest("DetectByteExtractTest06", DetectByteExtractTest06, 1);
-    UtRegisterTest("DetectByteExtractTest07", DetectByteExtractTest07, 1);
-    UtRegisterTest("DetectByteExtractTest08", DetectByteExtractTest08, 1);
-    UtRegisterTest("DetectByteExtractTest09", DetectByteExtractTest09, 1);
-    UtRegisterTest("DetectByteExtractTest10", DetectByteExtractTest10, 1);
-    UtRegisterTest("DetectByteExtractTest11", DetectByteExtractTest11, 1);
-    UtRegisterTest("DetectByteExtractTest12", DetectByteExtractTest12, 1);
-    UtRegisterTest("DetectByteExtractTest13", DetectByteExtractTest13, 1);
-    UtRegisterTest("DetectByteExtractTest14", DetectByteExtractTest14, 1);
-    UtRegisterTest("DetectByteExtractTest15", DetectByteExtractTest15, 1);
-    UtRegisterTest("DetectByteExtractTest16", DetectByteExtractTest16, 1);
-    UtRegisterTest("DetectByteExtractTest17", DetectByteExtractTest17, 1);
-    UtRegisterTest("DetectByteExtractTest18", DetectByteExtractTest18, 1);
-    UtRegisterTest("DetectByteExtractTest19", DetectByteExtractTest19, 1);
-    UtRegisterTest("DetectByteExtractTest20", DetectByteExtractTest20, 1);
-    UtRegisterTest("DetectByteExtractTest21", DetectByteExtractTest21, 1);
-    UtRegisterTest("DetectByteExtractTest22", DetectByteExtractTest22, 1);
-    UtRegisterTest("DetectByteExtractTest23", DetectByteExtractTest23, 1);
-    UtRegisterTest("DetectByteExtractTest24", DetectByteExtractTest24, 1);
-    UtRegisterTest("DetectByteExtractTest25", DetectByteExtractTest25, 1);
-    UtRegisterTest("DetectByteExtractTest26", DetectByteExtractTest26, 1);
-    UtRegisterTest("DetectByteExtractTest27", DetectByteExtractTest27, 1);
-    UtRegisterTest("DetectByteExtractTest28", DetectByteExtractTest28, 1);
-    UtRegisterTest("DetectByteExtractTest29", DetectByteExtractTest29, 1);
-    UtRegisterTest("DetectByteExtractTest30", DetectByteExtractTest30, 1);
-    UtRegisterTest("DetectByteExtractTest31", DetectByteExtractTest31, 1);
-    UtRegisterTest("DetectByteExtractTest32", DetectByteExtractTest32, 1);
-    UtRegisterTest("DetectByteExtractTest33", DetectByteExtractTest33, 1);
-    UtRegisterTest("DetectByteExtractTest34", DetectByteExtractTest34, 1);
-    UtRegisterTest("DetectByteExtractTest35", DetectByteExtractTest35, 1);
-    UtRegisterTest("DetectByteExtractTest36", DetectByteExtractTest36, 1);
-    UtRegisterTest("DetectByteExtractTest37", DetectByteExtractTest37, 1);
-    UtRegisterTest("DetectByteExtractTest38", DetectByteExtractTest38, 1);
-    UtRegisterTest("DetectByteExtractTest39", DetectByteExtractTest39, 1);
-    UtRegisterTest("DetectByteExtractTest40", DetectByteExtractTest40, 1);
-    UtRegisterTest("DetectByteExtractTest41", DetectByteExtractTest41, 1);
-    UtRegisterTest("DetectByteExtractTest42", DetectByteExtractTest42, 1);
+    UtRegisterTest("DetectByteExtractTest01", DetectByteExtractTest01);
+    UtRegisterTest("DetectByteExtractTest02", DetectByteExtractTest02);
+    UtRegisterTest("DetectByteExtractTest03", DetectByteExtractTest03);
+    UtRegisterTest("DetectByteExtractTest04", DetectByteExtractTest04);
+    UtRegisterTest("DetectByteExtractTest05", DetectByteExtractTest05);
+    UtRegisterTest("DetectByteExtractTest06", DetectByteExtractTest06);
+    UtRegisterTest("DetectByteExtractTest07", DetectByteExtractTest07);
+    UtRegisterTest("DetectByteExtractTest08", DetectByteExtractTest08);
+    UtRegisterTest("DetectByteExtractTest09", DetectByteExtractTest09);
+    UtRegisterTest("DetectByteExtractTest10", DetectByteExtractTest10);
+    UtRegisterTest("DetectByteExtractTest11", DetectByteExtractTest11);
+    UtRegisterTest("DetectByteExtractTest12", DetectByteExtractTest12);
+    UtRegisterTest("DetectByteExtractTest13", DetectByteExtractTest13);
+    UtRegisterTest("DetectByteExtractTest14", DetectByteExtractTest14);
+    UtRegisterTest("DetectByteExtractTest15", DetectByteExtractTest15);
+    UtRegisterTest("DetectByteExtractTest16", DetectByteExtractTest16);
+    UtRegisterTest("DetectByteExtractTest17", DetectByteExtractTest17);
+    UtRegisterTest("DetectByteExtractTest18", DetectByteExtractTest18);
+    UtRegisterTest("DetectByteExtractTest19", DetectByteExtractTest19);
+    UtRegisterTest("DetectByteExtractTest20", DetectByteExtractTest20);
+    UtRegisterTest("DetectByteExtractTest21", DetectByteExtractTest21);
+    UtRegisterTest("DetectByteExtractTest22", DetectByteExtractTest22);
+    UtRegisterTest("DetectByteExtractTest23", DetectByteExtractTest23);
+    UtRegisterTest("DetectByteExtractTest24", DetectByteExtractTest24);
+    UtRegisterTest("DetectByteExtractTest25", DetectByteExtractTest25);
+    UtRegisterTest("DetectByteExtractTest26", DetectByteExtractTest26);
+    UtRegisterTest("DetectByteExtractTest27", DetectByteExtractTest27);
+    UtRegisterTest("DetectByteExtractTest28", DetectByteExtractTest28);
+    UtRegisterTest("DetectByteExtractTest29", DetectByteExtractTest29);
+    UtRegisterTest("DetectByteExtractTest30", DetectByteExtractTest30);
+    UtRegisterTest("DetectByteExtractTest31", DetectByteExtractTest31);
+    UtRegisterTest("DetectByteExtractTest32", DetectByteExtractTest32);
+    UtRegisterTest("DetectByteExtractTest33", DetectByteExtractTest33);
+    UtRegisterTest("DetectByteExtractTest34", DetectByteExtractTest34);
+    UtRegisterTest("DetectByteExtractTest35", DetectByteExtractTest35);
+    UtRegisterTest("DetectByteExtractTest36", DetectByteExtractTest36);
+    UtRegisterTest("DetectByteExtractTest37", DetectByteExtractTest37);
+    UtRegisterTest("DetectByteExtractTest38", DetectByteExtractTest38);
+    UtRegisterTest("DetectByteExtractTest39", DetectByteExtractTest39);
+    UtRegisterTest("DetectByteExtractTest40", DetectByteExtractTest40);
+    UtRegisterTest("DetectByteExtractTest41", DetectByteExtractTest41);
+    UtRegisterTest("DetectByteExtractTest42", DetectByteExtractTest42);
 
-    UtRegisterTest("DetectByteExtractTest43", DetectByteExtractTest43, 1);
-    UtRegisterTest("DetectByteExtractTest44", DetectByteExtractTest44, 1);
+    UtRegisterTest("DetectByteExtractTest43", DetectByteExtractTest43);
+    UtRegisterTest("DetectByteExtractTest44", DetectByteExtractTest44);
 
-    UtRegisterTest("DetectByteExtractTest45", DetectByteExtractTest45, 1);
-    UtRegisterTest("DetectByteExtractTest46", DetectByteExtractTest46, 1);
+    UtRegisterTest("DetectByteExtractTest45", DetectByteExtractTest45);
+    UtRegisterTest("DetectByteExtractTest46", DetectByteExtractTest46);
 
-    UtRegisterTest("DetectByteExtractTest47", DetectByteExtractTest47, 1);
-    UtRegisterTest("DetectByteExtractTest48", DetectByteExtractTest48, 1);
+    UtRegisterTest("DetectByteExtractTest47", DetectByteExtractTest47);
+    UtRegisterTest("DetectByteExtractTest48", DetectByteExtractTest48);
 
-    UtRegisterTest("DetectByteExtractTest49", DetectByteExtractTest49, 1);
-    UtRegisterTest("DetectByteExtractTest50", DetectByteExtractTest50, 1);
+    UtRegisterTest("DetectByteExtractTest49", DetectByteExtractTest49);
+    UtRegisterTest("DetectByteExtractTest50", DetectByteExtractTest50);
 
-    UtRegisterTest("DetectByteExtractTest51", DetectByteExtractTest51, 1);
-    UtRegisterTest("DetectByteExtractTest52", DetectByteExtractTest52, 1);
+    UtRegisterTest("DetectByteExtractTest51", DetectByteExtractTest51);
+    UtRegisterTest("DetectByteExtractTest52", DetectByteExtractTest52);
 
-    UtRegisterTest("DetectByteExtractTest53", DetectByteExtractTest53, 1);
-    UtRegisterTest("DetectByteExtractTest54", DetectByteExtractTest54, 1);
+    UtRegisterTest("DetectByteExtractTest53", DetectByteExtractTest53);
+    UtRegisterTest("DetectByteExtractTest54", DetectByteExtractTest54);
 
-    UtRegisterTest("DetectByteExtractTest55", DetectByteExtractTest55, 1);
-    UtRegisterTest("DetectByteExtractTest56", DetectByteExtractTest56, 1);
-    UtRegisterTest("DetectByteExtractTest57", DetectByteExtractTest57, 1);
+    UtRegisterTest("DetectByteExtractTest55", DetectByteExtractTest55);
+    UtRegisterTest("DetectByteExtractTest56", DetectByteExtractTest56);
+    UtRegisterTest("DetectByteExtractTest57", DetectByteExtractTest57);
 
-    UtRegisterTest("DetectByteExtractTest58", DetectByteExtractTest58, 1);
-    UtRegisterTest("DetectByteExtractTest59", DetectByteExtractTest59, 1);
-    UtRegisterTest("DetectByteExtractTest60", DetectByteExtractTest60, 1);
-    UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61, 1);
-    UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62, 1);
-    UtRegisterTest("DetectByteExtractTest63", DetectByteExtractTest63, 1);
+    UtRegisterTest("DetectByteExtractTest58", DetectByteExtractTest58);
+    UtRegisterTest("DetectByteExtractTest59", DetectByteExtractTest59);
+    UtRegisterTest("DetectByteExtractTest60", DetectByteExtractTest60);
+    UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61);
+    UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62);
+    UtRegisterTest("DetectByteExtractTest63", DetectByteExtractTest63);
+
+    UtRegisterTest("DetectByteExtractTestParseNoBase",
+                   DetectByteExtractTestParseNoBase);
 #endif /* UNITTESTS */
 
     return;

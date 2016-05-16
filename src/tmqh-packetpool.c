@@ -307,6 +307,7 @@ void PacketPoolReturnPacket(Packet *p)
         PktPool *pending_pool = my_pool->pending_pool;
         if (pending_pool == NULL) {
             /* No pending packet, so store the current packet. */
+            p->next = NULL;
             my_pool->pending_pool = pool;
             my_pool->pending_head = p;
             my_pool->pending_tail = p;

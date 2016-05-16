@@ -38,6 +38,7 @@
 #define FILE_STORE      0x0040
 #define FILE_STORED     0x0080
 #define FILE_NOTRACK    0x0100 /**< track size of file */
+#define FILE_USE_DETECT 0x0200 /**< use content_inspected tracker */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -61,11 +62,11 @@ typedef struct FileData_ {
 
 typedef struct File_ {
     uint16_t flags;
+    uint16_t name_len;
+    int16_t state;
     uint64_t txid;                  /**< tx this file is part of */
     uint32_t file_id;
     uint8_t *name;
-    uint16_t name_len;
-    int16_t state;
     uint64_t size;                  /**< size tracked so far */
     char *magic;
     FileData *chunks_head;
@@ -80,7 +81,8 @@ typedef struct File_ {
     uint64_t chunks_cnt_max;
 #endif
     uint64_t content_len_so_far;
-    uint64_t content_inspected;
+    uint64_t content_inspected;     /**< used in pruning if FILE_USE_DETECT
+                                     *   flag is set */
 } File;
 
 typedef struct FileContainer_ {
@@ -109,8 +111,8 @@ void FileContainerAdd(FileContainer *, File *);
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
-File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
-        uint8_t *data, uint32_t data_len, uint8_t flags);
+File *FileOpenFile(FileContainer *, const uint8_t *name, uint16_t name_len,
+        const uint8_t *data, uint32_t data_len, uint16_t flags);
 /**
  *  \brief Close a File
  *
@@ -122,7 +124,8 @@ File *FileOpenFile(FileContainer *, uint8_t *name, uint16_t name_len,
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint8_t flags);
+int FileCloseFile(FileContainer *, const uint8_t *data, uint32_t data_len,
+        uint16_t flags);
 
 /**
  *  \brief Store a chunk of file data in the flow. The open "flowfile"
@@ -135,7 +138,7 @@ int FileCloseFile(FileContainer *, uint8_t *data, uint32_t data_len, uint8_t fla
  *  \retval 0 ok
  *  \retval -1 error
  */
-int FileAppendData(FileContainer *, uint8_t *data, uint32_t data_len);
+int FileAppendData(FileContainer *, const uint8_t *data, uint32_t data_len);
 
 /**
  *  \brief Tag a file for storing
@@ -172,6 +175,8 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint64_t tx_id
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint64_t tx_id);
 void FilePrune(FileContainer *ffc);
 
+void FileForceFilestoreEnable(void);
+int FileForceFilestore(void);
 
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);

@@ -271,6 +271,7 @@ void TmModuleReceiveAFPRegister (void)
     tmm_modules[TMM_RECEIVEAFP].ThreadInit = ReceiveAFPThreadInit;
     tmm_modules[TMM_RECEIVEAFP].Func = NULL;
     tmm_modules[TMM_RECEIVEAFP].PktAcqLoop = ReceiveAFPLoop;
+    tmm_modules[TMM_RECEIVEAFP].PktAcqBreakLoop = NULL;
     tmm_modules[TMM_RECEIVEAFP].ThreadExitPrintStats = ReceiveAFPThreadExitStats;
     tmm_modules[TMM_RECEIVEAFP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEAFP].RegisterTests = NULL;
@@ -810,7 +811,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         /* get vlan id from header */
         if ((!ptv->vlan_disabled) &&
             (h.h2->tp_status & TP_STATUS_VLAN_VALID || h.h2->tp_vlan_tci)) {
-            p->vlan_id[0] = h.h2->tp_vlan_tci;
+            p->vlan_id[0] = h.h2->tp_vlan_tci & 0x0fff;
             p->vlan_idx = 1;
             p->vlanh[0] = NULL;
         }
@@ -981,7 +982,7 @@ static int AFPReadAndDiscard(AFPThreadVars *ptv, struct timeval *synctv)
     iov.iov_len = ptv->datalen;
     iov.iov_base = ptv->data;
 
-    recvmsg(ptv->socket, &msg, MSG_TRUNC);
+    (void)recvmsg(ptv->socket, &msg, MSG_TRUNC);
 
     if (ioctl(ptv->socket, SIOCGSTAMP, &ts) == -1) {
         /* FIXME */
@@ -1240,6 +1241,10 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     AFPDumpCounters(ptv);
                     break;
             }
+        } else if (unlikely(r == 0)) {
+            /* poll timed out, lets see if we need to inject a fake packet  */
+            TmThreadsCaptureInjectPacket(tv, ptv->slot, NULL);
+
         } else if ((r < 0) && (errno != EINTR)) {
             SCLogError(SC_ERR_AFP_READ, "Error reading data from iface '%s': (%d" PRIu32 ") %s",
                        ptv->iface,
@@ -1306,10 +1311,27 @@ static int AFPGetDevLinktype(int fd, const char *ifname)
         case ARPHRD_LOOPBACK:
             return LINKTYPE_ETHERNET;
         case ARPHRD_PPP:
+        case ARPHRD_NONE:
             return LINKTYPE_RAW;
         default:
             return ifr.ifr_hwaddr.sa_family;
     }
+}
+
+int AFPGetLinkType(const char *ifname)
+{
+    int ltype;
+
+    int fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (fd == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
+        return LINKTYPE_RAW;
+    }
+
+    ltype =  AFPGetDevLinktype(fd, ifname);
+    close(fd);
+
+    return ltype;
 }
 
 static int AFPComputeRingParams(AFPThreadVars *ptv, int order)

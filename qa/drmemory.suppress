@@ -14,3 +14,47 @@ name=useless warning, likely DrMemory bug
 *
 libpcre.so.3!pcre_get_substring
 
+LEAK
+name=libmagic minor leak 1
+libmagic.so.1!?
+libmagic.so.1!?
+libmagic.so.1!magic_load
+suricata!MagicInit
+
+LEAK
+name=libmagic minor leak 2
+libmagic.so.1!?
+libmagic.so.1!magic_load
+suricata!MagicInit
+
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 1
+...
+libhs.so.*!hs_compile_ext_multi
+suricata!SigGroupBuild
+...
+suricata!main
+
+UNINITIALIZED READ
+name=Hyperscan false positives due to DrMemory limitations 2
+...
+libhs.so.*!hs_compile_ext_multi
+suricata!SigGroupBuild
+...
+libc.so.6!__clone
+
+WARNING
+name=Prefetch warnings 1
+...
+libhs.so.*!hs_scan
+suricata!SCHSSearch
+...
+suricata!main
+
+WARNING
+name=Prefetch warnings 2
+...
+libhs.so.*!hs_scan
+suricata!SCHSSearch
+...
+libc.so.6!__clone

@@ -33,25 +33,7 @@ int DetectPortInsertCopy(DetectEngineCtx *,DetectPort **, DetectPort *);
 int DetectPortInsert(DetectEngineCtx *,DetectPort **, DetectPort *);
 void DetectPortCleanupList (DetectPort *head);
 
-DetectPort *DetectPortLookup(DetectPort *head, DetectPort *dp);
-int DetectPortAdd(DetectPort **head, DetectPort *dp);
-
 DetectPort *DetectPortLookupGroup(DetectPort *dp, uint16_t port);
-
-void DetectPortPrintMemory(void);
-
-DetectPort *DetectPortDpHashLookup(DetectEngineCtx *, DetectPort *);
-DetectPort *DetectPortDpHashGetListPtr(DetectEngineCtx *);
-int DetectPortDpHashInit(DetectEngineCtx *);
-void DetectPortDpHashFree(DetectEngineCtx *);
-int DetectPortDpHashAdd(DetectEngineCtx *, DetectPort *);
-void DetectPortDpHashReset(DetectEngineCtx *);
-
-DetectPort *DetectPortSpHashLookup(DetectEngineCtx *, DetectPort *);
-int DetectPortSpHashInit(DetectEngineCtx *);
-void DetectPortSpHashFree(DetectEngineCtx *);
-int DetectPortSpHashAdd(DetectEngineCtx *, DetectPort *);
-void DetectPortSpHashReset(DetectEngineCtx *);
 
 int DetectPortJoin(DetectEngineCtx *,DetectPort *target, DetectPort *source);
 
@@ -61,6 +43,11 @@ int DetectPortCmp(DetectPort *, DetectPort *);
 void DetectPortFree(DetectPort *);
 
 int DetectPortTestConfVars(void);
+
+DetectPort *DetectPortHashLookup(DetectEngineCtx *de_ctx, DetectPort *dp);
+void DetectPortHashFree(DetectEngineCtx *de_ctx);
+int DetectPortHashAdd(DetectEngineCtx *de_ctx, DetectPort *dp);
+int DetectPortHashInit(DetectEngineCtx *de_ctx);
 
 void DetectPortTests(void);
 

@@ -248,7 +248,7 @@ static TmEcode LogDnsLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     if(initdata == NULL)
     {
-        SCLogDebug("Error getting context for DNSLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for LogDNSLog.  \"initdata\" argument NULL");
         SCFree(aft);
         return TM_ECODE_FAILED;
     }

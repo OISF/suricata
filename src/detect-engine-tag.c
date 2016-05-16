@@ -1507,13 +1507,13 @@ end:
 void DetectEngineTagRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectTagTestPacket01", DetectTagTestPacket01, 1);
-    UtRegisterTest("DetectTagTestPacket02", DetectTagTestPacket02, 1);
-    UtRegisterTest("DetectTagTestPacket03", DetectTagTestPacket03, 1);
-    UtRegisterTest("DetectTagTestPacket04", DetectTagTestPacket04, 1);
-    UtRegisterTest("DetectTagTestPacket05", DetectTagTestPacket05, 1);
-    UtRegisterTest("DetectTagTestPacket06", DetectTagTestPacket06, 1);
-    UtRegisterTest("DetectTagTestPacket07", DetectTagTestPacket07, 1);
+    UtRegisterTest("DetectTagTestPacket01", DetectTagTestPacket01);
+    UtRegisterTest("DetectTagTestPacket02", DetectTagTestPacket02);
+    UtRegisterTest("DetectTagTestPacket03", DetectTagTestPacket03);
+    UtRegisterTest("DetectTagTestPacket04", DetectTagTestPacket04);
+    UtRegisterTest("DetectTagTestPacket05", DetectTagTestPacket05);
+    UtRegisterTest("DetectTagTestPacket06", DetectTagTestPacket06);
+    UtRegisterTest("DetectTagTestPacket07", DetectTagTestPacket07);
 #endif /* UNITTESTS */
 }
 

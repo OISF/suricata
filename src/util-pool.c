@@ -54,10 +54,10 @@ static int PoolMemset(void *pitem, void *initdata)
 
 /**
  * \brief Check if data is preallocated
- * \retval 0 or -1 if not inside */
+ * \retval 0 if not inside the prealloc'd block, 1 if inside */
 static int PoolDataPreAllocated(Pool *p, void *data)
 {
-    int delta = data - p->data_buffer;
+    ptrdiff_t delta = data - p->data_buffer;
     if ((delta < 0) || (delta > p->data_buffer_size)) {
         return 0;
     }
@@ -719,13 +719,13 @@ end:
 void PoolRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("PoolTestInit01", PoolTestInit01, 1);
-    UtRegisterTest("PoolTestInit02", PoolTestInit02, 1);
-    UtRegisterTest("PoolTestInit03", PoolTestInit03, 1);
-    UtRegisterTest("PoolTestInit04", PoolTestInit04, 1);
-    UtRegisterTest("PoolTestInit05", PoolTestInit05, 1);
-    UtRegisterTest("PoolTestInit06", PoolTestInit06, 1);
-    UtRegisterTest("PoolTestInit07", PoolTestInit07, 1);
+    UtRegisterTest("PoolTestInit01", PoolTestInit01);
+    UtRegisterTest("PoolTestInit02", PoolTestInit02);
+    UtRegisterTest("PoolTestInit03", PoolTestInit03);
+    UtRegisterTest("PoolTestInit04", PoolTestInit04);
+    UtRegisterTest("PoolTestInit05", PoolTestInit05);
+    UtRegisterTest("PoolTestInit06", PoolTestInit06);
+    UtRegisterTest("PoolTestInit07", PoolTestInit07);
 
     PoolThreadRegisterTests();
 #endif /* UNITTESTS */

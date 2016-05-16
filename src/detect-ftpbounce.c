@@ -551,10 +551,10 @@ end:
 void DetectFtpbounceRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectFtpbounceTestSetup01", DetectFtpbounceTestSetup01, 1);
+    UtRegisterTest("DetectFtpbounceTestSetup01", DetectFtpbounceTestSetup01);
     UtRegisterTest("DetectFtpbounceTestALMatch02",
-                   DetectFtpbounceTestALMatch02, 1);
+                   DetectFtpbounceTestALMatch02);
     UtRegisterTest("DetectFtpbounceTestALMatch03",
-                   DetectFtpbounceTestALMatch03, 1);
+                   DetectFtpbounceTestALMatch03);
 #endif /* UNITTESTS */
 }

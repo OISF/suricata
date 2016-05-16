@@ -170,6 +170,68 @@ static int TlsGetSNI(lua_State *luastate)
     return r;
 }
 
+static int GetCertChain(lua_State *luastate, const Flow *f, int direction)
+{
+    void *state = FlowGetAppState(f);
+    if (state == NULL)
+        return LuaCallbackError(luastate, "error: no app layer state");
+
+    SSLState *ssl_state = (SSLState *)state;
+    SSLStateConnp *connp = NULL;
+
+    if (direction) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    uint32_t u = 0;
+    lua_newtable(luastate);
+    SSLCertsChain *cert = NULL;
+    TAILQ_FOREACH(cert, &connp->certs, next)
+    {
+        lua_pushinteger(luastate, u++);
+
+        lua_newtable(luastate);
+
+        lua_pushstring(luastate, "length");
+        lua_pushinteger(luastate, cert->cert_len);
+        lua_settable(luastate, -3);
+
+        lua_pushstring(luastate, "data");
+        LuaPushStringBuffer(luastate, cert->cert_data, cert->cert_len);
+
+        lua_settable(luastate, -3);
+        lua_settable(luastate, -3);
+    }
+
+    return 1;
+}
+
+static int TlsGetCertChain(lua_State *luastate)
+{
+    int r;
+
+    if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
+        return LuaCallbackError(luastate, "error: protocol not tls");
+
+    int direction = LuaStateGetDirection(luastate);
+
+    int lock_hint = 0;
+    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    if (f == NULL)
+        return LuaCallbackError(luastate, "internal error: no flow");
+
+    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
+        FLOWLOCK_RDLOCK(f);
+        r = GetCertChain(luastate, f, direction);
+        FLOWLOCK_UNLOCK(f);
+    } else {
+        r = GetCertChain(luastate, f, direction);
+    }
+    return r;
+}
+
 /** \brief register tls lua extensions in a luastate */
 int LuaRegisterTlsFunctions(lua_State *luastate)
 {
@@ -179,6 +241,9 @@ int LuaRegisterTlsFunctions(lua_State *luastate)
 
     lua_pushcfunction(luastate, TlsGetSNI);
     lua_setglobal(luastate, "TlsGetSNI");
+
+    lua_pushcfunction(luastate, TlsGetCertChain);
+    lua_setglobal(luastate, "TlsGetCertChain");
 
     return 0;
 }

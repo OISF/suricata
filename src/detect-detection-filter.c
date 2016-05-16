@@ -71,27 +71,7 @@ void DetectDetectionFilterRegister (void)
     /* this is compatible to ip-only signatures */
     sigmatch_table[DETECT_DETECTION_FILTER].flags |= SIGMATCH_IPONLY_COMPAT;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 int DetectDetectionFilterMatch (ThreadVars *thv, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
@@ -284,8 +264,6 @@ void DetectDetectionFilterFree(void *df_ptr)
  * ONLY TESTS BELOW THIS COMMENT
  */
 #ifdef UNITTESTS
-
-#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-threshold.h"
@@ -322,10 +300,10 @@ int DetectDetectionFilterTestParse02 (void)
     df = DetectDetectionFilterParse("track both,count 10,seconds 60");
     if (df && (df->track == TRACK_DST || df->track == TRACK_SRC) && (df->count == 10) && (df->seconds == 60)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -359,10 +337,10 @@ int DetectDetectionFilterTestParse04 (void)
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 60, count 10");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 60)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -395,10 +373,10 @@ int DetectDetectionFilterTestParse06 (void)
     df = DetectDetectionFilterParse("count 10, track by_dst, seconds 0");
     if (df && (df->track == TRACK_DST) && (df->count == 10) && (df->seconds == 0)) {
         DetectDetectionFilterFree(df);
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return 1;
 }
 
 /**
@@ -651,15 +629,24 @@ end:
 void DetectDetectionFilterRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("DetectDetectionFilterTestParse01", DetectDetectionFilterTestParse01, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse02", DetectDetectionFilterTestParse02, 0);
-    UtRegisterTest("DetectDetectionFilterTestParse03", DetectDetectionFilterTestParse03, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse04", DetectDetectionFilterTestParse04, 0);
-    UtRegisterTest("DetectDetectionFilterTestParse05", DetectDetectionFilterTestParse05, 1);
-    UtRegisterTest("DetectDetectionFilterTestParse06", DetectDetectionFilterTestParse06, 0);
-    UtRegisterTest("DetectDetectionFilterTestSig1", DetectDetectionFilterTestSig1, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig2", DetectDetectionFilterTestSig2, 1);
-    UtRegisterTest("DetectDetectionFilterTestSig3", DetectDetectionFilterTestSig3, 1);
+    UtRegisterTest("DetectDetectionFilterTestParse01",
+                   DetectDetectionFilterTestParse01);
+    UtRegisterTest("DetectDetectionFilterTestParse02",
+                   DetectDetectionFilterTestParse02);
+    UtRegisterTest("DetectDetectionFilterTestParse03",
+                   DetectDetectionFilterTestParse03);
+    UtRegisterTest("DetectDetectionFilterTestParse04",
+                   DetectDetectionFilterTestParse04);
+    UtRegisterTest("DetectDetectionFilterTestParse05",
+                   DetectDetectionFilterTestParse05);
+    UtRegisterTest("DetectDetectionFilterTestParse06",
+                   DetectDetectionFilterTestParse06);
+    UtRegisterTest("DetectDetectionFilterTestSig1",
+                   DetectDetectionFilterTestSig1);
+    UtRegisterTest("DetectDetectionFilterTestSig2",
+                   DetectDetectionFilterTestSig2);
+    UtRegisterTest("DetectDetectionFilterTestSig3",
+                   DetectDetectionFilterTestSig3);
 #endif /* UNITTESTS */
 }
 

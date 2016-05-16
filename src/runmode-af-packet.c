@@ -83,6 +83,9 @@ void RunModeIdsAFPRegister(void)
     return;
 }
 
+
+#ifdef HAVE_AF_PACKET
+
 void AFPDerefConfig(void *conf)
 {
     AFPIfaceConfig *pfp = (AFPIfaceConfig *)conf;
@@ -160,9 +163,9 @@ void *ParseAFPConfig(const char *iface)
         return aconf;
     }
 
-    if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
+    if_root = ConfFindDeviceConfig(af_packet_node, iface);
 
-    if_default = ConfNodeLookupKeyValue(af_packet_node, "interface", "default");
+    if_default = ConfFindDeviceConfig(af_packet_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
         SCLogInfo("Unable to find af-packet config for "
@@ -356,9 +359,9 @@ void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (strcmp(tmpctype, "yes") == 0) {
+        } else if (ConfValIsTrue(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (strcmp(tmpctype, "no") == 0) {
+        } else if (ConfValIsFalse(tmpctype)) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
         } else if (strcmp(tmpctype, "kernel") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
@@ -367,9 +370,17 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if (GetIfaceOffloading(iface) == 1) {
-        SCLogWarning(SC_ERR_AFP_CREATE,
-                "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+
+    int ltype = AFPGetLinkType(iface);
+    switch (ltype) {
+        case LINKTYPE_ETHERNET:
+            if (GetIfaceOffloading(iface) == 1) {
+                SCLogWarning(SC_ERR_AFP_CREATE,
+                    "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+            }
+        case -1:
+        default:
+            break;
     }
 
     char *active_runmode = RunmodeGetActive();
@@ -422,7 +433,7 @@ int AFPRunModeIsIPS()
             return 0;
         }
         char *copymodestr = NULL;
-        if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", live_dev);
+        if_root = ConfFindDeviceConfig(af_packet_node, live_dev);
 
         if (if_root == NULL) {
             if (if_default == NULL) {
@@ -475,6 +486,9 @@ int AFPRunModeIsIPS()
     return has_ips;
 }
 
+#endif
+
+
 int RunModeIdsAFPAutoFp(void)
 {
     SCEnter();
@@ -500,7 +514,7 @@ int RunModeIdsAFPAutoFp(void)
     ret = RunModeSetLiveCaptureAutoFp(ParseAFPConfig,
                               AFPConfigGeThreadsCount,
                               "ReceiveAFP",
-                              "DecodeAFP", "RxAFP",
+                              "DecodeAFP", thread_name_autofp,
                               live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -542,7 +556,7 @@ int RunModeIdsAFPSingle(void)
     ret = RunModeSetLiveCaptureSingle(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", thread_name_single,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
@@ -587,7 +601,7 @@ int RunModeIdsAFPWorkers(void)
     ret = RunModeSetLiveCaptureWorkers(ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",
-                                    "DecodeAFP", "AFPacket",
+                                    "DecodeAFP", thread_name_workers,
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");

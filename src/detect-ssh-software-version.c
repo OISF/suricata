@@ -85,28 +85,7 @@ void DetectSshSoftwareVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Free  = DetectSshSoftwareVersionFree;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].RegisterTests = DetectSshSoftwareVersionRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
-	SCLogDebug("registering ssh.softwareversion rule option");
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
-    return;
+    DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
 /**
@@ -662,12 +641,18 @@ end:
 void DetectSshSoftwareVersionRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNITTESTS */
-    UtRegisterTest("DetectSshSoftwareVersionTestParse01", DetectSshSoftwareVersionTestParse01, 1);
-    UtRegisterTest("DetectSshSoftwareVersionTestParse02", DetectSshSoftwareVersionTestParse02, 1);
-    UtRegisterTest("DetectSshSoftwareVersionTestParse03", DetectSshSoftwareVersionTestParse03, 1);
-    UtRegisterTest("DetectSshSoftwareVersionTestDetect01", DetectSshSoftwareVersionTestDetect01, 1);
-    UtRegisterTest("DetectSshSoftwareVersionTestDetect02", DetectSshSoftwareVersionTestDetect02, 1);
-    UtRegisterTest("DetectSshSoftwareVersionTestDetect03", DetectSshSoftwareVersionTestDetect03, 1);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse01",
+                   DetectSshSoftwareVersionTestParse01);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse02",
+                   DetectSshSoftwareVersionTestParse02);
+    UtRegisterTest("DetectSshSoftwareVersionTestParse03",
+                   DetectSshSoftwareVersionTestParse03);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect01",
+                   DetectSshSoftwareVersionTestDetect01);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect02",
+                   DetectSshSoftwareVersionTestDetect02);
+    UtRegisterTest("DetectSshSoftwareVersionTestDetect03",
+                   DetectSshSoftwareVersionTestDetect03);
 #endif /* UNITTESTS */
 }
 
