@@ -729,8 +729,10 @@ mpm-algo: ac
 #
 # Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
 # available if Suricata has been built with Hyperscan support).
+#
+# The default of "auto" will use "hs" if available, otherwise "bm".
 
-spm-algo: bm
+spm-algo: auto
 
 # Defrag settings:
 

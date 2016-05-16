@@ -65,6 +65,9 @@ uint16_t SinglePatternMatchDefaultMatcher(void)
     char *spm_algo;
     if ((ConfGet("spm-algo", &spm_algo)) == 1) {
         if (spm_algo != NULL) {
+            if (strcmp("auto", spm_algo) == 0) {
+                goto default_matcher;
+            }
             for (uint16_t i = 0; i < SPM_TABLE_SIZE; i++) {
                 if (spm_table[i].name == NULL) {
                     continue;
@@ -82,7 +85,15 @@ uint16_t SinglePatternMatchDefaultMatcher(void)
         exit(EXIT_FAILURE);
     }
 
-    return SPM_BM; /* default to Boyer-Moore */
+default_matcher:
+    /* When Suricata is built with Hyperscan support, default to using it for
+     * SPM. */
+#ifdef BUILD_HYPERSCAN
+    return SPM_HS;
+#else
+    /* Otherwise, default to Boyer-Moore */
+    return SPM_BM;
+#endif
 }
 
 void SpmTableSetup(void)
