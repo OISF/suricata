@@ -94,28 +94,28 @@ int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
     switch (de->ipopt) {
         case IPV4_OPT_RR:
-            return (p->ip4vars.rr);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_RR);
             break;
         case IPV4_OPT_LSRR:
-            return (p->ip4vars.lsrr);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_LSRR);
             break;
         case IPV4_OPT_EOL:
-            return (p->ip4vars.eol);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_EOL);
             break;
         case IPV4_OPT_NOP:
-            return (p->ip4vars.nop);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_NOP);
             break;
         case IPV4_OPT_TS:
-            return (p->ip4vars.ts);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_TS);
             break;
         case IPV4_OPT_SEC:
-            return (p->ip4vars.sec);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SEC);
             break;
         case IPV4_OPT_SSRR:
-            return (p->ip4vars.ssrr);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SSRR);
             break;
         case IPV4_OPT_SID:
-            return (p->ip4vars.sid);
+            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SID);
             break;
     }
 
@@ -281,7 +281,7 @@ int IpOptsTestParse03 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->ip4vars.rr = TRUE;
+    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
     de = DetectIpOptsParse("rr");
 
@@ -331,7 +331,7 @@ int IpOptsTestParse04 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->ip4vars.rr = TRUE;
+    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
     de = DetectIpOptsParse("lsrr");
 

@@ -331,7 +331,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
             /** \todo What if more data exist after EOL (possible covert channel or data leakage)? */
             SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
                    *pkt, (len - plen), (len - 1));
-            p->ip4vars.eol = TRUE;
+            p->ip4vars.opts_set |= IPV4_OPT_FLAG_EOL;
             break;
         } else if (*pkt == IPV4_OPT_NOP) {
             SCLogDebug("IPV4OPT %" PRIu16 " len 1 @ %" PRIu16 "/%" PRIu16 "",
@@ -339,7 +339,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
             pkt++;
             plen--;
 
-            p->ip4vars.nop = TRUE;
+            p->ip4vars.opts_set |= IPV4_OPT_FLAG_NOP;
 
         /* multibyte options */
         } else {
@@ -379,7 +379,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_ts = opt;
-                    p->ip4vars.ts = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_TS;
                     break;
                 case IPV4_OPT_RR:
                     if (opts->o_rr.type != 0) {
@@ -390,7 +390,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_rr = opt;
-                    p->ip4vars.rr = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_RR;
                     break;
                 case IPV4_OPT_QS:
                     if (opts->o_qs.type != 0) {
@@ -401,7 +401,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_qs = opt;
-                    p->ip4vars.qs = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_QS;
                     break;
                 case IPV4_OPT_SEC:
                     if (opts->o_sec.type != 0) {
@@ -412,7 +412,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_sec = opt;
-                    p->ip4vars.sec = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SEC;
                     break;
                 case IPV4_OPT_LSRR:
                     if (opts->o_lsrr.type != 0) {
@@ -423,7 +423,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_lsrr = opt;
-                    p->ip4vars.lsrr = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_LSRR;
                     break;
                 case IPV4_OPT_CIPSO:
                     if (opts->o_cipso.type != 0) {
@@ -434,7 +434,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_cipso = opt;
-                    p->ip4vars.cipso = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_CIPSO;
                     break;
                 case IPV4_OPT_SID:
                     if (opts->o_sid.type != 0) {
@@ -445,7 +445,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_sid = opt;
-                    p->ip4vars.sid = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SID;
                     break;
                 case IPV4_OPT_SSRR:
                     if (opts->o_ssrr.type != 0) {
@@ -456,7 +456,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_ssrr = opt;
-                    p->ip4vars.ssrr = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_SSRR;
                     break;
                 case IPV4_OPT_RTRALT:
                     if (opts->o_rtralt.type != 0) {
@@ -467,7 +467,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len, IPV4Options 
                         return -1;
                     }
                     opts->o_rtralt = opt;
-                    p->ip4vars.rtralt = TRUE;
+                    p->ip4vars.opts_set |= IPV4_OPT_FLAG_RTRALT;
                     break;
                 default:
                     SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8,
