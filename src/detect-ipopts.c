@@ -65,29 +65,23 @@ void DetectIpOptsRegister (void)
 }
 
 /**
- * Used to check ipopts:any
- */
-
-#define IPV4_OPT_ANY    0xff
-
-/**
  * \struct DetectIpOptss_
  * DetectIpOptss_ is used to store supported iptops values
  */
 
-struct DetectIpOptss_ {
-    char *ipopt_name;   /**< Ip option name */
-    uint8_t code;   /**< Ip option value */
+struct DetectIpOpts_ {
+    const char *ipopt_name;   /**< ip option name */
+    uint16_t code;   /**< ip option flag value */
 } ipopts[] = {
-    { "rr", IPV4_OPT_RR, },
-    { "lsrr", IPV4_OPT_LSRR, },
-    { "eol", IPV4_OPT_EOL, },
-    { "nop", IPV4_OPT_NOP, },
-    { "ts", IPV4_OPT_TS, },
-    { "sec", IPV4_OPT_SEC, },
-    { "ssrr", IPV4_OPT_SSRR, },
-    { "satid", IPV4_OPT_SID, },
-    { "any", IPV4_OPT_ANY, },
+    { "rr", IPV4_OPT_FLAG_RR, },
+    { "lsrr", IPV4_OPT_FLAG_LSRR, },
+    { "eol", IPV4_OPT_FLAG_EOL, },
+    { "nop", IPV4_OPT_FLAG_NOP, },
+    { "ts", IPV4_OPT_FLAG_TS, },
+    { "sec", IPV4_OPT_FLAG_SEC, },
+    { "ssrr", IPV4_OPT_FLAG_SSRR, },
+    { "satid", IPV4_OPT_FLAG_SID, },
+    { "any", 0xffff, },
     { NULL, 0 },
 };
 
@@ -111,36 +105,8 @@ int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return 0;
 
-    /* IPV4_OPT_ANY matches on any options */
-    if (p->ip4vars.opt_cnt && (de->ipopt == IPV4_OPT_ANY)) {
+    if (p->ip4vars.opts_set & de->ipopt) {
         return 1;
-    }
-
-    switch (de->ipopt) {
-        case IPV4_OPT_RR:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_RR);
-            break;
-        case IPV4_OPT_LSRR:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_LSRR);
-            break;
-        case IPV4_OPT_EOL:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_EOL);
-            break;
-        case IPV4_OPT_NOP:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_NOP);
-            break;
-        case IPV4_OPT_TS:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_TS);
-            break;
-        case IPV4_OPT_SEC:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SEC);
-            break;
-        case IPV4_OPT_SSRR:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SSRR);
-            break;
-        case IPV4_OPT_SID:
-            return (p->ip4vars.opts_set & IPV4_OPT_FLAG_SID);
-            break;
     }
 
     return 0;
