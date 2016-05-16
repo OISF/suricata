@@ -1273,7 +1273,7 @@
             HTP_LDADD="../libhtp/htp/libhtp.la"
             AC_SUBST(HTP_LDADD)
             # make sure libhtp is added to the includes
-            CPPFLAGS="-I${srcdir}/../libhtp/ ${CPPFLAGS}"
+            CPPFLAGS="-I\${srcdir}/../libhtp/ ${CPPFLAGS}"
 
             AC_CHECK_HEADER(iconv.h,,[AC_ERROR(iconv.h not found ...)])
             AC_CHECK_LIB(iconv, libiconv_close)
