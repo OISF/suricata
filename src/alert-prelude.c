@@ -492,28 +492,27 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             PacketToDataV6(p, pa, alert);
 
         if ( PKT_IS_TCP(p) ) {
-            AddIntData(alert, "tcp_seq", ntohl(p->tcph->th_seq));
-            AddIntData(alert, "tcp_ack", ntohl(p->tcph->th_ack));
+            AddIntData(alert, "tcp_seq", TCP_GET_SEQ(p));
+            AddIntData(alert, "tcp_ack", TCP_GET_ACK(p));
 
-            AddIntData(alert, "tcp_off", TCP_GET_RAW_OFFSET(p->tcph));
-            AddIntData(alert, "tcp_res", TCP_GET_RAW_X2(p->tcph));
-            AddIntData(alert, "tcp_flags", p->tcph->th_flags);
+            AddIntData(alert, "tcp_off", TCP_GET_OFFSET(p));
+            AddIntData(alert, "tcp_res", TCP_GET_X2(p));
+            AddIntData(alert, "tcp_flags", TCP_GET_FLAGS(p));
 
-            AddIntData(alert, "tcp_win", ntohs(p->tcph->th_win));
-            AddIntData(alert, "tcp_sum", ntohs(p->tcph->th_sum));
-            AddIntData(alert, "tcp_urp", ntohs(p->tcph->th_urp));
-
+            AddIntData(alert, "tcp_win", TCP_GET_WINDOW(p));
+            AddIntData(alert, "tcp_sum", TCP_GET_SUM(p));
+            AddIntData(alert, "tcp_urp", TCP_GET_URG_POINTER(p));
         }
 
         else if ( PKT_IS_UDP(p) ) {
-            AddIntData(alert, "udp_len", ntohs(p->udph->uh_len));
-            AddIntData(alert, "udp_sum", ntohs(p->udph->uh_sum));
+            AddIntData(alert, "udp_len", UDP_GET_LEN(p));
+            AddIntData(alert, "udp_sum", UDP_GET_SUM(p));
         }
 
         else if ( PKT_IS_ICMPV4(p) ) {
-            AddIntData(alert, "icmp_type", p->icmpv4h->type);
-            AddIntData(alert, "icmp_code", p->icmpv4h->code);
-            AddIntData(alert, "icmp_sum", ntohs(p->icmpv4h->checksum));
+            AddIntData(alert, "icmp_type", ICMPV4_GET_TYPE(p));
+            AddIntData(alert, "icmp_code", ICMPV4_GET_CODE(p));
+            AddIntData(alert, "icmp_sum", ICMPV4_GET_RAW_CSUM(p));
 
         }
     }
