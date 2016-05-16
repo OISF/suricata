@@ -30,10 +30,12 @@
 #define UDP_GET_RAW_LEN(udph)                ntohs((udph)->uh_len)
 #define UDP_GET_RAW_SRC_PORT(udph)           ntohs((udph)->uh_sport)
 #define UDP_GET_RAW_DST_PORT(udph)           ntohs((udph)->uh_dport)
+#define UDP_GET_RAW_SUM(udph)                ntohs((udph)->uh_sum)
 
 #define UDP_GET_LEN(p)                       UDP_GET_RAW_LEN(p->udph)
 #define UDP_GET_SRC_PORT(p)                  UDP_GET_RAW_SRC_PORT(p->udph)
 #define UDP_GET_DST_PORT(p)                  UDP_GET_RAW_DST_PORT(p->udph)
+#define UDP_GET_SUM(p)                       UDP_GET_RAW_SUM(p->udph)
 
 /* UDP header structure */
 typedef struct UDPHdr_
