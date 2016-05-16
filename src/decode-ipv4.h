@@ -154,6 +154,20 @@ typedef struct IPV4Hdr_
     memset(&p->ip4vars, 0x00, sizeof(p->ip4vars)); \
 } while (0)
 
+enum IPV4OptionFlags {
+    IPV4_OPT_FLAG_EOL = 0,
+    IPV4_OPT_FLAG_NOP,
+    IPV4_OPT_FLAG_RR,
+    IPV4_OPT_FLAG_TS,
+    IPV4_OPT_FLAG_QS,
+    IPV4_OPT_FLAG_LSRR,
+    IPV4_OPT_FLAG_SSRR,
+    IPV4_OPT_FLAG_SID,
+    IPV4_OPT_FLAG_SEC,
+    IPV4_OPT_FLAG_CIPSO,
+    IPV4_OPT_FLAG_RTRALT,
+};
+
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
@@ -162,18 +176,7 @@ typedef struct IPV4Vars_
     uint32_t ip_dst_u32;   /* dest IP */
 
     uint16_t opt_cnt;
-    _Bool rr;
-    _Bool lsrr;
-    _Bool eol;
-    _Bool nop;
-    _Bool ts;
-    _Bool sec;
-    _Bool sid;
-    _Bool qs;
-    _Bool cipso;
-    _Bool rtralt;
-    _Bool ssrr;
-
+    uint16_t opts_set;
 } IPV4Vars;
 
 
