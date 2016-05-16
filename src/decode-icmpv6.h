@@ -80,6 +80,7 @@
 /** macro for icmpv6 "code" access */
 #define ICMPV6_GET_CODE(p)      (p)->icmpv6h->code
 /** macro for icmpv6 "csum" access */
+#define ICMPV6_GET_RAW_CSUM(p)      ntohs((p)->icmpv6h->csum)
 #define ICMPV6_GET_CSUM(p)      (p)->icmpv6h->csum
 
 /** If message is informational */
