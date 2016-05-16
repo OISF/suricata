@@ -207,12 +207,18 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
     SCEnter();
 
     ret = idmef_alert_new_assessment(alert, &assessment);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating assessment: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
+    }
 
     ret = idmef_assessment_new_impact(assessment, &impact);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating assessment impact: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
+    }
 
     if ( (unsigned int)pa->s->prio < mid_priority )
         severity = IDMEF_IMPACT_SEVERITY_HIGH;
