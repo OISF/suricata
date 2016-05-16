@@ -515,6 +515,20 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             AddIntData(alert, "tcp_win", TCP_GET_WINDOW(p));
             AddIntData(alert, "tcp_sum", TCP_GET_SUM(p));
             AddIntData(alert, "tcp_urp", TCP_GET_URG_POINTER(p));
+            if (p->tcpvars.ts != NULL) {
+                AddIntData(alert, "tcp_tsval", TCP_GET_TSVAL(p));
+                AddIntData(alert, "tcp_tsecr", TCP_GET_TSECR(p));
+            }
+            if (p->tcph != NULL ) {
+                AddIntData(alert, "tcp_wscale", TCP_GET_WSCALE(p));
+            }
+            if (p->tcpvars.ws != NULL) {
+                AddIntData(alert, "tcp_sackok", TCP_GET_SACKOK(p));
+            }
+            if (p->tcpvars.sack != NULL ) {
+                AddIntData(alert, "tcp_sack_cnt", TCP_GET_SACK_CNT(p));
+            }
+            AddIntData(alert, "tcp_hlen", TCP_GET_HLEN(p));
         }
 
         else if ( PKT_IS_UDP(p) ) {
