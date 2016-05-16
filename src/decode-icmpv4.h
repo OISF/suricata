@@ -210,7 +210,8 @@ typedef struct ICMPV4Vars_
 /** macro for icmpv4 "code" access */
 #define ICMPV4_GET_CODE(p)      (p)->icmpv4h->code
 /** macro for icmpv4 "csum" access */
-#define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->csum
+#define ICMPV4_GET_RAW_CSUM(p)  ntohs((p)->icmpv4h->checksum)
+#define ICMPV4_GET_CSUM(p)      (p)->icmpv4h->checksum
 
 /* If message is informational */
 
