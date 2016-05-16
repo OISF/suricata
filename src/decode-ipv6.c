@@ -106,7 +106,7 @@ static inline
 #endif
 void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
                           uint16_t hdrextlen, uint16_t plen,
-                          uint16_t ip6_exthdrs_cnt, IPV6GenOptHdr *ip6_exthdrs)
+                          uint16_t prev_hdrextlen)
 {
     uint16_t frag_offset = (*(pkt + 2) << 8 | *(pkt + 3)) & 0xFFF8;
     int frag_morefrags   = (*(pkt + 2) << 8 | *(pkt + 3)) & 0x0001;
@@ -135,8 +135,8 @@ void DecodeIPV6FragHeader(Packet *p, uint8_t *pkt,
     p->ip6eh.fh_data_len = data_len;
 
     /* if we have a prev hdr, store the type and offset of it */
-    if (ip6_exthdrs_cnt > 1) {
-        p->ip6eh.fh_prev_hdr_offset = frag_hdr_offset - ip6_exthdrs[ip6_exthdrs_cnt - 1].len;
+    if (prev_hdrextlen) {
+        p->ip6eh.fh_prev_hdr_offset = frag_hdr_offset - prev_hdrextlen;
     }
 
     SCLogDebug("IPV6 FH: frag_hdr_offset %u, data_offset %u, data_len %u",
@@ -151,14 +151,10 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
     uint8_t *orig_pkt = pkt;
     uint8_t nh = 0; /* careful, 0 is actually a real type */
-    uint16_t hdrextlen;
+    uint16_t hdrextlen = 0;
     uint16_t plen;
     char dstopts = 0;
     char exthdr_fh_done = 0;
-
-    uint8_t ip6_exthdrs_cnt = 0;
-    IPV6GenOptHdr ip6_exthdrs[IPV6_MAX_OPT];
-
     int hh = 0;
     int rh = 0;
     int eh = 0;
@@ -212,15 +208,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     SCReturn;
                 }
 
-                if (ip6_exthdrs_cnt < IPV6_MAX_OPT)
-                {
-                    ip6_exthdrs[ip6_exthdrs_cnt].type = nh;
-                    ip6_exthdrs[ip6_exthdrs_cnt].next = *pkt;
-                    ip6_exthdrs[ip6_exthdrs_cnt].len = hdrextlen;
-                    ip6_exthdrs[ip6_exthdrs_cnt].data = pkt+2;
-                    ip6_exthdrs_cnt++;
-                }
-
                 if (rh) {
                     ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_RH);
                     /* skip past this extension so we can continue parsing the rest
@@ -258,15 +245,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (hdrextlen > plen) {
                     ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
-                }
-
-                if (ip6_exthdrs_cnt < IPV6_MAX_OPT)
-                {
-                    ip6_exthdrs[ip6_exthdrs_cnt].type = nh;
-                    ip6_exthdrs[ip6_exthdrs_cnt].next = *pkt;
-                    ip6_exthdrs[ip6_exthdrs_cnt].len = hdrextlen;
-                    ip6_exthdrs[ip6_exthdrs_cnt].data = pkt+2;
-                    ip6_exthdrs_cnt++;
                 }
 
                 uint8_t *ptr = pkt + 2; /* +2 to go past nxthdr and len */
@@ -431,6 +409,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             }
 
             case IPPROTO_FRAGMENT:
+            {
                 IPV6_SET_L4PROTO(p,nh);
                 /* store the offset of this extension into the packet
                  * past the ipv6 header. We use it in defrag for creating
@@ -440,6 +419,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     exthdr_fh_done = 1;
                 }
 
+                uint16_t prev_hdrextlen = hdrextlen;
                 hdrextlen = sizeof(IPV6FragHdr);
                 if (hdrextlen > plen) {
                     ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
@@ -450,15 +430,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (*(pkt + 1) != 0) {
                     ENGINE_SET_EVENT(p, IPV6_FH_NON_ZERO_RES_FIELD);
                     /* non fatal, lets try to continue */
-                }
-
-                if(ip6_exthdrs_cnt<IPV6_MAX_OPT)
-                {
-                    ip6_exthdrs[ip6_exthdrs_cnt].type = nh;
-                    ip6_exthdrs[ip6_exthdrs_cnt].next = *pkt;
-                    ip6_exthdrs[ip6_exthdrs_cnt].len = hdrextlen;
-                    ip6_exthdrs[ip6_exthdrs_cnt].data = pkt+2;
-                    ip6_exthdrs_cnt++;
                 }
 
                 if (IPV6_EXTHDR_ISSET_FH(p)) {
@@ -473,8 +444,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6_EXTHDR_SET_FH(p);
 
                 /* parse the header and setup the vars */
-                DecodeIPV6FragHeader(p, pkt, hdrextlen, plen,
-                        ip6_exthdrs_cnt, ip6_exthdrs);
+                DecodeIPV6FragHeader(p, pkt, hdrextlen, plen, prev_hdrextlen);
 
                 /* if FH has offset 0 and no more fragments are coming, we
                  * parse this packet further right away, no defrag will be
@@ -492,7 +462,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 /* the rest is parsed upon reassembly */
                 p->flags |= PKT_IS_FRAGMENT;
                 SCReturn;
-
+            }
             case IPPROTO_ESP:
             {
                 IPV6_SET_L4PROTO(p,nh);
@@ -500,15 +470,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (hdrextlen > plen) {
                     ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
-                }
-
-                if(ip6_exthdrs_cnt<IPV6_MAX_OPT)
-                {
-                    ip6_exthdrs[ip6_exthdrs_cnt].type = nh;
-                    ip6_exthdrs[ip6_exthdrs_cnt].next = IPPROTO_NONE;
-                    ip6_exthdrs[ip6_exthdrs_cnt].len = hdrextlen;
-                    ip6_exthdrs[ip6_exthdrs_cnt].data = pkt+2;
-                    ip6_exthdrs_cnt++;
                 }
 
                 if (eh) {
@@ -543,15 +504,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6AuthHdr *ahhdr = (IPV6AuthHdr *)pkt;
                 if (ahhdr->ip6ah_reserved != 0x0000) {
                     ENGINE_SET_EVENT(p, IPV6_EXTHDR_AH_RES_NOT_NULL);
-                }
-
-                if(ip6_exthdrs_cnt < IPV6_MAX_OPT)
-                {
-                    ip6_exthdrs[ip6_exthdrs_cnt].type = nh;
-                    ip6_exthdrs[ip6_exthdrs_cnt].next = *pkt;
-                    ip6_exthdrs[ip6_exthdrs_cnt].len = hdrextlen;
-                    ip6_exthdrs[ip6_exthdrs_cnt].data = pkt+2;
-                    ip6_exthdrs_cnt++;
                 }
 
                 if (ah) {
