@@ -38,7 +38,7 @@
  */
 
 typedef struct DetectIpOptsData_ {
-    uint8_t ipopt;  /**< Ip option */
+    uint16_t ipopt; /**< ip option flag */
 } DetectIpOptsData;
 
 /**
