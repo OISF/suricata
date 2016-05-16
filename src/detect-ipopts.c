@@ -35,9 +35,6 @@
 
 #include "util-debug.h"
 
-/* Need to get the DIpOpts[] array */
-#define DETECT_EVENTS
-
 #include "detect-ipopts.h"
 #include "util-unittest.h"
 
@@ -66,6 +63,33 @@ void DetectIpOptsRegister (void)
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
+
+/**
+ * Used to check ipopts:any
+ */
+
+#define IPV4_OPT_ANY    0xff
+
+/**
+ * \struct DetectIpOptss_
+ * DetectIpOptss_ is used to store supported iptops values
+ */
+
+struct DetectIpOptss_ {
+    char *ipopt_name;   /**< Ip option name */
+    uint8_t code;   /**< Ip option value */
+} ipopts[] = {
+    { "rr", IPV4_OPT_RR, },
+    { "lsrr", IPV4_OPT_LSRR, },
+    { "eol", IPV4_OPT_EOL, },
+    { "nop", IPV4_OPT_NOP, },
+    { "ts", IPV4_OPT_TS, },
+    { "sec", IPV4_OPT_SEC, },
+    { "ssrr", IPV4_OPT_SSRR, },
+    { "satid", IPV4_OPT_SID, },
+    { "any", IPV4_OPT_ANY, },
+    { NULL, 0 },
+};
 
 /**
  * \internal
@@ -145,8 +169,8 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
         goto error;
     }
 
-    for(i = 0; DIpOpts[i].ipopt_name != NULL; i++)  {
-        if((strcasecmp(DIpOpts[i].ipopt_name,rawstr)) == 0) {
+    for(i = 0; ipopts[i].ipopt_name != NULL; i++)  {
+        if((strcasecmp(ipopts[i].ipopt_name,rawstr)) == 0) {
             found = 1;
             break;
         }
@@ -159,7 +183,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
     if (unlikely(de == NULL))
         goto error;
 
-    de->ipopt = DIpOpts[i].code;
+    de->ipopt = ipopts[i].code;
 
     return de;
 
