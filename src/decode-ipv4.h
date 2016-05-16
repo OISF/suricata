@@ -172,8 +172,6 @@ enum IPV4OptionFlags {
 typedef struct IPV4Vars_
 {
     int32_t comp_csum;     /* checksum computed over the ipv4 packet */
-    uint32_t ip_src_u32;   /* source IP */
-    uint32_t ip_dst_u32;   /* dest IP */
 
     uint16_t opt_cnt;
     uint16_t opts_set;
