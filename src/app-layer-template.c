@@ -49,7 +49,7 @@
  *
  * Example rule:
  *
- * alert template any any -> any any (msg:"SURCATA Template empty message"; \
+ * alert template any any -> any any (msg:"SURICATA Template empty message"; \
  *    app-layer-event:template.empty_message; sid:X; rev:Y;)
  */
 enum {
