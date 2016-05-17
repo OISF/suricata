@@ -415,7 +415,6 @@ static Flow *TcpReuseReplace(ThreadVars *tv, DecodeThreadVars *dtv,
     old_f->flags |= FLOW_TCP_REUSED;
     /* get some settings that we move over to the new flow */
     FlowThreadId thread_id = old_f->thread_id;
-    int16_t autofp_tmqh_flow_qid = SC_ATOMIC_GET(old_f->autofp_tmqh_flow_qid);
 
     /* since fb lock is still held this flow won't be found until we are done */
     FLOWLOCK_UNLOCK(old_f);
@@ -439,9 +438,6 @@ static Flow *TcpReuseReplace(ThreadVars *tv, DecodeThreadVars *dtv,
     f->fb = fb;
 
     f->thread_id = thread_id;
-    if (autofp_tmqh_flow_qid != -1) {
-        SC_ATOMIC_SET(f->autofp_tmqh_flow_qid, autofp_tmqh_flow_qid);
-    }
     return f;
 }
 
