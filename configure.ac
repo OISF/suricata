@@ -119,14 +119,14 @@
     if test "x$enable_python" = "xno" ; then
         echo
         echo "   Warning! python disabled, you will not be      "
-        echo "   able to install surictasc unix socket client   "
+        echo "   able to install suricatasc unix socket client   "
         echo
         enable_python="no"
     fi
     if test "$HAVE_PYTHON_CONFIG" = "no"; then
         echo
         echo "   Warning! python not found, you will not be     "
-        echo "   able to install surictasc unix socket client   "
+        echo "   able to install suricatasc unix socket client   "
         echo
         enable_python="no"
     fi
