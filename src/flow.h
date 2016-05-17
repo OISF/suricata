@@ -453,32 +453,12 @@ struct FlowQueue_;
 
 int FlowUpdateSpareFlows(void);
 
-static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
-static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
-
-/** ----- Inline functions ----- */
-
-/** \brief Set the No Packet Inspection Flag after locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline void FlowLockSetNoPacketInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    FLOWLOCK_WRLOCK(f);
-    f->flags |= FLOW_NOPACKET_INSPECTION;
-    FLOWLOCK_UNLOCK(f);
-
-    SCReturn;
-}
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
  *
@@ -490,22 +470,6 @@ static inline  void FlowSetNoPacketInspectionFlag(Flow *f)
 
     SCLogDebug("flow %p", f);
     f->flags |= FLOW_NOPACKET_INSPECTION;
-
-    SCReturn;
-}
-
-/** \brief Set the No payload inspection Flag after locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    FLOWLOCK_WRLOCK(f);
-    f->flags |= FLOW_NOPAYLOAD_INSPECTION;
-    FLOWLOCK_UNLOCK(f);
 
     SCReturn;
 }
