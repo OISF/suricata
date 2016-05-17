@@ -48,7 +48,6 @@
 #include "app-layer-dcerpc.h"
 
 #include "util-spm.h"
-#include "util-spm-bm.h"
 #include "util-debug.h"
 #include "util-print.h"
 
@@ -279,10 +278,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
              * greater than sbuffer_len found is anyways NULL */
 
             /* do the actual search */
-            if (cd->flags & DETECT_CONTENT_NOCASE)
-                found = BoyerMooreNocase(cd->content, cd->content_len, sbuffer, sbuffer_len, cd->bm_ctx);
-            else
-                found = BoyerMoore(cd->content, cd->content_len, sbuffer, sbuffer_len, cd->bm_ctx);
+            found = SpmScan(cd->spm_ctx, det_ctx->spm_thread_ctx, sbuffer,
+                            sbuffer_len);
 
             /* next we evaluate the result in combination with the
              * negation flag. */

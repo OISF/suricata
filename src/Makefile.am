@@ -350,6 +350,7 @@ util-hashlist.c util-hashlist.h \
 util-hash-lookup3.c util-hash-lookup3.h \
 util-host-os-info.c util-host-os-info.h \
 util-host-info.c util-host-info.h \
+util-hyperscan.c util-hyperscan.h \
 util-ioctl.h util-ioctl.c \
 util-ip.h util-ip.c \
 util-logopenfile.h util-logopenfile.c \
@@ -397,6 +398,7 @@ util-signal.c util-signal.h \
 util-spm-bm.c util-spm-bm.h \
 util-spm-bs2bm.c util-spm-bs2bm.h \
 util-spm-bs.c util-spm-bs.h \
+util-spm-hs.c util-spm-hs.h \
 util-spm.c util-spm.h util-clock.h \
 util-storage.c util-storage.h \
 util-strlcatu.c \

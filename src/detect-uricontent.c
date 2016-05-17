@@ -54,7 +54,6 @@
 #include "util-unittest-helper.h"
 #include "util-binsearch.h"
 #include "util-spm.h"
-#include "util-spm-bm.h"
 #include "conf.h"
 
 /* prototypes */
@@ -95,7 +94,7 @@ void DetectUricontentFree(void *ptr)
     if (cd == NULL)
         SCReturn;
 
-    BoyerMooreCtxDeInit(cd->bm_ctx);
+    SpmDestroyCtx(cd->spm_ctx);
     SCFree(cd);
 
     SCReturn;

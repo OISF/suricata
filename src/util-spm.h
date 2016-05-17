@@ -28,6 +28,69 @@
 #include "util-spm-bs2bm.h"
 #include "util-spm-bm.h"
 
+enum {
+    SPM_BM, /* Boyer-Moore */
+    SPM_HS, /* Hyperscan */
+    /* Other SPM matchers will go here. */
+    SPM_TABLE_SIZE
+};
+
+uint16_t SinglePatternMatchDefaultMatcher(void);
+
+/** Structure holding an immutable "built" SPM matcher (such as the Boyer-Moore
+ * tables, Hyperscan database etc) that is passed to the Scan call. */
+typedef struct SpmCtx_ {
+    uint16_t matcher;
+    void *ctx;
+} SpmCtx;
+
+/** Structure holding a global prototype for per-thread scratch space, passed
+ * to each InitCtx call. */
+typedef struct SpmGlobalThreadCtx_ {
+    uint16_t matcher;
+    void *ctx;
+} SpmGlobalThreadCtx;
+
+/** Structure holding some mutable per-thread space for use by a matcher at
+ * scan time. Constructed from SpmGlobalThreadCtx by the MakeThreadCtx call. */
+typedef struct SpmThreadCtx_ {
+    uint16_t matcher;
+    void *ctx;
+} SpmThreadCtx;
+
+typedef struct SpmTableElmt_ {
+    const char *name;
+    SpmGlobalThreadCtx *(*InitGlobalThreadCtx)(void);
+    void (*DestroyGlobalThreadCtx)(SpmGlobalThreadCtx *g_thread_ctx);
+    SpmThreadCtx *(*MakeThreadCtx)(const SpmGlobalThreadCtx *g_thread_ctx);
+    void (*DestroyThreadCtx)(SpmThreadCtx *thread_ctx);
+    SpmCtx *(*InitCtx)(const uint8_t *needle, uint16_t needle_len, int nocase,
+                       SpmGlobalThreadCtx *g_thread_ctx);
+    void (*DestroyCtx)(SpmCtx *);
+    uint8_t *(*Scan)(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                     const uint8_t *haystack, uint16_t haystack_len);
+} SpmTableElmt;
+
+SpmTableElmt spm_table[SPM_TABLE_SIZE];
+
+void SpmTableSetup(void);
+
+SpmGlobalThreadCtx *SpmInitGlobalThreadCtx(uint16_t matcher);
+
+void SpmDestroyGlobalThreadCtx(SpmGlobalThreadCtx *g_thread_ctx);
+
+SpmThreadCtx *SpmMakeThreadCtx(const SpmGlobalThreadCtx *g_thread_ctx);
+
+void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx);
+
+SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
+                   SpmGlobalThreadCtx *g_thread_ctx);
+
+void SpmDestroyCtx(SpmCtx *ctx);
+
+uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
+                 const uint8_t *haystack, uint16_t haystack_len);
+
 /** Default algorithm to use: Boyer Moore */
 uint8_t *Bs2bmSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
 uint8_t *Bs2bmNocaseSearch(const uint8_t *text, uint32_t textlen, const uint8_t *needle, uint16_t needlelen);
