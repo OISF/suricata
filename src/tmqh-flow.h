@@ -26,8 +26,6 @@
 
 typedef struct TmqhFlowMode_ {
     PacketQueue *q;
-    SC_ATOMIC_DECLARE(uint64_t, total_packets);
-    SC_ATOMIC_DECLARE(uint64_t, total_flows);
 } TmqhFlowMode;
 
 /** \brief Ctx for the flow queue handler
@@ -38,8 +36,6 @@ typedef struct TmqhFlowCtx_ {
     uint16_t last;
 
     TmqhFlowMode *queues;
-
-    SC_ATOMIC_DECLARE(int16_t, round_robin_idx);
 } TmqhFlowCtx;
 
 void TmqhFlowRegister (void);
