@@ -59,6 +59,7 @@
 #include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
+#include "detect-engine-tls.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
 #include "detect-engine-template.h"
@@ -269,6 +270,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSREQUEST_INSPECT,
           0,
           DetectEngineInspectDnsRequest },
+        /* TLS */
+        { IPPROTO_TCP,
+          ALPROTO_TLS,
+          DETECT_SM_LIST_TLSSNI_MATCH,
+          DE_STATE_FLAG_TLSSNI_INSPECT,
+          0,
+          DetectEngineInspectTlsSni },
         /* SMTP */
         { IPPROTO_TCP,
           ALPROTO_SMTP,
@@ -2725,6 +2733,9 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "dns request";
         case DETECT_SM_LIST_DNSRESPONSE_MATCH:
             return "dns response";
+
+        case DETECT_SM_LIST_TLSSNI_MATCH:
+            return "tls sni extension";
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";
