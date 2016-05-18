@@ -151,40 +151,30 @@ typedef struct IPV4Hdr_
 #define CLEAR_IPV4_PACKET(p) do { \
     (p)->ip4h = NULL; \
     (p)->level3_comp_csum = -1; \
-    (p)->ip4vars.ip_src_u32 = 0; \
-    (p)->ip4vars.ip_dst_u32 = 0; \
-    (p)->ip4vars.ip_opt_cnt = 0; \
-    (p)->ip4vars.o_rr = NULL; \
-    (p)->ip4vars.o_qs = NULL; \
-    (p)->ip4vars.o_ts = NULL; \
-    (p)->ip4vars.o_sec = NULL; \
-    (p)->ip4vars.o_lsrr = NULL; \
-    (p)->ip4vars.o_cipso = NULL; \
-    (p)->ip4vars.o_sid = NULL; \
-    (p)->ip4vars.o_ssrr = NULL; \
-    (p)->ip4vars.o_rtralt = NULL; \
+    memset(&p->ip4vars, 0x00, sizeof(p->ip4vars)); \
 } while (0)
+
+enum IPV4OptionFlags {
+    IPV4_OPT_FLAG_EOL = 0,
+    IPV4_OPT_FLAG_NOP,
+    IPV4_OPT_FLAG_RR,
+    IPV4_OPT_FLAG_TS,
+    IPV4_OPT_FLAG_QS,
+    IPV4_OPT_FLAG_LSRR,
+    IPV4_OPT_FLAG_SSRR,
+    IPV4_OPT_FLAG_SID,
+    IPV4_OPT_FLAG_SEC,
+    IPV4_OPT_FLAG_CIPSO,
+    IPV4_OPT_FLAG_RTRALT,
+};
 
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
     int32_t comp_csum;     /* checksum computed over the ipv4 packet */
-    uint32_t ip_src_u32;   /* source IP */
-    uint32_t ip_dst_u32;   /* dest IP */
 
-    IPV4Opt ip_opts[IPV4_OPTMAX];
-    uint8_t ip_opt_cnt;
-
-    /* These are here for direct access and dup tracking */
-    IPV4Opt *o_rr;
-    IPV4Opt *o_qs;
-    IPV4Opt *o_ts;
-    IPV4Opt *o_sec;
-    IPV4Opt *o_lsrr;
-    IPV4Opt *o_cipso;
-    IPV4Opt *o_sid;
-    IPV4Opt *o_ssrr;
-    IPV4Opt *o_rtralt;
+    uint16_t opt_cnt;
+    uint16_t opts_set;
 } IPV4Vars;
 
 

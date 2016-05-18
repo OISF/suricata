@@ -35,9 +35,6 @@
 
 #include "util-debug.h"
 
-/* Need to get the DIpOpts[] array */
-#define DETECT_EVENTS
-
 #include "detect-ipopts.h"
 #include "util-unittest.h"
 
@@ -68,6 +65,27 @@ void DetectIpOptsRegister (void)
 }
 
 /**
+ * \struct DetectIpOptss_
+ * DetectIpOptss_ is used to store supported iptops values
+ */
+
+struct DetectIpOpts_ {
+    const char *ipopt_name;   /**< ip option name */
+    uint16_t code;   /**< ip option flag value */
+} ipopts[] = {
+    { "rr", IPV4_OPT_FLAG_RR, },
+    { "lsrr", IPV4_OPT_FLAG_LSRR, },
+    { "eol", IPV4_OPT_FLAG_EOL, },
+    { "nop", IPV4_OPT_FLAG_NOP, },
+    { "ts", IPV4_OPT_FLAG_TS, },
+    { "sec", IPV4_OPT_FLAG_SEC, },
+    { "ssrr", IPV4_OPT_FLAG_SSRR, },
+    { "satid", IPV4_OPT_FLAG_SID, },
+    { "any", 0xffff, },
+    { NULL, 0 },
+};
+
+/**
  * \internal
  * \brief This function is used to match ip option on a packet with those passed via ipopts:
  *
@@ -82,31 +100,16 @@ void DetectIpOptsRegister (void)
  */
 int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    int ipopt = 0;
     const DetectIpOptsData *de = (const DetectIpOptsData *)ctx;
 
     if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
-        return ret;
+        return 0;
 
-    /* IPV4_OPT_ANY matches on any options */
-
-    if (p->IPV4_OPTS_CNT && (de->ipopt == IPV4_OPT_ANY)) {
+    if (p->ip4vars.opts_set & de->ipopt) {
         return 1;
     }
 
-    /* Loop through instead of using o_xxx direct access fields so that
-     * future options do not require any modification here.
-     */
-
-    while(ipopt < p->IPV4_OPTS_CNT) {
-        if (p->IPV4_OPTS[ipopt].type == de->ipopt) {
-            return 1;
-        }
-        ipopt++;
-    }
-
-    return ret;
+    return 0;
 }
 
 /**
@@ -132,8 +135,8 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
         goto error;
     }
 
-    for(i = 0; DIpOpts[i].ipopt_name != NULL; i++)  {
-        if((strcasecmp(DIpOpts[i].ipopt_name,rawstr)) == 0) {
+    for(i = 0; ipopts[i].ipopt_name != NULL; i++)  {
+        if((strcasecmp(ipopts[i].ipopt_name,rawstr)) == 0) {
             found = 1;
             break;
         }
@@ -146,7 +149,7 @@ DetectIpOptsData *DetectIpOptsParse (char *rawstr)
     if (unlikely(de == NULL))
         goto error;
 
-    de->ipopt = DIpOpts[i].code;
+    de->ipopt = ipopts[i].code;
 
     return de;
 
@@ -268,9 +271,7 @@ int IpOptsTestParse03 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
-
-    p->IPV4_OPTS_CNT++;
+    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
     de = DetectIpOptsParse("rr");
 
@@ -320,9 +321,7 @@ int IpOptsTestParse04 (void)
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h = &ip4h;
-    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
-
-    p->IPV4_OPTS_CNT++;
+    p->ip4vars.opts_set = IPV4_OPT_FLAG_RR;
 
     de = DetectIpOptsParse("lsrr");
 

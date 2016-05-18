@@ -38,7 +38,7 @@
  */
 
 typedef struct DetectIpOptsData_ {
-    uint8_t ipopt;  /**< Ip option */
+    uint16_t ipopt; /**< ip option flag */
 } DetectIpOptsData;
 
 /**
@@ -47,34 +47,5 @@ typedef struct DetectIpOptsData_ {
 
 void DetectIpOptsRegister (void);
 
-#ifdef DETECT_EVENTS
-
-/**
- * Used to check ipopts:any
- */
-
-#define IPV4_OPT_ANY    0xff
-
-/**
- * \struct DetectIpOptss_
- * DetectIpOptss_ is used to store supported iptops values
- */
-
-struct DetectIpOptss_ {
-    char *ipopt_name;   /**< Ip option name */
-    uint8_t code;   /**< Ip option value */
-} DIpOpts[] = {
-    { "rr", IPV4_OPT_RR, },
-    { "lsrr", IPV4_OPT_LSRR, },
-    { "eol", IPV4_OPT_EOL, },
-    { "nop", IPV4_OPT_NOP, },
-    { "ts", IPV4_OPT_TS, },
-    { "sec", IPV4_OPT_SEC, },
-    { "ssrr", IPV4_OPT_SSRR, },
-    { "satid", IPV4_OPT_SID, },
-    { "any", IPV4_OPT_ANY, },
-    { NULL, 0 },
-};
-#endif /* DETECT_EVENTS */
 #endif /*__DETECT_IPOPTS_H__ */
 
