@@ -63,6 +63,7 @@ SCEnumCharMap tls_decoder_event_table[ ] = {
     { "INVALID_HEARTBEAT_MESSAGE",   TLS_DECODER_EVENT_INVALID_HEARTBEAT },
     { "OVERFLOW_HEARTBEAT_MESSAGE",  TLS_DECODER_EVENT_OVERFLOW_HEARTBEAT },
     { "DATALEAK_HEARTBEAT_MISMATCH", TLS_DECODER_EVENT_DATALEAK_HEARTBEAT_MISMATCH },
+    { "HANDSHAKE_INVALID_LENGTH",    TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH },
     { "MULTIPLE_SNI_EXTENSIONS",     TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS },
     { "INVALID_SNI_TYPE",            TLS_DECODER_EVENT_INVALID_SNI_TYPE },
     { "INVALID_SNI_LENGTH",          TLS_DECODER_EVENT_INVALID_SNI_LENGTH },
@@ -243,7 +244,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     input += SSLV3_CLIENT_HELLO_RANDOM_LEN;
 
     if (!(HAS_SPACE(1)))
-        goto end;
+        goto invalid_length;
 
     /* skip session id */
     uint8_t session_id_length = *(input++);
@@ -251,7 +252,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     input += session_id_length;
 
     if (!(HAS_SPACE(2)))
-        goto end;
+        goto invalid_length;
 
     /* skip cipher suites */
     uint16_t cipher_suites_length = input[0] << 8 | input[1];
@@ -260,7 +261,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     input += cipher_suites_length;
 
     if (!(HAS_SPACE(1)))
-        goto end;
+        goto invalid_length;
 
     /* skip compression methods */
     uint8_t compression_methods_length = *(input++);
@@ -268,7 +269,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     input += compression_methods_length;
 
     if (!(HAS_SPACE(2)))
-        goto end;
+        goto invalid_length;
 
     uint16_t extensions_len = input[0] << 8 | input[1];
     input += 2;
@@ -277,13 +278,13 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
     while (processed_len < extensions_len)
     {
         if (!(HAS_SPACE(2)))
-            goto end;
+            goto invalid_length;
 
         uint16_t ext_type = input[0] << 8 | input[1];
         input += 2;
 
         if (!(HAS_SPACE(2)))
-            goto end;
+            goto invalid_length;
 
         uint16_t ext_len = input[0] << 8 | input[1];
         input += 2;
@@ -304,7 +305,7 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
                 input += 2;
 
                 if (!(HAS_SPACE(1)))
-                    goto end;
+                    goto invalid_length;
 
                 uint8_t sni_type = *(input++);
 
@@ -318,13 +319,13 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
                 }
 
                 if (!(HAS_SPACE(2)))
-                    goto end;
+                    goto invalid_length;
 
                 uint16_t sni_len = input[0] << 8 | input[1];
                 input += 2;
 
                 if (!(HAS_SPACE(sni_len)))
-                    goto end;
+                    goto invalid_length;
 
                 /* host_name contains the fully qualified domain name,
                    and should therefore be limited by the maximum domain
@@ -359,6 +360,12 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
 
 end:
     return 0;
+
+invalid_length:
+    SCLogDebug("TLS handshake invalid length");
+    SSLSetEvent(ssl_state,
+            TLS_DECODER_EVENT_HANDSHAKE_INVALID_LENGTH);
+    return -1;
 }
 
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
