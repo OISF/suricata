@@ -123,6 +123,8 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_DNSRESPONSE_MATCH,   /**< per DNS response tx match list */
     DETECT_SM_LIST_DNSQUERYNAME_MATCH,  /**< per query in a tx list */
 
+    DETECT_SM_LIST_TLSSNI_MATCH,
+
     DETECT_SM_LIST_MODBUS_MATCH,
 
     DETECT_SM_LIST_BASE64_DATA,
@@ -919,9 +921,10 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 24)
+#define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 24)
+#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 25)
 
-#define APP_MPMS_MAX 18
+#define APP_MPMS_MAX 19
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
@@ -999,6 +1002,7 @@ typedef struct SigGroupHead_ {
             const MpmCtx *mpm_hhhd_ctx_ts;
             const MpmCtx *mpm_hrhhd_ctx_ts;
             const MpmCtx *mpm_dnsquery_ctx_ts;
+            const MpmCtx *mpm_tlssni_ctx_ts;
             const MpmCtx *mpm_smtp_filedata_ctx_ts;
         };
         struct {
@@ -1199,6 +1203,7 @@ enum {
     DETECT_IPREP,
 
     DETECT_AL_DNS_QUERY,
+    DETECT_AL_TLS_SNI,
     DETECT_AL_MODBUS,
 
     DETECT_XBITS,

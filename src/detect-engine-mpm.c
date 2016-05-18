@@ -106,6 +106,8 @@ AppLayerMpms app_mpms[] = {
 
     { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH, SIG_GROUP_HEAD_MPM_DNSQUERY, 17},
 
+    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH, SIG_GROUP_HEAD_MPM_TLSSNI, 18},
+
     { NULL, 0, 0, 0, 0, 0, }
 };
 
@@ -1207,7 +1209,9 @@ void MpmStoreFixup(SigGroupHead *sgh)
 
     SET_TS(sgh, sgh->mpm_dnsquery_ctx_ts);
 
-    BUG_ON(APP_MPMS_MAX != 18 || i != 18);
+    SET_TS(sgh, sgh->mpm_tlssni_ctx_ts);
+
+    BUG_ON(APP_MPMS_MAX != 19 || i != 19);
 
 #undef SET_TS
 #undef SET_TC
