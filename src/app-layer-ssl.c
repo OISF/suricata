@@ -230,6 +230,140 @@ int SSLGetAlstateProgress(void *tx, uint8_t direction)
     return TLS_STATE_IN_PROGRESS;
 }
 
+static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
+                                   uint32_t input_len)
+{
+    uint8_t *initial_input = input;
+
+    /* only parse the message if it is complete */
+    if (input_len < ssl_state->curr_connp->message_length || input_len < 40)
+        return 0;
+
+    /* skip version */
+    input += SSLV3_CLIENT_HELLO_VERSION_LEN;
+
+    /* skip random */
+    input += SSLV3_CLIENT_HELLO_RANDOM_LEN;
+
+    if (!(HAS_SPACE(1)))
+        goto end;
+
+    /* skip session id */
+    uint8_t session_id_length = *(input++);
+
+    input += session_id_length;
+
+    if (!(HAS_SPACE(2)))
+        goto end;
+
+    /* skip cipher suites */
+    uint16_t cipher_suites_length = input[0] << 8 | input[1];
+    input += 2;
+
+    input += cipher_suites_length;
+
+    if (!(HAS_SPACE(1)))
+        goto end;
+
+    /* skip compression methods */
+    uint8_t compression_methods_length = *(input++);
+
+    input += compression_methods_length;
+
+    if (!(HAS_SPACE(2)))
+        goto end;
+
+    uint16_t extensions_len = input[0] << 8 | input[1];
+    input += 2;
+
+    uint16_t processed_len = 0;
+    while (processed_len < extensions_len)
+    {
+        if (!(HAS_SPACE(2)))
+            goto end;
+
+        uint16_t ext_type = input[0] << 8 | input[1];
+        input += 2;
+
+        if (!(HAS_SPACE(2)))
+            goto end;
+
+        uint16_t ext_len = input[0] << 8 | input[1];
+        input += 2;
+
+        switch (ext_type) {
+            case SSL_EXTENSION_SNI:
+            {
+                /* there must not be more than one extension of the same
+                   type (RFC5246 section 7.4.1.4) */
+                if (ssl_state->curr_connp->sni) {
+                    SCLogDebug("Multiple SNI extensions");
+                    SSLSetEvent(ssl_state,
+                            TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS);
+                    return -1;
+                }
+
+                /* skip sni_list_length */
+                input += 2;
+
+                if (!(HAS_SPACE(1)))
+                    goto end;
+
+                uint8_t sni_type = *(input++);
+
+                /* currently the only type allowed is host_name
+                   (RFC6066 section 3) */
+                if (sni_type != SSL_SNI_TYPE_HOST_NAME) {
+                    SCLogDebug("Unknown SNI type");
+                    SSLSetEvent(ssl_state,
+                            TLS_DECODER_EVENT_INVALID_SNI_TYPE);
+                    return -1;
+                }
+
+                if (!(HAS_SPACE(2)))
+                    goto end;
+
+                uint16_t sni_len = input[0] << 8 | input[1];
+                input += 2;
+
+                if (!(HAS_SPACE(sni_len)))
+                    goto end;
+
+                /* host_name contains the fully qualified domain name,
+                   and should therefore be limited by the maximum domain
+                   name length */
+                if (sni_len > 255) {
+                    SCLogDebug("SNI length >255");
+                    SSLSetEvent(ssl_state,
+                            TLS_DECODER_EVENT_INVALID_SNI_LENGTH);
+                    return -1;
+                }
+
+                size_t sni_strlen = sni_len + 1;
+                ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
+
+                if (unlikely(ssl_state->curr_connp->sni == NULL))
+                    goto end;
+
+                memcpy(ssl_state->curr_connp->sni, input, sni_strlen - 1);
+                ssl_state->curr_connp->sni[sni_strlen-1] = 0;
+
+                input += sni_len;
+                break;
+            }
+            default:
+            {
+                input += ext_len;
+                break;
+            }
+        }
+        processed_len += ext_len + 4;
+    }
+
+end:
+    return 0;
+}
+
 static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                                    uint32_t input_len)
 {
@@ -246,128 +380,11 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_CLIENT_HELLO:
             ssl_state->current_flags = SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
-            /* skip version */
-            input += SSLV3_CLIENT_HELLO_VERSION_LEN;
+            rc = TLSDecodeHandshakeHello(ssl_state, input, input_len);
 
-            /* skip random */
-            input += SSLV3_CLIENT_HELLO_RANDOM_LEN;
+            if (rc < 0)
+                return rc;
 
-            if (!(HAS_SPACE(1)))
-                goto end;
-
-            /* skip session id */
-            uint8_t session_id_length = *(input++);
-
-            input += session_id_length;
-
-            if (!(HAS_SPACE(2)))
-                goto end;
-
-            /* skip cipher suites */
-            uint16_t cipher_suites_length = input[0] << 8 | input[1];
-            input += 2;
-
-            input += cipher_suites_length;
-
-            if (!(HAS_SPACE(1)))
-                goto end;
-
-            /* skip compression methods */
-            uint8_t compression_methods_length = *(input++);
-
-            input += compression_methods_length;
-
-            if (!(HAS_SPACE(2)))
-                goto end;
-
-            uint16_t extensions_len = input[0] << 8 | input[1];
-            input += 2;
-
-            uint16_t processed_len = 0;
-            while (processed_len < extensions_len)
-            {
-                if (!(HAS_SPACE(2)))
-                    goto end;
-
-                uint16_t ext_type = input[0] << 8 | input[1];
-                input += 2;
-
-                if (!(HAS_SPACE(2)))
-                    goto end;
-
-                uint16_t ext_len = input[0] << 8 | input[1];
-                input += 2;
-
-                switch (ext_type) {
-                    case SSL_EXTENSION_SNI:
-                    {
-                        /* there must not be more than one extension of the same
-                           type (RFC5246 section 7.4.1.4) */
-                        if (ssl_state->curr_connp->sni) {
-                            SCLogDebug("Multiple SNI extensions");
-                            SSLSetEvent(ssl_state,
-                                    TLS_DECODER_EVENT_MULTIPLE_SNI_EXTENSIONS);
-                            return -1;
-                        }
-
-                        /* skip sni_list_length */
-                        input += 2;
-
-                        if (!(HAS_SPACE(1)))
-                            goto end;
-
-                        uint8_t sni_type = *(input++);
-
-                        /* currently the only type allowed is host_name
-                           (RFC6066 section 3) */
-                        if (sni_type != SSL_SNI_TYPE_HOST_NAME) {
-                            SCLogDebug("Unknown SNI type");
-                            SSLSetEvent(ssl_state,
-                                    TLS_DECODER_EVENT_INVALID_SNI_TYPE);
-                            return -1;
-                        }
-
-                        if (!(HAS_SPACE(2)))
-                            goto end;
-
-                        uint16_t sni_len = input[0] << 8 | input[1];
-                        input += 2;
-
-                        if (!(HAS_SPACE(sni_len)))
-                            goto end;
-
-                        /* host_name contains the fully qualified domain name,
-                           and should therefore be limited by the maximum domain
-                           name length */
-                        if (sni_len > 255) {
-                            SCLogDebug("SNI length >255");
-                            SSLSetEvent(ssl_state,
-                                    TLS_DECODER_EVENT_INVALID_SNI_LENGTH);
-                            return -1;
-                        }
-
-                        size_t sni_strlen = sni_len + 1;
-                        ssl_state->curr_connp->sni = SCMalloc(sni_strlen);
-
-                        if (unlikely(ssl_state->curr_connp->sni == NULL))
-                            goto end;
-
-                        memcpy(ssl_state->curr_connp->sni, input,
-                               sni_strlen - 1);
-                        ssl_state->curr_connp->sni[sni_strlen-1] = 0;
-
-                        input += sni_len;
-                        break;
-                    }
-                    default:
-                    {
-                        input += ext_len;
-                        break;
-                    }
-                }
-                processed_len += ext_len + 4;
-            }
-end:
             break;
 
         case SSLV3_HS_SERVER_HELLO:
