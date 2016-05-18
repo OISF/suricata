@@ -45,5 +45,7 @@ uint8_t *BoyerMoore(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, B
 uint8_t *BoyerMooreNocase(const uint8_t *x, uint16_t m, const uint8_t *y, int32_t n, BmCtx *bm_ctx);
 void BoyerMooreCtxDeInit(BmCtx *);
 
+void SpmBMRegister(void);
+
 #endif /* __UTIL_SPM_BM__ */
 

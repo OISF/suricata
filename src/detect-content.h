@@ -73,7 +73,7 @@
                                        ((c)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP))
 
 
-#include "util-spm-bm.h"
+#include "util-spm.h"
 
 typedef struct DetectContentData_ {
     uint8_t *content;
@@ -92,8 +92,8 @@ typedef struct DetectContentData_ {
     uint16_t offset;
     int32_t distance;
     int32_t within;
-    /* Boyer Moore context (for spm search) */
-    BmCtx *bm_ctx;
+    /* SPM search context. */
+    SpmCtx *spm_ctx;
     /* pointer to replacement data */
     uint8_t *replace;
 } DetectContentData;
@@ -101,10 +101,12 @@ typedef struct DetectContentData_ {
 /* prototypes */
 void DetectContentRegister (void);
 uint32_t DetectContentMaxId(DetectEngineCtx *);
-DetectContentData *DetectContentParse (char *contentstr);
+DetectContentData *DetectContentParse(SpmGlobalThreadCtx *spm_global_thread_ctx,
+                                      char *contentstr);
 int DetectContentDataParse(const char *keyword, const char *contentstr,
     uint8_t **pstr, uint16_t *plen, uint32_t *flags);
-DetectContentData *DetectContentParseEncloseQuotes(char *);
+DetectContentData *DetectContentParseEncloseQuotes(SpmGlobalThreadCtx *spm_global_thread_ctx,
+                                      char *contentstr);
 
 int DetectContentSetup(DetectEngineCtx *de_ctx, Signature *s, char *contentstr);
 void DetectContentPrint(DetectContentData *);

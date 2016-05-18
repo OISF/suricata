@@ -40,6 +40,7 @@
 #include "util-memcpy.h"
 #include "util-hash.h"
 #include "util-hash-lookup3.h"
+#include "util-hyperscan.h"
 
 #ifdef BUILD_HYPERSCAN
 
@@ -109,34 +110,6 @@ static void SCHSSetAllocators(void)
         SCLogError(SC_ERR_FATAL, "Failed to set Hyperscan allocator.");
         exit(EXIT_FAILURE);
     }
-}
-
-/**
- * \internal
- * \brief Convert a pattern into a regex string accepted by the Hyperscan
- * compiler.
- *
- * For simplicity, we just take each byte of the original pattern and render it
- * with a hex escape (i.e. ' ' -> "\x20")/
- */
-static char *SCHSRenderPattern(uint8_t *pat, uint16_t pat_len)
-{
-    if (pat == NULL) {
-        return NULL;
-    }
-    const size_t hex_len = (pat_len * 4) + 1;
-    char *str = SCMalloc(hex_len);
-    if (str == NULL) {
-        return NULL;
-    }
-    memset(str, 0, hex_len);
-    char *sp = str;
-    for (uint16_t i = 0; i < pat_len; i++) {
-        snprintf(sp, 5, "\\x%02x", pat[i]);
-        sp += 4;
-    }
-    *sp = '\0';
-    return str;
 }
 
 /**
@@ -679,7 +652,7 @@ int SCHSPreparePatterns(MpmCtx *mpm_ctx)
             cd->flags[i] |= HS_FLAG_CASELESS;
         }
 
-        cd->expressions[i] = SCHSRenderPattern(p->original_pat, p->len);
+        cd->expressions[i] = HSRenderPattern(p->original_pat, p->len);
 
         if (p->flags & (MPM_PATTERN_FLAG_OFFSET | MPM_PATTERN_FLAG_DEPTH)) {
             cd->ext[i] = SCMalloc(sizeof(hs_expr_ext_t));

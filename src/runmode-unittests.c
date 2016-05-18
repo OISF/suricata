@@ -151,6 +151,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
 #ifdef __SC_CUDA_SUPPORT__
     MpmCudaEnvironmentSetup();
 #endif
+    SpmTableSetup();
 
     AppLayerSetup();
 
