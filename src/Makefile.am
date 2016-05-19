@@ -87,6 +87,7 @@ detect-depth.c detect-depth.h \
 detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dns-query.c detect-dns-query.h \
+detect-tls-sni.c detect-tls-sni.h \
 detect-dsize.c detect-dsize.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
@@ -98,6 +99,7 @@ detect-engine.c detect-engine.h \
 detect-engine-content-inspection.c detect-engine-content-inspection.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-dns.c detect-engine-dns.h \
+detect-engine-tls.c detect-engine-tls.h \
 detect-engine-modbus.c detect-engine-modbus.h \
 detect-engine-event.c detect-engine-event.h \
 detect-engine-file.c detect-engine-file.h \
