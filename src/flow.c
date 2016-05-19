@@ -147,26 +147,12 @@ int FlowUpdateSpareFlows(void)
     return 1;
 }
 
-/** \brief Set the IPOnly scanned flag for 'direction'. This function
-  *        handles the locking too.
-  * \param f Flow to set the flag in
-  * \param direction direction to set the flag in
-  */
-void FlowSetIPOnlyFlag(Flow *f, char direction)
-{
-    FLOWLOCK_WRLOCK(f);
-    direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
-        (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    FLOWLOCK_UNLOCK(f);
-    return;
-}
-
 /** \brief Set the IPOnly scanned flag for 'direction'.
   *
   * \param f Flow to set the flag in
   * \param direction direction to set the flag in
   */
-void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
+void FlowSetIPOnlyFlag(Flow *f, int direction)
 {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
@@ -226,37 +212,6 @@ static inline int FlowUpdateSeenFlag(const Packet *p)
     return 1;
 }
 
-/**
- *
- *  Remove packet from flow. This assumes this happens *before* the packet
- *  is added to the stream engine and other higher state.
- *
- *  \todo we can't restore the lastts
- */
-void FlowHandlePacketUpdateRemove(Flow *f, Packet *p)
-{
-    if (p->flowflags & FLOW_PKT_TOSERVER) {
-        f->todstpktcnt--;
-        f->todstbytecnt -= GET_PKT_LEN(p);
-        p->flowflags &= ~(FLOW_PKT_TOSERVER|FLOW_PKT_TOSERVER_FIRST);
-    } else {
-        f->tosrcpktcnt--;
-        f->tosrcbytecnt -= GET_PKT_LEN(p);
-        p->flowflags &= ~(FLOW_PKT_TOCLIENT|FLOW_PKT_TOCLIENT_FIRST);
-    }
-    p->flowflags &= ~FLOW_PKT_ESTABLISHED;
-
-    /*set the detection bypass flags*/
-    if (f->flags & FLOW_NOPACKET_INSPECTION) {
-        SCLogDebug("unsetting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
-        DecodeUnsetNoPacketInspectionFlag(p);
-    }
-    if (f->flags & FLOW_NOPAYLOAD_INSPECTION) {
-        SCLogDebug("unsetting FLOW_NOPAYLOAD_INSPECTION flag on flow %p", f);
-        DecodeUnsetNoPayloadInspectionFlag(p);
-    }
-}
-
 /** \brief Update Packet and Flow
  *
  *  Updates packet and flow based on the new packet.
@@ -269,9 +224,6 @@ void FlowHandlePacketUpdateRemove(Flow *f, Packet *p)
 void FlowHandlePacketUpdate(Flow *f, Packet *p)
 {
     SCLogDebug("packet %"PRIu64" -- flow %p", p->pcap_cnt, f);
-
-    /* Point the Packet at the Flow */
-    FlowReference(&p->flow, f);
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
@@ -329,13 +281,9 @@ void FlowHandlePacket(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p)
     /* Get this packet's flow from the hash. FlowHandlePacket() will setup
      * a new flow if nescesary. If we get NULL, we're out of flow memory.
      * The returned flow is locked. */
-    Flow *f = FlowGetFlowFromHash(tv, dtv, p);
+    Flow *f = FlowGetFlowFromHash(tv, dtv, p, &p->flow);
     if (f == NULL)
         return;
-
-    FlowHandlePacketUpdate(f, p);
-
-    FLOWLOCK_UNLOCK(f);
 
     /* set the flow in the packet */
     p->flags |= PKT_HAS_FLOW;

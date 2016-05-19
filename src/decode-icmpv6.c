@@ -362,8 +362,7 @@ int DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         SCLogDebug("Unknown Type, ICMPV6_UNKNOWN_TYPE");
 #endif
 
-    /* Flow is an integral part of us */
-    FlowHandlePacket(tv, dtv, p);
+    FlowSetupPacket(p);
 
     return TM_ECODE_OK;
 }

@@ -214,8 +214,7 @@ int DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, ui
         TCP_HAS_MSS(p) ? "MSS " : "");
 #endif
 
-    /* Flow is an integral part of us */
-    FlowHandlePacket(tv, dtv, p);
+    FlowSetupPacket(p);
 
     return TM_ECODE_OK;
 }

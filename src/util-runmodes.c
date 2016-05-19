@@ -51,21 +51,6 @@
 
 #include "flow-hash.h"
 
-/** set to true if flow engine and stream engine run in different
- *  threads. */
-static int runmode_flow_stream_async = 0;
-
-void RunmodeSetFlowStreamAsync(void)
-{
-    runmode_flow_stream_async = 1;
-    FlowDisableTcpReuseHandling();
-}
-
-int RunmodeGetFlowStreamAsync(void)
-{
-    return runmode_flow_stream_async;
-}
-
 /** \brief create a queue string for autofp to pass to
  *         the flow queue handler.
  *
@@ -120,8 +105,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
-
-    RunmodeSetFlowStreamAsync();
 
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
@@ -263,21 +246,12 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
             SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
-        TmModule *tm_module = TmModuleGetByName("StreamTcp");
+        TmModule *tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-        }
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -364,21 +338,12 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("StreamTcp");
+        tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv, tm_module, NULL);
-        }
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
@@ -497,8 +462,6 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     if (thread_max < 1)
         thread_max = 1;
 
-    RunmodeSetFlowStreamAsync();
-
     queues = RunmodeAutoFpCreatePickupQueuesString(thread_max);
     if (queues == NULL) {
         SCLogError(SC_ERR_RUNMODE, "RunmodeAutoFpCreatePickupQueuesString failed");
@@ -560,21 +523,13 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
             SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
-        TmModule *tm_module = TmModuleGetByName("StreamTcp");
+
+        TmModule *tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-        }
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -675,21 +630,12 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("StreamTcp");
+        TmModule *tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv, tm_module, NULL);
-        }
 
         tm_module = TmModuleGetByName(verdict_mod_name);
         if (tm_module == NULL) {

@@ -85,7 +85,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     if (unlikely(p == NULL))
         return NULL;
 
-    TimeSet(&p->ts);
+    TimeGet(&p->ts);
 
     p->src.family = AF_INET6;
     p->dst.family = AF_INET6;
@@ -854,8 +854,10 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir)
             p->dst.addr_data32[0] = i;
         }
         FlowHandlePacket(NULL, NULL, p);
-        if (p->flow != NULL)
+        if (p->flow != NULL) {
             SC_ATOMIC_RESET(p->flow->use_cnt);
+            FLOWLOCK_UNLOCK(p->flow);
+        }
 
         /* Now the queues shoul be updated */
         UTHFreePacket(p);

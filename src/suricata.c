@@ -43,6 +43,7 @@
 #include "packet-queue.h"
 #include "threads.h"
 #include "threadvars.h"
+#include "flow-worker.h"
 
 #include "util-atomic.h"
 #include "util-spm.h"
@@ -856,6 +857,8 @@ void RegisterAllModules()
     TmModuleNapatechStreamRegister();
     TmModuleNapatechDecodeRegister();
 
+    /* flow worker */
+    TmModuleFlowWorkerRegister();
     /* stream engine */
     TmModuleStreamTcpRegister();
     /* detection */

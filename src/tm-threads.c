@@ -192,14 +192,18 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     int r = TM_ECODE_OK;
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->tm_id == TMM_STREAMTCP) {
+        if (slot->tm_id == TMM_FLOWWORKER ||
+            slot->tm_id == TMM_STREAMTCP)
+        {
             stream_slot = slot;
             break;
         }
     }
 
-    if (tv->stream_pq == NULL || stream_slot == NULL)
+    if (tv->stream_pq == NULL || stream_slot == NULL) {
+        SCLogDebug("not running TmThreadTimeoutLoop %p/%p", tv->stream_pq, stream_slot);
         return r;
+    }
 
     SCLogDebug("flow end loop starting");
     while(run) {
@@ -314,11 +318,11 @@ void *TmThreadsSlotPktAcqLoop(void *td)
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (slot->slot_next != NULL && slot->slot_next->tm_id == TMM_STREAMTCP) {
+        if (slot->slot_next != NULL && (slot->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (postq)", &s->slot_post_pq);
             tv->stream_pq = &slot->slot_post_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (slot == (TmSlot *)tv->tm_slots && slot->tm_id == TMM_STREAMTCP) {
+        } else if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &slot->slot_pre_pq);
         }
@@ -438,11 +442,11 @@ void *TmThreadsSlotPktAcqLoopAFL(void *td)
         SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (slot->slot_next != NULL && slot->slot_next->tm_id == TMM_STREAMTCP) {
+        if (slot->slot_next != NULL && (slot->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (postq)", &s->slot_post_pq);
             tv->stream_pq = &slot->slot_post_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (slot == (TmSlot *)tv->tm_slots && slot->tm_id == TMM_STREAMTCP) {
+        } else if (slot == (TmSlot *)tv->tm_slots && (slot->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &slot->slot_pre_pq);
         }
@@ -559,11 +563,11 @@ void *TmThreadsSlotVar(void *td)
          * from the flow timeout code */
 
         /* get the 'pre qeueue' from module before the stream module */
-        if (s->slot_next != NULL && s->slot_next->tm_id == TMM_STREAMTCP) {
+        if (s->slot_next != NULL && (s->slot_next->tm_id == TMM_FLOWWORKER)) {
             SCLogDebug("pre-stream packetqueue %p (preq)", &s->slot_pre_pq);
             tv->stream_pq = &s->slot_pre_pq;
         /* if the stream module is the first, get the threads input queue */
-        } else if (s == (TmSlot *)tv->tm_slots && s->tm_id == TMM_STREAMTCP) {
+        } else if (s == (TmSlot *)tv->tm_slots && (s->tm_id == TMM_FLOWWORKER)) {
             tv->stream_pq = &trans_q[tv->inq->id];
             SCLogDebug("pre-stream packetqueue %p (inq)", &s->slot_pre_pq);
         }
@@ -2224,6 +2228,8 @@ typedef struct Thread_ {
     const char *name;
     int type;
     int in_use;         /**< bool to indicate this is in use */
+
+    struct timeval ts;  /**< current time of this thread (offline mode) */
 } Thread;
 
 typedef struct Threads_ {
@@ -2331,6 +2337,53 @@ void TmThreadsUnregisterThread(const int id)
 end:
     SCMutexUnlock(&thread_store_lock);
 }
+
+void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts)
+{
+    SCMutexLock(&thread_store_lock);
+    if (unlikely(id <= 0 || id > (int)thread_store.threads_size)) {
+        SCMutexUnlock(&thread_store_lock);
+        return;
+    }
+
+    int idx = id - 1;
+    Thread *t = &thread_store.threads[idx];
+    t->ts.tv_sec = ts->tv_sec;
+    t->ts.tv_usec = ts->tv_usec;
+    SCMutexUnlock(&thread_store_lock);
+}
+
+#define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec) // XXX unify with flow-util.h
+void TmreadsGetMinimalTimestamp(struct timeval *ts)
+{
+    struct timeval local, nullts;
+    memset(&local, 0, sizeof(local));
+    memset(&nullts, 0, sizeof(nullts));
+    int set = 0;
+    size_t s;
+
+    SCMutexLock(&thread_store_lock);
+    for (s = 0; s < thread_store.threads_size; s++) {
+        Thread *t = &thread_store.threads[s];
+        if (t == NULL || t->in_use == 0)
+            continue;
+        if (!(timercmp(&t->ts, &nullts, ==))) {
+            if (!set) {
+                local.tv_sec = t->ts.tv_sec;
+                local.tv_usec = t->ts.tv_usec;
+                set = 1;
+            } else {
+                if (timercmp(&t->ts, &local, <)) {
+                    COPY_TIMESTAMP(&t->ts, &local);
+                }
+            }
+        }
+    }
+    SCMutexUnlock(&thread_store_lock);
+    COPY_TIMESTAMP(&local, ts);
+    SCLogDebug("ts->tv_sec %u", (uint)ts->tv_sec);
+}
+#undef COPY_TIMESTAMP
 
 /**
  *  \retval r 1 if packet was accepted, 0 otherwise

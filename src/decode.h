@@ -399,6 +399,10 @@ typedef struct Packet_
 
     struct Flow_ *flow;
 
+    /* raw hash value for looking up the flow, will need to modulated to the
+     * hash size still */
+    uint32_t flow_hash;
+
     struct timeval ts;
 
     union {
@@ -1048,6 +1052,10 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
 #define PKT_IS_INVALID                  (1<<20)
 #define PKT_PROFILE                     (1<<21)
+
+/** indication by decoder that it feels the packet should be handled by
+ *  flow engine: Packet::flow_hash will be set */
+#define PKT_WANTS_FLOW                  (1<<22)
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

@@ -222,4 +222,7 @@ int TmThreadsRegisterThread(ThreadVars *tv, const int type);
 void TmThreadsUnregisterThread(const int id);
 int TmThreadsInjectPacketsById(Packet **, int id);
 
+void TmThreadsSetThreadTimestamp(const int id, const struct timeval *ts);
+void TmreadsGetMinimalTimestamp(struct timeval *ts);
+
 #endif /* __TM_THREADS_H__ */

@@ -334,9 +334,6 @@ typedef struct Flow_
      */
     SC_ATOMIC_DECLARE(FlowRefCount, use_cnt);
 
-    /** flow queue id, used with autofp */
-    SC_ATOMIC_DECLARE(int16_t, autofp_tmqh_flow_qid);
-
     /** flow tenant id, used to setup flow timeout and stream pseudo
      *  packets with the correct tenant id set */
     uint32_t tenant_id;
@@ -432,12 +429,16 @@ typedef struct FlowProto_ {
     void (*Freefunc)(void *);
 } FlowProto;
 
+/** \brief prepare packet for a life with flow
+ *  Set PKT_WANTS_FLOW flag to incidate workers should do a flow lookup
+ *  and calc the hash value to be used in the lookup and autofp flow
+ *  balancing. */
+void FlowSetupPacket(Packet *p);
 void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
 void FlowPrintQueueInfo (void);
 void FlowShutdown(void);
-void FlowSetIPOnlyFlag(Flow *, char);
-void FlowSetIPOnlyFlagNoLock(Flow *, char);
+void FlowSetIPOnlyFlag(Flow *, int);
 
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
@@ -449,32 +450,12 @@ struct FlowQueue_;
 
 int FlowUpdateSpareFlows(void);
 
-static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
-static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
 static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
-
-/** ----- Inline functions ----- */
-
-/** \brief Set the No Packet Inspection Flag after locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline void FlowLockSetNoPacketInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    FLOWLOCK_WRLOCK(f);
-    f->flags |= FLOW_NOPACKET_INSPECTION;
-    FLOWLOCK_UNLOCK(f);
-
-    SCReturn;
-}
 
 /** \brief Set the No Packet Inspection Flag without locking the flow.
  *
@@ -486,22 +467,6 @@ static inline  void FlowSetNoPacketInspectionFlag(Flow *f)
 
     SCLogDebug("flow %p", f);
     f->flags |= FLOW_NOPACKET_INSPECTION;
-
-    SCReturn;
-}
-
-/** \brief Set the No payload inspection Flag after locking the flow.
- *
- * \param f Flow to set the flag in
- */
-static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f)
-{
-    SCEnter();
-
-    SCLogDebug("flow %p", f);
-    FLOWLOCK_WRLOCK(f);
-    f->flags |= FLOW_NOPAYLOAD_INSPECTION;
-    FLOWLOCK_UNLOCK(f);
 
     SCReturn;
 }
@@ -577,11 +542,7 @@ AppProto FlowGetAppProtocol(const Flow *f);
 void *FlowGetAppState(const Flow *f);
 uint8_t FlowGetDisruptionFlags(const Flow *f, uint8_t flags);
 
-void FlowHandlePacketUpdateRemove(Flow *f, Packet *p);
 void FlowHandlePacketUpdate(Flow *f, Packet *p);
-
-Flow *FlowGetFlowFromHashByPacket(const Packet *p);
-Flow *FlowLookupFlowFromHash(const Packet *p);
 
 #endif /* __FLOW_H__ */
 

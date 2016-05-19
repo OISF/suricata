@@ -100,21 +100,12 @@ int RunModeFilePcapSingle(void)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    tm_module = TmModuleGetByName("StreamTcp");
+    tm_module = TmModuleGetByName("FlowWorker");
     if (tm_module == NULL) {
-        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-    if (DetectEngineEnabled()) {
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv, tm_module, NULL);
-    }
 
     SetupOutputs(tv);
 
@@ -165,7 +156,6 @@ int RunModeFilePcapAutoFp(void)
     int thread;
 
     RunModeInitialize();
-    RunmodeSetFlowStreamAsync();
 
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
@@ -250,21 +240,13 @@ int RunModeFilePcapAutoFp(void)
             SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
-        tm_module = TmModuleGetByName("StreamTcp");
+
+        tm_module = TmModuleGetByName("FlowWorker");
         if (tm_module == NULL) {
-            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for FlowWorker failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-
-        if (DetectEngineEnabled()) {
-            tm_module = TmModuleGetByName("Detect");
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-        }
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 

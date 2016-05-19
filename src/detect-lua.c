@@ -293,7 +293,7 @@ void LuaDumpStack(lua_State *state)
 
 int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
         uint8_t *buffer, uint32_t buffer_len, uint32_t offset,
-        Flow *f, int flow_lock)
+        Flow *f)
 {
     SCEnter();
     int ret = 0;
@@ -310,6 +310,10 @@ int DetectLuaMatchBuffer(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch 
         SCReturnInt(0);
 
     /* setup extension data for use in lua c functions */
+    int flow_lock = (f != NULL) ? /* if we have a flow, it's locked */
+        LUA_FLOW_LOCKED_BY_PARENT :
+        LUA_FLOW_NOT_LOCKED_BY_PARENT;
+
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
             f, flow_lock, /* no packet in the ctx */NULL, 0);
 
@@ -419,8 +423,13 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         flags = STREAM_TOCLIENT;
 
     LuaStateSetThreadVars(tluajit->luastate, tv);
+
+    int flow_lock = (p->flow != NULL) ? /* if we have a flow, it's locked */
+        LUA_FLOW_LOCKED_BY_PARENT :
+        LUA_FLOW_NOT_LOCKED_BY_PARENT;
+
     LuaExtensionsMatchSetup(tluajit->luastate, luajit, det_ctx,
-            p->flow, /* flow not locked */LUA_FLOW_NOT_LOCKED_BY_PARENT, p, flags);
+            p->flow, flow_lock, p, flags);
 
     if ((tluajit->flags & DATATYPE_PAYLOAD) && p->payload_len == 0)
         SCReturnInt(0);
@@ -430,10 +439,7 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         if (p->flow == NULL)
             SCReturnInt(0);
 
-        FLOWLOCK_RDLOCK(p->flow);
-        int alproto = p->flow->alproto;
-        FLOWLOCK_UNLOCK(p->flow);
-
+        AppProto alproto = p->flow->alproto;
         if (tluajit->alproto != alproto)
             SCReturnInt(0);
     }
@@ -452,7 +458,6 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         lua_settable(tluajit->luastate, -3);
     }
     if (tluajit->alproto == ALPROTO_HTTP) {
-        FLOWLOCK_RDLOCK(p->flow);
         HtpState *htp_state = p->flow->alstate;
         if (htp_state != NULL && htp_state->connp != NULL) {
             htp_tx_t *tx = NULL;
@@ -474,7 +479,6 @@ static int DetectLuaMatch (ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 }
             }
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
 
     int retval = lua_pcall(tluajit->luastate, 1, 1, 0);

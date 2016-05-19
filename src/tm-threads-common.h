@@ -31,6 +31,7 @@
  *        in tm-modules.c
  */
 typedef enum {
+    TMM_FLOWWORKER,
     TMM_DECODENFQ,
     TMM_VERDICTNFQ,
     TMM_RECEIVENFQ,

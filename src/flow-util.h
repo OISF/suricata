@@ -70,8 +70,6 @@
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
-        SC_ATOMIC_INIT((f)->autofp_tmqh_flow_qid);  \
-        (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
     } while (0)
 
@@ -113,9 +111,6 @@
         (f)->sgh_toclient = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
-        if (SC_ATOMIC_GET((f)->autofp_tmqh_flow_qid) != -1) {   \
-            (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
-        }                                       \
         RESET_COUNTERS((f)); \
     } while(0)
 
@@ -129,7 +124,6 @@
             DetectEngineStateFlowFree((f)->de_state); \
         } \
         GenericVarFree((f)->flowvar); \
-        SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
     } while(0)
 
 /** \brief check if a memory alloc would fit in the memcap
