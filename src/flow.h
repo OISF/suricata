@@ -416,21 +416,21 @@ typedef struct Flow_
     uint64_t tosrcbytecnt;
 } Flow;
 
-enum {
+enum FlowState {
     FLOW_STATE_NEW = 0,
     FLOW_STATE_ESTABLISHED,
     FLOW_STATE_CLOSED,
 };
 
-typedef struct FlowProto_ {
+typedef struct FlowProtoTimeout_ {
     uint32_t new_timeout;
     uint32_t est_timeout;
     uint32_t closed_timeout;
-    uint32_t emerg_new_timeout;
-    uint32_t emerg_est_timeout;
-    uint32_t emerg_closed_timeout;
+} FlowProtoTimeout;
+
+typedef struct FlowProtoFreeFunc_ {
     void (*Freefunc)(void *);
-} FlowProto;
+} FlowProtoFreeFunc;
 
 void FlowHandlePacket (ThreadVars *, DecodeThreadVars *, Packet *);
 void FlowInitConfig (char);
@@ -457,6 +457,8 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *);
 int FlowGetPacketDirection(const Flow *, const Packet *);
 
 void FlowCleanupAppLayer(Flow *);
+
+void FlowUpdateState(Flow *f, enum FlowState s);
 
 /** ----- Inline functions ----- */
 
