@@ -374,7 +374,7 @@ static void SMTPPruneFiles(FileContainer *files)
                 window, file_size, data_size);
 
         if (data_size > (window * 3)) {
-            uint64_t left_edge = left_edge = file_size - window;
+            uint64_t left_edge = file_size - window;
             SCLogDebug("file->content_inspected now %"PRIu64, left_edge);
             file->content_inspected = left_edge;
         }
