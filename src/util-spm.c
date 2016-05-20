@@ -108,38 +108,57 @@ void SpmTableSetup(void)
 
 SpmGlobalThreadCtx *SpmInitGlobalThreadCtx(uint16_t matcher)
 {
+    BUG_ON(spm_table[matcher].InitGlobalThreadCtx == NULL);
     return spm_table[matcher].InitGlobalThreadCtx();
 }
 
 void SpmDestroyGlobalThreadCtx(SpmGlobalThreadCtx *global_thread_ctx)
 {
+    if (global_thread_ctx == NULL) {
+        return;
+    }
     uint16_t matcher = global_thread_ctx->matcher;
     spm_table[matcher].DestroyGlobalThreadCtx(global_thread_ctx);
 }
 
 SpmThreadCtx *SpmMakeThreadCtx(const SpmGlobalThreadCtx *global_thread_ctx)
 {
+    if (global_thread_ctx == NULL) {
+        return NULL;
+    }
     uint16_t matcher = global_thread_ctx->matcher;
+    BUG_ON(spm_table[matcher].MakeThreadCtx == NULL);
     return spm_table[matcher].MakeThreadCtx(global_thread_ctx);
 }
 
 void SpmDestroyThreadCtx(SpmThreadCtx *thread_ctx)
 {
+    if (thread_ctx == NULL) {
+        return;
+    }
     uint16_t matcher = thread_ctx->matcher;
+    BUG_ON(spm_table[matcher].DestroyThreadCtx == NULL);
     spm_table[matcher].DestroyThreadCtx(thread_ctx);
 }
 
 SpmCtx *SpmInitCtx(const uint8_t *needle, uint16_t needle_len, int nocase,
                    SpmGlobalThreadCtx *global_thread_ctx)
 {
+    BUG_ON(global_thread_ctx == NULL);
     uint16_t matcher = global_thread_ctx->matcher;
+    BUG_ON(spm_table[matcher].InitCtx == NULL);
     return spm_table[matcher].InitCtx(needle, needle_len, nocase,
                                       global_thread_ctx);
 }
 
 void SpmDestroyCtx(SpmCtx *ctx)
 {
-    spm_table[ctx->matcher].DestroyCtx(ctx);
+    if (ctx == NULL) {
+        return;
+    }
+    uint16_t matcher = ctx->matcher;
+    BUG_ON(spm_table[matcher].DestroyCtx == NULL);
+    spm_table[matcher].DestroyCtx(ctx);
 }
 
 uint8_t *SpmScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
