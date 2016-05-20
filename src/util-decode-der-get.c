@@ -39,6 +39,7 @@
 
 static const uint8_t SEQ_IDX_ISSUER[] = { 0, 2 };
 static const uint8_t SEQ_IDX_SUBJECT[] = { 0, 4 };
+static const uint8_t SEQ_IDX_VALIDITY[] = { 0, 3 };
 
 static const char *Oid2ShortStr(const char *oid)
 {
@@ -202,6 +203,75 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length,
 
     rc = 0;
 issuer_dn_error:
+    return rc;
+}
+
+int Ans1DerGetValidityParseTimestamp(char *dst, uint32_t dst_len,
+        char *src, uint32_t src_len)
+{
+    int rc = -1;
+    struct timeval ts;
+    struct tm tm;
+    time_t epoch;
+
+    if (strptime(src, "%d%m%y%H%M%SZ", &tm) == NULL)
+        goto parsing_error;
+
+    epoch = mktime(&tm);
+    memset(&ts, 0, sizeof(struct timeval));
+    ts.tv_sec = (uint32_t) epoch;
+    CreateIsoTimeString(&ts, dst, dst_len);
+
+    rc = 0;
+parsing_error:
+    return rc;
+}
+
+int Asn1DerGetValidity(const Asn1Generic *cert, char *nb_buf,
+        uint32_t nb_buf_len, char *na_buf, uint32_t na_buf_len, uint32_t *errcode)
+{
+    const Asn1Generic *node;
+    const Asn1Generic *nb_node;
+    const Asn1Generic *na_node;
+    int rc = -1;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
+    node = Asn1DerGet(cert, SEQ_IDX_VALIDITY, sizeof(SEQ_IDX_VALIDITY), errcode);
+    if ((node == NULL) || node->type != ASN1_SEQUENCE)
+        goto validity_error;
+
+    if (node->data == NULL || node->next == NULL)
+        goto validity_error;
+
+    if (node->next->data == NULL)
+        goto validity_error;
+
+    nb_node = node->data;
+    na_node = node->next->data;
+
+    if ((nb_node->type != ASN1_UTCTIME) || (na_node->type != ASN1_UTCTIME))
+        goto validity_error;
+
+    if ((nb_node->strlen != 13) || (na_node->strlen != 13))
+        goto validity_error;
+
+    SCLogInfo("FROM: %s\tTO: %s", nb_node->str, na_node->str);
+
+    rc = Ans1DerGetValidityParseTimestamp(nb_buf, nb_buf_len, nb_node->str, nb_node->strlen);
+    if (rc != 0)
+        return rc;
+
+    rc = Ans1DerGetValidityParseTimestamp(na_buf, na_buf_len, na_node->str, na_node->strlen);
+    if (rc != 0)
+        return rc;
+
+    if (errcode)
+        *errcode = 0;
+
+    rc = 0;
+validity_error:
     return rc;
 }
 

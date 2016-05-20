@@ -47,7 +47,8 @@
 #include "util-decode-der-get.h"
 #include "util-crypt.h"
 
-#define SSLV3_RECORD_LEN 5
+#define SSLV3_RECORD_LEN    5
+#define ASN1_MAX_BUF        256
 
 static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
                                            uint32_t errcode)
@@ -86,7 +87,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
     uint32_t certificates_length, cur_cert_length;
     int i;
     Asn1Generic *cert;
-    char buffer[256];
+    char buffer[ASN1_MAX_BUF];
     int rc;
     int parsed;
     uint8_t *start_data;
@@ -174,6 +175,31 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                         return -1;
                     }
                 }
+            }
+
+            char nb_buf[ASN1_MAX_BUF];
+            char na_buf[ASN1_MAX_BUF];
+            rc = Asn1DerGetValidity(cert, nb_buf, sizeof(nb_buf), na_buf, sizeof(na_buf), &errcode);
+            if (rc != 0) {
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
+            } else {
+                if (i == 0) {
+                   if (ssl_state->server_connp.cert0_not_valid_before == NULL)
+                       ssl_state->server_connp.cert0_not_valid_before = SCStrdup(nb_buf);
+                   if (ssl_state->server_connp.cert0_not_valid_before == NULL) {
+                       DerFree(cert);
+                       return -1;
+                   }
+
+                   if (ssl_state->server_connp.cert0_not_valid_after == NULL)
+                       ssl_state->server_connp.cert0_not_valid_after = SCStrdup(na_buf);
+                   if (ssl_state->server_connp.cert0_not_valid_after == NULL) {
+                       DerFree(cert);
+                       return -1;
+                   }
+                }
+
+                SCLogInfo("%s - %s", nb_buf, na_buf);
             }
 
             DerFree(cert);

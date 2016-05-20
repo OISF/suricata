@@ -97,6 +97,18 @@ void JsonTlsLogJSONExtended(json_t *tjs, SSLState * state)
                             json_string(state->client_connp.sni));
     }
 
+    /* tls validity */
+    if (state->server_connp.cert0_not_valid_before != NULL && state->server_connp.cert0_not_valid_after != NULL) {
+
+        /* tls.not-valid-before*/
+        json_object_set_new(tjs, "not-valid-before",
+                json_string(state->server_connp.cert0_not_valid_before));
+
+        /* tls.not-valid-after */
+        json_object_set_new(tjs, "not-valid-after",
+                json_string(state->server_connp.cert0_not_valid_after));
+    }
+
     /* tls.version */
     switch (state->server_connp.version) {
         case TLS_VERSION_UNKNOWN:
