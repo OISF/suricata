@@ -115,9 +115,10 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
 
     /* free DETECT */
     void *detect_thread = SC_ATOMIC_GET(fw->detect_thread);
-    if (detect_thread != NULL)
+    if (detect_thread != NULL) {
         DetectEngineThreadCtxDeinit(tv, detect_thread);
         SC_ATOMIC_SET(fw->detect_thread, NULL);
+    }
 #if 0
     // free OUTPUT
 #endif
