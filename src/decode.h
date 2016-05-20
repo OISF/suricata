@@ -87,6 +87,8 @@ enum PktSrcEnum {
 
 #include "app-layer-protos.h"
 
+#include "timemachine.h"
+
 /* forward declarations */
 struct DetectionEngineThreadCtx_;
 typedef struct AppLayerThreadCtx_ AppLayerThreadCtx;
@@ -214,6 +216,7 @@ typedef struct Address_ {
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (uint8_t *)((p) + 1) : (p)->ext_pkt)
 #define GET_PKT_DIRECT_DATA(p) (uint8_t *)((p) + 1)
 #define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
+#define GET_PKT_PAYLOAD_LEN(p) ((p)->payload_len)
 
 #define SET_PKT_LEN(p, len) do { \
     (p)->pktlen = (len); \
@@ -631,6 +634,10 @@ typedef struct DecodeThreadVars_
      * flow recycle during lookups */
     void *output_flow_thread_data;
 
+    /* Specific thread vars used for TimeMachine.  Put here to enable
+     * usage by multiple OutputCtx's */
+    TimeMachineThreadVars *timemachine_vars;
+        
 #ifdef __SC_CUDA_SUPPORT__
     CudaThreadVars cuda_vars;
 #endif
@@ -914,6 +921,18 @@ typedef int (*DecoderFunc)(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #endif
 
+/** \brief Set that Timemachine Flag for the packet.
+ *
+ * \param p Packet to set the flag in
+ */
+#define DecodeSetFlowContainsAlertsFlag(p) do { \
+        (p)->flags |= PKT_FLOW_CONTAINS_ALERTS;    \
+    } while (0)
+
+#define DecodeUnsetFlowContainsAlertsFlag(p) do { \
+        (p)->flags |= PKT_FLOW_CONTAINS_ALERTS;      \
+    } while (0)
+
 /** \brief Set the No payload inspection Flag for the packet.
  *
  * \param p Packet to set the flag in
@@ -1048,6 +1067,7 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #define PKT_IS_FRAGMENT                 (1<<19)     /**< Packet is a fragment */
 #define PKT_IS_INVALID                  (1<<20)
 #define PKT_PROFILE                     (1<<21)
+#define PKT_FLOW_CONTAINS_ALERTS        (1<<22)     /**< Tag this packet with the fact it's flow contained an alert */
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

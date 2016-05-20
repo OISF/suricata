@@ -302,6 +302,19 @@ outputs:
       append: yes
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+  # This generates pcap files only once an alert has fired on a given packet.  This
+  # will continue to log the rest of the stream until the flow is no longer valid to
+  # the following directory by default:
+  #
+  # $alert-pcap-directory/YYYY-MM-DD/SRCIP-DSTIP/SRCIP[:port]-DSTIP[:port].PROTO.pcap
+  #  
+  # In cases where TimeMachine is enabled, it will also attempt to log all data contained
+  # in memory by TimeMachine prior to the packet containing the alert.
+  - alert-pcap:
+      enabled: yes
+      directory: alerts
+      timeout: 300
+      
   # alert output to prelude (http://www.prelude-technologies.com/) only
   # available if Suricata has been compiled with --enable-prelude
   - alert-prelude:
@@ -785,6 +798,45 @@ flow:
   emergency-recovery: 30
   #managers: 1 # default to one flow manager
   #recyclers: 1 # default to one flow recycler thread
+
+# Timemachine keeps a list of connections and packets in memory for almost
+# all packets and connections seen.  This can be useful when an alert fires 
+# further in a stream (e.g. a string in an HTTP response), however there may
+# be useful information at the beginning of the stream (like the HTTP request).
+#
+# Since timemachine maintains a list of packets, on alarm generation, an output
+# module could subsequently log all previous packets to disk then continue logging
+# the rest of the output stream.
+timemachine:
+  enabled: no
+
+  # The maximum memory per thread to use for time machine.  The current 
+  # memory calculation per thread is roughly calculated  as the sum of
+  # max-packet-size * count of heap spaces for each heap within a thread
+  max-memory: 256mb
+
+  # The amount of pre-allocated heap space to generate (note: this
+  # does not account for max-memory requirements) (this can be overriden
+  # per heap)
+  heap-prealloc-count: 5000
+
+  # Timemachine creates a heap of "existing" packets and re-uses those 
+  # pre-created packets for speed.  This has a downside where not all 
+  # memory is used because the packets are a predefined size.  Since we do 
+  # this, we go ahead and break the heap into different configerable sizes.
+  heaps: 
+      -   
+          name: micro
+          max-packet-size: 200
+      -
+          name: small
+          max-packet-size: 400
+      -
+          name: medium
+          max-packet-size: 800
+      -
+          name: normal
+          max-packet-size: 1540
 
 # This option controls the use of vlan ids in the flow (and defrag)
 # hashing. Normally this should be enabled, but in some (broken)

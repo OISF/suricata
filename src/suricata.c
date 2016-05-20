@@ -75,6 +75,7 @@
 #include "alert-fastlog.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
+#include "alert-pcap.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "output-json-alert.h"
@@ -868,6 +869,8 @@ void RegisterAllModules()
     TmModuleAlertFastLogRegister();
     /* debug log */
     TmModuleAlertDebugLogRegister();
+    /* pcap alert log */
+    TmModuleAlertPcapLogRegister();
     /* prelue log */
     TmModuleAlertPreludeRegister();
     /* syslog log */
@@ -925,7 +928,6 @@ void RegisterAllModules()
     /* nflog */
     TmModuleReceiveNFLOGRegister();
     TmModuleDecodeNFLOGRegister();
-
 }
 
 static TmEcode LoadYamlConfig(void)

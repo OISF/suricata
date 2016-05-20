@@ -9,6 +9,7 @@ bin_PROGRAMS = suricata
 suricata_SOURCES = \
 alert-debuglog.c alert-debuglog.h \
 alert-fastlog.c alert-fastlog.h \
+alert-pcap.c alert-pcap.h \
 alert-prelude.c alert-prelude.h \
 alert-syslog.c alert-syslog.h \
 alert-unified2-alert.c alert-unified2-alert.h \
@@ -306,6 +307,9 @@ stream-tcp-util.c stream-tcp-util.h \
 suricata.c suricata.h \
 threads.c threads.h threads-arch-tile.h \
 threads-debug.h threads-profile.h \
+timemachine.c timemachine.h \
+timemachine-heap.c timemachine-heap.h \
+timemachine-packet.c timemachine-packet.h \
 tm-modules.c tm-modules.h \
 tmqh-flow.c tmqh-flow.h \
 tmqh-nfq.c tmqh-nfq.h \

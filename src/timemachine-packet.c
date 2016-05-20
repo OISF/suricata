@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2014 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -15,18 +15,35 @@
  * 02110-1301, USA.
  */
 
+
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Mat Oldham <mat.oldham@gmail.com>
  *
+ * Packet related functions for usage within TimeMachine
  */
+#include "suricata-common.h"
+#include "timemachine.h"
+#include "timemachine-packet.h"
 
-#ifndef __UTIL_PATH_H__
-#define __UTIL_PATH_H__
+TimeMachinePacket* TimeMachinePacketNew() {
 
-int PathIsAbsolute(const char *);
-int PathIsRelative(const char *);
-int MakePath(const char*, mode_t);
+    TimeMachinePacket* packet = SCMalloc(sizeof(TimeMachinePacket));
 
-#endif /* __UTIL_PATH_H__ */
+    if (packet == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for packet.");
+        exit(EXIT_FAILURE);
+    }
+
+    return packet;
+}
+
+void TimeMachinePacketDestroy(TimeMachinePacket* packet) {
+
+    if (packet == NULL) {
+        return;
+    }
+
+    SCFree(packet);
+}
