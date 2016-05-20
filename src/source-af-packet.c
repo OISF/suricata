@@ -911,6 +911,7 @@ next_frame:
     SCReturnInt(AFP_READ_OK);
 }
 
+#ifdef HAVE_TPACKET_V3
 static inline void AFPFlushBlock(struct tpacket_block_desc *pbd)
 {
     pbd->hdr.bh1.block_status = TP_STATUS_KERNEL;
@@ -998,6 +999,7 @@ static inline int AFPWalkBlock(AFPThreadVars *ptv, struct tpacket_block_desc *pb
 
     SCReturnInt(AFP_READ_OK);
 }
+#endif /* HAVE_TPACKET_V3 */
 
 /**
  * \brief AF packet read function for ring
@@ -1169,6 +1171,7 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
         return 1;
     }
 
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         struct tpacket_block_desc *pbd;
         pbd = (struct tpacket_block_desc *) ptv->ring_v3[ptv->frame_offset].iov_base;
@@ -1176,7 +1179,10 @@ static int AFPReadAndDiscardFromRing(AFPThreadVars *ptv, struct timeval *synctv,
         AFPFlushBlock(pbd);
         ptv->frame_offset = (ptv->frame_offset + 1) % ptv->req3.tp_block_nr;
         return 1;
-    } else {
+
+    } else
+#endif
+    {
         /* Read packet from ring */
         h.raw = (((union thdr **)ptv->ring_v2)[ptv->frame_offset]);
         if (h.raw == NULL) {
@@ -1640,12 +1646,11 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
 #ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         val = TPACKET_V3;
-    } else {
+    } else
 #endif
+    {
         val = TPACKET_V2;
-#ifdef HAVE_TPACKET_V3
     }
-#endif
     if (getsockopt(ptv->socket, SOL_PACKET, PACKET_HDRLEN, &val, &len) < 0) {
         if (errno == ENOPROTOOPT) {
             if (ptv->flags & AFP_TPACKET_V3) {
@@ -1660,11 +1665,12 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         return AFP_FATAL_ERROR;
     }
 
+    val = TPACKET_V2;
+#ifdef HAVE_TPACKET_V3
     if (ptv->flags & AFP_TPACKET_V3) {
         val = TPACKET_V3;
-    } else {
-        val = TPACKET_V2;
     }
+#endif
     if (setsockopt(ptv->socket, SOL_PACKET, PACKET_VERSION, &val,
                 sizeof(val)) < 0) {
         SCLogError(SC_ERR_AFP_CREATE,
