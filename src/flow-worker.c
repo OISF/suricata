@@ -50,6 +50,8 @@
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 
 typedef struct FlowWorkerThreadData_ {
+    DecodeThreadVars *dtv;
+
     union {
         StreamTcpThread *stream_thread;
         void *stream_thread_ptr;
@@ -85,6 +87,13 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
     SC_ATOMIC_INIT(fw->detect_thread);
     SC_ATOMIC_SET(fw->detect_thread, NULL);
 
+    fw->dtv = DecodeThreadVarsAlloc(tv);
+    if (fw->dtv == NULL) {
+        SC_ATOMIC_DESTROY(fw->detect_thread);
+        SCFree(fw);
+        return TM_ECODE_FAILED;
+    }
+
     /* setup TCP */
     BUG_ON(StreamTcpThreadInit(tv, NULL, &fw->stream_thread_ptr) != TM_ECODE_OK);
 
@@ -109,6 +118,8 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
 static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
 {
     FlowWorkerThreadData *fw = data;
+
+    DecodeThreadVarsFree(tv, fw->dtv);
 
     /* free TCP */
     StreamTcpThreadDeinit(tv, (void *)fw->stream_thread);
@@ -147,7 +158,7 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
 
     /* handle Flow */
     if (p->flags & PKT_WANTS_FLOW) {
-        FlowHandlePacket(tv, NULL, p); //TODO what to do about decoder thread vars
+        FlowHandlePacket(tv, fw->dtv, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             FlowUpdate(tv, fw->stream_thread, p);
