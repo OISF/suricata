@@ -348,7 +348,7 @@ static int dhcpParse(Flow *f, void *state,
                                 goto end;
                             }
                             tx->xid = bootp->xid;
-                            SCLogDebug("Allocated dhcp tx %"PRIu64".", ntohl(tx->xid));
+                            SCLogDebug("Allocated dhcp tx %"PRIu32".", ntohl(tx->xid));
                             tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
                             tx->request_buffer = SCMalloc(tx->request_buffer_len);
                             if (unlikely(tx->request_buffer == NULL)) {
@@ -368,7 +368,7 @@ static int dhcpParse(Flow *f, void *state,
                                 SCLogDebug("Failed to allocate new dhcp tx.");
                                 goto end;
                             }
-                            SCLogDebug("Allocated dhcp tx %"PRIu64".", ntohl(tx->tx_id));
+                            SCLogDebug("Allocated dhcp tx %"PRIu32".", ntohl(tx->tx_id));
                             tx->xid = bootp->xid;
                             tx->request_buffer_len = input_len - sizeof(BOOTPHdr);
                             tx->request_buffer = SCMalloc(tx->request_buffer_len);
