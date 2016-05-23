@@ -813,7 +813,7 @@ static int MpipeReceiveOpenEgress(char *out_iface, int iface_idx,
                                   MpipeIfaceConfig *mpipe_conf[])
 {
     int channel;
-    int nlive = LiveGetDeviceCount();
+    int nlive = LiveGetDeviceCount(RUNMODE_MPIPE);
     int result;
 
     /* Initialize an equeue */
@@ -908,7 +908,7 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* Initialize and configure mPIPE, which is only done by one core. */
 
     if (strcmp(link_name, "multi") == 0) {
-        int nlive = LiveGetDeviceCount();
+        int nlive = LiveGetDeviceCount(RUNMODE_MPIPE);
         int instance = gxio_mpipe_link_instance(LiveGetDeviceName(0));
         for (int i = 1; i < nlive; i++) {
             link_name = LiveGetDeviceName(i);
