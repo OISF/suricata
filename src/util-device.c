@@ -46,6 +46,12 @@ static int live_devices_stats = 1;
  */
 int LiveRegisterDevice(const char *dev, enum RunModes runmode)
 {
+    return LiveRegisterDeviceWithCallback(dev, runmode, NULL);
+}
+
+int LiveRegisterDeviceWithCallback(const char *dev, enum RunModes runmode,
+                                   void (*offload_callback)(Packet *p))
+{
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
         return -1;
@@ -61,6 +67,7 @@ int LiveRegisterDevice(const char *dev, enum RunModes runmode)
     SC_ATOMIC_INIT(pd->invalid_checksums);
     pd->ignore_checksum = 0;
     pd->runmode = runmode;
+    pd->offload_callback = offload_callback;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Device \"%s\" registered.", dev);

@@ -27,6 +27,7 @@ typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     enum RunModes runmode; /**< the runmode (e.g. "RUNMODE_NFLOG") */
     int ignore_checksum;
+    void (*offload_callback)(Packet *p);
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
@@ -35,6 +36,7 @@ typedef struct LiveDevice_ {
 
 
 int LiveRegisterDevice(const char *dev, enum RunModes runmode);
+int LiveRegisterDeviceWithCallback(const char *dev, enum RunModes runmode, void (*offload_callback)(Packet *p));
 int LiveGetDeviceCount(enum RunModes runmode);
 char *LiveGetDeviceName(int number, enum RunModes runmode);
 int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen);
