@@ -20,6 +20,7 @@
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  * \author Pierre Chifflier <pierre.chifflier@ssi.gouv.fr>
+ * \author Mats Klepsland <mats.klepsland@gmail.com>
  *
  */
 
