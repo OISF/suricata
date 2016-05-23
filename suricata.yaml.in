@@ -1417,10 +1417,16 @@ profiling:
 # by processing several packets before sending a verdict (worker runmode only).
 # On linux >= 3.6, you can set the fail-open option to yes to have the kernel
 # accept the packet if suricata is not able to keep pace.
+# bypass mark and mask can be used to implement NFQ bypass. If bypass mark is
+# set then the NFQ bypass is activated. Suricata will set the bypass mark/mask
+# on packet of a flow that need to be bypassed. The Nefilter ruleset has to
+# directly accept all packets of a flow once a packet has been marked.
 nfq:
 #  mode: accept
 #  repeat-mark: 1
 #  repeat-mask: 1
+#  bypass-mark: 1
+#  bypass-mask: 1
 #  route-queue: 2
 #  batchcount: 20
 #  fail-open: yes
