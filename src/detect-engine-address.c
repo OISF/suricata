@@ -807,7 +807,7 @@ error:
  *               that are negated.
  * \param s      Pointer to the character string holding the address to be
  *               parsed.
- * \param negate Flag that indicates if the receieved address string is negated
+ * \param negate Flag that indicates if the received address string is negated
  *               or not.  0 if it is not, 1 it it is.
  *
  * \retval  0 On successfully parsing.
