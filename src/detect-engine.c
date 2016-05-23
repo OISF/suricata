@@ -839,7 +839,9 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
     }
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
+    SCLogInfo("using MPM matcher: %s", mpm_table[de_ctx->mpm_matcher].name);
     de_ctx->spm_matcher = SinglePatternMatchDefaultMatcher();
+    SCLogInfo("using SPM matcher: %s", spm_table[de_ctx->spm_matcher].name);
 
     de_ctx->spm_global_thread_ctx = SpmInitGlobalThreadCtx(de_ctx->spm_matcher);
     if (de_ctx->spm_global_thread_ctx == NULL) {
