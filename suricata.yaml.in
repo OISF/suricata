@@ -415,6 +415,8 @@ nfq:
 #  mode: accept
 #  repeat-mark: 1
 #  repeat-mask: 1
+#  offload-mark: 1
+#  offload-mask: 1
 #  route-queue: 2
 #  batchcount: 20
 #  fail-open: yes
