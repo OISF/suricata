@@ -125,6 +125,7 @@ static int runmode_workers;
 typedef struct NFQThreadVars_
 {
     uint16_t nfq_index;
+    char *str_nfq_index;
     ThreadVars *tv;
     TmSlot *slot;
 
@@ -132,7 +133,7 @@ typedef struct NFQThreadVars_
     int datalen; /** Length of per function and thread data */
 
     CaptureStats stats;
-
+    LiveDevice *livedev;
 } NFQThreadVars;
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
@@ -169,6 +170,8 @@ typedef struct NFQCnf_ {
     NFQMode mode;
     uint32_t mark;
     uint32_t mask;
+    uint32_t offload_mark;
+    uint32_t offload_mask;
     uint32_t next_queue;
     uint32_t flags;
     uint8_t batchcount;
@@ -261,6 +264,14 @@ void NFQInitConfig(char quiet)
 
     if ((ConfGetInt("nfq.repeat-mask", &value)) == 1) {
         nfq_config.mask = (uint32_t)value;
+    }
+
+    if ((ConfGetInt("nfq.offload-mark", &value)) == 1) {
+        nfq_config.offload_mark = (uint32_t)value;
+    }
+
+    if ((ConfGetInt("nfq.offload-mask", &value)) == 1) {
+        nfq_config.offload_mask = (uint32_t)value;
     }
 
     if ((ConfGetInt("nfq.route-queue", &value)) == 1) {
@@ -507,6 +518,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     PKT_SET_SRC(p, PKT_SRC_WIRE);
 
     p->nfq_v.nfq_index = ntv->nfq_index;
+    p->livedev = ntv->livedev;
     ret = NFQSetupPkt(p, qh, (void *)nfa);
     if (ret == -1) {
 #ifdef COUNTERS
@@ -708,6 +720,12 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* store the ThreadVars pointer in our NFQ thread context
      * as we will need it in our callback function */
     ntv->tv = tv;
+    ntv->livedev = LiveGetDevice(ntv->str_nfq_index, RUNMODE_NFQ);
+    if (ntv->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCFree(ntv);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     int r = NFQInitThread(ntv, (max_pending_packets * NFQ_BURST_FACTOR));
     if (r != TM_ECODE_OK) {
@@ -782,6 +800,14 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data)
     return TM_ECODE_OK;
 }
 
+static void NFQBypassCallback(Packet *p)
+{
+    p->nfq_v.mark = (nfq_config.offload_mark & nfq_config.offload_mask) | (p->nfq_v.mark & ~nfq_config.offload_mask);
+    p->flags |= PKT_MARK_MODIFIED;
+
+    return;
+}
+
 /**
  *  \brief Add a Netfilter queue
  *
@@ -818,12 +844,13 @@ int NFQRegisterQueue(char *queue)
 
     ntv = &nfq_t[receive_queue_num];
     ntv->nfq_index = receive_queue_num;
+    ntv->str_nfq_index = queue;
 
     nq = &nfq_q[receive_queue_num];
     nq->queue_num = queue_num;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
-    LiveRegisterDevice(queue, RUNMODE_NFQ);
+    LiveRegisterDeviceWithCallback(queue, RUNMODE_NFQ, NFQBypassCallback);
 
     SCLogDebug("Queue \"%s\" registered.", queue);
     return 0;

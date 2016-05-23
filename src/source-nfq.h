@@ -26,6 +26,7 @@
 
 #ifdef NFQ
 
+#include "decode.h"
 #include "threads.h"
 #ifdef OS_WIN32
 #include <netfilter/netfilter.h>
