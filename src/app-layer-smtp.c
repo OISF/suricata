@@ -1437,13 +1437,6 @@ static void SMTPSetMpmState(void)
     memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
-    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
-    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
-
     uint32_t i = 0;
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
@@ -1454,6 +1447,13 @@ static void SMTPSetMpmState(void)
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
+
+    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
+    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 }
 
 int SMTPStateGetEventInfo(const char *event_name,
