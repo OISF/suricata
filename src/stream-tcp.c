@@ -429,6 +429,21 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
+    int offload = 0;
+    if ((ConfGetBool("stream.offload", &offload)) == 1) {
+        if (offload == 1) {
+            stream_config.offload = 1;
+        } else {
+            stream_config.offload = 0;
+        }
+    } else {
+        stream_config.offload = 0;
+    }
+
+    if (!quiet) {
+        SCLogInfo("stream.\"offload\": %s", offload ? "enabled" : "disabled");
+    }
+
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
         if (value >= 0 && value <= 255) {
             stream_config.max_synack_queued = (uint8_t)value;
@@ -4633,8 +4648,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
-        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) &&
              (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        {
+            /* we can call offloading callback, if enabled */
+            if (p->livedev && p->livedev->offload_callback && stream_config.offload) {
+                p->livedev->offload_callback(p);
+            }
+        } else if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
+                    (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
         }
@@ -5791,6 +5813,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     }
     FLOWLOCK_UNLOCK(p->flow);
     return cnt;
+}
+
+int StreamTcpOffloadEnabled(void)
+{
+    return stream_config.offload;
 }
 
 #ifdef UNITTESTS
