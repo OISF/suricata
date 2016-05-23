@@ -335,6 +335,9 @@ uint16_t PatternMatchDefaultMatcher(void)
         uint16_t u;
 
         if (mpm_algo != NULL) {
+            if (strcmp("auto", mpm_algo) == 0) {
+                goto done;
+            }
             for (u = 0; u < MPM_TABLE_SIZE; u++) {
                 if (mpm_table[u].name == NULL)
                     continue;
