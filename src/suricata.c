@@ -1448,7 +1448,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 LiveRegisterDevice(optarg);
 #else
                 SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
-						" to receieve packets using --dag.");
+						" to receive packets using --dag.");
                 return TM_ECODE_FAILED;
 #endif /* HAVE_DAG */
 		}
