@@ -237,6 +237,10 @@ static int TLSDecodeHandshakeHello(SSLState *ssl_state, uint8_t *input,
 {
     uint8_t *initial_input = input;
 
+    /* only parse the message if it is complete */
+    if (input_len < ssl_state->curr_connp->message_length || input_len < 40)
+        return 0;
+
     /* skip version */
     input += SSLV3_CLIENT_HELLO_VERSION_LEN;
 
