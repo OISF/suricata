@@ -416,6 +416,21 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
+    int bypass = 0;
+    if ((ConfGetBool("stream.bypass", &bypass)) == 1) {
+        if (bypass == 1) {
+            stream_config.bypass = 1;
+        } else {
+            stream_config.bypass = 0;
+        }
+    } else {
+        stream_config.bypass = 0;
+    }
+
+    if (!quiet) {
+        SCLogConfig("stream \"bypass\": %s", bypass ? "enabled" : "disabled");
+    }
+
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
         if (value >= 0 && value <= 255) {
             stream_config.max_synack_queued = (uint8_t)value;
@@ -5764,6 +5779,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         cnt++;
     }
     return cnt;
+}
+
+int StreamTcpBypassEnabled(void)
+{
+    return stream_config.bypass;
 }
 
 #ifdef UNITTESTS
