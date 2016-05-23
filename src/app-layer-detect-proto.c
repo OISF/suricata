@@ -1558,7 +1558,7 @@ int AppLayerProtoDetectDeSetup(void)
     for (ipproto_map = 0; ipproto_map < FLOW_PROTO_DEFAULT; ipproto_map++) {
         for (dir = 0; dir < 2; dir++) {
             pm_ctx = &alpd_ctx.ctx_ipp[ipproto_map].ctx_pm[dir];
-            mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(pm_ctx->mpm_ctx.ctx);
+            mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(&pm_ctx->mpm_ctx);
             for (id = 0; id < pm_ctx->max_sig_id; id++) {
                 sig = pm_ctx->map[id];
                 AppLayerProtoDetectPMFreeSignature(sig);
