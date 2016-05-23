@@ -49,6 +49,12 @@ static int LiveSafeDeviceName(const char *devname,
  */
 int LiveRegisterDevice(const char *dev, enum RunModes runmode)
 {
+    return LiveRegisterDeviceWithCallback(dev, runmode, NULL);
+}
+
+int LiveRegisterDeviceWithCallback(const char *dev, enum RunModes runmode,
+                                   void (*BypassCallback)(Packet *p))
+{
     LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
         return -1;
@@ -71,6 +77,7 @@ int LiveRegisterDevice(const char *dev, enum RunModes runmode)
     SC_ATOMIC_INIT(pd->invalid_checksums);
     pd->ignore_checksum = 0;
     pd->runmode = runmode;
+    pd->BypassCallback = BypassCallback;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Device \"%s\" registered.", dev);
