@@ -43,10 +43,16 @@ enum {
     MPM_TABLE_SIZE,
 };
 
-#ifdef __tile__
-#define DEFAULT_MPM   MPM_AC_TILE
+/* MPM matcher to use by default, i.e. when "mpm-algo" is set to "auto".
+ * If Hyperscan is available, use it. Otherwise, use AC. */
+#ifdef BUILD_HYPERSCAN
+# define DEFAULT_MPM    MPM_HS
 #else
-#define DEFAULT_MPM   MPM_AC
+# ifdef __tile__
+#  define DEFAULT_MPM   MPM_AC_TILE
+# else
+#  define DEFAULT_MPM   MPM_AC
+# endif
 #endif
 
 /* Internal Pattern Index: 0 to pattern_cnt-1 */
