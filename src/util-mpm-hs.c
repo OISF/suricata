@@ -919,6 +919,10 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     SCHSThreadCtx *hs_thread_ctx = (SCHSThreadCtx *)(mpm_thread_ctx->ctx);
     const PatternDatabase *pd = ctx->pattern_db;
 
+    if (unlikely(buflen == 0)) {
+        return 0;
+    }
+
     SCHSCallbackCtx cctx = {.ctx = ctx, .pmq = pmq, .match_count = 0};
 
     /* scratch should have been cloned from g_scratch_proto at thread init. */
