@@ -601,8 +601,6 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
                                        uint32_t input_len, uint8_t direction)
 {
     uint8_t hb_type;
-    uint16_t payload_len;
-    uint16_t padding_len;
 
     /* expect at least 3 bytes: heartbeat type (1) + length (2) */
     if (input_len < 3) {
@@ -638,6 +636,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
             return (ssl_state->curr_connp->record_length - 3);
         }
 
+        uint16_t payload_len;
         payload_len = (*input++) << 8;
         payload_len |= (*input++);
 
@@ -651,7 +650,7 @@ static int SSLv3ParseHeartbeatProtocol(SSLState *ssl_state, uint8_t *input,
 
         /* check the padding length. It must be at least 16 bytes
            (RFC 6520, section 4) */
-        padding_len = ssl_state->curr_connp->record_length - payload_len - 3;
+        uint16_t padding_len = ssl_state->curr_connp->record_length - payload_len - 3;
         if (padding_len < 16) {
             SCLogDebug("We have a short record in HeartBeat Request");
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_HEARTBEAT);
@@ -855,7 +854,6 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                        AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
-    int retval = 0;
     uint8_t *initial_input = input;
 
     if (ssl_state->curr_connp->bytes_processed == 0) {
@@ -870,7 +868,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
        to read the msg_type */
     if (ssl_state->curr_connp->bytes_processed <
             (ssl_state->curr_connp->record_lengths_length + 1)) {
-        retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
+        int retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
             SSLSetEvent(ssl_state, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
             return -1;

@@ -590,9 +590,6 @@ static char *SRepCompleteFilePath(char *file)
 int SRepInit(DetectEngineCtx *de_ctx)
 {
     ConfNode *files;
-    ConfNode *file = NULL;
-    int r = 0;
-    char *sfile = NULL;
     char *filename = NULL;
     int init = 0;
     int i = 0;
@@ -646,11 +643,11 @@ int SRepInit(DetectEngineCtx *de_ctx)
 
     /* ok, let's load signature files from the general config */
     if (files != NULL) {
+        ConfNode *file;
         TAILQ_FOREACH(file, &files->head, next) {
-            sfile = SRepCompleteFilePath(file->val);
+            char *sfile = SRepCompleteFilePath(file->val);
             SCLogInfo("Loading reputation file: %s", sfile);
-
-            r = SRepLoadFile(cidr_ctx, sfile);
+            int r = SRepLoadFile(cidr_ctx, sfile);
             if (r < 0){
                 if (de_ctx->failure_fatal == 1) {
                     exit(EXIT_FAILURE);

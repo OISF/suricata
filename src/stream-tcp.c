@@ -5755,7 +5755,6 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
 {
     TcpSession *ssn = NULL;
     TcpStream *stream = NULL;
-    int ret = 0;
     int cnt = 0;
 
     if (p->flow == NULL)
@@ -5780,7 +5779,7 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     for (; seg != NULL &&
             (stream_inline || SEQ_LT(seg->seq, stream->last_ack));)
     {
-        ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
+        int ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
             FLOWLOCK_UNLOCK(p->flow);

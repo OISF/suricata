@@ -791,12 +791,11 @@ void SCSigRegisterSignatureOrderingFuncs(DetectEngineCtx *de_ctx)
 void SCSigSignatureOrderingModuleCleanup(DetectEngineCtx *de_ctx)
 {
     SCSigOrderFunc *funcs;
-    void *temp;
 
     /* clean the memory alloted to the signature ordering funcs */
     funcs = de_ctx->sc_sig_order_funcs;
     while (funcs != NULL) {
-        temp = funcs;
+        void *temp = funcs;
         funcs = funcs->next;
         SCFree(temp);
     }

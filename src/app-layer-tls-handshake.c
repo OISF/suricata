@@ -83,9 +83,8 @@ static void TLSCertificateErrCodeToWarning(SSLState *ssl_state,
 int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
                                         uint32_t input_len)
 {
-    uint32_t certificates_length, cur_cert_length;
+    uint32_t certificates_length;
     int i;
-    Asn1Generic *cert;
     char buffer[256];
     int rc;
     int parsed;
@@ -111,7 +110,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
             return -1;
         }
 
-        cur_cert_length = input[0]<<16 | input[1]<<8 | input[2];
+        uint32_t cur_cert_length = input[0]<<16 | input[1]<<8 | input[2];
         input += 3;
         parsed += 3;
 
@@ -126,7 +125,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
             return -1;
         }
 
-        cert = DecodeDer(input, cur_cert_length, &errcode);
+        Asn1Generic *cert = DecodeDer(input, cur_cert_length, &errcode);
         if (cert == NULL) {
             TLSCertificateErrCodeToWarning(ssl_state, errcode);
         }
@@ -180,17 +179,18 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
 
             if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
                 int msg_len = cur_cert_length;
-                int hash_len = 20;
                 int out_len = 60;
                 char out[out_len];
                 unsigned char *hash;
                 hash = ComputeSHA1((unsigned char *) input, (int) msg_len);
                 char *p = out;
-                int j = 0;
 
                 if (hash == NULL) {
                     // TODO maybe an event here?
                 } else {
+                    int hash_len = 20;
+                    int j = 0;
+                    
                     for (j = 0; j < hash_len; j++, p += 3) {
                         snprintf(p, 4, j == hash_len - 1 ? "%02x" : "%02x:",
                                 hash[j]);

@@ -256,8 +256,6 @@ static void DefragTrackerPrintStats (void)
 void DefragHashShutdown(void)
 {
     DefragTracker *dt;
-    uint32_t u;
-
     DefragTrackerPrintStats();
 
     /* free spare queue */
@@ -268,6 +266,7 @@ void DefragHashShutdown(void)
 
     /* clear and free the hash */
     if (defragtracker_hash != NULL) {
+        uint32_t u;
         for (u = 0; u < defrag_config.hash_size; u++) {
             dt = defragtracker_hash[u].head;
             while (dt) {

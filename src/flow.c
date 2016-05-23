@@ -113,15 +113,14 @@ void FlowCleanupAppLayer(Flow *f)
 int FlowUpdateSpareFlows(void)
 {
     SCEnter();
-    uint32_t toalloc = 0, tofree = 0, len;
+    uint32_t len;
 
     FQLOCK_LOCK(&flow_spare_q);
     len = flow_spare_q.len;
     FQLOCK_UNLOCK(&flow_spare_q);
 
     if (len < flow_config.prealloc) {
-        toalloc = flow_config.prealloc - len;
-
+        uint32_t toalloc = flow_config.prealloc - len;
         uint32_t i;
         for (i = 0; i < toalloc; i++) {
             Flow *f = FlowAlloc();
@@ -131,8 +130,7 @@ int FlowUpdateSpareFlows(void)
             FlowEnqueue(&flow_spare_q,f);
         }
     } else if (len > flow_config.prealloc) {
-        tofree = len - flow_config.prealloc;
-
+        uint32_t tofree = len - flow_config.prealloc;
         uint32_t i;
         for (i = 0; i < tofree; i++) {
             /* FlowDequeue locks the queue */
@@ -433,8 +431,6 @@ static void FlowPrintStats (void)
 void FlowShutdown(void)
 {
     Flow *f;
-    uint32_t u;
-
     FlowPrintStats();
 
     /* free queues */
@@ -447,7 +443,9 @@ void FlowShutdown(void)
 
     /* clear and free the hash */
     if (flow_hash != NULL) {
+        
         /* clean up flow mutexes */
+        uint32_t u;
         for (u = 0; u < flow_config.hash_size; u++) {
             Flow *f = flow_hash[u].head;
             while (f) {
@@ -530,18 +528,18 @@ void FlowInitFlowProto(void)
     flow_proto[FLOW_PROTO_ICMP].Freefunc = NULL;
 
     /* Let's see if we have custom timeouts defined from config */
-    const char *new = NULL;
-    const char *established = NULL;
-    const char *closed = NULL;
-    const char *emergency_new = NULL;
-    const char *emergency_established = NULL;
-    const char *emergency_closed = NULL;
 
     ConfNode *flow_timeouts = ConfGetNode("flow-timeouts");
     if (flow_timeouts != NULL) {
         ConfNode *proto = NULL;
         uint32_t configval = 0;
-
+        const char *established = NULL;
+        const char *new = NULL;
+        const char *closed = NULL;
+        const char *emergency_new = NULL;
+        const char *emergency_established = NULL;
+        const char *emergency_closed = NULL;
+        
         /* Defaults. */
         proto = ConfNodeLookupChild(flow_timeouts, "default");
         if (proto != NULL) {

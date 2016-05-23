@@ -298,7 +298,6 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 
     int packet_q_len = 64;
     PcapThreadVars *ptv = (PcapThreadVars *)data;
-    int r;
     TmSlot *s = (TmSlot *)slot;
 
     ptv->slot = s->slot_next;
@@ -314,8 +313,8 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
         PacketPoolWait();
 
         /* Right now we just support reading packets one at a time. */
-        r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
-                          (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
+        int r = pcap_dispatch(ptv->pcap_handle, packet_q_len,
+                (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
         if (unlikely(r < 0)) {
             int dbreak = 0;
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",

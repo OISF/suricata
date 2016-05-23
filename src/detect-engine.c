@@ -1168,10 +1168,10 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
     /* fall back to old config parsing */
     } else {
         ConfNode *insp_recursion_limit_node = NULL;
-        char *insp_recursion_limit = NULL;
-
         if (de_ctx_custom != NULL) {
+            char *insp_recursion_limit = NULL;
             opt = NULL;
+
             TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
                 if (strcmp(opt->val, "inspection-recursion-limit") != 0)
                     continue;

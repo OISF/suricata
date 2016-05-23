@@ -329,12 +329,11 @@ void DetectDceOpnumFree(void *ptr)
 {
     DetectDceOpnumData *dod = ptr;
     DetectDceOpnumRange *dor = NULL;
-    DetectDceOpnumRange *dor_temp = NULL;
 
     if (dod != NULL) {
         dor = dod->range;
         while (dor != NULL) {
-            dor_temp = dor;
+            DetectDceOpnumRange *dor_temp = dor;
             dor = dor->next;
             SCFree(dor_temp);
         }

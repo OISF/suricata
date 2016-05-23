@@ -89,7 +89,6 @@ void hexdump(/*Flow *f,*/ const void *buf, size_t len)
      */
 
     const unsigned char *p = buf;
-    unsigned char c;
     size_t n;
     char bytestr[4] = {0};
     char addrstr[10] = {0};
@@ -107,7 +106,7 @@ void hexdump(/*Flow *f,*/ const void *buf, size_t len)
 #endif
         }
 
-        c = *p;
+        unsigned char c = *p;
         if (isalnum(c) == 0) {
             c = '.';
         }
@@ -668,9 +667,9 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 {
     SCEnter();
     uint8_t *p = input;
-    DCERPCUuidEntry *uuid_entry;
 
     if (input_len) {
+        DCERPCUuidEntry *uuid_entry;
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
                 if (input_len >= 24) {

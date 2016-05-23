@@ -67,8 +67,6 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
 {
     DNSTransaction *tx = (DNSTransaction *)txv;
     DNSQueryEntry *query = NULL;
-    uint8_t *buffer;
-    uint16_t buffer_len;
     int r = 0;
 
     SCLogDebug("start");
@@ -79,8 +77,8 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
         det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
+        uint8_t *buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
+        uint16_t buffer_len = query->len;
 
         //PrintRawDataFp(stdout, buffer, buffer_len);
 
@@ -141,15 +139,13 @@ uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     DNSTransaction *tx = (DNSTransaction *)txv;
     DNSQueryEntry *query = NULL;
-    uint8_t *buffer;
-    uint16_t buffer_len;
     uint32_t cnt = 0;
 
     TAILQ_FOREACH(query, &tx->query_list, next) {
         SCLogDebug("tx %p query %p", tx, query);
 
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
+        uint8_t *buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
+        uint16_t buffer_len = query->len;
 
         cnt += DnsQueryPatternSearch(det_ctx,
                 buffer, buffer_len,

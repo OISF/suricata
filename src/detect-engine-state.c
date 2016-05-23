@@ -163,8 +163,6 @@ static int DeStateSearchState(DetectEngineState *state, uint8_t direction, SigIn
 
 static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint32_t inspect_flags, uint8_t direction)
 {
-    int jump = 0;
-    int i = 0;
     DetectEngineStateDirection *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
 
 #ifdef DEBUG_VALIDATION
@@ -179,7 +177,8 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, uint3
             dir_state->tail = store;
         }
     } else {
-        jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
+        int jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
+        int i;
         for (i = 0; i < jump; i++) {
             store = store->next;
         }
@@ -206,8 +205,6 @@ static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
                                    SigMatch *sm, uint32_t inspect_flags,
                                    uint8_t direction)
 {
-    int jump = 0;
-    int i = 0;
     DetectEngineStateDirectionFlow *dir_state = &state->dir_state[direction & STREAM_TOSERVER ? 0 : 1];
     DeStateStoreFlowRules *store = dir_state->head;
 
@@ -218,7 +215,8 @@ static void DeStateFlowRuleAppend(DetectEngineStateFlow *state, Signature *s,
             dir_state->tail = store;
         }
     } else {
-        jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
+        int jump = dir_state->cnt / DE_STATE_CHUNK_SIZE;
+        int i;
         for (i = 0; i < jump; i++) {
             store = store->next;
         }

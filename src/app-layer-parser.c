@@ -602,11 +602,10 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
     uint64_t total_txs = AppLayerParserGetTxCnt(ipproto, alproto, alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(pstate, flags);
     int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(alproto, flags);
-    void *tx;
     int state_progress;
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
+        void *tx = AppLayerParserGetTx(ipproto, alproto, alstate, idx);
         if (tx == NULL)
             continue;
         state_progress = AppLayerParserGetStateProgress(ipproto, alproto, tx, flags);
@@ -710,11 +709,10 @@ uint64_t AppLayerTransactionGetActiveLogOnly(Flow *f, uint8_t flags)
     uint64_t total_txs = AppLayerParserGetTxCnt(f->proto, f->alproto, f->alstate);
     uint64_t idx = AppLayerParserGetTransactionInspectId(f->alparser, flags);
     int state_done_progress = AppLayerParserGetStateProgressCompletionStatus(f->alproto, flags);
-    void *tx;
     int state_progress;
 
     for (; idx < total_txs; idx++) {
-        tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
+        void *tx = AppLayerParserGetTx(f->proto, f->alproto, f->alstate, idx);
         if (tx == NULL)
             continue;
         state_progress = AppLayerParserGetStateProgress(f->proto, f->alproto, tx, flags);

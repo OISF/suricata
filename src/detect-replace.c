@@ -183,15 +183,13 @@ DetectReplaceList *DetectReplaceAddToList(DetectReplaceList *replist,
 
 void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist)
 {
-    DetectReplaceList *tlist = NULL;
-
     SCLogDebug("replace: Executing match");
     while (replist) {
         memcpy(replist->found, replist->cd->replace, replist->cd->replace_len);
         SCLogDebug("replace: injecting '%s'", replist->cd->replace);
         p->flags |= PKT_STREAM_MODIFIED;
         ReCalculateChecksum(p);
-        tlist = replist;
+        DetectReplaceList *tlist = replist;
         replist = replist->next;
         SCFree(tlist);
     }
@@ -200,10 +198,9 @@ void DetectReplaceExecuteInternal(Packet *p, DetectReplaceList *replist)
 
 void DetectReplaceFreeInternal(DetectReplaceList *replist)
 {
-    DetectReplaceList *tlist = NULL;
     while (replist) {
         SCLogDebug("replace: Freeing match");
-        tlist = replist;
+        DetectReplaceList *tlist = replist;
         replist = replist->next;
         SCFree(tlist);
     }

@@ -88,14 +88,12 @@ void BloomFilterPrint(BloomFilter *bf)
 
 int BloomFilterAdd(BloomFilter *bf, void *data, uint16_t datalen)
 {
-    uint8_t iter = 0;
-    uint32_t hash = 0;
-
     if (bf == NULL || data == NULL || datalen == 0)
         return -1;
 
+    uint8_t iter;
     for (iter = 0; iter < bf->hash_iterations; iter++) {
-        hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
+        uint32_t hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
         bf->bitarray[hash/8] |= (1<<hash%8);
     }
 

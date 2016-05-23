@@ -1032,10 +1032,9 @@ static void AppLayerProtoDetectPMGetIpprotos(AppProto alproto,
 
     const AppLayerProtoDetectPMSignature *s = NULL;
     int i, j;
-    uint8_t ipproto;
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
-        ipproto = FlowGetReverseProtoMapping(i);
+        uint8_t ipproto = FlowGetReverseProtoMapping(i);
         for (j = 0; j < 2; j++) {
             AppLayerProtoDetectPMCtx *pm_ctx = &alpd_ctx.ctx_ipp[i].ctx_pm[j];
 

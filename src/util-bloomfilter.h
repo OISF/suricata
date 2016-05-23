@@ -49,11 +49,10 @@ static inline int BloomFilterTest(const BloomFilter *, const void *, uint16_t);
 static inline int BloomFilterTest(const BloomFilter *bf, const void *data, uint16_t datalen)
 {
     uint8_t iter = 0;
-    uint32_t hash = 0;
     int hit = 1;
 
     for (iter = 0; iter < bf->hash_iterations; iter++) {
-        hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
+        uint32_t hash = bf->Hash(data, datalen, iter, bf->bitarray_size);
         if (!(bf->bitarray[hash/8] & (1<<hash%8))) {
             hit = 0;
             break;
