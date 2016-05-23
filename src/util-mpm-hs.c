@@ -933,8 +933,11 @@ uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     hs_error_t err = hs_scan(pd->hs_db, (const char *)buf, buflen, 0, scratch,
                              SCHSMatchEvent, &cctx);
     if (err != HS_SUCCESS) {
-        SCLogError(SC_ERR_FATAL, "Scanning with Hyperscan returned error %d",
-                   err);
+        /* An error value (other than HS_SCAN_TERMINATED) from hs_scan()
+         * indicates that it was passed an invalid database or scratch region,
+         * which is not something we can recover from at scan time. */
+        SCLogError(SC_ERR_FATAL, "Hyperscan returned error %d", err);
+        exit(EXIT_FAILURE);
     } else {
         ret = cctx.match_count;
     }
