@@ -20,59 +20,8 @@
 #include "detect.h"
 #include "detect-engine-content-inspection.h"
 #include "detect-dnp3.h"
+#include "detect-engine-dnp3.h"
 #include "app-layer-dnp3.h"
-
-static int DetectEngineInspectDNP3Obj(DetectDNP3 *detect,
-    DNP3ObjectList *objects)
-{
-    DNP3Object *object;
-
-    TAILQ_FOREACH(object, objects, next) {
-        if (object->group == detect->obj_group &&
-            object->variation == detect->obj_variation) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
-int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
-    DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-    void *alstate, void *txv, uint64_t tx_id)
-{
-    SCEnter();
-    DNP3Transaction *tx = (DNP3Transaction *)txv;
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_DNP3_MATCH];
-    DetectDNP3 *detect = (DetectDNP3 *) sm->ctx;
-    int match = 0;
-
-    if (detect->detect_type == DNP3_DETECT_TYPE_FC) {
-        if (flags & STREAM_TOSERVER) {
-            match = detect->function_code == tx->request_ah.function_code;
-        }
-        else if (flags & STREAM_TOCLIENT) {
-            match = detect->function_code == tx->response_ah.function_code;
-        }
-    }
-    else if ((flags & STREAM_TOCLIENT) &&
-        (detect->detect_type == DNP3_DETECT_TYPE_IND)) {
-        if ((tx->response_iin.iin1 & (detect->ind_flags >> 8)) ||
-            (tx->response_iin.iin2 & (detect->ind_flags & 0xf))) {
-            match = 1;
-        }
-    }
-    else if (detect->detect_type == DNP3_DETECT_TYPE_OBJ) {
-        if (flags & STREAM_TOSERVER) {
-            match = DetectEngineInspectDNP3Obj(detect, &tx->request_objects);
-        }
-        else if (flags & STREAM_TOCLIENT) {
-            match = DetectEngineInspectDNP3Obj(detect, &tx->response_objects);
-        }
-    }
-
-    SCReturnInt(match);
-}
 
 int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
@@ -98,14 +47,14 @@ int DetectEngineInspectDNP3Data(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCReturnInt(r);
 }
 
-int DetectEngineInspectDNP3Lua(ThreadVars *tv, DetectEngineCtx *de_ctx,
+int DetectEngineInspectDNP3(ThreadVars *tv, DetectEngineCtx *de_ctx,
     DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
     void *alstate, void *txv, uint64_t tx_id)
 {
     SCEnter();
     int match = 0;
 
-    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_DNP3_LUA_MATCH];
+    SigMatchData *smd = s->sm_arrays[DETECT_SM_LIST_DNP3_MATCH];
     if (smd != NULL) {
         while (1) {
             match = sigmatch_table[smd->type]
