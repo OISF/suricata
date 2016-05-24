@@ -129,6 +129,18 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
+            if ((s->file_flags & FILE_SIG_NEED_SHA1) && (!(file->flags & FILE_SHA1))) {
+                SCLogDebug("sig needs file sha1, but we don't have any");
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                break;
+            }
+
+            if ((s->file_flags & FILE_SIG_NEED_SHA256) && (!(file->flags & FILE_SHA256))) {
+                SCLogDebug("sig needs file sha256, but we don't have any");
+                r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+                break;
+            }
+
             if ((s->file_flags & FILE_SIG_NEED_SIZE) && file->state < FILE_STATE_CLOSED) {
                 SCLogDebug("sig needs filesize, but state < FILE_STATE_CLOSED");
                 r = DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
