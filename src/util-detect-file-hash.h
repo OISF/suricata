@@ -28,7 +28,7 @@
 
 #include "util-rohash.h"
 
-typedef struct DetectFileHashData {
+typedef struct DetectFileHashData_ {
     ROHashTable *hash;
     int negated;
 } DetectFileHashData;
