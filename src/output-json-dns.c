@@ -56,6 +56,69 @@
  * TX id handling doesn't expect it */
 #define QUERY 0
 
+#define LOG_QUERIES   (1<<0)
+#define LOG_ANSWERS  (1<<1)
+
+#define LOG_A         (1<<2)
+#define LOG_NS        (1<<3)
+#define LOG_CNAME     (1<<4)
+#define LOG_SOA       (1<<5)
+#define LOG_PTR       (1<<6)
+#define LOG_MX        (1<<7)
+#define LOG_TXT       (1<<8)
+#define LOG_AAAA      (1<<9)
+#define LOG_SRV       (1<<10)
+#define LOG_NAPTR     (1<<11)
+#define LOG_DS        (1<<12)
+#define LOG_RRSIG     (1<<13)
+#define LOG_NSEC      (1<<14)
+#define LOG_NSEC3     (1<<15)
+#define LOG_TKEY      (1<<16)
+#define LOG_TSIG      (1<<17)
+
+#define LOG_ALL_RRTYPES (~(LOG_QUERIES|LOG_ANSWERS))
+
+typedef enum {
+    DNS_RRTYPE_A = 0,
+    DNS_RRTYPE_NS,
+    DNS_RRTYPE_CNAME,
+    DNS_RRTYPE_SOA,
+    DNS_RRTYPE_PTR,
+    DNS_RRTYPE_MX,
+    DNS_RRTYPE_TXT,
+    DNS_RRTYPE_AAAA,
+    DNS_RRTYPE_SRV,
+    DNS_RRTYPE_NAPTR,
+    DNS_RRTYPE_DS,
+    DNS_RRTYPE_RRSIG,
+    DNS_RRTYPE_NSEC,
+    DNS_RRTYPE_NSEC3,
+    DNS_RRTYPE_TKEY,
+    DNS_RRTYPE_TSIG
+} DnsRRTypes;
+
+struct {
+    char *config_rrtype;
+    uint32_t flags;
+} dns_rrtype_fields[] = {
+   { "a", LOG_A },
+   { "ns", LOG_NS },
+   { "cname", LOG_CNAME },
+   { "soa", LOG_SOA },
+   { "ptr", LOG_PTR },
+   { "mx", LOG_MX },
+   { "txt", LOG_TXT },
+   { "aaaa", LOG_AAAA },
+   { "srv", LOG_SRV },
+   { "naptr", LOG_NAPTR },
+   { "ds", LOG_DS },
+   { "rrsig", LOG_RRSIG },
+   { "nsec", LOG_NSEC },
+   { "nsec3", LOG_NSEC3 },
+   { "tkey", LOG_TKEY },
+   { "tsig", LOG_TSIG }
+};
+
 typedef struct LogDnsFileCtx_ {
     LogFileCtx *file_ctx;
     uint32_t flags; /** Store mode */
@@ -68,6 +131,50 @@ typedef struct LogDnsLogThread_ {
 
     MemBuffer *buffer;
 } LogDnsLogThread;
+
+static int DNSRRTypeEnabled(uint16_t type, uint32_t flags)
+{
+    if (likely(flags == (uint32_t)~0)) {
+        return 1;
+    }
+
+    switch (type) {
+        case DNS_RECORD_TYPE_A:
+            return ((flags & LOG_A) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_NS:
+            return ((flags & LOG_NS) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_CNAME:
+            return ((flags & LOG_CNAME) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_SOA:
+            return ((flags & LOG_SOA) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_PTR:
+            return ((flags & LOG_PTR) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_MX:
+            return ((flags & LOG_MX) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_TXT:
+            return ((flags & LOG_TXT) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_AAAA:
+            return ((flags & LOG_AAAA) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_SRV:
+            return ((flags & LOG_SRV) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_NAPTR:
+            return ((flags & LOG_NAPTR) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_DS:
+            return ((flags & LOG_DS) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_RRSIG:
+            return ((flags & LOG_RRSIG) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_NSEC:
+            return ((flags & LOG_NSEC) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_NSEC3:
+            return ((flags & LOG_NSEC3) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_TKEY:
+            return ((flags & LOG_TKEY) != 0) ? 1 : 0;
+        case DNS_RECORD_TYPE_TSIG:
+            return ((flags & LOG_TSIG) != 0) ? 1 : 0;
+        default:
+            return 0;
+    }
+}
 
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry)
@@ -106,7 +213,9 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
+        OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    }
     json_object_del(js, "dns");
 }
 
@@ -206,7 +315,9 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     /* reset */
     MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
+        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    }
     json_object_del(djs, "dns");
 
     return;
@@ -240,7 +351,9 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx,
     /* reset */
     MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
+        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
+    }
     json_object_del(djs, "dns");
 
     return;
@@ -279,27 +392,32 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
     SCEnter();
 
     LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    LogDnsFileCtx *dnslog_ctx = td->dnslog_ctx;
     DNSTransaction *tx = txptr;
     json_t *js;
 
-    DNSQueryEntry *query = NULL;
-    TAILQ_FOREACH(query, &tx->query_list, next) {
-        js = CreateJSONHeader((Packet *)p, 1, "dns");
+    if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            js = CreateJSONHeader((Packet *)p, 1, "dns");
+            if (unlikely(js == NULL))
+                return TM_ECODE_OK;
+
+            LogQuery(td, js, tx, tx_id, query);
+
+            json_decref(js);
+        }
+    }
+
+    if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
+        js = CreateJSONHeader((Packet *)p, 0, "dns");
         if (unlikely(js == NULL))
             return TM_ECODE_OK;
 
-        LogQuery(td, js, tx, tx_id, query);
+        LogAnswers(td, js, tx, tx_id);
 
         json_decref(js);
     }
-
-    js = CreateJSONHeader((Packet *)p, 0, "dns");
-    if (unlikely(js == NULL))
-        return TM_ECODE_OK;
-
-    LogAnswers(td, js, tx, tx_id);
-
-    json_decref(js);
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -363,9 +481,54 @@ static void LogDnsLogDeInitCtxSub(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
+static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
+{
+    dnslog_ctx->flags = (uint32_t)~0;
+
+    if (conf) {
+        const char *query = ConfNodeLookupChildValue(conf, "query");
+        if (query != NULL) {
+            if (ConfValIsTrue(query)) {
+                dnslog_ctx->flags |= LOG_QUERIES;
+            } else {
+                dnslog_ctx->flags &= ~LOG_QUERIES;
+            }
+        }
+        const char *response = ConfNodeLookupChildValue(conf, "answer");
+        if (response != NULL) {
+            if (ConfValIsTrue(response)) {
+                dnslog_ctx->flags |= LOG_ANSWERS;
+            } else {
+                dnslog_ctx->flags &= ~LOG_ANSWERS;
+            }
+        }
+        ConfNode *custom;
+        if ((custom = ConfNodeLookupChild(conf, "custom")) != NULL) {
+            dnslog_ctx->flags &= ~LOG_ALL_RRTYPES;
+            ConfNode *field;
+            TAILQ_FOREACH(field, &custom->head, next)
+            {
+                if (field != NULL)
+                {
+                    DnsRRTypes f;
+                    for (f = DNS_RRTYPE_A; f < DNS_RRTYPE_TXT; f++)
+                    {
+                        if (strcasecmp(dns_rrtype_fields[f].config_rrtype,
+                                       field->val) == 0)
+                        {
+                            dnslog_ctx->flags |= dns_rrtype_fields[f].flags;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 {
-    AlertJsonThread *ajt = parent_ctx->data;
+    OutputJsonCtx *ojc = parent_ctx->data;
 
     LogDnsFileCtx *dnslog_ctx = SCMalloc(sizeof(LogDnsFileCtx));
     if (unlikely(dnslog_ctx == NULL)) {
@@ -373,7 +536,7 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
     }
     memset(dnslog_ctx, 0x00, sizeof(LogDnsFileCtx));
 
-    dnslog_ctx->file_ctx = ajt->file_ctx;
+    dnslog_ctx->file_ctx = ojc->file_ctx;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (unlikely(output_ctx == NULL)) {
@@ -383,6 +546,8 @@ static OutputCtx *JsonDnsLogInitCtxSub(ConfNode *conf, OutputCtx *parent_ctx)
 
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtxSub;
+
+    JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log sub-module initialized");
 
@@ -429,6 +594,8 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
     output_ctx->data = dnslog_ctx;
     output_ctx->DeInit = LogDnsLogDeInitCtx;
+
+    JsonDnsLogInitFilters(dnslog_ctx, conf);
 
     SCLogDebug("DNS log output initialized");
 
