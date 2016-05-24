@@ -57,7 +57,7 @@
 #define QUERY 0
 
 #define LOG_QUERIES   (1<<0)
-#define LOG_ANSWERS  (1<<1)
+#define LOG_ANSWERS   (1<<1)
 
 #define LOG_A         (1<<2)
 #define LOG_NS        (1<<3)
