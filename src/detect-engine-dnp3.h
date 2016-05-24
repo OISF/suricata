@@ -24,9 +24,6 @@ int DetectEngineInspectDNP3(ThreadVars *, DetectEngineCtx *de_ctx,
 int DetectEngineInspectDNP3Data(ThreadVars *, DetectEngineCtx *,
     DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
     uint64_t);
-int DetectEngineInspectDNP3Lua(ThreadVars *, DetectEngineCtx *,
-    DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
-    uint64_t);
 void DetectEngineInspectDNP3RegisterTests(void);
 
 #endif /* !__DETECT_ENGINE_DNP3_H__ */
