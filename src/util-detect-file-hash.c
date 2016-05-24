@@ -194,13 +194,13 @@ int DetectFileHashMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief Parse the filemd5 keyword
+ * \brief Parse the filemd5, filesha1 or filesha256 keyword
  *
  * \param det_ctx pattern matcher thread local data
  * \param str Pointer to the user provided option
  * \param type the hash algorithm
  *
- * \retval filemd5 pointer to DetectFileHashData on success
+ * \retval hash pointer to DetectFileHashData on success
  * \retval NULL on failure
  */
 static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
@@ -210,7 +210,7 @@ static DetectFileHashData *DetectFileHashParse (const DetectEngineCtx *de_ctx,
     FILE *fp = NULL;
     char *filename = NULL;
 
-    /* We have a correct filemd5 option */
+    /* We have a correct hash algorithm option */
     filehash = SCMalloc(sizeof(DetectFileHashData));
     if (unlikely(filehash == NULL))
         goto error;

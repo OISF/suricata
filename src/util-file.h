@@ -29,6 +29,8 @@
 #include <sechash.h>
 #endif
 
+#include "conf.h"
+
 #include "util-streaming-buffer.h"
 
 #define FILE_TRUNCATED  0x0001
@@ -196,6 +198,8 @@ int FileForceSha1(void);
 void FileDisableSha256(Flow *f, uint8_t);
 void FileForceSha256Enable(void);
 int FileForceSha256(void);
+
+void FileForceHashParseCfg(ConfNode *);
 
 void FileForceTrackingEnable(void);
 

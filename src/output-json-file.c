@@ -288,15 +288,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             SCLogInfo("forcing magic lookup for logged files");
         }
 
-        const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
-        if (force_md5 != NULL && ConfValIsTrue(force_md5)) {
-#ifdef HAVE_NSS
-            FileForceMd5Enable();
-            SCLogInfo("forcing md5 calculation for logged files");
-#else
-            SCLogInfo("md5 calculation requires linking against libnss");
-#endif
-        }
+        FileForceHashParseCfg(conf);
     }
 
     output_ctx->data = output_file_ctx;
