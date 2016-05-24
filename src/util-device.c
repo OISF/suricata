@@ -60,6 +60,7 @@ int LiveRegisterDevice(const char *dev)
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
     pd->ignore_checksum = 0;
+    pd->seen = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Device \"%s\" registered.", dev);
@@ -241,12 +242,16 @@ int LiveDeviceListClean()
 
     TAILQ_FOREACH_SAFE(pd, &live_devices, next, tpd) {
         if (live_devices_stats) {
-            SCLogNotice("Stats for '%s':  pkts: %" PRIu64", drop: %" PRIu64 " (%.2f%%), invalid chksum: %" PRIu64,
-                    pd->dev,
-                    SC_ATOMIC_GET(pd->pkts),
-                    SC_ATOMIC_GET(pd->drop),
-                    100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
-                    SC_ATOMIC_GET(pd->invalid_checksums));
+            if (pd->seen) {
+                SCLogNotice("Stats for '%s':  pkts: %" PRIu64", drop: %" PRIu64 " (%.2f%%), invalid chksum: %" PRIu64,
+                        pd->dev,
+                        SC_ATOMIC_GET(pd->pkts),
+                        SC_ATOMIC_GET(pd->drop),
+                        100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
+                        SC_ATOMIC_GET(pd->invalid_checksums));
+            } else {
+                SCLogNotice("Stats for '%s': The interface is not operational or recognized", pd->dev);
+            }
         }
         if (pd->dev)
             SCFree(pd->dev);
@@ -257,6 +262,11 @@ int LiveDeviceListClean()
     }
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+void LiveDeviceIfaceWasSeen(LiveDevice *pd)
+{
+    pd->seen = 1;
 }
 
 #ifdef BUILD_UNIX_SOCKET

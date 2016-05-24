@@ -589,6 +589,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         }
     }
 
+    LiveDeviceIfaceWasSeen(ptv->livedev);
     *data = (void *)ptv;
     pfconf->DerefFunc(pfconf);
 

@@ -310,6 +310,7 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ewtn->tv = tv;
     *data = (void *)ewtn;
+    LiveDeviceIfaceWasSeen(ptv->livedev);
 
     SCLogInfo("Starting processing packets from stream: %d on DAG: %s",
         ewtn->dagstream, ewtn->dagname);

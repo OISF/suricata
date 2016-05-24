@@ -25,6 +25,7 @@
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     int ignore_checksum;
+    int seen;
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
@@ -41,6 +42,7 @@ int LiveBuildDeviceList(const char *base);
 void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
 int LiveBuildDeviceListCustom(const char *base, const char *itemname);
+void LiveDeviceIfaceWasSeen(LiveDevice *pd);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);

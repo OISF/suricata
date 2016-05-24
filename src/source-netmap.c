@@ -666,6 +666,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
                      "Using netmap mode with GRO or LRO activated can lead to capture problems");
     }
 
+    LiveDeviceIfaceWasSeen(ntv->livedev);
     *data = (void *)ntv;
     aconf->DerefFunc(aconf);
     SCReturnInt(TM_ECODE_OK);

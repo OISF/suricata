@@ -531,6 +531,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->capture_kernel_ifdrops = StatsRegisterCounter("capture.kernel_ifdrops",
             ptv->tv);
 
+    LiveDeviceIfaceWasSeen(ptv->livedev);
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);
 }

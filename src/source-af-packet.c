@@ -1949,6 +1949,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
     /* Init is ok */
     AFPSwitchState(ptv, AFP_STATE_UP);
+    LiveDeviceIfaceWasSeen(ptv->livedev);
     return 0;
 
 frame_err:
