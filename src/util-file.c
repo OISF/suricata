@@ -124,6 +124,57 @@ void FileForceTrackingEnable(void)
     g_file_force_tracking = 1;
 }
 
+
+/**
+ * \brief Function to parse forced file hashing configuration.
+ */
+void FileForceHashParseCfg(ConfNode *conf)
+{
+    BUG_ON(conf == NULL);
+
+    ConfNode *forcehash_node = NULL;
+
+    if (conf != NULL)
+        forcehash_node = ConfNodeLookupChild(conf, "force-hash");
+
+    if (forcehash_node != NULL) {
+        ConfNode *field = NULL;
+
+        TAILQ_FOREACH(field, &forcehash_node->head, next) {
+            if (field == NULL) {
+                break;
+            }
+
+            if (strcasecmp("md5", field->val) == 0) {
+#ifdef HAVE_NSS
+                FileForceMd5Enable();
+                SCLogConfig("forcing md5 calculation for logged or stored files");
+#else
+                SCLogInfo("md5 calculation requires linking against libnss");
+#endif
+            }
+
+            if (strcasecmp("sha1", field->val) == 0) {
+#ifdef HAVE_NSS
+                FileForceSha1Enable();
+                SCLogConfig("forcing sha1 calculation for logged or stored files");
+#else
+                SCLogInfo("sha1 calculation requires linking against libnss");
+#endif
+            }
+
+            if (strcasecmp("sha256", field->val) == 0) {
+#ifdef HAVE_NSS
+                FileForceSha256Enable();
+                SCLogConfig("forcing sha256 calculation for logged or stored files");
+#else
+                SCLogInfo("sha256 calculation requires linking against libnss");
+#endif
+            }
+        }
+    }
+}
+
 int FileMagicSize(void)
 {
     /** \todo make this size configurable */
