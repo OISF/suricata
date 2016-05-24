@@ -17,9 +17,13 @@
 
 #include "suricata-common.h"
 
+#include "stream.h"
+
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-dnp3.h"
+
+#include "app-layer-dnp3.h"
 
 /**
  * Indicator names to value mappings (Snort compatible).
@@ -186,7 +190,6 @@ static int DetectDNP3FuncSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (unlikely(dnp3 == NULL)) {
         goto error;
     }
-    dnp3->detect_type = DNP3_DETECT_TYPE_FC;
     dnp3->function_code = function_code;
 
     sm = SigMatchAlloc();
@@ -282,7 +285,6 @@ static int DetectDNP3IndSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (unlikely(detect == NULL)) {
         goto error;
     }
-    detect->detect_type = DNP3_DETECT_TYPE_IND;
     detect->ind_flags = flags;
 
     sm = SigMatchAlloc();
@@ -368,7 +370,6 @@ static int DetectDNP3ObjSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
     if (unlikely(detect == NULL)) {
         goto fail;
     }
-    detect->detect_type = DNP3_DETECT_TYPE_OBJ;
     detect->obj_group = group;
     detect->obj_variation = variation;
 
@@ -402,6 +403,70 @@ static void DetectDNP3Free(void *ptr)
     SCReturn;
 }
 
+static int DetectDNP3FuncMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+    const SigMatchCtx *ctx)
+{
+    DNP3Transaction *tx = (DNP3Transaction *)txv;
+    DetectDNP3 *detect = (DetectDNP3 *)ctx;
+    int match = 0;
+
+    if (flags & STREAM_TOSERVER) {
+        match = detect->function_code == tx->request_ah.function_code;
+    }
+    else if (flags & STREAM_TOCLIENT) {
+        match = detect->function_code == tx->response_ah.function_code;
+    }
+
+    return match;
+}
+
+static int DetectDNP3ObjMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+    const SigMatchCtx *ctx)
+{
+    DNP3Transaction *tx = (DNP3Transaction *)txv;
+    DetectDNP3 *detect = (DetectDNP3 *)ctx;
+    DNP3ObjectList *objects = NULL;
+
+    if (flags & STREAM_TOSERVER) {
+        objects = &tx->request_objects;
+    }
+    else if (flags & STREAM_TOCLIENT) {
+        objects = &tx->response_objects;
+    }
+
+    if (objects != NULL) {
+        DNP3Object *object;
+        TAILQ_FOREACH(object, objects, next) {
+            if (object->group == detect->obj_group &&
+                object->variation == detect->obj_variation) {
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int DetectDNP3IndMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+    Flow *f, uint8_t flags, void *state, void *txv, const Signature *s,
+    const SigMatchCtx *ctx)
+{
+    SCLogDebug("** DetectDNP3IndMatch");
+    DNP3Transaction *tx = (DNP3Transaction *)txv;
+    DetectDNP3 *detect = (DetectDNP3 *)ctx;
+
+    if (flags & STREAM_TOCLIENT) {
+        if ((tx->response_iin.iin1 & (detect->ind_flags >> 8)) ||
+            (tx->response_iin.iin2 & (detect->ind_flags & 0xf))) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 void DetectDNP3FuncRegister(void)
 {
     SCEnter();
@@ -410,6 +475,7 @@ void DetectDNP3FuncRegister(void)
     sigmatch_table[DETECT_AL_DNP3FUNC].alias         = "dnp3_func";
     sigmatch_table[DETECT_AL_DNP3FUNC].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_AL_DNP3FUNC].AppLayerTxMatch = DetectDNP3FuncMatch;
     sigmatch_table[DETECT_AL_DNP3FUNC].Setup         = DetectDNP3FuncSetup;
     sigmatch_table[DETECT_AL_DNP3FUNC].Free          = DetectDNP3Free;
     sigmatch_table[DETECT_AL_DNP3FUNC].RegisterTests =
@@ -426,6 +492,7 @@ void DetectDNP3IndRegister(void)
     sigmatch_table[DETECT_AL_DNP3IND].alias         = "dnp3_ind";
     sigmatch_table[DETECT_AL_DNP3IND].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3IND].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_AL_DNP3IND].AppLayerTxMatch = DetectDNP3IndMatch;
     sigmatch_table[DETECT_AL_DNP3IND].Setup         = DetectDNP3IndSetup;
     sigmatch_table[DETECT_AL_DNP3IND].Free          = DetectDNP3Free;
     sigmatch_table[DETECT_AL_DNP3IND].RegisterTests =
@@ -442,6 +509,7 @@ void DetectDNP3ObjRegister(void)
     sigmatch_table[DETECT_AL_DNP3OBJ].alias         = "dnp3_obj";
     sigmatch_table[DETECT_AL_DNP3OBJ].Match         = NULL;
     sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_AL_DNP3OBJ].AppLayerTxMatch = DetectDNP3ObjMatch;
     sigmatch_table[DETECT_AL_DNP3OBJ].Setup         = DetectDNP3ObjSetup;
     sigmatch_table[DETECT_AL_DNP3OBJ].Free          = DetectDNP3Free;
     sigmatch_table[DETECT_AL_DNP3OBJ].RegisterTests =

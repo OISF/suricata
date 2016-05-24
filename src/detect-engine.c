@@ -314,13 +314,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNP3_INSPECT,
           0,
           DetectEngineInspectDNP3 },
-        /* DNP3 Lua support. */
-        { IPPROTO_TCP,
-          ALPROTO_DNP3,
-          DETECT_SM_LIST_DNP3_LUA_MATCH,
-          DE_STATE_FLAG_DNP3_LUA_INSPECT,
-          0,
-          DetectEngineInspectDNP3Lua },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -428,13 +421,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNP3_INSPECT,
           1,
           DetectEngineInspectDNP3 },
-        /* DNP3 Lua support. */
-        { IPPROTO_TCP,
-          ALPROTO_DNP3,
-          DETECT_SM_LIST_DNP3_LUA_MATCH,
-          DE_STATE_FLAG_DNP3_LUA_INSPECT,
-          1,
-          DetectEngineInspectDNP3Lua },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -2866,8 +2852,6 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "dnp3_data";
         case DETECT_SM_LIST_DNP3_MATCH:
             return "dnp3";
-        case DETECT_SM_LIST_DNP3_LUA_MATCH:
-            return "dnp3 lua";
 
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";

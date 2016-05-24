@@ -34,7 +34,7 @@ typedef struct DetectEngineAppInspectionEngine_ {
     uint16_t dir;
 
     int32_t sm_list;
-    uint64_t inspect_flags;
+    uint32_t inspect_flags;
 
     /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
      *         1 Match.

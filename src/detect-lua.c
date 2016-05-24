@@ -1133,7 +1133,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     } else if (luajit->alproto == ALPROTO_SMTP) {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     } else if (luajit->alproto == ALPROTO_DNP3) {
-        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_LUA_MATCH);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNP3_MATCH);
     } else {
         SCLogError(SC_ERR_LUA_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
