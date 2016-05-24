@@ -2293,8 +2293,7 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                 continue;
             }
 
-        } else if (strcasecmp("request-body-limit", p->name) == 0 ||
-                   strcasecmp("request_body_limit", p->name) == 0) {
+        } else if (strcasecmp("request-body-limit", p->name) == 0) {
             if (ParseSizeStringU32(p->val, &cfg_prec->request.body_limit) < 0) {
                 SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
                            "from conf file - %s.  Killing engine", p->val);
