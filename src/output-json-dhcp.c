@@ -124,7 +124,8 @@ static int JsondhcpLogger(ThreadVars *tv, void *thread_data,
             case 61: {
                 if (dhcp_opt->args[0] == 1) {
                 char macaddr[6*3+1];
-                sprintf(macaddr, "%02x:%02x:%02x:%02x:%02x:%02x",
+                snprintf(macaddr, sizeof(macaddr),
+                         "%02x:%02x:%02x:%02x:%02x:%02x",
                          dhcp_opt->args[1],
                          dhcp_opt->args[2],
                          dhcp_opt->args[3],
@@ -137,21 +138,23 @@ static int JsondhcpLogger(ThreadVars *tv, void *thread_data,
                 break;
             case 50: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(reqjs, "client_ip", json_string(ipaddr));
                 }
                 break;
             case 54: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(reqjs, "server_ip", json_string(ipaddr));
                 }
                 break;
@@ -213,31 +216,34 @@ static int JsondhcpLogger(ThreadVars *tv, void *thread_data,
                 break;
             case 3: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(rspjs, "router_ip", json_string(ipaddr));
                 }
                 break;
             case 6: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(rspjs, "dns_ip", json_string(ipaddr));
                 }
                 break;
             case 66: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(rspjs, "tftp_ip", json_string(ipaddr));
                 }
                 break;
@@ -264,21 +270,23 @@ static int JsondhcpLogger(ThreadVars *tv, void *thread_data,
                 break;
             case 54: {
                 char ipaddr[4*4+1];
-                sprintf(ipaddr, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(ipaddr, sizeof(ipaddr),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(rspjs, "server_ip", json_string(ipaddr));
                 }
                 break;
             case 1: {
                 char mask[4*4+1];
-                sprintf(mask, "%d.%d.%d.%d",
-                        dhcp_opt->args[0],
-                        dhcp_opt->args[1],
-                        dhcp_opt->args[2],
-                        dhcp_opt->args[3]);
+                snprintf(mask, sizeof(mask),
+                         "%d.%d.%d.%d",
+                         dhcp_opt->args[0],
+                         dhcp_opt->args[1],
+                         dhcp_opt->args[2],
+                         dhcp_opt->args[3]);
                 json_object_set_new(rspjs, "subnet_mask", json_string(mask));
                 }
                 break;
