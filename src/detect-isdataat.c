@@ -55,7 +55,6 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectIsdataatMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, const SigMatchCtx *);
 int DetectIsdataatSetup (DetectEngineCtx *, Signature *, char *);
 void DetectIsdataatRegisterTests(void);
 void DetectIsdataatFree(void *);
@@ -68,7 +67,8 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ISDATAAT].name = "isdataat";
     sigmatch_table[DETECT_ISDATAAT].desc = "check if there is still data at a specific part of the payload";
     sigmatch_table[DETECT_ISDATAAT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Payload_keywords#Isadataat";
-    sigmatch_table[DETECT_ISDATAAT].Match = DetectIsdataatMatch;
+    /* match is handled in DetectEngineContentInspection() */
+    sigmatch_table[DETECT_ISDATAAT].Match = NULL;
     sigmatch_table[DETECT_ISDATAAT].Setup = DetectIsdataatSetup;
     sigmatch_table[DETECT_ISDATAAT].Free  = DetectIsdataatFree;
     sigmatch_table[DETECT_ISDATAAT].RegisterTests = DetectIsdataatRegisterTests;
@@ -76,37 +76,6 @@ void DetectIsdataatRegister(void)
     sigmatch_table[DETECT_ISDATAAT].flags |= SIGMATCH_PAYLOAD;
 
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
-}
-
-/**
- * \brief This function is used to match isdataat on a packet
- * \todo We need to add support for rawbytes
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectIsdataatData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
-{
-    const DetectIsdataatData *idad = (const DetectIsdataatData *)ctx;
-
-    SCLogDebug("payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-
-    /* Relative to the last matched content is not performed here, returning match (content should take care of this)*/
-    if (idad->flags & ISDATAAT_RELATIVE)
-        return 1;
-
-    /* its not relative and we have more data in the packet than the offset of isdataat */
-    if (p->payload_len >= idad->dataat) {
-        SCLogDebug("matched with payload_len: %u , dataat? %u ; relative? %u...", p->payload_len,idad->dataat,idad->flags &ISDATAAT_RELATIVE);
-        return 1;
-    }
-
-    return 0;
 }
 
 /**
