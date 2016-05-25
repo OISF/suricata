@@ -155,7 +155,7 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
 #define SMTP_MPM DEFAULT_MPM
 
 static MpmCtx *smtp_mpm_ctx = NULL;
-MpmThreadCtx *smtp_mpm_thread_ctx;
+static MpmThreadCtx *smtp_mpm_thread_ctx = NULL;
 
 /* smtp reply codes.  If an entry is made here, please make a simultaneous
  * entry in smtp_reply_map */
@@ -1456,6 +1456,18 @@ static void SMTPSetMpmState(void)
     MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 }
 
+static void SMTPFreeMpmState(void)
+{
+    if (smtp_mpm_thread_ctx != NULL) {
+        mpm_table[SMTP_MPM].DestroyThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx);
+        smtp_mpm_thread_ctx = NULL;
+    }
+    if (smtp_mpm_ctx != NULL) {
+        mpm_table[SMTP_MPM].DestroyCtx(smtp_mpm_ctx);
+        smtp_mpm_ctx = NULL;
+    }
+}
+
 int SMTPStateGetEventInfo(const char *event_name,
                           int *event_id, AppLayerEventType *event_type)
 {
@@ -1675,6 +1687,14 @@ void RegisterSMTPParsers(void)
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMTP, SMTPParserRegisterTests);
 #endif
     return;
+}
+
+/**
+ * \brief Free memory allocated for global SMTP parser state.
+ */
+void SMTPParserCleanup(void)
+{
+    SMTPFreeMpmState();
 }
 
 /***************************************Unittests******************************/
