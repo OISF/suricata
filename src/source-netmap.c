@@ -474,7 +474,8 @@ static int NetmapClose(NetmapDevice *dev)
             pdev->ref--;
             if (!pdev->ref) {
                 munmap(pdev->mem, pdev->memsize);
-                for (int i = 0; i <= pdev->rings_cnt; i++) {
+                // First close SW ring (https://github.com/luigirizzo/netmap/issues/144)
+                for (int i = pdev->rings_cnt; i >= 0; i--) {
                     NetmapRing *pring = &pdev->rings[i];
                     close(pring->fd);
                     SCSpinDestroy(&pring->tx_lock);
