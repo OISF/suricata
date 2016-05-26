@@ -55,17 +55,25 @@ typedef struct OutputTxLogger_ {
     uint32_t id;
     int tc_log_progress;
     int ts_log_progress;
+    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadDeinit)(ThreadVars *, void *);
+    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputTxLogger;
 
 static OutputTxLogger *list = NULL;
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
                            OutputCtx *output_ctx, int tc_log_progress,
-                           int ts_log_progress, TxLoggerCondition LogCondition)
+                           int ts_log_progress, TxLoggerCondition LogCondition,
+                           TmEcode (*ThreadInit)(ThreadVars *, void *, void **),
+                           TmEcode (*ThreadDeinit)(ThreadVars *, void *),
+                           void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
+#if 0
     int module_id = TmModuleGetIdByName(name);
     if (module_id < 0)
         return -1;
+#endif
 
     if (!(AppLayerParserIsTxAware(alproto))) {
         SCLogNotice("%s logger not enabled: protocol %s is disabled",
@@ -83,7 +91,12 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     op->LogCondition = LogCondition;
     op->output_ctx = output_ctx;
     op->name = name;
+#if 0
     op->module_id = (TmmId) module_id;
+#endif
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (tc_log_progress < 0) {
         op->tc_log_progress =
@@ -260,16 +273,29 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, void *initdata, void **data
 
     OutputTxLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
+
+        TmEcode (*ThreadInit)(ThreadVars *, void *, void **) = NULL;
+
+        if (logger->ThreadInit) {
+            SCLogNotice("Logger %s has ThreadInit.", logger->name);
+            ThreadInit = logger->ThreadInit;
+        } else {
+            SCLogNotice("Logger %s DOES NOT have ThreadInit.", logger->name);
         }
 
-        if (tm_module->ThreadInit) {
+        if (ThreadInit == NULL) {
+            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "TmModuleGetByName for %s failed", logger->name);
+                exit(EXIT_FAILURE);
+            }
+            ThreadInit = tm_module->ThreadInit;
+        }
+
+        if (ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -303,15 +329,24 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputTxLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
+        TmEcode (*ThreadDeinit)(ThreadVars *, void *) = NULL;
+
+        if (logger->ThreadDeinit) {
+            ThreadDeinit = logger->ThreadDeinit;
         }
 
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
+        if (ThreadDeinit == NULL) {
+            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "TmModuleGetByName for %s failed", logger->name);
+                exit(EXIT_FAILURE);
+            }
+            ThreadDeinit = tm_module->ThreadDeinit;
+        }
+
+        if (ThreadDeinit) {
+            ThreadDeinit(tv, store->thread_data);
         }
 
         OutputLoggerThreadStore *next_store = store->next;
@@ -331,15 +366,24 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputTxLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
+        void (*ThreadExitPrintStats)(ThreadVars *, void *) = NULL;
+
+        if (logger->ThreadExitPrintStats) {
+            ThreadExitPrintStats = logger->ThreadExitPrintStats;
         }
 
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (ThreadExitPrintStats == NULL) {
+            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
+            if (tm_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "TmModuleGetByName for %s failed", logger->name);
+                exit(EXIT_FAILURE);
+            }
+            ThreadExitPrintStats = tm_module->ThreadExitPrintStats;
+        }
+
+        if (ThreadExitPrintStats) {
+            ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
