@@ -318,7 +318,7 @@ void TmModuleJsonTlsLogRegister (void)
     tmm_modules[TMM_JSONTLSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterTxModuleWithProgress("JsonTlsLog", "dns-json-log",
+    OutputRegisterTxModuleWithProgress("JsonTlsLog", "tls-json-log",
             OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
             TLS_HANDSHAKE_DONE);
 
