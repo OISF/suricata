@@ -149,4 +149,6 @@ void AppLayerRegisterGlobalCounters(void);
 void AppLayerUnittestsRegister(void);
 #endif
 
+void AppLayerIncTxCounter(uint8_t ipproto, AppProto alproto, ThreadVars *tv, uint64_t step);
+
 #endif
