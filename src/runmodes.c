@@ -106,7 +106,10 @@ static char *active_runmode;
 
 /* free list for our outputs */
 typedef struct OutputFreeList_ {
+#if 0
     TmModule *tm_module;
+#endif
+    OutputModule *output_module;
     OutputCtx *output_ctx;
 
     TAILQ_ENTRY(OutputFreeList_) entries;
@@ -466,7 +469,11 @@ void RunOutputFreeList(void)
 {
     OutputFreeList *output;
     while ((output = TAILQ_FIRST(&output_free_list))) {
-        SCLogDebug("output %s %p %p", output->tm_module->name, output, output->output_ctx);
+#if 0
+        SCLogNotice("output %s %p %p", output->tm_module->name, output, output->output_ctx);
+#endif
+        SCLogDebug("output %s %p %p", output->output_module->name, output,
+            output->output_ctx);
 
         if (output->output_ctx != NULL && output->output_ctx->DeInit != NULL)
             output->output_ctx->DeInit(output->output_ctx);
@@ -528,16 +535,21 @@ void RunModeShutDown(void)
  *         the output ctx at shutdown and unix socket reload */
 static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
 {
+#if 0
     TmModule *tm_module = TmModuleGetByName(module->name);
     if (tm_module == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "TmModuleGetByName for %s failed", module->name);
         exit(EXIT_FAILURE);
     }
+#endif
     OutputFreeList *fl_output = SCCalloc(1, sizeof(OutputFreeList));
     if (unlikely(fl_output == NULL))
         return;
+#if 0
     fl_output->tm_module = tm_module;
+#endif
+    fl_output->output_module = module;
     fl_output->output_ctx = output_ctx;
     TAILQ_INSERT_TAIL(&output_free_list, fl_output, entries);
 }
@@ -582,14 +594,17 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         return;
     }
 
+#if 0
     TmModule *tm_module = TmModuleGetByName(module->name);
     if (tm_module == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,
                 "TmModuleGetByName for %s failed", module->name);
         exit(EXIT_FAILURE);
     }
-    if (strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
+    /* XXX What to do here? */
+    if (tm_module != NULL && strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
         debuglog_enabled = 1;
+#endif
 
     if (module->PacketLogFunc) {
         SCLogDebug("%s is a packet logger", module->name);
@@ -618,7 +633,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         SCLogDebug("%s is a tx logger", module->name);
         OutputRegisterTxLogger(module->name, module->alproto,
                 module->TxLogFunc, output_ctx, module->tc_log_progress,
-                module->ts_log_progress, module->TxLogCondition);
+                module->ts_log_progress, module->TxLogCondition,
+                module->ThreadInit, module->ThreadDeinit,
+                module->ThreadExitPrintStats);
 
         /* need one instance of the tx logger module */
         if (tx_logger_module == NULL) {
@@ -712,7 +729,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         if (unlikely(runmode_output == NULL))
             return;
         runmode_output->name = module->name;
+#if 0
         runmode_output->tm_module = tm_module;
+#endif
         runmode_output->output_ctx = output_ctx;
         InsertInRunModeOutputs(runmode_output);
     }
