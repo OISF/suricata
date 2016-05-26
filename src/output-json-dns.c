@@ -450,7 +450,7 @@ void TmModuleJsonDnsLogRegister (void)
     tmm_modules[TMM_JSONDNSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
-            ALPROTO_DNS, JsonDnsLogger);
+        ALPROTO_DNS, JsonDnsLogger, NULL, NULL, NULL);
     OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub,
             ALPROTO_DNS, JsonDnsLogger);
 }
