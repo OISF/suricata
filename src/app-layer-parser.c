@@ -622,6 +622,11 @@ void AppLayerParserSetTransactionInspectId(ThreadVars *tv, AppLayerParserState *
         else
             break;
     }
+
+    /* account tx as soon as we have a request to server */
+    if (direction == 0) {
+        AppLayerIncTxCounter(ipproto, alproto, tv, idx - pstate->inspect_id[0]);
+    }
     pstate->inspect_id[direction] = idx;
 
     SCReturn;
