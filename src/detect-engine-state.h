@@ -230,7 +230,7 @@ void DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
  *  \param f unlocked flow
  *  \param flags direction and disruption flags
  */
-void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags);
+void DeStateUpdateInspectTransactionId(ThreadVars *tv, Flow *f, const uint8_t flags);
 
 /**
  * \brief Reset a DetectEngineState state.

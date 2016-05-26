@@ -1815,7 +1815,7 @@ end:
     /* see if we need to increment the inspect_id and reset the de_state */
     if (has_state && AppLayerParserProtocolSupportsTxs(p->proto, alproto)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
-        DeStateUpdateInspectTransactionId(pflow, flow_flags);
+        DeStateUpdateInspectTransactionId(th_v, pflow, flow_flags);
         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
     }
 
@@ -1971,7 +1971,7 @@ static void DetectFlow(ThreadVars *tv,
             } else {
                 flags |= STREAM_TOCLIENT;
             }
-            DeStateUpdateInspectTransactionId(p->flow, flags);
+            DeStateUpdateInspectTransactionId(tv, p->flow, flags);
         }
         return;
     }

@@ -599,7 +599,7 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
-void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
+void AppLayerParserSetTransactionInspectId(ThreadVars *tv, AppLayerParserState *pstate,
                                            const uint8_t ipproto, const AppProto alproto,
                                            void *alstate, const uint8_t flags)
 {
