@@ -45,6 +45,10 @@ typedef struct OutputModule_ {
     OutputCtx *(*InitFunc)(ConfNode *);
     OutputCtx *(*InitSubFunc)(ConfNode *, OutputCtx *parent_ctx);
 
+    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadDeinit)(ThreadVars *, void *);
+    void (*ThreadExitPrintStats)(ThreadVars *, void *);
+
     PacketLogger PacketLogFunc;
     PacketLogCondition PacketConditionFunc;
     TxLogger TxLogFunc;
@@ -73,7 +77,10 @@ void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
 
 void OutputRegisterTxModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-    TxLogger TxLogFunc);
+    TxLogger TxLogFunc, TmEcode (*ThreadInit)(ThreadVars *t, void *, void **),
+    TmEcode (*ThreadDeinit)(ThreadVars *t, void *),
+    void (*ThreadExitPrintStats)(ThreadVars *, void *));
+
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
     AppProto alproto, TxLogger TxLogFunc);

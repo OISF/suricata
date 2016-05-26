@@ -593,7 +593,7 @@ void TmModuleJsonHttpLogRegister (void)
 
     /* register as separate module */
     OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,
-            ALPROTO_HTTP, JsonHttpLogger);
+        ALPROTO_HTTP, JsonHttpLogger, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "eve-log.http", OutputHttpLogInitSub,

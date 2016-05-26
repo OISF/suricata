@@ -74,7 +74,7 @@ void TmModuleLogHttpLogRegister (void)
     tmm_modules[TMM_LOGHTTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModule(MODULE_NAME, "http-log", LogHttpLogInitCtx,
-            ALPROTO_HTTP, LogHttpLogger);
+        ALPROTO_HTTP, LogHttpLogger, NULL, NULL, NULL);
 }
 
 #define LOG_HTTP_MAXN_NODES 64
