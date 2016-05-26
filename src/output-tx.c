@@ -65,8 +65,8 @@ static OutputTxLogger *list = NULL;
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
                            OutputCtx *output_ctx, int tc_log_progress,
                            int ts_log_progress, TxLoggerCondition LogCondition,
-                           TmEcode (*ThreadInit)(ThreadVars *, void *, void **),
-                           TmEcode (*ThreadDeinit)(ThreadVars *, void *),
+                           ThreadInitFunc ThreadInit,
+                           ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
 #if 0
