@@ -346,16 +346,9 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 
 void TmModuleLogDnsLogRegister (void)
 {
-    tmm_modules[TMM_LOGDNSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGDNSLOG].ThreadInit = LogDnsLogThreadInit;
-    tmm_modules[TMM_LOGDNSLOG].ThreadExitPrintStats = LogDnsLogExitPrintStats;
-    tmm_modules[TMM_LOGDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
-    tmm_modules[TMM_LOGDNSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGDNSLOG].cap_flags = 0;
-    tmm_modules[TMM_LOGDNSLOG].flags = TM_FLAG_LOGAPI_TM;
-
     OutputRegisterTxModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx,
-            ALPROTO_DNS, LogDnsLogger);
+        ALPROTO_DNS, LogDnsLogger, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        LogDnsLogExitPrintStats);
 
     /* enable the logger for the app layer */
     SCLogDebug("registered %s", MODULE_NAME);
