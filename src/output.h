@@ -73,7 +73,8 @@ void OutputRegisterModule(const char *, const char *, OutputCtx *(*)(ConfNode *)
 
 void OutputRegisterPacketModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *),
-    PacketLogger LogFunc, PacketLogCondition ConditionFunc);
+    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
+    ThreadInitFunc, ThreadDeinitFunc, ThreadExitPrintStatsFunc);
 void OutputRegisterPacketSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
     PacketLogger LogFunc, PacketLogCondition ConditionFunc);
