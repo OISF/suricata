@@ -522,5 +522,5 @@ void TmModuleAlertDebugLogRegister (void)
     tmm_modules[TMM_ALERTDEBUGLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "alert-debug",
-        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition);
+        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition, NULL, NULL, NULL);
 }
