@@ -140,6 +140,8 @@ struct AppLayerParserState_ {
      * we don't need a var per direction since we don't log a transaction
      * unless we have the entire transaction. */
     uint64_t log_id;
+    /* Count of number of transactions */
+    uint64_t tx_cnt;
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
@@ -624,6 +626,7 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
         else
             break;
     }
+
     pstate->inspect_id[direction] = idx;
 
     SCReturn;
@@ -1004,6 +1007,14 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
     }
 
+    if (AppLayerParserProtocolIsTxEventAware(f->proto, alproto)) {
+        uint64_t p_tx_cnt = pstate->tx_cnt;
+        pstate->tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+        if (tv) {
+            AppLayerIncTxCounter(f->proto, alproto, tv,
+                                 pstate->tx_cnt - p_tx_cnt);
+        }
+    }
     /* next, see if we can get rid of transactions now */
     AppLayerParserTransactionsCleanup(f);
 
