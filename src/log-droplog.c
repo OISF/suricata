@@ -506,5 +506,5 @@ void TmModuleLogDropLogRegister (void)
     tmm_modules[TMM_LOGDROPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "drop", LogDropLogInitCtx,
-            LogDropLogger, LogDropCondition);
+        LogDropLogger, LogDropCondition, NULL, NULL, NULL);
 }

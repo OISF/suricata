@@ -408,7 +408,7 @@ void TmModuleJsonDropLogRegister (void)
     tmm_modules[TMM_JSONDROPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
-            JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition);
+        JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition, NULL, NULL, NULL);
     OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.drop",
             JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition);
 }

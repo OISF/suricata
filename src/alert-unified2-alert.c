@@ -245,7 +245,7 @@ void TmModuleUnified2AlertRegister(void)
 
     //OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
     OutputRegisterPacketModule(MODULE_NAME, "unified2-alert",
-            Unified2AlertInitCtx, Unified2Logger, Unified2Condition);
+        Unified2AlertInitCtx, Unified2Logger, Unified2Condition, NULL, NULL, NULL);
 }
 
 /**
