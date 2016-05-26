@@ -421,7 +421,7 @@ void TmModuleAlertSyslogRegister (void)
     tmm_modules[TMM_ALERTSYSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition);
+        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition, NULL, NULL, NULL);
 
 #endif /* !OS_WIN32 */
 }

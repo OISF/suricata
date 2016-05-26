@@ -748,7 +748,7 @@ void TmModuleJsonAlertLogRegister (void)
     tmm_modules[TMM_JSONALERTLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
-            JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition);
+        JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition, NULL, NULL, NULL);
     OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.alert",
             JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition);
 }
