@@ -266,9 +266,8 @@ void TmModuleJsonSmtpLogRegister (void) {
     tmm_modules[TMM_JSONSMTPLOG].flags = TM_FLAG_LOGAPI_TM;
 
     /* register as separate module */
-    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log",
-                               OutputSmtpLogInit, ALPROTO_SMTP,
-                               JsonSmtpLogger);
+    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log", OutputSmtpLogInit,
+        ALPROTO_SMTP, JsonSmtpLogger, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModule("eve-log", "JsonSmtpLog",
