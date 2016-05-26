@@ -964,6 +964,8 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
                    alstate, AppLayerGetProtoName(f->alproto));
     }
 
+    uint64_t p_tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0 || (flags & STREAM_EOF)) {
         /* invoke the parser */
@@ -1011,6 +1013,14 @@ int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow 
         }
     }
 
+    if (AppLayerParserProtocolIsTxAware(f->proto, alproto)) {
+        if (likely(tv)) {
+            uint64_t cur_tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+            if (cur_tx_cnt > p_tx_cnt) {
+                AppLayerIncTxCounter(tv, f, cur_tx_cnt - p_tx_cnt);
+            }
+        }
+    }
     /* next, see if we can get rid of transactions now */
     AppLayerParserTransactionsCleanup(f);
 
