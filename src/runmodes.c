@@ -607,9 +607,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
 #endif
 
     if (module->PacketLogFunc) {
-        SCLogDebug("%s is a packet logger", module->name);
+        SCLogNotice("%s is a packet logger", module->name);
         OutputRegisterPacketLogger(module->name, module->PacketLogFunc,
-                module->PacketConditionFunc, output_ctx);
+            module->PacketConditionFunc, output_ctx, module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
 
         /* need one instance of the packet logger module */
         if (pkt_logger_module == NULL) {
