@@ -38,7 +38,10 @@ typedef int (*TxLoggerCondition)(ThreadVars *, const Packet *, void *state, void
 
 int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
         OutputCtx *, int tc_log_progress, int ts_log_progress,
-        TxLoggerCondition LogCondition);
+        TxLoggerCondition LogCondition,
+        TmEcode (*ThreadInit)(ThreadVars *, void *, void **),
+        TmEcode (*ThreadDeinit)(ThreadVars *, void *),
+        void (*ThreadExitPrintStats)(ThreadVars *, void *));
 
 void TmModuleTxLoggerRegister (void);
 
