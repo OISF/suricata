@@ -143,4 +143,6 @@ void AppLayerRegisterGlobalCounters(void);
 void AppLayerUnittestsRegister(void);
 #endif
 
+void AppLayerIncTxCounter(ThreadVars *tv, Flow *f, uint64_t step);
+
 #endif
