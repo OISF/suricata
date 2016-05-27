@@ -432,34 +432,22 @@ static TmEcode JsonNetFlowLogThreadDeinit(ThreadVars *t, void *data)
 
 void TmModuleJsonNetFlowLogRegister (void)
 {
-    tmm_modules[TMM_JSONNETFLOWLOG].name = "JsonNetFlowLog";
-    tmm_modules[TMM_JSONNETFLOWLOG].ThreadInit = JsonNetFlowLogThreadInit;
-    tmm_modules[TMM_JSONNETFLOWLOG].ThreadDeinit = JsonNetFlowLogThreadDeinit;
-    tmm_modules[TMM_JSONNETFLOWLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONNETFLOWLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONNETFLOWLOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
     OutputRegisterFlowModule("JsonNetFlowLog", "netflow-json-log",
-            OutputNetFlowLogInit, JsonNetFlowLogger, NULL, NULL, NULL);
+        OutputNetFlowLogInit, JsonNetFlowLogger, JsonNetFlowLogThreadInit,
+        JsonNetFlowLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterFlowSubModule("eve-log", "JsonNetFlowLog", "eve-log.netflow",
-            OutputNetFlowLogInitSub, JsonNetFlowLogger, NULL, NULL, NULL);
+        OutputNetFlowLogInitSub, JsonNetFlowLogger, JsonNetFlowLogThreadInit,
+        JsonNetFlowLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonNetFlowLogRegister (void)
 {
-    tmm_modules[TMM_JSONNETFLOWLOG].name = "JsonNetFlowLog";
-    tmm_modules[TMM_JSONNETFLOWLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
