@@ -91,13 +91,17 @@ void OutputRegisterTxSubModule(const char *parent_name, const char *name,
     ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name,
-        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-        TxLogger TxLogFunc, TxLoggerCondition TxLogCondition);
+void OutputRegisterTxModuleWithCondition(const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+    TxLogger TxLogFunc, TxLoggerCondition TxLogCondition,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
-        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
-        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
-        TxLoggerCondition TxLogCondition);
+    const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx), AppProto alproto,
+    TxLogger TxLogFunc, TxLoggerCondition TxLogCondition,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
