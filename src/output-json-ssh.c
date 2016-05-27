@@ -316,34 +316,22 @@ dontlog:
 
 void TmModuleJsonSshLogRegister (void)
 {
-    tmm_modules[TMM_JSONSSHLOG].name = "JsonSshLog";
-    tmm_modules[TMM_JSONSSHLOG].ThreadInit = JsonSshLogThreadInit;
-    tmm_modules[TMM_JSONSSHLOG].ThreadDeinit = JsonSshLogThreadDeinit;
-    tmm_modules[TMM_JSONSSHLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONSSHLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONSSHLOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
     OutputRegisterPacketModule("JsonSshLog", "ssh-json-log", OutputSshLogInit,
-        JsonSshLogger, JsonSshCondition, NULL, NULL, NULL);
+        JsonSshLogger, JsonSshCondition, JsonSshLogThreadInit,
+        JsonSshLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterPacketSubModule("eve-log", "JsonSshLog", "eve-log.ssh",
-        OutputSshLogInitSub, JsonSshLogger, JsonSshCondition, NULL, NULL, NULL);
+        OutputSshLogInitSub, JsonSshLogger, JsonSshCondition,
+        JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonSshLogRegister (void)
 {
-    tmm_modules[TMM_JSONSSHLOG].name = "JsonSshLog";
-    tmm_modules[TMM_JSONSSHLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
