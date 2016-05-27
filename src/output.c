@@ -202,7 +202,10 @@ void OutputRegisterTxSubModuleWrapper(const char *parent_name,
         const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
         OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
         int tc_log_progress, int ts_log_progress,
-        TxLoggerCondition TxLogCondition)
+        TxLoggerCondition TxLogCondition,
+        ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -222,6 +225,9 @@ void OutputRegisterTxSubModuleWrapper(const char *parent_name,
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
     module->ts_log_progress = ts_log_progress;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Tx logger \"%s\" registered.", name);
@@ -255,7 +261,7 @@ void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
                                      alproto, TxLogFunc, -1, -1,
-                                     TxLogCondition);
+                                     TxLogCondition, NULL, NULL, NULL);
 }
 
 /**
@@ -267,22 +273,27 @@ void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
  * \retval Returns 0 on success, -1 on failure.
  */
 void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
-        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-        TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress)
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+    TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
-                                  TxLogFunc, tc_log_progress, ts_log_progress,
-                                  NULL, NULL, NULL, NULL);
+        TxLogFunc, tc_log_progress, ts_log_progress, NULL, ThreadInit,
+        ThreadDeinit, ThreadExitPrintStats);
 }
 
 void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
-        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
-        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
-        int tc_log_progress, int ts_log_progress)
+    const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc, int tc_log_progress,
+    int ts_log_progress, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
-                                     alproto, TxLogFunc, tc_log_progress,
-                                     ts_log_progress, NULL);
+        alproto, TxLogFunc, tc_log_progress, ts_log_progress, NULL, ThreadInit,
+        ThreadDeinit, ThreadExitPrintStats);
 }
 
 /**
@@ -305,13 +316,17 @@ OutputRegisterTxModule(const char *name, const char *conf_name,
                                   ThreadDeinit, ThreadExitPrintStats);
 }
 
-void
-OutputRegisterTxSubModule(const char *parent_name, const char *name,
-    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc)
+void OutputRegisterTxSubModule(const char *parent_name, const char *name,
+    const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name,
-                                     InitFunc, alproto, TxLogFunc, -1, -1, NULL);
+                                     InitFunc, alproto, TxLogFunc, -1, -1, NULL,
+                                     ThreadInit, ThreadDeinit,
+                                     ThreadExitPrintStats);
 }
 
 /**

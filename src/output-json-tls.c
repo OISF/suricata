@@ -320,12 +320,12 @@ void TmModuleJsonTlsLogRegister (void)
     /* register as separate module */
     OutputRegisterTxModuleWithProgress("JsonTlsLog", "tls-json-log",
             OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
-            TLS_HANDSHAKE_DONE);
+            TLS_HANDSHAKE_DONE, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress("eve-log", "JsonTlsLog",
             "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger,
-            TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE);
+            TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, NULL, NULL, NULL);
 }
 
 #else
