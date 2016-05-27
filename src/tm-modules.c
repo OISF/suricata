@@ -244,7 +244,6 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_LUALOG);
         CASE_CODE (TMM_RECEIVENETMAP);
         CASE_CODE (TMM_DECODENETMAP);
-        CASE_CODE (TMM_TLSSTORE);
 
         CASE_CODE (TMM_SIZE);
     }
