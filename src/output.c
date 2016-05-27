@@ -486,7 +486,9 @@ error:
  */
 void
 OutputRegisterFlowModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc)
+    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(FlowLogFunc == NULL)) {
         goto error;
@@ -501,6 +503,9 @@ OutputRegisterFlowModule(const char *name, const char *conf_name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->FlowLogFunc = FlowLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Flow logger \"%s\" registered.", name);
@@ -521,7 +526,9 @@ error:
 void
 OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    FlowLogger FlowLogFunc)
+    FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(FlowLogFunc == NULL)) {
         goto error;
@@ -537,6 +544,9 @@ OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->FlowLogFunc = FlowLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Flow logger \"%s\" registered.", name);
