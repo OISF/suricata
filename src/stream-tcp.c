@@ -4652,7 +4652,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
              (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
             /* we can call offloading callback, if enabled */
-            if (stream_config.offload && p->livedev && p->livedev->offload_callback) {
+            if (StreamTcpOffloadEnabled() && p->livedev && p->livedev->offload_callback) {
                 p->livedev->offload_callback(p);
             }
         }
@@ -4669,7 +4669,7 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
             /* we can call offloading callback, if enabled */
-            if (stream_config.offload && p->livedev && p->livedev->offload_callback) {
+            if (StreamTcpOffloadEnabled() && p->livedev && p->livedev->offload_callback) {
                 p->livedev->offload_callback(p);
             }
         }
