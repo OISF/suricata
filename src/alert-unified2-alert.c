@@ -235,17 +235,10 @@ int Unified2Logger(ThreadVars *tv, void *data, const Packet *p);
 
 void TmModuleUnified2AlertRegister(void)
 {
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadInit = Unified2AlertThreadInit;
-//    tmm_modules[TMM_ALERTUNIFIED2ALERT].Func = Unified2Alert;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadDeinit = Unified2AlertThreadDeinit;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].cap_flags = 0;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].flags = TM_FLAG_LOGAPI_TM;
-
-    //OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
     OutputRegisterPacketModule(MODULE_NAME, "unified2-alert",
-        Unified2AlertInitCtx, Unified2Logger, Unified2Condition, NULL, NULL, NULL);
+        Unified2AlertInitCtx, Unified2Logger, Unified2Condition,
+        Unified2AlertThreadInit, Unified2AlertThreadDeinit, NULL);
+    Unified2RegisterTests();
 }
 
 /**
