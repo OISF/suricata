@@ -115,7 +115,6 @@ typedef struct SMTPState_ {
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
     uint8_t current_line_delimiter_len;
-    PatternMatcherQueue *thread_local_data;
 
     /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */

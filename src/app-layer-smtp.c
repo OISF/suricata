@@ -152,10 +152,14 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
     { NULL,                      -1 },
 };
 
+typedef struct SMTPThreadCtx_ {
+    MpmThreadCtx *smtp_mpm_thread_ctx;
+    PatternMatcherQueue *pmq;
+} SMTPThreadCtx;
+
 #define SMTP_MPM DEFAULT_MPM
 
 static MpmCtx *smtp_mpm_ctx = NULL;
-static MpmThreadCtx *smtp_mpm_thread_ctx = NULL;
 
 /* smtp reply codes.  If an entry is made here, please make a simultaneous
  * entry in smtp_reply_map */
@@ -887,12 +891,12 @@ static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
 }
 
 static int SMTPProcessReply(SMTPState *state, Flow *f,
-                            AppLayerParserState *pstate)
+                            AppLayerParserState *pstate,
+                            SMTPThreadCtx *td)
 {
     SCEnter();
 
     uint64_t reply_code = 0;
-    PatternMatcherQueue *pmq = state->thread_local_data;
 
     /* the reply code has to contain at least 3 bytes, to hold the 3 digit
      * reply code */
@@ -920,9 +924,9 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 
     /* I don't like this pmq reset here.  We'll devise a method later, that
      * should make the use of the mpm very efficient */
-    PmqReset(pmq);
-    int mpm_cnt = mpm_table[SMTP_MPM].Search(smtp_mpm_ctx, smtp_mpm_thread_ctx,
-                                             pmq, state->current_line,
+    PmqReset(td->pmq);
+    int mpm_cnt = mpm_table[SMTP_MPM].Search(smtp_mpm_ctx, td->smtp_mpm_thread_ctx,
+                                             td->pmq, state->current_line,
                                              3);
     if (mpm_cnt == 0) {
         /* set decoder event - reply code invalid */
@@ -931,7 +935,7 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
     }
-    reply_code = smtp_reply_map[pmq->rule_id_array[0]].enum_value;
+    reply_code = smtp_reply_map[td->pmq->rule_id_array[0]].enum_value;
 
     if (state->cmds_idx == state->cmds_cnt) {
         if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1240,7 +1244,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 static int SMTPParse(int direction, Flow *f, SMTPState *state,
                      AppLayerParserState *pstate, uint8_t *input,
                      uint32_t input_len,
-                     PatternMatcherQueue *local_data)
+                     SMTPThreadCtx *thread_data)
 {
     SCEnter();
 
@@ -1253,7 +1257,6 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     state->input = input;
     state->input_len = input_len;
     state->direction = direction;
-    state->thread_local_data = local_data;
 
     /* toserver */
     if (direction == 0) {
@@ -1265,7 +1268,7 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
         /* toclient */
     } else {
         while (SMTPGetLine(state) >= 0) {
-            if (SMTPProcessReply(state, f, pstate) == -1)
+            if (SMTPProcessReply(state, f, pstate, thread_data) == -1)
                 SCReturnInt(-1);
         }
     }
@@ -1343,20 +1346,40 @@ static void SMTPStringFree(SMTPString *str)
 static void *SMTPLocalStorageAlloc(void)
 {
     /* needed by the mpm */
-    PatternMatcherQueue *pmq = SCMalloc(sizeof(PatternMatcherQueue));
-    if (unlikely(pmq == NULL)) {
+    SMTPThreadCtx *td = SCCalloc(1, sizeof(*td));
+    if (td == NULL) {
         exit(EXIT_FAILURE);
     }
-    PmqSetup(pmq);
 
-    return pmq;
+    td->pmq = SCCalloc(1, sizeof(*td->pmq));
+    if (td->pmq == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    PmqSetup(td->pmq);
+
+    td->smtp_mpm_thread_ctx = SCCalloc(1, sizeof(MpmThreadCtx));
+    if (unlikely(td->smtp_mpm_thread_ctx == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    MpmInitThreadCtx(td->smtp_mpm_thread_ctx, SMTP_MPM);
+    return td;
 }
 
-static void SMTPLocalStorageFree(void *pmq)
+static void SMTPLocalStorageFree(void *ptr)
 {
-    if (pmq != NULL) {
-        PmqFree(pmq);
-        SCFree(pmq);
+    SMTPThreadCtx *td = ptr;
+    if (td != NULL) {
+        if (td->pmq != NULL) {
+            PmqFree(td->pmq);
+            SCFree(td->pmq);
+        }
+
+        if (td->smtp_mpm_thread_ctx != NULL) {
+            mpm_table[SMTP_MPM].DestroyThreadCtx(smtp_mpm_ctx, td->smtp_mpm_thread_ctx);
+            SCFree(td->smtp_mpm_thread_ctx);
+        }
+
+        SCFree(td);
     }
 
     return;
@@ -1448,22 +1471,13 @@ static void SMTPSetMpmState(void)
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
 
-    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
-    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
 }
 
 static void SMTPFreeMpmState(void)
 {
-    if (smtp_mpm_thread_ctx != NULL) {
-        mpm_table[SMTP_MPM].DestroyThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx);
-        smtp_mpm_thread_ctx = NULL;
-    }
     if (smtp_mpm_ctx != NULL) {
         mpm_table[SMTP_MPM].DestroyCtx(smtp_mpm_ctx);
+        SCFree(smtp_mpm_ctx);
         smtp_mpm_ctx = NULL;
     }
 }
