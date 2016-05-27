@@ -222,7 +222,7 @@ static int DetectEngineHttpStatMsgTest01(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -247,7 +247,7 @@ static int DetectEngineHttpStatMsgTest01(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -344,7 +344,7 @@ static int DetectEngineHttpStatMsgTest02(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -354,7 +354,7 @@ static int DetectEngineHttpStatMsgTest02(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -466,7 +466,7 @@ static int DetectEngineHttpStatMsgTest03(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -491,7 +491,7 @@ static int DetectEngineHttpStatMsgTest03(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -501,7 +501,7 @@ static int DetectEngineHttpStatMsgTest03(void)
     SCMutexUnlock(&f.m);
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf3, http_len3);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -604,7 +604,7 @@ static int DetectEngineHttpStatMsgTest04(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -629,7 +629,7 @@ static int DetectEngineHttpStatMsgTest04(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -732,7 +732,7 @@ static int DetectEngineHttpStatMsgTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -757,7 +757,7 @@ static int DetectEngineHttpStatMsgTest05(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -860,7 +860,7 @@ static int DetectEngineHttpStatMsgTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -885,7 +885,7 @@ static int DetectEngineHttpStatMsgTest06(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -988,7 +988,7 @@ static int DetectEngineHttpStatMsgTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1013,7 +1013,7 @@ static int DetectEngineHttpStatMsgTest07(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1116,7 +1116,7 @@ static int DetectEngineHttpStatMsgTest08(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1141,7 +1141,7 @@ static int DetectEngineHttpStatMsgTest08(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1245,7 +1245,7 @@ static int DetectEngineHttpStatMsgTest09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1270,7 +1270,7 @@ static int DetectEngineHttpStatMsgTest09(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1374,7 +1374,7 @@ static int DetectEngineHttpStatMsgTest10(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1399,7 +1399,7 @@ static int DetectEngineHttpStatMsgTest10(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1503,7 +1503,7 @@ static int DetectEngineHttpStatMsgTest11(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1528,7 +1528,7 @@ static int DetectEngineHttpStatMsgTest11(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1632,7 +1632,7 @@ static int DetectEngineHttpStatMsgTest12(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1657,7 +1657,7 @@ static int DetectEngineHttpStatMsgTest12(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1761,7 +1761,7 @@ static int DetectEngineHttpStatMsgTest13(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1786,7 +1786,7 @@ static int DetectEngineHttpStatMsgTest13(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -1890,7 +1890,7 @@ static int DetectEngineHttpStatMsgTest14(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1915,7 +1915,7 @@ static int DetectEngineHttpStatMsgTest14(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
@@ -2019,7 +2019,7 @@ static int DetectEngineHttpStatMsgTest15(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2044,7 +2044,7 @@ static int DetectEngineHttpStatMsgTest15(void)
     }
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, STREAM_TOCLIENT, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
         result = 0;
