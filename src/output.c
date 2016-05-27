@@ -203,7 +203,10 @@ void OutputRegisterTxSubModuleWrapper(const char *parent_name,
         const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
         OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
         int tc_log_progress, int ts_log_progress,
-        TxLoggerCondition TxLogCondition)
+        TxLoggerCondition TxLogCondition,
+        ThreadInitFunc ThreadInit,
+        ThreadDeinitFunc ThreadDeinit,
+        ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(TxLogFunc == NULL)) {
         goto error;
@@ -223,6 +226,9 @@ void OutputRegisterTxSubModuleWrapper(const char *parent_name,
     module->alproto = alproto;
     module->tc_log_progress = tc_log_progress;
     module->ts_log_progress = ts_log_progress;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Tx logger \"%s\" registered.", name);
@@ -256,7 +262,7 @@ void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
                                      alproto, TxLogFunc, 0, 0,
-                                     TxLogCondition);
+                                     TxLogCondition, NULL, NULL, NULL);
 }
 
 /**
@@ -283,7 +289,7 @@ void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
                                      alproto, TxLogFunc, tc_log_progress,
-                                     ts_log_progress, NULL);
+                                     ts_log_progress, NULL, NULL, NULL, NULL);
 }
 
 /**
@@ -306,13 +312,17 @@ OutputRegisterTxModule(const char *name, const char *conf_name,
                                   ThreadDeinit, ThreadExitPrintStats);
 }
 
-void
-OutputRegisterTxSubModule(const char *parent_name, const char *name,
-    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc)
+void OutputRegisterTxSubModule(const char *parent_name, const char *name,
+    const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name,
-                                     InitFunc, alproto, TxLogFunc, 0, 0, NULL);
+                                     InitFunc, alproto, TxLogFunc, 0, 0, NULL,
+                                     ThreadInit, ThreadDeinit,
+                                     ThreadExitPrintStats);
 }
 
 /**
