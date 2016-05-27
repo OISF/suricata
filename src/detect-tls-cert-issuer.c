@@ -391,7 +391,7 @@ static int DetectTlsIssuerTest02(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     SCMutexLock(&f.m);
-    int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
+    int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER,
                                 client_hello, sizeof(client_hello));
     SCMutexUnlock(&f.m);
 
@@ -405,7 +405,7 @@ static int DetectTlsIssuerTest02(void)
     FAIL_IF(PacketAlertCheck(p1, 1));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             server_hello, sizeof(server_hello));
     SCMutexUnlock(&f.m);
 
@@ -416,7 +416,7 @@ static int DetectTlsIssuerTest02(void)
     FAIL_IF(PacketAlertCheck(p2, 1));
 
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT,
                             certificate, sizeof(certificate));
     SCMutexUnlock(&f.m);
 
