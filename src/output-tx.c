@@ -268,29 +268,9 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, void *initdata, void **data
 
     OutputTxLogger *logger = list;
     while (logger) {
-
-        TmEcode (*ThreadInit)(ThreadVars *, void *, void **) = NULL;
-
         if (logger->ThreadInit) {
-            SCLogNotice("Logger %s has ThreadInit.", logger->name);
-            ThreadInit = logger->ThreadInit;
-        } else {
-            SCLogNotice("Logger %s DOES NOT have ThreadInit.", logger->name);
-        }
-
-        if (ThreadInit == NULL) {
-            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-                exit(EXIT_FAILURE);
-            }
-            ThreadInit = tm_module->ThreadInit;
-        }
-
-        if (ThreadInit) {
             void *retptr = NULL;
-            if (ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -324,24 +304,8 @@ static TmEcode OutputTxLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputTxLogger *logger = list;
 
     while (logger && store) {
-        TmEcode (*ThreadDeinit)(ThreadVars *, void *) = NULL;
-
         if (logger->ThreadDeinit) {
-            ThreadDeinit = logger->ThreadDeinit;
-        }
-
-        if (ThreadDeinit == NULL) {
-            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-                exit(EXIT_FAILURE);
-            }
-            ThreadDeinit = tm_module->ThreadDeinit;
-        }
-
-        if (ThreadDeinit) {
-            ThreadDeinit(tv, store->thread_data);
+            logger->ThreadDeinit(tv, store->thread_data);
         }
 
         OutputLoggerThreadStore *next_store = store->next;
@@ -361,24 +325,8 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputTxLogger *logger = list;
 
     while (logger && store) {
-        void (*ThreadExitPrintStats)(ThreadVars *, void *) = NULL;
-
         if (logger->ThreadExitPrintStats) {
-            ThreadExitPrintStats = logger->ThreadExitPrintStats;
-        }
-
-        if (ThreadExitPrintStats == NULL) {
-            TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-                exit(EXIT_FAILURE);
-            }
-            ThreadExitPrintStats = tm_module->ThreadExitPrintStats;
-        }
-
-        if (ThreadExitPrintStats) {
-            ThreadExitPrintStats(tv, store->thread_data);
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
