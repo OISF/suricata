@@ -128,7 +128,9 @@ error:
 void
 OutputRegisterPacketSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc)
+    PacketLogger PacketLogFunc, PacketLogCondition PacketConditionFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(PacketLogFunc == NULL || PacketConditionFunc == NULL)) {
         goto error;
@@ -145,6 +147,9 @@ OutputRegisterPacketSubModule(const char *parent_name, const char *name,
     module->InitSubFunc = InitFunc;
     module->PacketLogFunc = PacketLogFunc;
     module->PacketConditionFunc = PacketConditionFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Packet logger \"%s\" registered.", name);
