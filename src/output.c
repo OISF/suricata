@@ -639,7 +639,9 @@ error:
  */
 void
 OutputRegisterStatsModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), StatsLogger StatsLogFunc)
+    OutputCtx *(*InitFunc)(ConfNode *), StatsLogger StatsLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(StatsLogFunc == NULL)) {
         goto error;
@@ -654,6 +656,9 @@ OutputRegisterStatsModule(const char *name, const char *conf_name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->StatsLogFunc = StatsLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Stats logger \"%s\" registered.", name);
@@ -674,7 +679,9 @@ error:
 void
 OutputRegisterStatsSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    StatsLogger StatsLogFunc)
+    StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(StatsLogFunc == NULL)) {
         goto error;
@@ -690,6 +697,9 @@ OutputRegisterStatsSubModule(const char *parent_name, const char *name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->StatsLogFunc = StatsLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Stats logger \"%s\" registered.", name);
