@@ -31,45 +31,13 @@ UNINITIALIZED READ
 name=Hyperscan false positives due to DrMemory limitations 1
 ...
 libhs.so.*!hs_compile_ext_multi
-suricata!SigGroupBuild
-...
-suricata!main
+*
 
 UNINITIALIZED READ
 name=Hyperscan false positives due to DrMemory limitations 2
 ...
-libhs.so.*!hs_compile_ext_multi
-suricata!SigGroupBuild
-...
-libc.so.6!__clone
-
-UNINITIALIZED READ
-name=Hyperscan false positives due to DrMemory limitations 3
-...
 libhs.so.*!hs_compile
-suricata!SpmInitCtx
-...
-suricata!main
-
-UNINITIALIZED READ
-name=Hyperscan false positives due to DrMemory limitations 4
-...
-libhs.so.*!hs_compile
-suricata!SpmInitCtx
-...
-libc.so.6!__clone
-
-UNINITIALIZED READ
-name=Hyperscan false positives due to DrMemory limitations 5
-...
-libhs.so.*!hs_compile
-suricata!HSBuildDatabase
-
-UNINITIALIZED READ
-name=Hyperscan false positives due to DrMemory limitations 6
-...
-libhs.so.*!hs_compile
-suricata!HSBuildDatabase
+*
 
 WARNING
 name=Prefetch warnings 1
