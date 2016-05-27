@@ -192,8 +192,7 @@ static int TmThreadTimeoutLoop(ThreadVars *tv, TmSlot *s)
     int r = TM_ECODE_OK;
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
-        if (slot->tm_id == TMM_FLOWWORKER ||
-            slot->tm_id == TMM_STREAMTCP)
+        if (slot->tm_id == TMM_FLOWWORKER)
         {
             stream_slot = slot;
             break;

@@ -234,7 +234,6 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_PCAPLOG);
         CASE_CODE (TMM_FILELOG);
         CASE_CODE (TMM_FILESTORE);
-        CASE_CODE (TMM_STREAMTCP);
         CASE_CODE (TMM_DECODEIPFW);
         CASE_CODE (TMM_VERDICTIPFW);
         CASE_CODE (TMM_RECEIVEIPFW);

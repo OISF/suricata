@@ -217,7 +217,7 @@ SCProfilingInit(void)
                 for (i = 0; i < ALPROTO_MAX; i++) {
                     fprintf(packet_profile_csv_fp, "%s,", AppProtoToString(i));
                 }
-                fprintf(packet_profile_csv_fp, "STREAM (no app),proto detect,");
+                fprintf(packet_profile_csv_fp, "proto detect,");
                 for (i = 0; i < PROF_DETECT_SIZE; i++) {
                     fprintf(packet_profile_csv_fp, "%s,", PacketProfileDetectIdToString(i));
                 }
@@ -450,7 +450,6 @@ void SCProfilingDumpPacketStats(void)
                     TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
     }
-    fprintf(fp, "Note: TMM_STREAMTCP includes TCP app layer parsers, see below.\n");
 
     fprintf(fp, "\nPer App layer parser stats:\n");
 
@@ -694,7 +693,6 @@ void SCProfilingPrintPacketProfile(Packet *p)
 
     int i;
     uint64_t tmm_total = 0;
-    uint64_t tmm_streamtcp_tcp = 0;
 
     for (i = 0; i < TMM_SIZE; i++) {
         PktProfilingTmmData *pdt = &p->profile->tmm[i];
@@ -702,10 +700,6 @@ void SCProfilingPrintPacketProfile(Packet *p)
         uint64_t tmm_delta = pdt->ticks_end - pdt->ticks_start;
         fprintf(packet_profile_csv_fp, "%"PRIu64",", tmm_delta);
         tmm_total += tmm_delta;
-
-        if (p->proto == IPPROTO_TCP && i == TMM_STREAMTCP) {
-            tmm_streamtcp_tcp = tmm_delta;
-        }
     }
 
     fprintf(packet_profile_csv_fp, "%"PRIu64",", delta - tmm_total);
@@ -720,11 +714,6 @@ void SCProfilingPrintPacketProfile(Packet *p)
             app_total += pdt->ticks_spent;
         }
     }
-
-    uint64_t real_tcp = 0;
-    if (tmm_streamtcp_tcp > app_total)
-        real_tcp = tmm_streamtcp_tcp - app_total;
-    fprintf(packet_profile_csv_fp, "%"PRIu64",", real_tcp);
 
     fprintf(packet_profile_csv_fp, "%"PRIu64",", p->profile->proto_detect);
 
