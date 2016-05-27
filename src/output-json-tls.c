@@ -310,36 +310,23 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
 void TmModuleJsonTlsLogRegister (void)
 {
-    tmm_modules[TMM_JSONTLSLOG].name = "JsonTlsLog";
-    tmm_modules[TMM_JSONTLSLOG].ThreadInit = JsonTlsLogThreadInit;
-    tmm_modules[TMM_JSONTLSLOG].ThreadDeinit = JsonTlsLogThreadDeinit;
-    tmm_modules[TMM_JSONTLSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONTLSLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONTLSLOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
     OutputRegisterTxModuleWithProgress("JsonTlsLog", "tls-json-log",
-            OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
-            TLS_HANDSHAKE_DONE, NULL, NULL, NULL);
+        OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
+        TLS_HANDSHAKE_DONE, JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterTxSubModuleWithProgress("eve-log", "JsonTlsLog",
-            "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger,
-            TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, NULL, NULL, NULL);
+        "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger,
+        TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, JsonTlsLogThreadInit,
+        JsonTlsLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonTlsLogRegister (void)
 {
-    tmm_modules[TMM_JSONTLSLOG].name = "JsonTlsLog";
-    tmm_modules[TMM_JSONTLSLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
