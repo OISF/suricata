@@ -129,10 +129,15 @@ void OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
     FiledataLogger FiledataLogFunc);
 
 void OutputRegisterFlowModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc);
+    OutputCtx *(*InitFunc)(ConfNode *), FlowLogger FlowLogFunc,
+    ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    FlowLogger FlowLogFunc);
+    FlowLogger FlowLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterStreamingModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,

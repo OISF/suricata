@@ -441,11 +441,11 @@ void TmModuleJsonNetFlowLogRegister (void)
 
     /* register as separate module */
     OutputRegisterFlowModule("JsonNetFlowLog", "netflow-json-log",
-            OutputNetFlowLogInit, JsonNetFlowLogger);
+            OutputNetFlowLogInit, JsonNetFlowLogger, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
     OutputRegisterFlowSubModule("eve-log", "JsonNetFlowLog", "eve-log.netflow",
-            OutputNetFlowLogInitSub, JsonNetFlowLogger);
+            OutputNetFlowLogInitSub, JsonNetFlowLogger, NULL, NULL, NULL);
 }
 
 #else
