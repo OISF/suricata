@@ -512,15 +512,8 @@ static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *
 
 void TmModuleAlertDebugLogRegister (void)
 {
-    tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG].Func = NULL;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
-    tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
-    tmm_modules[TMM_ALERTDEBUGLOG].flags = TM_FLAG_LOGAPI_TM;
-
     OutputRegisterPacketModule(MODULE_NAME, "alert-debug",
-        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition, NULL, NULL, NULL);
+        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,
+        AlertDebugLogThreadInit, AlertDebugLogThreadDeinit,
+        AlertDebugLogExitPrintStats);
 }
