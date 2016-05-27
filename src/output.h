@@ -86,8 +86,11 @@ void OutputRegisterTxModule(const char *name, const char *conf_name,
     void (*ThreadExitPrintStats)(ThreadVars *, void *));
 
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
-    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc);
+    const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name,
         OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
@@ -98,11 +101,17 @@ void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
         TxLoggerCondition TxLogCondition);
 
 void OutputRegisterTxModuleWithProgress(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-    TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress);
-void OutputRegisterTxSubModuleWithProgress(const char *parent_name, const char *name,
-    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc, int tc_log_progress, int ts_log_progress);
+    OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto, TxLogger TxLogFunc,
+    int tc_log_progress, int ts_log_progress, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
+void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
+    const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc, int tc_log_progress,
+    int ts_log_progress, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
