@@ -191,6 +191,8 @@ int AppLayerParserDeSetup(void)
 {
     SCEnter();
 
+    SMTPParserCleanup();
+
     SCReturnInt(0);
 }
 

@@ -1528,6 +1528,8 @@ int AppLayerProtoDetectSetup(void)
     memset(&alpd_ctx, 0, sizeof(alpd_ctx));
 
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
+    uint16_t mpm_matcher = PatternMatchDefaultMatcher();
+
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
         SCLogError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
@@ -1536,7 +1538,7 @@ int AppLayerProtoDetectSetup(void)
 
     for (i = 0; i < FLOW_PROTO_DEFAULT; i++) {
         for (j = 0; j < 2; j++) {
-            MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, MPM_AC);
+            MpmInitCtx(&alpd_ctx.ctx_ipp[i].ctx_pm[j].mpm_ctx, mpm_matcher);
         }
     }
     SCReturnInt(0);
@@ -1558,7 +1560,7 @@ int AppLayerProtoDetectDeSetup(void)
     for (ipproto_map = 0; ipproto_map < FLOW_PROTO_DEFAULT; ipproto_map++) {
         for (dir = 0; dir < 2; dir++) {
             pm_ctx = &alpd_ctx.ctx_ipp[ipproto_map].ctx_pm[dir];
-            mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(pm_ctx->mpm_ctx.ctx);
+            mpm_table[pm_ctx->mpm_ctx.mpm_type].DestroyCtx(&pm_ctx->mpm_ctx);
             for (id = 0; id < pm_ctx->max_sig_id; id++) {
                 sig = pm_ctx->map[id];
                 AppLayerProtoDetectPMFreeSignature(sig);

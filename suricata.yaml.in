@@ -722,8 +722,17 @@ cuda:
     cuda-streams: 2
 
 # Select the multi pattern algorithm you want to run for scan/search the
-# in the engine. The supported algorithms are b2g, b3g, wumanber,
-# ac, ac-bs and ac-gfbs.
+# in the engine.
+#
+# The supported algorithms are:
+# "ac"      - Aho-Corasick, default implementation
+# "ac-bs"   - Aho-Corasick, reduced memory implementation
+# "ac-cuda" - Aho-Corasick, CUDA implementation
+# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
+# "hs"      - Hyperscan, available when built with Hyperscan support
+#
+# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
+# "ac-tile" on Tilera platforms, and "ac" otherwise.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
 # signature groups, specified by the conf - "detect.sgh-mpm-context".
@@ -736,7 +745,7 @@ cuda:
 # compiled with --enable-cuda: b2g_cuda. Make sure to update your
 # max-pending-packets setting above as well if you use b2g_cuda.
 
-mpm-algo: ac
+mpm-algo: auto
 
 # Select the matching algorithm you want to use for single-pattern searches.
 #

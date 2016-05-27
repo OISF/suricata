@@ -155,7 +155,7 @@ SCEnumCharMap smtp_decoder_event_table[ ] = {
 #define SMTP_MPM DEFAULT_MPM
 
 static MpmCtx *smtp_mpm_ctx = NULL;
-MpmThreadCtx *smtp_mpm_thread_ctx;
+static MpmThreadCtx *smtp_mpm_thread_ctx = NULL;
 
 /* smtp reply codes.  If an entry is made here, please make a simultaneous
  * entry in smtp_reply_map */
@@ -1437,13 +1437,6 @@ static void SMTPSetMpmState(void)
     memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
     MpmInitCtx(smtp_mpm_ctx, SMTP_MPM);
 
-    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
-    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
-        exit(EXIT_FAILURE);
-    }
-    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
-    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
-
     uint32_t i = 0;
     for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
         SCEnumCharMap *map = &smtp_reply_map[i];
@@ -1454,6 +1447,25 @@ static void SMTPSetMpmState(void)
     }
 
     mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
+
+    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
+    if (unlikely(smtp_mpm_thread_ctx == NULL)) {
+        exit(EXIT_FAILURE);
+    }
+    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitThreadCtx(smtp_mpm_thread_ctx, SMTP_MPM);
+}
+
+static void SMTPFreeMpmState(void)
+{
+    if (smtp_mpm_thread_ctx != NULL) {
+        mpm_table[SMTP_MPM].DestroyThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx);
+        smtp_mpm_thread_ctx = NULL;
+    }
+    if (smtp_mpm_ctx != NULL) {
+        mpm_table[SMTP_MPM].DestroyCtx(smtp_mpm_ctx);
+        smtp_mpm_ctx = NULL;
+    }
 }
 
 int SMTPStateGetEventInfo(const char *event_name,
@@ -1675,6 +1687,14 @@ void RegisterSMTPParsers(void)
     AppLayerParserRegisterProtocolUnittests(IPPROTO_TCP, ALPROTO_SMTP, SMTPParserRegisterTests);
 #endif
     return;
+}
+
+/**
+ * \brief Free memory allocated for global SMTP parser state.
+ */
+void SMTPParserCleanup(void)
+{
+    SMTPFreeMpmState();
 }
 
 /***************************************Unittests******************************/

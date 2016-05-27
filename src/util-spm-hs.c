@@ -141,6 +141,10 @@ static uint8_t *HSScan(const SpmCtx *ctx, SpmThreadCtx *thread_ctx,
     const SpmHsCtx *sctx = ctx->ctx;
     hs_scratch_t *scratch = thread_ctx->ctx;
 
+    if (unlikely(haystack_len == 0)) {
+        return NULL;
+    }
+
     uint64_t match_offset = UINT64_MAX;
     hs_error_t err = hs_scan(sctx->db, (const char *)haystack, haystack_len, 0,
                              scratch, MatchEvent, &match_offset);
