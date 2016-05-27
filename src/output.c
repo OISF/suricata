@@ -587,7 +587,9 @@ error:
 void
 OutputRegisterStreamingModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,
-    enum OutputStreamingType stream_type)
+    enum OutputStreamingType stream_type, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(StreamingLogFunc == NULL)) {
         goto error;
@@ -603,6 +605,9 @@ OutputRegisterStreamingModule(const char *name, const char *conf_name,
     module->InitFunc = InitFunc;
     module->StreamingLogFunc = StreamingLogFunc;
     module->stream_type = stream_type;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Streaming logger \"%s\" registered.", name);
@@ -623,7 +628,9 @@ error:
 void
 OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type)
+    StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(StreamingLogFunc == NULL)) {
         goto error;
@@ -640,6 +647,9 @@ OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     module->InitSubFunc = InitFunc;
     module->StreamingLogFunc = StreamingLogFunc;
     module->stream_type = stream_type;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Streaming logger \"%s\" registered.", name);
