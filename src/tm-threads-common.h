@@ -79,7 +79,6 @@ typedef enum {
     TMM_UNIXMANAGER,
 
     TMM_LUALOG,
-    TMM_TLSSTORE,
     TMM_SIZE,
 } TmmId;
 

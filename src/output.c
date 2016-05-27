@@ -250,23 +250,25 @@ error:
  *
  * \retval Returns 0 on success, -1 on failure.
  */
-void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name,
-        OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
-        TxLogger TxLogFunc, TxLoggerCondition TxLogCondition)
+void OutputRegisterTxModuleWithCondition(const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
+    TxLogger TxLogFunc, TxLoggerCondition TxLogCondition,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
-                                  TxLogFunc, -1, -1, TxLogCondition, NULL, NULL,
-                                  NULL);
+        TxLogFunc, -1, -1, TxLogCondition, NULL, NULL, NULL);
 }
 
 void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
-        const char *name, const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *,
-        OutputCtx *parent_ctx), AppProto alproto, TxLogger TxLogFunc,
-        TxLoggerCondition TxLogCondition)
+    const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx), AppProto alproto,
+    TxLogger TxLogFunc, TxLoggerCondition TxLogCondition,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
-                                     alproto, TxLogFunc, -1, -1,
-                                     TxLogCondition, NULL, NULL, NULL);
+        alproto, TxLogFunc, -1, -1, TxLogCondition, NULL, NULL, NULL);
 }
 
 /**
