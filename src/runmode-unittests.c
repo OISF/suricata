@@ -66,6 +66,8 @@
 #include "ippair-bit.h"
 #include "unix-manager.h"
 
+#include "stream-tcp.h"
+
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer.h"
@@ -193,6 +195,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
 
     UtInitialize();
     UTHRegisterTests();
+    StreamTcpRegisterTests();
     SCReputationRegisterTests();
     TmModuleRegisterTests();
     SigTableRegisterTests();

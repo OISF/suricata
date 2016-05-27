@@ -76,8 +76,6 @@ typedef struct TcpStreamCnf_ {
 typedef struct StreamTcpThread_ {
     int ssn_pool_id;
 
-    uint64_t pkts;
-
     /** queue for pseudo packet(s) that were created in the stream
      *  process and need further handling. Currently only used when
      *  receiving (valid) RST packets */
@@ -108,7 +106,6 @@ typedef struct StreamTcpThread_ {
 } StreamTcpThread;
 
 TcpStreamCnf stream_config;
-void TmModuleStreamTcpRegister (void);
 void StreamTcpInitConfig (char);
 void StreamTcpFreeConfig(char);
 void StreamTcpRegisterTests (void);
@@ -217,8 +214,12 @@ static inline int StreamNeedsReassembly(TcpSession *ssn, int direction)
     }
 }
 
+TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+void StreamTcpExitPrintStats(ThreadVars *, void *);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data);
+void StreamTcpRegisterTests (void);
+
 int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                      PacketQueue *pq);
 /* clear ssn and return to pool */

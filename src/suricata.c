@@ -859,8 +859,6 @@ void RegisterAllModules()
 
     /* flow worker */
     TmModuleFlowWorkerRegister();
-    /* stream engine */
-    TmModuleStreamTcpRegister();
     /* detection */
     TmModuleDetectRegister();
     /* respond-reject */

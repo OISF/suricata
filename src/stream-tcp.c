@@ -93,12 +93,7 @@
 #define STREAMTCP_EMERG_EST_TIMEOUT             300
 #define STREAMTCP_EMERG_CLOSED_TIMEOUT          20
 
-TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
-TmEcode StreamTcpThreadDeinit(ThreadVars *, void *);
-void StreamTcpExitPrintStats(ThreadVars *, void *);
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, Packet *, PacketQueue *);
-void StreamTcpRegisterTests (void);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(char);
 int StreamTcpGetFlowState(void *);
@@ -121,18 +116,6 @@ SC_ATOMIC_DECLARE(uint64_t, st_memuse);
 
 /* stream engine running in "inline" mode. */
 int stream_inline = 0;
-
-void TmModuleStreamTcpRegister (void)
-{
-    tmm_modules[TMM_STREAMTCP].name = "StreamTcp";
-    tmm_modules[TMM_STREAMTCP].ThreadInit = StreamTcpThreadInit;
-    tmm_modules[TMM_STREAMTCP].Func = StreamTcp;
-    tmm_modules[TMM_STREAMTCP].ThreadExitPrintStats = StreamTcpExitPrintStats;
-    tmm_modules[TMM_STREAMTCP].ThreadDeinit = StreamTcpThreadDeinit;
-    tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
-    tmm_modules[TMM_STREAMTCP].cap_flags = 0;
-    tmm_modules[TMM_STREAMTCP].flags = TM_FLAG_STREAM_TM;
-}
 
 void StreamTcpIncrMemuse(uint64_t size)
 {
@@ -4896,8 +4879,6 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     (void)StreamTcpPacket(tv, p, stt, pq);
 
-    stt->pkts++;
-
     return TM_ECODE_OK;
 }
 
@@ -4981,16 +4962,6 @@ TmEcode StreamTcpThreadDeinit(ThreadVars *tv, void *data)
 
     SCFree(stt);
     SCReturnInt(TM_ECODE_OK);
-}
-
-void StreamTcpExitPrintStats(ThreadVars *tv, void *data)
-{
-    StreamTcpThread *stt = (StreamTcpThread *)data;
-    if (stt == NULL) {
-        return;
-    }
-
-    SCLogInfo("Stream TCP processed %" PRIu64 " TCP packets", stt->pkts);
 }
 
 /**
