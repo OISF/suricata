@@ -41,7 +41,9 @@ typedef int (*FiledataLogger)(ThreadVars *, void *thread_data, const Packet *,
  */
 //typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
 
-int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, OutputCtx *);
+int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc,
+    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void TmModuleFiledataLoggerRegister (void);
 
