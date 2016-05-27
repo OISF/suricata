@@ -711,7 +711,8 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
         OutputRegisterStreamingLogger(module->name, module->StreamingLogFunc,
-                output_ctx, module->stream_type);
+            output_ctx, module->stream_type, module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
 
         /* need one instance of the streaming logger module */
         if (streaming_logger_module == NULL) {
