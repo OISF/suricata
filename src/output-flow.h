@@ -36,7 +36,9 @@ typedef int (*FlowLogger)(ThreadVars *, void *thread_data, Flow *f);
  */
 //typedef int (*TxLogCondition)(ThreadVars *, const Packet *);
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *);
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
+    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputFlowShutdown(void);
 
