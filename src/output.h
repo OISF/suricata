@@ -144,10 +144,14 @@ void OutputRegisterStreamingSubModule(const char *parent_name, const char *name,
     StreamingLogger StreamingLogFunc, enum OutputStreamingType stream_type);
 
 void OutputRegisterStatsModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), StatsLogger StatsLogFunc);
+    OutputCtx *(*InitFunc)(ConfNode *), StatsLogger StatsLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterStatsSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    StatsLogger StatsLogFunc);
+    StatsLogger StatsLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 OutputModule *OutputGetModuleByConfName(const char *name);
 void OutputDeregisterAll(void);
