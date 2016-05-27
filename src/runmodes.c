@@ -684,7 +684,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
-        OutputRegisterFileLogger(module->name, module->FileLogFunc, output_ctx);
+        OutputRegisterFileLogger(module->name, module->FileLogFunc, output_ctx,
+            module->ThreadInit, module->ThreadDeinit,
+            module->ThreadExitPrintStats);
 
         /* need one instance of the tx logger module */
         if (file_logger_module == NULL) {

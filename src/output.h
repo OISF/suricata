@@ -117,10 +117,14 @@ void OutputRegisterTxSubModuleWithProgress(const char *parent_name,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterFileModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc);
+    OutputCtx *(*InitFunc)(ConfNode *), FileLogger FileLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 void OutputRegisterFileSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    FileLogger FileLogFunc);
+    FileLogger FileLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterFiledataModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc);
