@@ -343,14 +343,14 @@ if len(buildids):
 else:
     sys.exit(0)
 
-res = 0
+buildres = 0
 if args.docker:
     while len(buildids):
         up_buildids = copy.copy(buildids)
         for build in buildids:
             ret = GetBuildStatus(build, buildids[build], builder_name = build)
             if ret == -1:
-                res = -1
+                buildres = -1
                 up_buildids.pop(build, None)
                 if len(up_buildids):
                     remains = " (remaining builds: " + ', '.join(up_buildids.keys()) + ")"
@@ -376,8 +376,10 @@ if args.docker:
 else:
     for build in buildids:
         res = WaitForBuildResult(build, buildids[build], builder_name = build)
+        if res == -1:
+            buildres = -1
 
-if res == 0:
+if buildres == 0:
     if not args.norebase and not args.docker:
         print "You can copy/paste following lines into github PR"
         for build in buildids:
