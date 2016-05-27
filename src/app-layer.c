@@ -297,7 +297,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
             ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
             PACKET_PROFILING_APP_START(app_tctx, *alproto);
-            r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
+            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto, flags, data + data_al_so_far, data_len - data_al_so_far);
             PACKET_PROFILING_APP_END(app_tctx, *alproto);
             f->data_al_so_far[dir] = 0;
         } else {
@@ -354,7 +354,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                     ssn->data_first_seen_dir = APP_LAYER_DATA_ALREADY_SENT_TO_APP_LAYER;
 
                 PACKET_PROFILING_APP_START(app_tctx, *alproto_otherdir);
-                r = AppLayerParserParse(app_tctx->alp_tctx, f, *alproto_otherdir, flags,
+                r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, *alproto_otherdir, flags,
                                   data + data_al_so_far, data_len - data_al_so_far);
                 PACKET_PROFILING_APP_END(app_tctx, *alproto_otherdir);
                 if (FLOW_IS_PM_DONE(f, flags) && FLOW_IS_PP_DONE(f, flags)) {
@@ -464,7 +464,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
             PACKET_PROFILING_APP_START(app_tctx, f->alproto);
-            r = AppLayerParserParse(app_tctx->alp_tctx, f, f->alproto, flags, data, data_len);
+            r = AppLayerParserParse(tv, app_tctx->alp_tctx, f, f->alproto, flags, data, data_len);
             PACKET_PROFILING_APP_END(app_tctx, f->alproto);
         } else {
             SCLogDebug(" smsg not start, but no l7 data? Weird");
@@ -523,7 +523,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
             AppLayerIncFlowCounter(tv, IPPROTO_UDP, f->alproto);
 
             PACKET_PROFILING_APP_START(tctx, f->alproto);
-            r = AppLayerParserParse(tctx->alp_tctx,
+            r = AppLayerParserParse(tv, tctx->alp_tctx,
                               f, f->alproto, flags,
                               p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);
@@ -539,7 +539,7 @@ int AppLayerHandleUdp(ThreadVars *tv, AppLayerThreadCtx *tctx, Packet *p, Flow *
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
             PACKET_PROFILING_APP_START(tctx, f->alproto);
-            r = AppLayerParserParse(tctx->alp_tctx,
+            r = AppLayerParserParse(tv, tctx->alp_tctx,
                               f, f->alproto, flags,
                               p->payload, p->payload_len);
             PACKET_PROFILING_APP_END(tctx, f->alproto);

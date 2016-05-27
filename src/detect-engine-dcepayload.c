@@ -1348,7 +1348,7 @@ int DcePayloadTest01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1389,7 +1389,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1430,7 +1430,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1472,7 +1472,7 @@ int DcePayloadTest01(void)
     }
 
     SCLogDebug("sending request 2");
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1514,7 +1514,7 @@ int DcePayloadTest01(void)
     }
 
     SCLogDebug("sending request 3");
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1557,7 +1557,7 @@ int DcePayloadTest01(void)
     }
 
     SCLogDebug("sending request 4");
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request4, request4_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request4, request4_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1598,7 +1598,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request5, request5_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request5, request5_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1639,7 +1639,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request6, request6_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request6, request6_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1680,7 +1680,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request7, request7_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request7, request7_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1721,7 +1721,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request8, request8_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request8, request8_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1762,7 +1762,7 @@ int DcePayloadTest01(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request9, request9_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request9, request9_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2187,7 +2187,7 @@ int DcePayloadTest02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2204,7 +2204,7 @@ int DcePayloadTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2221,7 +2221,7 @@ int DcePayloadTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2238,7 +2238,7 @@ int DcePayloadTest02(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2638,7 +2638,7 @@ int DcePayloadTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2655,7 +2655,7 @@ int DcePayloadTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2672,7 +2672,7 @@ int DcePayloadTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -2689,7 +2689,7 @@ int DcePayloadTest03(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3089,7 +3089,7 @@ int DcePayloadTest04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3106,7 +3106,7 @@ int DcePayloadTest04(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3123,7 +3123,7 @@ int DcePayloadTest04(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3140,7 +3140,7 @@ int DcePayloadTest04(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3539,7 +3539,7 @@ int DcePayloadTest05(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3556,7 +3556,7 @@ int DcePayloadTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3573,7 +3573,7 @@ int DcePayloadTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3590,7 +3590,7 @@ int DcePayloadTest05(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -3990,7 +3990,7 @@ int DcePayloadTest06(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4007,7 +4007,7 @@ int DcePayloadTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4024,7 +4024,7 @@ int DcePayloadTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4041,7 +4041,7 @@ int DcePayloadTest06(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4440,7 +4440,7 @@ int DcePayloadTest07(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4457,7 +4457,7 @@ int DcePayloadTest07(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4474,7 +4474,7 @@ int DcePayloadTest07(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4491,7 +4491,7 @@ int DcePayloadTest07(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4722,7 +4722,7 @@ int DcePayloadTest08(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4949,7 +4949,7 @@ int DcePayloadTest09(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5176,7 +5176,7 @@ int DcePayloadTest10(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5538,7 +5538,7 @@ int DcePayloadTest11(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5551,7 +5551,7 @@ int DcePayloadTest11(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5914,7 +5914,7 @@ int DcePayloadTest12(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5927,7 +5927,7 @@ int DcePayloadTest12(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6116,7 +6116,7 @@ int DcePayloadTest13(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6136,7 +6136,7 @@ int DcePayloadTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response1, response1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response1, response1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6149,7 +6149,7 @@ int DcePayloadTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6172,7 +6172,7 @@ int DcePayloadTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6185,7 +6185,7 @@ int DcePayloadTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request3, request3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request3, request3_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6201,7 +6201,7 @@ int DcePayloadTest13(void)
         goto end;
     }
 
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response3, response3_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response3, response3_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6362,7 +6362,7 @@ int DcePayloadTest14(void)
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
     /* request 1 */
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6383,7 +6383,7 @@ int DcePayloadTest14(void)
     }
 
     /* bind */
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6397,7 +6397,7 @@ int DcePayloadTest14(void)
     }
 
     /* bind_ack.  A new transaction initiation */
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6413,7 +6413,7 @@ int DcePayloadTest14(void)
     /* we should have a match for the sig once again for the same flow, since
      * the detection engine state for the flow has been reset because of a
      * fresh transaction */
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6427,7 +6427,7 @@ int DcePayloadTest14(void)
     }
 
     /* response */
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6539,7 +6539,7 @@ int DcePayloadTest15(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6655,7 +6655,7 @@ int DcePayloadTest16(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6771,7 +6771,7 @@ int DcePayloadTest17(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -6887,7 +6887,7 @@ int DcePayloadTest18(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -7003,7 +7003,7 @@ int DcePayloadTest19(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -7119,7 +7119,7 @@ int DcePayloadTest20(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -7224,7 +7224,7 @@ int DcePayloadTest21(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -7325,7 +7325,7 @@ int DcePayloadTest22(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -7427,7 +7427,7 @@ int DcePayloadTest23(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -9643,7 +9643,7 @@ int DcePayloadTest42(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -9745,7 +9745,7 @@ int DcePayloadTest43(void)
 
     /* request 1 */
     SCMutexLock(&f.m);
-    r = AppLayerParserParse(alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
