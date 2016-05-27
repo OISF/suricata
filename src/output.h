@@ -83,8 +83,11 @@ void OutputRegisterTxModule(const char *name, const char *conf_name,
     void (*ThreadExitPrintStats)(ThreadVars *, void *));
 
 void OutputRegisterTxSubModule(const char *parent_name, const char *name,
-    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
-    AppProto alproto, TxLogger TxLogFunc);
+    const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *parent_ctx),
+    AppProto alproto, TxLogger TxLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name,
         OutputCtx *(*InitFunc)(ConfNode *), AppProto alproto,
