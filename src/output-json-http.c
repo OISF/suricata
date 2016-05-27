@@ -596,8 +596,8 @@ void TmModuleJsonHttpLogRegister (void)
         ALPROTO_HTTP, JsonHttpLogger, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "eve-log.http", OutputHttpLogInitSub,
-            ALPROTO_HTTP, JsonHttpLogger);
+    OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "eve-log.http",
+        OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger, NULL, NULL, NULL);
 }
 
 #else
