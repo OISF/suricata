@@ -323,5 +323,6 @@ void TmModuleLogTlsLogRegister(void)
     tmm_modules[TMM_LOGTLSLOG].flags = TM_FLAG_LOGAPI_TM;
 
     OutputRegisterTxModuleWithProgress(MODULE_NAME, "tls-log", LogTlsLogInitCtx,
-            ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE);
+        ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
+        NULL, NULL, NULL);
 }
