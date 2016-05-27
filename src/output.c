@@ -424,7 +424,9 @@ error:
  */
 void
 OutputRegisterFiledataModule(const char *name, const char *conf_name,
-    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc)
+    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
         goto error;
@@ -439,6 +441,9 @@ OutputRegisterFiledataModule(const char *name, const char *conf_name,
     module->conf_name = conf_name;
     module->InitFunc = InitFunc;
     module->FiledataLogFunc = FiledataLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Filedata logger \"%s\" registered.", name);
@@ -459,7 +464,9 @@ error:
 void
 OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
-    FiledataLogger FiledataLogFunc)
+    FiledataLogger FiledataLogFunc, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
     if (unlikely(FiledataLogFunc == NULL)) {
         goto error;
@@ -475,6 +482,9 @@ OutputRegisterFiledataSubModule(const char *parent_name, const char *name,
     module->parent_name = parent_name;
     module->InitSubFunc = InitFunc;
     module->FiledataLogFunc = FiledataLogFunc;
+    module->ThreadInit = ThreadInit;
+    module->ThreadDeinit = ThreadDeinit;
+    module->ThreadExitPrintStats = ThreadExitPrintStats;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
     SCLogDebug("Filedata logger \"%s\" registered.", name);
