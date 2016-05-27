@@ -328,8 +328,8 @@ void TmModuleJsonSshLogRegister (void)
         JsonSshLogger, JsonSshCondition, NULL, NULL, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterPacketSubModule("eve-log", "JsonSshLog", "eve-log.ssh", OutputSshLogInitSub,
-            JsonSshLogger, JsonSshCondition);
+    OutputRegisterPacketSubModule("eve-log", "JsonSshLog", "eve-log.ssh",
+        OutputSshLogInitSub, JsonSshLogger, JsonSshCondition, NULL, NULL, NULL);
 }
 
 #else

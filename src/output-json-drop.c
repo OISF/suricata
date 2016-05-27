@@ -438,7 +438,7 @@ void TmModuleJsonDropLogRegister (void)
     OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
         JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition, NULL, NULL, NULL);
     OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.drop",
-            JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition);
+        JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition, NULL, NULL, NULL);
 }
 
 #else
