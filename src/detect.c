@@ -219,32 +219,6 @@ void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
 static void PacketCreateMask(Packet *, SignatureMask *, uint16_t, int, StreamMsg *, int);
 
-/* tm module api functions */
-TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode DetectThreadInit(ThreadVars *, void *, void **);
-TmEcode DetectThreadDeinit(ThreadVars *, void *);
-
-void TmModuleDetectRegister (void)
-{
-    tmm_modules[TMM_DETECT].name = "Detect";
-    tmm_modules[TMM_DETECT].ThreadInit = DetectThreadInit;
-    tmm_modules[TMM_DETECT].Func = Detect;
-    tmm_modules[TMM_DETECT].ThreadExitPrintStats = DetectExitPrintStats;
-    tmm_modules[TMM_DETECT].ThreadDeinit = DetectThreadDeinit;
-    tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
-    tmm_modules[TMM_DETECT].cap_flags = 0;
-    tmm_modules[TMM_DETECT].flags = TM_FLAG_DETECT_TM;
-
-    PacketAlertTagInit();
-}
-
-void DetectExitPrintStats(ThreadVars *tv, void *data)
-{
-    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
-    if (det_ctx == NULL)
-        return;
-}
-
 /**
  *  \brief Create the path if default-rule-path was specified
  *  \param sig_file The name of the file
@@ -2060,16 +2034,6 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     return TM_ECODE_OK;
 error:
     return TM_ECODE_FAILED;
-}
-
-TmEcode DetectThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    return DetectEngineThreadCtxInit(t,initdata,data);
-}
-
-TmEcode DetectThreadDeinit(ThreadVars *t, void *data)
-{
-    return DetectEngineThreadCtxDeinit(t,data);
 }
 
 void SigCleanSignatures(DetectEngineCtx *de_ctx)

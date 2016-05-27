@@ -196,6 +196,7 @@ void RunUnittests(int list_unittests, char *regex_arg)
     UtInitialize();
     UTHRegisterTests();
     StreamTcpRegisterTests();
+    SigRegisterTests();
     SCReputationRegisterTests();
     TmModuleRegisterTests();
     SigTableRegisterTests();

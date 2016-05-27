@@ -859,8 +859,6 @@ void RegisterAllModules()
 
     /* flow worker */
     TmModuleFlowWorkerRegister();
-    /* detection */
-    TmModuleDetectRegister();
     /* respond-reject */
     TmModuleRespondRejectRegister();
 
