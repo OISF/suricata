@@ -193,7 +193,7 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto, void *alst
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto,
                    uint8_t flags, uint8_t *input, uint32_t input_len);
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
 int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate,
