@@ -85,7 +85,7 @@ static int SSHParseBanner(SshState *state, SshHeader *header, const uint8_t *inp
     if ((banner_end - line_ptr) > 255) {
         SCLogDebug("Invalid version string, it should be less than 255 "
                 "characters including <CR><NL>, input value is %"PRIuMAX,
-                (banner_end - line_ptr));
+                (uintmax_t)(banner_end - line_ptr));
         SCReturnInt(-1);
     }
 

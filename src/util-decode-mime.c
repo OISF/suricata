@@ -1150,7 +1150,8 @@ static int ProcessDecodedDataChunk(const uint8_t *chunk, uint32_t len,
                             if (tok + tokLen - (uint8_t *) chunk == (int)len) {
                                 PrintChars(SC_LOG_DEBUG, "LAST CHUNK LINE - CUTOFF",
                                         tok, tokLen);
-                                SCLogDebug("\nCHUNK CUTOFF CHARS: %d delim %ld\n", tokLen, len - (tok + tokLen - (uint8_t *) chunk));
+                                SCLogDebug("\nCHUNK CUTOFF CHARS: %u delim %u\n",
+                                        tokLen, len - (uint32_t)(tok + tokLen - (uint8_t *) chunk));
                             } else {
                                 /* Search line for URL */
                                 ret = FindUrlStrings(tok, tokLen, state);
