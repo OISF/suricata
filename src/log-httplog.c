@@ -65,8 +65,8 @@ int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, vo
 
 void TmModuleLogHttpLogRegister (void)
 {
-    OutputRegisterTxModule(MODULE_NAME, "http-log", LogHttpLogInitCtx,
-        ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,
+    OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log",
+        LogHttpLogInitCtx, ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,
         LogHttpLogThreadDeinit, LogHttpLogExitPrintStats);
 }
 

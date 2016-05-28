@@ -442,12 +442,12 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 #define MODULE_NAME "JsonDnsLog"
 void TmModuleJsonDnsLogRegister (void)
 {
-    OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
-        ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
-        NULL);
-    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns",
-        JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
+    OutputRegisterTxModule(LOGGER_JSON_DNS, MODULE_NAME, "dns-json-log",
+        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
         LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxSubModule(LOGGER_JSON_DNS, "eve-log", MODULE_NAME,
+        "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger,
+        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
 }
 
 #else
