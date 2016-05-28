@@ -451,14 +451,14 @@ static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
 void TmModuleJsonFlowLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterFlowModule("JsonFlowLog", "flow-json-log",
+    OutputRegisterFlowModule(LOGGER_JSON_FLOW, "JsonFlowLog", "flow-json-log",
         OutputFlowLogInit, JsonFlowLogger, JsonFlowLogThreadInit,
         JsonFlowLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterFlowSubModule("eve-log", "JsonFlowLog", "eve-log.flow",
-        OutputFlowLogInitSub, JsonFlowLogger, JsonFlowLogThreadInit,
-        JsonFlowLogThreadDeinit, NULL);
+    OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog",
+        "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
+        JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);
 }
 
 #else

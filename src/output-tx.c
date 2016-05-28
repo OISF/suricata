@@ -51,7 +51,7 @@ typedef struct OutputTxLogger_ {
     OutputCtx *output_ctx;
     struct OutputTxLogger_ *next;
     const char *name;
-    TmmId module_id;
+    LoggerId logger_id;
     uint32_t id;
     int tc_log_progress;
     int ts_log_progress;
@@ -62,7 +62,8 @@ typedef struct OutputTxLogger_ {
 
 static OutputTxLogger *list = NULL;
 
-int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
+int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
+                           TxLogger LogFunc,
                            OutputCtx *output_ctx, int tc_log_progress,
                            int ts_log_progress, TxLoggerCondition LogCondition,
                            ThreadInitFunc ThreadInit,
@@ -91,9 +92,7 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     op->LogCondition = LogCondition;
     op->output_ctx = output_ctx;
     op->name = name;
-#if 0
-    op->module_id = (TmmId) module_id;
-#endif
+    op->logger_id = id;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
     op->ThreadExitPrintStats = ThreadExitPrintStats;
@@ -225,9 +224,9 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
                     }
                 }
 
-                PACKET_PROFILING_TMM_START(p, logger->module_id);
+                PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
                 logger->LogFunc(tv, store->thread_data, p, f, alstate, tx, tx_id);
-                PACKET_PROFILING_TMM_END(p, logger->module_id);
+                PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
                 AppLayerParserSetTxLogged(p->proto, alproto, alstate, tx,
                                           logger->id);
