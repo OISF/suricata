@@ -481,10 +481,10 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
 void TmModuleLogFilestoreRegister (void)
 {
-    OutputRegisterFiledataModule(MODULE_NAME, "file", LogFilestoreLogInitCtx,
-        LogFilestoreLogger, LogFilestoreLogThreadInit,
+    OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file",
+        LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
         LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
-    OutputRegisterFiledataModule(MODULE_NAME, "file-store",
+    OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
         LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
         LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
 

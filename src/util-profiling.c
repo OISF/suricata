@@ -87,6 +87,9 @@ SCProfilePacketData packet_profile_app_pd_data6[257];
 SCProfilePacketData packet_profile_detect_data4[PROF_DETECT_SIZE][257];
 SCProfilePacketData packet_profile_detect_data6[PROF_DETECT_SIZE][257];
 
+SCProfilePacketData packet_profile_log_data4[LOGGER_SIZE][256];
+SCProfilePacketData packet_profile_log_data6[LOGGER_SIZE][256];
+
 struct ProfileProtoRecords {
     SCProfilePacketData records4[257];
     SCProfilePacketData records6[257];
@@ -114,6 +117,7 @@ __thread int profiling_rules_entered = 0;
 
 void SCProfilingDumpPacketStats(void);
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
+const char * PacketProfileLoggertIdToString(LoggerId id);
 
 static void FormatNumber(uint64_t num, char *str, size_t size)
 {
@@ -167,6 +171,8 @@ SCProfilingInit(void)
             memset(&packet_profile_app_pd_data6, 0, sizeof(packet_profile_app_pd_data6));
             memset(&packet_profile_detect_data4, 0, sizeof(packet_profile_detect_data4));
             memset(&packet_profile_detect_data6, 0, sizeof(packet_profile_detect_data6));
+            memset(&packet_profile_log_data4, 0, sizeof(packet_profile_log_data4));
+            memset(&packet_profile_log_data6, 0, sizeof(packet_profile_log_data6));
             memset(&packet_profile_flowworker_data, 0, sizeof(packet_profile_flowworker_data));
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
@@ -685,6 +691,58 @@ void SCProfilingDumpPacketStats(void)
         }
     }
 
+    fprintf(fp, "\nLogger/output stats:\n");
+
+    total = 0;
+    for (m = 0; m < LOGGER_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
+            total += pd->tot;
+            pd = &packet_profile_log_data6[m][p];
+            total += pd->tot;
+        }
+    }
+
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
+            "Logger", "IP ver", "Proto", "cnt", "min", "max", "avg", "tot");
+    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s   %-12s\n",
+            "------------------------", "------", "-----", "----------", "------------", "------------", "-----------", "-----------");
+    for (m = 0; m < LOGGER_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_log_data4[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
+            double percent = (long double)pd->tot /
+                (long double)total * 100;
+
+            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
+                    PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+        }
+    }
+    for (m = 0; m < LOGGER_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_log_data6[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            FormatNumber(pd->tot, totalstr, sizeof(totalstr));
+            double percent = (long double)pd->tot /
+                (long double)total * 100;
+
+            fprintf(fp, "%-24s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"  %12s  %-6.2f\n",
+                    PacketProfileLoggertIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
+        }
+    }
+
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
     total = 0;
@@ -984,6 +1042,45 @@ static void SCProfilingUpdatePacketGenericRecords(Packet *p, PktProfilingData *p
     }
 }
 
+static void SCProfilingUpdatePacketLogRecord(LoggerId id,
+    uint8_t ipproto, PktProfilingLoggerData *pdt, int ipver)
+{
+    if (pdt == NULL) {
+        return;
+    }
+
+    SCProfilePacketData *pd;
+    if (ipver == 4)
+        pd = &packet_profile_log_data4[id][ipproto];
+    else
+        pd = &packet_profile_log_data6[id][ipproto];
+
+    if (pd->min == 0 || pdt->ticks_spent < pd->min) {
+        pd->min = pdt->ticks_spent;
+    }
+    if (pd->max < pdt->ticks_spent) {
+        pd->max = pdt->ticks_spent;
+    }
+
+    pd->tot += pdt->ticks_spent;
+    pd->cnt++;
+}
+
+static void SCProfilingUpdatePacketLogRecords(Packet *p)
+{
+    for (LoggerId i = 0; i < LOGGER_SIZE; i++) {
+        PktProfilingLoggerData *pdt = &p->profile->logger[i];
+
+        if (pdt->ticks_spent > 0) {
+            if (PKT_IS_IPV4(p)) {
+                SCProfilingUpdatePacketLogRecord(i, p->proto, pdt, 4);
+            } else {
+                SCProfilingUpdatePacketLogRecord(i, p->proto, pdt, 6);
+            }
+        }
+    }
+}
+
 void SCProfilingAddPacket(Packet *p)
 {
     if (p == NULL || p->profile == NULL ||
@@ -1031,6 +1128,7 @@ void SCProfilingAddPacket(Packet *p)
             SCProfilingUpdatePacketTmmRecords(p);
             SCProfilingUpdatePacketAppRecords(p);
             SCProfilingUpdatePacketDetectRecords(p);
+            SCProfilingUpdatePacketLogRecords(p);
 
         } else if (PKT_IS_IPV6(p)) {
             SCProfilePacketData *pd = &packet_profile_data6[p->proto];
@@ -1066,6 +1164,7 @@ void SCProfilingAddPacket(Packet *p)
             SCProfilingUpdatePacketTmmRecords(p);
             SCProfilingUpdatePacketAppRecords(p);
             SCProfilingUpdatePacketDetectRecords(p);
+            SCProfilingUpdatePacketLogRecords(p);
         }
     }
     pthread_mutex_unlock(&packet_profile_lock);
@@ -1142,7 +1241,47 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
     }
 }
 
-
+/**
+ * \brief Maps the LoggerId's to its string equivalent for profiling output.
+ *
+ * \param id LoggerId id
+ *
+ * \retval string equivalent for the LoggerId id
+ */
+const char * PacketProfileLoggertIdToString(LoggerId id)
+{
+    switch (id) {
+        CASE_CODE (LOGGER_UNDEFINED);
+        CASE_CODE (LOGGER_ALERT_DEBUG);
+        CASE_CODE (LOGGER_ALERT_FAST);
+        CASE_CODE (LOGGER_UNIFIED2);
+        CASE_CODE (LOGGER_ALERT_SYSLOG);
+        CASE_CODE (LOGGER_DROP);
+        CASE_CODE (LOGGER_JSON_ALERT);
+        CASE_CODE (LOGGER_JSON_DROP);
+        CASE_CODE (LOGGER_JSON_SSH);
+        CASE_CODE (LOGGER_DNS);
+        CASE_CODE (LOGGER_HTTP);
+        CASE_CODE (LOGGER_JSON_DNS);
+        CASE_CODE (LOGGER_JSON_HTTP);
+        CASE_CODE (LOGGER_JSON_SMTP);
+        CASE_CODE (LOGGER_JSON_TLS);
+        CASE_CODE (LOGGER_JSON_TEMPLATE);
+        CASE_CODE (LOGGER_TLS_STORE);
+        CASE_CODE (LOGGER_TLS);
+        CASE_CODE (LOGGER_FILE);
+        CASE_CODE (LOGGER_FILE_STORE);
+        CASE_CODE (LOGGER_JSON_FILE);
+        CASE_CODE (LOGGER_TCP_DATA);
+        CASE_CODE (LOGGER_JSON_FLOW);
+        CASE_CODE (LOGGER_JSON_NETFLOW);
+        CASE_CODE (LOGGER_STATS);
+        CASE_CODE (LOGGER_JSON_STATS);
+        CASE_CODE (LOGGER_PRELUDE);
+        default:
+            return "UNKNOWN";
+    }
+}
 
 #ifdef UNITTESTS
 
