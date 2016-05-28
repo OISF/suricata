@@ -455,9 +455,9 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
 
 void TmModuleLogFileLogRegister (void)
 {
-    OutputRegisterFileModule(MODULE_NAME, "file-log", LogFileLogInitCtx,
-        LogFileLogger, LogFileLogThreadInit, LogFileLogThreadDeinit,
-        LogFileLogExitPrintStats);
+    OutputRegisterFileModule(LOGGER_FILE, MODULE_NAME, "file-log",
+        LogFileLogInitCtx, LogFileLogger, LogFileLogThreadInit,
+        LogFileLogThreadDeinit, LogFileLogExitPrintStats);
 
     SCLogDebug("registered");
 }

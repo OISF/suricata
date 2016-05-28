@@ -433,14 +433,14 @@ static TmEcode JsonNetFlowLogThreadDeinit(ThreadVars *t, void *data)
 void TmModuleJsonNetFlowLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterFlowModule("JsonNetFlowLog", "netflow-json-log",
-        OutputNetFlowLogInit, JsonNetFlowLogger, JsonNetFlowLogThreadInit,
-        JsonNetFlowLogThreadDeinit, NULL);
+    OutputRegisterFlowModule(LOGGER_JSON_NETFLOW, "JsonNetFlowLog",
+        "netflow-json-log", OutputNetFlowLogInit, JsonNetFlowLogger,
+        JsonNetFlowLogThreadInit, JsonNetFlowLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterFlowSubModule("eve-log", "JsonNetFlowLog", "eve-log.netflow",
-        OutputNetFlowLogInitSub, JsonNetFlowLogger, JsonNetFlowLogThreadInit,
-        JsonNetFlowLogThreadDeinit, NULL);
+    OutputRegisterFlowSubModule(LOGGER_JSON_NETFLOW, "eve-log", "JsonNetFlowLog",
+        "eve-log.netflow", OutputNetFlowLogInitSub, JsonNetFlowLogger,
+        JsonNetFlowLogThreadInit, JsonNetFlowLogThreadDeinit, NULL);
 }
 
 #else

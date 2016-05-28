@@ -494,9 +494,9 @@ static void LogDropLogRegisterTests(void)
 /** \brief function to register the drop log module */
 void TmModuleLogDropLogRegister (void)
 {
-    OutputRegisterPacketModule(MODULE_NAME, "drop", LogDropLogInitCtx,
-        LogDropLogger, LogDropCondition, LogDropLogThreadInit,
-        LogDropLogThreadDeinit, LogDropLogExitPrintStats);
+    OutputRegisterPacketModule(LOGGER_DROP, MODULE_NAME, "drop",
+        LogDropLogInitCtx, LogDropLogger, LogDropCondition,
+        LogDropLogThreadInit, LogDropLogThreadDeinit, LogDropLogExitPrintStats);
 #ifdef UNITTESTS
     LogDropLogRegisterTests();
 #endif

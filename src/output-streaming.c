@@ -53,7 +53,7 @@ typedef struct OutputStreamingLogger_ {
     OutputCtx *output_ctx;
     struct OutputStreamingLogger_ *next;
     const char *name;
-    TmmId module_id;
+    LoggerId logger_id;
     enum OutputStreamingType type;
     ThreadInitFunc ThreadInit;
     ThreadDeinitFunc ThreadDeinit;
@@ -62,17 +62,12 @@ typedef struct OutputStreamingLogger_ {
 
 static OutputStreamingLogger *list = NULL;
 
-int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc,
-    OutputCtx *output_ctx, enum OutputStreamingType type,
-    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+int OutputRegisterStreamingLogger(LoggerId id, const char *name,
+    StreamingLogger LogFunc, OutputCtx *output_ctx,
+    enum OutputStreamingType type, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-#if 0
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-#endif
-
     OutputStreamingLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -81,9 +76,7 @@ int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc,
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-#if 0
-    op->module_id = (TmmId) module_id;
-#endif
+    op->logger_id = id;
     op->type = type;
     op->ThreadInit = ThreadInit;
     op->ThreadDeinit = ThreadDeinit;
@@ -128,9 +121,9 @@ int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint
 
         if (logger->type == streamer_cbdata->type) {
             SCLogDebug("logger %p", logger);
-            PACKET_PROFILING_TMM_START(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
             logger->LogFunc(tv, store->thread_data, (const Flow *)f, data, data_len, tx_id, flags);
-            PACKET_PROFILING_TMM_END(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
         }
 
         logger = logger->next;
