@@ -314,7 +314,8 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
 
 void TmModuleLogTlsLogRegister(void)
 {
-    OutputRegisterTxModuleWithProgress(MODULE_NAME, "tls-log", LogTlsLogInitCtx,
-        ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
-        LogTlsLogThreadInit, LogTlsLogThreadDeinit, LogTlsLogExitPrintStats);
+    OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log",
+        LogTlsLogInitCtx, ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE,
+        TLS_HANDSHAKE_DONE, LogTlsLogThreadInit, LogTlsLogThreadDeinit,
+        LogTlsLogExitPrintStats);
 }

@@ -512,7 +512,7 @@ static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *
 
 void TmModuleAlertDebugLogRegister (void)
 {
-    OutputRegisterPacketModule(MODULE_NAME, "alert-debug",
+    OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug",
         AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,
         AlertDebugLogThreadInit, AlertDebugLogThreadDeinit,
         AlertDebugLogExitPrintStats);

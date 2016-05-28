@@ -429,12 +429,13 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 
 void TmModuleJsonDropLogRegister (void)
 {
-    OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
+    OutputRegisterPacketModule(LOGGER_JSON_DROP, MODULE_NAME, "drop-json-log",
         JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition,
         JsonDropLogThreadInit, JsonDropLogThreadDeinit, NULL);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.drop",
-        JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition,
-        JsonDropLogThreadInit, JsonDropLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME,
+        "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
+        JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
+        NULL);
 }
 
 #else

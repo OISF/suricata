@@ -852,24 +852,26 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 void TmModuleJsonDnsLogRegister (void)
 {
     /* Logger for requests. */
-    OutputRegisterTxModuleWithProgress(MODULE_NAME, "dns-json-log",
-        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer, 0, 1,
-        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer,
+        0, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
 
     /* Logger for replies. */
-    OutputRegisterTxModuleWithProgress(MODULE_NAME, "dns-json-log",
-        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient, 1, 1,
-        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient,
+        1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
 
     /* Sub-logger for requests. */
-    OutputRegisterTxSubModuleWithProgress("eve-log", MODULE_NAME, "eve-log.dns",
-        JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLoggerToServer, 0, 1,
-        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, "eve-log",
+        MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToServer, 0, 1, LogDnsLogThreadInit,
+        LogDnsLogThreadDeinit, NULL);
 
     /* Sub-logger for replies. */
-    OutputRegisterTxSubModuleWithProgress("eve-log", MODULE_NAME, "eve-log.dns",
-        JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLoggerToClient, 1, 1,
-        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, "eve-log",
+        MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToClient, 1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        NULL);
 }
 
 #else
