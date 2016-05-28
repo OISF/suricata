@@ -706,12 +706,13 @@ error:
 
 void TmModuleJsonAlertLogRegister (void)
 {
-    OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
+    OutputRegisterPacketModule(LOGGER_JSON_ALERT, MODULE_NAME, "alert-json-log",
         JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition,
         JsonAlertLogThreadInit, JsonAlertLogThreadDeinit, NULL);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.alert",
-        JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition,
-        JsonAlertLogThreadInit, JsonAlertLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
+        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
+        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
+        NULL);
 }
 
 #else

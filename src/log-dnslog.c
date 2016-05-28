@@ -346,7 +346,7 @@ static OutputCtx *LogDnsLogInitCtx(ConfNode *conf)
 
 void TmModuleLogDnsLogRegister (void)
 {
-    OutputRegisterTxModule(MODULE_NAME, "dns-log", LogDnsLogInitCtx,
+    OutputRegisterTxModule(LOGGER_DNS, MODULE_NAME, "dns-log", LogDnsLogInitCtx,
         ALPROTO_DNS, LogDnsLogger, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
         LogDnsLogExitPrintStats);
 

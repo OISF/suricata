@@ -408,8 +408,8 @@ static OutputCtx *LogTlsStoreLogInitCtx(ConfNode *conf)
 
 void TmModuleLogTlsStoreRegister (void)
 {
-    OutputRegisterTxModuleWithCondition(MODULE_NAME, "tls-store",
-        LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
+    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME,
+        "tls-store", LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
         LogTlsStoreCondition, LogTlsStoreLogThreadInit,
         LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
 

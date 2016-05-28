@@ -235,7 +235,7 @@ int Unified2Logger(ThreadVars *tv, void *data, const Packet *p);
 
 void TmModuleUnified2AlertRegister(void)
 {
-    OutputRegisterPacketModule(MODULE_NAME, "unified2-alert",
+    OutputRegisterPacketModule(LOGGER_UNIFIED2, MODULE_NAME, "unified2-alert",
         Unified2AlertInitCtx, Unified2Logger, Unified2Condition,
         Unified2AlertThreadInit, Unified2AlertThreadDeinit, NULL);
     Unified2RegisterTests();

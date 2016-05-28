@@ -311,15 +311,16 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 void TmModuleJsonTlsLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterTxModuleWithProgress("JsonTlsLog", "tls-json-log",
-        OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger, TLS_HANDSHAKE_DONE,
-        TLS_HANDSHAKE_DONE, JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
-    
-    /* also register as child of eve-log */
-    OutputRegisterTxSubModuleWithProgress("eve-log", "JsonTlsLog",
-        "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS, JsonTlsLogger,
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_TLS, "JsonTlsLog",
+        "tls-json-log", OutputTlsLogInit, ALPROTO_TLS, JsonTlsLogger,
         TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE, JsonTlsLogThreadInit,
         JsonTlsLogThreadDeinit, NULL);
+
+    /* also register as child of eve-log */
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_TLS, "eve-log",
+        "JsonTlsLog", "eve-log.tls", OutputTlsLogInitSub, ALPROTO_TLS,
+        JsonTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE,
+        JsonTlsLogThreadInit, JsonTlsLogThreadDeinit, NULL);
 }
 
 #else

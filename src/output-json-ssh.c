@@ -317,13 +317,13 @@ dontlog:
 void TmModuleJsonSshLogRegister (void)
 {
     /* register as separate module */
-    OutputRegisterPacketModule("JsonSshLog", "ssh-json-log", OutputSshLogInit,
-        JsonSshLogger, JsonSshCondition, JsonSshLogThreadInit,
+    OutputRegisterPacketModule(LOGGER_JSON_SSH, "JsonSshLog", "ssh-json-log",
+        OutputSshLogInit, JsonSshLogger, JsonSshCondition, JsonSshLogThreadInit,
         JsonSshLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterPacketSubModule("eve-log", "JsonSshLog", "eve-log.ssh",
-        OutputSshLogInitSub, JsonSshLogger, JsonSshCondition,
+    OutputRegisterPacketSubModule(LOGGER_JSON_SSH, "eve-log", "JsonSshLog",
+        "eve-log.ssh", OutputSshLogInitSub, JsonSshLogger, JsonSshCondition,
         JsonSshLogThreadInit, JsonSshLogThreadDeinit, NULL);
 }
 
