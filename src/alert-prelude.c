@@ -916,7 +916,7 @@ err:
 
 void TmModuleAlertPreludeRegister (void)
 {
-    OutputRegisterPacketModule("AlertPrelude", "alert-prelude",
+    OutputRegisterPacketModule(LOGGER_PRELUDE, "AlertPrelude", "alert-prelude",
         AlertPreludeInitCtx, AlertPreludeLogger, AlertPreludeCondition,
         AlertPreludeThreadInit, AlertPreludeThreadDeinit, NULL);
 }
