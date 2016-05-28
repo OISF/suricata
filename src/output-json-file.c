@@ -291,9 +291,9 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 void TmModuleJsonFileLogRegister (void)
 {
     /* register as child of eve-log */
-    OutputRegisterFileSubModule("eve-log", "JsonFileLog", "eve-log.files",
-        OutputFileLogInitSub, JsonFileLogger, JsonFileLogThreadInit,
-        JsonFileLogThreadDeinit, NULL);
+    OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog",
+        "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
+        JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
 }
 
 #else

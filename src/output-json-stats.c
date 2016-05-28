@@ -373,14 +373,14 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
 
 void TmModuleJsonStatsLogRegister (void) {
     /* register as separate module */
-    OutputRegisterStatsModule(MODULE_NAME, "stats-json", OutputStatsLogInit,
-        JsonStatsLogger, JsonStatsLogThreadInit, JsonStatsLogThreadDeinit,
-        NULL);
+    OutputRegisterStatsModule(LOGGER_JSON_STATS, MODULE_NAME, "stats-json",
+        OutputStatsLogInit, JsonStatsLogger, JsonStatsLogThreadInit,
+        JsonStatsLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterStatsSubModule("eve-log", MODULE_NAME, "eve-log.stats",
-        OutputStatsLogInitSub, JsonStatsLogger, JsonStatsLogThreadInit,
-        JsonStatsLogThreadDeinit, NULL);
+    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
+        "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
+        JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
 }
 
 #else
