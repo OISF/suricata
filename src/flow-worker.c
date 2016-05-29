@@ -73,11 +73,6 @@ typedef struct FlowWorkerThreadData_ {
 static void FlowUpdate(ThreadVars *tv, StreamTcpThread *stt, Packet *p)
 {
     FlowHandlePacketUpdate(p->flow, p);
-
-    /* handle the app layer part of the UDP packet payload */
-    if (p->proto == IPPROTO_UDP) {
-        AppLayerHandleUdp(tv, stt->ra_ctx->app_tctx, p, p->flow);
-    }
 }
 
 static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
@@ -206,6 +201,12 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
              * by the other thread modules before packet 'p'. */
             PacketEnqueue(preq, x);
         }
+
+    /* handle the app layer part of the UDP packet payload */
+    } else if (p->flow && p->proto == IPPROTO_UDP) {
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_APPLAYERUDP);
+        AppLayerHandleUdp(tv, fw->stream_thread->ra_ctx->app_tctx, p, p->flow);
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_APPLAYERUDP);
     }
 
     /* handle Detect */
@@ -252,6 +253,8 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
             return "flow";
         case PROFILE_FLOWWORKER_STREAM:
             return "stream";
+        case PROFILE_FLOWWORKER_APPLAYERUDP:
+            return "app-layer";
         case PROFILE_FLOWWORKER_DETECT:
             return "detect";
         case PROFILE_FLOWWORKER_SIZE:
