@@ -158,12 +158,16 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
 
     /* handle Flow */
     if (p->flags & PKT_WANTS_FLOW) {
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_FLOW);
+
         FlowHandlePacket(tv, fw->dtv, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
             FlowUpdate(tv, fw->stream_thread, p);
         }
         /* Flow is now LOCKED */
+
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_FLOW);
 
     /* if PKT_WANTS_FLOW is not set, but PKT_HAS_FLOW is, then this is a
      * pseudo packet created by the flow manager. */
@@ -178,7 +182,9 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         SCLogDebug("packet %"PRIu64" is TCP", p->pcap_cnt);
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_STREAM);
         StreamTcp(tv, p, fw->stream_thread, &fw->pq, NULL);
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_STREAM);
 
         /* Packets here can safely access p->flow as it's locked */
         SCLogDebug("packet %"PRIu64": extra packets %u", p->pcap_cnt, fw->pq.len);
@@ -188,8 +194,11 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
 
             // TODO do we need to call StreamTcp on these pseudo packets or not?
             //StreamTcp(tv, x, fw->stream_thread, &fw->pq, NULL);
-            if (detect_thread != NULL)
+            if (detect_thread != NULL) {
+                FLOWWORKER_PROFILING_START(x, PROFILE_FLOWWORKER_DETECT);
                 Detect(tv, x, detect_thread, NULL, NULL);
+                FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
+            }
 #if 0
             //  Outputs
 #endif
@@ -204,7 +213,9 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
     SCLogDebug("packet %"PRIu64" calling Detect", p->pcap_cnt);
 
     if (detect_thread != NULL) {
+        FLOWWORKER_PROFILING_START(p, PROFILE_FLOWWORKER_DETECT);
         Detect(tv, p, detect_thread, NULL, NULL);
+        FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
 #if 0
     // Outputs
@@ -233,6 +244,22 @@ void *FlowWorkerGetDetectCtxPtr(void *flow_worker)
 
     return SC_ATOMIC_GET(fw->detect_thread);
 }
+
+const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
+{
+    switch (fwi) {
+        case PROFILE_FLOWWORKER_FLOW:
+            return "flow";
+        case PROFILE_FLOWWORKER_STREAM:
+            return "stream";
+        case PROFILE_FLOWWORKER_DETECT:
+            return "detect";
+        case PROFILE_FLOWWORKER_SIZE:
+            return "size";
+    }
+    return "error";
+}
+
 
 void TmModuleFlowWorkerRegister (void)
 {

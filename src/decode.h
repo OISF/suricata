@@ -30,6 +30,7 @@
 #include "suricata-common.h"
 #include "threadvars.h"
 #include "decode-events.h"
+#include "flow-worker.h"
 
 #ifdef __SC_CUDA_SUPPORT__
 #include "util-cuda-buffer.h"
@@ -325,6 +326,11 @@ typedef struct PktProfilingTmmData_ {
 #endif
 } PktProfilingTmmData;
 
+typedef struct PktProfilingData_ {
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+} PktProfilingData;
+
 typedef struct PktProfilingDetectData_ {
     uint64_t ticks_start;
     uint64_t ticks_end;
@@ -341,6 +347,7 @@ typedef struct PktProfiling_ {
     uint64_t ticks_end;
 
     PktProfilingTmmData tmm[TMM_SIZE];
+    PktProfilingData flowworker[PROFILE_FLOWWORKER_SIZE];
     PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
     uint64_t proto_detect;

@@ -157,6 +157,20 @@ PktProfiling *SCProfilePacketStart(void);
         }                                                           \
     }
 
+#define FLOWWORKER_PROFILING_START(p, id)                           \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        if ((id) < PROFILE_FLOWWORKER_SIZE) {                       \
+            (p)->profile->flowworker[(id)].ticks_start = UtilCpuGetTicks();\
+        }                                                           \
+    }
+
+#define FLOWWORKER_PROFILING_END(p, id)                             \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        if ((id) < PROFILE_FLOWWORKER_SIZE) {                       \
+            (p)->profile->flowworker[(id)].ticks_end = UtilCpuGetTicks();  \
+        }                                                           \
+    }
+
 #define PACKET_PROFILING_RESET(p)                                   \
     if (profiling_packets_enabled && (p)->profile != NULL) {        \
         SCFree((p)->profile);                                       \
@@ -291,6 +305,9 @@ void SCProfilingDump(void);
 #define PACKET_PROFILING_DETECT_END(p, id)
 
 #define SGH_PROFILING_RECORD(det_ctx, sgh)
+
+#define FLOWWORKER_PROFILING_START(p, id)
+#define FLOWWORKER_PROFILING_END(p, id)
 
 #endif /* PROFILING */
 

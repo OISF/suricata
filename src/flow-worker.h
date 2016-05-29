@@ -18,6 +18,14 @@
 #ifndef __FLOW_WORKER_H__
 #define __FLOW_WORKER_H__
 
+enum ProfileFlowWorkerId {
+    PROFILE_FLOWWORKER_FLOW = 0,
+    PROFILE_FLOWWORKER_STREAM,
+    PROFILE_FLOWWORKER_DETECT,
+    PROFILE_FLOWWORKER_SIZE
+};
+const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi);
+
 void FlowWorkerReplaceDetectCtx(void *flow_worker, void *detect_ctx);
 void *FlowWorkerGetDetectCtxPtr(void *flow_worker);
 
