@@ -1234,11 +1234,11 @@ detect:
 # "ac"      - Aho-Corasick, default implementation
 # "ac-bs"   - Aho-Corasick, reduced memory implementation
 # "ac-cuda" - Aho-Corasick, CUDA implementation
-# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
+# "ac-ks"   - Aho-Corasick, "Ken Steele" variant
 # "hs"      - Hyperscan, available when built with Hyperscan support
 #
-# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
-# "ac-tile" on Tilera platforms, and "ac" otherwise.
+# The default mpm-algo value of "auto" will use "hs" if Hyperscan is
+# available, "ac" otherwise.
 #
 # The mpm you choose also decides the distribution of mpm contexts for
 # signature groups, specified by the conf - "detect.sgh-mpm-context".
