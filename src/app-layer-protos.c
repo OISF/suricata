@@ -75,6 +75,9 @@ const char *AppProtoToString(AppProto alproto)
         case ALPROTO_MODBUS:
             proto_name = "modbus";
             break;
+        case ALPROTO_DHCP:
+            proto_name = "dhcp";
+            break;
         case ALPROTO_TEMPLATE:
             proto_name = "template";
             break;

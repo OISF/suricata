@@ -149,6 +149,7 @@ outputs:
             # custom allows additional http fields to be included in eve-log
             # the example below adds three additional fields when uncommented
             #custom: [Accept-Encoding, Accept-Language, Authorization]
+        - dhcp
         - dns
         - tls:
             extended: yes     # enable this for extended logging information
@@ -1311,6 +1312,8 @@ pcre:
 # "detection-only" enables detection only(parser disabled).
 app-layer:
   protocols:
+    dhcp:
+      enabled: yes
     tls:
       enabled: yes
       detection-ports:
@@ -1359,6 +1362,9 @@ app-layer:
       enabled: yes
       detection-ports:
         dp: 139
+    # smb2 detection is disabled internally inside the engine.
+    #smb2:
+    #  enabled: yes
     # Note: Modbus probe parser is minimalist due to the poor significant field
     # Only Modbus message length (greater than Modbus header length)
     # And Protocol ID (equal to 0) are checked in probing parser
@@ -1377,9 +1383,8 @@ app-layer:
       # and not to open and close it for each MODBUS/TCP transaction. In that 
       # case, it is important to set the depth of the stream reassembling as
       # unlimited (stream.reassembly.depth: 0)
-    # smb2 detection is disabled internally inside the engine.
-    #smb2:
-    #  enabled: yes
+    dhcp:
+      enabled: yes
     dns:
       # memcaps. Globally and per flow/state.
       #global-memcap: 16mb

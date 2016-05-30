@@ -103,6 +103,7 @@
 
 #include "output-json.h"
 
+#include "output-json-dhcp.h"
 #include "output-json-template.h"
 
 #include "stream-tcp.h"
@@ -910,6 +911,8 @@ void RegisterAllModules()
     /* json stats */
     TmModuleJsonStatsLogRegister();
 
+    /* dhcp JSON logger. */
+    TmModuleJsondhcpLogRegister();
     /* Template JSON logger. */
     TmModuleJsonTemplateLogRegister();
 
