@@ -107,6 +107,329 @@ rule-files:
 ## Step 3: select outputs to enable
 ##
 
+# The default logging directory.  Any log or output file will be
+# placed here if its not specified with a full path name. This can be
+# overridden with the -l command line parameter.
+default-log-dir: @e_logdir@
+
+# global stats configuration
+stats:
+  enabled: yes
+  # The interval field (in seconds) controls at what interval
+  # the loggers are invoked.
+  interval: 8
+
+# Configure the type of alert (and other) logging you would like.
+outputs:
+  # a line based alerts log similar to Snort's fast.log
+  - fast:
+      enabled: yes
+      filename: fast.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+  # Extensible Event Format (nicknamed EVE) event log in JSON format
+  - eve-log:
+      enabled: yes
+      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
+      filename: eve.json
+      #prefix: "@cee: " # prefix to prepend to each log entry
+      # the following are valid when type: syslog above
+      #identity: "suricata"
+      #facility: local5
+      #level: Info ## possible levels: Emergency, Alert, Critical,
+                   ## Error, Warning, Notice, Info, Debug
+      #redis:
+      #  server: 127.0.0.1
+      #  port: 6379
+      #  mode: list ## possible values: list (default), channel
+      #  key: suricata ## key or channel to use (default to suricata)
+      # Redis pipelining set up. This will enable to only do a query every
+      # 'batch-size' events. This should lower the latency induced by network
+      # connection at the cost of some memory. There is no flushing implemented
+      # so this setting as to be reserved to high traffic suricata.
+      #  pipelining:
+      #    enabled: yes ## set enable to yes to enable query pipelining
+      #    batch-size: 10 ## number of entry to keep in buffer
+      types:
+        - alert:
+            # payload: yes             # enable dumping payload in Base64
+            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
+            # payload-printable: yes   # enable dumping payload in printable (lossy) format
+            # packet: yes              # enable dumping of packet (without stream segments)
+            # http: yes                # enable dumping of http fields
+            # tls: yes                 # enable dumping of tls fields
+            # ssh: yes                 # enable dumping of ssh fields
+            # smtp: yes                # enable dumping of smtp fields
+
+            # HTTP X-Forwarded-For support by adding an extra field or overwriting
+            # the source or destination IP address (depending on flow direction)
+            # with the one reported in the X-Forwarded-For HTTP header. This is
+            # helpful when reviewing alerts for traffic that is being reverse
+            # or forward proxied.
+            xff:
+              enabled: no
+              # Two operation modes are available, "extra-data" and "overwrite".
+              mode: extra-data
+              # Two proxy deployments are supported, "reverse" and "forward". In
+              # a "reverse" deployment the IP address used is the last one, in a
+              # "forward" deployment the first IP address is used.
+              deployment: reverse
+              # Header name where the actual IP address will be reported, if more
+              # than one IP address is present, the last IP address will be the
+              # one taken into consideration.
+              header: X-Forwarded-For
+        - http:
+            extended: yes     # enable this for extended logging information
+            # custom allows additional http fields to be included in eve-log
+            # the example below adds three additional fields when uncommented
+            #custom: [Accept-Encoding, Accept-Language, Authorization]
+        - dns
+        - tls:
+            extended: yes     # enable this for extended logging information
+        - files:
+            force-magic: no   # force logging magic on all logged files
+            force-md5: no     # force logging of md5 checksums
+        #- drop:
+        #    alerts: no       # log alerts that caused drops
+        - smtp:
+            #extended: yes # enable this for extended logging information
+            # this includes: bcc, message-id, subject, x_mailer, user-agent
+            # custom fields logging from the list:
+            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
+            #  x-originating-ip, in-reply-to, references, importance, priority,
+            #  sensitivity, organization, content-md5, date
+            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
+            # output md5 of fields: body, subject
+            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
+            # to yes
+            #md5: [body, subject]
+
+        - ssh
+        - stats:
+            totals: yes       # stats for all threads merged together
+            threads: no       # per thread stats
+            deltas: no        # include delta values
+        # bi-directional flows
+        #- flow
+        # uni-directional flows
+        #- netflow
+
+  # alert output for use with Barnyard2
+  - unified2-alert:
+      enabled: no
+      filename: unified2.alert
+
+      # File size limit.  Can be specified in kb, mb, gb.  Just a number
+      # is parsed as bytes.
+      #limit: 32mb
+
+      # Sensor ID field of unified2 alerts.
+      #sensor-id: 0
+
+      # Include payload of packets related to alerts. Defaults to true, set to
+      # false if payload is not required.
+      #payload: yes
+
+      # HTTP X-Forwarded-For support by adding the unified2 extra header or
+      # overwriting the source or destination IP address (depending on flow
+      # direction) with the one reported in the X-Forwarded-For HTTP header.
+      # This is helpful when reviewing alerts for traffic that is being reverse
+      # or forward proxied.
+      xff:
+        enabled: no
+        # Two operation modes are available, "extra-data" and "overwrite". Note
+        # that in the "overwrite" mode, if the reported IP address in the HTTP
+        # X-Forwarded-For header is of a different version of the packet
+        # received, it will fall-back to "extra-data" mode.
+        mode: extra-data
+        # Two proxy deployments are supported, "reverse" and "forward". In
+        # a "reverse" deployment the IP address used is the last one, in a
+        # "forward" deployment the first IP address is used.
+        deployment: reverse
+        # Header name where the actual IP address will be reported, if more
+        # than one IP address is present, the last IP address will be the
+        # one taken into consideration.
+        header: X-Forwarded-For
+
+  # a line based log of HTTP requests (no alerts)
+  - http-log:
+      enabled: yes
+      filename: http.log
+      append: yes
+      #extended: yes     # enable this for extended logging information
+      #custom: yes       # enabled the custom logging format (defined by customformat)
+      #customformat: "%{%D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+  # a line based log of TLS handshake parameters (no alerts)
+  - tls-log:
+      enabled: no  # Log TLS connections.
+      filename: tls.log # File to store TLS logs.
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+      #extended: yes # Log extended information like fingerprint
+
+  # output module to store certificates chain to disk
+  - tls-store:
+      enabled: no
+      #certs-log-dir: certs # directory to store the certificates files
+
+  # a line based log of DNS requests and/or replies (no alerts)
+  - dns-log:
+      enabled: no
+      filename: dns.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+  # Packet log... log packets in pcap format. 3 modes of operation: "normal"
+  # "multi" and "sguil".
+  #
+  # In normal mode a pcap file "filename" is created in the default-log-dir,
+  # or are as specified by "dir".
+  # In multi mode, a file is created per thread. This will perform much
+  # better, but will create multiple files where 'normal' would create one.
+  # In multi mode the filename takes a few special variables:
+  # - %n -- thread number
+  # - %i -- thread id
+  # - %t -- timestamp (secs or secs.usecs based on 'ts-format'
+  # E.g. filename: pcap.%n.%t
+  #
+  # Note that it's possible to use directories, but the directories are not
+  # created by Suricata. E.g. filename: pcaps/%n/log.%s will log into the
+  # per thread directory.
+  #
+  # Also note that the limit and max-files settings are enforced per thread.
+  # So the size limit when using 8 threads with 1000mb files and 2000 files
+  # is: 8*1000*2000 ~ 16TiB.
+  #
+  # In Sguil mode "dir" indicates the base directory. In this base dir the
+  # pcaps are created in th directory structure Sguil expects:
+  #
+  # $sguil-base-dir/YYYY-MM-DD/$filename.<timestamp>
+  #
+  # By default all packets are logged except:
+  # - TCP streams beyond stream.reassembly.depth
+  # - encrypted streams after the key exchange
+  #
+  - pcap-log:
+      enabled:  no
+      filename: log.pcap
+
+      # File size limit.  Can be specified in kb, mb, gb.  Just a number
+      # is parsed as bytes.
+      limit: 1000mb
+
+      # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
+      max-files: 2000
+
+      mode: normal # normal, multi or sguil.
+      #sguil-base-dir: /nsm_data/
+      #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
+      use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
+      honor-pass-rules: no # If set to "yes", flows in which a pass rule matched will stopped being logged.
+
+  # a full alerts log containing much information for signature writers
+  # or for investigating suspected false positives.
+  - alert-debug:
+      enabled: no
+      filename: alert-debug.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+  # alert output to prelude (http://www.prelude-technologies.com/) only
+  # available if Suricata has been compiled with --enable-prelude
+  - alert-prelude:
+      enabled: no
+      profile: suricata
+      log-packet-content: no
+      log-packet-header: yes
+
+  # Stats.log contains data from various counters of the suricata engine.
+  - stats:
+      enabled: yes
+      filename: stats.log
+      totals: yes       # stats for all threads merged together
+      threads: no       # per thread stats
+      #null-values: yes  # print counters that have value 0
+
+  # a line based alerts log similar to fast.log into syslog
+  - syslog:
+      enabled: no
+      # reported identity to syslog. If ommited the program name (usually
+      # suricata) will be used.
+      #identity: "suricata"
+      facility: local5
+      #level: Info ## possible levels: Emergency, Alert, Critical,
+                   ## Error, Warning, Notice, Info, Debug
+
+  # a line based information for dropped packets in IPS mode
+  - drop:
+      enabled: no
+      filename: drop.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+  # output module to store extracted files to disk
+  #
+  # The files are stored to the log-dir in a format "file.<id>" where <id> is
+  # an incrementing number starting at 1. For each file "file.<id>" a meta
+  # file "file.<id>.meta" is created.
+  #
+  # File extraction depends on a lot of things to be fully done:
+  # - stream reassembly depth. For optimal results, set this to 0 (unlimited)
+  # - http request / response body sizes. Again set to 0 for optimal results.
+  # - rules that contain the "filestore" keyword.
+  - file-store:
+      enabled: no       # set to yes to enable
+      log-dir: files    # directory to store the files
+      force-magic: no   # force logging magic on all stored files
+      force-md5: no     # force logging of md5 checksums
+      force-filestore: no # force storing of all files
+      #waldo: file.waldo # waldo file to store the file_id across runs
+
+  # output module to log files tracked in a easily parsable json format
+  - file-log:
+      enabled: no
+      filename: files-json.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+      force-magic: no   # force logging magic on all logged files
+      force-md5: no     # force logging of md5 checksums
+
+  # Log TCP data after stream normalization
+  # 2 types: file or dir. File logs into a single logfile. Dir creates
+  # 2 files per TCP session and stores the raw TCP data into them.
+  # Using 'both' will enable both file and dir modes.
+  #
+  # Note: limited by stream.depth
+  - tcp-data:
+      enabled: no
+      type: file
+      filename: tcp-data.log
+
+  # Log HTTP body data after normalization, dechunking and unzipping.
+  # 2 types: file or dir. File logs into a single logfile. Dir creates
+  # 2 files per HTTP session and stores the normalized data into them.
+  # Using 'both' will enable both file and dir modes.
+  #
+  # Note: limited by the body limit settings
+  - http-body-data:
+      enabled: no
+      type: file
+      filename: http-data.log
+
+  # Lua Output Support - execute lua script to generate alert and event
+  # output.
+  # Documented at:
+  # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_Output
+  - lua:
+      enabled: no
+      #scripts-dir: /etc/suricata/lua-output/
+      scripts:
+      #   - script1.lua
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # output about what Suricata is doing, like startup messages, errors, etc.
 logging:
@@ -554,11 +877,6 @@ host-mode: auto
 # packet size (MTU + hardware header) on your system.
 #default-packet-size: 1514
 
-# The default logging directory.  Any log or output file will be
-# placed here if its not specified with a full path name.  This can be
-# overridden with the -l command line parameter.
-default-log-dir: @e_logdir@
-
 # Unix command socket can be used to pass commands to suricata.
 # An external tool can then connect to get information from suricata
 # or trigger some modifications of the engine. Set enabled to yes
@@ -567,325 +885,6 @@ default-log-dir: @e_logdir@
 unix-command:
   enabled: no
   #filename: custom.socket
-
-# global stats configuration
-stats:
-  enabled: yes
-  # The interval field (in seconds) controls at what interval
-  # the loggers are invoked.
-  interval: 8
-
-# Configure the type of alert (and other) logging you would like.
-outputs:
-
-  # a line based alerts log similar to Snort's fast.log
-  - fast:
-      enabled: yes
-      filename: fast.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # Extensible Event Format (nicknamed EVE) event log in JSON format
-  - eve-log:
-      enabled: yes
-      filetype: regular #regular|syslog|unix_dgram|unix_stream|redis
-      filename: eve.json
-      #prefix: "@cee: " # prefix to prepend to each log entry
-      # the following are valid when type: syslog above
-      #identity: "suricata"
-      #facility: local5
-      #level: Info ## possible levels: Emergency, Alert, Critical,
-                   ## Error, Warning, Notice, Info, Debug
-      #redis:
-      #  server: 127.0.0.1
-      #  port: 6379
-      #  mode: list ## possible values: list (default), channel
-      #  key: suricata ## key or channel to use (default to suricata)
-      # Redis pipelining set up. This will enable to only do a query every
-      # 'batch-size' events. This should lower the latency induced by network
-      # connection at the cost of some memory. There is no flushing implemented
-      # so this setting as to be reserved to high traffic suricata.
-      #  pipelining:
-      #    enabled: yes ## set enable to yes to enable query pipelining
-      #    batch-size: 10 ## number of entry to keep in buffer
-      types:
-        - alert:
-            # payload: yes             # enable dumping payload in Base64
-            # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
-            # payload-printable: yes   # enable dumping payload in printable (lossy) format
-            # packet: yes              # enable dumping of packet (without stream segments)
-            # http: yes                # enable dumping of http fields
-            # tls: yes                 # enable dumping of tls fields
-            # ssh: yes                 # enable dumping of ssh fields
-            # smtp: yes                # enable dumping of smtp fields
-
-            # HTTP X-Forwarded-For support by adding an extra field or overwriting
-            # the source or destination IP address (depending on flow direction)
-            # with the one reported in the X-Forwarded-For HTTP header. This is
-            # helpful when reviewing alerts for traffic that is being reverse
-            # or forward proxied.
-            xff:
-              enabled: no
-              # Two operation modes are available, "extra-data" and "overwrite".
-              mode: extra-data
-              # Two proxy deployments are supported, "reverse" and "forward". In
-              # a "reverse" deployment the IP address used is the last one, in a
-              # "forward" deployment the first IP address is used.
-              deployment: reverse
-              # Header name where the actual IP address will be reported, if more
-              # than one IP address is present, the last IP address will be the
-              # one taken into consideration.
-              header: X-Forwarded-For
-        - http:
-            extended: yes     # enable this for extended logging information
-            # custom allows additional http fields to be included in eve-log
-            # the example below adds three additional fields when uncommented
-            #custom: [Accept-Encoding, Accept-Language, Authorization]
-        - dns
-        - tls:
-            extended: yes     # enable this for extended logging information
-        - files:
-            force-magic: no   # force logging magic on all logged files
-            force-md5: no     # force logging of md5 checksums
-        #- drop:
-        #    alerts: no       # log alerts that caused drops
-        - smtp:
-            #extended: yes # enable this for extended logging information
-            # this includes: bcc, message-id, subject, x_mailer, user-agent
-            # custom fields logging from the list:
-            #  reply-to, bcc, message-id, subject, x-mailer, user-agent, received,
-            #  x-originating-ip, in-reply-to, references, importance, priority,
-            #  sensitivity, organization, content-md5, date
-            #custom: [received, x-mailer, x-originating-ip, relays, reply-to, bcc]
-            # output md5 of fields: body, subject
-            # for the body you need to set app-layer.protocols.smtp.mime.body-md5
-            # to yes
-            #md5: [body, subject]
-
-        - ssh
-        - stats:
-            totals: yes       # stats for all threads merged together
-            threads: no       # per thread stats
-            deltas: no        # include delta values
-        # bi-directional flows
-        #- flow
-        # uni-directional flows
-        #- netflow
-
-  # alert output for use with Barnyard2
-  - unified2-alert:
-      enabled: no
-      filename: unified2.alert
-
-      # File size limit.  Can be specified in kb, mb, gb.  Just a number
-      # is parsed as bytes.
-      #limit: 32mb
-
-      # Sensor ID field of unified2 alerts.
-      #sensor-id: 0
-
-      # Include payload of packets related to alerts. Defaults to true, set to
-      # false if payload is not required.
-      #payload: yes
-
-      # HTTP X-Forwarded-For support by adding the unified2 extra header or
-      # overwriting the source or destination IP address (depending on flow
-      # direction) with the one reported in the X-Forwarded-For HTTP header.
-      # This is helpful when reviewing alerts for traffic that is being reverse
-      # or forward proxied.
-      xff:
-        enabled: no
-        # Two operation modes are available, "extra-data" and "overwrite". Note
-        # that in the "overwrite" mode, if the reported IP address in the HTTP
-        # X-Forwarded-For header is of a different version of the packet
-        # received, it will fall-back to "extra-data" mode.
-        mode: extra-data
-        # Two proxy deployments are supported, "reverse" and "forward". In
-        # a "reverse" deployment the IP address used is the last one, in a
-        # "forward" deployment the first IP address is used.
-        deployment: reverse
-        # Header name where the actual IP address will be reported, if more
-        # than one IP address is present, the last IP address will be the
-        # one taken into consideration.
-        header: X-Forwarded-For
-
-  # a line based log of HTTP requests (no alerts)
-  - http-log:
-      enabled: yes
-      filename: http.log
-      append: yes
-      #extended: yes     # enable this for extended logging information
-      #custom: yes       # enabled the custom logging format (defined by customformat)
-      #customformat: "%{%D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # a line based log of TLS handshake parameters (no alerts)
-  - tls-log:
-      enabled: no  # Log TLS connections.
-      filename: tls.log # File to store TLS logs.
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-      #extended: yes # Log extended information like fingerprint
-
-  # output module to store certificates chain to disk
-  - tls-store:
-      enabled: no
-      #certs-log-dir: certs # directory to store the certificates files
-
-  # a line based log of DNS requests and/or replies (no alerts)
-  - dns-log:
-      enabled: no
-      filename: dns.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # Packet log... log packets in pcap format. 3 modes of operation: "normal"
-  # "multi" and "sguil".
-  #
-  # In normal mode a pcap file "filename" is created in the default-log-dir,
-  # or are as specified by "dir".
-  # In multi mode, a file is created per thread. This will perform much
-  # better, but will create multiple files where 'normal' would create one.
-  # In multi mode the filename takes a few special variables:
-  # - %n -- thread number
-  # - %i -- thread id
-  # - %t -- timestamp (secs or secs.usecs based on 'ts-format'
-  # E.g. filename: pcap.%n.%t
-  #
-  # Note that it's possible to use directories, but the directories are not
-  # created by Suricata. E.g. filename: pcaps/%n/log.%s will log into the
-  # per thread directory.
-  #
-  # Also note that the limit and max-files settings are enforced per thread.
-  # So the size limit when using 8 threads with 1000mb files and 2000 files
-  # is: 8*1000*2000 ~ 16TiB.
-  #
-  # In Sguil mode "dir" indicates the base directory. In this base dir the
-  # pcaps are created in th directory structure Sguil expects:
-  #
-  # $sguil-base-dir/YYYY-MM-DD/$filename.<timestamp>
-  #
-  # By default all packets are logged except:
-  # - TCP streams beyond stream.reassembly.depth
-  # - encrypted streams after the key exchange
-  #
-  - pcap-log:
-      enabled:  no
-      filename: log.pcap
-
-      # File size limit.  Can be specified in kb, mb, gb.  Just a number
-      # is parsed as bytes.
-      limit: 1000mb
-
-      # If set to a value will enable ring buffer mode. Will keep Maximum of "max-files" of size "limit"
-      max-files: 2000
-
-      mode: normal # normal, multi or sguil.
-      #sguil-base-dir: /nsm_data/
-      #ts-format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
-      use-stream-depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
-      honor-pass-rules: no # If set to "yes", flows in which a pass rule matched will stopped being logged.
-
-  # a full alerts log containing much information for signature writers
-  # or for investigating suspected false positives.
-  - alert-debug:
-      enabled: no
-      filename: alert-debug.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # alert output to prelude (http://www.prelude-technologies.com/) only
-  # available if Suricata has been compiled with --enable-prelude
-  - alert-prelude:
-      enabled: no
-      profile: suricata
-      log-packet-content: no
-      log-packet-header: yes
-
-  # Stats.log contains data from various counters of the suricata engine.
-  - stats:
-      enabled: yes
-      filename: stats.log
-      totals: yes       # stats for all threads merged together
-      threads: no       # per thread stats
-      #null-values: yes  # print counters that have value 0
-
-  # a line based alerts log similar to fast.log into syslog
-  - syslog:
-      enabled: no
-      # reported identity to syslog. If ommited the program name (usually
-      # suricata) will be used.
-      #identity: "suricata"
-      facility: local5
-      #level: Info ## possible levels: Emergency, Alert, Critical,
-                   ## Error, Warning, Notice, Info, Debug
-
-  # a line based information for dropped packets in IPS mode
-  - drop:
-      enabled: no
-      filename: drop.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-  # output module to store extracted files to disk
-  #
-  # The files are stored to the log-dir in a format "file.<id>" where <id> is
-  # an incrementing number starting at 1. For each file "file.<id>" a meta
-  # file "file.<id>.meta" is created.
-  #
-  # File extraction depends on a lot of things to be fully done:
-  # - stream reassembly depth. For optimal results, set this to 0 (unlimited)
-  # - http request / response body sizes. Again set to 0 for optimal results.
-  # - rules that contain the "filestore" keyword.
-  - file-store:
-      enabled: no       # set to yes to enable
-      log-dir: files    # directory to store the files
-      force-magic: no   # force logging magic on all stored files
-      force-md5: no     # force logging of md5 checksums
-      force-filestore: no # force storing of all files
-      #waldo: file.waldo # waldo file to store the file_id across runs
-
-  # output module to log files tracked in a easily parsable json format
-  - file-log:
-      enabled: no
-      filename: files-json.log
-      append: yes
-      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
-
-      force-magic: no   # force logging magic on all logged files
-      force-md5: no     # force logging of md5 checksums
-
-  # Log TCP data after stream normalization
-  # 2 types: file or dir. File logs into a single logfile. Dir creates
-  # 2 files per TCP session and stores the raw TCP data into them.
-  # Using 'both' will enable both file and dir modes.
-  #
-  # Note: limited by stream.depth
-  - tcp-data:
-      enabled: no
-      type: file
-      filename: tcp-data.log
-
-  # Log HTTP body data after normalization, dechunking and unzipping.
-  # 2 types: file or dir. File logs into a single logfile. Dir creates
-  # 2 files per HTTP session and stores the normalized data into them.
-  # Using 'both' will enable both file and dir modes.
-  #
-  # Note: limited by the body limit settings
-  - http-body-data:
-      enabled: no
-      type: file
-      filename: http-data.log
-
-  # Lua Output Support - execute lua script to generate alert and event
-  # output.
-  # Documented at:
-  # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Lua_Output
-  - lua:
-      enabled: no
-      #scripts-dir: /etc/suricata/lua-output/
-      scripts:
-      #   - script1.lua
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
