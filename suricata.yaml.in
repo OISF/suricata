@@ -5,6 +5,42 @@
 # options in this file, full documentation can be found at:
 # https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricatayaml
 
+##
+## Step 1: inform Suricata about your network
+##
+
+vars:
+  # more specifc is better for alert accuracy and performance
+  address-groups:
+    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
+    #HOME_NET: "[192.168.0.0/16]"
+    #HOME_NET: "[10.0.0.0/8]"
+    #HOME_NET: "[172.16.0.0/12]"
+    #HOME_NET: "any"
+
+    EXTERNAL_NET: "!$HOME_NET"
+    #EXTERNAL_NET: "any"
+
+    HTTP_SERVERS: "$HOME_NET"
+    SMTP_SERVERS: "$HOME_NET"
+    SQL_SERVERS: "$HOME_NET"
+    DNS_SERVERS: "$HOME_NET"
+    TELNET_SERVERS: "$HOME_NET"
+    AIM_SERVERS: "$EXTERNAL_NET"
+    DNP3_SERVER: "$HOME_NET"
+    DNP3_CLIENT: "$HOME_NET"
+    MODBUS_CLIENT: "$HOME_NET"
+    MODBUS_SERVER: "$HOME_NET"
+    ENIP_CLIENT: "$HOME_NET"
+    ENIP_SERVER: "$HOME_NET"
+
+  port-groups:
+    HTTP_PORTS: "80"
+    SHELLCODE_PORTS: "!80"
+    ORACLE_PORTS: 1521
+    SSH_PORTS: 22
+    DNP3_PORTS: 20000
+    MODBUS_PORTS: 502
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
@@ -1195,57 +1231,6 @@ rule-files:
 
 classification-file: @e_sysconfdir@classification.config
 reference-config-file: @e_sysconfdir@reference.config
-
-# Holds variables that would be used by the engine.
-vars:
-
-  # Holds the address group vars that would be passed in a Signature.
-  # These would be retrieved during the Signature address parsing stage.
-  address-groups:
-
-    HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
-
-    EXTERNAL_NET: "!$HOME_NET"
-
-    HTTP_SERVERS: "$HOME_NET"
-
-    SMTP_SERVERS: "$HOME_NET"
-
-    SQL_SERVERS: "$HOME_NET"
-
-    DNS_SERVERS: "$HOME_NET"
-
-    TELNET_SERVERS: "$HOME_NET"
-
-    AIM_SERVERS: "$EXTERNAL_NET"
-
-    DNP3_SERVER: "$HOME_NET"
-
-    DNP3_CLIENT: "$HOME_NET"
-
-    MODBUS_CLIENT: "$HOME_NET"
-
-    MODBUS_SERVER: "$HOME_NET"
-
-    ENIP_CLIENT: "$HOME_NET"
-
-    ENIP_SERVER: "$HOME_NET"
-
-  # Holds the port group vars that would be passed in a Signature.
-  # These would be retrieved during the Signature port parsing stage.
-  port-groups:
-
-    HTTP_PORTS: "80"
-
-    SHELLCODE_PORTS: "!80"
-
-    ORACLE_PORTS: 1521
-
-    SSH_PORTS: 22
-
-    DNP3_PORTS: 20000
-
-    MODBUS_PORTS: 502
 
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
