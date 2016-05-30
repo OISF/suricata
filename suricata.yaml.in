@@ -472,6 +472,48 @@ app-layer:
            #    double-decode-query: no
 
 
+##############################################################################
+##
+## Advanced settings below
+##
+##############################################################################
+
+##
+## Run Options
+##
+
+# Run suricata as user and group.
+#run-as:
+#  user: suri
+#  group: suri
+
+# Some logging module will use that name in event as identifier. The default
+# value is the hostname
+#sensor-name: suricata
+
+# Default pid file.
+# Will use this file if no --pidfile in command options.
+#pid-file: @e_rundir@suricata.pid
+
+# Daemon working directory
+# Suricata will change directory to this one if provided
+# Default: "/"
+#daemon-directory: "/"
+
+# Suricata core dump configuration. Limits the size of the core dump file to
+# approximately max-dump. The actual core dump size will be a multiple of the
+# page size. Core dumps that would be larger than max-dump are truncated. On
+# Linux, the actual core dump size may be a few pages larger than max-dump.
+# Setting max-dump to 0 disables core dumping.
+# Setting max-dump to 'unlimited' will give the full core dump file.
+# On 32-bit Linux, a max-dump value >= ULONG_MAX may cause the core dump size
+# to be 'unlimited'.
+
+coredump:
+  max-dump: unlimited
+
+
+
 
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
@@ -506,24 +548,6 @@ app-layer:
 # and 'sniffer-only' in IDS mode.
 # This feature is currently only used by the reject* keywords.
 host-mode: auto
-
-# Run suricata as user and group.
-#run-as:
-#  user: suri
-#  group: suri
-
-# Some logging module will use that name in event as identifier. The default
-# value is the hostname
-#sensor-name: suricata
-
-# Default pid file.
-# Will use this file if no --pidfile in command options.
-#pid-file: @e_rundir@suricata.pid
-
-# Daemon working directory
-# Suricata will change directory to this one if provided
-# Default: "/"
-#daemon-directory: "/"
 
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
@@ -903,56 +927,6 @@ nflog:
     qtimeout: 100
     # netlink max buffer size
     max-size: 20000
-
-# Netmap support
-#
-# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
-# built-in netmap support or compile and install netmap module and appropriate
-# NIC driver on your Linux system.
-# To reach maximum throughput disable all receive-, segmentation-,
-# checksum- offloadings on NIC.
-# Disabling Tx checksum offloading is *required* for connecting OS endpoint
-# with NIC endpoint.
-# You can find more information at https://github.com/luigirizzo/netmap
-#
-netmap:
-   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
- - interface: eth2
-   # Number of receive threads. "auto" uses number of RSS queues on interface.
-   threads: auto
-   # You can use the following variables to activate netmap tap or IPS mode.
-   # If copy-mode is set to ips or tap, the traffic coming to the current
-   # interface will be copied to the copy-iface interface. If 'tap' is set, the
-   # copy is complete. If 'ips' is set, the packet matching a 'drop' action
-   # will not be copied.
-   # To specify the OS as the copy-iface (so the OS can route packets, or forward
-   # to a service running on the same machine) add a plus sign at the end
-   # (e.g. "copy-iface: eth0+"). Don't forget to set up a symmetrical eth0+ -> eth0
-   # for return packets. Hardware checksumming must be *off* on the interface if
-   # using an OS endpoint (e.g. 'ifconfig eth0 -rxcsum -txcsum -rxcsum6 -txcsum6' for FreeBSD
-   # or 'ethtool -K eth0 tx off rx off' for Linux).
-   #copy-mode: tap
-   #copy-iface: eth3
-   # Set to yes to disable promiscuous mode
-   # disable-promisc: no
-   # Choose checksum verification mode for the interface. At the moment
-   # of the capture, some packets may be with an invalid checksum due to
-   # offloading to the network card of the checksum computation.
-   # Possible values are:
-   #  - yes: checksum validation is forced
-   #  - no: checksum validation is disabled
-   #  - auto: suricata uses a statistical approach to detect when
-   #  checksum off-loading is used.
-   # Warning: 'checksum-validation' must be set to yes to have any validation
-   #checksum-checks: auto
-   # BPF filter to apply to this interface. The pcap filter syntax apply here.
-   #bpf-filter: port 80 or udp
- #- interface: eth3
-   #threads: auto
-   #copy-mode: tap
-   #copy-iface: eth2
-   # Put default values here
- - interface: default
 
 legacy:
   uricontent: enabled
@@ -1338,97 +1312,6 @@ host:
 #  prealloc: 1000
 #  memcap: 16777216
 
-# Tilera mpipe configuration. for use on Tilera TILE-Gx.
-mpipe:
-
-  # Load balancing modes: "static", "dynamic", "sticky", or "round-robin".
-  load-balance: dynamic
-
-  # Number of Packets in each ingress packet queue. Must be 128, 512, 2028 or 65536
-  iqueue-packets: 2048
-
-  # List of interfaces we will listen on.
-  inputs:
-  - interface: xgbe2
-  - interface: xgbe3
-  - interface: xgbe4
-
-
-  # Relative weight of memory for packets of each mPipe buffer size.
-  stack:
-    size128: 0
-    size256: 9
-    size512: 0
-    size1024: 0
-    size1664: 7
-    size4096: 0
-    size10386: 0
-    size16384: 0
-
-# PF_RING configuration. for use with native PF_RING support
-# for more info see http://www.ntop.org/products/pf_ring/
-pfring:
-  - interface: eth0
-    # Number of receive threads (>1 will enable experimental flow pinned
-    # runmode)
-    threads: 1
-
-    # Default clusterid.  PF_RING will load balance packets based on flow.
-    # All threads/processes that will participate need to have the same
-    # clusterid.
-    cluster-id: 99
-
-    # Default PF_RING cluster type. PF_RING can load balance per flow.
-    # Possible values are cluster_flow or cluster_round_robin.
-    cluster-type: cluster_flow
-    # bpf filter for this interface
-    #bpf-filter: tcp
-    # Choose checksum verification mode for the interface. At the moment
-    # of the capture, some packets may be with an invalid checksum due to
-    # offloading to the network card of the checksum computation.
-    # Possible values are:
-    #  - rxonly: only compute checksum for packets received by network card.
-    #  - yes: checksum validation is forced
-    #  - no: checksum validation is disabled
-    #  - auto: suricata uses a statistical approach to detect when
-    #  checksum off-loading is used. (default)
-    # Warning: 'checksum-validation' must be set to yes to have any validation
-    #checksum-checks: auto
-  # Second interface
-  #- interface: eth1
-  #  threads: 3
-  #  cluster-id: 93
-  #  cluster-type: cluster_flow
-  # Put default values here
-  - interface: default
-    #threads: 2
-
-# For FreeBSD ipfw(8) divert(4) support.
-# Please make sure you have ipfw_load="YES" and ipdivert_load="YES"
-# in /etc/loader.conf or kldload'ing the appropriate kernel modules.
-# Additionally, you need to have an ipfw rule for the engine to see
-# the packets from ipfw.  For Example:
-#
-#   ipfw add 100 divert 8000 ip from any to any
-#
-# The 8000 above should be the same number you passed on the command
-# line, i.e. -d 8000
-#
-ipfw:
-
-  # Reinject packets at the specified ipfw rule number.  This config
-  # option is the ipfw rule number AT WHICH rule processing continues
-  # in the ipfw processing system after the engine has finished
-  # inspecting the packet for acceptance.  If no rule number is specified,
-  # accepted packets are reinjected at the divert rule which they entered
-  # and IPFW rule processing continues.  No check is done to verify
-  # this will rule makes sense so care must be taken to avoid loops in ipfw.
-  #
-  ## The following example tells the engine to reinject packets
-  # back into the ipfw firewall AT rule number 5500:
-  #
-  # ipfw-reinjection-rule-number: 5500
-
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
 # action-order:
@@ -1550,17 +1433,124 @@ profiling:
     filename: pcaplog_stats.log
     append: yes
 
-# Suricata core dump configuration. Limits the size of the core dump file to
-# approximately max-dump. The actual core dump size will be a multiple of the
-# page size. Core dumps that would be larger than max-dump are truncated. On
-# Linux, the actual core dump size may be a few pages larger than max-dump.
-# Setting max-dump to 0 disables core dumping.
-# Setting max-dump to 'unlimited' will give the full core dump file.
-# On 32-bit Linux, a max-dump value >= ULONG_MAX may cause the core dump size
-# to be 'unlimited'.
+##
+## Advanced Capture Options
+##
 
-coredump:
-  max-dump: unlimited
+# Netmap support
+#
+# Netmap operates with NIC directly in driver, so you need FreeBSD wich have
+# built-in netmap support or compile and install netmap module and appropriate
+# NIC driver on your Linux system.
+# To reach maximum throughput disable all receive-, segmentation-,
+# checksum- offloadings on NIC.
+# Disabling Tx checksum offloading is *required* for connecting OS endpoint
+# with NIC endpoint.
+# You can find more information at https://github.com/luigirizzo/netmap
+#
+netmap:
+   # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
+ - interface: eth2
+   # Number of receive threads. "auto" uses number of RSS queues on interface.
+   threads: auto
+   # You can use the following variables to activate netmap tap or IPS mode.
+   # If copy-mode is set to ips or tap, the traffic coming to the current
+   # interface will be copied to the copy-iface interface. If 'tap' is set, the
+   # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+   # will not be copied.
+   # To specify the OS as the copy-iface (so the OS can route packets, or forward
+   # to a service running on the same machine) add a plus sign at the end
+   # (e.g. "copy-iface: eth0+"). Don't forget to set up a symmetrical eth0+ -> eth0
+   # for return packets. Hardware checksumming must be *off* on the interface if
+   # using an OS endpoint (e.g. 'ifconfig eth0 -rxcsum -txcsum -rxcsum6 -txcsum6' for FreeBSD
+   # or 'ethtool -K eth0 tx off rx off' for Linux).
+   #copy-mode: tap
+   #copy-iface: eth3
+   # Set to yes to disable promiscuous mode
+   # disable-promisc: no
+   # Choose checksum verification mode for the interface. At the moment
+   # of the capture, some packets may be with an invalid checksum due to
+   # offloading to the network card of the checksum computation.
+   # Possible values are:
+   #  - yes: checksum validation is forced
+   #  - no: checksum validation is disabled
+   #  - auto: suricata uses a statistical approach to detect when
+   #  checksum off-loading is used.
+   # Warning: 'checksum-validation' must be set to yes to have any validation
+   #checksum-checks: auto
+   # BPF filter to apply to this interface. The pcap filter syntax apply here.
+   #bpf-filter: port 80 or udp
+ #- interface: eth3
+   #threads: auto
+   #copy-mode: tap
+   #copy-iface: eth2
+   # Put default values here
+ - interface: default
+
+# PF_RING configuration. for use with native PF_RING support
+# for more info see http://www.ntop.org/products/pf_ring/
+pfring:
+  - interface: eth0
+    # Number of receive threads (>1 will enable experimental flow pinned
+    # runmode)
+    threads: 1
+
+    # Default clusterid.  PF_RING will load balance packets based on flow.
+    # All threads/processes that will participate need to have the same
+    # clusterid.
+    cluster-id: 99
+
+    # Default PF_RING cluster type. PF_RING can load balance per flow.
+    # Possible values are cluster_flow or cluster_round_robin.
+    cluster-type: cluster_flow
+    # bpf filter for this interface
+    #bpf-filter: tcp
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - rxonly: only compute checksum for packets received by network card.
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used. (default)
+    # Warning: 'checksum-validation' must be set to yes to have any validation
+    #checksum-checks: auto
+  # Second interface
+  #- interface: eth1
+  #  threads: 3
+  #  cluster-id: 93
+  #  cluster-type: cluster_flow
+  # Put default values here
+  - interface: default
+    #threads: 2
+
+# For FreeBSD ipfw(8) divert(4) support.
+# Please make sure you have ipfw_load="YES" and ipdivert_load="YES"
+# in /etc/loader.conf or kldload'ing the appropriate kernel modules.
+# Additionally, you need to have an ipfw rule for the engine to see
+# the packets from ipfw.  For Example:
+#
+#   ipfw add 100 divert 8000 ip from any to any
+#
+# The 8000 above should be the same number you passed on the command
+# line, i.e. -d 8000
+#
+ipfw:
+
+  # Reinject packets at the specified ipfw rule number.  This config
+  # option is the ipfw rule number AT WHICH rule processing continues
+  # in the ipfw processing system after the engine has finished
+  # inspecting the packet for acceptance.  If no rule number is specified,
+  # accepted packets are reinjected at the divert rule which they entered
+  # and IPFW rule processing continues.  No check is done to verify
+  # this will rule makes sense so care must be taken to avoid loops in ipfw.
+  #
+  ## The following example tells the engine to reinject packets
+  # back into the ipfw firewall AT rule number 5500:
+  #
+  # ipfw-reinjection-rule-number: 5500
+
 
 napatech:
     # The Host Buffer Allowance for all streams
@@ -1574,6 +1564,34 @@ napatech:
 
     # The streams to listen on
     streams: [1, 2, 3]
+
+# Tilera mpipe configuration. for use on Tilera TILE-Gx.
+mpipe:
+
+  # Load balancing modes: "static", "dynamic", "sticky", or "round-robin".
+  load-balance: dynamic
+
+  # Number of Packets in each ingress packet queue. Must be 128, 512, 2028 or 65536
+  iqueue-packets: 2048
+
+  # List of interfaces we will listen on.
+  inputs:
+  - interface: xgbe2
+  - interface: xgbe3
+  - interface: xgbe4
+
+
+  # Relative weight of memory for packets of each mPipe buffer size.
+  stack:
+    size128: 0
+    size256: 9
+    size512: 0
+    size1024: 0
+    size1664: 7
+    size4096: 0
+    size10386: 0
+    size16384: 0
+
 
 # Includes.  Files included here will be handled as if they were
 # inlined in this configuration file.
