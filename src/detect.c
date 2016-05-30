@@ -176,6 +176,7 @@
 #include "detect-ssl-version.h"
 #include "detect-ssl-state.h"
 #include "detect-modbus.h"
+#include "detect-dnp3.h"
 
 #include "action-globals.h"
 #include "tm-threads.h"
@@ -2426,6 +2427,10 @@ PacketCreateMask(Packet *p, SignatureMask *mask, AppProto alproto, int has_state
                     SCLogDebug("packet/flow has smtp state");
                     (*mask) |= SIG_MASK_REQUIRE_SMTP_STATE;
                     break;
+                case ALPROTO_DNP3:
+                    SCLogDebug("packet/flow has dnp3 state");
+                    (*mask) |= SIG_MASK_REQUIRE_DNP3_STATE;
+                    break;
                 case ALPROTO_TEMPLATE:
                     SCLogDebug("packet/flow has template state");
                     (*mask) |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
@@ -2663,6 +2668,10 @@ static int SignatureCreateMask(Signature *s)
         s->mask |= SIG_MASK_REQUIRE_DNS_STATE;
         SCLogDebug("sig requires dns state");
     }
+    if (s->alproto == ALPROTO_DNP3) {
+        s->mask |= SIG_MASK_REQUIRE_DNP3_STATE;
+        SCLogDebug("sig requires dnp3 state");
+    }
     if (s->alproto == ALPROTO_FTP) {
         s->mask |= SIG_MASK_REQUIRE_FTP_STATE;
         SCLogDebug("sig requires ftp state");
@@ -2680,6 +2689,7 @@ static int SignatureCreateMask(Signature *s)
         (s->mask & SIG_MASK_REQUIRE_HTTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SSH_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_DNS_STATE) ||
+        (s->mask & SIG_MASK_REQUIRE_DNP3_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_FTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_SMTP_STATE) ||
         (s->mask & SIG_MASK_REQUIRE_TEMPLATE_STATE) ||
@@ -4386,6 +4396,10 @@ void SigTableSetup(void)
     DetectDnsQueryRegister();
     DetectTlsSniRegister();
     DetectModbusRegister();
+    DetectDNP3DataRegister();
+    DetectDNP3FuncRegister();
+    DetectDNP3IndRegister();
+    DetectDNP3ObjRegister();
     DetectAppLayerProtocolRegister();
     DetectBase64DecodeRegister();
     DetectBase64DataRegister();
