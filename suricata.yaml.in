@@ -794,6 +794,9 @@ app-layer:
            #    double-decode-path: no
            #    double-decode-query: no
 
+# Limit for the maximum number of asn1 frames to decode (default 256)
+asn1-max-frames: 256
+
 
 ##############################################################################
 ##
@@ -991,6 +994,22 @@ spm-algo: auto
 #reputation-files:
 # - reputation.list
 
+# When run with the option --engine-analysis, the engine will read each of
+# the parameters below, and print reports for each of the enabled sections
+# and exit.  The reports are printed to a file in the default log dir
+# given by the parameter "default-log-dir", with engine reporting
+# subsection below printing reports in its own report file.
+engine-analysis:
+  # enables printing reports for fast-pattern for every rule.
+  rules-fast-pattern: yes
+  # enables printing reports for each rule
+  rules: yes
+
+#recursion and match limits for PCRE where supported
+pcre:
+  match-limit: 3500
+  match-limit-recursion: 1500
+
 ##
 ## Threading
 ##
@@ -1054,6 +1073,25 @@ threading:
 ##
 ## Advanced Traffic Tracking and Reconstruction Settings
 ##
+
+# Host specific policies for defragmentation and TCP stream
+# reassembly.  The host OS lookup is done using a radix tree, just
+# like a routing table so the most specific entry matches.
+host-os-policy:
+  # Make the default policy windows.
+  windows: [0.0.0.0/0]
+  bsd: []
+  bsd-right: []
+  old-linux: []
+  linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
+  old-solaris: []
+  solaris: ["::1"]
+  hpux10: []
+  hpux11: []
+  irix: []
+  macos: []
+  vista: []
+  windows2k3: []
 
 # Defrag settings:
 
@@ -1267,44 +1305,6 @@ host:
 #  memcap: 16777216
 
 
-# Host specific policies for defragmentation and TCP stream
-# reassembly.  The host OS lookup is done using a radix tree, just
-# like a routing table so the most specific entry matches.
-host-os-policy:
-  # Make the default policy windows.
-  windows: [0.0.0.0/0]
-  bsd: []
-  bsd-right: []
-  old-linux: []
-  linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
-  old-solaris: []
-  solaris: ["::1"]
-  hpux10: []
-  hpux11: []
-  irix: []
-  macos: []
-  vista: []
-  windows2k3: []
-
-
-# Limit for the maximum number of asn1 frames to decode (default 256)
-asn1-max-frames: 256
-
-# When run with the option --engine-analysis, the engine will read each of
-# the parameters below, and print reports for each of the enabled sections
-# and exit.  The reports are printed to a file in the default log dir
-# given by the parameter "default-log-dir", with engine reporting
-# subsection below printing reports in its own report file.
-engine-analysis:
-  # enables printing reports for fast-pattern for every rule.
-  rules-fast-pattern: yes
-  # enables printing reports for each rule
-  rules: yes
-
-#recursion and match limits for PCRE where supported
-pcre:
-  match-limit: 3500
-  match-limit-recursion: 1500
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
