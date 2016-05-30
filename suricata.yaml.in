@@ -889,6 +889,10 @@ unix-command:
 legacy:
   uricontent: enabled
 
+##
+## Detection settings
+##
+
 # The detection engine builds internal groups of signatures. The engine
 # allow us to specify the profile to use for them, to manage memory on an
 # efficient way keeping a good performance. For the profile keyword you
@@ -937,6 +941,59 @@ detect:
       dump-to-disk: false
       include-rules: false      # very verbose
       include-mpm-stats: false
+
+# Select the multi pattern algorithm you want to run for scan/search the
+# in the engine.
+#
+# The supported algorithms are:
+# "ac"      - Aho-Corasick, default implementation
+# "ac-bs"   - Aho-Corasick, reduced memory implementation
+# "ac-cuda" - Aho-Corasick, CUDA implementation
+# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
+# "hs"      - Hyperscan, available when built with Hyperscan support
+#
+# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
+# "ac-tile" on Tilera platforms, and "ac" otherwise.
+#
+# The mpm you choose also decides the distribution of mpm contexts for
+# signature groups, specified by the conf - "detect.sgh-mpm-context".
+# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
+# to be set to "single", because of ac's memory requirements, unless the
+# ruleset is small enough to fit in one's memory, in which case one can
+# use "full" with "ac".  Rest of the mpms can be run in "full" mode.
+#
+# There is also a CUDA pattern matcher (only available if Suricata was
+# compiled with --enable-cuda: b2g_cuda. Make sure to update your
+# max-pending-packets setting above as well if you use b2g_cuda.
+
+mpm-algo: auto
+
+# Select the matching algorithm you want to use for single-pattern searches.
+#
+# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
+# available if Suricata has been built with Hyperscan support).
+#
+# The default of "auto" will use "hs" if available, otherwise "bm".
+
+spm-algo: auto
+
+# Set the order of alerts bassed on actions
+# The default order is pass, drop, reject, alert
+# action-order:
+#   - pass
+#   - drop
+#   - reject
+#   - alert
+
+# IP Reputation
+#reputation-categories-file: @e_sysconfdir@iprep/categories.txt
+#default-reputation-path: @e_sysconfdir@iprep
+#reputation-files:
+# - reputation.list
+
+##
+## Threading
+##
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
@@ -993,40 +1050,10 @@ threading:
   #
   detect-thread-ratio: 1.5
 
-# Select the multi pattern algorithm you want to run for scan/search the
-# in the engine.
-#
-# The supported algorithms are:
-# "ac"      - Aho-Corasick, default implementation
-# "ac-bs"   - Aho-Corasick, reduced memory implementation
-# "ac-cuda" - Aho-Corasick, CUDA implementation
-# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
-# "hs"      - Hyperscan, available when built with Hyperscan support
-#
-# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
-# "ac-tile" on Tilera platforms, and "ac" otherwise.
-#
-# The mpm you choose also decides the distribution of mpm contexts for
-# signature groups, specified by the conf - "detect.sgh-mpm-context".
-# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
-# to be set to "single", because of ac's memory requirements, unless the
-# ruleset is small enough to fit in one's memory, in which case one can
-# use "full" with "ac".  Rest of the mpms can be run in "full" mode.
-#
-# There is also a CUDA pattern matcher (only available if Suricata was
-# compiled with --enable-cuda: b2g_cuda. Make sure to update your
-# max-pending-packets setting above as well if you use b2g_cuda.
 
-mpm-algo: auto
-
-# Select the matching algorithm you want to use for single-pattern searches.
-#
-# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
-# available if Suricata has been built with Hyperscan support).
-#
-# The default of "auto" will use "hs" if available, otherwise "bm".
-
-spm-algo: auto
+##
+## Advanced Traffic Tracking and Reconstruction Settings
+##
 
 # Defrag settings:
 
@@ -1239,19 +1266,6 @@ host:
 #  prealloc: 1000
 #  memcap: 16777216
 
-# Set the order of alerts bassed on actions
-# The default order is pass, drop, reject, alert
-# action-order:
-#   - pass
-#   - drop
-#   - reject
-#   - alert
-
-# IP Reputation
-#reputation-categories-file: @e_sysconfdir@iprep/categories.txt
-#default-reputation-path: @e_sysconfdir@iprep
-#reputation-files:
-# - reputation.list
 
 # Host specific policies for defragmentation and TCP stream
 # reassembly.  The host OS lookup is done using a radix tree, just
