@@ -159,10 +159,10 @@ outputs:
             # payload-buffer-size: 4kb # max size of payload buffer to output in eve-log
             # payload-printable: yes   # enable dumping payload in printable (lossy) format
             # packet: yes              # enable dumping of packet (without stream segments)
-            # http: yes                # enable dumping of http fields
-            # tls: yes                 # enable dumping of tls fields
-            # ssh: yes                 # enable dumping of ssh fields
-            # smtp: yes                # enable dumping of smtp fields
+            http: yes                # enable dumping of http fields
+            tls: yes                 # enable dumping of tls fields
+            ssh: yes                 # enable dumping of ssh fields
+            smtp: yes                # enable dumping of smtp fields
 
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
@@ -315,7 +315,7 @@ outputs:
   # - encrypted streams after the key exchange
   #
   - pcap-log:
-      enabled:  no
+      enabled: no
       filename: log.pcap
 
       # File size limit.  Can be specified in kb, mb, gb.  Just a number
@@ -432,7 +432,7 @@ outputs:
       scripts:
       #   - script1.lua
 
-# Logging configuration.  This is not about logging IDS alerts, but
+# Logging configuration.  This is not about logging IDS alerts/events, but
 # output about what Suricata is doing, like startup messages, errors, etc.
 logging:
   # The default log level, can be overridden in an output section.
@@ -481,7 +481,7 @@ af-packet:
   - interface: eth0
     # Number of receive threads. "auto" uses the number of cores
     #threads: auto
-    # Default clusterid.  AF_PACKET will load balance packets based on flow.
+    # Default clusterid. AF_PACKET will load balance packets based on flow.
     cluster-id: 99
     # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
     # This is only supported for Linux kernel > 3.1
@@ -600,6 +600,9 @@ pcap-file:
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
+
+# See "Advanced Capture Options" below for more options, including NETMAP
+# and PF_RING.
 
 
 ##
@@ -935,7 +938,7 @@ pcre:
 ##
 
 # Host specific policies for defragmentation and TCP stream
-# reassembly.  The host OS lookup is done using a radix tree, just
+# reassembly. The host OS lookup is done using a radix tree, just
 # like a routing table so the most specific entry matches.
 host-os-policy:
   # Make the default policy windows.
@@ -943,9 +946,9 @@ host-os-policy:
   bsd: []
   bsd-right: []
   old-linux: []
-  linux: [10.0.0.0/8, 192.168.1.100, "8762:2352:6241:7245:E000:0000:0000:0000"]
+  linux: []
   old-solaris: []
-  solaris: ["::1"]
+  solaris: []
   hpux10: []
   hpux11: []
   irix: []
@@ -998,7 +1001,7 @@ defrag:
 # in bytes.
 
 flow:
-  memcap: 64mb
+  memcap: 128mb
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
@@ -1039,11 +1042,11 @@ flow-timeouts:
     emergency-closed: 0
   tcp:
     new: 60
-    established: 3600
-    closed: 120
-    emergency-new: 10
-    emergency-established: 300
-    emergency-closed: 20
+    established: 600
+    closed: 60
+    emergency-new: 5
+    emergency-established: 100
+    emergency-closed: 10
   udp:
     new: 30
     established: 300
@@ -1115,11 +1118,11 @@ flow-timeouts:
 #                               # on directly.
 #
 stream:
-  memcap: 32mb
+  memcap: 64mb
   checksum-validation: yes      # reject wrong csums
   inline: auto                  # auto will use inline mode in IPS mode, yes or no set it statically
   reassembly:
-    memcap: 128mb
+    memcap: 256mb
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
@@ -1153,7 +1156,7 @@ stream:
 host:
   hash-size: 4096
   prealloc: 1000
-  memcap: 16777216
+  memcap: 32mb
 
 # IP Pair table:
 #
@@ -1162,7 +1165,8 @@ host:
 #ippair:
 #  hash-size: 4096
 #  prealloc: 1000
-#  memcap: 16777216
+#  memcap: 32mb
+
 
 ##
 ## Performance tuning and profiling
@@ -1610,6 +1614,9 @@ cuda:
     # For this option you need a device with Compute Capability > 1.0.
     cuda-streams: 2
 
+##
+## Include other configs
+##
 
 # Includes.  Files included here will be handled as if they were
 # inlined in this configuration file.
