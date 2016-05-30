@@ -275,6 +275,204 @@ pcap-file:
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
 
+##
+## Step 5: App Layer Protocol Configuration
+##
+
+# Configure the app-layer parsers. The protocols section details each
+# protocol.
+#
+# The option "enabled" takes 3 values - "yes", "no", "detection-only".
+# "yes" enables both detection and the parser, "no" disables both, and
+# "detection-only" enables protocol detection only (parser disabled).
+app-layer:
+  protocols:
+    tls:
+      enabled: yes
+      detection-ports:
+        dp: 443
+
+      #no-reassemble: yes
+    dcerpc:
+      enabled: yes
+    ftp:
+      enabled: yes
+    ssh:
+      enabled: yes
+    smtp:
+      enabled: yes
+      # Configure SMTP-MIME Decoder
+      mime:
+        # Decode MIME messages from SMTP transactions
+        # (may be resource intensive)
+        # This field supercedes all others because it turns the entire
+        # process on or off
+        decode-mime: yes
+
+        # Decode MIME entity bodies (ie. base64, quoted-printable, etc.)
+        decode-base64: yes
+        decode-quoted-printable: yes
+
+        # Maximum bytes per header data value stored in the data structure
+        # (default is 2000)
+        header-value-depth: 2000
+
+        # Extract URLs and save in state data structure
+        extract-urls: yes
+        # Set to yes to compute the md5 of the mail body. You will then
+        # be able to journalize it.
+        body-md5: no
+      # Configure inspected-tracker for file_data keyword
+      inspected-tracker:
+        content-limit: 100000
+        content-inspect-min-size: 32768
+        content-inspect-window: 4096
+    imap:
+      enabled: detection-only
+    msn:
+      enabled: detection-only
+    smb:
+      enabled: yes
+      detection-ports:
+        dp: 139
+    # Note: Modbus probe parser is minimalist due to the poor significant field
+    # Only Modbus message length (greater than Modbus header length)
+    # And Protocol ID (equal to 0) are checked in probing parser
+    # It is important to enable detection port and define Modbus port
+    # to avoid false positive
+    modbus:
+      # How many unreplied Modbus requests are considered a flood.
+      # If the limit is reached, app-layer-event:modbus.flooded; will match.
+      #request-flood: 500
+
+      enabled: no
+      detection-ports:
+        dp: 502
+      # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it
+      # is recommended to keep the TCP connection opened with a remote device
+      # and not to open and close it for each MODBUS/TCP transaction. In that
+      # case, it is important to set the depth of the stream reassembling as
+      # unlimited (stream.reassembly.depth: 0)
+    # smb2 detection is disabled internally inside the engine.
+    #smb2:
+    #  enabled: yes
+    dns:
+      # memcaps. Globally and per flow/state.
+      #global-memcap: 16mb
+      #state-memcap: 512kb
+
+      # How many unreplied DNS requests are considered a flood.
+      # If the limit is reached, app-layer-event:dns.flooded; will match.
+      #request-flood: 500
+
+      tcp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+      udp:
+        enabled: yes
+        detection-ports:
+          dp: 53
+    http:
+      enabled: yes
+      # memcap: 64mb
+
+      # default-config:           Used when no server-config matches
+      #   personality:            List of personalities used by default
+      #   request-body-limit:     Limit reassembly of request body for inspection
+      #                           by http_client_body & pcre /P option.
+      #   response-body-limit:    Limit reassembly of response body for inspection
+      #                           by file_data, http_server_body & pcre /Q option.
+      #   double-decode-path:     Double decode path section of the URI
+      #   double-decode-query:    Double decode query section of the URI
+      #
+      # server-config:            List of server configurations to use if address matches
+      #   address:                List of ip addresses or networks for this block
+      #   personalitiy:           List of personalities used by this block
+      #   request-body-limit:     Limit reassembly of request body for inspection
+      #                           by http_client_body & pcre /P option.
+      #   response-body-limit:    Limit reassembly of response body for inspection
+      #                           by file_data, http_server_body & pcre /Q option.
+      #   double-decode-path:     Double decode path section of the URI
+      #   double-decode-query:    Double decode query section of the URI
+      #
+      #   uri-include-all:        Include all parts of the URI. By default the
+      #                           'scheme', username/password, hostname and port
+      #                           are excluded. Setting this option to true adds
+      #                           all of them to the normalized uri as inspected
+      #                           by http_uri, urilen, pcre with /U and the other
+      #                           keywords that inspect the normalized uri.
+      #                           Note that this does not affect http_raw_uri.
+      #                           Also, note that including all was the default in
+      #                           1.4 and 2.0beta1.
+      #
+      #   meta-field-limit:       Hard size limit for request and response size
+      #                           limits. Applies to request line and headers,
+      #                           response line and headers. Does not apply to
+      #                           request or response bodies. Default is 18k.
+      #                           If this limit is reached an event is raised.
+      #
+      # Currently Available Personalities:
+      #   Minimal, Generic, IDS (default), IIS_4_0, IIS_5_0, IIS_5_1, IIS_6_0,
+      #   IIS_7_0, IIS_7_5, Apache_2
+      libhtp:
+         default-config:
+           personality: IDS
+
+           # Can be specified in kb, mb, gb.  Just a number indicates
+           # it's in bytes.
+           request-body-limit: 100kb
+           response-body-limit: 100kb
+
+           # inspection limits
+           request-body-minimal-inspect-size: 32kb
+           request-body-inspect-window: 4kb
+           response-body-minimal-inspect-size: 40kb
+           response-body-inspect-window: 16kb
+
+           # auto will use http-body-inline mode in IPS mode, yes or no set it statically
+           http-body-inline: auto
+
+           # Take a random value for inspection sizes around the specified value.
+           # This lower the risk of some evasion technics but could lead
+           # detection change between runs. It is set to 'yes' by default.
+           #randomize-inspection-sizes: yes
+           # If randomize-inspection-sizes is active, the value of various
+           # inspection size will be choosen in the [1 - range%, 1 + range%]
+           # range
+           # Default value of randomize-inspection-range is 10.
+           #randomize-inspection-range: 10
+
+           # decoding
+           double-decode-path: no
+           double-decode-query: no
+
+         server-config:
+
+           #- apache:
+           #    address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
+           #    personality: Apache_2
+           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # it's in bytes.
+           #    request-body-limit: 4096
+           #    response-body-limit: 4096
+           #    double-decode-path: no
+           #    double-decode-query: no
+
+           #- iis7:
+           #    address:
+           #      - 192.168.0.0/24
+           #      - 192.168.10.0/24
+           #    personality: IIS_7_0
+           #    # Can be specified in kb, mb, gb.  Just a number indicates
+           #    # it's in bytes.
+           #    request-body-limit: 4096
+           #    response-body-limit: 4096
+           #    double-decode-path: no
+           #    double-decode-query: no
+
+
+
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
@@ -1283,215 +1481,6 @@ engine-analysis:
 pcre:
   match-limit: 3500
   match-limit-recursion: 1500
-
-# Holds details on the app-layer. The protocols section details each protocol.
-# Under each protocol, the default value for detection-enabled and "
-# parsed-enabled is yes, unless specified otherwise.
-# Each protocol covers enabling/disabling parsers for all ipprotos
-# the app-layer protocol runs on.  For example "dcerpc" refers to the tcp
-# version of the protocol as well as the udp version of the protocol.
-# The option "enabled" takes 3 values - "yes", "no", "detection-only".
-# "yes" enables both detection and the parser, "no" disables both, and
-# "detection-only" enables detection only(parser disabled).
-app-layer:
-  protocols:
-    tls:
-      enabled: yes
-      detection-ports:
-        dp: 443
-
-      #no-reassemble: yes
-    dcerpc:
-      enabled: yes
-    ftp:
-      enabled: yes
-    ssh:
-      enabled: yes
-    smtp:
-      enabled: yes
-      # Configure SMTP-MIME Decoder
-      mime:
-        # Decode MIME messages from SMTP transactions
-        # (may be resource intensive)
-        # This field supercedes all others because it turns the entire
-        # process on or off
-        decode-mime: yes
-
-        # Decode MIME entity bodies (ie. base64, quoted-printable, etc.)
-        decode-base64: yes
-        decode-quoted-printable: yes
-
-        # Maximum bytes per header data value stored in the data structure
-        # (default is 2000)
-        header-value-depth: 2000
-
-        # Extract URLs and save in state data structure
-        extract-urls: yes
-        # Set to yes to compute the md5 of the mail body. You will then
-        # be able to journalize it.
-        body-md5: no
-      # Configure inspected-tracker for file_data keyword
-      inspected-tracker:
-        content-limit: 100000
-        content-inspect-min-size: 32768
-        content-inspect-window: 4096
-    imap:
-      enabled: detection-only
-    msn:
-      enabled: detection-only
-    smb:
-      enabled: yes
-      detection-ports:
-        dp: 139
-    # Note: Modbus probe parser is minimalist due to the poor significant field
-    # Only Modbus message length (greater than Modbus header length)
-    # And Protocol ID (equal to 0) are checked in probing parser
-    # It is important to enable detection port and define Modbus port
-    # to avoid false positive
-    modbus:
-      # How many unreplied Modbus requests are considered a flood.
-      # If the limit is reached, app-layer-event:modbus.flooded; will match.
-      #request-flood: 500
-
-      enabled: no
-      detection-ports:
-        dp: 502
-      # According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it 
-      # is recommended to keep the TCP connection opened with a remote device 
-      # and not to open and close it for each MODBUS/TCP transaction. In that 
-      # case, it is important to set the depth of the stream reassembling as
-      # unlimited (stream.reassembly.depth: 0)
-    # smb2 detection is disabled internally inside the engine.
-    #smb2:
-    #  enabled: yes
-    dns:
-      # memcaps. Globally and per flow/state.
-      #global-memcap: 16mb
-      #state-memcap: 512kb
-
-      # How many unreplied DNS requests are considered a flood.
-      # If the limit is reached, app-layer-event:dns.flooded; will match.
-      #request-flood: 500
-
-      tcp:
-        enabled: yes
-        detection-ports:
-          dp: 53
-      udp:
-        enabled: yes
-        detection-ports:
-          dp: 53
-    http:
-      enabled: yes
-      # memcap: 64mb
-
-      ###########################################################################
-      # Configure libhtp.
-      #
-      #
-      # default-config:           Used when no server-config matches
-      #   personality:            List of personalities used by default
-      #   request-body-limit:     Limit reassembly of request body for inspection
-      #                           by http_client_body & pcre /P option.
-      #   response-body-limit:    Limit reassembly of response body for inspection
-      #                           by file_data, http_server_body & pcre /Q option.
-      #   double-decode-path:     Double decode path section of the URI
-      #   double-decode-query:    Double decode query section of the URI
-      #
-      # server-config:            List of server configurations to use if address matches
-      #   address:                List of ip addresses or networks for this block
-      #   personalitiy:           List of personalities used by this block
-      #   request-body-limit:     Limit reassembly of request body for inspection
-      #                           by http_client_body & pcre /P option.
-      #   response-body-limit:    Limit reassembly of response body for inspection
-      #                           by file_data, http_server_body & pcre /Q option.
-      #   double-decode-path:     Double decode path section of the URI
-      #   double-decode-query:    Double decode query section of the URI
-      #
-      #   uri-include-all:        Include all parts of the URI. By default the
-      #                           'scheme', username/password, hostname and port
-      #                           are excluded. Setting this option to true adds
-      #                           all of them to the normalized uri as inspected
-      #                           by http_uri, urilen, pcre with /U and the other
-      #                           keywords that inspect the normalized uri.
-      #                           Note that this does not affect http_raw_uri.
-      #                           Also, note that including all was the default in
-      #                           1.4 and 2.0beta1.
-      #
-      #   meta-field-limit:       Hard size limit for request and response size
-      #                           limits. Applies to request line and headers,
-      #                           response line and headers. Does not apply to
-      #                           request or response bodies. Default is 18k.
-      #                           If this limit is reached an event is raised.
-      #
-      # Currently Available Personalities:
-      #   Minimal
-      #   Generic
-      #   IDS (default)
-      #   IIS_4_0
-      #   IIS_5_0
-      #   IIS_5_1
-      #   IIS_6_0
-      #   IIS_7_0
-      #   IIS_7_5
-      #   Apache_2
-      ###########################################################################
-      libhtp:
-
-         default-config:
-           personality: IDS
-
-           # Can be specified in kb, mb, gb.  Just a number indicates
-           # it's in bytes.
-           request-body-limit: 100kb
-           response-body-limit: 100kb
-
-           # inspection limits
-           request-body-minimal-inspect-size: 32kb
-           request-body-inspect-window: 4kb
-           response-body-minimal-inspect-size: 40kb
-           response-body-inspect-window: 16kb
-
-           # auto will use http-body-inline mode in IPS mode, yes or no set it statically
-           http-body-inline: auto
-
-           # Take a random value for inspection sizes around the specified value.
-           # This lower the risk of some evasion technics but could lead
-           # detection change between runs. It is set to 'yes' by default.
-           #randomize-inspection-sizes: yes
-           # If randomize-inspection-sizes is active, the value of various
-           # inspection size will be choosen in the [1 - range%, 1 + range%]
-           # range
-           # Default value of randomize-inspection-range is 10.
-           #randomize-inspection-range: 10
-
-           # decoding
-           double-decode-path: no
-           double-decode-query: no
-
-         server-config:
-
-           #- apache:
-           #    address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
-           #    personality: Apache_2
-           #    # Can be specified in kb, mb, gb.  Just a number indicates
-           #    # it's in bytes.
-           #    request-body-limit: 4096
-           #    response-body-limit: 4096
-           #    double-decode-path: no
-           #    double-decode-query: no
-
-           #- iis7:
-           #    address:
-           #      - 192.168.0.0/24
-           #      - 192.168.10.0/24
-           #    personality: IIS_7_0
-           #    # Can be specified in kb, mb, gb.  Just a number indicates
-           #    # it's in bytes.
-           #    request-body-limit: 4096
-           #    response-body-limit: 4096
-           #    double-decode-path: no
-           #    double-decode-query: no
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
