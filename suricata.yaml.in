@@ -146,6 +146,134 @@ logging:
       format: "[%i] <%d> -- "
       # type: json
 
+##
+## Step 4: configure capture settings
+##
+
+# af-packet support
+af-packet:
+  - interface: eth0
+    # Number of receive threads. "auto" uses the number of cores
+    #threads: auto
+    # Default clusterid.  AF_PACKET will load balance packets based on flow.
+    cluster-id: 99
+    # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
+    # This is only supported for Linux kernel > 3.1
+    # possible value are:
+    #  * cluster_round_robin: round robin load balancing
+    #  * cluster_flow: all packets of a given flow are send to the same socket
+    #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
+    #  * cluster_qm: all packets linked by network card to a RSS queue are sent to the same
+    #  socket. Requires at least Linux 3.14.
+    #  * cluster_random: packets are sent randomly to sockets but with an equipartition.
+    #  Requires at least Linux 3.14.
+    #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
+    #  to the next. Requires at least Linux 3.10.
+    # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
+    # with capture card using RSS (require cpu affinity tuning and system irq tuning)
+    cluster-type: cluster_flow
+    # In some fragmentation case, the hash can not be computed. If "defrag" is set
+    # to yes, the kernel will do the needed defragmentation before sending the packets.
+    defrag: yes
+    # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
+    # full then kernel will send the packet on the next socket with room available. This option
+    # can minimize packet drop and increase the treated bandwidth on single intensive flow.
+    #rollover: yes
+    # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
+    #use-mmap: yes
+    # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
+    # your system
+    #mmap-locked: yes
+    # Use tpacket_v3, capture mode, only active if user-mmap is true
+    tpacket-v3: yes
+    # Ring size will be computed with respect to max_pending_packets and number
+    # of threads. You can set manually the ring size in number of packets by setting
+    # the following value. If you are using flow cluster-type and have really network
+    # intensive single-flow you could want to set the ring-size independently of the number
+    # of threads:
+    #ring-size: 2048
+    # Block size is used by tpacket_v3 only. It should set to a value high enough to contain
+    # a decent number of packets. Size is in bytes so please consider your MTU. It should be
+    # a power of 2 and it must be multiple of page size (usually 4096).
+    #block-size: 32768
+    # tpacket_v3 block timeout: an open block is passed to userspace if it is not
+    # filled after block-timeout milliseconds.
+    #block-timeout: 10
+    # On busy system, this could help to set it to yes to recover from a packet drop
+    # phase. This will result in some packets (at max a ring flush) being non treated.
+    #use-emergency-flush: yes
+    # recv buffer size, increase value could improve performance
+    # buffer-size: 32768
+    # Set to yes to disable promiscuous mode
+    # disable-promisc: no
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - kernel: use indication sent by kernel for each packet (default)
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used.
+    # Warning: 'checksum-validation' must be set to yes to have any validation
+    #checksum-checks: kernel
+    # BPF filter to apply to this interface. The pcap filter syntax apply here.
+    #bpf-filter: port 80 or udp
+    # You can use the following variables to activate AF_PACKET tap or IPS mode.
+    # If copy-mode is set to ips or tap, the traffic coming to the current
+    # interface will be copied to the copy-iface interface. If 'tap' is set, the
+    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+    # will not be copied.
+    #copy-mode: ips
+    #copy-iface: eth1
+
+  # Put default values here. These will be used for an interface that is not
+  # in the list above.
+  - interface: default
+    #threads: auto
+    #use-mmap: no
+    #rollover: yes
+    tpacket-v3: yes
+
+pcap:
+  - interface: eth0
+    # On Linux, pcap will try to use mmaped capture and will use buffer-size
+    # as total of memory used by the ring. So set this to something bigger
+    # than 1% of your bandwidth.
+    #buffer-size: 16777216
+    #bpf-filter: "tcp and port 25"
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used. (default)
+    # Warning: 'checksum-validation' must be set to yes to have any validation
+    #checksum-checks: auto
+    # With some accelerator cards using a modified libpcap (like myricom), you
+    # may want to have the same number of capture threads as the number of capture
+    # rings. In this case, set up the threads variable to N to start N threads
+    # listening on the same interface.
+    #threads: 16
+    # set to no to disable promiscuous mode:
+    #promisc: no
+    # set snaplen, if not set it defaults to MTU if MTU can be known
+    # via ioctl call and to full capture if not.
+    #snaplen: 1518
+  # Put default values here
+  - interface: default
+    #checksum-checks: auto
+
+pcap-file:
+  # Possible values are:
+  #  - yes: checksum validation is forced
+  #  - no: checksum validation is disabled
+  #  - auto: suricata uses a statistical approach to detect when
+  #  checksum off-loading is used. (default)
+  # Warning: 'checksum-validation' must be set to yes to have checksum tested
+  checksum-checks: auto
 
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
@@ -577,99 +705,6 @@ nflog:
     qtimeout: 100
     # netlink max buffer size
     max-size: 20000
-
-# af-packet support
-# Set threads to > 1 to use PACKET_FANOUT support
-af-packet:
-  - interface: eth0
-    # Number of receive threads. "auto" uses the number of cores
-    threads: auto
-    # Default clusterid.  AF_PACKET will load balance packets based on flow.
-    # All threads/processes that will participate need to have the same
-    # clusterid.
-    cluster-id: 99
-    # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
-    # This is only supported for Linux kernel > 3.1
-    # possible value are:
-    #  * cluster_round_robin: round robin load balancing
-    #  * cluster_flow: all packets of a given flow are send to the same socket
-    #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
-    #  * cluster_qm: all packets linked by network card to a RSS queue are sent to the same
-    #  socket. Requires at least Linux 3.14.
-    #  * cluster_random: packets are sent randomly to sockets but with an equipartition.
-    #  Requires at least Linux 3.14.
-    #  * cluster_rollover: kernel rotates between sockets filling each socket before moving
-    #  to the next. Requires at least Linux 3.10.
-    # Recommended modes are cluster_flow on most boxes and cluster_cpu or cluster_qm on system
-    # with capture card using RSS (require cpu affinity tuning and system irq tuning)
-    cluster-type: cluster_flow
-    # In some fragmentation case, the hash can not be computed. If "defrag" is set
-    # to yes, the kernel will do the needed defragmentation before sending the packets.
-    defrag: yes
-    # After Linux kernel 3.10 it is possible to activate the rollover option: if a socket is
-    # full then kernel will send the packet on the next socket with room available. This option
-    # can minimize packet drop and increase the treated bandwidth on single intensive flow.
-    #rollover: yes
-    # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
-    use-mmap: yes
-    # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
-    # your system
-    #mmap-locked: yes
-    # Use tpacket_v3, capture mode, only active if user-mmap is true
-    #tpacket-v3: yes
-    # Ring size will be computed with respect to max_pending_packets and number
-    # of threads. You can set manually the ring size in number of packets by setting
-    # the following value. If you are using flow cluster-type and have really network
-    # intensive single-flow you could want to set the ring-size independently of the number
-    # of threads:
-    #ring-size: 2048
-    # Block size is used by tpacket_v3 only. It should set to a value high enough to contain
-    # a decent number of packets. Size is in bytes so please consider your MTU. It should be
-    # a power of 2 and it must be multiple of page size (usually 4096).
-    #block-size: 32768
-    # tpacket_v3 block timeout: an open block is passed to userspace if it is not
-    # filled after block-timeout milliseconds.
-    #block-timeout: 10
-    # On busy system, this could help to set it to yes to recover from a packet drop
-    # phase. This will result in some packets (at max a ring flush) being non treated.
-    #use-emergency-flush: yes
-    # recv buffer size, increase value could improve performance
-    # buffer-size: 32768
-    # Set to yes to disable promiscuous mode
-    # disable-promisc: no
-    # Choose checksum verification mode for the interface. At the moment
-    # of the capture, some packets may be with an invalid checksum due to
-    # offloading to the network card of the checksum computation.
-    # Possible values are:
-    #  - kernel: use indication sent by kernel for each packet (default)
-    #  - yes: checksum validation is forced
-    #  - no: checksum validation is disabled
-    #  - auto: suricata uses a statistical approach to detect when
-    #  checksum off-loading is used.
-    # Warning: 'checksum-validation' must be set to yes to have any validation
-    #checksum-checks: kernel
-    # BPF filter to apply to this interface. The pcap filter syntax apply here.
-    #bpf-filter: port 80 or udp
-    # You can use the following variables to activate AF_PACKET tap or IPS mode.
-    # If copy-mode is set to ips or tap, the traffic coming to the current
-    # interface will be copied to the copy-iface interface. If 'tap' is set, the
-    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
-    # will not be copied.
-    #copy-mode: ips
-    #copy-iface: eth1
-  - interface: eth1
-    threads: auto
-    cluster-id: 98
-    cluster-type: cluster_flow
-    defrag: yes
-    # buffer-size: 32768
-    # disable-promisc: no
-  # Put default values here
-  - interface: default
-    #threads: auto
-    #use-mmap: no
-    #rollover: yes
-    tpacket-v3: yes
 
 # Netmap support
 #
@@ -1169,46 +1204,6 @@ pfring:
   # Put default values here
   - interface: default
     #threads: 2
-
-pcap:
-  - interface: eth0
-    # On Linux, pcap will try to use mmaped capture and will use buffer-size
-    # as total of memory used by the ring. So set this to something bigger
-    # than 1% of your bandwidth.
-    #buffer-size: 16777216
-    #bpf-filter: "tcp and port 25"
-    # Choose checksum verification mode for the interface. At the moment
-    # of the capture, some packets may be with an invalid checksum due to
-    # offloading to the network card of the checksum computation.
-    # Possible values are:
-    #  - yes: checksum validation is forced
-    #  - no: checksum validation is disabled
-    #  - auto: suricata uses a statistical approach to detect when
-    #  checksum off-loading is used. (default)
-    # Warning: 'checksum-validation' must be set to yes to have any validation
-    #checksum-checks: auto
-    # With some accelerator cards using a modified libpcap (like myricom), you
-    # may want to have the same number of capture threads as the number of capture
-    # rings. In this case, set up the threads variable to N to start N threads
-    # listening on the same interface.
-    #threads: 16
-    # set to no to disable promiscuous mode:
-    #promisc: no
-    # set snaplen, if not set it defaults to MTU if MTU can be known
-    # via ioctl call and to full capture if not.
-    #snaplen: 1518
-  # Put default values here
-  - interface: default
-    #checksum-checks: auto
-
-pcap-file:
-  # Possible values are:
-  #  - yes: checksum validation is forced
-  #  - no: checksum validation is disabled
-  #  - auto: suricata uses a statistical approach to detect when
-  #  checksum off-loading is used. (default)
-  # Warning: 'checksum-validation' must be set to yes to have checksum tested
-  checksum-checks: auto
 
 # For FreeBSD ipfw(8) divert(4) support.
 # Please make sure you have ipfw_load="YES" and ipdivert_load="YES"
