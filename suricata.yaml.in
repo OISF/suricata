@@ -42,6 +42,7 @@ vars:
     DNP3_PORTS: 20000
     MODBUS_PORTS: 502
 
+
 ##
 ## Step 2: select the rules to enable or disable
 ##
@@ -102,6 +103,7 @@ rule-files:
  - tls-events.rules     # available in suricata sources under rules dir
 # - modbus-events.rules  # available in suricata sources under rules dir
 # - app-layer-events.rules  # available in suricata sources under rules dir
+
 
 ##
 ## Step 3: select outputs to enable
@@ -469,6 +471,7 @@ logging:
       format: "[%i] <%d> -- "
       # type: json
 
+
 ##
 ## Step 4: configure capture settings
 ##
@@ -597,6 +600,7 @@ pcap-file:
   #  checksum off-loading is used. (default)
   # Warning: 'checksum-validation' must be set to yes to have checksum tested
   checksum-checks: auto
+
 
 ##
 ## Step 5: App Layer Protocol Configuration
@@ -896,90 +900,6 @@ legacy:
 ## Detection settings
 ##
 
-# The detection engine builds internal groups of signatures. The engine
-# allow us to specify the profile to use for them, to manage memory on an
-# efficient way keeping a good performance. For the profile keyword you
-# can use the words "low", "medium", "high" or "custom". If you use custom
-# make sure to define the values at "- custom-values" as your convenience.
-# Usually you would prefer medium/high/low.
-#
-# "sgh mpm-context", indicates how the staging should allot mpm contexts for
-# the signature groups.  "single" indicates the use of a single context for
-# all the signature group heads.  "full" indicates a mpm-context for each
-# group head.  "auto" lets the engine decide the distribution of contexts
-# based on the information the engine gathers on the patterns from each
-# group head.
-#
-# The option inspection-recursion-limit is used to limit the recursive calls
-# in the content inspection code.  For certain payload-sig combinations, we
-# might end up taking too much time in the content inspection code.
-# If the argument specified is 0, the engine uses an internally defined
-# default limit.  On not specifying a value, we use no limits on the recursion.
-detect:
-  profile: medium
-  custom-values:
-    toclient-groups: 3
-    toserver-groups: 25
-  sgh-mpm-context: auto
-  inspection-recursion-limit: 3000
-  # If set to yes, the loading of signatures will be made after the capture
-  # is started. This will limit the downtime in IPS mode.
-  #delayed-detect: yes
-
-  # the grouping values above control how many groups are created per
-  # direction. Port whitelisting forces that port to get it's own group.
-  # Very common ports will benefit, as well as ports with many expensive
-  # rules.
-  grouping:
-    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
-    #udp-whitelist: 53, 135, 5060
-
-  profiling:
-    # Log the rules that made it past the prefilter stage, per packet
-    # default is off. The threshold setting determines how many rules
-    # must have made it past pre-filter for that rule to trigger the
-    # logging.
-    #inspect-logging-threshold: 200
-    grouping:
-      dump-to-disk: false
-      include-rules: false      # very verbose
-      include-mpm-stats: false
-
-# Select the multi pattern algorithm you want to run for scan/search the
-# in the engine.
-#
-# The supported algorithms are:
-# "ac"      - Aho-Corasick, default implementation
-# "ac-bs"   - Aho-Corasick, reduced memory implementation
-# "ac-cuda" - Aho-Corasick, CUDA implementation
-# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
-# "hs"      - Hyperscan, available when built with Hyperscan support
-#
-# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
-# "ac-tile" on Tilera platforms, and "ac" otherwise.
-#
-# The mpm you choose also decides the distribution of mpm contexts for
-# signature groups, specified by the conf - "detect.sgh-mpm-context".
-# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
-# to be set to "single", because of ac's memory requirements, unless the
-# ruleset is small enough to fit in one's memory, in which case one can
-# use "full" with "ac".  Rest of the mpms can be run in "full" mode.
-#
-# There is also a CUDA pattern matcher (only available if Suricata was
-# compiled with --enable-cuda: b2g_cuda. Make sure to update your
-# max-pending-packets setting above as well if you use b2g_cuda.
-
-mpm-algo: auto
-
-# Select the matching algorithm you want to use for single-pattern searches.
-#
-# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
-# available if Suricata has been built with Hyperscan support).
-#
-# The default of "auto" will use "hs" if available, otherwise "bm".
-
-spm-algo: auto
-
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
 # action-order:
@@ -1009,66 +929,6 @@ engine-analysis:
 pcre:
   match-limit: 3500
   match-limit-recursion: 1500
-
-##
-## Threading
-##
-
-# Suricata is multi-threaded. Here the threading can be influenced.
-threading:
-  # On some cpu's/architectures it is beneficial to tie individual threads
-  # to specific CPU's/CPU cores. In this case all threads are tied to CPU0,
-  # and each extra CPU/core has one "detect" thread.
-  #
-  # On Intel Core2 and Nehalem CPU's enabling this will degrade performance.
-  #
-  set-cpu-affinity: no
-  # Tune cpu affinity of suricata threads. Each family of threads can be bound
-  # on specific CPUs.
-  cpu-affinity:
-    - management-cpu-set:
-        cpu: [ 0 ]  # include only these cpus in affinity settings
-    - receive-cpu-set:
-        cpu: [ 0 ]  # include only these cpus in affinity settings
-    - decode-cpu-set:
-        cpu: [ 0, 1 ]
-        mode: "balanced"
-    - stream-cpu-set:
-        cpu: [ "0-1" ]
-    - detect-cpu-set:
-        cpu: [ "all" ]
-        mode: "exclusive" # run detect threads in these cpus
-        # Use explicitely 3 threads and don't compute number by using
-        # detect-thread-ratio variable:
-        # threads: 3
-        prio:
-          low: [ 0 ]
-          medium: [ "1-2" ]
-          high: [ 3 ]
-          default: "medium"
-    - verdict-cpu-set:
-        cpu: [ 0 ]
-        prio:
-          default: "high"
-    - reject-cpu-set:
-        cpu: [ 0 ]
-        prio:
-          default: "low"
-    - output-cpu-set:
-        cpu: [ "all" ]
-        prio:
-           default: "medium"
-  #
-  # By default Suricata creates one "detect" thread per available CPU/CPU core.
-  # This setting allows controlling this behaviour. A ratio setting of 2 will
-  # create 2 detect threads for each CPU/CPU core. So for a dual core CPU this
-  # will result in 4 detect threads. If values below 1 are used, less threads
-  # are created. So on a dual core CPU a setting of 0.5 results in 1 detect
-  # thread being created. Regardless of the setting at a minimum 1 detect
-  # thread will always be created.
-  #
-  detect-thread-ratio: 1.5
-
 
 ##
 ## Advanced Traffic Tracking and Reconstruction Settings
@@ -1304,7 +1164,148 @@ host:
 #  prealloc: 1000
 #  memcap: 16777216
 
+##
+## Performance tuning and profiling
+##
 
+# The detection engine builds internal groups of signatures. The engine
+# allow us to specify the profile to use for them, to manage memory on an
+# efficient way keeping a good performance. For the profile keyword you
+# can use the words "low", "medium", "high" or "custom". If you use custom
+# make sure to define the values at "- custom-values" as your convenience.
+# Usually you would prefer medium/high/low.
+#
+# "sgh mpm-context", indicates how the staging should allot mpm contexts for
+# the signature groups.  "single" indicates the use of a single context for
+# all the signature group heads.  "full" indicates a mpm-context for each
+# group head.  "auto" lets the engine decide the distribution of contexts
+# based on the information the engine gathers on the patterns from each
+# group head.
+#
+# The option inspection-recursion-limit is used to limit the recursive calls
+# in the content inspection code.  For certain payload-sig combinations, we
+# might end up taking too much time in the content inspection code.
+# If the argument specified is 0, the engine uses an internally defined
+# default limit.  On not specifying a value, we use no limits on the recursion.
+detect:
+  profile: medium
+  custom-values:
+    toclient-groups: 3
+    toserver-groups: 25
+  sgh-mpm-context: auto
+  inspection-recursion-limit: 3000
+  # If set to yes, the loading of signatures will be made after the capture
+  # is started. This will limit the downtime in IPS mode.
+  #delayed-detect: yes
+
+  # the grouping values above control how many groups are created per
+  # direction. Port whitelisting forces that port to get it's own group.
+  # Very common ports will benefit, as well as ports with many expensive
+  # rules.
+  grouping:
+    #tcp-whitelist: 53, 80, 139, 443, 445, 1433, 3306, 3389, 6666, 6667, 8080
+    #udp-whitelist: 53, 135, 5060
+
+  profiling:
+    # Log the rules that made it past the prefilter stage, per packet
+    # default is off. The threshold setting determines how many rules
+    # must have made it past pre-filter for that rule to trigger the
+    # logging.
+    #inspect-logging-threshold: 200
+    grouping:
+      dump-to-disk: false
+      include-rules: false      # very verbose
+      include-mpm-stats: false
+
+# Select the multi pattern algorithm you want to run for scan/search the
+# in the engine.
+#
+# The supported algorithms are:
+# "ac"      - Aho-Corasick, default implementation
+# "ac-bs"   - Aho-Corasick, reduced memory implementation
+# "ac-cuda" - Aho-Corasick, CUDA implementation
+# "ac-tile" - Aho-Corasick, optimized for Tilera architecture
+# "hs"      - Hyperscan, available when built with Hyperscan support
+#
+# The default mpm-algo value of "auto" will use "hs" if Hyperscan is available,
+# "ac-tile" on Tilera platforms, and "ac" otherwise.
+#
+# The mpm you choose also decides the distribution of mpm contexts for
+# signature groups, specified by the conf - "detect.sgh-mpm-context".
+# Selecting "ac" as the mpm would require "detect.sgh-mpm-context"
+# to be set to "single", because of ac's memory requirements, unless the
+# ruleset is small enough to fit in one's memory, in which case one can
+# use "full" with "ac".  Rest of the mpms can be run in "full" mode.
+#
+# There is also a CUDA pattern matcher (only available if Suricata was
+# compiled with --enable-cuda: b2g_cuda. Make sure to update your
+# max-pending-packets setting above as well if you use b2g_cuda.
+
+mpm-algo: auto
+
+# Select the matching algorithm you want to use for single-pattern searches.
+#
+# Supported algorithms are "bm" (Boyer-Moore) and "hs" (Hyperscan, only
+# available if Suricata has been built with Hyperscan support).
+#
+# The default of "auto" will use "hs" if available, otherwise "bm".
+
+spm-algo: auto
+
+# Suricata is multi-threaded. Here the threading can be influenced.
+threading:
+  # On some cpu's/architectures it is beneficial to tie individual threads
+  # to specific CPU's/CPU cores. In this case all threads are tied to CPU0,
+  # and each extra CPU/core has one "detect" thread.
+  #
+  # On Intel Core2 and Nehalem CPU's enabling this will degrade performance.
+  #
+  set-cpu-affinity: no
+  # Tune cpu affinity of suricata threads. Each family of threads can be bound
+  # on specific CPUs.
+  cpu-affinity:
+    - management-cpu-set:
+        cpu: [ 0 ]  # include only these cpus in affinity settings
+    - receive-cpu-set:
+        cpu: [ 0 ]  # include only these cpus in affinity settings
+    - decode-cpu-set:
+        cpu: [ 0, 1 ]
+        mode: "balanced"
+    - stream-cpu-set:
+        cpu: [ "0-1" ]
+    - detect-cpu-set:
+        cpu: [ "all" ]
+        mode: "exclusive" # run detect threads in these cpus
+        # Use explicitely 3 threads and don't compute number by using
+        # detect-thread-ratio variable:
+        # threads: 3
+        prio:
+          low: [ 0 ]
+          medium: [ "1-2" ]
+          high: [ 3 ]
+          default: "medium"
+    - verdict-cpu-set:
+        cpu: [ 0 ]
+        prio:
+          default: "high"
+    - reject-cpu-set:
+        cpu: [ 0 ]
+        prio:
+          default: "low"
+    - output-cpu-set:
+        cpu: [ "all" ]
+        prio:
+           default: "medium"
+  #
+  # By default Suricata creates one "detect" thread per available CPU/CPU core.
+  # This setting allows controlling this behaviour. A ratio setting of 2 will
+  # create 2 detect threads for each CPU/CPU core. So for a dual core CPU this
+  # will result in 4 detect threads. If values below 1 are used, less threads
+  # are created. So on a dual core CPU a setting of 0.5 results in 1 detect
+  # thread being created. Regardless of the setting at a minimum 1 detect
+  # thread will always be created.
+  #
+  detect-thread-ratio: 1.5
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
