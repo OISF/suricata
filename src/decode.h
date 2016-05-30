@@ -335,6 +335,12 @@ typedef struct PktProfilingAppData_ {
     uint64_t ticks_spent;
 } PktProfilingAppData;
 
+typedef struct PktProfilingLoggerData_ {
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+    uint64_t ticks_spent;
+} PktProfilingLoggerData;
+
 /** \brief Per pkt stats storage */
 typedef struct PktProfiling_ {
     uint64_t ticks_start;
@@ -343,6 +349,7 @@ typedef struct PktProfiling_ {
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
+    PktProfilingLoggerData logger[LOGGER_SIZE];
     uint64_t proto_detect;
 } PktProfiling;
 

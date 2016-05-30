@@ -706,30 +706,20 @@ error:
 
 void TmModuleJsonAlertLogRegister (void)
 {
-    tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONALERTLOG].ThreadInit = JsonAlertLogThreadInit;
-    tmm_modules[TMM_JSONALERTLOG].ThreadDeinit = JsonAlertLogThreadDeinit;
-    tmm_modules[TMM_JSONALERTLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONALERTLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
-            JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.alert",
-            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition);
+    OutputRegisterPacketModule(LOGGER_JSON_ALERT, MODULE_NAME, "alert-json-log",
+        JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition,
+        JsonAlertLogThreadInit, JsonAlertLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
+        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
+        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
+        NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonAlertLogRegister (void)
 {
-    tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONALERTLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

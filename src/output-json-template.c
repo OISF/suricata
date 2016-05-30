@@ -182,34 +182,21 @@ void TmModuleJsonTemplateLogRegister(void)
         return;
     }
 
-    tmm_modules[TMM_JSONTEMPLATELOG].name = "JsonTemplateLog";
-    tmm_modules[TMM_JSONTEMPLATELOG].ThreadInit = JsonTemplateLogThreadInit;
-    tmm_modules[TMM_JSONTEMPLATELOG].ThreadDeinit = JsonTemplateLogThreadDeinit;
-    tmm_modules[TMM_JSONTEMPLATELOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONTEMPLATELOG].cap_flags = 0;
-    tmm_modules[TMM_JSONTEMPLATELOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* Register as an eve sub-module. */
-    OutputRegisterTxSubModule("eve-log", "JsonTemplateLog", "eve-log.template",
-        OutputTemplateLogInitSub, ALPROTO_TEMPLATE, JsonTemplateLogger);
+    OutputRegisterTxSubModule(LOGGER_JSON_TEMPLATE, "eve-log", "JsonTemplateLog",
+        "eve-log.template", OutputTemplateLogInitSub, ALPROTO_TEMPLATE,
+        JsonTemplateLogger, JsonTemplateLogThreadInit,
+        JsonTemplateLogThreadDeinit, NULL);
 
     SCLogNotice("Template JSON logger registered.");
 }
 
 #else /* No JSON support. */
 
-static TmEcode JsonTemplateLogThreadInit(ThreadVars *t, void *initdata,
-    void **data)
-{
-    SCLogInfo("Cannot initialize JSON output for template. "
-        "JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonTemplateLogRegister(void)
 {
-    tmm_modules[TMM_JSONTEMPLATELOG].name = "JsonTemplateLog";
-    tmm_modules[TMM_JSONTEMPLATELOG].ThreadInit = JsonTemplateLogThreadInit;
+    SCLogInfo("Cannot register JSON output for template. "
+        "JSON support was disabled during build.");
 }
 
 #endif /* HAVE_LIBJANSSON */

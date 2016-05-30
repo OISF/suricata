@@ -401,30 +401,20 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
 
 void TmModuleJsonDropLogRegister (void)
 {
-    tmm_modules[TMM_JSONDROPLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONDROPLOG].ThreadInit = JsonDropLogThreadInit;
-    tmm_modules[TMM_JSONDROPLOG].ThreadDeinit = JsonDropLogThreadDeinit;
-    tmm_modules[TMM_JSONDROPLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONDROPLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "drop-json-log",
-            JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.drop",
-            JsonDropLogInitCtxSub, JsonDropLogger, JsonDropLogCondition);
+    OutputRegisterPacketModule(LOGGER_JSON_DROP, MODULE_NAME, "drop-json-log",
+        JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition,
+        JsonDropLogThreadInit, JsonDropLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_DROP, "eve-log", MODULE_NAME,
+        "eve-log.drop", JsonDropLogInitCtxSub, JsonDropLogger,
+        JsonDropLogCondition, JsonDropLogThreadInit, JsonDropLogThreadDeinit,
+        NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonDropLogRegister (void)
 {
-    tmm_modules[TMM_JSONDROPLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONDROPLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

@@ -334,6 +334,37 @@ typedef enum PacketProfileDetectId_ {
     PROF_DETECT_SIZE,
 } PacketProfileDetectId;
 
+typedef enum {
+    LOGGER_UNDEFINED,
+    LOGGER_ALERT_DEBUG,
+    LOGGER_ALERT_FAST,
+    LOGGER_UNIFIED2,
+    LOGGER_ALERT_SYSLOG,
+    LOGGER_DROP,
+    LOGGER_JSON_ALERT,
+    LOGGER_JSON_DROP,
+    LOGGER_JSON_SSH,
+    LOGGER_DNS,
+    LOGGER_HTTP,
+    LOGGER_JSON_DNS,
+    LOGGER_JSON_HTTP,
+    LOGGER_JSON_SMTP,
+    LOGGER_JSON_TLS,
+    LOGGER_JSON_TEMPLATE,
+    LOGGER_TLS_STORE,
+    LOGGER_TLS,
+    LOGGER_FILE,
+    LOGGER_FILE_STORE,
+    LOGGER_JSON_FILE,
+    LOGGER_TCP_DATA,
+    LOGGER_JSON_FLOW,
+    LOGGER_JSON_NETFLOW,
+    LOGGER_STATS,
+    LOGGER_JSON_STATS,
+    LOGGER_PRELUDE,
+    LOGGER_SIZE,
+} LoggerId;
+
 #include <htp/htp.h>
 #include "threads.h"
 #include "tm-threads-common.h"

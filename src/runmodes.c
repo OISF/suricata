@@ -106,7 +106,7 @@ static char *active_runmode;
 
 /* free list for our outputs */
 typedef struct OutputFreeList_ {
-    TmModule *tm_module;
+    OutputModule *output_module;
     OutputCtx *output_ctx;
 
     TAILQ_ENTRY(OutputFreeList_) entries;
@@ -466,7 +466,8 @@ void RunOutputFreeList(void)
 {
     OutputFreeList *output;
     while ((output = TAILQ_FIRST(&output_free_list))) {
-        SCLogDebug("output %s %p %p", output->tm_module->name, output, output->output_ctx);
+        SCLogDebug("output %s %p %p", output->output_module->name, output,
+            output->output_ctx);
 
         if (output->output_ctx != NULL && output->output_ctx->DeInit != NULL)
             output->output_ctx->DeInit(output->output_ctx);
@@ -528,16 +529,10 @@ void RunModeShutDown(void)
  *         the output ctx at shutdown and unix socket reload */
 static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
 {
-    TmModule *tm_module = TmModuleGetByName(module->name);
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "TmModuleGetByName for %s failed", module->name);
-        exit(EXIT_FAILURE);
-    }
     OutputFreeList *fl_output = SCCalloc(1, sizeof(OutputFreeList));
     if (unlikely(fl_output == NULL))
         return;
-    fl_output->tm_module = tm_module;
+    fl_output->output_module = module;
     fl_output->output_ctx = output_ctx;
     TAILQ_INSERT_TAIL(&output_free_list, fl_output, entries);
 }
@@ -573,28 +568,29 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
 {
     /* flow logger doesn't run in the packet path */
     if (module->FlowLogFunc) {
-        OutputRegisterFlowLogger(module->name, module->FlowLogFunc, output_ctx);
+        OutputRegisterFlowLogger(module->logger_id, module->name,
+            module->FlowLogFunc, output_ctx, module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
         return;
     }
     /* stats logger doesn't run in the packet path */
     if (module->StatsLogFunc) {
-        OutputRegisterStatsLogger(module->name, module->StatsLogFunc, output_ctx);
+        OutputRegisterStatsLogger(module->logger_id, module->name,
+            module->StatsLogFunc, output_ctx,module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
         return;
     }
 
-    TmModule *tm_module = TmModuleGetByName(module->name);
-    if (tm_module == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                "TmModuleGetByName for %s failed", module->name);
-        exit(EXIT_FAILURE);
-    }
-    if (strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
+    if (module->logger_id == LOGGER_ALERT_DEBUG) {
         debuglog_enabled = 1;
+    }
 
     if (module->PacketLogFunc) {
-        SCLogDebug("%s is a packet logger", module->name);
-        OutputRegisterPacketLogger(module->name, module->PacketLogFunc,
-                module->PacketConditionFunc, output_ctx);
+        SCLogNotice("%s is a packet logger", module->name);
+        OutputRegisterPacketLogger(module->logger_id, module->name,
+            module->PacketLogFunc, module->PacketConditionFunc, output_ctx,
+            module->ThreadInit, module->ThreadDeinit,
+            module->ThreadExitPrintStats);
 
         /* need one instance of the packet logger module */
         if (pkt_logger_module == NULL) {
@@ -616,9 +612,11 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
-        OutputRegisterTxLogger(module->name, module->alproto,
+        OutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
                 module->TxLogFunc, output_ctx, module->tc_log_progress,
-                module->ts_log_progress, module->TxLogCondition);
+                module->ts_log_progress, module->TxLogCondition,
+                module->ThreadInit, module->ThreadDeinit,
+                module->ThreadExitPrintStats);
 
         /* need one instance of the tx logger module */
         if (tx_logger_module == NULL) {
@@ -640,7 +638,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
-        OutputRegisterFiledataLogger(module->name, module->FiledataLogFunc, output_ctx);
+        OutputRegisterFiledataLogger(module->logger_id, module->name,
+            module->FiledataLogFunc, output_ctx, module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
 
         /* need one instance of the tx logger module */
         if (filedata_logger_module == NULL) {
@@ -662,7 +662,9 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
-        OutputRegisterFileLogger(module->name, module->FileLogFunc, output_ctx);
+        OutputRegisterFileLogger(module->logger_id, module->name,
+            module->FileLogFunc, output_ctx, module->ThreadInit,
+            module->ThreadDeinit, module->ThreadExitPrintStats);
 
         /* need one instance of the tx logger module */
         if (file_logger_module == NULL) {
@@ -684,8 +686,10 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         }
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
-        OutputRegisterStreamingLogger(module->name, module->StreamingLogFunc,
-                output_ctx, module->stream_type);
+        OutputRegisterStreamingLogger(module->logger_id, module->name,
+            module->StreamingLogFunc, output_ctx, module->stream_type,
+            module->ThreadInit, module->ThreadDeinit,
+            module->ThreadExitPrintStats);
 
         /* need one instance of the streaming logger module */
         if (streaming_logger_module == NULL) {
@@ -712,7 +716,6 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
         if (unlikely(runmode_output == NULL))
             return;
         runmode_output->name = module->name;
-        runmode_output->tm_module = tm_module;
         runmode_output->output_ctx = output_ctx;
         InsertInRunModeOutputs(runmode_output);
     }

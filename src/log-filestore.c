@@ -481,20 +481,12 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
 
 void TmModuleLogFilestoreRegister (void)
 {
-    tmm_modules[TMM_FILESTORE].name = MODULE_NAME;
-    tmm_modules[TMM_FILESTORE].ThreadInit = LogFilestoreLogThreadInit;
-    tmm_modules[TMM_FILESTORE].Func = NULL;
-    tmm_modules[TMM_FILESTORE].ThreadExitPrintStats = LogFilestoreLogExitPrintStats;
-    tmm_modules[TMM_FILESTORE].ThreadDeinit = LogFilestoreLogThreadDeinit;
-    tmm_modules[TMM_FILESTORE].RegisterTests = NULL;
-    tmm_modules[TMM_FILESTORE].cap_flags = 0;
-    tmm_modules[TMM_FILESTORE].flags = TM_FLAG_LOGAPI_TM;
-    tmm_modules[TMM_FILESTORE].priority = 10;
-
-    OutputRegisterFiledataModule(MODULE_NAME, "file", LogFilestoreLogInitCtx,
-            LogFilestoreLogger);
-    OutputRegisterFiledataModule(MODULE_NAME, "file-store", LogFilestoreLogInitCtx,
-            LogFilestoreLogger);
+    OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file",
+        LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
+        LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
+    OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file-store",
+        LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,
+        LogFilestoreLogThreadDeinit, LogFilestoreLogExitPrintStats);
 
     SCLogDebug("registered");
 }
