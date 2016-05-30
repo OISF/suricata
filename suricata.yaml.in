@@ -42,6 +42,68 @@ vars:
     DNP3_PORTS: 20000
     MODBUS_PORTS: 502
 
+##
+## Step 2: select the rules to enable or disable
+##
+
+classification-file: @e_sysconfdir@classification.config
+reference-config-file: @e_sysconfdir@reference.config
+# threshold-file: @e_sysconfdir@threshold.config
+
+default-rule-path: @e_sysconfdir@rules
+rule-files:
+ - botcc.rules
+ - ciarmy.rules
+ - compromised.rules
+ - drop.rules
+ - dshield.rules
+# - emerging-activex.rules
+ - emerging-attack_response.rules
+ - emerging-chat.rules
+ - emerging-current_events.rules
+ - emerging-dns.rules
+ - emerging-dos.rules
+ - emerging-exploit.rules
+ - emerging-ftp.rules
+# - emerging-games.rules
+# - emerging-icmp_info.rules
+# - emerging-icmp.rules
+ - emerging-imap.rules
+# - emerging-inappropriate.rules
+ - emerging-malware.rules
+ - emerging-misc.rules
+ - emerging-mobile_malware.rules
+ - emerging-netbios.rules
+ - emerging-p2p.rules
+ - emerging-policy.rules
+ - emerging-pop3.rules
+ - emerging-rpc.rules
+ - emerging-scada.rules
+ - emerging-scan.rules
+# - emerging-shellcode.rules
+ - emerging-smtp.rules
+ - emerging-snmp.rules
+ - emerging-sql.rules
+ - emerging-telnet.rules
+ - emerging-tftp.rules
+ - emerging-trojan.rules
+ - emerging-user_agents.rules
+ - emerging-voip.rules
+ - emerging-web_client.rules
+ - emerging-web_server.rules
+# - emerging-web_specific_apps.rules
+ - emerging-worm.rules
+ - tor.rules
+# - decoder-events.rules # available in suricata sources under rules dir
+# - stream-events.rules  # available in suricata sources under rules dir
+ - http-events.rules    # available in suricata sources under rules dir
+ - smtp-events.rules    # available in suricata sources under rules dir
+ - dns-events.rules     # available in suricata sources under rules dir
+ - tls-events.rules     # available in suricata sources under rules dir
+# - modbus-events.rules  # available in suricata sources under rules dir
+# - app-layer-events.rules  # available in suricata sources under rules dir
+
+
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
 # impact caching.
@@ -618,10 +680,6 @@ netmap:
 legacy:
   uricontent: enabled
 
-# You can specify a threshold config file by setting "threshold-file"
-# to the path of the threshold config file:
-# threshold-file: /etc/suricata/threshold.config
-
 # The detection engine builds internal groups of signatures. The engine
 # allow us to specify the profile to use for them, to manage memory on an
 # efficient way keeping a good performance. For the profile keyword you
@@ -1173,64 +1231,6 @@ ipfw:
   # back into the ipfw firewall AT rule number 5500:
   #
   # ipfw-reinjection-rule-number: 5500
-
-# Set the default rule path here to search for the files.
-# if not set, it will look at the current working dir
-default-rule-path: @e_sysconfdir@rules
-rule-files:
- - botcc.rules
- - ciarmy.rules
- - compromised.rules
- - drop.rules
- - dshield.rules
-# - emerging-activex.rules
- - emerging-attack_response.rules
- - emerging-chat.rules
- - emerging-current_events.rules
- - emerging-dns.rules
- - emerging-dos.rules
- - emerging-exploit.rules
- - emerging-ftp.rules
-# - emerging-games.rules
-# - emerging-icmp_info.rules
-# - emerging-icmp.rules
- - emerging-imap.rules
-# - emerging-inappropriate.rules
- - emerging-malware.rules
- - emerging-misc.rules
- - emerging-mobile_malware.rules
- - emerging-netbios.rules
- - emerging-p2p.rules
- - emerging-policy.rules
- - emerging-pop3.rules
- - emerging-rpc.rules
- - emerging-scada.rules
- - emerging-scan.rules
-# - emerging-shellcode.rules
- - emerging-smtp.rules
- - emerging-snmp.rules
- - emerging-sql.rules
- - emerging-telnet.rules
- - emerging-tftp.rules
- - emerging-trojan.rules
- - emerging-user_agents.rules
- - emerging-voip.rules
- - emerging-web_client.rules
- - emerging-web_server.rules
-# - emerging-web_specific_apps.rules
- - emerging-worm.rules
- - tor.rules
- - decoder-events.rules # available in suricata sources under rules dir
- - stream-events.rules  # available in suricata sources under rules dir
- - http-events.rules    # available in suricata sources under rules dir
- - smtp-events.rules    # available in suricata sources under rules dir
- - dns-events.rules     # available in suricata sources under rules dir
- - tls-events.rules     # available in suricata sources under rules dir
-# - modbus-events.rules  # available in suricata sources under rules dir
- - app-layer-events.rules  # available in suricata sources under rules dir
-
-classification-file: @e_sysconfdir@classification.config
-reference-config-file: @e_sysconfdir@reference.config
 
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
