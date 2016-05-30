@@ -70,7 +70,7 @@ typedef struct FlowWorkerThreadData_ {
  *
  *  Handle flow creation/lookup
  */
-static void FlowUpdate(ThreadVars *tv, StreamTcpThread *stt, Packet *p)
+static inline void FlowUpdate(Packet *p)
 {
     FlowHandlePacketUpdate(p->flow, p);
 }
@@ -148,8 +148,9 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
     SCLogDebug("packet %"PRIu64, p->pcap_cnt);
 
     /* update time */
-    if (!(PKT_IS_PSEUDOPKT(p)))
+    if (!(PKT_IS_PSEUDOPKT(p))) {
         TimeSetByThread(tv->id, &p->ts);
+    }
 
     /* handle Flow */
     if (p->flags & PKT_WANTS_FLOW) {
@@ -158,7 +159,7 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         FlowHandlePacket(tv, fw->dtv, p);
         if (likely(p->flow != NULL)) {
             DEBUG_ASSERT_FLOW_LOCKED(p->flow);
-            FlowUpdate(tv, fw->stream_thread, p);
+            FlowUpdate(p);
         }
         /* Flow is now LOCKED */
 
