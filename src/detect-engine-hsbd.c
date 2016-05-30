@@ -3087,10 +3087,9 @@ static int DetectEngineHttpServerBodyTest20(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched but shouldn't have");
-        goto end;
-    }
+#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+    FAIL_IF(!(PacketAlertCheck(p2, 1)));
+#endif
 
     result = 1;
 
@@ -3219,10 +3218,9 @@ static int DetectEngineHttpServerBodyTest21(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched but shouldn't have");
-        goto end;
-    }
+#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+    FAIL_IF(!(PacketAlertCheck(p2, 1)));
+#endif
 
     result = 1;
 
@@ -3353,10 +3351,9 @@ static int DetectEngineHttpServerBodyTest22(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(p2, 1))) {
-        printf("sid 1 should have matched: ");
-        goto end;
-    }
+#ifdef HAVE_HTP_CONFIG_SET_RESPONSE_DECOMPRESSION_LAYER_LIMIT
+    FAIL_IF(!(PacketAlertCheck(p2, 1)));
+#endif
 
     result = 1;
 
