@@ -103,6 +103,50 @@ rule-files:
 # - modbus-events.rules  # available in suricata sources under rules dir
 # - app-layer-events.rules  # available in suricata sources under rules dir
 
+##
+## Step 3: select outputs to enable
+##
+
+# Logging configuration.  This is not about logging IDS alerts, but
+# output about what Suricata is doing, like startup messages, errors, etc.
+logging:
+  # The default log level, can be overridden in an output section.
+  # Note that debug level logging will only be emitted if Suricata was
+  # compiled with the --enable-debug configure option.
+  #
+  # This value is overriden by the SC_LOG_LEVEL env var.
+  default-log-level: notice
+
+  # The default output format.  Optional parameter, should default to
+  # something reasonable if not provided.  Can be overriden in an
+  # output section.  You can leave this out to get the default.
+  #
+  # This value is overriden by the SC_LOG_FORMAT env var.
+  #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
+
+  # A regex to filter output.  Can be overridden in an output section.
+  # Defaults to empty (no filter).
+  #
+  # This value is overriden by the SC_LOG_OP_FILTER env var.
+  default-output-filter:
+
+  # Define your logging outputs.  If none are defined, or they are all
+  # disabled you will get the default - console output.
+  outputs:
+  - console:
+      enabled: yes
+      # type: json
+  - file:
+      enabled: yes
+      filename: @e_logdir@suricata.log
+      # type: json
+  - syslog:
+      enabled: no
+      facility: local5
+      format: "[%i] <%d> -- "
+      # type: json
+
+
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
@@ -1060,46 +1104,6 @@ host:
 #  hash-size: 4096
 #  prealloc: 1000
 #  memcap: 16777216
-
-# Logging configuration.  This is not about logging IDS alerts, but
-# IDS output about what its doing, errors, etc.
-logging:
-
-  # The default log level, can be overridden in an output section.
-  # Note that debug level logging will only be emitted if Suricata was
-  # compiled with the --enable-debug configure option.
-  #
-  # This value is overriden by the SC_LOG_LEVEL env var.
-  default-log-level: notice
-
-  # The default output format.  Optional parameter, should default to
-  # something reasonable if not provided.  Can be overriden in an
-  # output section.  You can leave this out to get the default.
-  #
-  # This value is overriden by the SC_LOG_FORMAT env var.
-  #default-log-format: "[%i] %t - (%f:%l) <%d> (%n) -- "
-
-  # A regex to filter output.  Can be overridden in an output section.
-  # Defaults to empty (no filter).
-  #
-  # This value is overriden by the SC_LOG_OP_FILTER env var.
-  default-output-filter:
-
-  # Define your logging outputs.  If none are defined, or they are all
-  # disabled you will get the default - console output.
-  outputs:
-  - console:
-      enabled: yes
-      # type: json
-  - file:
-      enabled: no
-      filename: @e_logdir@suricata.log
-      # type: json
-  - syslog:
-      enabled: no
-      facility: local5
-      format: "[%i] <%d> -- "
-      # type: json
 
 # Tilera mpipe configuration. for use on Tilera TILE-Gx.
 mpipe:
