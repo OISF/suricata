@@ -63,6 +63,7 @@ typedef struct TcpStreamCnf_ {
     uint16_t reassembly_toclient_chunk_size;
 
     int check_overlap_different_data;
+    int offload;
 
     /** reassembly -- inline mode
      *
@@ -228,7 +229,8 @@ void StreamTcpSessionClear(void *ssnptr);
 void StreamTcpSessionCleanup(TcpSession *ssn);
 /* cleanup stream, but don't free the stream */
 void StreamTcpStreamCleanup(TcpStream *stream);
-
+/* check if offload is enabled */
+int StreamTcpOffloadEnabled(void);
 
 uint32_t StreamTcpGetStreamSize(TcpStream *stream);
 

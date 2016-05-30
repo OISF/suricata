@@ -534,7 +534,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     ntv->checksum_mode = aconf->checksum_mode;
     ntv->copy_mode = aconf->copy_mode;
 
-    ntv->livedev = LiveGetDevice(aconf->iface_name);
+    ntv->livedev = LiveGetDevice(aconf->iface_name, RUNMODE_NETMAP);
     if (ntv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         goto error_ntv;

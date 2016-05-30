@@ -45,6 +45,7 @@
 #include "util-host-os-info.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
+#include "util-device.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -1805,6 +1806,7 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
             /* complete fit */
             SCReturnUInt(size);
         } else {
+            stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_PARTIALLY_REACHED;
             /* partial fit, return only what fits */
             uint32_t part = (stream->isn + stream_config.reassembly_depth) - seq;
 #if DEBUG
@@ -1957,7 +1959,14 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     if (StreamTcpReassembleInsertSegment(tv, ra_ctx, stream, seg, p) != 0) {
         SCLogDebug("StreamTcpReassembleInsertSegment failed");
+        if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_PARTIALLY_REACHED) {
+            stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
+        }
         SCReturnInt(-1);
+    }
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_PARTIALLY_REACHED) {
+        stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
     }
 
     SCReturnInt(0);

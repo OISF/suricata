@@ -456,7 +456,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ptv->livedev = LiveGetDevice(pfconf->iface);
+    ptv->livedev = LiveGetDevice(pfconf->iface, RUNMODE_PFRING);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);

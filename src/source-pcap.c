@@ -41,6 +41,7 @@
 #include "util-checksum.h"
 #include "util-ioctl.h"
 #include "tmqh-packetpool.h"
+#include "runmodes.h"
 
 #ifdef __SC_CUDA_SUPPORT__
 
@@ -386,7 +387,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ptv->tv = tv;
 
-    ptv->livedev = LiveGetDevice(pcapconfig->iface);
+    ptv->livedev = LiveGetDevice(pcapconfig->iface, RUNMODE_PCAP_DEV);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);
@@ -554,7 +555,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     ptv->tv = tv;
 
-    ptv->livedev = LiveGetDevice(pcapconfig->iface);
+    ptv->livedev = LiveGetDevice(pcapconfig->iface, RUNMODE_PCAP_DEV);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
         SCFree(ptv);
