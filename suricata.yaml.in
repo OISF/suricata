@@ -835,9 +835,12 @@ app-layer:
 coredump:
   max-dump: unlimited
 
-
-
-
+# If suricata box is a router for the sniffed networks, set it to 'router'. If
+# it is a pure sniffing setup, set it to 'sniffer-only'.
+# If set to auto, the variable is internally switch to 'router' in IPS mode
+# and 'sniffer-only' in IDS mode.
+# This feature is currently only used by the reject* keywords.
+host-mode: auto
 
 # Number of packets preallocated per thread. The default is 1024. A higher number 
 # will make sure each CPU will be more easily kept busy, but may negatively 
@@ -865,13 +868,6 @@ coredump:
 #
 #autofp-scheduler: active-packets
 
-# If suricata box is a router for the sniffed networks, set it to 'router'. If
-# it is a pure sniffing setup, set it to 'sniffer-only'.
-# If set to auto, the variable is internally switch to 'router' in IPS mode
-# and 'sniffer-only' in IDS mode.
-# This feature is currently only used by the reject* keywords.
-host-mode: auto
-
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.
@@ -889,43 +885,6 @@ unix-command:
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
 @e_magic_file_comment@magic-file: @e_magic_file@
-
-# When running in NFQ inline mode, it is possible to use a simulated
-# non-terminal NFQUEUE verdict.
-# This permit to do send all needed packet to suricata via this a rule:
-#        iptables -I FORWARD -m mark ! --mark $MARK/$MASK -j NFQUEUE
-# And below, you can have your standard filtering ruleset. To activate
-# this mode, you need to set mode to 'repeat'
-# If you want packet to be sent to another queue after an ACCEPT decision
-# set mode to 'route' and set next-queue value.
-# On linux >= 3.1, you can set batchcount to a value > 1 to improve performance
-# by processing several packets before sending a verdict (worker runmode only).
-# On linux >= 3.6, you can set the fail-open option to yes to have the kernel
-# accept the packet if suricata is not able to keep pace.
-nfq:
-#  mode: accept
-#  repeat-mark: 1
-#  repeat-mask: 1
-#  route-queue: 2
-#  batchcount: 20
-#  fail-open: yes
-
-#nflog support
-nflog:
-    # netlink multicast group
-    # (the same as the iptables --nflog-group param)
-    # Group 0 is used by the kernel, so you can't use it
-  - group: 2
-    # netlink buffer size
-    buffer-size: 18432
-    # put default value here
-  - group: default
-    # set number of packet to queue inside kernel
-    qthreshold: 1
-    # set the delay before flushing packet in the queue inside kernel
-    qtimeout: 100
-    # netlink max buffer size
-    max-size: 20000
 
 legacy:
   uricontent: enabled
@@ -1431,6 +1390,47 @@ profiling:
     enabled: no
     filename: pcaplog_stats.log
     append: yes
+
+##
+## Netfilter integration
+##
+
+# When running in NFQ inline mode, it is possible to use a simulated
+# non-terminal NFQUEUE verdict.
+# This permit to do send all needed packet to suricata via this a rule:
+#        iptables -I FORWARD -m mark ! --mark $MARK/$MASK -j NFQUEUE
+# And below, you can have your standard filtering ruleset. To activate
+# this mode, you need to set mode to 'repeat'
+# If you want packet to be sent to another queue after an ACCEPT decision
+# set mode to 'route' and set next-queue value.
+# On linux >= 3.1, you can set batchcount to a value > 1 to improve performance
+# by processing several packets before sending a verdict (worker runmode only).
+# On linux >= 3.6, you can set the fail-open option to yes to have the kernel
+# accept the packet if suricata is not able to keep pace.
+nfq:
+#  mode: accept
+#  repeat-mark: 1
+#  repeat-mask: 1
+#  route-queue: 2
+#  batchcount: 20
+#  fail-open: yes
+
+#nflog support
+nflog:
+    # netlink multicast group
+    # (the same as the iptables --nflog-group param)
+    # Group 0 is used by the kernel, so you can't use it
+  - group: 2
+    # netlink buffer size
+    buffer-size: 18432
+    # put default value here
+  - group: default
+    # set number of packet to queue inside kernel
+    qthreshold: 1
+    # set the delay before flushing packet in the queue inside kernel
+    qtimeout: 100
+    # netlink max buffer size
+    max-size: 20000
 
 ##
 ## Advanced Capture Options
