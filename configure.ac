@@ -773,6 +773,7 @@
     fi
 
     AS_IF([test "x$enable_unixsocket" = "xyes"], [AC_DEFINE([BUILD_UNIX_SOCKET], [1], [Unix socket support enabled])])
+    e_enable_evelog=$enable_jansson
 
     AC_ARG_ENABLE(nflog,
             AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
@@ -1944,6 +1945,7 @@ AC_SUBST(e_localstatedir)
 AC_DEFINE_UNQUOTED([CONFIG_DIR],["$e_sysconfdir"],[Our CONFIG_DIR])
 AC_SUBST(e_magic_file)
 AC_SUBST(e_magic_file_comment)
+AC_SUBST(e_enable_evelog)
 
 EXPAND_VARIABLE(prefix, CONFIGURE_PREFIX)
 EXPAND_VARIABLE(sysconfdir, CONFIGURE_SYSCONDIR)
