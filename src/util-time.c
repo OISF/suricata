@@ -90,6 +90,11 @@ void TimeModeSetOffline (void)
     SCLogDebug("offline time mode enabled");
 }
 
+int TimeModeIsLive(void)
+{
+    return live;
+}
+
 void TimeSetByThread(const int thread_id, const struct timeval *tv)
 {
     if (live == TRUE)
