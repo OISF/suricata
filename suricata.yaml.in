@@ -47,10 +47,6 @@ vars:
 ## Step 2: select the rules to enable or disable
 ##
 
-classification-file: @e_sysconfdir@classification.config
-reference-config-file: @e_sysconfdir@reference.config
-# threshold-file: @e_sysconfdir@threshold.config
-
 default-rule-path: @e_sysconfdir@rules
 rule-files:
  - botcc.rules
@@ -103,6 +99,10 @@ rule-files:
  - tls-events.rules     # available in suricata sources under rules dir
 # - modbus-events.rules  # available in suricata sources under rules dir
 # - app-layer-events.rules  # available in suricata sources under rules dir
+
+classification-file: @e_sysconfdir@classification.config
+reference-config-file: @e_sysconfdir@reference.config
+# threshold-file: @e_sysconfdir@threshold.config
 
 
 ##
