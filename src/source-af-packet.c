@@ -1246,7 +1246,7 @@ static int AFPSynchronizeStart(AFPThreadVars *ptv, uint64_t *discarded_pkts)
             SCLogDebug("Discarding on %s", ptv->tv->name);
             switch (r) {
                 case 1:
-                    SCLogInfo("Starting to read on %s", ptv->tv->name);
+                    SCLogDebug("Starting to read on %s", ptv->tv->name);
                     return 1;
                 case -1:
                     return r;

@@ -115,7 +115,6 @@ void *ParseAFPConfig(const char *iface)
     ConfNode *if_root;
     ConfNode *if_default = NULL;
     ConfNode *af_packet_node;
-    AFPIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     char *tmpclusterid;
     char *tmpctype;
     char *copymodestr;
@@ -124,29 +123,31 @@ void *ParseAFPConfig(const char *iface)
     char *bpf_filter = NULL;
     char *out_iface = NULL;
 
+    if (iface == NULL) {
+        return NULL;
+    }
+
+    AFPIfaceConfig *aconf = SCCalloc(1, sizeof(*aconf));
     if (unlikely(aconf == NULL)) {
         return NULL;
     }
 
-    if (iface == NULL) {
-        SCFree(aconf);
-        return NULL;
-    }
-
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
-    aconf->threads = 1;
+    aconf->threads = 0;
     SC_ATOMIC_INIT(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
-    aconf->cluster_type = PACKET_FANOUT_HASH;
+    aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
-    aconf->flags = 0;
+    aconf->flags = AFP_RING_MODE|AFP_TPACKET_V3;
     aconf->bpf_filter = NULL;
     aconf->out_iface = NULL;
     aconf->copy_mode = AFP_COPY_MODE_NONE;
+    aconf->block_timeout = 10;
+    aconf->block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
 
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
@@ -159,19 +160,18 @@ void *ParseAFPConfig(const char *iface)
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
     if (af_packet_node == NULL) {
-        SCLogInfo("Unable to find af-packet config using default value");
-        return aconf;
+        SCLogInfo("unable to find af-packet config using default values");
+        goto finalize;
     }
 
     if_root = ConfFindDeviceConfig(af_packet_node, iface);
-
     if_default = ConfFindDeviceConfig(af_packet_node, "default");
 
     if (if_root == NULL && if_default == NULL) {
-        SCLogInfo("Unable to find af-packet config for "
-                  "interface \"%s\" or \"default\", using default value",
+        SCLogInfo("unable to find af-packet config for "
+                  "interface \"%s\" or \"default\", using default values",
                   iface);
-        return aconf;
+        goto finalize;
     }
 
     /* If there is no setting for current interface use default one as main iface */
@@ -191,24 +191,6 @@ void *ParseAFPConfig(const char *iface)
             }
         }
     }
-    if (aconf->threads == 0) {
-        int rss_queues;
-        aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
-        /* Get the number of RSS queues and take the min */
-        rss_queues = GetIfaceRSSQueuesNum(iface);
-        if (rss_queues > 0) {
-            if (rss_queues < aconf->threads) {
-                aconf->threads = rss_queues;
-                SCLogInfo("More cores than RSS queues, using %d threads for interface %s",
-                          aconf->threads, iface);
-            }
-        }
-        if (aconf->threads)
-            SCLogInfo("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
-    }
-    if (aconf->threads <= 0) {
-        aconf->threads = 1;
-    }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
@@ -222,6 +204,7 @@ void *ParseAFPConfig(const char *iface)
         } else {
             SCLogInfo("Disabling mmaped capture on iface %s",
                     aconf->iface);
+            aconf->flags &= ~AFP_RING_MODE;
         }
     } else {
         aconf->flags |= AFP_RING_MODE;
@@ -242,16 +225,16 @@ void *ParseAFPConfig(const char *iface)
 #ifdef HAVE_TPACKET_V3
                 SCLogInfo("Enabling tpacket v3 capture on iface %s",
                         aconf->iface);
-                aconf->flags |= AFP_TPACKET_V3|AFP_RING_MODE;
+                aconf->flags |= AFP_TPACKET_V3;
 #else
                 SCLogNotice("System too old for tpacket v3 switching to v2");
-                aconf->flags |= AFP_RING_MODE;
+                aconf->flags &= ~AFP_TPACKET_V3;
 #endif
             } else {
                 SCLogError(SC_ERR_RUNMODE,
-                        "tpacket v3 is only implemented for 'workers' running mode."
+                        "tpacket v3 is only implemented for 'workers' runmode."
                         " Switching to tpacket v2.");
-                aconf->flags |= AFP_RING_MODE;
+                aconf->flags &= ~AFP_TPACKET_V3;
             }
         }
         (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
@@ -262,7 +245,6 @@ void *ParseAFPConfig(const char *iface)
             aconf->flags |= AFP_EMERGENCY_MODE;
         }
     }
-
 
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
@@ -288,9 +270,6 @@ void *ParseAFPConfig(const char *iface)
             SCLogInfo("Invalid mode (not in tap, ips)");
         }
     }
-
-    SC_ATOMIC_RESET(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-id", &tmpclusterid) != 1) {
         aconf->cluster_id = (uint16_t)(cluster_id_auto++);
@@ -338,9 +317,7 @@ void *ParseAFPConfig(const char *iface)
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
 
     } else {
-        SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
-        SCFree(aconf);
-        return NULL;
+        SCLogWarning(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
     }
 
     int conf_val = 0;
@@ -369,21 +346,8 @@ void *ParseAFPConfig(const char *iface)
     }
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "ring-size", &value)) == 1) {
         aconf->ring_size = value;
-        if (value * aconf->threads < max_pending_packets) {
-            aconf->ring_size = max_pending_packets / aconf->threads + 1;
-            SCLogWarning(SC_ERR_AFP_CREATE, "Inefficient setup: ring-size < max_pending_packets. "
-                         "Resetting to decent value %d.", aconf->ring_size);
-            /* We want at least that max_pending_packets packets can be handled by the
-             * interface. This is generous if we have multiple interfaces listening. */
-        }
-    } else {
-        /* We want that max_pending_packets packets can be handled by suricata
-         * for this interface. To take burst into account we multiply the obtained
-         * size by 2. */
-        aconf->ring_size = max_pending_packets * 2 / aconf->threads;
     }
 
-    aconf->block_size = getpagesize() << AFP_BLOCK_SIZE_DEFAULT_ORDER;
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-size", &value)) == 1) {
         if (value % getpagesize()) {
             SCLogError(SC_ERR_INVALID_VALUE, "Block-size must be a multiple of pagesize.");
@@ -392,11 +356,6 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
-    if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
-        aconf->block_timeout = value;
-    } else {
-        aconf->block_timeout = 10;
-    }
     if ((ConfGetChildValueIntWithDefault(if_root, if_default, "block-timeout", &value)) == 1) {
         aconf->block_timeout = value;
     } else {
@@ -424,6 +383,43 @@ void *ParseAFPConfig(const char *iface)
         }
     }
 
+finalize:
+
+    if (aconf->threads == 0) {
+        int rss_queues;
+        aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+        /* Get the number of RSS queues and take the min */
+        rss_queues = GetIfaceRSSQueuesNum(iface);
+        if (rss_queues > 0) {
+            if (rss_queues < aconf->threads) {
+                aconf->threads = rss_queues;
+                SCLogInfo("More cores than RSS queues, using %d threads for interface %s",
+                          aconf->threads, iface);
+            }
+        }
+        if (aconf->threads)
+            SCLogInfo("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
+    }
+    if (aconf->threads <= 0) {
+        aconf->threads = 1;
+    }
+    SC_ATOMIC_RESET(aconf->ref);
+    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+
+    if (aconf->ring_size != 0) {
+        if (aconf->ring_size * aconf->threads < max_pending_packets) {
+            aconf->ring_size = max_pending_packets / aconf->threads + 1;
+            SCLogWarning(SC_ERR_AFP_CREATE, "Inefficient setup: ring-size < max_pending_packets. "
+                         "Resetting to decent value %d.", aconf->ring_size);
+            /* We want at least that max_pending_packets packets can be handled by the
+             * interface. This is generous if we have multiple interfaces listening. */
+        }
+    } else {
+        /* We want that max_pending_packets packets can be handled by suricata
+         * for this interface. To take burst into account we multiply the obtained
+         * size by 2. */
+        aconf->ring_size = max_pending_packets * 2 / aconf->threads;
+    }
 
     int ltype = AFPGetLinkType(iface);
     switch (ltype) {
@@ -440,7 +436,6 @@ void *ParseAFPConfig(const char *iface)
     char *active_runmode = RunmodeGetActive();
     if (active_runmode && !strcmp("workers", active_runmode)) {
         aconf->flags |= AFP_ZERO_COPY;
-        SCLogInfo("%s: enabling zero copy mode", iface);
     } else {
         /* If we are using copy mode we need a lock */
         aconf->flags |= AFP_SOCK_PROTECT;
@@ -450,6 +445,9 @@ void *ParseAFPConfig(const char *iface)
      * by using the data release mechanism */
     if (aconf->flags & AFP_RING_MODE) {
         aconf->flags |= AFP_ZERO_COPY;
+    }
+
+    if (aconf->flags & AFP_ZERO_COPY) {
         SCLogInfo("%s: enabling zero copy mode by using data release call", iface);
     }
 
