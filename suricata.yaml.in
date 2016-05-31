@@ -213,7 +213,7 @@ outputs:
             threads: no       # per thread stats
             deltas: no        # include delta values
         # bi-directional flows
-        #- flow
+        - flow
         # uni-directional flows
         #- netflow
 
@@ -256,7 +256,7 @@ outputs:
 
   # a line based log of HTTP requests (no alerts)
   - http-log:
-      enabled: yes
+      enabled: no
       filename: http.log
       append: yes
       #extended: yes     # enable this for extended logging information
