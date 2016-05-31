@@ -29,6 +29,19 @@
 
 void JsonAlertLogRegister(void);
 #ifdef HAVE_LIBJANSSON
+#define LOG_JSON_PAYLOAD            BIT_U32(1)
+#define LOG_JSON_PACKET             BIT_U32(2)
+#define LOG_JSON_PAYLOAD_BASE64     BIT_U32(3)
+#define LOG_JSON_HTTP               BIT_U32(4)
+#define LOG_JSON_TLS                BIT_U32(5)
+#define LOG_JSON_SSH                BIT_U32(6)
+#define LOG_JSON_SMTP               BIT_U32(7)
+#define LOG_JSON_TAGGED_PACKETS     BIT_U32(8)
+#define LOG_JSON_HTTP_BODY          BIT_U32(9)
+#define LOG_JSON_HTTP_BODY_BASE64   BIT_U32(10)
+#define LOG_JSON_DNP3               BIT_U32(11)
+#define LOG_JSON_VARS               BIT_U32(12)
+
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
 #endif /* HAVE_LIBJANSSON */
 

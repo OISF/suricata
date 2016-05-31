@@ -72,17 +72,6 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD        0x001
-#define LOG_JSON_PACKET         0x002
-#define LOG_JSON_PAYLOAD_BASE64 0x004
-#define LOG_JSON_HTTP           0x008
-#define LOG_JSON_TLS            0x010
-#define LOG_JSON_SSH            0x020
-#define LOG_JSON_SMTP           0x040
-#define LOG_JSON_TAGGED_PACKETS 0x080
-#define LOG_JSON_DNP3           0x100
-#define LOG_JSON_VARS           0x200
-
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
