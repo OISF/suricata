@@ -84,6 +84,9 @@ typedef struct LogLuaThreadCtx_ {
     LogLuaCtx *lua_ctx;
 } LogLuaThreadCtx;
 
+static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data);
+static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data);
+
 /** \internal
  *  \brief TX logger for lua scripts
  *
@@ -858,6 +861,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         om->name = MODULE_NAME;
         om->conf_name = script->val;
         om->InitSubFunc = OutputLuaLogInitSub;
+        om->ThreadInit = LuaLogThreadInit;
+        om->ThreadDeinit = LuaLogThreadDeinit;
 
         if (opts.alproto == ALPROTO_HTTP && opts.streaming) {
             om->StreamingLogFunc = LuaStreamingLogger;
@@ -990,13 +995,6 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
 }
 
 void TmModuleLuaLogRegister (void) {
-    tmm_modules[TMM_LUALOG].name = MODULE_NAME;
-    tmm_modules[TMM_LUALOG].ThreadInit = LuaLogThreadInit;
-    tmm_modules[TMM_LUALOG].ThreadDeinit = LuaLogThreadDeinit;
-    tmm_modules[TMM_LUALOG].RegisterTests = NULL;
-    tmm_modules[TMM_LUALOG].cap_flags = 0;
-    tmm_modules[TMM_LUALOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
