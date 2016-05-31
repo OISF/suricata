@@ -474,10 +474,13 @@ logging:
 
 
 ##
-## Step 4: configure capture settings
+## Step 4: configure common capture settings
+##
+## See "Advanced Capture Options" below for more options, including NETMAP
+## and PF_RING.
 ##
 
-# af-packet support
+# Linux high speed capture support
 af-packet:
   - interface: eth0
     # Number of receive threads. "auto" uses the number of cores
@@ -562,6 +565,7 @@ af-packet:
     #rollover: yes
     tpacket-v3: yes
 
+# Cross platform libpcap capture support
 pcap:
   - interface: eth0
     # On Linux, pcap will try to use mmaped capture and will use buffer-size
@@ -593,6 +597,7 @@ pcap:
   - interface: default
     #checksum-checks: auto
 
+# Settings for reading pcap files
 pcap-file:
   # Possible values are:
   #  - yes: checksum validation is forced
