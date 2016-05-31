@@ -2772,6 +2772,7 @@ int main(int argc, char **argv)
 #endif
     ConfDeInit();
 
+    SCLogDeInitLogModule();
     DetectParseFreeRegexes();
     exit(engine_retval);
 }

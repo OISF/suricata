@@ -713,6 +713,7 @@ error:
         fclose(iface_ctx->file_d);
         iface_ctx->file_d = NULL;
     }
+    SCFree(iface_ctx);
     return NULL;
 }
 
