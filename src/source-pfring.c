@@ -344,21 +344,19 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             pkt_buffer = GET_PKT_DIRECT_DATA(p);
         }
 
-        /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
         int r = pfring_recv(ptv->pd, &pkt_buffer,
                 buffer_size,
                 &hdr,
                 LIBPFRING_WAIT_FOR_INCOMING);
-
-        /* Check for Zero-copy mode */
-        if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
-            PacketSetData(p, pkt_buffer, hdr.caplen);
-        }
-
         if (likely(r == 1)) {
             /* profiling started before blocking pfring_recv call, so
              * reset it here */
             PACKET_PROFILING_RESTART(p);
+
+            /* Check for Zero-copy mode */
+            if (ptv->flags & PFRING_FLAGS_ZERO_COPY) {
+                PacketSetData(p, pkt_buffer, hdr.caplen);
+            }
 
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
