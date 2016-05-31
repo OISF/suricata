@@ -96,6 +96,12 @@ PktProfiling *SCProfilePacketStart(void);
             (p)->profile->ticks_start = UtilCpuGetTicks();          \
     }
 
+#define PACKET_PROFILING_RESTART(p)                                 \
+    if (profiling_packets_enabled) {                                \
+        if ((p)->profile != NULL)                                   \
+            (p)->profile->ticks_start = UtilCpuGetTicks();          \
+    }
+
 #define PACKET_PROFILING_END(p)                                     \
     if (profiling_packets_enabled && (p)->profile != NULL) {        \
         (p)->profile->ticks_end = UtilCpuGetTicks();                \
@@ -286,6 +292,7 @@ void SCProfilingDump(void);
 #define KEYWORD_PROFILING_END(a,b,c)
 
 #define PACKET_PROFILING_START(p)
+#define PACKET_PROFILING_RESTART(p)
 #define PACKET_PROFILING_END(p)
 
 #define PACKET_PROFILING_TMM_START(p, id)
