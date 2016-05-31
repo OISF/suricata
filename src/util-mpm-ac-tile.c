@@ -68,6 +68,8 @@
 #include "suricata-common.h"
 #include "suricata.h"
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -2569,3 +2571,11 @@ void SCACTileRegisterTests(void)
 #endif
 }
 
+#else /* we're big endian */
+
+void MpmACTileRegister(void)
+{
+    /* no-op on big endian */
+}
+
+#endif /* little endian check */

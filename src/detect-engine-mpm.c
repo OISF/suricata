@@ -335,6 +335,13 @@ uint16_t PatternMatchDefaultMatcher(void)
         uint16_t u;
 
         if (mpm_algo != NULL) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+            if (strcmp(mpm_algo, "ac-ks") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "ac-ks does "
+                        "not work on big endian systems at this time.");
+                exit(EXIT_FAILURE);
+            }
+#endif
             if (strcmp("auto", mpm_algo) == 0) {
                 goto done;
             }
