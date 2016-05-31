@@ -374,8 +374,10 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
 error:
     if (filemagic != NULL)
         DetectFilemagicFree(filemagic);
-    if (sm != NULL)
+    if (sm != NULL) {
+        SigMatchRemoveSMFromList(s, sm, DETECT_SM_LIST_FILEMATCH);
         SCFree(sm);
+    }
     return -1;
 }
 
