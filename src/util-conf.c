@@ -91,3 +91,31 @@ ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface)
 
     return NULL;
 }
+
+int ConfUnixSocketIsEnable(void)
+{
+    char *value;
+
+    if (ConfGet("unix-command.enabled", &value) != 1) {
+        return 0;
+    }
+
+    if (!strcmp(value, "auto")) {
+#ifdef HAVE_LIBJANSSON
+#ifdef OS_WIN32
+        return 0;
+#else
+        if (TimeModeIsLive()) {
+            SCLogInfo("Running in live mode, activating unix socket");
+            return 1;
+        } else {
+            return 0;
+        }
+#endif
+#else
+        return 0;
+#endif
+    }
+
+    return ConfValIsTrue(value);
+}

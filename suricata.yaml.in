@@ -911,10 +911,11 @@ host-mode: auto
 # Unix command socket can be used to pass commands to suricata.
 # An external tool can then connect to get information from suricata
 # or trigger some modifications of the engine. Set enabled to yes
-# to activate the feature. You can use the filename variable to set
+# to activate the feature. In auto mode, the feature will only be
+# activated in live capture mode. You can use the filename variable to set
 # the file name of the socket.
 unix-command:
-  enabled: no
+  enabled: auto
   #filename: custom.socket
 
 # Magic file. The extension .mgc is added to the value here.
