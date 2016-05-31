@@ -244,10 +244,7 @@ static void StatsInitCtx(void)
 
         /* if the unix command socket is enabled we do the background
          * stats sync just in case someone runs 'dump-counters' */
-        int unix_socket = 0;
-        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
-            unix_socket = 0;
-        if (unix_socket == 0) {
+        if (!ConfUnixSocketIsEnable()) {
             SCLogWarning(SC_WARN_NO_STATS_LOGGERS, "stats are enabled but no loggers are active");
             stats_enabled = FALSE;
             SCReturn;

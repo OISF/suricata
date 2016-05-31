@@ -2081,8 +2081,7 @@ int DetectEngineMultiTenantSetup(void)
     enum DetectEngineTenantSelectors tenant_selector = TENANT_SELECTOR_UNKNOWN;
     DetectEngineMasterCtx *master = &g_master_de_ctx;
 
-    int unix_socket = 0;
-    (void)ConfGetBool("unix-command.enabled", &unix_socket);
+    int unix_socket = ConfUnixSocketIsEnable();
 
     int failure_fatal = 0;
     (void)ConfGetBool("engine.init-failure-fatal", &failure_fatal);
