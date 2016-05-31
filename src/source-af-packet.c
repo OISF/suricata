@@ -1766,7 +1766,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         ptv->ring_v3 = SCMalloc(ptv->req3.tp_block_nr * sizeof(*ptv->ring_v3));
         if (!ptv->ring_v3) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to malloc ptv ring_v3");
-            goto mmap_err;
+            goto postmmap_err;
         }
         for (i = 0; i < ptv->req3.tp_block_nr; ++i) {
             ptv->ring_v3[i].iov_base = ring_buf + (i * ptv->req3.tp_block_size);
@@ -1778,7 +1778,7 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
         ptv->ring_v2 = SCMalloc(ptv->req.tp_frame_nr * sizeof (union thdr *));
         if (ptv->ring_v2 == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Unable to allocate frame buf");
-            goto mmap_err;
+            goto postmmap_err;
         }
         memset(ptv->ring_v2, 0, ptv->req.tp_frame_nr * sizeof (union thdr *));
         /* fill the header ring with proper frame ptr*/
@@ -1798,6 +1798,12 @@ static int AFPSetupRing(AFPThreadVars *ptv, char *devname)
 
     return 0;
 
+postmmap_err:
+    munmap(ring_buf, ring_buflen);
+    if (ptv->ring_v2)
+        SCFree(ptv->ring_v2);
+    if (ptv->ring_v3)
+        SCFree(ptv->ring_v3);
 mmap_err:
     /* Packet mmap does the cleaning when socket is closed */
     return AFP_FATAL_ERROR;
