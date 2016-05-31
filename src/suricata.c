@@ -248,8 +248,6 @@ int g_detect_disabled = 0;
 /** set caps or not */
 int sc_set_caps;
 
-char *conf_filename = NULL;
-
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -927,14 +925,14 @@ void RegisterAllModules()
 
 }
 
-static TmEcode LoadYamlConfig(void)
+static TmEcode LoadYamlConfig(SCInstance *suri)
 {
     SCEnter();
 
-    if (conf_filename == NULL)
-        conf_filename = DEFAULT_CONF_FILE;
+    if (suri->conf_filename == NULL)
+        suri->conf_filename = DEFAULT_CONF_FILE;
 
-    if (ConfYamlLoadFile(conf_filename) != 0) {
+    if (ConfYamlLoadFile(suri->conf_filename) != 0) {
         /* Error already displayed. */
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -1684,7 +1682,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
             break;
         case 'c':
-            conf_filename = optarg;
+            suri->conf_filename = optarg;
             break;
         case 'T':
             SCLogInfo("Running suricata under test mode");
@@ -2168,7 +2166,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     if (max_pending_packets >= 65535) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                 "Maximum max-pending-packets setting is 65534. "
-                "Please check %s for errors", conf_filename);
+                "Please check %s for errors", suri->conf_filename);
         return TM_ECODE_FAILED;
     }
 
@@ -2244,7 +2242,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     if (ConfigCheckLogDirectory(suri->log_dir) != TM_ECODE_OK) {
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                 "supplied by %s (default-log-dir) doesn't exist. "
-                "Shutting down the engine", suri->log_dir, conf_filename);
+                "Shutting down the engine", suri->log_dir, suri->conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -2326,12 +2324,14 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
     if (DetectAddressTestConfVars() < 0) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic address vars test failed. Please check %s for errors", conf_filename);
+                "basic address vars test failed. Please check %s for errors",
+                suri->conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
     }
     if (DetectPortTestConfVars() < 0) {
         SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                "basic port vars test failed. Please check %s for errors", conf_filename);
+                "basic port vars test failed. Please check %s for errors",
+                suri->conf_filename);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -2446,7 +2446,7 @@ int main(int argc, char **argv)
     }
 
     /* Load yaml configuration file if provided. */
-    if (LoadYamlConfig() != TM_ECODE_OK) {
+    if (LoadYamlConfig(&suri) != TM_ECODE_OK) {
         exit(EXIT_FAILURE);
     }
 
@@ -2586,7 +2586,7 @@ int main(int argc, char **argv)
 
     if (suri.delayed_detect) {
         /* force 'reload', this will load the rules and swap engines */
-        DetectEngineReload(NULL, &suri);
+        DetectEngineReload(&suri);
         SCLogNotice("Signature(s) loaded, Detect thread(s) activated.");
     }
 
@@ -2626,7 +2626,7 @@ int main(int argc, char **argv)
             } else {
                 if (!(DetectEngineReloadIsStart())) {
                     DetectEngineReloadStart();
-                    DetectEngineReload(conf_filename, &suri);
+                    DetectEngineReload(&suri);
                     DetectEngineReloadSetDone();
                     sigusr2_count--;
                 }
@@ -2638,7 +2638,7 @@ int main(int argc, char **argv)
                         "possible if -s or -S option used at runtime.");
                 DetectEngineReloadSetDone();
             } else {
-                DetectEngineReload(conf_filename, &suri);
+                DetectEngineReload(&suri);
                 DetectEngineReloadSetDone();
             }
         }

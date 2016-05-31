@@ -2534,7 +2534,7 @@ static int reloads = 0;
  *  \retval -1 error
  *  \retval 0 ok
  */
-int DetectEngineReload(const char *filename, SCInstance *suri)
+int DetectEngineReload(SCInstance *suri)
 {
     DetectEngineCtx *new_de_ctx = NULL;
     DetectEngineCtx *old_de_ctx = NULL;
@@ -2542,16 +2542,18 @@ int DetectEngineReload(const char *filename, SCInstance *suri)
     char prefix[128];
     memset(prefix, 0, sizeof(prefix));
 
-    if (filename != NULL) {
+    if (suri->conf_filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
-        if (ConfYamlLoadFileWithPrefix(filename, prefix) != 0) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s", filename);
+        if (ConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
+            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to load yaml %s",
+                    suri->conf_filename);
             return -1;
         }
 
         ConfNode *node = ConfGetNode(prefix);
         if (node == NULL) {
-            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s", filename);
+            SCLogError(SC_ERR_CONF_YAML_ERROR, "failed to properly setup yaml %s",
+                    suri->conf_filename);
             return -1;
         }
 #if 0

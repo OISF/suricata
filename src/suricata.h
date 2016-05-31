@@ -156,6 +156,7 @@ typedef struct SCInstance_ {
 
     char *log_dir;
     const char *progname; /**< pointer to argv[0] */
+    const char *conf_filename;
 } SCInstance;
 
 
@@ -166,8 +167,6 @@ extern volatile uint8_t suricata_ctl_flags;
 
 /* uppercase to lowercase conversion lookup table */
 uint8_t g_u8_lowercasetable[256];
-
-extern char *conf_filename;
 
 /* marco to do the actual lookup */
 //#define u8_tolower(c) g_u8_lowercasetable[(c)]
