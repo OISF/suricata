@@ -32,6 +32,7 @@
 #include "util-print.h"
 
 #ifdef PROFILING
+#ifdef HAVE_LIBJANSSON
 static void DumpFp(const SigMatch *sm, char *pat_orig, uint32_t pat_orig_sz, char *pat_chop, uint32_t pat_chop_sz)
 {
     int fast_pattern_chop_set = 0;
@@ -133,4 +134,5 @@ void RulesDumpMatchArray(const DetectEngineThreadCtx *det_ctx, const Packet *p)
     json_object_clear(js);
     json_decref(js);
 }
+#endif /* HAVE_LIBJANSSON */
 #endif /* PROFILING */
