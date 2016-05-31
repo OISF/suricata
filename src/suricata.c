@@ -2533,10 +2533,6 @@ int main(int argc, char **argv)
         StatsSetupPostConfig();
     }
 
-    if (ParseInterfacesList(suri.run_mode, suri.pcap_dev) != TM_ECODE_OK) {
-        exit(EXIT_FAILURE);
-    }
-
     if (suri.run_mode == RUNMODE_CONF_TEST){
         SCLogNotice("Configuration provided was successfully loaded. Exiting.");
         MagicDeinit();
