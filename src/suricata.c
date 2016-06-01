@@ -2110,6 +2110,8 @@ static int FinalizeRunMode(SCInstance *suri, char **argv)
         case RUNMODE_UNKNOWN:
             usage(argv[0]);
             return TM_ECODE_FAILED;
+        default:
+            break;
     }
     /* Set the global run mode */
     run_mode = suri->run_mode;

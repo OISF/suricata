@@ -119,6 +119,8 @@ enum {
 #define IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode)  ((host_mode) == SURI_HOST_IS_SNIFFER_ONLY)
 #define IS_SURI_HOST_MODE_ROUTER(host_mode)  ((host_mode) == SURI_HOST_IS_ROUTER)
 
+#include "runmodes.h"
+
 /* queue's between various other threads
  * XXX move to the TmQueue structure later
  */
@@ -127,7 +129,7 @@ PacketQueue trans_q[256];
 SCDQDataQueue data_queues[256];
 
 typedef struct SCInstance_ {
-    int run_mode;
+    enum RunModes run_mode;
 
     char pcap_dev[128];
     char *sig_file;
