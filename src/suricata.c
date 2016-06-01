@@ -1035,6 +1035,8 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
 
 static void SCInstanceInit(SCInstance *suri)
 {
+    memset(suri, 0x00, sizeof(*suri));
+
     suri->run_mode = RUNMODE_UNKNOWN;
 
     memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
