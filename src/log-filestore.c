@@ -261,6 +261,22 @@ static void LogFilestoreLogCloseMetaFile(const File *ff)
                     }
                     fprintf(fp, "\n");
                 }
+                if (ff->flags & FILE_SHA1) {
+                    fprintf(fp, "SHA1:              ");
+                    size_t x;
+                    for (x = 0; x < sizeof(ff->sha1); x++) {
+                        fprintf(fp, "%02x", ff->sha1[x]);
+                    }
+                    fprintf(fp, "\n");
+                }
+                if (ff->flags & FILE_SHA256) {
+                    fprintf(fp, "SHA256:            ");
+                    size_t x;
+                    for (x = 0; x < sizeof(ff->sha256); x++) {
+                        fprintf(fp, "%02x", ff->sha256[x]);
+                    }
+                    fprintf(fp, "\n");
+                }
 #endif
                 break;
             case FILE_STATE_TRUNCATED:
@@ -465,15 +481,7 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
         SCLogInfo("forcing magic lookup for stored files");
     }
 
-    const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
-    if (force_md5 != NULL && ConfValIsTrue(force_md5)) {
-#ifdef HAVE_NSS
-        FileForceMd5Enable();
-        SCLogInfo("forcing md5 calculation for stored files");
-#else
-        SCLogInfo("md5 calculation requires linking against libnss");
-#endif
-    }
+    FileForceHashParseCfg(conf);
     SCLogInfo("storing files in %s", g_logfile_base_dir);
 
     SCReturnPtr(output_ctx, "OutputCtx");

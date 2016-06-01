@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,12 +19,13 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Duarte Silva <duarte.silva@serializing.me>
  */
 
-#ifndef __DETECT_FILEMD5_H__
-#define __DETECT_FILEMD5_H__
+#ifndef __DETECT_FILESHA1_H__
+#define __DETECT_FILESHA1_H__
 
 /* prototypes */
-void DetectFileMd5Register (void);
+void DetectFileSha1Register (void);
 
-#endif /* __DETECT_FILEMD5_H__ */
+#endif /* __DETECT_FILESHA1_H__ */
