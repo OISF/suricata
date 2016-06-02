@@ -127,7 +127,7 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     memset(aconf, 0, sizeof(*aconf));
     aconf->DerefFunc = NetmapDerefConfig;
-    aconf->threads = 1;
+    aconf->threads = 0;
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     aconf->copy_mode = NETMAP_COPY_MODE_NONE;
@@ -156,7 +156,7 @@ static void *ParseNetmapConfig(const char *iface_name)
     netmap_node = ConfGetNode("netmap");
     if (netmap_node == NULL) {
         SCLogInfo("Unable to find netmap config using default value");
-        return aconf;
+        goto finalize;
     }
 
     if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
@@ -167,7 +167,7 @@ static void *ParseNetmapConfig(const char *iface_name)
         SCLogInfo("Unable to find netmap config for "
                 "interface \"%s\" or \"default\", using default value",
                 aconf->iface_name);
-        return aconf;
+        goto finalize;
     }
 
     /* If there is no setting for current interface use default one as main iface */
@@ -177,21 +177,13 @@ static void *ParseNetmapConfig(const char *iface_name)
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
-        aconf->threads = 1;
+        aconf->threads = 0;
     } else {
         if (strcmp(threadsstr, "auto") == 0) {
-            aconf->threads = GetIfaceRSSQueuesNum(aconf->iface);
+            aconf->threads = 0;
         } else {
             aconf->threads = (uint8_t)atoi(threadsstr);
         }
-    }
-
-    if (aconf->threads <= 0) {
-        aconf->threads = 1;
-    }
-    if (aconf->threads) {
-        SCLogInfo("Using %d threads for interface %s", aconf->threads,
-                  aconf->iface_name);
     }
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
@@ -231,9 +223,6 @@ static void *ParseNetmapConfig(const char *iface_name)
         }
     }
 
-    SC_ATOMIC_RESET(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
-
     /* load netmap bpf filter */
     /* command line value has precedence */
     if (ConfGet("bpf-filter", &bpf_filter) != 1) {
@@ -262,6 +251,19 @@ static void *ParseNetmapConfig(const char *iface_name)
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface_name);
         }
     }
+
+finalize:
+
+    if (aconf->threads == 0) {
+        aconf->threads = NetmapGetRSSCount(aconf->iface);
+    }
+    if (aconf->threads <= 0) {
+        aconf->threads = 1;
+    }
+    SC_ATOMIC_RESET(aconf->ref);
+    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+    SCLogInfo("Using %d threads for interface %s", aconf->threads,
+            aconf->iface_name);
 
     return aconf;
 }
@@ -379,7 +381,7 @@ int RunModeIdsNetmapAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapAutoFp initialised");
+    SCLogDebug("RunModeIdsNetmapAutoFp initialised");
 #endif /* HAVE_NETMAP */
 
     SCReturnInt(0);
@@ -412,7 +414,7 @@ int RunModeIdsNetmapSingle(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapSingle initialised");
+    SCLogDebug("RunModeIdsNetmapSingle initialised");
 
 #endif /* HAVE_NETMAP */
     SCReturnInt(0);
@@ -448,7 +450,7 @@ int RunModeIdsNetmapWorkers(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapWorkers initialised");
+    SCLogDebug("RunModeIdsNetmapWorkers initialised");
 
 #endif /* HAVE_NETMAP */
     SCReturnInt(0);
