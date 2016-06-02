@@ -381,7 +381,7 @@ int RunModeIdsNetmapAutoFp(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapAutoFp initialised");
+    SCLogDebug("RunModeIdsNetmapAutoFp initialised");
 #endif /* HAVE_NETMAP */
 
     SCReturnInt(0);
@@ -414,7 +414,7 @@ int RunModeIdsNetmapSingle(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapSingle initialised");
+    SCLogDebug("RunModeIdsNetmapSingle initialised");
 
 #endif /* HAVE_NETMAP */
     SCReturnInt(0);
@@ -450,7 +450,7 @@ int RunModeIdsNetmapWorkers(void)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsNetmapWorkers initialised");
+    SCLogDebug("RunModeIdsNetmapWorkers initialised");
 
 #endif /* HAVE_NETMAP */
     SCReturnInt(0);
