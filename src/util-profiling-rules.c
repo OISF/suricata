@@ -81,7 +81,9 @@ extern int profiling_output_to_file;
 int profiling_rules_enabled = 0;
 static char *profiling_file_name = "";
 static const char *profiling_file_mode = "a";
+#ifdef HAVE_LIBJANSSON
 static int profiling_rule_json = 0;
+#endif
 
 /**
  * Sort orders for dumping profiled rules.

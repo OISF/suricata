@@ -66,7 +66,9 @@ static int profiling_sghs_output_to_file = 0;
 int profiling_sghs_enabled = 0;
 static char *profiling_file_name = "";
 static const char *profiling_file_mode = "a";
+#ifdef HAVE_LIBJANSSON
 static int profiling_rulegroup_json = 0;
+#endif
 
 void SCProfilingSghsGlobalInit(void)
 {
