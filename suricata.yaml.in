@@ -1445,7 +1445,7 @@ netmap:
    # To specify OS endpoint add plus sign at the end (e.g. "eth0+")
  - interface: eth2
    # Number of receive threads. "auto" uses number of RSS queues on interface.
-   threads: auto
+   #threads: auto
    # You can use the following variables to activate netmap tap or IPS mode.
    # If copy-mode is set to ips or tap, the traffic coming to the current
    # interface will be copied to the copy-iface interface. If 'tap' is set, the
