@@ -180,7 +180,7 @@ static void *ParseNetmapConfig(const char *iface_name)
         aconf->threads = 1;
     } else {
         if (strcmp(threadsstr, "auto") == 0) {
-            aconf->threads = GetIfaceRSSQueuesNum(aconf->iface);
+            aconf->threads = NetmapGetRSSCount(aconf->iface);
         } else {
             aconf->threads = (uint8_t)atoi(threadsstr);
         }

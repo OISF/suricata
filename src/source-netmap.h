@@ -67,6 +67,8 @@ typedef struct NetmapPacketVars_
     void *ntv;
 } NetmapPacketVars;
 
+int NetmapGetRSSCount(const char *ifname);
+
 void TmModuleReceiveNetmapRegister (void);
 void TmModuleDecodeNetmapRegister (void);
 

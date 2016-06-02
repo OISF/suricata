@@ -277,6 +277,46 @@ static int NetmapSetIfaceFlags(int fd, const char *ifname, int flags)
     return 0;
 }
 
+/** \brief get RSS RX-queue count
+ *  \retval rx_rings RSS RX queue count or 1 on error
+ */
+int NetmapGetRSSCount(const char *ifname)
+{
+    struct nmreq nm_req;
+    int rx_rings = 1;
+
+    SCMutexLock(&netmap_devlist_lock);
+
+    /* open netmap */
+    int fd = open("/dev/netmap", O_RDWR);
+    if (fd == -1) {
+        SCLogError(SC_ERR_NETMAP_CREATE,
+                "Couldn't open netmap device, error %s",
+                strerror(errno));
+        goto error_open;
+    }
+
+    /* query netmap info */
+    memset(&nm_req, 0, sizeof(nm_req));
+    strlcpy(nm_req.nr_name, ifname, sizeof(nm_req.nr_name));
+    nm_req.nr_version = NETMAP_API;
+
+    if (ioctl(fd, NIOCGINFO, &nm_req) != 0) {
+        SCLogError(SC_ERR_NETMAP_CREATE,
+                "Couldn't query netmap for %s, error %s",
+                ifname, strerror(errno));
+        goto error_fd;
+    };
+
+    rx_rings = nm_req.nr_rx_rings;
+
+error_fd:
+    close(fd);
+error_open:
+    SCMutexUnlock(&netmap_devlist_lock);
+    return rx_rings;
+}
+
 /**
  * \brief Open interface in netmap mode.
  * \param ifname Interface name.
