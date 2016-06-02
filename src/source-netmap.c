@@ -247,6 +247,55 @@ static int NetmapGetIfaceFlags(int fd, const char *ifname)
 #endif
 }
 
+#ifdef SIOCGIFCAP
+static int NetmapGetIfaceCaps(int fd, const char *ifname)
+{
+    struct ifreq ifr;
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFCAP, &ifr) == -1) {
+        SCLogError(SC_ERR_NETMAP_CREATE,
+                   "Unable to get caps for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        return -1;
+    }
+
+    return ifr.ifr_curcap;
+}
+#endif
+
+static void NetmapCheckOffloading(int fd, const char *ifname)
+{
+#ifdef SIOCGIFCAP
+    int if_caps = NetmapGetIfaceCaps(fd, ifname);
+    if (if_caps == -1) {
+        return;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (if_caps & IFCAP_RXCSUM) {
+        SCLogWarning(SC_ERR_NETMAP_CREATE,
+                "Using NETMAP with RXCSUM activated can lead to capture "
+                "problems: ifconfig %s -rxcsum", ifname);
+    }
+    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+        SCLogWarning(SC_ERR_NETMAP_CREATE,
+                "Using NETMAP with TSO, TOE or LRO activated can lead to "
+                "capture problems: ifconfig %s -tso -toe -lro", ifname);
+    }
+#else
+    if (GetIfaceOffloading(ifname) == 1) {
+        SCLogWarning(SC_ERR_NETMAP_CREATE,
+                "Using NETMAP with GRO or LRO activated can lead to "
+                "capture problems: "
+                "ethtool -K %s rx off sg off gro off gso off tso off",
+                ifname);
+    }
+#endif
+}
+
 /**
  * \brief Set interface flags.
  * \param fd Network susbystem file descritor.
@@ -393,6 +442,8 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         if_flags |= IFF_PROMISC;
         NetmapSetIfaceFlags(if_fd, ifname, if_flags);
     }
+
+    NetmapCheckOffloading(if_fd, ifname);
     close(if_fd);
 
     /* query netmap info */
