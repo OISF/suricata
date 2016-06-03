@@ -1292,10 +1292,10 @@ threading:
           medium: [ "1-2" ]
           high: [ 3 ]
           default: "medium"
-    - verdict-cpu-set:
-        cpu: [ 0 ]
-        prio:
-          default: "high"
+    #- verdict-cpu-set:
+    #    cpu: [ 0 ]
+    #    prio:
+    #      default: "high"
   #
   # By default Suricata creates one "detect" thread per available CPU/CPU core.
   # This setting allows controlling this behaviour. A ratio setting of 2 will
@@ -1305,7 +1305,7 @@ threading:
   # thread being created. Regardless of the setting at a minimum 1 detect
   # thread will always be created.
   #
-  detect-thread-ratio: 1.5
+  detect-thread-ratio: 1.0
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
