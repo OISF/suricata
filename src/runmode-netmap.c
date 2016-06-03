@@ -253,7 +253,10 @@ static void *ParseNetmapConfig(const char *iface_name)
 
 finalize:
 
-    if (aconf->threads == 0) {
+    if (aconf->iface_sw) {
+        /* just one thread per interface supported */
+        aconf->threads = 1;
+    } else if (aconf->threads == 0) {
         /* As NetmapGetRSSCount is broken on Linux, first run
          * GetIfaceRSSQueuesNum. If that fails, run NetmapGetRSSCount */
         aconf->threads = GetIfaceRSSQueuesNum(aconf->iface);
