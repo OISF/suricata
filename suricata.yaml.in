@@ -1264,15 +1264,18 @@ spm-algo: auto
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
-  # On some cpu's/architectures it is beneficial to tie individual threads
-  # to specific CPU's/CPU cores. In this case all threads are tied to CPU0,
-  # and each extra CPU/core has one "detect" thread.
-  #
-  # On Intel Core2 and Nehalem CPU's enabling this will degrade performance.
-  #
   set-cpu-affinity: no
-  # Tune cpu affinity of suricata threads. Each family of threads can be bound
+  # Tune cpu affinity of threads. Each family of threads can be bound
   # on specific CPUs.
+  #
+  # These 2 apply to the all runmodes:
+  # management-cpu-set is used for flow timeout handling, counters
+  # detect-cpu-set is used for 'worker' threads
+  #
+  # Additionally, for autofp these apply:
+  # receive-cpu-set is used for capture threads
+  # verdict-cpu-set is used for IPS verdict threads
+  #
   cpu-affinity:
     - management-cpu-set:
         cpu: [ 0 ]  # include only these cpus in affinity settings
