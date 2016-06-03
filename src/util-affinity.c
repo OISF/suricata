@@ -39,18 +39,6 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
         .lcpu = 0,
     },
     {
-        .name = "decode-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
-    },
-    {
-        .name = "stream-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
-    },
-    {
         .name = "detect-cpu-set",
         .mode_flag = EXCLUSIVE_AFFINITY,
         .prio = PRIO_MEDIUM,
@@ -58,18 +46,6 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     },
     {
         .name = "verdict-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
-    },
-    {
-        .name = "reject-cpu-set",
-        .mode_flag = BALANCED_AFFINITY,
-        .prio = PRIO_MEDIUM,
-        .lcpu = 0,
-    },
-    {
-        .name = "output-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
@@ -206,6 +182,13 @@ void AffinitySetupLoadFromConfig()
     }
 
     TAILQ_FOREACH(affinity, &root->head, next) {
+        if (strcmp(affinity->val, "decode-cpu-set") == 0 ||
+            strcmp(affinity->val, "stream-cpu-set") == 0 ||
+            strcmp(affinity->val, "reject-cpu-set") == 0 ||
+            strcmp(affinity->val, "output-cpu-set") == 0) {
+            continue;
+        }
+
         ThreadsAffinityType *taf = GetAffinityTypeFromName(affinity->val);
         ConfNode *node = NULL;
         ConfNode *nprio = NULL;

@@ -1278,11 +1278,6 @@ threading:
         cpu: [ 0 ]  # include only these cpus in affinity settings
     - receive-cpu-set:
         cpu: [ 0 ]  # include only these cpus in affinity settings
-    - decode-cpu-set:
-        cpu: [ 0, 1 ]
-        mode: "balanced"
-    - stream-cpu-set:
-        cpu: [ "0-1" ]
     - detect-cpu-set:
         cpu: [ "all" ]
         mode: "exclusive" # run detect threads in these cpus
@@ -1298,14 +1293,6 @@ threading:
         cpu: [ 0 ]
         prio:
           default: "high"
-    - reject-cpu-set:
-        cpu: [ 0 ]
-        prio:
-          default: "low"
-    - output-cpu-set:
-        cpu: [ "all" ]
-        prio:
-           default: "medium"
   #
   # By default Suricata creates one "detect" thread per available CPU/CPU core.
   # This setting allows controlling this behaviour. A ratio setting of 2 will
