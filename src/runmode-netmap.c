@@ -109,19 +109,18 @@ static void *ParseNetmapConfig(const char *iface_name)
     ConfNode *if_root;
     ConfNode *if_default = NULL;
     ConfNode *netmap_node;
-    NetmapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     char *tmpctype;
     char *copymodestr;
     int boolval;
     char *bpf_filter = NULL;
     char *out_iface = NULL;
 
-    if (unlikely(aconf == NULL)) {
+    if (iface_name == NULL) {
         return NULL;
     }
 
-    if (iface_name == NULL) {
-        SCFree(aconf);
+    NetmapIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
+    if (unlikely(aconf == NULL)) {
         return NULL;
     }
 
