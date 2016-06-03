@@ -261,20 +261,20 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
         const char *force_filestore = ConfNodeLookupChildValue(conf, "force-filestore");
         if (force_filestore != NULL && ConfValIsTrue(force_filestore)) {
             FileForceFilestoreEnable();
-            SCLogInfo("forcing filestore of all files");
+            SCLogConfig("forcing filestore of all files");
         }
 
         const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
         if (force_magic != NULL && ConfValIsTrue(force_magic)) {
             FileForceMagicEnable();
-            SCLogInfo("forcing magic lookup for logged files");
+            SCLogConfig("forcing magic lookup for logged files");
         }
 
         const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
         if (force_md5 != NULL && ConfValIsTrue(force_md5)) {
 #ifdef HAVE_NSS
             FileForceMd5Enable();
-            SCLogInfo("forcing md5 calculation for logged files");
+            SCLogConfig("forcing md5 calculation for logged files");
 #else
             SCLogInfo("md5 calculation requires linking against libnss");
 #endif

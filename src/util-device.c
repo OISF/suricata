@@ -214,7 +214,7 @@ int LiveBuildDeviceListCustom(const char *runmode, const char *itemname)
             if ((!strcmp(subchild->name, itemname))) {
                 if (!strcmp(subchild->val, "default"))
                     break;
-                SCLogInfo("Adding %s %s from config file",
+                SCLogConfig("Adding %s %s from config file",
                           itemname, subchild->val);
                 LiveRegisterDevice(subchild->val);
                 i++;

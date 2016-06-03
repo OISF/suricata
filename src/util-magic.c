@@ -53,7 +53,8 @@ int MagicInit(void)
 
     g_magic_ctx = magic_open(0);
     if (g_magic_ctx == NULL) {
-        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s", magic_error(g_magic_ctx));
+        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s",
+                magic_error(g_magic_ctx));
         goto error;
     }
 
@@ -62,15 +63,17 @@ int MagicInit(void)
 
     if (filename != NULL) {
         if (strlen(filename) == 0) {
-            /* set filename to NULL on *nix systems so magic_load uses system default path (see man libmagic) */
-            SCLogInfo("using system default magic-file");
+            /* set filename to NULL on *nix systems so magic_load uses system
+             * default path (see man libmagic) */
+            SCLogConfig("using system default magic-file");
             filename = NULL;
         }
         else {
-            SCLogInfo("using magic-file %s", filename);
+            SCLogConfig("using magic-file %s", filename);
 
             if ( (fd = fopen(filename, "r")) == NULL) {
-                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s",
+                        filename, strerror(errno));
                 goto error;
             }
             fclose(fd);
@@ -78,7 +81,8 @@ int MagicInit(void)
     }
 
     if (magic_load(g_magic_ctx, filename) != 0) {
-        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(g_magic_ctx));
+        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s",
+                magic_error(g_magic_ctx));
         goto error;
     }
 

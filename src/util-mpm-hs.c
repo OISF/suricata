@@ -1063,7 +1063,7 @@ void MpmHSGlobalCleanup(void)
 {
     SCMutexLock(&g_scratch_proto_mutex);
     if (g_scratch_proto) {
-        SCLogInfo("Cleaning up Hyperscan global scratch");
+        SCLogPerf("Cleaning up Hyperscan global scratch");
         hs_free_scratch(g_scratch_proto);
         g_scratch_proto = NULL;
     }
@@ -1071,7 +1071,7 @@ void MpmHSGlobalCleanup(void)
 
     SCMutexLock(&g_db_table_mutex);
     if (g_db_table != NULL) {
-        SCLogInfo("Clearing Hyperscan database cache");
+        SCLogPerf("Clearing Hyperscan database cache");
         HashTableFree(g_db_table);
         g_db_table = NULL;
     }

@@ -112,14 +112,14 @@ int32_t CoredumpLoadConfig (void)
     if (unlimited) {
         /* we want no limit on coredump size */
         if (lim.rlim_max == RLIM_INFINITY && lim.rlim_cur == RLIM_INFINITY) {
-            SCLogInfo ("Core dump size is unlimited.");
+            SCLogConfig ("Core dump size is unlimited.");
             return 1;
         }
         else {
             new_lim.rlim_max = RLIM_INFINITY;
             new_lim.rlim_cur = RLIM_INFINITY;
             if (setrlimit (RLIMIT_CORE, &new_lim) == 0) {
-                SCLogInfo ("Core dump size set to unlimited.");
+                SCLogConfig ("Core dump size set to unlimited.");
                 return 1;
             }
             if (errno == EPERM) {
@@ -169,7 +169,7 @@ int32_t CoredumpLoadConfig (void)
             struct rlimit actual_lim;
             if (getrlimit (RLIMIT_CORE, &actual_lim) == 0) {
                 if (actual_lim.rlim_cur == RLIM_INFINITY) {
-                    SCLogInfo ("Core dump size set to unlimited.");
+                    SCLogConfig ("Core dump size set to unlimited.");
                 }
 #ifdef RLIM_SAVED_CUR
                 else if (actual_lim.rlim_cur == RLIM_SAVED_CUR) {
