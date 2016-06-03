@@ -109,7 +109,7 @@ int RunModeFilePcapSingle(void)
 
     SetupOutputs(tv);
 
-    TmThreadSetCPU(tv, DETECT_CPU_SET);
+    TmThreadSetCPU(tv, WORKER_CPU_SET);
 
 #ifndef AFLFUZZ_PCAP_RUNMODE
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
@@ -177,7 +177,7 @@ int RunModeFilePcapAutoFp(void)
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
     if (thread_max == 0)
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
@@ -253,7 +253,7 @@ int RunModeFilePcapAutoFp(void)
         /* add outputs as well */
         SetupOutputs(tv_detect_ncpu);
 
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+        TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");

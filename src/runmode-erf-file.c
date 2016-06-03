@@ -142,7 +142,7 @@ int RunModeErfFileAutoFp(void)
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
     if (thread_max == 0)
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)

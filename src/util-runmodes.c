@@ -99,7 +99,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int nlive = LiveGetDeviceCount();
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
     /* always create at least one thread */
     if (thread_max == 0)
         thread_max = ncpus * threading_detect_ratio;
@@ -253,7 +253,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+        TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
@@ -354,7 +354,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
 
         SetupOutputs(tv);
 
-        TmThreadSetCPU(tv, DETECT_CPU_SET);
+        TmThreadSetCPU(tv, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
             SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
@@ -455,7 +455,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
     int nqueue = LiveGetDeviceCount();
 
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    int thread_max = TmThreadGetNbThreads(WORKER_CPU_SET);
     /* always create at least one thread */
     if (thread_max == 0)
         thread_max = ncpus * threading_detect_ratio;
@@ -531,7 +531,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+        TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
         SetupOutputs(tv_detect_ncpu);
 
@@ -654,7 +654,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
 
         SetupOutputs(tv);
 
-        TmThreadSetCPU(tv, DETECT_CPU_SET);
+        TmThreadSetCPU(tv, WORKER_CPU_SET);
 
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
             SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
