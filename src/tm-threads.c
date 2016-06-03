@@ -1026,8 +1026,9 @@ void TmThreadSetPrio(ThreadVars *tv)
 #else
     int ret = nice(tv->thread_priority);
     if (ret == -1) {
-        SCLogError(SC_ERR_THREAD_NICE_PRIO, "Error setting nice value "
-                   "for thread %s: %s", tv->name, strerror(errno));
+        SCLogError(SC_ERR_THREAD_NICE_PRIO, "Error setting nice value %d "
+                   "for thread %s: %s", tv->thread_priority, tv->name,
+                   strerror(errno));
     } else {
         SCLogDebug("Nice value set to %"PRId32" for thread %s",
                    tv->thread_priority, tv->name);
@@ -1090,7 +1091,7 @@ int TmThreadGetNbThreads(uint8_t type)
 TmEcode TmThreadSetupOptions(ThreadVars *tv)
 {
     if (tv->thread_setup_flags & THREAD_SET_AFFINITY) {
-        SCLogInfo("Setting affinity for \"%s\" Module to cpu/core "
+        SCLogPerf("Setting affinity for thread \"%s\"to cpu/core "
                   "%"PRIu16", thread id %lu", tv->name, tv->cpu_affinity,
                   SCGetThreadIdLong());
         SetCPUAffinity(tv->cpu_affinity);
@@ -1114,14 +1115,14 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
             } else {
                 tv->thread_priority = taf->prio;
             }
-            SCLogInfo("Setting prio %d for \"%s\" Module to cpu/core "
+            SCLogPerf("Setting prio %d for thread \"%s\" to cpu/core "
                       "%d, thread id %lu", tv->thread_priority,
                       tv->name, cpu, SCGetThreadIdLong());
         } else {
             SetCPUAffinitySet(&taf->cpu_set);
             tv->thread_priority = taf->prio;
-            SCLogInfo("Setting prio %d for \"%s\" thread "
-                      ", thread id %lu", tv->thread_priority,
+            SCLogPerf("Setting prio %d for thread \"%s\", "
+                      "thread id %lu", tv->thread_priority,
                       tv->name, SCGetThreadIdLong());
         }
         TmThreadSetPrio(tv);

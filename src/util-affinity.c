@@ -1,4 +1,4 @@
-/* Copyright (C) 2010 Open Information Security Foundation
+/* Copyright (C) 2010-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -95,7 +95,7 @@ static void AffinitySetupInit()
     return;
 }
 
-static void build_cpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
+static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
 {
     ConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
@@ -201,8 +201,7 @@ void AffinitySetupLoadFromConfig()
             SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu-affinity type");
             exit(EXIT_FAILURE);
         } else {
-            SCLogInfo("Found affinity definition for \"%s\"",
-                      setname);
+            SCLogConfig("Found affinity definition for \"%s\"", setname);
         }
 
         CPU_ZERO(&taf->cpu_set);
@@ -210,7 +209,7 @@ void AffinitySetupLoadFromConfig()
         if (node == NULL) {
             SCLogInfo("unable to find 'cpu'");
         } else {
-            build_cpuset(setname, node, &taf->cpu_set);
+            BuildCpuset(setname, node, &taf->cpu_set);
         }
 
         CPU_ZERO(&taf->lowprio_cpu);
@@ -222,21 +221,21 @@ void AffinitySetupLoadFromConfig()
             if (node == NULL) {
                 SCLogDebug("unable to find 'low' prio using default value");
             } else {
-                build_cpuset(setname, node, &taf->lowprio_cpu);
+                BuildCpuset(setname, node, &taf->lowprio_cpu);
             }
 
             node = ConfNodeLookupChild(nprio, "medium");
             if (node == NULL) {
                 SCLogDebug("unable to find 'medium' prio using default value");
             } else {
-                build_cpuset(setname, node, &taf->medprio_cpu);
+                BuildCpuset(setname, node, &taf->medprio_cpu);
             }
 
             node = ConfNodeLookupChild(nprio, "high");
             if (node == NULL) {
                 SCLogDebug("unable to find 'high' prio using default value");
             } else {
-                build_cpuset(setname, node, &taf->hiprio_cpu);
+                BuildCpuset(setname, node, &taf->hiprio_cpu);
             }
             node = ConfNodeLookupChild(nprio, "default");
             if (node != NULL) {
@@ -250,7 +249,8 @@ void AffinitySetupLoadFromConfig()
                     SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
                     exit(EXIT_FAILURE);
                 }
-                SCLogInfo("Using default prio '%s'", node->val);
+                SCLogConfig("Using default prio '%s' for set '%s'",
+                        node->val, setname);
             }
         }
 
@@ -285,7 +285,6 @@ void AffinitySetupLoadFromConfig()
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
     int ncpu = 0;
-
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
     int iter = 0;
     SCMutexLock(&taf->taf_mutex);
@@ -298,13 +297,14 @@ int AffinityGetNextCPU(ThreadsAffinityType *taf)
         }
     }
     if (iter == 2) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contain available cpus, cpu affinity conf is invalid");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contain "
+                "available cpus, cpu affinity conf is invalid");
     }
     taf->lcpu = ncpu + 1;
     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
         taf->lcpu = 0;
     SCMutexUnlock(&taf->taf_mutex);
-    SCLogInfo("Setting affinity on CPU %d", ncpu);
+    SCLogDebug("Setting affinity on CPU %d", ncpu);
 #endif /* OS_WIN32 and __OpenBSD__ */
     return ncpu;
 }
