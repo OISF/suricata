@@ -2182,15 +2182,30 @@ static int ConfigGetCaptureValue(SCInstance *suri)
     if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         int lthread;
         int nlive;
+        int strip_trailing_plus = 0;
         switch (suri->run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_NETMAP:
+                /* in netmap igb0+ has a special meaning, however the
+                 * interface really is igb0 */
+                strip_trailing_plus = 1;
+                /* fall through */
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
                     char *live_dev = LiveGetDeviceName(lthread);
-                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(live_dev);
+                    char dev[32];
+                    (void)strlcpy(dev, live_dev, sizeof(dev));
+
+                    if (strip_trailing_plus) {
+                        size_t len = strlen(dev);
+                        if (len && dev[len-1] == '+') {
+                            dev[len-1] = '\0';
+                        }
+                    }
+
+                    unsigned int iface_max_packet_size = GetIfaceMaxPacketSize(dev);
                     if (iface_max_packet_size > default_packet_size)
                         default_packet_size = iface_max_packet_size;
                 }
