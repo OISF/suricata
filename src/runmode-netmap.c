@@ -267,7 +267,7 @@ finalize:
     }
     SC_ATOMIC_RESET(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
-    SCLogInfo("Using %d threads for interface %s", aconf->threads,
+    SCLogPerf("Using %d threads for interface %s", aconf->threads,
             aconf->iface_name);
 
     return aconf;

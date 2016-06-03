@@ -725,7 +725,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     if ((aconf->copy_mode != NETMAP_COPY_MODE_NONE) && active_runmode
             && !strcmp("workers", active_runmode)) {
         ntv->flags |= NETMAP_FLAG_ZERO_COPY;
-        SCLogInfo("Enabling zero copy mode for %s->%s",
+        SCLogPerf("Enabling zero copy mode for %s->%s",
                   aconf->iface_name, aconf->out_iface_name);
     } else {
         uint16_t ring_size = ntv->ifsrc->rings[0].rx->num_slots;
@@ -739,7 +739,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     }
 
     if (aconf->bpf_filter) {
-        SCLogInfo("Using BPF '%s' on iface '%s'",
+        SCLogConfig("Using BPF '%s' on iface '%s'",
                   aconf->bpf_filter, ntv->ifsrc->ifname);
         if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
                     LINKTYPE_ETHERNET,    /* linktype_arg */
@@ -1054,7 +1054,7 @@ static void ReceiveNetmapThreadExitStats(ThreadVars *tv, void *data)
     NetmapThreadVars *ntv = (NetmapThreadVars *)data;
 
     NetmapDumpCounters(ntv);
-    SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
+    SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 ", bytes %" PRIu64 "",
               tv->name,
               StatsGetLocalCounterValue(tv, ntv->capture_kernel_packets),
               StatsGetLocalCounterValue(tv, ntv->capture_kernel_drops),
