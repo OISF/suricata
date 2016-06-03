@@ -39,7 +39,7 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
         .lcpu = 0,
     },
     {
-        .name = "detect-cpu-set",
+        .name = "worker-cpu-set",
         .mode_flag = EXCLUSIVE_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
@@ -95,7 +95,7 @@ static void AffinitySetupInit()
     return;
 }
 
-static void build_cpuset(char *name, ConfNode *node, cpu_set_t *cpu)
+static void build_cpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
 {
     ConfNode *lnode;
     TAILQ_FOREACH(lnode, &node->head, next) {
@@ -189,7 +189,11 @@ void AffinitySetupLoadFromConfig()
             continue;
         }
 
-        ThreadsAffinityType *taf = GetAffinityTypeFromName(affinity->val);
+        const char *setname = affinity->val;
+        if (strcmp(affinity->val, "detect-cpu-set") == 0)
+            setname = "worker-cpu-set";
+
+        ThreadsAffinityType *taf = GetAffinityTypeFromName(setname);
         ConfNode *node = NULL;
         ConfNode *nprio = NULL;
 
@@ -198,7 +202,7 @@ void AffinitySetupLoadFromConfig()
             exit(EXIT_FAILURE);
         } else {
             SCLogInfo("Found affinity definition for \"%s\"",
-                      affinity->val);
+                      setname);
         }
 
         CPU_ZERO(&taf->cpu_set);
@@ -206,7 +210,7 @@ void AffinitySetupLoadFromConfig()
         if (node == NULL) {
             SCLogInfo("unable to find 'cpu'");
         } else {
-            build_cpuset(affinity->val, node, &taf->cpu_set);
+            build_cpuset(setname, node, &taf->cpu_set);
         }
 
         CPU_ZERO(&taf->lowprio_cpu);
@@ -218,21 +222,21 @@ void AffinitySetupLoadFromConfig()
             if (node == NULL) {
                 SCLogDebug("unable to find 'low' prio using default value");
             } else {
-                build_cpuset(affinity->val, node, &taf->lowprio_cpu);
+                build_cpuset(setname, node, &taf->lowprio_cpu);
             }
 
             node = ConfNodeLookupChild(nprio, "medium");
             if (node == NULL) {
                 SCLogDebug("unable to find 'medium' prio using default value");
             } else {
-                build_cpuset(affinity->val, node, &taf->medprio_cpu);
+                build_cpuset(setname, node, &taf->medprio_cpu);
             }
 
             node = ConfNodeLookupChild(nprio, "high");
             if (node == NULL) {
                 SCLogDebug("unable to find 'high' prio using default value");
             } else {
-                build_cpuset(affinity->val, node, &taf->hiprio_cpu);
+                build_cpuset(setname, node, &taf->hiprio_cpu);
             }
             node = ConfNodeLookupChild(nprio, "default");
             if (node != NULL) {

@@ -1270,7 +1270,7 @@ threading:
   #
   # These 2 apply to the all runmodes:
   # management-cpu-set is used for flow timeout handling, counters
-  # detect-cpu-set is used for 'worker' threads
+  # worker-cpu-set is used for 'worker' threads
   #
   # Additionally, for autofp these apply:
   # receive-cpu-set is used for capture threads
@@ -1281,9 +1281,9 @@ threading:
         cpu: [ 0 ]  # include only these cpus in affinity settings
     - receive-cpu-set:
         cpu: [ 0 ]  # include only these cpus in affinity settings
-    - detect-cpu-set:
+    - worker-cpu-set:
         cpu: [ "all" ]
-        mode: "exclusive" # run detect threads in these cpus
+        mode: "exclusive"
         # Use explicitely 3 threads and don't compute number by using
         # detect-thread-ratio variable:
         # threads: 3
