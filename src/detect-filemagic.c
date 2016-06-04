@@ -378,6 +378,11 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     DetectFilemagicData *filemagic = NULL;
     SigMatch *sm = NULL;
 
+    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rules with filemagic need to have protocol set to http or smtp.");
+        goto error;
+    }
+
     filemagic = DetectFilemagicParse(str);
     if (filemagic == NULL)
         goto error;
@@ -398,11 +403,6 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     sm->ctx = (void *)filemagic;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
-
-    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
 
     if (s->alproto == ALPROTO_HTTP) {
         AppLayerHtpNeedFileInspection();
