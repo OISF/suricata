@@ -537,30 +537,9 @@ static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
     TAILQ_INSERT_TAIL(&output_free_list, fl_output, entries);
 }
 
-
-static int GetRunModeOutputPriority(RunModeOutput *module)
-{
-    TmModule *tm = TmModuleGetByName(module->name);
-    if (tm == NULL)
-        return 0;
-
-    return tm->priority;
-}
-
 static void InsertInRunModeOutputs(RunModeOutput *runmode_output)
 {
-    RunModeOutput *r_output = NULL;
-    int output_priority = GetRunModeOutputPriority(runmode_output);
-
-    TAILQ_FOREACH(r_output, &RunModeOutputs, entries) {
-        if (GetRunModeOutputPriority(r_output) < output_priority)
-            break;
-    }
-    if (r_output) {
-        TAILQ_INSERT_BEFORE(r_output, runmode_output, entries);
-    } else {
-        TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
-    }
+    TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
 }
 
 /** \brief Turn output into thread module */
