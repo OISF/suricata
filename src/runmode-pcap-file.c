@@ -107,7 +107,7 @@ int RunModeFilePcapSingle(void)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    SetupOutputs(tv);
+    TmAddLogger(tv);
 
     TmThreadSetCPU(tv, WORKER_CPU_SET);
 
@@ -250,8 +250,8 @@ int RunModeFilePcapAutoFp(void)
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
-        /* add outputs as well */
-        SetupOutputs(tv_detect_ncpu);
+        /* Add logger. */
+        TmAddLogger(tv_detect_ncpu);
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
