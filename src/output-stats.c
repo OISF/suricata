@@ -168,12 +168,7 @@ static TmEcode OutputStatsLogThreadDeinit(ThreadVars *tv, void *thread_data)
     while (logger && store) {
         if (logger->ThreadDeinit) {
             logger->ThreadDeinit(tv, store->thread_data);
-        } else {
-            /* XXX Temporary. */
-            SCLogNotice("Logger {%s} does not have ThreadDeinit.",
-                logger->name);
         }
-
         OutputLoggerThreadStore *next_store = store->next;
         SCFree(store);
         store = next_store;
@@ -204,7 +199,6 @@ void TmModuleStatsLoggerRegister (void)
 {
     tmm_modules[TMM_STATSLOGGER].name = "__stats_logger__";
     tmm_modules[TMM_STATSLOGGER].ThreadInit = OutputStatsLogThreadInit;
-    //tmm_modules[TMM_STATSLOGGER].Func = OutputStatsLog;
     tmm_modules[TMM_STATSLOGGER].ThreadExitPrintStats = OutputStatsLogExitPrintStats;
     tmm_modules[TMM_STATSLOGGER].ThreadDeinit = OutputStatsLogThreadDeinit;
     tmm_modules[TMM_STATSLOGGER].cap_flags = 0;
