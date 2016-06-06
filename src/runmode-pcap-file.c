@@ -250,7 +250,7 @@ int RunModeFilePcapAutoFp(void)
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
-        /* add outputs as well */
+        /* Add logger. */
         SetupOutputs(tv_detect_ncpu);
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);

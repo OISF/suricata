@@ -93,7 +93,11 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
 static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputPacketLogger *logger = list;
@@ -207,12 +211,9 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
 
 void TmModulePacketLoggerRegister (void)
 {
-    tmm_modules[TMM_PACKETLOGGER].name = "__packet_logger__";
-    tmm_modules[TMM_PACKETLOGGER].ThreadInit = OutputPacketLogThreadInit;
-    tmm_modules[TMM_PACKETLOGGER].Func = OutputPacketLog;
-    tmm_modules[TMM_PACKETLOGGER].ThreadExitPrintStats = OutputPacketLogExitPrintStats;
-    tmm_modules[TMM_PACKETLOGGER].ThreadDeinit = OutputPacketLogThreadDeinit;
-    tmm_modules[TMM_PACKETLOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputPacketLogThreadInit,
+        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
+        OutputPacketLog);
 }
 
 void OutputPacketShutdown(void)

@@ -912,6 +912,7 @@ void RegisterAllModules()
     TmModuleJsonTemplateLogRegister();
 
     /* log api */
+    TmModuleLoggerRegister();
     TmModulePacketLoggerRegister();
     TmModuleTxLoggerRegister();
     TmModuleFileLoggerRegister();
