@@ -264,7 +264,7 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        /* add outputs as well */
+        /* Add logger. */
         SetupOutputs(tv_detect_ncpu);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
