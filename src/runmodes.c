@@ -87,19 +87,6 @@ typedef struct RunModes_ {
     RunMode *runmodes;
 } RunModes;
 
-/**
- * A list of output modules that will be active for the run mode.
- */
-typedef struct RunModeOutput_ {
-    const char *name;
-    TmModule *tm_module;
-    OutputCtx *output_ctx;
-
-    TAILQ_ENTRY(RunModeOutput_) entries;
-} RunModeOutput;
-TAILQ_HEAD(, RunModeOutput_) RunModeOutputs =
-    TAILQ_HEAD_INITIALIZER(RunModeOutputs);
-
 static RunModes runmodes[RUNMODE_USER_MAX];
 
 static char *active_runmode;
@@ -111,7 +98,7 @@ typedef struct OutputFreeList_ {
 
     TAILQ_ENTRY(OutputFreeList_) entries;
 } OutputFreeList;
-TAILQ_HEAD(, OutputFreeList_) output_free_list =
+static TAILQ_HEAD(, OutputFreeList_) output_free_list =
     TAILQ_HEAD_INITIALIZER(output_free_list);
 
 /**
@@ -462,7 +449,7 @@ void RunModeRegisterNewRunMode(int runmode, const char *name,
  * \param tv The ThreadVars for the thread the outputs will be
  * appended to.
  */
-void RunOutputFreeList(void)
+static void RunOutputFreeList(void)
 {
     OutputFreeList *output;
     while ((output = TAILQ_FIRST(&output_free_list))) {
@@ -477,20 +464,17 @@ void RunOutputFreeList(void)
     }
 }
 
-static TmModule *pkt_logger_module = NULL;
-static TmModule *tx_logger_module = NULL;
-static TmModule *file_logger_module = NULL;
-static TmModule *filedata_logger_module = NULL;
-static TmModule *streaming_logger_module = NULL;
+static int file_logger_count = 0;
+static int filedata_logger_count = 0;
 
 int RunModeOutputFileEnabled(void)
 {
-    return (file_logger_module != NULL);
+    return file_logger_count > 0;
 }
 
 int RunModeOutputFiledataEnabled(void)
 {
-    return (filedata_logger_module != NULL);
+    return filedata_logger_count > 0;
 }
 
 /**
@@ -508,20 +492,9 @@ void RunModeShutDown(void)
     OutputStatsShutdown();
     OutputFlowShutdown();
 
-    /* Close any log files. */
-    RunModeOutput *output;
-    while ((output = TAILQ_FIRST(&RunModeOutputs))) {
-        SCLogDebug("Shutting down output %s.", output->tm_module->name);
-        TAILQ_REMOVE(&RunModeOutputs, output, entries);
-        SCFree(output);
-    }
-
-    /* reset logger pointers */
-    pkt_logger_module = NULL;
-    tx_logger_module = NULL;
-    file_logger_module = NULL;
-    filedata_logger_module = NULL;
-    streaming_logger_module = NULL;
+    /* Reset logger counts. */
+    file_logger_count = 0;
+    filedata_logger_count = 0;
 }
 
 /** \internal
@@ -535,11 +508,6 @@ static void AddOutputToFreeList(OutputModule *module, OutputCtx *output_ctx)
     fl_output->output_module = module;
     fl_output->output_ctx = output_ctx;
     TAILQ_INSERT_TAIL(&output_free_list, fl_output, entries);
-}
-
-static void InsertInRunModeOutputs(RunModeOutput *runmode_output)
-{
-    TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
 }
 
 /** \brief Turn output into thread module */
@@ -565,30 +533,11 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
     }
 
     if (module->PacketLogFunc) {
-        SCLogNotice("%s is a packet logger", module->name);
+        SCLogDebug("%s is a packet logger", module->name);
         OutputRegisterPacketLogger(module->logger_id, module->name,
             module->PacketLogFunc, module->PacketConditionFunc, output_ctx,
             module->ThreadInit, module->ThreadDeinit,
             module->ThreadExitPrintStats);
-
-        /* need one instance of the packet logger module */
-        if (pkt_logger_module == NULL) {
-            pkt_logger_module = TmModuleGetByName("__packet_logger__");
-            if (pkt_logger_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "TmModuleGetByName for __packet_logger__ failed");
-                exit(EXIT_FAILURE);
-            }
-
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (unlikely(runmode_output == NULL))
-                return;
-            runmode_output->name = module->name;
-            runmode_output->tm_module = pkt_logger_module;
-            runmode_output->output_ctx = NULL;
-            InsertInRunModeOutputs(runmode_output);
-            SCLogDebug("__packet_logger__ added");
-        }
     } else if (module->TxLogFunc) {
         SCLogDebug("%s is a tx logger", module->name);
         OutputRegisterTxLogger(module->logger_id, module->name, module->alproto,
@@ -596,107 +545,27 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
                 module->ts_log_progress, module->TxLogCondition,
                 module->ThreadInit, module->ThreadDeinit,
                 module->ThreadExitPrintStats);
-
-        /* need one instance of the tx logger module */
-        if (tx_logger_module == NULL) {
-            tx_logger_module = TmModuleGetByName("__tx_logger__");
-            if (tx_logger_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "TmModuleGetByName for __tx_logger__ failed");
-                exit(EXIT_FAILURE);
-            }
-
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (unlikely(runmode_output == NULL))
-                return;
-            runmode_output->name = module->name;
-            runmode_output->tm_module = tx_logger_module;
-            runmode_output->output_ctx = NULL;
-            InsertInRunModeOutputs(runmode_output);
-            SCLogDebug("__tx_logger__ added");
-        }
     } else if (module->FiledataLogFunc) {
         SCLogDebug("%s is a filedata logger", module->name);
         OutputRegisterFiledataLogger(module->logger_id, module->name,
             module->FiledataLogFunc, output_ctx, module->ThreadInit,
             module->ThreadDeinit, module->ThreadExitPrintStats);
-
-        /* need one instance of the tx logger module */
-        if (filedata_logger_module == NULL) {
-            filedata_logger_module = TmModuleGetByName("__filedata_logger__");
-            if (filedata_logger_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "TmModuleGetByName for __filedata_logger__ failed");
-                exit(EXIT_FAILURE);
-            }
-
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (unlikely(runmode_output == NULL))
-                return;
-            runmode_output->name = module->name;
-            runmode_output->tm_module = filedata_logger_module;
-            runmode_output->output_ctx = NULL;
-            InsertInRunModeOutputs(runmode_output);
-            SCLogDebug("__filedata_logger__ added");
-        }
+        filedata_logger_count++;
     } else if (module->FileLogFunc) {
         SCLogDebug("%s is a file logger", module->name);
         OutputRegisterFileLogger(module->logger_id, module->name,
             module->FileLogFunc, output_ctx, module->ThreadInit,
             module->ThreadDeinit, module->ThreadExitPrintStats);
-
-        /* need one instance of the tx logger module */
-        if (file_logger_module == NULL) {
-            file_logger_module = TmModuleGetByName("__file_logger__");
-            if (file_logger_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "TmModuleGetByName for __file_logger__ failed");
-                exit(EXIT_FAILURE);
-            }
-
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (unlikely(runmode_output == NULL))
-                return;
-            runmode_output->name = module->name;
-            runmode_output->tm_module = file_logger_module;
-            runmode_output->output_ctx = NULL;
-            InsertInRunModeOutputs(runmode_output);
-            SCLogDebug("__file_logger__ added");
-        }
+        file_logger_count++;
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
         OutputRegisterStreamingLogger(module->logger_id, module->name,
             module->StreamingLogFunc, output_ctx, module->stream_type,
             module->ThreadInit, module->ThreadDeinit,
             module->ThreadExitPrintStats);
-
-        /* need one instance of the streaming logger module */
-        if (streaming_logger_module == NULL) {
-            streaming_logger_module = TmModuleGetByName("__streaming_logger__");
-            if (streaming_logger_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "TmModuleGetByName for __streaming_logger__ failed");
-                exit(EXIT_FAILURE);
-            }
-
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (unlikely(runmode_output == NULL))
-                return;
-            runmode_output->name = module->name;
-            runmode_output->tm_module = streaming_logger_module;
-            runmode_output->output_ctx = NULL;
-            InsertInRunModeOutputs(runmode_output);
-            SCLogDebug("__streaming_logger__ added");
-        }
     } else {
-        SCLogDebug("%s is a regular logger", module->name);
-
-        RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-        if (unlikely(runmode_output == NULL))
-            return;
-        runmode_output->name = module->name;
-        runmode_output->output_ctx = output_ctx;
-        InsertInRunModeOutputs(runmode_output);
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Unknown logger type: name=%s",
+            module->name);
     }
 }
 
@@ -943,21 +812,6 @@ void RunModeInitializeOutputs(void)
         }
     }
 
-}
-
-/**
- * Setup the outputs for this run mode.
- *
- * \param tv The ThreadVars for the thread the outputs will be
- * appended to.
- */
-void SetupOutputs(ThreadVars *tv)
-{
-    RunModeOutput *output;
-    TAILQ_FOREACH(output, &RunModeOutputs, entries) {
-        tv->cap_flags |= output->tm_module->cap_flags;
-        TmSlotSetFuncAppend(tv, output->tm_module, output->output_ctx);
-    }
 }
 
 float threading_detect_ratio = 1;

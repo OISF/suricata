@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-streaming.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -300,7 +301,11 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
 static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputStreamingLogger *logger = list;
@@ -437,12 +442,9 @@ static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) 
 }
 
 void TmModuleStreamingLoggerRegister (void) {
-    tmm_modules[TMM_STREAMINGLOGGER].name = "__streaming_logger__";
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadInit = OutputStreamingLogThreadInit;
-    tmm_modules[TMM_STREAMINGLOGGER].Func = OutputStreamingLog;
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadExitPrintStats = OutputStreamingLogExitPrintStats;
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadDeinit = OutputStreamingLogThreadDeinit;
-    tmm_modules[TMM_STREAMINGLOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputStreamingLogThreadInit,
+        OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
+        OutputStreamingLog);
 }
 
 void OutputStreamingShutdown(void)
