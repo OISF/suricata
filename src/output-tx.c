@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-tx.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -70,12 +71,6 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
                            ThreadDeinitFunc ThreadDeinit,
                            void (*ThreadExitPrintStats)(ThreadVars *, void *))
 {
-#if 0
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-#endif
-
     if (!(AppLayerParserIsTxAware(alproto))) {
         SCLogNotice("%s logger not enabled: protocol %s is disabled",
             name, AppProtoToString(alproto));
@@ -267,7 +262,6 @@ static TmEcode OutputTxLogThreadInit(ThreadVars *tv, void *initdata, void **data
     memset(td, 0x00, sizeof(*td));
 
     *data = (void *)td;
-
     SCLogDebug("OutputTxLogThreadInit happy (*data %p)", *data);
 
     OutputTxLogger *logger = list;
@@ -340,12 +334,8 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
 
 void TmModuleTxLoggerRegister (void)
 {
-    tmm_modules[TMM_TXLOGGER].name = "__tx_logger__";
-    tmm_modules[TMM_TXLOGGER].ThreadInit = OutputTxLogThreadInit;
-    tmm_modules[TMM_TXLOGGER].Func = OutputTxLog;
-    tmm_modules[TMM_TXLOGGER].ThreadExitPrintStats = OutputTxLogExitPrintStats;
-    tmm_modules[TMM_TXLOGGER].ThreadDeinit = OutputTxLogThreadDeinit;
-    tmm_modules[TMM_TXLOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
+        OutputTxLogExitPrintStats, OutputTxLog);
 }
 
 void OutputTxShutdown(void)
