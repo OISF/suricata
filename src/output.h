@@ -40,6 +40,8 @@
 
 typedef OutputCtx *(*OutputInitFunc)(ConfNode *);
 typedef OutputCtx *(*OutputInitSubFunc)(ConfNode *, OutputCtx *);
+typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
+    PacketQueue *);
 
 typedef struct OutputModule_ {
     LoggerId logger_id;
@@ -189,5 +191,12 @@ void OutputSshLoggerDisable(void);
 void OutputRegisterFileRotationFlag(int *flag);
 void OutputUnregisterFileRotationFlag(int *flag);
 void OutputNotifyFileRotation(void);
+
+void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats,
+    OutputLogFunc LogFunc);
+void TmModuleLoggerRegister(void);
+void SetupOutputs(ThreadVars *);
 
 #endif /* ! __OUTPUT_H__ */

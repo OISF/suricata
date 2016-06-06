@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-file.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -92,7 +93,11 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
 static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputFileLogger *logger = list;
@@ -263,12 +268,8 @@ static void OutputFileLogExitPrintStats(ThreadVars *tv, void *thread_data)
 
 void TmModuleFileLoggerRegister (void)
 {
-    tmm_modules[TMM_FILELOGGER].name = "__file_logger__";
-    tmm_modules[TMM_FILELOGGER].ThreadInit = OutputFileLogThreadInit;
-    tmm_modules[TMM_FILELOGGER].Func = OutputFileLog;
-    tmm_modules[TMM_FILELOGGER].ThreadExitPrintStats = OutputFileLogExitPrintStats;
-    tmm_modules[TMM_FILELOGGER].ThreadDeinit = OutputFileLogThreadDeinit;
-    tmm_modules[TMM_FILELOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputFileLogThreadInit,
+        OutputFileLogThreadDeinit, OutputFileLogExitPrintStats, OutputFileLog);
 }
 
 void OutputFileShutdown(void)
