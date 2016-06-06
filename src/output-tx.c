@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-tx.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -256,12 +257,14 @@ end:
  *  loggers */
 static TmEcode OutputTxLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
+    SCLogNotice("OutputTxLogThreadInit");
     OutputLoggerThreadData *td = SCMalloc(sizeof(*td));
     if (td == NULL)
         return TM_ECODE_FAILED;
     memset(td, 0x00, sizeof(*td));
 
     *data = (void *)td;
+    SCLogNotice("Thread data at %p", td);
 
     SCLogDebug("OutputTxLogThreadInit happy (*data %p)", *data);
 
@@ -335,12 +338,8 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
 
 void TmModuleTxLoggerRegister (void)
 {
-    tmm_modules[TMM_TXLOGGER].name = "__tx_logger__";
-    tmm_modules[TMM_TXLOGGER].ThreadInit = OutputTxLogThreadInit;
-    tmm_modules[TMM_TXLOGGER].Func = OutputTxLog;
-    tmm_modules[TMM_TXLOGGER].ThreadExitPrintStats = OutputTxLogExitPrintStats;
-    tmm_modules[TMM_TXLOGGER].ThreadDeinit = OutputTxLogThreadDeinit;
-    tmm_modules[TMM_TXLOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
+        OutputTxLogExitPrintStats, OutputTxLog);
 }
 
 void OutputTxShutdown(void)

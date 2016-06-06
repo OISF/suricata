@@ -231,7 +231,7 @@ int RunModeErfFileAutoFp(void)
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
-        /* add outputs as well */
+        /* Add logger. */
         SetupOutputs(tv_detect_ncpu);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {

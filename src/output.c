@@ -31,6 +31,25 @@
 #include "util-debug.h"
 #include "output.h"
 
+typedef struct RootLogger_ {
+    ThreadInitFunc ThreadInit;
+    ThreadDeinitFunc ThreadDeinit;
+    ThreadExitPrintStatsFunc ThreadExitPrintStats;
+    OutputLogFunc LogFunc;
+
+    TAILQ_ENTRY(RootLogger_) entries;
+} RootLogger;
+
+static TAILQ_HEAD(, RootLogger_) RootLoggers =
+    TAILQ_HEAD_INITIALIZER(RootLoggers);
+
+typedef struct LoggerThreadStoreNode_ {
+    void *thread_data;
+    TAILQ_ENTRY(LoggerThreadStoreNode_) entries;
+} LoggerThreadStoreNode;
+
+typedef TAILQ_HEAD(LoggerThreadStore_, LoggerThreadStoreNode_) LoggerThreadStore;
+
 static TAILQ_HEAD(, OutputModule_) output_modules =
     TAILQ_HEAD_INITIALIZER(output_modules);
 
@@ -850,4 +869,115 @@ void OutputNotifyFileRotation(void) {
     TAILQ_FOREACH(flag, &output_file_rotation_flags, entries) {
         *(flag->flag) = 1;
     }
+}
+
+static TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data,
+    PacketQueue *pq, PacketQueue *postpq)
+{
+    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
+    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
+    while (logger && thread_store_node) {
+        if (logger->LogFunc != NULL) {
+            logger->LogFunc(tv, p, thread_store_node->thread_data, pq, postpq);
+        }
+        logger = TAILQ_NEXT(logger, entries);
+        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
+    }
+
+    return TM_ECODE_OK;
+}
+
+static TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
+    void **data)
+{
+    LoggerThreadStore *thread_store = SCCalloc(1, sizeof(*thread_store));
+    if (thread_store == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    TAILQ_INIT(thread_store);
+    *data = (void *)thread_store;
+
+    RootLogger *logger;
+    TAILQ_FOREACH(logger, &RootLoggers, entries) {
+
+        void *child_thread_data = NULL;
+        if (logger->ThreadInit != NULL) {
+            if (logger->ThreadInit(tv, initdata, &child_thread_data) == TM_ECODE_OK) {
+                LoggerThreadStoreNode *thread_store_node =
+                    SCCalloc(1, sizeof(*thread_store_node));
+                BUG_ON(thread_store_node == NULL);
+                thread_store_node->thread_data = child_thread_data;
+                TAILQ_INSERT_TAIL(thread_store, thread_store_node, entries);
+            }
+        }
+    }
+    return TM_ECODE_OK;
+}
+
+static TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
+{
+    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
+    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
+    while (logger && thread_store_node) {
+        if (logger->ThreadDeinit != NULL) {
+            logger->ThreadDeinit(tv, thread_store_node->thread_data);
+        }
+        logger = TAILQ_NEXT(logger, entries);
+        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
+    }
+
+    /* Free the thread store. */
+    while ((thread_store_node = TAILQ_FIRST(thread_store)) != NULL) {
+        TAILQ_REMOVE(thread_store, thread_store_node, entries);
+        SCFree(thread_store_node);
+    }
+    SCFree(thread_store);
+
+    return TM_ECODE_OK;
+}
+
+static void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
+{
+    LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
+    RootLogger *logger = TAILQ_FIRST(&RootLoggers);
+    LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
+    while (logger && thread_store_node) {
+        if (logger->ThreadExitPrintStats != NULL) {
+            logger->ThreadExitPrintStats(tv, thread_store_node->thread_data);
+        }
+        logger = TAILQ_NEXT(logger, entries);
+        thread_store_node = TAILQ_NEXT(thread_store_node, entries);
+    }
+}
+
+void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats,
+    OutputLogFunc LogFunc)
+{
+    RootLogger *logger = SCCalloc(1, sizeof(*logger));
+    if (logger == NULL) {
+        return;
+    }
+    logger->ThreadInit = ThreadInit;
+    logger->ThreadDeinit = ThreadDeinit;
+    logger->ThreadExitPrintStats = ThreadExitPrintStats;
+    logger->LogFunc = LogFunc;
+    TAILQ_INSERT_TAIL(&RootLoggers, logger, entries);
+}
+
+void TmModuleLoggerRegister(void)
+{
+    tmm_modules[TMM_LOGGER].name = "__root_logger__";
+    tmm_modules[TMM_LOGGER].ThreadInit = OutputLoggerThreadInit;
+    tmm_modules[TMM_LOGGER].ThreadDeinit = OutputLoggerThreadDeinit;
+    tmm_modules[TMM_LOGGER].ThreadExitPrintStats = OutputLoggerExitPrintStats;
+    tmm_modules[TMM_LOGGER].Func = OutputLoggerLog;;
+}
+
+void SetupOutputs(ThreadVars *tv)
+{
+    TmSlotSetFuncAppend(tv, &tmm_modules[TMM_LOGGER], NULL);
 }
