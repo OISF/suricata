@@ -1384,26 +1384,41 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 }
 #ifdef AFLFUZZ_RULES
             } else if(strcmp((long_opts[option_index]).name, "afl-rules") == 0) {
+                MpmTableSetup();
+                SpmTableSetup();
                 exit(RuleParseDataFromFile(optarg));
 #endif
 #ifdef AFLFUZZ_APPLAYER
             } else if(strcmp((long_opts[option_index]).name, "afl-http-request") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterHTPParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_HTTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-http") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterHTPParsers();
                 exit(AppLayerParserFromFile(ALPROTO_HTTP, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-tls-request") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                AppLayerParserSetup();
                 RegisterSSLParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_TLS, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-tls") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSSLParsers();
                 exit(AppLayerParserFromFile(ALPROTO_TLS, optarg));
@@ -1420,20 +1435,33 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 
             } else if(strcmp((long_opts[option_index]).name, "afl-ssh-request") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 RegisterSSHParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_SSH, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-ssh") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSSHParsers();
                 exit(AppLayerParserFromFile(ALPROTO_SSH, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-ftp-request") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
+                AppLayerParserSetup();
                 RegisterFTPParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_FTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-ftp") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterFTPParsers();
                 exit(AppLayerParserFromFile(ALPROTO_FTP, optarg));
@@ -1441,22 +1469,32 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if(strcmp((long_opts[option_index]).name, "afl-smtp-request") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMTPParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_SMTP, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-smtp") == 0) {
                 //printf("arg: //%s\n", optarg);
                 MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMTPParsers();
                 exit(AppLayerParserFromFile(ALPROTO_SMTP, optarg));
 
             } else if(strcmp((long_opts[option_index]).name, "afl-smb-request") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 RegisterSMBParsers();
                 exit(AppLayerParserRequestFromFile(ALPROTO_SMB, optarg));
             } else if(strcmp((long_opts[option_index]).name, "afl-smb") == 0) {
                 //printf("arg: //%s\n", optarg);
+                MpmTableSetup();
+                SpmTableSetup();
+                AppLayerProtoDetectSetup();
                 AppLayerParserSetup();
                 RegisterSMBParsers();
                 exit(AppLayerParserFromFile(ALPROTO_SMB, optarg));
@@ -1481,6 +1519,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             } else if(strcmp((long_opts[option_index]).name, "afl-decoder-ppp") == 0) {
                 StatsInit();
                 MpmTableSetup();
+                SpmTableSetup();
                 AppLayerProtoDetectSetup();
                 DefragInit();
                 FlowInitConfig(FLOW_QUIET);
