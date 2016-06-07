@@ -453,7 +453,7 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
-void TmModuleJsonDnsLogRegister (void)
+void JsonDnsLogRegister (void)
 {
     /* Logger for requests. */
     OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
@@ -480,7 +480,7 @@ void TmModuleJsonDnsLogRegister (void)
 
 #else
 
-void TmModuleJsonDnsLogRegister (void)
+void JsonDnsLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

@@ -257,7 +257,7 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonSmtpLogRegister (void) {
+void JsonSmtpLogRegister (void) {
     /* register as separate module */
     OutputRegisterTxModule(LOGGER_JSON_SMTP, "JsonSmtpLog", "smtp-json-log",
         OutputSmtpLogInit, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
@@ -271,7 +271,7 @@ void TmModuleJsonSmtpLogRegister (void) {
 
 #else
 
-void TmModuleJsonSmtpLogRegister (void)
+void JsonSmtpLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
