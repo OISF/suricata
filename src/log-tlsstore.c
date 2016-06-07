@@ -408,19 +408,10 @@ static OutputCtx *LogTlsStoreLogInitCtx(ConfNode *conf)
 
 void TmModuleLogTlsStoreRegister (void)
 {
-    tmm_modules[TMM_TLSSTORE].name = MODULE_NAME;
-    tmm_modules[TMM_TLSSTORE].ThreadInit = LogTlsStoreLogThreadInit;
-    tmm_modules[TMM_TLSSTORE].Func = NULL;
-    tmm_modules[TMM_TLSSTORE].ThreadExitPrintStats = LogTlsStoreLogExitPrintStats;
-    tmm_modules[TMM_TLSSTORE].ThreadDeinit = LogTlsStoreLogThreadDeinit;
-    tmm_modules[TMM_TLSSTORE].RegisterTests = NULL;
-    tmm_modules[TMM_TLSSTORE].cap_flags = 0;
-    tmm_modules[TMM_TLSSTORE].flags = TM_FLAG_LOGAPI_TM;
-    tmm_modules[TMM_TLSSTORE].priority = 10;
-
-    OutputRegisterTxModuleWithCondition(MODULE_NAME, "tls-store",
-            LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
-            LogTlsStoreCondition);
+    OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME,
+        "tls-store", LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
+        LogTlsStoreCondition, LogTlsStoreLogThreadInit,
+        LogTlsStoreLogThreadDeinit, LogTlsStoreLogExitPrintStats);
 
     SC_ATOMIC_INIT(cert_id);
 

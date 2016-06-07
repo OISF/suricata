@@ -450,34 +450,22 @@ static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
 
 void TmModuleJsonFlowLogRegister (void)
 {
-    tmm_modules[TMM_JSONFLOWLOG].name = "JsonFlowLog";
-    tmm_modules[TMM_JSONFLOWLOG].ThreadInit = JsonFlowLogThreadInit;
-    tmm_modules[TMM_JSONFLOWLOG].ThreadDeinit = JsonFlowLogThreadDeinit;
-    tmm_modules[TMM_JSONFLOWLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONFLOWLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONFLOWLOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
-    OutputRegisterFlowModule("JsonFlowLog", "flow-json-log",
-            OutputFlowLogInit, JsonFlowLogger);
+    OutputRegisterFlowModule(LOGGER_JSON_FLOW, "JsonFlowLog", "flow-json-log",
+        OutputFlowLogInit, JsonFlowLogger, JsonFlowLogThreadInit,
+        JsonFlowLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterFlowSubModule("eve-log", "JsonFlowLog", "eve-log.flow",
-            OutputFlowLogInitSub, JsonFlowLogger);
+    OutputRegisterFlowSubModule(LOGGER_JSON_FLOW, "eve-log", "JsonFlowLog",
+        "eve-log.flow", OutputFlowLogInitSub, JsonFlowLogger,
+        JsonFlowLogThreadInit, JsonFlowLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
-{
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
 void TmModuleJsonFlowLogRegister (void)
 {
-    tmm_modules[TMM_JSONFLOWLOG].name = "JsonFlowLog";
-    tmm_modules[TMM_JSONFLOWLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

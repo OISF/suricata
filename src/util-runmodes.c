@@ -264,8 +264,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
-        /* add outputs as well */
-        SetupOutputs(tv_detect_ncpu);
+        /* Add logger. */
+        TmAddLogger(tv_detect_ncpu);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
@@ -352,7 +352,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        SetupOutputs(tv);
+        TmAddLogger(tv);
 
         TmThreadSetCPU(tv, WORKER_CPU_SET);
 
@@ -533,7 +533,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 
-        SetupOutputs(tv_detect_ncpu);
+        TmAddLogger(tv_detect_ncpu);
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
@@ -652,7 +652,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-        SetupOutputs(tv);
+        TmAddLogger(tv);
 
         TmThreadSetCPU(tv, WORKER_CPU_SET);
 

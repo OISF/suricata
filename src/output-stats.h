@@ -46,7 +46,9 @@ TmEcode OutputStatsLog(ThreadVars *tv, void *thread_data, StatsTable *st);
 
 typedef int (*StatsLogger)(ThreadVars *, void *thread_data, const StatsTable *);
 
-int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *);
+int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
+    OutputCtx *, ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
 void TmModuleStatsLoggerRegister (void);
 
