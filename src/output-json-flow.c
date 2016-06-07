@@ -448,7 +448,7 @@ static TmEcode JsonFlowLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonFlowLogRegister (void)
+void JsonFlowLogRegister (void)
 {
     /* register as separate module */
     OutputRegisterFlowModule(LOGGER_JSON_FLOW, "JsonFlowLog", "flow-json-log",
@@ -463,7 +463,7 @@ void TmModuleJsonFlowLogRegister (void)
 
 #else
 
-void TmModuleJsonFlowLogRegister (void)
+void JsonFlowLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

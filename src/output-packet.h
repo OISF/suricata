@@ -41,7 +41,7 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
     PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *,
     ThreadInitFunc, ThreadDeinitFunc, ThreadExitPrintStatsFunc);
 
-void TmModulePacketLoggerRegister (void);
+void OutputPacketLoggerRegister(void);
 
 void OutputPacketShutdown(void);
 

@@ -24,7 +24,7 @@
 #ifndef __LOG_TCPDATALOG_H__
 #define __LOG_TCPDATALOG_H__
 
-void TmModuleLogTcpDataLogRegister (void);
+void LogTcpDataLogRegister(void);
 OutputCtx *LogTcpDataLogInitCtx(ConfNode *);
 
 #endif /* __LOG_TCPDATALOG_H__ */
