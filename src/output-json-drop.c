@@ -399,7 +399,7 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
     return FALSE;
 }
 
-void TmModuleJsonDropLogRegister (void)
+void JsonDropLogRegister (void)
 {
     OutputRegisterPacketModule(LOGGER_JSON_DROP, MODULE_NAME, "drop-json-log",
         JsonDropLogInitCtx, JsonDropLogger, JsonDropLogCondition,
@@ -412,7 +412,7 @@ void TmModuleJsonDropLogRegister (void)
 
 #else
 
-void TmModuleJsonDropLogRegister (void)
+void JsonDropLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

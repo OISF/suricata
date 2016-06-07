@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,9 +18,18 @@
 /**
  * \file
  *
+ * \author OISF, Jason Ish <jason.ish@oisf.net>
  * \author Endace Technology Limited, Jason Ish <jason.ish@endace.com>
  *
- * Output registration functions
+ * The root logging out for all non-application logging.
+ *
+ * The loggers are made up of a hierarchy of loggers. At the top we
+ * have the root logger which is the main entry point to
+ * logging. Under the root there exists parent loggers that are the
+ * entry point for specific types of loggers such as packet logger,
+ * transaction loggers, etc. Each parent logger may have 0 or more
+ * loggers that actual handle the job of producing output to something
+ * like a file.
  */
 
 #include "suricata-common.h"
@@ -30,6 +39,36 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "output.h"
+
+#include "alert-fastlog.h"
+#include "alert-unified2-alert.h"
+#include "alert-debuglog.h"
+#include "alert-prelude.h"
+#include "alert-syslog.h"
+#include "output-json-alert.h"
+#include "output-json-flow.h"
+#include "output-json-netflow.h"
+#include "log-droplog.h"
+#include "output-json-drop.h"
+#include "log-httplog.h"
+#include "output-json-http.h"
+#include "log-dnslog.h"
+#include "output-json-dns.h"
+#include "log-tlslog.h"
+#include "log-tlsstore.h"
+#include "output-json-tls.h"
+#include "output-json-ssh.h"
+#include "log-pcap.h"
+#include "log-file.h"
+#include "output-json-file.h"
+#include "output-json-smtp.h"
+#include "output-json-stats.h"
+#include "log-filestore.h"
+#include "log-tcp-data.h"
+#include "log-stats.h"
+#include "output-json.h"
+#include "output-json-template.h"
+#include "output-lua.h"
 
 typedef struct RootLogger_ {
     ThreadInitFunc ThreadInit;
@@ -50,6 +89,9 @@ typedef struct LoggerThreadStoreNode_ {
 
 typedef TAILQ_HEAD(LoggerThreadStore_, LoggerThreadStoreNode_) LoggerThreadStore;
 
+/**
+ * The list of all registered (known) output modules.
+ */
 static TAILQ_HEAD(, OutputModule_) output_modules =
     TAILQ_HEAD_INITIALIZER(output_modules);
 
@@ -64,6 +106,9 @@ typedef struct OutputFileRolloverFlag_ {
 
 TAILQ_HEAD(, OutputFileRolloverFlag_) output_file_rotation_flags =
     TAILQ_HEAD_INITIALIZER(output_file_rotation_flags);
+
+void OutputRegisterRootLoggers(void);
+void OutputRegisterLoggers(void);
 
 /**
  * \brief Register an output module.
@@ -975,9 +1020,82 @@ void TmModuleLoggerRegister(void)
     tmm_modules[TMM_LOGGER].ThreadDeinit = OutputLoggerThreadDeinit;
     tmm_modules[TMM_LOGGER].ThreadExitPrintStats = OutputLoggerExitPrintStats;
     tmm_modules[TMM_LOGGER].Func = OutputLoggerLog;;
+
+    OutputRegisterRootLoggers();
+    OutputRegisterLoggers();
 }
 
 void SetupOutputs(ThreadVars *tv)
 {
     TmSlotSetFuncAppend(tv, &tmm_modules[TMM_LOGGER], NULL);
 }
+
+/**
+ * \brief Register all root loggers.
+ */
+void OutputRegisterRootLoggers(void)
+{
+    OutputPacketLoggerRegister();
+    OutputTxLoggerRegister();
+    OutputFileLoggerRegister();
+    OutputFiledataLoggerRegister();
+    OutputStreamingLoggerRegister();
+}
+
+/**
+ * \brief Register all non-root logging modules.
+ */
+void OutputRegisterLoggers(void)
+{
+    LuaLogRegister();
+    /* fast log */
+    AlertFastLogRegister();
+    /* debug log */
+    AlertDebugLogRegister();
+    /* prelue log */
+    AlertPreludeRegister();
+    /* syslog log */
+    AlertSyslogRegister();
+    /* unified2 log */
+    Unified2AlertRegister();
+    /* drop log */
+    LogDropLogRegister();
+    JsonDropLogRegister();
+    /* json log */
+    OutputJsonRegister();
+    /* email logs */
+    JsonSmtpLogRegister();
+    /* http log */
+    LogHttpLogRegister();
+    JsonHttpLogRegister();
+    /* tls log */
+    LogTlsLogRegister();
+    JsonTlsLogRegister();
+    LogTlsStoreRegister();
+    /* ssh */
+    JsonSshLogRegister();
+    /* pcap log */
+    PcapLogRegister();
+    /* file log */
+    LogFileLogRegister();
+    JsonFileLogRegister();
+    LogFilestoreRegister();
+    /* dns log */
+    LogDnsLogRegister();
+    JsonDnsLogRegister();
+    /* tcp streaming data */
+    LogTcpDataLogRegister();
+    /* log stats */
+    LogStatsLogRegister();
+
+    JsonAlertLogRegister();
+    /* flow/netflow */
+    JsonFlowLogRegister();
+    JsonNetFlowLogRegister();
+    /* json stats */
+    JsonStatsLogRegister();
+
+    /* Template JSON logger. */
+    JsonTemplateLogRegister();
+}
+

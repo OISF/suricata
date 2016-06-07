@@ -440,7 +440,7 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
-void TmModuleJsonDnsLogRegister (void)
+void JsonDnsLogRegister (void)
 {
     OutputRegisterTxModule(LOGGER_JSON_DNS, MODULE_NAME, "dns-json-log",
         JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
@@ -452,7 +452,7 @@ void TmModuleJsonDnsLogRegister (void)
 
 #else
 
-void TmModuleJsonDnsLogRegister (void)
+void JsonDnsLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

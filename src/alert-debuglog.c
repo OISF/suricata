@@ -510,7 +510,7 @@ static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *
     return TM_ECODE_OK;
 }
 
-void TmModuleAlertDebugLogRegister (void)
+void AlertDebugLogRegister(void)
 {
     OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug",
         AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,

@@ -76,7 +76,7 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
-void TmModuleAlertFastLogRegister (void)
+void AlertFastLogRegister(void)
 {
     OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
         AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,

@@ -288,7 +288,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonFileLogRegister (void)
+void JsonFileLogRegister (void)
 {
     /* register as child of eve-log */
     OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog",
@@ -298,7 +298,7 @@ void TmModuleJsonFileLogRegister (void)
 
 #else
 
-void TmModuleJsonFileLogRegister (void)
+void JsonFileLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
