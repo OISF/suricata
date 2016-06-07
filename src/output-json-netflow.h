@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_NETFLOW_H__
 #define __OUTPUT_JSON_NETFLOW_H__
 
-void TmModuleJsonNetFlowLogRegister (void);
+void JsonNetFlowLogRegister(void);
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */

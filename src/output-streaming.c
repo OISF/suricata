@@ -441,7 +441,7 @@ static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) 
     }
 }
 
-void TmModuleStreamingLoggerRegister (void) {
+void OutputStreamingLoggerRegister(void) {
     OutputRegisterRootLogger(OutputStreamingLogThreadInit,
         OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
         OutputStreamingLog);

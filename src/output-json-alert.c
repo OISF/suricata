@@ -704,7 +704,7 @@ error:
     return NULL;
 }
 
-void TmModuleJsonAlertLogRegister (void)
+void JsonAlertLogRegister (void)
 {
     OutputRegisterPacketModule(LOGGER_JSON_ALERT, MODULE_NAME, "alert-json-log",
         JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition,
@@ -717,7 +717,7 @@ void TmModuleJsonAlertLogRegister (void)
 
 #else
 
-void TmModuleJsonAlertLogRegister (void)
+void JsonAlertLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

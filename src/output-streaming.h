@@ -50,7 +50,7 @@ int OutputRegisterStreamingLogger(LoggerId id, const char *name,
     ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void TmModuleStreamingLoggerRegister (void);
+void OutputStreamingLoggerRegister (void);
 
 void OutputStreamingShutdown(void);
 

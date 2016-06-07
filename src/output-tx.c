@@ -339,7 +339,7 @@ static void OutputTxLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModuleTxLoggerRegister (void)
+void OutputTxLoggerRegister (void)
 {
     OutputRegisterRootLogger(OutputTxLogThreadInit, OutputTxLogThreadDeinit,
         OutputTxLogExitPrintStats, OutputTxLog);

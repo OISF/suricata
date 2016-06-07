@@ -314,7 +314,7 @@ dontlog:
     return FALSE;
 }
 
-void TmModuleJsonSshLogRegister (void)
+void JsonSshLogRegister (void)
 {
     /* register as separate module */
     OutputRegisterPacketModule(LOGGER_JSON_SSH, "JsonSshLog", "ssh-json-log",
@@ -329,7 +329,7 @@ void TmModuleJsonSshLogRegister (void)
 
 #else
 
-void TmModuleJsonSshLogRegister (void)
+void JsonSshLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

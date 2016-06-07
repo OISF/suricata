@@ -308,7 +308,7 @@ OutputCtx *OutputTlsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonTlsLogRegister (void)
+void JsonTlsLogRegister (void)
 {
     /* register as separate module */
     OutputRegisterTxModuleWithProgress(LOGGER_JSON_TLS, "JsonTlsLog",
@@ -325,7 +325,7 @@ void TmModuleJsonTlsLogRegister (void)
 
 #else
 
-void TmModuleJsonTlsLogRegister (void)
+void JsonTlsLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }

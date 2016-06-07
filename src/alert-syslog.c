@@ -408,7 +408,7 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 #endif /* !OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
-void TmModuleAlertSyslogRegister (void)
+void AlertSyslogRegister (void)
 {
 #ifndef OS_WIN32
     OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
