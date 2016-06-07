@@ -33,6 +33,6 @@
 #ifdef HAVE_LIBJANSSON
 json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
 #endif
-void TmModuleJsonStatsLogRegister (void);
+void JsonStatsLogRegister(void);
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */

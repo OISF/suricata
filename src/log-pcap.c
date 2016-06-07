@@ -151,12 +151,12 @@ static OutputCtx *PcapLogInitCtx(ConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
 static int PcapLogCondition(ThreadVars *, const Packet *);
 
-void TmModulePcapLogRegister(void)
+void PcapLogRegister(void)
 {
     OutputRegisterPacketModule(LOGGER_PCAP, MODULE_NAME, "pcap-log",
         PcapLogInitCtx, PcapLog, PcapLogCondition, PcapLogDataInit,
         PcapLogDataDeinit, NULL);
-
+    PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
     return;
 }

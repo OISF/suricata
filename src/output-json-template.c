@@ -176,7 +176,7 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonTemplateLogRegister(void)
+void JsonTemplateLogRegister(void)
 {
     if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
@@ -193,7 +193,7 @@ void TmModuleJsonTemplateLogRegister(void)
 
 #else /* No JSON support. */
 
-void TmModuleJsonTemplateLogRegister(void)
+void JsonTemplateLogRegister(void)
 {
     SCLogInfo("Cannot register JSON output for template. "
         "JSON support was disabled during build.");

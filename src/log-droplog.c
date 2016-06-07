@@ -492,7 +492,7 @@ static void LogDropLogRegisterTests(void)
 #endif
 
 /** \brief function to register the drop log module */
-void TmModuleLogDropLogRegister (void)
+void LogDropLogRegister (void)
 {
     OutputRegisterPacketModule(LOGGER_DROP, MODULE_NAME, "drop",
         LogDropLogInitCtx, LogDropLogger, LogDropCondition,
