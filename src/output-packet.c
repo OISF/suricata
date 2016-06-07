@@ -209,7 +209,7 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModulePacketLoggerRegister (void)
+void OutputPacketLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputPacketLogThreadInit,
         OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,

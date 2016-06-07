@@ -28,7 +28,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
-void TmModuleOutputJsonRegister (void);
+void OutputJsonRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 /* helper struct for OutputJSONMemBufferCallback */

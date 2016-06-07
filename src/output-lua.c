@@ -1000,14 +1000,14 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleLuaLogRegister (void) {
+void LuaLogRegister(void) {
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
 
 #else
 
-void TmModuleLuaLogRegister (void) {
+void LuaLogRegister (void) {
     /* no-op */
 }
 

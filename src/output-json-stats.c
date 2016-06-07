@@ -371,7 +371,7 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonStatsLogRegister (void) {
+void JsonStatsLogRegister(void) {
     /* register as separate module */
     OutputRegisterStatsModule(LOGGER_JSON_STATS, MODULE_NAME, "stats-json",
         OutputStatsLogInit, JsonStatsLogger, JsonStatsLogThreadInit,
@@ -385,7 +385,7 @@ void TmModuleJsonStatsLogRegister (void) {
 
 #else
 
-void TmModuleJsonStatsLogRegister (void)
+void JsonStatsLogRegister (void)
 {
     SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
