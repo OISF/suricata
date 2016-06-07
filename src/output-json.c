@@ -67,7 +67,7 @@
 
 int OutputJsonOpenFileCtx(LogFileCtx *, char *);
 
-void TmModuleOutputJsonRegister (void)
+void OutputJsonRegister (void)
 {
     SCLogDebug("Can't register JSON output - JSON support was disabled during build.");
 }
@@ -84,7 +84,7 @@ void TmModuleOutputJsonRegister (void)
 
 static void OutputJsonDeInitCtx(OutputCtx *);
 
-void TmModuleOutputJsonRegister (void)
+void OutputJsonRegister (void)
 {
     OutputRegisterModule(MODULE_NAME, "eve-log", OutputJsonInitCtx);
 }

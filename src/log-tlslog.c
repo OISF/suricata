@@ -312,7 +312,7 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     return 0;
 }
 
-void TmModuleLogTlsLogRegister(void)
+void LogTlsLogRegister(void)
 {
     OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log",
         LogTlsLogInitCtx, ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE,

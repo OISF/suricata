@@ -479,7 +479,7 @@ static OutputCtx *LogFilestoreLogInitCtx(ConfNode *conf)
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
-void TmModuleLogFilestoreRegister (void)
+void LogFilestoreRegister (void)
 {
     OutputRegisterFiledataModule(LOGGER_FILE_STORE, MODULE_NAME, "file",
         LogFilestoreLogInitCtx, LogFilestoreLogger, LogFilestoreLogThreadInit,

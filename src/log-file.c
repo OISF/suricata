@@ -453,7 +453,7 @@ int LogFileLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
     return 0;
 }
 
-void TmModuleLogFileLogRegister (void)
+void LogFileLogRegister (void)
 {
     OutputRegisterFileModule(LOGGER_FILE, MODULE_NAME, "file-log",
         LogFileLogInitCtx, LogFileLogger, LogFileLogThreadInit,

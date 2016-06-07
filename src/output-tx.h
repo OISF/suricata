@@ -43,7 +43,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
         ThreadInitFunc, ThreadDeinitFunc,
         void (*ThreadExitPrintStats)(ThreadVars *, void *));
 
-void TmModuleTxLoggerRegister (void);
+void OutputTxLoggerRegister (void);
 
 void OutputTxShutdown(void);
 
