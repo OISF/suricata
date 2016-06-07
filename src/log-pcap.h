@@ -28,7 +28,7 @@
 #ifndef __LOG_PCAP_H__
 #define __LOG_PCAP_H__
 
-void TmModulePcapLogRegister (void);
+void PcapLogRegister(void);
 void PcapLogProfileSetup(void);
 
 #endif /* __LOG_PCAP_H__ */

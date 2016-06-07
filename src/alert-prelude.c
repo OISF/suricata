@@ -62,7 +62,7 @@
 
 /* Handle the case where no PRELUDE support is compiled in. */
 
-void TmModuleAlertPreludeRegister (void)
+void AlertPreludeRegister(void)
 {
     SCLogDebug("Can't register Prelude output thread - Prelude support was disabled during build.");
 }
@@ -914,7 +914,7 @@ err:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-void TmModuleAlertPreludeRegister (void)
+void AlertPreludeRegister (void)
 {
     OutputRegisterPacketModule(LOGGER_PRELUDE, "AlertPrelude", "alert-prelude",
         AlertPreludeInitCtx, AlertPreludeLogger, AlertPreludeCondition,

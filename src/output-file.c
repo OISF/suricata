@@ -266,7 +266,7 @@ static void OutputFileLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModuleFileLoggerRegister (void)
+void OutputFileLoggerRegister(void)
 {
     OutputRegisterRootLogger(OutputFileLogThreadInit,
         OutputFileLogThreadDeinit, OutputFileLogExitPrintStats, OutputFileLog);

@@ -406,7 +406,7 @@ static OutputCtx *LogTlsStoreLogInitCtx(ConfNode *conf)
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
-void TmModuleLogTlsStoreRegister (void)
+void LogTlsStoreRegister (void)
 {
     OutputRegisterTxModuleWithCondition(LOGGER_TLS_STORE, MODULE_NAME,
         "tls-store", LogTlsStoreLogInitCtx, ALPROTO_TLS, LogTlsStoreLogger,
