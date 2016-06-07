@@ -63,7 +63,7 @@ static void LogHttpLogDeInitCtx(OutputCtx *);
 
 int LogHttpLogger(ThreadVars *tv, void *thread_data, const Packet *, Flow *f, void *state, void *tx, uint64_t tx_id);
 
-void TmModuleLogHttpLogRegister (void)
+void LogHttpLogRegister (void)
 {
     OutputRegisterTxModule(LOGGER_HTTP, MODULE_NAME, "http-log",
         LogHttpLogInitCtx, ALPROTO_HTTP, LogHttpLogger, LogHttpLogThreadInit,

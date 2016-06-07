@@ -46,7 +46,7 @@ int OutputRegisterFiledataLogger(LoggerId id, const char *name,
     ThreadDeinitFunc ThreadDeinit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void TmModuleFiledataLoggerRegister (void);
+void OutputFiledataLoggerRegister(void);
 
 void OutputFiledataShutdown(void);
 

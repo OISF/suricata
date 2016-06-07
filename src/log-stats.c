@@ -294,7 +294,7 @@ static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-void TmModuleLogStatsLogRegister (void)
+void LogStatsLogRegister (void)
 {
     OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
         LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
