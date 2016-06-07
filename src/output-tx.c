@@ -124,7 +124,10 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
 static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+    if (list == NULL) {
+        /* No child loggers registered. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputTxLogger *logger = list;
