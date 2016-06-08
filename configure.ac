@@ -1018,6 +1018,34 @@
                 [],
                 [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))],
                 [AC_DEFINE([HAVE_LIBNET_CAPABILITIES],[1], (libnet_have_capabilities_patch))])
+
+
+            # check if the argument to libnet_init is char* or const char*
+            AC_MSG_CHECKING([libnet_init dev type])
+            STORECFLAGS="${CFLAGS}"
+            if test `basename $CC` = "clang"; then
+                CFLAGS="${CFLAGS} -Werror=incompatible-pointer-types"
+            else
+                CFLAGS="${CFLAGS} -Werror"
+            fi
+            AC_COMPILE_IFELSE(
+                [AC_LANG_PROGRAM(
+                    [
+                    #include <stdio.h>
+                    #include <libnet.h>
+                    ],
+                    [[
+                    const char dev[32] = "";
+                    char ebuf[LIBNET_ERRBUF_SIZE];
+                    (void)libnet_init(LIBNET_LINK, dev, ebuf);
+                    ]])],
+                [libnet_init_const="yes"],
+                [libnet_init_const="no"])
+            AC_MSG_RESULT($libnet_init_const)
+            if test "x$libnet_init_const" = "xyes"; then
+                AC_DEFINE([HAVE_LIBNET_INIT_CONST], [1], [libnet_init takes const argument])
+            fi
+            CFLAGS="${STORECFLAGS}"
         fi
     else
         AC_MSG_RESULT(no)

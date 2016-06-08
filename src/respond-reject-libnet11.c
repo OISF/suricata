@@ -51,6 +51,12 @@
 
 #ifdef HAVE_LIBNET11
 
+#ifndef HAVE_LIBNET_INIT_CONST
+#define LIBNET_INIT_CAST (char *)
+#else
+#define LIBNET_INIT_CAST
+#endif
+
 /** set to true in main if we're setting caps. We need it here if we're using
   * reject rules as libnet 1.1 is not compatible with caps. */
 extern int sc_set_caps;
@@ -91,7 +97,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
         devname = p->livedev->dev;
         SCLogDebug("Will emit reject packet on dev %s", devname);
     }
-    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
+    if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
@@ -216,7 +222,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW4, devname, ebuf)) == NULL) {
+    if ((c = libnet_init(LIBNET_RAW4, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
         return 1;
     }
@@ -302,7 +308,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW6, devname, ebuf)) == NULL) {
+    if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_init failed: %s", ebuf);
         return 1;
     }
@@ -428,7 +434,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     if (IS_SURI_HOST_MODE_SNIFFER_ONLY(host_mode) && (p->livedev)) {
         devname = p->livedev->dev;
     }
-    if ((c = libnet_init(LIBNET_RAW6, devname, ebuf)) == NULL) {
+    if ((c = libnet_init(LIBNET_RAW6, LIBNET_INIT_CAST devname, ebuf)) == NULL) {
         SCLogError(SC_ERR_LIBNET_INIT,"libnet_inint failed: %s", ebuf);
         return 1;
     }
