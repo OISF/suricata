@@ -1107,7 +1107,15 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
                     if (strcmp(opt->val, "custom-values") == 0) {
                         if (max_uniq_toclient_groups_str == NULL) {
                             max_uniq_toclient_groups_str = (char *)ConfNodeLookupChildValue
+                                (opt->head.tqh_first, "toclient-sp-groups");
+                        }
+                        if (max_uniq_toclient_groups_str == NULL) {
+                            max_uniq_toclient_groups_str = (char *)ConfNodeLookupChildValue
                                 (opt->head.tqh_first, "toclient-groups");
+                        }
+                        if (max_uniq_toserver_groups_str == NULL) {
+                            max_uniq_toserver_groups_str = (char *)ConfNodeLookupChildValue
+                                (opt->head.tqh_first, "toserver-dp-groups");
                         }
                         if (max_uniq_toserver_groups_str == NULL) {
                             max_uniq_toserver_groups_str = (char *)ConfNodeLookupChildValue
@@ -1131,6 +1139,8 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             } else {
                 de_ctx->max_uniq_toclient_groups = 20;
             }
+            SCLogConfig("toclient-groups %u", de_ctx->max_uniq_toclient_groups);
+
             if (max_uniq_toserver_groups_str != NULL) {
                 if (ByteExtractStringUint16(&de_ctx->max_uniq_toserver_groups, 10,
                     strlen(max_uniq_toserver_groups_str),
@@ -1146,6 +1156,7 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
             } else {
                 de_ctx->max_uniq_toserver_groups = 40;
             }
+            SCLogConfig("toserver-groups %u", de_ctx->max_uniq_toserver_groups);
             break;
 
         /* Default (or no config provided) is profile medium */
