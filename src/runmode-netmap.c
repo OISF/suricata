@@ -300,7 +300,7 @@ int NetmapRunModeIsIPS()
     if_default = ConfNodeLookupKeyValue(netmap_node, "interface", "default");
 
     for (ldev = 0; ldev < nlive; ldev++) {
-        char *live_dev = LiveGetDeviceName(ldev);
+        const char *live_dev = LiveGetDeviceName(ldev);
         if (live_dev == NULL) {
             SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
             return 0;
@@ -330,7 +330,7 @@ int NetmapRunModeIsIPS()
     if (has_ids && has_ips) {
         SCLogInfo("Netmap mode using IPS and IDS mode");
         for (ldev = 0; ldev < nlive; ldev++) {
-            char *live_dev = LiveGetDeviceName(ldev);
+            const char *live_dev = LiveGetDeviceName(ldev);
             if (live_dev == NULL) {
                 SCLogError(SC_ERR_INVALID_VALUE, "Problem with config file");
                 return 0;

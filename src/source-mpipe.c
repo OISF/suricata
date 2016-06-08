@@ -895,8 +895,8 @@ TmEcode ReceiveMpipeThreadInit(ThreadVars *tv, void *initdata, void **data)
     ptv->tv = tv;
 
     int result;
-    char *link_name = (char *)initdata;
-  
+    const char *link_name = (char *)initdata;
+
     MpipeRegisterPerfCounters(ptv, tv);
 
     *data = (void *)ptv;

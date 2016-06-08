@@ -2233,7 +2233,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
                 for (lthread = 0; lthread < nlive; lthread++) {
-                    char *live_dev = LiveGetDeviceName(lthread);
+                    const char *live_dev = LiveGetDeviceName(lthread);
                     char dev[32];
                     (void)strlcpy(dev, live_dev, sizeof(dev));
 

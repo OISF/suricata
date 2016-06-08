@@ -1,4 +1,4 @@
-/* Copyright (C) 2011-2012 Open Information Security Foundation
+/* Copyright (C) 2011-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -36,6 +36,9 @@ static TAILQ_HEAD(, LiveDevice_) live_devices =
 /** if set to 0 when we don't have real devices */
 static int live_devices_stats = 1;
 
+static int LiveSafeDeviceName(const char *devname,
+                              char *newdevname, size_t destlen);
+
 /**
  *  \brief Add a pcap device for monitoring
  *
@@ -56,6 +59,13 @@ int LiveRegisterDevice(const char *dev)
         SCFree(pd);
         return -1;
     }
+    /* create a short version to be used in thread names */
+    if (strlen(pd->dev) > MAX_DEVNAME) {
+        LiveSafeDeviceName(pd->dev, pd->dev_short, sizeof(pd->dev_short));
+    } else {
+        (void)strlcpy(pd->dev_short, pd->dev, sizeof(pd->dev_short));
+    }
+
     SC_ATOMIC_INIT(pd->pkts);
     SC_ATOMIC_INIT(pd->drop);
     SC_ATOMIC_INIT(pd->invalid_checksums);
@@ -91,7 +101,7 @@ int LiveGetDeviceCount(void)
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-char *LiveGetDeviceName(int number)
+const char *LiveGetDeviceName(int number)
 {
     int i = 0;
     LiveDevice *pd;
@@ -107,14 +117,14 @@ char *LiveGetDeviceName(int number)
     return NULL;
 }
 
-/**
+/** \internal
  *  \brief Shorten a device name that is to long
  *
  *  \param device name from config and destination for modified
  *
  *  \retval None, is added to destination char *newdevname
  */
-int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
+static int LiveSafeDeviceName(const char *devname, char *newdevname, size_t destlen)
 {
     size_t devnamelen = strlen(devname);
 
@@ -192,7 +202,13 @@ LiveDevice *LiveGetDevice(const char *name)
     return NULL;
 }
 
-
+const char *LiveGetShortName(const char *dev)
+{
+    LiveDevice *live_dev = LiveGetDevice(dev);
+    if (live_dev == NULL)
+        return NULL;
+    return live_dev->dev_short;
+}
 
 int LiveBuildDeviceList(const char *runmode)
 {

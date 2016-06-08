@@ -79,7 +79,7 @@ int RejectSendLibnet11L3IPv4TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    char *devname = NULL;
+    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -203,7 +203,7 @@ int RejectSendLibnet11L3IPv4ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    char *devname = NULL;
+    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -291,7 +291,7 @@ int RejectSendLibnet11L3IPv6TCP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    char *devname = NULL;
+    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;
@@ -414,7 +414,7 @@ int RejectSendLibnet11L3IPv6ICMP(ThreadVars *tv, Packet *p, void *data, int dir)
     libnet_t *c; /* libnet context */
     char ebuf[LIBNET_ERRBUF_SIZE];
     int result;
-    char *devname = NULL;
+    const char *devname = NULL;
 
     /* fill in struct defaults */
     lpacket.ttl = 0;

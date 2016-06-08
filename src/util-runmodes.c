@@ -169,9 +169,8 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
         int lthread;
 
         for (lthread = 0; lthread < nlive; lthread++) {
-            char *live_dev = LiveGetDeviceName(lthread);
-            char visual_devname[11] = "";
-            int shortening_result;
+            const char *live_dev = LiveGetDeviceName(lthread);
+            const char *visual_devname = LiveGetShortName(live_dev);
             void *aconf;
             int threads_count;
 
@@ -190,12 +189,6 @@ int RunModeSetLiveCaptureAutoFp(ConfigIfaceParserFunc ConfigParser,
 
             threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
-                shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
-                if (shortening_result != 0) {
-                    SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
-                    exit(EXIT_FAILURE);
-                }
-
                 snprintf(tname, sizeof(tname), "%s#%02d-%s", thread_name,
                          thread+1, visual_devname);
 
@@ -298,16 +291,9 @@ static int RunModeSetLiveCaptureWorkersForDevice(ConfigIfaceThreadsCountFunc Mod
     /* create the threads */
     for (thread = 0; thread < threads_count; thread++) {
         char tname[TM_THREAD_NAME_MAX];
-        char visual_devname[11] = "";
-        int shortening_result;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
-
-        shortening_result = LiveSafeDeviceName(live_dev, visual_devname, sizeof(visual_devname));
-        if (shortening_result != 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Could not shorten long devicename: %s", live_dev);
-            exit(EXIT_FAILURE);
-        }
+        const char *visual_devname = LiveGetShortName(live_dev);
 
         if (single_mode) {
             snprintf(tname, sizeof(tname), "%s#01-%s", thread_name, visual_devname);
@@ -447,7 +433,7 @@ int RunModeSetIPSAutoFp(ConfigIPSParserFunc ConfigParser,
     char tname[TM_THREAD_NAME_MAX];
     char qname[TM_QUEUE_NAME_MAX];
     TmModule *tm_module ;
-    char *cur_queue = NULL;
+    const char *cur_queue = NULL;
     char *queues = NULL;
     int thread;
 
@@ -593,7 +579,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
     char tname[TM_THREAD_NAME_MAX];
     ThreadVars *tv = NULL;
     TmModule *tm_module = NULL;
-    char *cur_queue = NULL;
+    const char *cur_queue = NULL;
 
     int nqueue = LiveGetDeviceCount();
 
