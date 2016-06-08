@@ -419,10 +419,13 @@ static TmEcode OutputStreamingLogThreadDeinit(ThreadVars *tv, void *thread_data)
             logger->ThreadDeinit(tv, store->thread_data);
         }
 
+        OutputLoggerThreadStore *next_store = store->next;
+        SCFree(store);
         logger = logger->next;
-        store = store->next;
+        store = next_store;
     }
 
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 
