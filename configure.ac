@@ -1134,8 +1134,6 @@
                 echo
                 exit 1
                 fi
-            else
-                LIBS="${LIBS} -lrt -lnuma"
             fi
         else
             if test "x$enable_pfring" = "xyes"; then
