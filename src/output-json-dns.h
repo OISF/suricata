@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_DNS_H__
 #define __OUTPUT_JSON_DNS_H__
 
-void TmModuleJsonDnsLogRegister (void);
+void JsonDnsLogRegister(void);
 
 #endif /* __OUTPUT_JSON_DNS_H__ */

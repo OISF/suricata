@@ -101,7 +101,7 @@ int RunModeErfFileSingle(void)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    SetupOutputs(tv);
+    TmAddLogger(tv);
 
     if (TmThreadSpawn(tv) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -231,8 +231,8 @@ int RunModeErfFileAutoFp(void)
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
 
-        /* add outputs as well */
-        SetupOutputs(tv_detect_ncpu);
+        /* Add logger. */
+        TmAddLogger(tv_detect_ncpu);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");

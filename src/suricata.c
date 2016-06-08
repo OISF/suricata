@@ -73,37 +73,6 @@
 #include "conf.h"
 #include "conf-yaml-loader.h"
 
-#include "alert-fastlog.h"
-#include "alert-unified2-alert.h"
-#include "alert-debuglog.h"
-#include "alert-prelude.h"
-#include "alert-syslog.h"
-#include "output-json-alert.h"
-
-#include "output-json-flow.h"
-#include "output-json-netflow.h"
-#include "log-droplog.h"
-#include "output-json-drop.h"
-#include "log-httplog.h"
-#include "output-json-http.h"
-#include "log-dnslog.h"
-#include "output-json-dns.h"
-#include "log-tlslog.h"
-#include "log-tlsstore.h"
-#include "output-json-tls.h"
-#include "output-json-ssh.h"
-#include "log-pcap.h"
-#include "log-file.h"
-#include "output-json-file.h"
-#include "output-json-smtp.h"
-#include "output-json-stats.h"
-#include "log-filestore.h"
-#include "log-tcp-data.h"
-#include "log-stats.h"
-
-#include "output-json.h"
-
-#include "output-json-template.h"
 
 #include "stream-tcp.h"
 
@@ -186,13 +155,6 @@
 #include "reputation.h"
 
 #include "output.h"
-#include "output-lua.h"
-
-#include "output-packet.h"
-#include "output-tx.h"
-#include "output-file.h"
-#include "output-filedata.h"
-#include "output-streaming.h"
 
 #include "util-privs.h"
 
@@ -860,64 +822,10 @@ void RegisterAllModules()
     /* respond-reject */
     TmModuleRespondRejectRegister();
 
-    TmModuleLuaLogRegister();
-    /* fast log */
-    TmModuleAlertFastLogRegister();
-    /* debug log */
-    TmModuleAlertDebugLogRegister();
-    /* prelue log */
-    TmModuleAlertPreludeRegister();
-    /* syslog log */
-    TmModuleAlertSyslogRegister();
-    /* unified2 log */
-    TmModuleUnified2AlertRegister();
-    /* drop log */
-    TmModuleLogDropLogRegister();
-    TmModuleJsonDropLogRegister();
-    /* json log */
-    TmModuleOutputJsonRegister();
-    /* email logs */
-    TmModuleJsonSmtpLogRegister();
-    /* http log */
-    TmModuleLogHttpLogRegister();
-    TmModuleJsonHttpLogRegister();
-    /* tls log */
-    TmModuleLogTlsLogRegister();
-    TmModuleJsonTlsLogRegister();
-    TmModuleLogTlsStoreRegister();
-    /* ssh */
-    TmModuleJsonSshLogRegister();
-    /* pcap log */
-    TmModulePcapLogRegister();
-    /* file log */
-    TmModuleLogFileLogRegister();
-    TmModuleJsonFileLogRegister();
-    TmModuleLogFilestoreRegister();
-    /* dns log */
-    TmModuleLogDnsLogRegister();
-    TmModuleJsonDnsLogRegister();
-    /* tcp streaming data */
-    TmModuleLogTcpDataLogRegister();
-    /* log stats */
-    TmModuleLogStatsLogRegister();
-
-    TmModuleJsonAlertLogRegister();
-    /* flow/netflow */
-    TmModuleJsonFlowLogRegister();
-    TmModuleJsonNetFlowLogRegister();
-    /* json stats */
-    TmModuleJsonStatsLogRegister();
-
-    /* Template JSON logger. */
-    TmModuleJsonTemplateLogRegister();
-
     /* log api */
-    TmModulePacketLoggerRegister();
-    TmModuleTxLoggerRegister();
-    TmModuleFileLoggerRegister();
-    TmModuleFiledataLoggerRegister();
-    TmModuleStreamingLoggerRegister();
+    TmModuleLoggerRegister();
     TmModuleStatsLoggerRegister();
+
     TmModuleDebugList();
     /* nflog */
     TmModuleReceiveNFLOGRegister();
@@ -2363,8 +2271,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
     StorageFinalize();
 
     TmModuleRunInit();
-
-    PcapLogProfileSetup();
 
     if (MayDaemonize(suri) != TM_ECODE_OK)
         SCReturnInt(TM_ECODE_FAILED);

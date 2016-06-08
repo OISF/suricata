@@ -26,6 +26,6 @@
 #ifndef ALERT_DROPLOG_H
 #define	ALERT_DROPLOG_H
 
-void TmModuleLogDropLogRegister(void);
+void LogDropLogRegister(void);
 
 #endif	/* ALERT_DROPLOG_H */
