@@ -573,6 +573,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
             pl->reported = 1;
         }
     }
+    SCFree(td);
     return TM_ECODE_OK;
 }
 
@@ -895,7 +896,7 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
     TAILQ_FOREACH(pf, &pl->pcap_file_list, next) {
         SCLogDebug("PCAP files left at exit: %s\n", pf->filename);
     }
-
+    SCFree(output_ctx);
     return;
 }
 
