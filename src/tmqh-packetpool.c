@@ -540,6 +540,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     PACKET_PROFILING_END(p);
 
+    BUG_ON(p->ethh != NULL && memcmp(p->ethh, &p->ethhs, sizeof(EthernetHdr)) != 0);
+
     p->ReleasePacket(p);
 
     SCReturn;

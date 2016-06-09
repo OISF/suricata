@@ -52,6 +52,8 @@ int DecodeEthernet(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     if (unlikely(p->ethh == NULL))
         return TM_ECODE_FAILED;
 
+    memcpy(&p->ethhs, p->ethh, sizeof(EthernetHdr));
+
     SCLogDebug("p %p pkt %p ether type %04x", p, pkt, ntohs(p->ethh->eth_type));
 
     switch (ntohs(p->ethh->eth_type)) {

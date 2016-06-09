@@ -446,6 +446,7 @@ typedef struct Packet_
 
     /* header pointers */
     EthernetHdr *ethh;
+    EthernetHdr ethhs;
 
     /* Checksum for IP packets. */
     int32_t level3_comp_csum;
@@ -732,6 +733,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
             (p)->pktvar = NULL;                 \
         }                                       \
         (p)->ethh = NULL;                       \
+	memset(&(p)->ethhs, 0, sizeof(EthernetHdr)); \
         if ((p)->ip4h != NULL) {                \
             CLEAR_IPV4_PACKET((p));             \
         }                                       \
