@@ -153,8 +153,8 @@ int UnixNew(UnixCommand * this)
     /* set address */
     addr.sun_family = AF_UNIX;
     strlcpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
-    addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
-    len = strlen(addr.sun_path) + sizeof(addr.sun_family);
+    addr.sun_path[sizeof(addr.sun_path) - 1] = 0;    
+    len = SUN_LEN (&addr);
 
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
