@@ -32,7 +32,7 @@ void DetectAddressHeadFree(DetectAddressHead *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 
 int DetectAddressParseString(DetectAddress *, char *);
-int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, char *);
+int DetectAddressParse(const DetectEngineCtx *, DetectAddressHead *, const char *);
 
 DetectAddress *DetectAddressInit(void);
 void DetectAddressFree(DetectAddress *);
@@ -58,5 +58,10 @@ int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *, uint16_t, Address *);
 int DetectAddressTestConfVars(void);
 
 void DetectAddressTests(void);
+
+int DetectAddressMapInit(DetectEngineCtx *de_ctx);
+void DetectAddressMapFree(DetectEngineCtx *de_ctx);
+const DetectAddressHead *DetectParseAddress(DetectEngineCtx *de_ctx,
+        const char *string);
 
 #endif /* __DETECT_ADDRESS_H__ */

@@ -70,7 +70,7 @@ void GenericVarFree(GenericVar *);
 void GenericVarAppend(GenericVar **, GenericVar *);
 void GenericVarRemove(GenericVar **, GenericVar *);
 
-int AddVariableToResolveList(ResolvedVariablesList *list, char *var);
+int AddVariableToResolveList(ResolvedVariablesList *list, const char *var);
 void CleanVariableResolveList(ResolvedVariablesList *var_list);
 
 #endif /* __UTIL_VAR_H__ */
