@@ -389,18 +389,16 @@ static int ProcessSigFiles(DetectEngineCtx *de_ctx, char *pattern,
 
     for (size_t i = 0; i < (size_t)files.gl_pathc; i++) {
         char *fname = files.gl_pathv[i];
-        SCLogInfo("Loading rule file: %s", fname);
+        if (strcmp("/dev/null", fname) == 0)
+            continue;
+
+        SCLogConfig("Loading rule file: %s", fname);
         r = DetectLoadSigFile(de_ctx, fname, good_sigs, bad_sigs);
         if (r < 0) {
             ++(st->bad_files);
         }
 
         ++(st->total_files);
-
-        if (*good_sigs == 0) {
-            SCLogWarning(SC_ERR_NO_RULES,
-                "No rules loaded from %s", fname);
-        }
 
         st->good_sigs_total += *good_sigs;
         st->bad_sigs_total += *bad_sigs;
@@ -479,11 +477,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         }
 
         if (good_sigs == 0) {
-            SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sig_file);
-
-            if (de_ctx->failure_fatal == 1) {
-                exit(EXIT_FAILURE);
-            }
+            SCLogConfig("No rules loaded from %s", sig_file);
         }
     }
 
