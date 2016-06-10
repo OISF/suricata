@@ -1561,25 +1561,17 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
 static int IPOnlyTestSig01(void)
 {
-    int result = 0;
-    DetectEngineCtx de_ctx;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
 
-    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+    Signature *s = SigInit(de_ctx,"alert tcp any any -> any any (sid:400001; rev:1;)");
+    FAIL_IF(s == NULL);
 
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if(SignatureIsIPOnly(&de_ctx, s))
-        result = 1;
-    else
-        printf("expected a IPOnly signature: ");
-
+    FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
     SigFree(s);
-end:
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -1589,27 +1581,17 @@ end:
 
 static int IPOnlyTestSig02 (void)
 {
-    int result = 0;
-    DetectEngineCtx de_ctx;
-    memset (&de_ctx, 0, sizeof(DetectEngineCtx));
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
 
-    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+    Signature *s = SigInit(de_ctx,"alert tcp any any -> any 80 (sid:400001; rev:1;)");
+    FAIL_IF(s == NULL);
 
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; sid:400001; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if ((SignatureIsIPOnly(&de_ctx, s)))
-        result = 1;
-    else
-        printf("got a non-IPOnly signature: ");
-
+    FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
     SigFree(s);
-
-end:
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 /**
@@ -2119,52 +2101,36 @@ int IPOnlyTestSig12(void)
 
 static int IPOnlyTestSig13(void)
 {
-    int result = 0;
-    DetectEngineCtx de_ctx;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
 
-    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
-
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,
+    Signature *s = SigInit(de_ctx,
                            "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
                            "flowbits:set,myflow1; sid:1; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if (SignatureIsIPOnly(&de_ctx, s))
-        result = 1;
-    else
-        printf("expected a IPOnly signature: ");
+    FAIL_IF(s == NULL);
 
+    FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 0);
     SigFree(s);
-end:
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 static int IPOnlyTestSig14(void)
 {
-    int result = 0;
-    DetectEngineCtx de_ctx;
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    FAIL_IF(de_ctx == NULL);
+    de_ctx->flags |= DE_QUIET;
 
-    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
-
-    de_ctx.flags |= DE_QUIET;
-
-    Signature *s = SigInit(&de_ctx,
+    Signature *s = SigInit(de_ctx,
                            "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
                            "flowbits:set,myflow1; flowbits:isset,myflow2; sid:1; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    if (SignatureIsIPOnly(&de_ctx, s))
-        printf("expected a IPOnly signature: ");
-    else
-        result = 1;
+    FAIL_IF(s == NULL);
 
+    FAIL_IF(SignatureIsIPOnly(de_ctx, s) == 1);
     SigFree(s);
-end:
-    return result;
+    DetectEngineCtxFree(de_ctx);
+    PASS;
 }
 
 int IPOnlyTestSig15(void)
