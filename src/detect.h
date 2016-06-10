@@ -425,7 +425,7 @@ typedef struct Signature_ {
     DetectReference *references;
 
     /** address settings for this signature */
-    DetectAddressHead src, dst;
+    const DetectAddressHead *src, *dst;
 
     /* used at init to determine max dsize */
     SigMatch *dsize_sm;
@@ -676,6 +676,9 @@ typedef struct DetectEngineCtx_ {
 
     DetectPort *tcp_whitelist;
     DetectPort *udp_whitelist;
+
+    /** table for storing the string representation with the parsers result */
+    HashListTable *address_table;
 
 } DetectEngineCtx;
 

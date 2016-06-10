@@ -624,7 +624,7 @@ error:
  *
  *  \retval 0 ok, -1 error
  */
-int SigParseAddress(const DetectEngineCtx *de_ctx,
+static int SigParseAddress(DetectEngineCtx *de_ctx,
         Signature *s, const char *addrstr, char flag)
 {
     SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
@@ -634,13 +634,15 @@ int SigParseAddress(const DetectEngineCtx *de_ctx,
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_SRC_ANY;
 
-        if (DetectAddressParse(de_ctx, &s->src, (char *)addrstr) < 0)
+        s->src = DetectParseAddress(de_ctx, addrstr);
+        if (s->src == NULL)
             goto error;
     } else {
         if (strcasecmp(addrstr, "any") == 0)
             s->flags |= SIG_FLAG_DST_ANY;
 
-        if (DetectAddressParse(de_ctx, &s->dst, (char *)addrstr) < 0)
+        s->dst = DetectParseAddress(de_ctx, addrstr);
+        if (s->dst == NULL)
             goto error;
     }
 
@@ -808,7 +810,7 @@ int SigParseAction(Signature *s, const char *action)
  *  \internal
  *  \brief split a signature string into a few blocks for further parsing
  */
-static int SigParseBasics(const DetectEngineCtx *de_ctx,
+static int SigParseBasics(DetectEngineCtx *de_ctx,
         Signature *s, const char *sigstr, SignatureParser *parser, uint8_t addrs_direction)
 {
 #define MAX_SUBSTRINGS 30
@@ -1018,9 +1020,6 @@ void SigFree(Signature *s)
     }
     SigMatchFreeArrays(s);
 
-    DetectAddressHeadCleanup(&s->src);
-    DetectAddressHeadCleanup(&s->dst);
-
     if (s->sp != NULL) {
         DetectPortCleanupList(s->sp);
     }
@@ -1060,7 +1059,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses */
     uint16_t cnt = 0;
     uint16_t idx = 0;
-    DetectAddress *da = s->src.ipv4_head;
+    DetectAddress *da = s->src->ipv4_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1070,7 +1069,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->src.ipv4_head; da != NULL; da = da->next) {
+        for (da = s->src->ipv4_head; da != NULL; da = da->next) {
             s->addr_src_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
             s->addr_src_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1081,7 +1080,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses */
     cnt = 0;
     idx = 0;
-    da = s->dst.ipv4_head;
+    da = s->dst->ipv4_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1091,7 +1090,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->dst.ipv4_head; da != NULL; da = da->next) {
+        for (da = s->dst->ipv4_head; da != NULL; da = da->next) {
             s->addr_dst_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
             s->addr_dst_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
             idx++;
@@ -1102,7 +1101,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* source addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->src.ipv6_head;
+    da = s->src->ipv6_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1112,7 +1111,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->src.ipv6_head; da != NULL; da = da->next) {
+        for (da = s->src->ipv6_head; da != NULL; da = da->next) {
             s->addr_src_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
             s->addr_src_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
             s->addr_src_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
@@ -1129,7 +1128,7 @@ static void SigBuildAddressMatchArray(Signature *s)
     /* destination addresses IPv6 */
     cnt = 0;
     idx = 0;
-    da = s->dst.ipv6_head;
+    da = s->dst->ipv6_head;
     for ( ; da != NULL; da = da->next) {
         cnt++;
     }
@@ -1139,7 +1138,7 @@ static void SigBuildAddressMatchArray(Signature *s)
             exit(EXIT_FAILURE);
         }
 
-        for (da = s->dst.ipv6_head; da != NULL; da = da->next) {
+        for (da = s->dst->ipv6_head; da != NULL; da = da->next) {
             s->addr_dst_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
             s->addr_dst_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
             s->addr_dst_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
