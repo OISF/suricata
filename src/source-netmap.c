@@ -133,6 +133,11 @@ TmEcode NoNetmapSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #if defined(__linux__)
 #define POLL_EVENTS (POLLHUP|POLLRDHUP|POLLERR|POLLNVAL)
+
+#ifndef IFF_PPROMISC
+#define IFF_PPROMISC IFF_PROMISC
+#endif
+
 #else
 #define POLL_EVENTS (POLLHUP|POLLERR|POLLNVAL)
 #endif
@@ -438,8 +443,9 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         close(if_fd);
         goto error_fd;
     }
-    if (promisc) {
-        if_flags |= IFF_PROMISC;
+    /* if needed, try to set iface in promisc mode */
+    if (promisc && (if_flags & (IFF_PROMISC|IFF_PPROMISC)) == 0) {
+        if_flags |= IFF_PPROMISC;
         NetmapSetIfaceFlags(if_fd, ifname, if_flags);
     }
 
