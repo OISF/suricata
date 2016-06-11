@@ -35,25 +35,34 @@ enum {
 
 #define NETMAP_IFACE_NAME_LENGTH    48
 
-typedef struct NetmapIfaceConfig_
+typedef struct NetmapIfaceSettings_
 {
-    /* semantic interface name */
-    char iface_name[NETMAP_IFACE_NAME_LENGTH];
     /* real inner interface name */
     char iface[NETMAP_IFACE_NAME_LENGTH];
-    /* sw ring flag for iface */
-    int iface_sw;
+
     int threads;
+    /* sw ring flag for out_iface */
+    int sw_ring;
     int promisc;
     int copy_mode;
     ChecksumValidationMode checksum_mode;
     char *bpf_filter;
+} NetmapIfaceSettings;
+
+typedef struct NetmapIfaceConfig_
+{
+    /* semantic interface name */
+    char iface_name[NETMAP_IFACE_NAME_LENGTH];
+
+    /* settings for out capture device*/
+    NetmapIfaceSettings in;
+
     /* semantic interface name */
     char *out_iface_name;
-    /* real inner interface name */
-    char out_iface[NETMAP_IFACE_NAME_LENGTH];
-    /* sw ring flag for out_iface */
-    int out_iface_sw;
+
+    /* settings for outgoing iface for IPS/TAP */
+    NetmapIfaceSettings out;
+
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } NetmapIfaceConfig;
