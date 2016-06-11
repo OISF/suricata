@@ -755,6 +755,12 @@
             AS_HELP_STRING([--enable-nflog],[Enable libnetfilter_log support]),
                            [ enable_nflog="yes"],
                            [ enable_nflog="no"])
+
+    PKG_CHECK_MODULES([libnetfilter_queue], [libnetfilter_queue >= 1.0], [enable_nfqueue=yes])
+    if test "$enable_nfqueue" != "no"; then
+        CPPFLAGS="${CPPFLAGS} ${libnetfilter_queue_CFLAGS}"
+    fi
+
     AC_ARG_ENABLE(nfqueue,
            AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),[enable_nfqueue=yes],[enable_nfqueue=no])
 
