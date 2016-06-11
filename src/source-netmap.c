@@ -622,8 +622,8 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     memset(ntv, 0, sizeof(*ntv));
 
     ntv->tv = tv;
-    ntv->checksum_mode = aconf->checksum_mode;
-    ntv->copy_mode = aconf->copy_mode;
+    ntv->checksum_mode = aconf->in.checksum_mode;
+    ntv->copy_mode = aconf->in.copy_mode;
 
     ntv->livedev = LiveGetDevice(aconf->iface_name);
     if (ntv->livedev == NULL) {
@@ -631,32 +631,32 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
         goto error_ntv;
     }
 
-    if (NetmapOpen(aconf->iface, aconf->promisc, &ntv->ifsrc, 1) != 0) {
+    if (NetmapOpen(aconf->in.iface, aconf->in.promisc, &ntv->ifsrc, 1) != 0) {
         goto error_ntv;
     }
 
-    if (unlikely(!aconf->iface_sw && !ntv->ifsrc->rx_rings_cnt)) {
+    if (unlikely(!aconf->in.sw_ring && !ntv->ifsrc->rx_rings_cnt)) {
         SCLogError(SC_ERR_NETMAP_CREATE,
                    "Input interface '%s' does not have Rx rings",
                    aconf->iface_name);
         goto error_src;
     }
 
-    if (unlikely(aconf->iface_sw && aconf->threads > 1)) {
+    if (unlikely(aconf->in.sw_ring && aconf->in.threads > 1)) {
         SCLogError(SC_ERR_INVALID_VALUE,
                    "Interface '%s+'. "
                    "Thread count can't be greater than 1 for SW ring.",
                    aconf->iface_name);
         goto error_src;
-    } else if (unlikely(aconf->threads > ntv->ifsrc->rx_rings_cnt)) {
+    } else if (unlikely(aconf->in.threads > ntv->ifsrc->rx_rings_cnt)) {
         SCLogError(SC_ERR_INVALID_VALUE,
                    "Thread count can't be greater than Rx ring count. "
                    "Configured %d threads for interface '%s' with %d Rx rings.",
-                   aconf->threads, aconf->iface_name, ntv->ifsrc->rx_rings_cnt);
+                   aconf->in.threads, aconf->iface_name, ntv->ifsrc->rx_rings_cnt);
         goto error_src;
     }
 
-    if (aconf->iface_sw) {
+    if (aconf->in.sw_ring) {
         ntv->thread_idx = 0;
     } else {
         do {
@@ -665,35 +665,35 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     }
 
     /* calculate thread rings binding */
-    if (aconf->iface_sw) {
+    if (aconf->in.sw_ring) {
         ntv->src_ring_from = ntv->src_ring_to = ntv->ifsrc->rings_cnt;
     } else {
-        int tmp = (ntv->ifsrc->rx_rings_cnt + 1) / aconf->threads;
+        int tmp = (ntv->ifsrc->rx_rings_cnt + 1) / aconf->in.threads;
         ntv->src_ring_from = ntv->thread_idx * tmp;
         ntv->src_ring_to = ntv->src_ring_from + tmp - 1;
-        if (ntv->thread_idx == (aconf->threads - 1)) {
+        if (ntv->thread_idx == (aconf->in.threads - 1)) {
             ntv->src_ring_to = ntv->ifsrc->rx_rings_cnt - 1;
         }
     }
     SCLogDebug("netmap: %s thread:%d rings:%d-%d", aconf->iface_name,
                ntv->thread_idx, ntv->src_ring_from, ntv->src_ring_to);
 
-    if (aconf->copy_mode != NETMAP_COPY_MODE_NONE) {
-        if (NetmapOpen(aconf->out_iface, 0, &ntv->ifdst, 1) != 0) {
+    if (aconf->in.copy_mode != NETMAP_COPY_MODE_NONE) {
+        if (NetmapOpen(aconf->out.iface, aconf->out.promisc, &ntv->ifdst, 1) != 0) {
             goto error_src;
         }
 
-        if (unlikely(!aconf->out_iface_sw && !ntv->ifdst->tx_rings_cnt)) {
+        if (unlikely(!aconf->out.sw_ring && !ntv->ifdst->tx_rings_cnt)) {
             SCLogError(SC_ERR_NETMAP_CREATE,
                        "Output interface '%s' does not have Tx rings",
-                       aconf->out_iface_name);
+                       aconf->out.iface);
             goto error_dst;
         }
 
         /* calculate dst rings bindings */
         for (int i = ntv->src_ring_from; i <= ntv->src_ring_to; i++) {
             NetmapRing *ring = &ntv->ifsrc->rings[i];
-            if (aconf->out_iface_sw) {
+            if (aconf->out.sw_ring) {
                 ring->dst_ring_from = ring->dst_ring_to = ntv->ifdst->rings_cnt;
             } else if (ntv->ifdst->tx_rings_cnt > ntv->ifsrc->rx_rings_cnt) {
                 int tmp = (ntv->ifdst->tx_rings_cnt + 1) / ntv->ifsrc->rx_rings_cnt;
@@ -709,7 +709,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
             ring->dst_next_ring = ring->dst_ring_from;
 
             SCLogDebug("netmap: %s(%d)->%s(%d-%d)",
-                       aconf->iface_name, i, aconf->out_iface_name,
+                       aconf->in.iface, i, aconf->out.iface,
                        ring->dst_ring_from, ring->dst_ring_to);
         }
     }
@@ -722,11 +722,11 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
 
     /* enable zero-copy mode for workers runmode */
     char const *active_runmode = RunmodeGetActive();
-    if ((aconf->copy_mode != NETMAP_COPY_MODE_NONE) && active_runmode
-            && !strcmp("workers", active_runmode)) {
+    if ((aconf->in.copy_mode != NETMAP_COPY_MODE_NONE) && active_runmode &&
+            strcmp("workers", active_runmode) == 0) {
         ntv->flags |= NETMAP_FLAG_ZERO_COPY;
         SCLogPerf("Enabling zero copy mode for %s->%s",
-                  aconf->iface_name, aconf->out_iface_name);
+                  aconf->in.iface, aconf->out.iface);
     } else {
         uint16_t ring_size = ntv->ifsrc->rings[0].rx->num_slots;
         if (ring_size > max_pending_packets) {
@@ -738,16 +738,17 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
         }
     }
 
-    if (aconf->bpf_filter) {
+    if (aconf->in.bpf_filter) {
         SCLogConfig("Using BPF '%s' on iface '%s'",
-                  aconf->bpf_filter, ntv->ifsrc->ifname);
+                  aconf->in.bpf_filter, ntv->ifsrc->ifname);
         if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
                     LINKTYPE_ETHERNET,    /* linktype_arg */
                     &ntv->bpf_prog,       /* program */
-                    aconf->bpf_filter,    /* const char *buf */
+                    aconf->in.bpf_filter, /* const char *buf */
                     1,                    /* optimize */
                     PCAP_NETMASK_UNKNOWN  /* mask */
-                    ) == -1) {
+                    ) == -1)
+        {
             SCLogError(SC_ERR_NETMAP_CREATE, "Filter compilation failed.");
             goto error_dst;
         }
@@ -758,7 +759,7 @@ static TmEcode ReceiveNetmapThreadInit(ThreadVars *tv, void *initdata, void **da
     SCReturnInt(TM_ECODE_OK);
 
 error_dst:
-    if (aconf->copy_mode != NETMAP_COPY_MODE_NONE) {
+    if (aconf->in.copy_mode != NETMAP_COPY_MODE_NONE) {
         NetmapClose(ntv->ifdst);
     }
 error_src:
