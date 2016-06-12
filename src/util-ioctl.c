@@ -137,75 +137,91 @@ int GetIfaceMaxPacketSize(const char *pcap_dev)
     return ll_header + mtu;
 }
 
-/**
- * \brief output offloading status of the link
- *
- * Test interface for GRO and LRO features. If one of them is
- * activated then suricata mays received packets merge at reception.
- * The result is oversized packets and this may cause some serious
- * problem in some capture mode where the size of the packet is
- * limited (AF_PACKET in V2 more for example).
- *
- * ETHTOOL_GGRO ETH_FLAG_LRO
- *
- * \param Name of link
- * \retval -1 in case of error, 0 if none, 1 if some
- */
-int GetIfaceOffloading(const char *pcap_dev)
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
 {
-#if defined (ETHTOOL_GGRO) && defined (ETHTOOL_GFLAGS)
     struct ifreq ifr;
     int fd;
     struct ethtool_value ethv;
-    int ret = 0;
-    char *lro = "unset", *gro = "unset";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         return -1;
     }
-    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+    (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 
-    /* First get GRO */
-    ethv.cmd = ETHTOOL_GGRO;
+    ethv.cmd = cmd;
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
                   "Failure when trying to get feature via ioctl for '%s': %s (%d)",
-                  pcap_dev, strerror(errno), errno);
+                  dev, strerror(errno), errno);
         close(fd);
         return -1;
-    } else {
-        if (ethv.data) {
-            gro = "SET";
-            ret = 1;
-        }
     }
 
-    /* Then get LRO which is set in a flag */
-    ethv.data = 0;
-    ethv.cmd = ETHTOOL_GFLAGS;
-    ifr.ifr_data = (void *) &ethv;
-    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
-                  pcap_dev, strerror(errno), errno);
-        close(fd);
-        return -1;
-    } else {
-        if (ethv.data & ETH_FLAG_LRO) {
+    *value = ethv.data;
+    close(fd);
+    return 0;
+}
+#endif
+
+/**
+ * \brief output offloading status of the link
+ *
+ * Test interface for offloading features. If one of them is
+ * activated then suricata mays received packets merge at reception.
+ * The result is oversized packets and this may cause some serious
+ * problem in some capture mode where the size of the packet is
+ * limited (AF_PACKET in V2 more for example).
+ *
+ * \param Name of link
+ * \retval -1 in case of error, 0 if none, 1 if some
+ */
+int GetIfaceOffloading(const char *dev)
+{
+    int ret = 0;
+    char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
+    char *sg = "unset";
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+    uint32_t value = 0;
+
+#ifdef ETHTOOL_GGRO
+    if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
+        gro = "SET";
+        ret = 1;
+    }
+#endif
+#ifdef ETHTOOL_GTSO
+    if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
+        tso = "SET";
+        ret = 1;
+    }
+#endif
+#ifdef ETHTOOL_GGSO
+    if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
+        gso = "SET";
+        ret = 1;
+    }
+#endif
+#ifdef ETHTOOL_GSG
+    if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
+        sg = "SET";
+        ret = 1;
+    }
+#endif
+#ifdef ETHTOOL_GFLAGS
+    if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+        if (value & ETH_FLAG_LRO) {
             lro = "SET";
             ret = 1;
         }
     }
-
-    close(fd);
-    SCLogInfo("NIC offloading on %s: GRO: %s, LRO: %s", pcap_dev, gro, lro);
-    return ret;
-#else
-    /* ioctl is not defined, let's pretend returning 0 is ok */
-    return 0;
 #endif
+#endif
+    SCLogInfo("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
+            "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
+    return ret;
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
