@@ -761,6 +761,10 @@
                            [ enable_nflog="no"])
     AC_ARG_ENABLE(nfqueue,
            AS_HELP_STRING([--enable-nfqueue], [Enable NFQUEUE support for inline IDP]),[enable_nfqueue=yes],[enable_nfqueue=no])
+    if test "$enable_nfqueue" != "no"; then
+        PKG_CHECK_MODULES([libnetfilter_queue], [libnetfilter_queue], [enable_nfqueue=yes], [enable_nfqueue=no])
+        CPPFLAGS="${CPPFLAGS} ${libnetfilter_queue_CFLAGS}"
+    fi
 
     if test "x$enable_nflog" = "xyes" || test  "x$enable_nfqueue" = "xyes"; then
   # libnfnetlink
