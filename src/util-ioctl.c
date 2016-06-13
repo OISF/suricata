@@ -363,6 +363,7 @@ static int GetIfaceOffloadingBSD(const char *ifname)
                 "problems. Run: ifconfig %s -rxcsum", ifname, ifname);
         ret = 1;
     }
+#ifdef IFCAP_TOE
     if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
         SCLogWarning(SC_ERR_NIC_OFFLOADING,
                 "Using %s with TSO, TOE or LRO activated can lead to "
@@ -370,6 +371,15 @@ static int GetIfaceOffloadingBSD(const char *ifname)
                 ifname, ifname);
         ret = 1;
     }
+#else
+    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with TSO or LRO activated can lead to "
+                "capture problems. Run: ifconfig %s -tso -lro",
+                ifname, ifname);
+        ret = 1;
+    }
+#endif
     return ret;
 }
 #endif
