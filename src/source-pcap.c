@@ -727,6 +727,9 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         case LINKTYPE_NULL:
             DecodeNull(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
+        case LINKTYPE_CHDLC:
+            DecodeCHDLC(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module DecodePcap", p->datalink);
             break;
