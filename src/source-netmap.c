@@ -80,6 +80,8 @@
 
 #endif /* HAVE_NETMAP */
 
+#include "util-ioctl.h"
+
 extern intmax_t max_pending_packets;
 
 #ifndef HAVE_NETMAP
@@ -224,113 +226,6 @@ typedef TAILQ_HEAD(NetmapDeviceList_, NetmapDevice_) NetmapDeviceList;
 static NetmapDeviceList netmap_devlist = TAILQ_HEAD_INITIALIZER(netmap_devlist);
 static SCMutex netmap_devlist_lock = SCMUTEX_INITIALIZER;
 
-/**
- * \brief Get interface flags.
- * \param fd Network susbystem file descritor.
- * \param ifname Inteface name.
- * \return Interface flags or -1 on error
- */
-static int NetmapGetIfaceFlags(int fd, const char *ifname)
-{
-    struct ifreq ifr;
-
-    memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-
-    if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                   "Unable to get flags for iface \"%s\": %s",
-                   ifname, strerror(errno));
-        return -1;
-    }
-
-#ifdef OS_FREEBSD
-    int flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
-    return flags;
-#else
-    return ifr.ifr_flags;
-#endif
-}
-
-#ifdef SIOCGIFCAP
-static int NetmapGetIfaceCaps(int fd, const char *ifname)
-{
-    struct ifreq ifr;
-
-    memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-
-    if (ioctl(fd, SIOCGIFCAP, &ifr) == -1) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                   "Unable to get caps for iface \"%s\": %s",
-                   ifname, strerror(errno));
-        return -1;
-    }
-
-    return ifr.ifr_curcap;
-}
-#endif
-
-static void NetmapCheckOffloading(int fd, const char *ifname)
-{
-#ifdef SIOCGIFCAP
-    int if_caps = NetmapGetIfaceCaps(fd, ifname);
-    if (if_caps == -1) {
-        return;
-    }
-    SCLogDebug("if_caps %X", if_caps);
-
-    if (if_caps & IFCAP_RXCSUM) {
-        SCLogWarning(SC_ERR_NETMAP_CREATE,
-                "Using NETMAP with RXCSUM activated can lead to capture "
-                "problems: ifconfig %s -rxcsum", ifname);
-    }
-    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
-        SCLogWarning(SC_ERR_NETMAP_CREATE,
-                "Using NETMAP with TSO, TOE or LRO activated can lead to "
-                "capture problems: ifconfig %s -tso -toe -lro", ifname);
-    }
-#else
-    if (GetIfaceOffloading(ifname) == 1) {
-        SCLogWarning(SC_ERR_NETMAP_CREATE,
-                "Using NETMAP with GRO or LRO activated can lead to "
-                "capture problems: "
-                "ethtool -K %s rx off sg off gro off gso off tso off",
-                ifname);
-    }
-#endif
-}
-
-/**
- * \brief Set interface flags.
- * \param fd Network susbystem file descritor.
- * \param ifname Inteface name.
- * \param flags Flags to set.
- * \return Zero on success.
- */
-static int NetmapSetIfaceFlags(int fd, const char *ifname, int flags)
-{
-    struct ifreq ifr;
-
-    memset(&ifr, 0, sizeof(ifr));
-    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-#ifdef OS_FREEBSD
-    ifr.ifr_flags = flags & 0xffff;
-    ifr.ifr_flagshigh = flags >> 16;
-#else
-    ifr.ifr_flags = flags;
-#endif
-
-    if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                   "Unable to set flags for iface \"%s\": %s",
-                   ifname, strerror(errno));
-        return -1;
-    }
-
-    return 0;
-}
-
 /** \brief get RSS RX-queue count
  *  \retval rx_rings RSS RX queue count or 1 on error
  */
@@ -398,6 +293,8 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         }
     }
 
+    (void)GetIfaceOffloading(ifname);
+
     /* not found, create new record */
     pdev = SCMalloc(sizeof(*pdev));
     if (unlikely(pdev == NULL)) {
@@ -419,38 +316,24 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
     }
 
     /* check interface is up */
-    int if_fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (if_fd < 0) {
-        SCLogError(SC_ERR_NETMAP_CREATE,
-                   "Couldn't create control socket for '%s' interface",
-                   ifname);
-        goto error_fd;
-    }
-    int if_flags = NetmapGetIfaceFlags(if_fd, ifname);
+    int if_flags = GetIfaceFlags(ifname);
     if (if_flags == -1) {
         if (verbose) {
             SCLogError(SC_ERR_NETMAP_CREATE,
                        "Can not access to interface '%s'",
                        ifname);
         }
-        close(if_fd);
         goto error_fd;
     }
     if ((if_flags & IFF_UP) == 0) {
-        if (verbose) {
-            SCLogError(SC_ERR_NETMAP_CREATE, "Interface '%s' is down", ifname);
-        }
-        close(if_fd);
+        SCLogWarning(SC_ERR_NETMAP_CREATE, "Interface '%s' is down", ifname);
         goto error_fd;
     }
     /* if needed, try to set iface in promisc mode */
     if (promisc && (if_flags & (IFF_PROMISC|IFF_PPROMISC)) == 0) {
         if_flags |= IFF_PPROMISC;
-        NetmapSetIfaceFlags(if_fd, ifname, if_flags);
+        SetIfaceFlags(ifname, if_flags);
     }
-
-    NetmapCheckOffloading(if_fd, ifname);
-    close(if_fd);
 
     /* query netmap info */
     memset(&nm_req, 0, sizeof(nm_req));

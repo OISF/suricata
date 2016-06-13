@@ -324,6 +324,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_NETFLOW_LOG_GENERIC);
         CASE_CODE (SC_ERR_SMTP_LOG_GENERIC);
         CASE_CODE (SC_ERR_SSH_LOG_GENERIC);
+        CASE_CODE (SC_ERR_NIC_OFFLOADING);
     }
 
     return "UNKNOWN_ERROR";
