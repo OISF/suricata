@@ -441,13 +441,14 @@ ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t *top, uint32_t *pkts_read)
             /* In these types the color value overwrites the lctr
              * (drop count). */
             break;
+        case TYPE_HDLC_POS:
         case TYPE_ETH:
             if (dr->lctr) {
                 StatsAddUI64(ewtn->tv, ewtn->drops, ntohs(dr->lctr));
             }
             break;
         default:
-            SCLogError(SC_ERR_UNIMPLEMENTED,
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
                 "Processing of DAG record type: %d not implemented.", dr->type);
             SCReturnInt(TM_ECODE_FAILED);
         }
@@ -478,8 +479,9 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
     int hdr_num = 0;
     char hdr_type = 0;
     dag_record_t  *dr = (dag_record_t*)prec;
-    erf_payload_t *pload;
+    erf_payload_t *erf_payload;
     Packet *p;
+    uint8_t *pkt_data;
 
     hdr_type = dr->type;
     wlen = ntohs(dr->wlen);
@@ -498,12 +500,9 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
 
     /* Check that the whole frame was captured */
     if (rlen < (dag_record_size + (8 * hdr_num) + 2 + wlen)) {
-        SCLogInfo("Incomplete frame captured.");
+        SCLogDebug("Incomplete frame captured.");
         SCReturnInt(TM_ECODE_OK);
     }
-
-    /* skip over extension headers */
-    pload = (erf_payload_t *)(prec + dag_record_size + (8 * hdr_num));
 
     p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
@@ -513,14 +512,32 @@ ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec)
         SCReturnInt(TM_ECODE_FAILED);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
-
     SET_PKT_LEN(p, wlen);
-    p->datalink = LINKTYPE_ETHERNET;
+
+    /* skip over extension headers */
+    erf_payload = (erf_payload_t *)(prec + dag_record_size + (8 * hdr_num));
+
+    switch (hdr_type) {
+        case ERF_TYPE_HDLC_POS:
+            p->datalink = LINKTYPE_CHDLC;
+            pkt_data = (uint8_t *)erf_payload;
+            break;
+        case ERF_TYPE_ETH:
+            p->datalink = LINKTYPE_ETHERNET;
+            pkt_data = erf_payload->eth.dst;
+            break;
+        default:
+            /* Shouldn't reach here. */
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
+                "Processing of DAG record type: %d not implemented.", dr->type);
+            SCReturnInt(TM_ECODE_FAILED);
+            break;
+    }
 
     /* Take into account for link type Ethernet ETH frame starts
      * after ther ERF header + pad.
      */
-    if (unlikely(PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p)))) {
+    if (unlikely(PacketCopyData(p, pkt_data, GET_PKT_LEN(p)))) {
         TmqhOutputPacketpool(ewtn->tv, p);
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -628,6 +645,9 @@ DecodeErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     switch(p->datalink) {
         case LINKTYPE_ETHERNET:
             DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        case LINKTYPE_CHDLC:
+            DecodeCHDLC(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
