@@ -66,6 +66,7 @@ enum PktSrcEnum {
 
 #include "action-globals.h"
 
+#include "decode-chdlc.h"
 #include "decode-erspan.h"
 #include "decode-ethernet.h"
 #include "decode-gre.h"
@@ -466,6 +467,7 @@ typedef struct Packet_
 
     /* header pointers */
     EthernetHdr *ethh;
+    CHDLCHdr *chdlch;
 
     /* Checksum for IP packets. */
     int32_t level3_comp_csum;
@@ -943,6 +945,8 @@ int DecodeGRE(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, P
 int DecodeVLAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeMPLS(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 int DecodeERSPAN(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+int DecodeCHDLC(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *,
+    uint16_t, PacketQueue *);
 
 void AddressDebugPrint(Address *);
 
@@ -1062,6 +1066,7 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
 #define LINKTYPE_LINUX_SLL  113
 #define LINKTYPE_PPP        9
 #define LINKTYPE_RAW        DLT_RAW
+#define LINKTYPE_CHDLC      DLT_C_HDLC
 #define PPP_OVER_GRE        11
 #define VLAN_OVER_GRE       13
 

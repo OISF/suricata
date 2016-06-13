@@ -188,6 +188,9 @@ enum {
     /* Cisco Fabric Path/DCE events. */
     DCE_PKT_TOO_SMALL,
 
+    /* Cisco HDLC events. */
+    CHDLC_PKT_TOO_SMALL, /**< CHDLC packet smaller than minimum size. */
+
     /* END OF DECODE EVENTS ON SINGLE PACKET */
     DECODE_EVENT_PACKET_MAX,
 
