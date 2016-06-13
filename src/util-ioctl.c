@@ -137,6 +137,106 @@ int GetIfaceMaxPacketSize(const char *pcap_dev)
     return ll_header + mtu;
 }
 
+#ifdef SIOCGIFFLAGS
+/**
+ * \brief Get interface flags.
+ * \param ifname Inteface name.
+ * \return Interface flags or -1 on error
+ */
+int GetIfaceFlags(const char *ifname)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to get flags for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+#ifdef OS_FREEBSD
+    int flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
+    return flags;
+#else
+    return ifr.ifr_flags;
+#endif
+}
+#endif
+
+#ifdef SIOCSIFFLAGS
+/**
+ * \brief Set interface flags.
+ * \param ifname Inteface name.
+ * \param flags Flags to set.
+ * \return Zero on success.
+ */
+int SetIfaceFlags(const char *ifname, int flags)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+#ifdef OS_FREEBSD
+    ifr.ifr_flags = flags & 0xffff;
+    ifr.ifr_flagshigh = flags >> 16;
+#else
+    ifr.ifr_flags = flags;
+#endif
+
+    if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to set flags for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+#endif /* SIOCGIFFLAGS */
+
+#ifdef SIOCGIFCAP
+int GetIfaceCaps(const char *ifname)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFCAP, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to get caps for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return ifr.ifr_curcap;
+}
+#endif
+
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
 static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
 {
@@ -204,12 +304,46 @@ static int GetIfaceOffloadingLinux(const char *dev)
         }
     }
 #endif
-    SCLogInfo("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
-            "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
+    if (ret == 0) {
+        SCLogInfo("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
+                "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
+    } else {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
+                " GRO: %s, LRO: %s, TSO: %s, GSO: %s: "
+                "ethtool -K %s sg off gro off lro off tso off gso off",
+                dev, sg, gro, lro, tso, gso, dev);
+    }
     return ret;
 }
 
 #endif /* defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL */
+
+#ifdef SIOCGIFCAP
+static int GetIfaceOffloadingBSD(const char *ifname)
+{
+    int ret = 0;
+    int if_caps = GetIfaceCaps(ifname);
+    if (if_caps == -1) {
+        return -1;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (if_caps & IFCAP_RXCSUM) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with RXCSUM activated can lead to capture "
+                "problems: ifconfig %s -rxcsum", ifname, ifname);
+        ret = 1;
+    }
+    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with TSO, TOE or LRO activated can lead to "
+                "capture problems: ifconfig %s -tso -toe -lro",
+                ifname, ifname);
+        ret = 1;
+    }
+    return ret;
+}
+#endif
 
 /**
  * \brief output offloading status of the link
@@ -227,8 +361,11 @@ int GetIfaceOffloading(const char *dev)
 {
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
     return GetIfaceOffloadingLinux(dev);
-#endif
+#elif defined SIOCGIFCAP
+    return GetIfaceOffloadingBSD(dev);
+#else
     return 0;
+#endif
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)

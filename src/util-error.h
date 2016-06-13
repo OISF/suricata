@@ -314,6 +314,7 @@ typedef enum {
     SC_ERR_NETFLOW_LOG_GENERIC,
     SC_ERR_SMTP_LOG_GENERIC,
     SC_ERR_SSH_LOG_GENERIC,
+    SC_ERR_NIC_OFFLOADING,
 } SCError;
 
 const char *SCErrorToString(SCError);
