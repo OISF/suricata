@@ -510,7 +510,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCMutexUnlock(&pcap_bpf_compile_lock);
     }
 
-    (void)GetIfaceOffloading(pcapconfig->iface);
+    /* no offloading supported at all */
+    (void)GetIfaceOffloading(pcapconfig->iface, 1, 1);
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 

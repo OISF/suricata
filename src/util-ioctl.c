@@ -265,53 +265,82 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     return 0;
 }
 
-static int GetIfaceOffloadingLinux(const char *dev)
+static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
 {
     int ret = 0;
-    char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
-    char *sg = "unset";
     uint32_t value = 0;
 
-#ifdef ETHTOOL_GGRO
-    if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
-        gro = "SET";
-        ret = 1;
-    }
+    if (csum) {
+        char *rx = "unset", *tx = "unset";
+        int csum_ret = 0;
+#ifdef ETHTOOL_GRXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
+            rx = "SET";
+            csum_ret = 1;
+        }
 #endif
-#ifdef ETHTOOL_GTSO
-    if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
-        tso = "SET";
-        ret = 1;
-    }
+#ifdef ETHTOOL_GTXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GTXCSUM, &value) == 0 && value != 0) {
+            tx = "SET";
+            csum_ret = 1;
+        }
 #endif
-#ifdef ETHTOOL_GGSO
-    if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
-        gso = "SET";
-        ret = 1;
-    }
-#endif
-#ifdef ETHTOOL_GSG
-    if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
-        sg = "SET";
-        ret = 1;
-    }
-#endif
-#ifdef ETHTOOL_GFLAGS
-    if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
-        if (value & ETH_FLAG_LRO) {
-            lro = "SET";
+        if (csum_ret == 0)
+            SCLogPerf("NIC offloading on %s: RX %s TX %s", dev, rx, tx);
+        else {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                    "NIC offloading on %s: RX %s TX %s. Run: "
+                    "ethtool -K %s rx off tx off", dev, rx, tx, dev);
             ret = 1;
         }
     }
+
+    if (other) {
+        char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
+        char *sg = "unset";
+        int other_ret = 0;
+#ifdef ETHTOOL_GGRO
+        if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
+            gro = "SET";
+            other_ret = 1;
+        }
 #endif
-    if (ret == 0) {
-        SCLogPerf("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
-                "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
-    } else {
-        SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
-                " GRO: %s, LRO: %s, TSO: %s, GSO: %s: "
-                "ethtool -K %s sg off gro off lro off tso off gso off",
-                dev, sg, gro, lro, tso, gso, dev);
+#ifdef ETHTOOL_GTSO
+        if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
+            tso = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GGSO
+        if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
+            gso = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GSG
+        if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
+            sg = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GFLAGS
+        if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+            if (value & ETH_FLAG_LRO) {
+                lro = "SET";
+                other_ret = 1;
+            }
+        }
+#endif
+        if (other_ret == 0) {
+            SCLogPerf("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
+                    "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
+        } else {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
+                    " GRO: %s, LRO: %s, TSO: %s, GSO: %s. Run: "
+                    "ethtool -K %s sg off gro off lro off tso off gso off",
+                    dev, sg, gro, lro, tso, gso, dev);
+            ret = 1;
+        }
     }
     return ret;
 }
@@ -331,13 +360,13 @@ static int GetIfaceOffloadingBSD(const char *ifname)
     if (if_caps & IFCAP_RXCSUM) {
         SCLogWarning(SC_ERR_NIC_OFFLOADING,
                 "Using %s with RXCSUM activated can lead to capture "
-                "problems: ifconfig %s -rxcsum", ifname, ifname);
+                "problems. Run: ifconfig %s -rxcsum", ifname, ifname);
         ret = 1;
     }
     if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
         SCLogWarning(SC_ERR_NIC_OFFLOADING,
                 "Using %s with TSO, TOE or LRO activated can lead to "
-                "capture problems: ifconfig %s -tso -toe -lro",
+                "capture problems. Run: ifconfig %s -tso -toe -lro",
                 ifname, ifname);
         ret = 1;
     }
@@ -355,12 +384,14 @@ static int GetIfaceOffloadingBSD(const char *ifname)
  * limited (AF_PACKET in V2 more for example).
  *
  * \param Name of link
+ * \param csum check if checksums are offloaded
+ * \param other check if other things are offloaded: TSO, GRO, etc.
  * \retval -1 in case of error, 0 if none, 1 if some
  */
-int GetIfaceOffloading(const char *dev)
+int GetIfaceOffloading(const char *dev, int csum, int other)
 {
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
-    return GetIfaceOffloadingLinux(dev);
+    return GetIfaceOffloadingLinux(dev, csum, other);
 #elif defined SIOCGIFCAP
     return GetIfaceOffloadingBSD(dev);
 #else

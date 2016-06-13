@@ -426,7 +426,8 @@ finalize:
     int ltype = AFPGetLinkType(iface);
     switch (ltype) {
         case LINKTYPE_ETHERNET:
-            if (GetIfaceOffloading(iface) == 1) {
+            /* af-packet can handle csum offloading */
+            if (GetIfaceOffloading(iface, 0, 1) == 1) {
                 SCLogWarning(SC_ERR_AFP_CREATE,
                     "Using AF_PACKET with offloading activated leads to capture problems");
             }
