@@ -76,16 +76,18 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
         case RUNMODE_AFP_DEV:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                     CAP_NET_RAW,            /* needed for pcap live mode */
+                    CAP_SYS_NICE,
                     -1);
             break;
         case RUNMODE_PFRING:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                    CAP_NET_ADMIN, CAP_NET_RAW,
+                    CAP_NET_ADMIN, CAP_NET_RAW, CAP_SYS_NICE,
                     -1);
             break;
         case RUNMODE_NFQ:
             capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                     CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
+                    CAP_SYS_NICE,
                     -1);
             break;
     }
