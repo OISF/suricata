@@ -164,26 +164,12 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     close(fd);
     return 0;
 }
-#endif
 
-/**
- * \brief output offloading status of the link
- *
- * Test interface for offloading features. If one of them is
- * activated then suricata mays received packets merge at reception.
- * The result is oversized packets and this may cause some serious
- * problem in some capture mode where the size of the packet is
- * limited (AF_PACKET in V2 more for example).
- *
- * \param Name of link
- * \retval -1 in case of error, 0 if none, 1 if some
- */
-int GetIfaceOffloading(const char *dev)
+static int GetIfaceOffloadingLinux(const char *dev)
 {
     int ret = 0;
     char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
     char *sg = "unset";
-#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
     uint32_t value = 0;
 
 #ifdef ETHTOOL_GGRO
@@ -218,10 +204,31 @@ int GetIfaceOffloading(const char *dev)
         }
     }
 #endif
-#endif
     SCLogInfo("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
             "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
     return ret;
+}
+
+#endif /* defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL */
+
+/**
+ * \brief output offloading status of the link
+ *
+ * Test interface for offloading features. If one of them is
+ * activated then suricata mays received packets merge at reception.
+ * The result is oversized packets and this may cause some serious
+ * problem in some capture mode where the size of the packet is
+ * limited (AF_PACKET in V2 more for example).
+ *
+ * \param Name of link
+ * \retval -1 in case of error, 0 if none, 1 if some
+ */
+int GetIfaceOffloading(const char *dev)
+{
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+    return GetIfaceOffloadingLinux(dev);
+#endif
+    return 0;
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
