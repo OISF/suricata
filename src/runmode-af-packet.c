@@ -426,7 +426,7 @@ finalize:
         case LINKTYPE_ETHERNET:
             if (GetIfaceOffloading(iface) == 1) {
                 SCLogWarning(SC_ERR_AFP_CREATE,
-                    "Using AF_PACKET with GRO or LRO activated can lead to capture problems");
+                    "Using AF_PACKET with offloading activated leads to capture problems");
             }
         case -1:
         default:
