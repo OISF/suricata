@@ -305,7 +305,7 @@ static int GetIfaceOffloadingLinux(const char *dev)
     }
 #endif
     if (ret == 0) {
-        SCLogInfo("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
+        SCLogPerf("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
                 "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
     } else {
         SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
