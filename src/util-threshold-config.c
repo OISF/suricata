@@ -73,7 +73,7 @@ typedef enum ThresholdRuleType {
  *  suppress gen_id 1, sig_id 2000328
  *  suppress gen_id 1, sig_id 2000328, track by_src, ip fe80::/10
 */
-#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src|by_either)\\s*,\\s*ip\\s*([\\[\\],\\$\\da-zA-Z.:/_]+)*\\s*$"
+#define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src|by_either)\\s*,\\s*ip\\s*([\\[\\],\\$\\s\\da-zA-Z.:/_]+)*\\s*$"
 
 /* Default path for the threshold.config file */
 #if defined OS_WIN32 || defined __CYGWIN__
