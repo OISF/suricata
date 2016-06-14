@@ -1530,6 +1530,12 @@ int AppLayerProtoDetectSetup(void)
     uint16_t spm_matcher = SinglePatternMatchDefaultMatcher();
     uint16_t mpm_matcher = PatternMatchDefaultMatcher();
 
+#ifdef __SC_CUDA_SUPPORT__
+    /* CUDA won't work here, so fall back to AC */
+    if (mpm_matcher == MPM_AC_CUDA)
+        mpm_matcher = DEFAULT_MPM;
+#endif
+
     alpd_ctx.spm_global_thread_ctx = SpmInitGlobalThreadCtx(spm_matcher);
     if (alpd_ctx.spm_global_thread_ctx == NULL) {
         SCLogError(SC_ERR_FATAL, "Unable to alloc SpmGlobalThreadCtx.");
