@@ -223,8 +223,6 @@ static inline int B2gInitHashAdd(B2gCtx *ctx, B2gPattern *p)
     return 0;
 }
 
-static inline int B2gCmpPattern(B2gPattern *p, uint8_t *pat, uint16_t patlen, char flags);
-
 static inline B2gPattern *B2gInitHashLookup(B2gCtx *ctx, uint8_t *pat, uint16_t patlen, char flags,
                                             uint32_t pid)
 {
@@ -238,26 +236,11 @@ static inline B2gPattern *B2gInitHashLookup(B2gCtx *ctx, uint8_t *pat, uint16_t 
 
     B2gPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        //if (B2gCmpPattern(t,pat,patlen,flags) == 1)
         if (t->id == pid)
             return t;
     }
 
     return NULL;
-}
-
-static inline int B2gCmpPattern(B2gPattern *p, uint8_t *pat, uint16_t patlen, char flags)
-{
-    if (p->len != patlen)
-        return 0;
-
-    if (p->flags != flags)
-        return 0;
-
-    if (SCMemcmp(p->cs, pat, patlen) != 0)
-        return 0;
-
-    return 1;
 }
 
 /*
