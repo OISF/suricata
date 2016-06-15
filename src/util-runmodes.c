@@ -629,7 +629,7 @@ int RunModeSetIPSWorker(ConfigIPSParserFunc ConfigParser,
             exit(EXIT_FAILURE);
         }
 
-        TmSlotSetFuncAppend(tv, tm_module, NULL);
+        TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
