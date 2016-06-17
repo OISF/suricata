@@ -1,3 +1,8 @@
+3.1 -- 2016-06-20
+
+Bug #1589: Cannot run nfq in workers mode
+Bug #1804: yaml: legacy detect-engine parsing custom values broken
+
 3.1RC1 -- 2016-06-07
 
 Feature #681: Implement TPACKET_V3 support in AF_PACKET
@@ -16,19 +21,23 @@ Feature #1800: update bundled libhtp to 0.5.20
 Feature #1801: reduce info level verbosity
 Feature #1802: yaml: improve default layout
 Feature #1803: reimplement rule grouping
+Bug #1078: 'Not" operator (!) in Variable causes extremely slow loading of Suricata
 Bug #1202: detect-engine profile medium consumes more memory than detect-engine profile high
 Bug #1289: MPM b2gm matcher has questionable code
 Bug #1487: Configuration parser depends on key ordering
 Bug #1524: Potential Thread Name issues due to RHEL7 Interface Naming Contentions
 Bug #1584: Rule keywords conflict will cause Suricata restart itself in loop
+Bug #1606: [ERRCODE: SC_ERR_SYSCALL(50)] - Failure when trying to get MTU via ioctl: 6
 Bug #1665: Default maximum packet size is insufficient when VLAN tags are present (and not stripped)
 Bug #1714: Kernel panic on application exit with netmap Suricata 3.0 stable
 Bug #1746: deadlock with autofp and --disable-detection
 Bug #1764: app-layer-modbus: AddressSanitizer error (segmentation fault)
 Bug #1768: packet processing threads doubled
+Bug #1771: tls store memory leak
 Bug #1773: smtp: not all attachments inspected in all cases
 Bug #1786: spm crash on rule reload
 Bug #1792: dns-json-log produces no output
+Bug #1795: Remove unused CPU affinity settings from suricata.yaml
 Optimization #563: pmq optimization -- remove patter_id_array
 Optimization #1037: Optimize TCP Option storage
 Optimization #1418: lockless flow handling during capture (autofp)
