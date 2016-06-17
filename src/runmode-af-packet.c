@@ -142,7 +142,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
-    aconf->flags = AFP_RING_MODE|AFP_TPACKET_V3;
+    aconf->flags = AFP_RING_MODE;
     aconf->bpf_filter = NULL;
     aconf->out_iface = NULL;
     aconf->copy_mode = AFP_COPY_MODE_NONE;
@@ -199,15 +199,11 @@ void *ParseAFPConfig(const char *iface)
     }
 
     if (ConfGetChildValueBoolWithDefault(if_root, if_default, "use-mmap", (int *)&boolval) == 1) {
-        if (boolval) {
-            aconf->flags |= AFP_RING_MODE;
-        } else {
+        if (!boolval) {
             SCLogConfig("Disabling mmaped capture on iface %s",
                     aconf->iface);
-            aconf->flags &= ~AFP_RING_MODE;
+            aconf->flags &= ~(AFP_RING_MODE|AFP_TPACKET_V3);
         }
-    } else {
-        aconf->flags |= AFP_RING_MODE;
     }
 
     if (aconf->flags & AFP_RING_MODE) {
@@ -218,25 +214,31 @@ void *ParseAFPConfig(const char *iface)
                     aconf->iface);
             aconf->flags |= AFP_MMAP_LOCKED;
         }
-        (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
-                                               "tpacket-v3", (int *)&boolval);
-        if (boolval) {
-            if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
+
+        if (ConfGetChildValueBoolWithDefault(if_root, if_default,
+                                             "tpacket-v3", (int *)&boolval) == 1)
+        {
+            if (boolval) {
+                if (strcasecmp(RunmodeGetActive(), "workers") == 0) {
 #ifdef HAVE_TPACKET_V3
-                SCLogConfig("Enabling tpacket v3 capture on iface %s",
-                        aconf->iface);
-                aconf->flags |= AFP_TPACKET_V3;
+                    SCLogConfig("Enabling tpacket v3 capture on iface %s",
+                            aconf->iface);
+                    aconf->flags |= AFP_TPACKET_V3;
 #else
-                SCLogNotice("System too old for tpacket v3 switching to v2");
-                aconf->flags &= ~AFP_TPACKET_V3;
+                    SCLogNotice("System too old for tpacket v3 switching to v2");
+                    aconf->flags &= ~AFP_TPACKET_V3;
 #endif
+                } else {
+                    SCLogWarning(SC_ERR_RUNMODE,
+                            "tpacket v3 is only implemented for 'workers' runmode."
+                            " Switching to tpacket v2.");
+                    aconf->flags &= ~AFP_TPACKET_V3;
+                }
             } else {
-                SCLogError(SC_ERR_RUNMODE,
-                        "tpacket v3 is only implemented for 'workers' runmode."
-                        " Switching to tpacket v2.");
                 aconf->flags &= ~AFP_TPACKET_V3;
             }
         }
+
         (void)ConfGetChildValueBoolWithDefault(if_root, if_default,
                                                "use-emergency-flush", (int *)&boolval);
         if (boolval) {

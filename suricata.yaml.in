@@ -514,8 +514,8 @@ af-packet:
     # Lock memory map to avoid it goes to swap. Be careful that over suscribing could lock
     # your system
     #mmap-locked: yes
-    # Use tpacket_v3, capture mode, only active if user-mmap is true
-    tpacket-v3: yes
+    # Use experimental tpacket_v3 capture mode, only active if use-mmap is true
+    #tpacket-v3: yes
     # Ring size will be computed with respect to max_pending_packets and number
     # of threads. You can set manually the ring size in number of packets by setting
     # the following value. If you are using flow cluster-type and have really network
@@ -563,7 +563,7 @@ af-packet:
     #threads: auto
     #use-mmap: no
     #rollover: yes
-    tpacket-v3: yes
+    #tpacket-v3: yes
 
 # Cross platform libpcap capture support
 pcap:
