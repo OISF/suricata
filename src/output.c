@@ -916,7 +916,7 @@ void OutputNotifyFileRotation(void) {
     }
 }
 
-static TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data,
+TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data,
     PacketQueue *pq, PacketQueue *postpq)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
@@ -933,7 +933,7 @@ static TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data,
     return TM_ECODE_OK;
 }
 
-static TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
+TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
     void **data)
 {
     LoggerThreadStore *thread_store = SCCalloc(1, sizeof(*thread_store));
@@ -960,7 +960,7 @@ static TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
     return TM_ECODE_OK;
 }
 
-static TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
+TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
     RootLogger *logger = TAILQ_FIRST(&RootLoggers);
@@ -983,7 +983,7 @@ static TmEcode OutputLoggerThreadDeinit(ThreadVars *tv, void *thread_data)
     return TM_ECODE_OK;
 }
 
-static void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
+void OutputLoggerExitPrintStats(ThreadVars *tv, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
     RootLogger *logger = TAILQ_FIRST(&RootLoggers);
@@ -1015,19 +1015,8 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
 
 void TmModuleLoggerRegister(void)
 {
-    tmm_modules[TMM_LOGGER].name = "__root_logger__";
-    tmm_modules[TMM_LOGGER].ThreadInit = OutputLoggerThreadInit;
-    tmm_modules[TMM_LOGGER].ThreadDeinit = OutputLoggerThreadDeinit;
-    tmm_modules[TMM_LOGGER].ThreadExitPrintStats = OutputLoggerExitPrintStats;
-    tmm_modules[TMM_LOGGER].Func = OutputLoggerLog;;
-
     OutputRegisterRootLoggers();
     OutputRegisterLoggers();
-}
-
-void SetupOutputs(ThreadVars *tv)
-{
-    TmSlotSetFuncAppend(tv, &tmm_modules[TMM_LOGGER], NULL);
 }
 
 /**
