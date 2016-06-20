@@ -1,3 +1,11 @@
+3.0.2 -- 2016-06-20
+
+Bug #1811: app-layer-modbus: AddressSanitizer error (segmentation fault) (3.0.x)
+Bug #1812: Default maximum packet size is insufficient when VLAN tags are present (and not stripped) (3.0.x)
+Bug #1813: Kernel panic on application exit with netmap Suricata 3.0 stable (3.0.x)
+Bug #1814: Rule keywords conflict will cause Suricata restart itself in loop (3.0.x)
+Bug #1815: tls store memory leak (3.0.x)
+
 3.0.1 -- 2016-04-04
 
 Feature #1704: hyperscan mpm integration
