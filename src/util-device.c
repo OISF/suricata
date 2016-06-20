@@ -39,6 +39,23 @@ static int live_devices_stats = 1;
 static int LiveSafeDeviceName(const char *devname,
                               char *newdevname, size_t destlen);
 
+static int g_live_devices_disable_offloading = 1;
+
+void LiveSetOffloadDisable(void)
+{
+    g_live_devices_disable_offloading = 1;
+}
+
+void LiveSetOffloadWarn(void)
+{
+    g_live_devices_disable_offloading = 0;
+}
+
+int LiveGetOffload(void)
+{
+    return g_live_devices_disable_offloading;
+}
+
 /**
  *  \brief Add a pcap device for monitoring
  *

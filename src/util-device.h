@@ -34,6 +34,9 @@ typedef struct LiveDevice_ {
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
 
+void LiveSetOffloadDisable(void);
+void LiveSetOffloadWarn(void);
+int LiveGetOffload(void);
 
 int LiveRegisterDevice(const char *dev);
 int LiveGetDeviceCount(void);
