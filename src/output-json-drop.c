@@ -342,14 +342,12 @@ static int JsonDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         return -1;
 
     if (p->flow) {
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
     return 0;
 }
@@ -378,14 +376,12 @@ static int JsonDropLogCondition(ThreadVars *tv, const Packet *p)
         int ret = FALSE;
 
         /* for a flow that will be dropped fully, log just once per direction */
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 ret = TRUE;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 ret = TRUE;
         }
-        FLOWLOCK_UNLOCK(p->flow);
 
         /* if drop is caused by signature, log anyway */
         if (p->alerts.drop.action != 0)
