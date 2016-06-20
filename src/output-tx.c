@@ -142,7 +142,6 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
 
     Flow * const f = p->flow;
 
-    FLOWLOCK_WRLOCK(f); /* WRITE lock before we updated flow logged id */
     AppProto alproto = f->alproto;
 
     if (AppLayerParserProtocolIsTxAware(p->proto, alproto) == 0)
@@ -239,7 +238,6 @@ next:
     }
 
 end:
-    FLOWLOCK_UNLOCK(f);
     return TM_ECODE_OK;
 }
 

@@ -123,7 +123,6 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data, Packe
     int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
     int file_trunc = 0;
 
-    FLOWLOCK_WRLOCK(f); // < need write lock for FilePrune below
     file_trunc = StreamTcpReassembleDepthReached(p);
 
     FileContainer *ffc = AppLayerParserGetFiles(p->proto, f->alproto,
@@ -180,7 +179,6 @@ static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data, Packe
         FilePrune(ffc);
     }
 
-    FLOWLOCK_UNLOCK(f);
     return TM_ECODE_OK;
 }
 

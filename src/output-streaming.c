@@ -330,8 +330,6 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, 
     else
         flags |= OUTPUT_STREAMING_FLAG_TOSERVER;
 
-    FLOWLOCK_WRLOCK(f);
-
     if (op_thread_data->loggers & (1<<STREAMING_TCP_DATA)) {
         TcpSession *ssn = f->protoctx;
         if (ssn) {
@@ -359,7 +357,6 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, 
         }
     }
 
-    FLOWLOCK_UNLOCK(f);
     return TM_ECODE_OK;
 }
 
