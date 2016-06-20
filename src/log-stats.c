@@ -294,15 +294,9 @@ static void LogStatsLogDeInitCtx(OutputCtx *output_ctx)
     SCFree(output_ctx);
 }
 
-void TmModuleLogStatsLogRegister (void)
+void LogStatsLogRegister (void)
 {
-    tmm_modules[TMM_LOGSTATSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGSTATSLOG].ThreadInit = LogStatsLogThreadInit;
-    tmm_modules[TMM_LOGSTATSLOG].ThreadExitPrintStats = LogStatsLogExitPrintStats;
-    tmm_modules[TMM_LOGSTATSLOG].ThreadDeinit = LogStatsLogThreadDeinit;
-    tmm_modules[TMM_LOGSTATSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGSTATSLOG].cap_flags = 0;
-    tmm_modules[TMM_LOGSTATSLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterStatsModule(MODULE_NAME, "stats", LogStatsLogInitCtx, LogStatsLogger);
+    OutputRegisterStatsModule(LOGGER_STATS, MODULE_NAME, "stats",
+        LogStatsLogInitCtx, LogStatsLogger, LogStatsLogThreadInit,
+        LogStatsLogThreadDeinit, LogStatsLogExitPrintStats);
 }

@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_FILE_H__
 #define __OUTPUT_JSON_FILE_H__
 
-void TmModuleJsonFileLogRegister (void);
+void JsonFileLogRegister(void);
 
 #endif /* __OUTPUT_JSON_FILE_H__ */

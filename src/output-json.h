@@ -28,7 +28,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 
-void TmModuleOutputJsonRegister (void);
+void OutputJsonRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 /* helper struct for OutputJSONMemBufferCallback */
@@ -43,7 +43,6 @@ void CreateJSONFlowId(json_t *js, const Flow *f);
 void JsonTcpFlags(uint8_t flags, json_t *js);
 json_t *CreateJSONHeader(const Packet *p, int direction_sensative, const char *event_type);
 json_t *CreateJSONHeaderWithTxId(const Packet *p, int direction_sensitive, const char *event_type, uint64_t tx_id);
-TmEcode OutputJSON(json_t *js, void *data, uint64_t *count);
 int OutputJSONBuffer(json_t *js, LogFileCtx *file_ctx, MemBuffer **buffer);
 OutputCtx *OutputJsonInitCtx(ConfNode *);
 

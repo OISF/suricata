@@ -43,7 +43,7 @@
 #define UNIFIED2_EXTRADATA_TYPE_BLOB 1
 #define UNIFIED2_EXTRADATA_TYPE_EXTRA_DATA 4
 
-void TmModuleUnified2AlertRegister(void);
+void Unified2AlertRegister(void);
 OutputCtx *Unified2AlertInitCtx(ConfNode *);
 
 #endif /* __ALERT_UNIFIED2_ALERT_H__ */

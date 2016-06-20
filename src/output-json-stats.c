@@ -371,35 +371,23 @@ OutputCtx *OutputStatsLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonStatsLogRegister (void) {
-    tmm_modules[TMM_JSONSTATSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONSTATSLOG].ThreadInit = JsonStatsLogThreadInit;
-    tmm_modules[TMM_JSONSTATSLOG].ThreadDeinit = JsonStatsLogThreadDeinit;
-    tmm_modules[TMM_JSONSTATSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONSTATSLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONSTATSLOG].flags = TM_FLAG_LOGAPI_TM;
-
+void JsonStatsLogRegister(void) {
     /* register as separate module */
-    OutputRegisterStatsModule(MODULE_NAME, "stats-json", OutputStatsLogInit,
-                              JsonStatsLogger);
+    OutputRegisterStatsModule(LOGGER_JSON_STATS, MODULE_NAME, "stats-json",
+        OutputStatsLogInit, JsonStatsLogger, JsonStatsLogThreadInit,
+        JsonStatsLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterStatsSubModule("eve-log", MODULE_NAME, "eve-log.stats",
-                                  OutputStatsLogInitSub, JsonStatsLogger);
+    OutputRegisterStatsSubModule(LOGGER_JSON_STATS, "eve-log", MODULE_NAME,
+        "eve-log.stats", OutputStatsLogInitSub, JsonStatsLogger,
+        JsonStatsLogThreadInit, JsonStatsLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonStatsLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonStatsLogRegister (void)
-{
-    tmm_modules[TMM_JSONSTATSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONSTATSLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
