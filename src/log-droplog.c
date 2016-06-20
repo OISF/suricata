@@ -292,14 +292,12 @@ static int LogDropCondition(ThreadVars *tv, const Packet *p)
 
     if (p->flow != NULL) {
         int ret = FALSE;
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 ret = TRUE;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 ret = TRUE;
         }
-        FLOWLOCK_UNLOCK(p->flow);
         return ret;
     } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         return TRUE;
@@ -325,14 +323,12 @@ static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         return -1;
 
     if (p->flow) {
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
     return 0;
 }

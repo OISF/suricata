@@ -42,7 +42,6 @@ typedef OutputCtx *(*OutputInitFunc)(ConfNode *);
 typedef OutputCtx *(*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
     PacketQueue *);
-
 typedef struct OutputModule_ {
     LoggerId logger_id;
     const char *name;
@@ -197,6 +196,11 @@ void OutputRegisterRootLogger(ThreadInitFunc ThreadInit,
     ThreadExitPrintStatsFunc ThreadExitPrintStats,
     OutputLogFunc LogFunc);
 void TmModuleLoggerRegister(void);
-void SetupOutputs(ThreadVars *);
+
+TmEcode OutputLoggerLog(ThreadVars *, Packet *, void *, PacketQueue *,
+    PacketQueue *);
+TmEcode OutputLoggerThreadInit(ThreadVars *, void *, void **);
+TmEcode OutputLoggerThreadDeinit(ThreadVars *, void *);
+void OutputLoggerExitPrintStats(ThreadVars *, void *);
 
 #endif /* ! __OUTPUT_H__ */
