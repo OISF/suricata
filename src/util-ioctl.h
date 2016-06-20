@@ -34,3 +34,4 @@ int SetIfaceFlags(const char *ifname, int flags);
 #ifdef SIOCGIFCAP
 int GetIfaceCaps(const char *ifname);
 #endif
+int DisableIfaceOffloading(const char *dev, int csum, int other);
