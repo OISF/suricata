@@ -19,6 +19,7 @@
  * \file
  *
  * \author Eric Leblond <eric@regit.org>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #include "suricata-common.h"
@@ -292,6 +293,33 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     return 0;
 }
 
+static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
+{
+    struct ifreq ifr;
+    int fd;
+    struct ethtool_value ethv;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1) {
+        return -1;
+    }
+    (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
+
+    ethv.cmd = cmd;
+    ethv.data = value;
+    ifr.ifr_data = (void *) &ethv;
+    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+        SCLogWarning(SC_ERR_SYSCALL,
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  dev, strerror(errno), errno);
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+
 static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
 {
     int ret = 0;
@@ -368,6 +396,62 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
                     dev, sg, gro, lro, tso, gso, dev);
             ret = 1;
         }
+    }
+    return ret;
+}
+
+static int DisableIfaceOffloadingLinux(const char *dev, int csum, int other)
+{
+    int ret = 0;
+    uint32_t value = 0;
+
+    if (csum) {
+#ifdef ETHTOOL_GRXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling rxcsum offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SRXCSUM, 0);
+        }
+#endif
+#ifdef ETHTOOL_GTXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GTXCSUM, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling txcsum offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_STXCSUM, 0);
+        }
+#endif
+    }
+    if (other) {
+#ifdef ETHTOOL_GGRO
+        if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling gro offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SGRO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GTSO
+        if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling tso offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_STSO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GGSO
+        if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling gso offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SGSO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GSG
+        if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling sg offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SSG, 0);
+        }
+#endif
+#ifdef ETHTOOL_GFLAGS
+        if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+            if (value & ETH_FLAG_LRO) {
+                SCLogInfo("%s: disabling lro offloading", dev);
+                SetEthtoolValue(dev, ETHTOOL_SFLAGS, value & ~ETH_FLAG_LRO);
+            }
+        }
+#endif
     }
     return ret;
 }
@@ -472,7 +556,9 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 
 int DisableIfaceOffloading(const char *dev, int csum, int other)
 {
-#if defined SIOCSIFCAP
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+    return DisableIfaceOffloadingLinux(dev, csum, other);
+#elif defined SIOCSIFCAP
     return DisableIfaceOffloadingBSD(dev);
 #else
     return 0;
