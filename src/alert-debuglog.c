@@ -216,7 +216,6 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
 
     if (p->flow != NULL) {
         int applayer = 0;
-        FLOWLOCK_RDLOCK(p->flow);
         applayer = StreamTcpAppLayerIsDisabled(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
@@ -239,7 +238,6 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */
-        FLOWLOCK_UNLOCK(p->flow);
     }
 
     AlertDebugLogPktVars(aft, p);

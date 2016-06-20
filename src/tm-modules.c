@@ -233,7 +233,6 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_DETECTLOADER);
         CASE_CODE (TMM_RECEIVENETMAP);
         CASE_CODE (TMM_DECODENETMAP);
-        CASE_CODE (TMM_LOGGER);
 
         CASE_CODE (TMM_SIZE);
     }
