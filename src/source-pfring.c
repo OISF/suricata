@@ -469,7 +469,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* enable zero-copy mode for workers runmode */
     if (active_runmode && strcmp("workers", active_runmode) == 0) {
         ptv->flags |= PFRING_FLAGS_ZERO_COPY;
-        SCLogInfo("Enabling zero-copy for %s", ptv->interface);
+        SCLogPerf("Enabling zero-copy for %s", ptv->interface);
     }
 
     ptv->checksum_mode = pfconf->checksum_mode;
@@ -532,11 +532,11 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     if (ptv->threads > 1) {
-        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
+        SCLogPerf("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
                 tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
                 version & 0x000000FF, ptv->interface, ptv->cluster_id);
     } else {
-        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d, single-pfring-thread",
+        SCLogPerf("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d, single-pfring-thread",
                 tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
                 version & 0x000000FF, ptv->interface, ptv->cluster_id);
     }
@@ -581,7 +581,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data)
      * ZC interface, do nothing */
     if (ptv->vlan_disabled && ptv->ctype == CLUSTER_FLOW &&
             strncmp(ptv->interface, "zc", 2) != 0) {
-        SCLogInfo("VLAN disabled, setting cluster type to CLUSTER_FLOW_5_TUPLE");
+        SCLogPerf("VLAN disabled, setting cluster type to CLUSTER_FLOW_5_TUPLE");
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, CLUSTER_FLOW_5_TUPLE);
 
         if (rc != 0) {
@@ -608,11 +608,11 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data)
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     PfringDumpCounters(ptv);
-    SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
+    SCLogPerf("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
             tv->name,
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_packets),
             StatsGetLocalCounterValue(tv, ptv->capture_kernel_drops));
-    SCLogInfo("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
+    SCLogPerf("(%s) Packets %" PRIu64 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 }
 
 /**

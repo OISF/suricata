@@ -510,15 +510,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCMutexUnlock(&pcap_bpf_compile_lock);
     }
 
-    /* Making it conditional to Linux even if GetIfaceOffloading return 0
-     * for non Linux. */
-#ifdef HAVE_LINUX_ETHTOOL_H
-    if (GetIfaceOffloading(pcapconfig->iface) == 1) {
-        SCLogWarning(SC_ERR_PCAP_CREATE,
-                "Using Pcap capture with GRO or LRO activated can lead to "
-                "capture problems.");
-    }
-#endif /* HAVE_LINUX_ETHTOOL_H */
+    /* no offloading supported at all */
+    (void)GetIfaceOffloading(pcapconfig->iface, 1, 1);
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 

@@ -93,6 +93,123 @@ static void NetmapDerefConfig(void *conf)
     }
 }
 
+static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
+        ConfNode *if_root, ConfNode *if_default)
+{
+    ns->threads = 0;
+    ns->promisc = 1;
+    ns->checksum_mode = CHECKSUM_VALIDATION_AUTO;
+    ns->copy_mode = NETMAP_COPY_MODE_NONE;
+
+    strlcpy(ns->iface, iface, sizeof(ns->iface));
+    if (ns->iface[0]) {
+        size_t len = strlen(ns->iface);
+        if (ns->iface[len-1] == '+') {
+            ns->iface[len-1] = '\0';
+            ns->sw_ring = 1;
+        }
+    }
+
+    char *bpf_filter = NULL;
+    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
+        if (strlen(bpf_filter) > 0) {
+            ns->bpf_filter = bpf_filter;
+            SCLogInfo("Going to use command-line provided bpf filter '%s'",
+                    ns->bpf_filter);
+        }
+    }
+
+    if (if_root == NULL && if_default == NULL) {
+        SCLogInfo("Unable to find netmap config for "
+                "interface \"%s\" or \"default\", using default values",
+                iface);
+        goto finalize;
+
+    /* If there is no setting for current interface use default one as main iface */
+    } else if (if_root == NULL) {
+        if_root = if_default;
+        if_default = NULL;
+    }
+
+    char *threadsstr = NULL;
+    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
+        ns->threads = 0;
+    } else {
+        if (strcmp(threadsstr, "auto") == 0) {
+            ns->threads = 0;
+        } else {
+            ns->threads = (uint8_t)atoi(threadsstr);
+        }
+    }
+
+    /* load netmap bpf filter */
+    /* command line value has precedence */
+    if (ns->bpf_filter == NULL) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
+            if (strlen(bpf_filter) > 0) {
+                ns->bpf_filter = bpf_filter;
+                SCLogInfo("Going to use bpf filter %s", ns->bpf_filter);
+            }
+        }
+    }
+
+    int boolval = 0;
+    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Disabling promiscuous mode on iface %s", ns->iface);
+        ns->promisc = 0;
+    }
+
+    char *tmpctype;
+    if (ConfGetChildValueWithDefault(if_root, if_default,
+                "checksum-checks", &tmpctype) == 1)
+    {
+        if (strcmp(tmpctype, "auto") == 0) {
+            ns->checksum_mode = CHECKSUM_VALIDATION_AUTO;
+        } else if (ConfValIsTrue(tmpctype)) {
+            ns->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
+        } else if (ConfValIsFalse(tmpctype)) {
+            ns->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid value for "
+                    "checksum-checks for %s", iface);
+        }
+    }
+
+    char *copymodestr;
+    if (ConfGetChildValueWithDefault(if_root, if_default,
+                "copy-mode", &copymodestr) == 1)
+    {
+        if (strcmp(copymodestr, "ips") == 0) {
+            ns->copy_mode = NETMAP_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            ns->copy_mode = NETMAP_COPY_MODE_TAP;
+        } else {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid copy-mode "
+                    "(valid are tap, ips)");
+        }
+    }
+
+finalize:
+
+    if (ns->sw_ring) {
+        /* just one thread per interface supported */
+        ns->threads = 1;
+    } else if (ns->threads == 0) {
+        /* As NetmapGetRSSCount is broken on Linux, first run
+         * GetIfaceRSSQueuesNum. If that fails, run NetmapGetRSSCount */
+        ns->threads = GetIfaceRSSQueuesNum(ns->iface);
+        if (ns->threads == 0) {
+            ns->threads = NetmapGetRSSCount(ns->iface);
+        }
+    }
+    if (ns->threads <= 0) {
+        ns->threads = 1;
+    }
+
+    return 0;
+}
+
 /**
 * \brief extract information from config file
 *
@@ -105,14 +222,9 @@ static void NetmapDerefConfig(void *conf)
 */
 static void *ParseNetmapConfig(const char *iface_name)
 {
-    char *threadsstr = NULL;
-    ConfNode *if_root;
+    ConfNode *if_root = NULL;
     ConfNode *if_default = NULL;
     ConfNode *netmap_node;
-    char *tmpctype;
-    char *copymodestr;
-    int boolval;
-    char *bpf_filter = NULL;
     char *out_iface = NULL;
 
     if (iface_name == NULL) {
@@ -126,150 +238,33 @@ static void *ParseNetmapConfig(const char *iface_name)
 
     memset(aconf, 0, sizeof(*aconf));
     aconf->DerefFunc = NetmapDerefConfig;
-    aconf->threads = 0;
-    aconf->promisc = 1;
-    aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-    aconf->copy_mode = NETMAP_COPY_MODE_NONE;
     strlcpy(aconf->iface_name, iface_name, sizeof(aconf->iface_name));
     SC_ATOMIC_INIT(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, 1);
-
-    strlcpy(aconf->iface, aconf->iface_name, sizeof(aconf->iface));
-    if (aconf->iface[0]) {
-        size_t len = strlen(aconf->iface);
-        if (aconf->iface[len-1] == '+') {
-            aconf->iface[len-1] = '\0';
-            aconf->iface_sw = 1;
-        }
-    }
-
-    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
-        if (strlen(bpf_filter) > 0) {
-            aconf->bpf_filter = bpf_filter;
-            SCLogInfo("Going to use command-line provided bpf filter '%s'",
-                    aconf->bpf_filter);
-        }
-    }
 
     /* Find initial node */
     netmap_node = ConfGetNode("netmap");
     if (netmap_node == NULL) {
         SCLogInfo("Unable to find netmap config using default value");
-        goto finalize;
-    }
-
-    if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
-
-    if_default = ConfFindDeviceConfig(netmap_node, "default");
-
-    if (if_root == NULL && if_default == NULL) {
-        SCLogInfo("Unable to find netmap config for "
-                "interface \"%s\" or \"default\", using default value",
-                aconf->iface_name);
-        goto finalize;
-    }
-
-    /* If there is no setting for current interface use default one as main iface */
-    if (if_root == NULL) {
-        if_root = if_default;
-        if_default = NULL;
-    }
-
-    if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
-        aconf->threads = 0;
     } else {
-        if (strcmp(threadsstr, "auto") == 0) {
-            aconf->threads = 0;
-        } else {
-            aconf->threads = (uint8_t)atoi(threadsstr);
-        }
+        if_root = ConfFindDeviceConfig(netmap_node, aconf->iface_name);
+        if_default = ConfFindDeviceConfig(netmap_node, "default");
     }
 
+    /* parse settings for capture iface */
+    ParseNetmapSettings(&aconf->in, aconf->iface_name, if_root, if_default);
+
+    /* if we have a copy iface, parse that as well */
     if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
         if (strlen(out_iface) > 0) {
-            aconf->out_iface_name = out_iface;
+            if_root = ConfFindDeviceConfig(netmap_node, out_iface);
+            ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
         }
     }
 
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-mode", &copymodestr) == 1) {
-        if (aconf->out_iface_name == NULL) {
-            SCLogInfo("Copy mode activated but no destination"
-                    " iface. Disabling feature");
-        } else if (strlen(copymodestr) <= 0) {
-            aconf->out_iface_name = NULL;
-        } else if (strcmp(copymodestr, "ips") == 0) {
-            SCLogInfo("Netmap IPS mode activated %s->%s",
-                    aconf->iface_name,
-                    aconf->out_iface_name);
-            aconf->copy_mode = NETMAP_COPY_MODE_IPS;
-        } else if (strcmp(copymodestr, "tap") == 0) {
-            SCLogInfo("Netmap TAP mode activated %s->%s",
-                    aconf->iface_name,
-                    aconf->out_iface_name);
-            aconf->copy_mode = NETMAP_COPY_MODE_TAP;
-        } else {
-            SCLogInfo("Invalid mode (not in tap, ips)");
-        }
-    }
-
-    if (aconf->out_iface_name && aconf->out_iface_name[0]) {
-        strlcpy(aconf->out_iface, aconf->out_iface_name,
-                sizeof(aconf->out_iface));
-        size_t len = strlen(aconf->out_iface);
-        if (aconf->out_iface[len-1] == '+') {
-            aconf->out_iface[len-1] = '\0';
-            aconf->out_iface_sw = 1;
-        }
-    }
-
-    /* load netmap bpf filter */
-    /* command line value has precedence */
-    if (ConfGet("bpf-filter", &bpf_filter) != 1) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "bpf-filter", &bpf_filter) == 1) {
-            if (strlen(bpf_filter) > 0) {
-                aconf->bpf_filter = bpf_filter;
-                SCLogInfo("Going to use bpf filter %s", aconf->bpf_filter);
-            }
-        }
-    }
-
-    (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Disabling promiscuous mode on iface %s", aconf->iface);
-        aconf->promisc = 0;
-    }
-
-    if (ConfGetChildValueWithDefault(if_root, if_default, "checksum-checks", &tmpctype) == 1) {
-        if (strcmp(tmpctype, "auto") == 0) {
-            aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-        } else if (ConfValIsTrue(tmpctype)) {
-            aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
-        } else if (ConfValIsFalse(tmpctype)) {
-            aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
-        } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface_name);
-        }
-    }
-
-finalize:
-
-    if (aconf->iface_sw) {
-        /* just one thread per interface supported */
-        aconf->threads = 1;
-    } else if (aconf->threads == 0) {
-        /* As NetmapGetRSSCount is broken on Linux, first run
-         * GetIfaceRSSQueuesNum. If that fails, run NetmapGetRSSCount */
-        aconf->threads = GetIfaceRSSQueuesNum(aconf->iface);
-        if (aconf->threads == 0) {
-            aconf->threads = NetmapGetRSSCount(aconf->iface);
-        }
-    }
-    if (aconf->threads <= 0) {
-        aconf->threads = 1;
-    }
     SC_ATOMIC_RESET(aconf->ref);
-    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
-    SCLogPerf("Using %d threads for interface %s", aconf->threads,
+    (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
+    SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
             aconf->iface_name);
 
     return aconf;
@@ -278,7 +273,7 @@ finalize:
 static int NetmapConfigGeThreadsCount(void *conf)
 {
     NetmapIfaceConfig *aconf = (NetmapIfaceConfig *)conf;
-    return aconf->threads;
+    return aconf->in.threads;
 }
 
 int NetmapRunModeIsIPS()

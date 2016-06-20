@@ -137,73 +137,274 @@ int GetIfaceMaxPacketSize(const char *pcap_dev)
     return ll_header + mtu;
 }
 
+#ifdef SIOCGIFFLAGS
 /**
- * \brief output offloading status of the link
- *
- * Test interface for GRO and LRO features. If one of them is
- * activated then suricata mays received packets merge at reception.
- * The result is oversized packets and this may cause some serious
- * problem in some capture mode where the size of the packet is
- * limited (AF_PACKET in V2 more for example).
- *
- * ETHTOOL_GGRO ETH_FLAG_LRO
- *
- * \param Name of link
- * \retval -1 in case of error, 0 if none, 1 if some
+ * \brief Get interface flags.
+ * \param ifname Inteface name.
+ * \return Interface flags or -1 on error
  */
-int GetIfaceOffloading(const char *pcap_dev)
+int GetIfaceFlags(const char *ifname)
 {
-#if defined (ETHTOOL_GGRO) && defined (ETHTOOL_GFLAGS)
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFFLAGS, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to get flags for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+#ifdef OS_FREEBSD
+    int flags = (ifr.ifr_flags & 0xffff) | (ifr.ifr_flagshigh << 16);
+    return flags;
+#else
+    return ifr.ifr_flags;
+#endif
+}
+#endif
+
+#ifdef SIOCSIFFLAGS
+/**
+ * \brief Set interface flags.
+ * \param ifname Inteface name.
+ * \param flags Flags to set.
+ * \return Zero on success.
+ */
+int SetIfaceFlags(const char *ifname, int flags)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+#ifdef OS_FREEBSD
+    ifr.ifr_flags = flags & 0xffff;
+    ifr.ifr_flagshigh = flags >> 16;
+#else
+    ifr.ifr_flags = flags;
+#endif
+
+    if (ioctl(fd, SIOCSIFFLAGS, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to set flags for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+#endif /* SIOCGIFFLAGS */
+
+#ifdef SIOCGIFCAP
+int GetIfaceCaps(const char *ifname)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+
+    if (ioctl(fd, SIOCGIFCAP, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to get caps for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return ifr.ifr_curcap;
+}
+#endif
+
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
+{
     struct ifreq ifr;
     int fd;
     struct ethtool_value ethv;
-    int ret = 0;
-    char *lro = "unset", *gro = "unset";
 
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         return -1;
     }
-    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+    (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
 
-    /* First get GRO */
-    ethv.cmd = ETHTOOL_GGRO;
+    ethv.cmd = cmd;
     ifr.ifr_data = (void *) &ethv;
     if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
         SCLogWarning(SC_ERR_SYSCALL,
                   "Failure when trying to get feature via ioctl for '%s': %s (%d)",
-                  pcap_dev, strerror(errno), errno);
+                  dev, strerror(errno), errno);
         close(fd);
         return -1;
-    } else {
-        if (ethv.data) {
-            gro = "SET";
-            ret = 1;
-        }
     }
 
-    /* Then get LRO which is set in a flag */
-    ethv.data = 0;
-    ethv.cmd = ETHTOOL_GFLAGS;
-    ifr.ifr_data = (void *) &ethv;
-    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
-        SCLogWarning(SC_ERR_SYSCALL,
-                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
-                  pcap_dev, strerror(errno), errno);
-        close(fd);
-        return -1;
-    } else {
-        if (ethv.data & ETH_FLAG_LRO) {
-            lro = "SET";
-            ret = 1;
-        }
-    }
-
+    *value = ethv.data;
     close(fd);
-    SCLogInfo("NIC offloading on %s: GRO: %s, LRO: %s", pcap_dev, gro, lro);
+    return 0;
+}
+
+static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
+{
+    int ret = 0;
+    uint32_t value = 0;
+
+    if (csum) {
+        char *rx = "unset", *tx = "unset";
+        int csum_ret = 0;
+#ifdef ETHTOOL_GRXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
+            rx = "SET";
+            csum_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GTXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GTXCSUM, &value) == 0 && value != 0) {
+            tx = "SET";
+            csum_ret = 1;
+        }
+#endif
+        if (csum_ret == 0)
+            SCLogPerf("NIC offloading on %s: RX %s TX %s", dev, rx, tx);
+        else {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                    "NIC offloading on %s: RX %s TX %s. Run: "
+                    "ethtool -K %s rx off tx off", dev, rx, tx, dev);
+            ret = 1;
+        }
+    }
+
+    if (other) {
+        char *lro = "unset", *gro = "unset", *tso = "unset", *gso = "unset";
+        char *sg = "unset";
+        int other_ret = 0;
+#ifdef ETHTOOL_GGRO
+        if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
+            gro = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GTSO
+        if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
+            tso = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GGSO
+        if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
+            gso = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GSG
+        if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
+            sg = "SET";
+            other_ret = 1;
+        }
+#endif
+#ifdef ETHTOOL_GFLAGS
+        if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+            if (value & ETH_FLAG_LRO) {
+                lro = "SET";
+                other_ret = 1;
+            }
+        }
+#endif
+        if (other_ret == 0) {
+            SCLogPerf("NIC offloading on %s: SG: %s, GRO: %s, LRO: %s, "
+                    "TSO: %s, GSO: %s", dev, sg, gro, lro, tso, gso);
+        } else {
+            SCLogWarning(SC_ERR_NIC_OFFLOADING, "NIC offloading on %s: SG: %s, "
+                    " GRO: %s, LRO: %s, TSO: %s, GSO: %s. Run: "
+                    "ethtool -K %s sg off gro off lro off tso off gso off",
+                    dev, sg, gro, lro, tso, gso, dev);
+            ret = 1;
+        }
+    }
     return ret;
+}
+
+#endif /* defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL */
+
+#ifdef SIOCGIFCAP
+static int GetIfaceOffloadingBSD(const char *ifname)
+{
+    int ret = 0;
+    int if_caps = GetIfaceCaps(ifname);
+    if (if_caps == -1) {
+        return -1;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (if_caps & IFCAP_RXCSUM) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with RXCSUM activated can lead to capture "
+                "problems. Run: ifconfig %s -rxcsum", ifname, ifname);
+        ret = 1;
+    }
+#ifdef IFCAP_TOE
+    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with TSO, TOE or LRO activated can lead to "
+                "capture problems. Run: ifconfig %s -tso -toe -lro",
+                ifname, ifname);
+        ret = 1;
+    }
 #else
-    /* ioctl is not defined, let's pretend returning 0 is ok */
+    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+        SCLogWarning(SC_ERR_NIC_OFFLOADING,
+                "Using %s with TSO or LRO activated can lead to "
+                "capture problems. Run: ifconfig %s -tso -lro",
+                ifname, ifname);
+        ret = 1;
+    }
+#endif
+    return ret;
+}
+#endif
+
+/**
+ * \brief output offloading status of the link
+ *
+ * Test interface for offloading features. If one of them is
+ * activated then suricata mays received packets merge at reception.
+ * The result is oversized packets and this may cause some serious
+ * problem in some capture mode where the size of the packet is
+ * limited (AF_PACKET in V2 more for example).
+ *
+ * \param Name of link
+ * \param csum check if checksums are offloaded
+ * \param other check if other things are offloaded: TSO, GRO, etc.
+ * \retval -1 in case of error, 0 if none, 1 if some
+ */
+int GetIfaceOffloading(const char *dev, int csum, int other)
+{
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+    return GetIfaceOffloadingLinux(dev, csum, other);
+#elif defined SIOCGIFCAP
+    return GetIfaceOffloadingBSD(dev);
+#else
     return 0;
 #endif
 }
@@ -244,3 +445,4 @@ int GetIfaceRSSQueuesNum(const char *pcap_dev)
     return 0;
 #endif
 }
+
