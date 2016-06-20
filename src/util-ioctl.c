@@ -236,6 +236,33 @@ int GetIfaceCaps(const char *ifname)
     return ifr.ifr_curcap;
 }
 #endif
+#ifdef SIOCSIFCAP
+int SetIfaceCaps(const char *ifname, int caps)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_reqcap = caps;
+
+    if (ioctl(fd, SIOCSIFCAP, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to set caps for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+#endif
+
 
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
 static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
@@ -384,6 +411,40 @@ static int GetIfaceOffloadingBSD(const char *ifname)
 }
 #endif
 
+#ifdef SIOCSIFCAP
+static int DisableIfaceOffloadingBSD(const char *ifname)
+{
+    int ret = 0;
+    int if_caps = GetIfaceCaps(ifname);
+    int set_caps = if_caps;
+    if (if_caps == -1) {
+        return -1;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (if_caps & IFCAP_RXCSUM) {
+        SCLogInfo("%s: disabling rxcsum offloading", ifname);
+        set_caps &= ~IFCAP_RXCSUM;
+    }
+
+#ifdef IFCAP_TOE
+    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+        SCLogInfo("%s: disabling tso|toe|lro offloading", ifname);
+        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+    }
+#else
+    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+        SCLogInfo("%s: disabling tso|lro offloading", ifname);
+        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+    }
+#endif
+    if (set_caps != if_caps) {
+        SetIfaceCaps(ifname, set_caps);
+    }
+    return ret;
+}
+#endif
+
 /**
  * \brief output offloading status of the link
  *
@@ -407,6 +468,16 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 #else
     return 0;
 #endif
+}
+
+int DisableIfaceOffloading(const char *dev, int csum, int other)
+{
+#if defined SIOCSIFCAP
+    return DisableIfaceOffloadingBSD(dev);
+#else
+    return 0;
+#endif
+
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
