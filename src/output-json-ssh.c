@@ -99,7 +99,6 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     }
 
     /* check if we have SSH state or not */
-    FLOWLOCK_WRLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_SSH)
         goto end;
@@ -136,7 +135,6 @@ static int JsonSshLogger(ThreadVars *tv, void *thread_data, const Packet *p)
     /* we only log the state once */
     ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED;
 end:
-    FLOWLOCK_UNLOCK(p->flow);
     return 0;
 }
 
@@ -286,7 +284,6 @@ static int JsonSshCondition(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_SSH)
         goto dontlog;
@@ -307,10 +304,8 @@ static int JsonSshCondition(ThreadVars *tv, const Packet *p)
 
     /* todo: logic to log once */
 
-    FLOWLOCK_UNLOCK(p->flow);
     return TRUE;
 dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
     return FALSE;
 }
 

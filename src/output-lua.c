@@ -266,13 +266,11 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
     }
 
     SCMutexUnlock(&td->lua_ctx->m);
-    FLOWLOCK_WRLOCK(p->flow);
 
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state != NULL)
         ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED_LUA;
 
-    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(0);
 }
 
@@ -290,7 +288,6 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_SSH)
         goto dontlog;
@@ -309,10 +306,8 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
     if (ssh_state->cli_hdr.flags & SSH_FLAG_STATE_LOGGED_LUA)
         goto dontlog;
 
-    FLOWLOCK_UNLOCK(p->flow);
     return TRUE;
 dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
     return FALSE;
 }
 
