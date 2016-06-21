@@ -255,10 +255,12 @@ static void *ParseNetmapConfig(const char *iface_name)
     ParseNetmapSettings(&aconf->in, aconf->iface_name, if_root, if_default);
 
     /* if we have a copy iface, parse that as well */
-    if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
-        if (strlen(out_iface) > 0) {
-            if_root = ConfFindDeviceConfig(netmap_node, out_iface);
-            ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
+    if (netmap_node != NULL) {
+        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
+            if (strlen(out_iface) > 0) {
+                if_root = ConfFindDeviceConfig(netmap_node, out_iface);
+                ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
+            }
         }
     }
 
