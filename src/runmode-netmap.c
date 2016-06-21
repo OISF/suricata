@@ -207,6 +207,13 @@ finalize:
         ns->threads = 1;
     }
 
+    /* netmap needs all offloading to be disabled */
+    if (LiveGetOffload() == 0) {
+        (void)GetIfaceOffloading(ns->iface, 1, 1);
+    } else {
+        DisableIfaceOffloading(LiveGetDevice(ns->iface), 1, 1);
+    }
+
     return 0;
 }
 
@@ -266,13 +273,6 @@ static void *ParseNetmapConfig(const char *iface_name)
     (void) SC_ATOMIC_ADD(aconf->ref, aconf->in.threads);
     SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
             aconf->iface_name);
-
-    /* netmap needs all offloading to be disabled */
-    if (LiveGetOffload() == 0) {
-        (void)GetIfaceOffloading(aconf->in.iface, 1, 1);
-    } else {
-        DisableIfaceOffloading(LiveGetDevice(aconf->in.iface), 1, 1);
-    }
 
     return aconf;
 }

@@ -565,9 +565,14 @@ static int GetIfaceOffloadingBSD(const char *ifname)
 #endif
 
 #ifdef SIOCSIFCAP
-static int DisableIfaceOffloadingBSD(const char *ifname)
+static int DisableIfaceOffloadingBSD(LiveDevice *ldev)
 {
     int ret = 0;
+
+    if (ldev == NULL)
+        return -1;
+
+    const char *ifname = ldev->dev;
     int if_caps = GetIfaceCaps(ifname);
     int set_caps = if_caps;
     if (if_caps == -1) {
@@ -591,6 +596,57 @@ static int DisableIfaceOffloadingBSD(const char *ifname)
         set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
     }
 #endif
+    if (set_caps != if_caps) {
+        if (if_caps & IFCAP_RXCSUM)
+            ldev->offload_orig |= OFFLOAD_FLAG_RXCSUM;
+        if (if_caps & IFCAP_TSO)
+            ldev->offload_orig |= OFFLOAD_FLAG_TSO;
+#ifdef IFCAP_TOE
+        if (if_caps & IFCAP_TOE)
+            ldev->offload_orig |= OFFLOAD_FLAG_TOE;
+#endif
+        if (if_caps & IFCAP_LRO)
+            ldev->offload_orig |= OFFLOAD_FLAG_LRO;
+
+        SetIfaceCaps(ifname, set_caps);
+    }
+    return ret;
+}
+
+static int RestoreIfaceOffloadingBSD(LiveDevice *ldev)
+{
+    int ret = 0;
+
+    if (ldev == NULL)
+        return -1;
+
+    const char *ifname = ldev->dev;
+    int if_caps = GetIfaceCaps(ifname);
+    int set_caps = if_caps;
+    if (if_caps == -1) {
+        return -1;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (ldev->offload_orig & OFFLOAD_FLAG_RXCSUM) {
+        SCLogInfo("%s: restoring rxcsum offloading", ifname);
+        set_caps |= IFCAP_RXCSUM;
+    }
+    if (ldev->offload_orig & OFFLOAD_FLAG_TSO) {
+        SCLogInfo("%s: restoring tso offloading", ifname);
+        set_caps |= IFCAP_TSO;
+    }
+#ifdef IFCAP_TOE
+    if (ldev->offload_orig & OFFLOAD_FLAG_TOE) {
+        SCLogInfo("%s: restoring toe offloading", ifname);
+        set_caps |= IFCAP_TOE;
+    }
+#endif
+    if (ldev->offload_orig & OFFLOAD_FLAG_LRO) {
+        SCLogInfo("%s: restoring lro offloading", ifname);
+        set_caps |= IFCAP_LRO;
+    }
+
     if (set_caps != if_caps) {
         SetIfaceCaps(ifname, set_caps);
     }
@@ -640,6 +696,8 @@ void RestoreIfaceOffloading(LiveDevice *dev)
     if (dev->offload_orig != 0) {
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
         RestoreIfaceOffloadingLinux(dev);
+#elif defined SIOCSIFCAP
+        RestoreIfaceOffloadingBSD(dev);
 #endif
     }
 }
