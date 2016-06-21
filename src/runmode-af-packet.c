@@ -387,6 +387,15 @@ void *ParseAFPConfig(const char *iface)
 
 finalize:
 
+    /* if the number of threads is not 1, we need to first check if fanout
+     * functions on this system. */
+    if (aconf->threads != 1) {
+        if (AFPIsFanoutSupported() == 0) {
+            aconf->threads = 1;
+        }
+    }
+
+    /* try to automagically set the proper number of threads */
     if (aconf->threads == 0) {
         int rss_queues;
         aconf->threads = (int)UtilCpuGetNumProcessorsOnline();

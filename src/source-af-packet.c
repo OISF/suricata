@@ -1809,6 +1809,34 @@ mmap_err:
     return AFP_FATAL_ERROR;
 }
 
+/** \brief test if we can use FANOUT. Older kernels like those in
+ *         CentOS6 have HAVE_PACKET_FANOUT defined but fail to work
+ */
+int AFPIsFanoutSupported(void)
+{
+#ifdef HAVE_PACKET_FANOUT
+    int fd;
+    /* open socket */
+    fd = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
+    if (fd != -1) {
+        /* add binded socket to fanout group */
+        uint32_t option = 0;
+        uint16_t mode = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
+        uint16_t id = 99;
+        option = (mode << 16) | (id & 0xffff);
+        int r = setsockopt(fd, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
+        close(fd);
+
+        if (r < 0) {
+            SCLogPerf("fanout not supported by kernel: %s", strerror(errno));
+            return 0;
+        }
+        return 1;
+    }
+#endif
+    return 0;
+}
+
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 {
     int r;
