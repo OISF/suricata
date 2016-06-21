@@ -267,6 +267,13 @@ static void *ParseNetmapConfig(const char *iface_name)
     SCLogPerf("Using %d threads for interface %s", aconf->in.threads,
             aconf->iface_name);
 
+    /* netmap needs all offloading to be disabled */
+    if (LiveGetOffload() == 0) {
+        (void)GetIfaceOffloading(aconf->in.iface, 1, 1);
+    } else {
+        DisableIfaceOffloading(LiveGetDevice(aconf->in.iface), 1, 1);
+    }
+
     return aconf;
 }
 
