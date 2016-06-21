@@ -398,7 +398,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     if (LiveGetOffload() == 0) {
         (void)GetIfaceOffloading((char *)pcapconfig->iface, 1, 1);
     } else {
-        DisableIfaceOffloading((char *)pcapconfig->iface, 1, 1);
+        DisableIfaceOffloading(ptv->livedev, 1, 1);
     }
 
     ptv->checksum_mode = pcapconfig->checksum_mode;

@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "util-device.h"
+#include "util-ioctl.h"
 
 #define MAX_DEVNAME 10
 
@@ -66,7 +67,7 @@ int LiveGetOffload(void)
  */
 int LiveRegisterDevice(const char *dev)
 {
-    LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
+    LiveDevice *pd = SCCalloc(1, sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
         return -1;
     }
@@ -281,6 +282,9 @@ int LiveDeviceListClean()
                     100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
                     SC_ATOMIC_GET(pd->invalid_checksums));
         }
+
+        RestoreIfaceOffloading(pd);
+
         if (pd->dev)
             SCFree(pd->dev);
         SC_ATOMIC_DESTROY(pd->pkts);

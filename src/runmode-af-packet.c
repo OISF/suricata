@@ -459,7 +459,7 @@ finalize:
                             "Using AF_PACKET with offloading activated leads to capture problems");
                 }
             } else {
-                DisableIfaceOffloading(iface, 0, 1);
+                DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
             }
             break;
         case -1:

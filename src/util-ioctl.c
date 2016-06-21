@@ -24,6 +24,7 @@
 
 #include "suricata-common.h"
 #include "conf.h"
+#include "util-device.h"
 
 #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
@@ -400,22 +401,29 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
     return ret;
 }
 
-static int DisableIfaceOffloadingLinux(const char *dev, int csum, int other)
+static int DisableIfaceOffloadingLinux(LiveDevice *ldev, int csum, int other)
 {
     int ret = 0;
     uint32_t value = 0;
+
+    if (ldev == NULL)
+        return -1;
+
+    const char *dev = ldev->dev;
 
     if (csum) {
 #ifdef ETHTOOL_GRXCSUM
         if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling rxcsum offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_SRXCSUM, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_RXCSUM;
         }
 #endif
 #ifdef ETHTOOL_GTXCSUM
         if (GetEthtoolValue(dev, ETHTOOL_GTXCSUM, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling txcsum offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_STXCSUM, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_TXCSUM;
         }
 #endif
     }
@@ -424,24 +432,28 @@ static int DisableIfaceOffloadingLinux(const char *dev, int csum, int other)
         if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling gro offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_SGRO, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_GRO;
         }
 #endif
 #ifdef ETHTOOL_GTSO
         if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling tso offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_STSO, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_TSO;
         }
 #endif
 #ifdef ETHTOOL_GGSO
         if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling gso offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_SGSO, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_GSO;
         }
 #endif
 #ifdef ETHTOOL_GSG
         if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
             SCLogInfo("%s: disabling sg offloading", dev);
             SetEthtoolValue(dev, ETHTOOL_SSG, 0);
+            ldev->offload_orig |= OFFLOAD_FLAG_SG;
         }
 #endif
 #ifdef ETHTOOL_GFLAGS
@@ -449,11 +461,67 @@ static int DisableIfaceOffloadingLinux(const char *dev, int csum, int other)
             if (value & ETH_FLAG_LRO) {
                 SCLogInfo("%s: disabling lro offloading", dev);
                 SetEthtoolValue(dev, ETHTOOL_SFLAGS, value & ~ETH_FLAG_LRO);
+                ldev->offload_orig |= OFFLOAD_FLAG_LRO;
             }
         }
 #endif
     }
     return ret;
+}
+
+static int RestoreIfaceOffloadingLinux(LiveDevice *ldev)
+{
+    if (ldev == NULL)
+        return -1;
+
+    const char *dev = ldev->dev;
+
+#ifdef ETHTOOL_GRXCSUM
+    if (ldev->offload_orig & OFFLOAD_FLAG_RXCSUM) {
+        SCLogInfo("%s: restoring rxcsum offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_SRXCSUM, 1);
+    }
+#endif
+#ifdef ETHTOOL_GTXCSUM
+    if (ldev->offload_orig & OFFLOAD_FLAG_TXCSUM) {
+        SCLogInfo("%s: restoring txcsum offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_STXCSUM, 1);
+    }
+#endif
+#ifdef ETHTOOL_GGRO
+    if (ldev->offload_orig & OFFLOAD_FLAG_GRO) {
+        SCLogInfo("%s: restoring gro offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_SGRO, 1);
+    }
+#endif
+#ifdef ETHTOOL_GTSO
+    if (ldev->offload_orig & OFFLOAD_FLAG_TSO) {
+        SCLogInfo("%s: restoring tso offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_STSO, 1);
+    }
+#endif
+#ifdef ETHTOOL_GGSO
+    if (ldev->offload_orig & OFFLOAD_FLAG_GSO) {
+        SCLogInfo("%s: restoring gso offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_SGSO, 1);
+    }
+#endif
+#ifdef ETHTOOL_GSG
+    if (ldev->offload_orig & OFFLOAD_FLAG_SG) {
+        SCLogInfo("%s: restoring sg offloading", dev);
+        SetEthtoolValue(dev, ETHTOOL_SSG, 1);
+    }
+#endif
+#ifdef ETHTOOL_GFLAGS
+    if (ldev->offload_orig & OFFLOAD_FLAG_LRO) {
+        uint32_t value = 0;
+        if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+            SCLogInfo("%s: restoring lro offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SFLAGS, value & ETH_FLAG_LRO);
+        }
+    }
+#endif
+    return 0;
 }
 
 #endif /* defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL */
@@ -554,7 +622,7 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 #endif
 }
 
-int DisableIfaceOffloading(const char *dev, int csum, int other)
+int DisableIfaceOffloading(LiveDevice *dev, int csum, int other)
 {
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
     return DisableIfaceOffloadingLinux(dev, csum, other);
@@ -564,6 +632,15 @@ int DisableIfaceOffloading(const char *dev, int csum, int other)
     return 0;
 #endif
 
+}
+
+void RestoreIfaceOffloading(LiveDevice *dev)
+{
+    if (dev->offload_orig != 0) {
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+        RestoreIfaceOffloadingLinux(dev);
+#endif
+    }
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
