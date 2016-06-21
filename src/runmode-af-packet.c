@@ -408,12 +408,14 @@ finalize:
         if (rss_queues > 0) {
             if (rss_queues < aconf->threads) {
                 aconf->threads = rss_queues;
-                SCLogInfo("More cores than RSS queues, using %d threads for interface %s",
-                          aconf->threads, iface);
+                SCLogInfo("More cores than RSS queues, using %d threads "
+                        "for interface %s", aconf->threads, iface);
             }
         }
-        if (aconf->threads)
-            SCLogPerf("Using %d AF_PACKET threads for interface %s", aconf->threads, iface);
+        if (aconf->threads) {
+            SCLogPerf("Using %d AF_PACKET threads for interface %s",
+                    aconf->threads, iface);
+        }
     }
     if (aconf->threads <= 0) {
         aconf->threads = 1;

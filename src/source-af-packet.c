@@ -1879,7 +1879,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         if (setsockopt(ptv->socket, SOL_PACKET, PACKET_AUXDATA, &val,
                     sizeof(val)) == -1 && errno != ENOPROTOOPT) {
             SCLogWarning(SC_ERR_NO_AF_PACKET,
-                         "'kernel' checksum mode not supported, failling back to full mode.");
+                         "'kernel' checksum mode not supported, falling back to full mode.");
             ptv->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
         }
     }
@@ -1920,14 +1920,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
     if (ptv->threads > 1) {
-        uint32_t option = 0;
         uint16_t mode = ptv->cluster_type;
         uint16_t id = ptv->cluster_id;
-        option = (mode << 16) | (id & 0xffff);
+        uint32_t option = (mode << 16) | (id & 0xffff);
         r = setsockopt(ptv->socket, SOL_PACKET, PACKET_FANOUT,(void *)&option, sizeof(option));
         if (r < 0) {
             SCLogError(SC_ERR_AFP_CREATE,
-                       "Coudn't set fanout mode, error %s",
+                       "Couldn't set fanout mode, error %s",
                        strerror(errno));
             goto socket_err;
         }
@@ -1938,7 +1937,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     if (if_flags == -1) {
         if (verbose) {
             SCLogError(SC_ERR_AFP_READ,
-                    "Can not acces to interface '%s'",
+                    "Couldn't get flags for interface '%s'",
                     ptv->iface);
         }
         ret = AFP_RECOVERABLE_ERROR;
