@@ -26,4 +26,8 @@
 
 void JsonFileLogRegister(void);
 
+#ifdef HAVE_LIBJANSSON
+json_t *JsonFileAddMetadata(const Packet *p, uint64_t tx_id);
+#endif /* HAVE_LIBJANSSON */
+
 #endif /* __OUTPUT_JSON_FILE_H__ */

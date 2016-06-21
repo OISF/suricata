@@ -60,6 +60,7 @@
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
 #include "output-json-email-common.h"
+#include "output-json-file.h"
 
 #include "util-byte.h"
 #include "util-privs.h"
@@ -347,6 +348,18 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             JsonAddVars(p, p->flow, js);
         }
 
+        if (json_output_ctx->flags & LOG_JSON_FILE) {
+            if (p->flow != NULL) {
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                if (proto == ALPROTO_HTTP || proto == ALPROTO_SMTP) {
+                    hjs = JsonFileAddMetadata(p, pa->tx_id);
+                    if (hjs) {
+                        json_object_set_new(js, "file", hjs);
+                    }
+                }
+            }
+        }
         /* payload */
         if (json_output_ctx->flags & (LOG_JSON_PAYLOAD | LOG_JSON_PAYLOAD_BASE64)) {
             int stream = (p->proto == IPPROTO_TCP) ?
@@ -680,6 +693,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
         const char *dnp3 = ConfNodeLookupChildValue(conf, "dnp3");
         const char *vars = ConfNodeLookupChildValue(conf, "vars");
+        const char *file = ConfNodeLookupChildValue(conf, "filename");
 
         if (vars != NULL) {
             if (ConfValIsTrue(vars)) {
@@ -761,6 +775,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (dnp3 != NULL) {
             if (ConfValIsTrue(dnp3)) {
                 json_output_ctx->flags |= LOG_JSON_DNP3;
+            }
+        }
+        if (file != NULL) {
+            if (ConfValIsTrue(file)) {
+                json_output_ctx->flags |= LOG_JSON_FILE;
             }
         }
 

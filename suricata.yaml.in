@@ -172,6 +172,7 @@ outputs:
             smtp: yes                # enable dumping of smtp fields
             dnp3: yes                # enable dumping of DNP3 fields
             vars: yes                # enable dumping of flowbits and other vars
+            filename: yes            # enable dumping of files
 
             # Enable the logging of tagged packets for rules using the
             # "tag" keyword.

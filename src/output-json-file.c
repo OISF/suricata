@@ -76,6 +76,31 @@ typedef struct JsonFileLogThread_ {
     MemBuffer *buffer;
 } JsonFileLogThread;
 
+json_t *JsonFileAddMetadata(const Packet *p, uint64_t tx_id)
+{
+    json_t *fjs = json_object();
+    if (unlikely(fjs == NULL))
+        return NULL;
+
+    FileContainer *ffc = AppLayerParserGetFiles(p->proto, p->flow->alproto, p->flow->alstate, STREAM_TOCLIENT);
+
+    if (ffc != NULL) {
+        File *ff = ffc->head;
+        if (ff != NULL && ff->txid == tx_id) {
+            char *s = BytesToString(ff->name, ff->name_len);
+            if (s != NULL) {
+                json_object_set_new(fjs, "filename", json_string(s));
+                SCFree(s);
+            }
+            if (ff->magic) {
+                json_object_set_new(fjs, "magic", json_string((char *)ff->magic));
+            }
+        }
+    }
+
+    return fjs;
+}
+
 /**
  *  \internal
  *  \brief Write meta data on a single line json record

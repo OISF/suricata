@@ -41,6 +41,7 @@ void JsonAlertLogRegister(void);
 #define LOG_JSON_HTTP_BODY_BASE64   BIT_U32(10)
 #define LOG_JSON_DNP3               BIT_U32(11)
 #define LOG_JSON_VARS               BIT_U32(12)
+#define LOG_JSON_FILE               BIT_U32(13)
 
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js);
 #endif /* HAVE_LIBJANSSON */
