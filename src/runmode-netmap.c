@@ -1,4 +1,4 @@
-/* Copyright (C) 2014 Open Information Security Foundation
+/* Copyright (C) 2014-2018 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -57,11 +57,9 @@
 
 extern int max_pending_packets;
 
-static const char *default_mode_workers = NULL;
-
 const char *RunModeNetmapGetDefaultMode(void)
 {
-    return default_mode_workers;
+    return "workers";
 }
 
 void RunModeIdsNetmapRegister(void)
@@ -71,13 +69,12 @@ void RunModeIdsNetmapRegister(void)
             RunModeIdsNetmapSingle);
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "workers",
             "Workers netmap mode, each thread does all"
-                    " tasks from acquisition to logging",
+            " tasks from acquisition to logging",
             RunModeIdsNetmapWorkers);
-    default_mode_workers = "workers";
     RunModeRegisterNewRunMode(RUNMODE_NETMAP, "autofp",
             "Multi threaded netmap mode.  Packets from "
-                    "each flow are assigned to a single detect "
-                    "thread.",
+            "each flow are assigned to a single detect "
+            "thread.",
             RunModeIdsNetmapAutoFp);
     return;
 }
@@ -97,17 +94,29 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
         ConfNode *if_root, ConfNode *if_default)
 {
     ns->threads = 0;
-    ns->promisc = 1;
+    ns->promisc = true;
     ns->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     ns->copy_mode = NETMAP_COPY_MODE_NONE;
-
     strlcpy(ns->iface, iface, sizeof(ns->iface));
+
     if (ns->iface[0]) {
         size_t len = strlen(ns->iface);
         if (ns->iface[len-1] == '+') {
-            ns->iface[len-1] = '\0';
-            ns->sw_ring = 1;
+            SCLogWarning(SC_WARN_OPTION_OBSOLETE,
+                    "netmap interface %s uses obsolete '+' notation. "
+                    "Using '^' instead.", ns->iface);
+            ns->iface[len-1] = '^';
+            ns->sw_ring = true;
+        } else if (ns->iface[len-1] == '^') {
+            ns->sw_ring = true;
         }
+    }
+
+    /* prefixed with netmap or vale means it's not a real interface
+     * and we don't check offloading. */
+    if (strncmp(ns->iface, "netmap:", 7) != 0 &&
+            strncmp(ns->iface, "vale", 4) != 0) {
+        ns->real = true;
     }
 
     const char *bpf_filter = NULL;
@@ -134,9 +143,11 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     const char *threadsstr = NULL;
     if (ConfGetChildValueWithDefault(if_root, if_default, "threads", &threadsstr) != 1) {
         ns->threads = 0;
+        ns->threads_auto = true;
     } else {
         if (strcmp(threadsstr, "auto") == 0) {
             ns->threads = 0;
+            ns->threads_auto = true;
         } else {
             ns->threads = atoi(threadsstr);
         }
@@ -157,7 +168,7 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
     (void)ConfGetChildValueBoolWithDefault(if_root, if_default, "disable-promisc", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Disabling promiscuous mode on iface %s", ns->iface);
-        ns->promisc = 0;
+        ns->promisc = false;
     }
 
     const char *tmpctype;
@@ -192,26 +203,21 @@ static int ParseNetmapSettings(NetmapIfaceSettings *ns, const char *iface,
 
 finalize:
 
+    ns->ips = (ns->copy_mode != NETMAP_COPY_MODE_NONE);
+
     if (ns->sw_ring) {
         /* just one thread per interface supported */
         ns->threads = 1;
-    } else if (ns->threads == 0) {
-        /* As NetmapGetRSSCount is broken on Linux, first run
-         * GetIfaceRSSQueuesNum. If that fails, run NetmapGetRSSCount */
-        ns->threads = GetIfaceRSSQueuesNum(ns->iface);
+    } else if (ns->threads_auto) {
+        /* As NetmapGetRSSCount used to be broken on Linux,
+         * fall back to GetIfaceRSSQueuesNum if needed. */
+        ns->threads = NetmapGetRSSCount(ns->iface);
         if (ns->threads == 0) {
-            ns->threads = NetmapGetRSSCount(ns->iface);
+            ns->threads = GetIfaceRSSQueuesNum(ns->iface);
         }
     }
     if (ns->threads <= 0) {
         ns->threads = 1;
-    }
-
-    /* netmap needs all offloading to be disabled */
-    if (LiveGetOffload() == 0) {
-        (void)GetIfaceOffloading(ns->iface, 1, 1);
-    } else {
-        DisableIfaceOffloading(LiveGetDevice(ns->iface), 1, 1);
     }
 
     return 0;
@@ -231,7 +237,6 @@ static void *ParseNetmapConfig(const char *iface_name)
 {
     ConfNode *if_root = NULL;
     ConfNode *if_default = NULL;
-    ConfNode *netmap_node;
     const char *out_iface = NULL;
 
     if (iface_name == NULL) {
@@ -242,15 +247,15 @@ static void *ParseNetmapConfig(const char *iface_name)
     if (unlikely(aconf == NULL)) {
         return NULL;
     }
-
     memset(aconf, 0, sizeof(*aconf));
+
     aconf->DerefFunc = NetmapDerefConfig;
     strlcpy(aconf->iface_name, iface_name, sizeof(aconf->iface_name));
     SC_ATOMIC_INIT(aconf->ref);
     (void) SC_ATOMIC_ADD(aconf->ref, 1);
 
     /* Find initial node */
-    netmap_node = ConfGetNode("netmap");
+    ConfNode *netmap_node = ConfGetNode("netmap");
     if (netmap_node == NULL) {
         SCLogInfo("Unable to find netmap config using default value");
     } else {
@@ -262,12 +267,38 @@ static void *ParseNetmapConfig(const char *iface_name)
     ParseNetmapSettings(&aconf->in, aconf->iface_name, if_root, if_default);
 
     /* if we have a copy iface, parse that as well */
-    if (netmap_node != NULL) {
-        if (ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1) {
-            if (strlen(out_iface) > 0) {
-                if_root = ConfFindDeviceConfig(netmap_node, out_iface);
-                ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
+    if (netmap_node != NULL &&
+            ConfGetChildValueWithDefault(if_root, if_default, "copy-iface", &out_iface) == 1)
+    {
+        if (strlen(out_iface) > 0) {
+            if_root = ConfFindDeviceConfig(netmap_node, out_iface);
+            ParseNetmapSettings(&aconf->out, out_iface, if_root, if_default);
+
+            /* if one side of the IPS peering uses a sw_ring, we will default
+             * to using a single ring/thread on the other side as well. Only
+             * if thread variable is set to 'auto'. So the user can override
+             * this. */
+            if (aconf->out.sw_ring && aconf->in.threads_auto) {
+                aconf->out.threads = aconf->in.threads = 1;
+            } else if (aconf->in.sw_ring && aconf->out.threads_auto) {
+                aconf->out.threads = aconf->in.threads = 1;
             }
+        }
+    }
+
+    /* netmap needs all offloading to be disabled */
+    if (aconf->in.real) {
+        char base_name[sizeof(aconf->in.iface)];
+        strlcpy(base_name, aconf->in.iface, sizeof(base_name));
+        /* for a sw_ring enabled device name, strip the trailing char */
+        if (aconf->in.sw_ring) {
+            base_name[strlen(base_name) - 1] = '\0';
+        }
+
+        if (LiveGetOffload() == 0) {
+            (void)GetIfaceOffloading(base_name, 1, 1);
+        } else {
+            DisableIfaceOffloading(LiveGetDevice(base_name), 1, 1);
         }
     }
 
