@@ -2504,7 +2504,11 @@ static int ConfigGetCaptureValue(SCInstance *suri)
 
                     if (strip_trailing_plus) {
                         size_t len = strlen(dev);
-                        if (len && dev[len-1] == '+') {
+                        if (len &&
+                                (dev[len-1] == '+' ||
+                                 dev[len-1] == '^' ||
+                                 dev[len-1] == '*'))
+                        {
                             dev[len-1] = '\0';
                         }
                     }

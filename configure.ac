@@ -1445,6 +1445,67 @@
         fi
 
         AC_CHECK_HEADER(net/netmap_user.h,,[AC_ERROR(net/netmap_user.h not found ...)],)
+
+        have_recent_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #ifndef NETMAP_API
+        #error "outdated netmap, need one with NETMAP_API"
+        #endif
+        #if NETMAP_API < 11
+        #error "outdated netmap, need at least api version 11"
+        #endif
+        ])], [have_recent_netmap="yes"])
+        if test "x$have_recent_netmap" != "xyes"; then
+            echo "ERROR: outdated netmap"
+            exit 1
+        fi
+        have_netmap_version="unknown"
+        have_v11_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 11
+        #error "not 11"
+        #endif
+        ])], [have_v11_netmap="yes"])
+        if test "x$have_v11_netmap" = "xyes"; then
+            have_netmap_version="v11"
+        fi
+        have_v12_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 12
+        #error "not 12"
+        #endif
+        ])], [have_v12_netmap="yes"])
+        if test "x$have_v12_netmap" = "xyes"; then
+            have_netmap_version="v12"
+        fi
+        have_v13_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API != 13
+        #error "not 13"
+        #endif
+        ])], [have_v13_netmap="yes"])
+        if test "x$have_v13_netmap" = "xyes"; then
+            have_netmap_version="v13"
+        fi
+        have_gtv13_netmap="no"
+        AC_COMPILE_IFELSE([AC_LANG_PROGRAM([
+        #include <net/netmap_user.h>
+        ],[
+        #if NETMAP_API <= 13
+        #error "not gt 13"
+        #endif
+        ])], [have_gtv13_netmap="yes"])
+        if test "x$have_gtv13_netmap" = "xyes"; then
+            have_netmap_version="> v13"
+        fi
   ])
 
   # Suricata-Update.
@@ -2459,7 +2520,7 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   NFQueue support:                         ${enable_nfqueue}
   NFLOG support:                           ${enable_nflog}
   IPFW support:                            ${enable_ipfw}
-  Netmap support:                          ${enable_netmap}
+  Netmap support:                          ${enable_netmap} ${have_netmap_version}
   DAG enabled:                             ${enable_dag}
   Napatech enabled:                        ${enable_napatech}
   WinDivert enabled:                       ${enable_windivert}
