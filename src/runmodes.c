@@ -159,6 +159,12 @@ static const char *RunModeTranslateModeToName(int runmode)
 #else
             return "NETMAP(DISABLED)";
 #endif
+        case RUNMODE_ODP:
+#ifdef HAVE_ODP
+            return "ODP";
+#else
+            return "ODP(DISABLED)";
+#endif
         case RUNMODE_UNIX_SOCKET:
             return "UNIX_SOCKET";
         default:
@@ -231,6 +237,7 @@ void RunModeRegisterRunModes(void)
     RunModeNapatechRegister();
     RunModeIdsAFPRegister();
     RunModeIdsNetmapRegister();
+    RunModeIdsODPRegister();
     RunModeIdsNflogRegister();
     RunModeTileMpipeRegister();
     RunModeUnixSocketRegister();
@@ -335,6 +342,9 @@ void RunModeDispatch(int runmode, const char *custom_mode)
                 break;
             case RUNMODE_NETMAP:
                 custom_mode = RunModeNetmapGetDefaultMode();
+                break;
+            case RUNMODE_ODP:
+                custom_mode = RunModeODPGetDefaultMode();
                 break;
             case RUNMODE_UNIX_SOCKET:
                 custom_mode = RunModeUnixSocketGetDefaultMode();
