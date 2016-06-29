@@ -7,3 +7,4 @@ Using Capture Hardware
    napatech
    myricom
    ebpf-xdp
+   netmap
