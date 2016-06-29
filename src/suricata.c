@@ -113,6 +113,8 @@
 
 #include "source-ipfw.h"
 
+#include "source-odp.h"
+
 #include "source-pcap.h"
 #include "source-pcap-file.h"
 
@@ -573,6 +575,9 @@ void usage(const char *progname)
 #ifdef HAVE_AF_PACKET
     printf("\t--af-packet[=<dev>]                  : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
+#ifdef HAVE_ODP
+    printf("\t--odp[=<dev>]                        : run in ODP mode, no value use interfaces from suricata.yaml\n");
+#endif
 #ifdef HAVE_NETMAP
     printf("\t--netmap[=<dev>]                     : run in netmap mode, no value select interfaces from suricata.yaml\n");
 #endif
@@ -657,6 +662,9 @@ void SCPrintBuildInfo(void)
 #endif
 #ifdef HAVE_NETMAP
     strlcat(features, "NETMAP ", sizeof(features));
+#endif
+#ifdef HAVE_ODP
+    strlcat(features, "ODP ", sizeof(features));
 #endif
 #ifdef HAVE_PACKET_FANOUT
     strlcat(features, "HAVE_PACKET_FANOUT ", sizeof(features));
@@ -835,6 +843,11 @@ void RegisterAllModules()
     /* netmap */
     TmModuleReceiveNetmapRegister();
     TmModuleDecodeNetmapRegister();
+#ifdef HAVE_ODP
+    /* odp */
+    TmModuleReceiveODPRegister();
+    TmModuleDecodeODPRegister();
+#endif
     /* pfring */
     TmModuleReceivePfringRegister();
     TmModuleDecodePfringRegister();
@@ -1015,6 +1028,23 @@ static TmEcode ParseInterfacesList(int run_mode, char *pcap_dev)
             }
         }
 #endif
+#ifdef HAVE_ODP
+    } else if (run_mode == RUNMODE_ODP) {
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSetFinal("odp.live-interface", pcap_dev) != 1) {
+                SCLogError(SC_ERR_INITIALIZATION, "Failed to set odp.live-interface");
+                SCReturnInt(TM_ECODE_FAILED);
+            } else
+                SCLogError(SC_OK, "set odp.live-interface to %s", pcap_dev);
+        } else {
+            int ret = LiveBuildDeviceList("odp");
+            if (ret == 0) {
+                SCLogError(SC_ERR_INITIALIZATION, "No interface found in config for odp");
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
+#endif
 #ifdef HAVE_NFLOG
     } else if (run_mode == RUNMODE_NFLOG) {
         int ret = LiveBuildDeviceListCustom("nflog", "group");
@@ -1131,6 +1161,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
         {"netmap", optional_argument, 0, 0},
+        {"odp", optional_argument, 0, 0},
         {"pcap", optional_argument, 0, 0},
         {"simulate-ips", 0, 0 , 0},
 #ifdef BUILD_UNIX_SOCKET
@@ -1282,6 +1313,37 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                     SCLogError(SC_ERR_NO_NETMAP, "NETMAP not enabled.");
                     return TM_ECODE_FAILED;
 #endif
+            } else if (strcmp((long_opts[option_index]).name , "odp") == 0){
+#ifdef HAVE_ODP
+                if (suri->run_mode == RUNMODE_UNKNOWN) {
+                    suri->run_mode = RUNMODE_ODP;
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                        memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
+                        strlcpy(suri->pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+                    }
+                } else if (suri->run_mode == RUNMODE_ODP) {
+                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                            "multiple devices to get packets is experimental.");
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                    } else {
+                        SCLogInfo("Multiple netmap option without interface on each is useless");
+                        break;
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    return TM_ECODE_FAILED;
+                }
+#else
+                    SCLogError(SC_ERR_NO_ODP, "ODP not enabled.");
+                    return TM_ECODE_FAILED;
+#endif
+
             } else if (strcmp((long_opts[option_index]).name, "nflog") == 0) {
 #ifdef HAVE_NFLOG
                 if (suri->run_mode == RUNMODE_UNKNOWN) {
@@ -1540,7 +1602,7 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             }
 
             /* warn user if af-packet, netmap or pf-ring are available */
-#if defined HAVE_AF_PACKET || HAVE_PFRING || HAVE_NETMAP
+#if defined HAVE_AF_PACKET || HAVE_PFRING || HAVE_NETMAP || HAVE_ODP
             int i = 0;
 #ifdef HAVE_AF_PACKET
             i++;
@@ -1549,6 +1611,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
             i++;
 #endif
 #ifdef HAVE_NETMAP
+            i++;
+#endif
+#ifdef HAVE_ODP
             i++;
 #endif
             SCLogWarning(SC_WARN_FASTER_CAPTURE_AVAILABLE, "faster capture "
@@ -1562,6 +1627,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_NETMAP
                 " NETMAP (--netmap=%s)"
 #endif
+#ifdef HAVE_NETMAP
+                " ODP (--odp=%s)"
+#endif
+
                 ". Use --pcap=%s to suppress this warning",
                 i == 1 ? "" : "s", i == 1 ? "is" : "are"
 
@@ -1572,6 +1641,9 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
                 , optarg
 #endif
 #ifdef HAVE_NETMAP
+                , optarg
+#endif
+#ifdef HAVE_ODP
                 , optarg
 #endif
                 , optarg
@@ -2039,6 +2111,7 @@ static int ConfigGetCaptureValue(SCInstance *suri)
         switch (suri->run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
+            case RUNMODE_ODP:
             case RUNMODE_NETMAP:
             case RUNMODE_PFRING:
                 nlive = LiveGetDeviceCount();
