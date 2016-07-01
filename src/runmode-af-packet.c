@@ -122,6 +122,7 @@ void *ParseAFPConfig(const char *iface)
     int boolval;
     char *bpf_filter = NULL;
     char *out_iface = NULL;
+    int cluster_type = PACKET_FANOUT_HASH;
 
     if (iface == NULL) {
         return NULL;
@@ -138,7 +139,7 @@ void *ParseAFPConfig(const char *iface)
     (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
-    aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
+    aconf->cluster_type = cluster_type | PACKET_FANOUT_FLAG_DEFRAG;
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
@@ -283,10 +284,12 @@ void *ParseAFPConfig(const char *iface)
     if (ConfGetChildValueWithDefault(if_root, if_default, "cluster-type", &tmpctype) != 1) {
         /* default to our safest choice: flow hashing + defrag enabled */
         aconf->cluster_type = PACKET_FANOUT_HASH | PACKET_FANOUT_FLAG_DEFRAG;
+        cluster_type = PACKET_FANOUT_HASH;
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogConfig("Using round-robin cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_LB;
+        cluster_type = PACKET_FANOUT_LB;
     } else if (strcmp(tmpctype, "cluster_flow") == 0) {
         /* In hash mode, we also ask for defragmentation needed to
          * compute the hash */
@@ -301,22 +304,27 @@ void *ParseAFPConfig(const char *iface)
             defrag = PACKET_FANOUT_FLAG_DEFRAG;
         }
         aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
+        cluster_type = PACKET_FANOUT_HASH;
     } else if (strcmp(tmpctype, "cluster_cpu") == 0) {
         SCLogConfig("Using cpu cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_CPU;
+        cluster_type = PACKET_FANOUT_CPU;
     } else if (strcmp(tmpctype, "cluster_qm") == 0) {
         SCLogConfig("Using queue based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_QM;
+        cluster_type = PACKET_FANOUT_QM;
     } else if (strcmp(tmpctype, "cluster_random") == 0) {
         SCLogConfig("Using random based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_RND;
+        cluster_type = PACKET_FANOUT_RND;
     } else if (strcmp(tmpctype, "cluster_rollover") == 0) {
         SCLogConfig("Using rollover based cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
         aconf->cluster_type = PACKET_FANOUT_ROLLOVER;
+        cluster_type = PACKET_FANOUT_ROLLOVER;
 
     } else {
         SCLogWarning(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
@@ -401,17 +409,20 @@ finalize:
 
     /* try to automagically set the proper number of threads */
     if (aconf->threads == 0) {
-        int rss_queues;
-        aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
-        /* Get the number of RSS queues and take the min */
-        rss_queues = GetIfaceRSSQueuesNum(iface);
-        if (rss_queues > 0) {
-            if (rss_queues < aconf->threads) {
+        /* for cluster_flow use core count */
+        if (cluster_type == PACKET_FANOUT_HASH) {
+            aconf->threads = (int)UtilCpuGetNumProcessorsOnline();
+            SCLogPerf("%u cores, so using %u threads", aconf->threads, aconf->threads);
+
+        /* for cluster_qm use RSS queue count */
+        } else if (cluster_type == PACKET_FANOUT_QM) {
+            int rss_queues = GetIfaceRSSQueuesNum(iface);
+            if (rss_queues > 0) {
                 aconf->threads = rss_queues;
-                SCLogInfo("More cores than RSS queues, using %d threads "
-                        "for interface %s", aconf->threads, iface);
+                SCLogPerf("%d RSS queues, so using %u threads", rss_queues, aconf->threads);
             }
         }
+
         if (aconf->threads) {
             SCLogPerf("Using %d AF_PACKET threads for interface %s",
                     aconf->threads, iface);
