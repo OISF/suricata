@@ -207,6 +207,7 @@ union thdr {
     void *raw;
 };
 
+#define MAX_MAPS 32
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -262,6 +263,7 @@ typedef struct AFPThreadVars_
     /* Filter */
     const char *bpf_filter;
     int ebpf_lb_fd;
+    int ebpf_filter_fd;
 
     int promisc;
 
@@ -282,6 +284,8 @@ typedef struct AFPThreadVars_
     char iface[AFP_IFACE_NAME_LENGTH];
     /* IPS output iface */
     char out_iface[AFP_IFACE_NAME_LENGTH];
+
+    int map_fd[MAX_MAPS];
 
 } AFPThreadVars;
 
@@ -1946,6 +1950,27 @@ static int SockFanoutSeteBPF(AFPThreadVars *ptv)
 
     return 0;
 }
+
+static int SetEbpfFilter(AFPThreadVars *ptv)
+{
+    int pfd;
+
+    pfd = ptv->ebpf_filter_fd;
+
+    if (pfd == -1) {
+        SCLogError(SC_ERR_INVALID_VALUE,
+                   "Filter file descriptor is invalid");
+        return -1;
+    }
+
+    if (setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_BPF, &pfd, sizeof(pfd))) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Error setting ebpf: %s", strerror(errno));
+        return -1;
+    }
+    SCLogInfo("Activated eBPF filter on socket");
+
+    return 0;
+}
 #endif
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
@@ -2133,6 +2158,10 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     struct sock_fprog  fcode;
     int rc;
 
+    if (ptv->ebpf_filter_fd != -1) {
+        return SetEbpfFilter(ptv);
+    }
+
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;
 
@@ -2238,6 +2267,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, const void *initdata, void **data)
         ptv->bpf_filter = afpconfig->bpf_filter;
     }
     ptv->ebpf_lb_fd = afpconfig->ebpf_lb_fd;
+    ptv->ebpf_filter_fd = afpconfig->ebpf_filter_fd;
 
 #ifdef PACKET_STATISTICS
     ptv->capture_kernel_packets = StatsRegisterCounter("capture.kernel_packets",

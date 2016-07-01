@@ -225,6 +225,8 @@ static void *ParseAFPConfig(const char *iface)
     aconf->bpf_filter = NULL;
     aconf->ebpf_lb_file = NULL;
     aconf->ebpf_lb_fd = -1;
+    aconf->ebpf_filter_file = NULL;
+    aconf->ebpf_filter_fd = -1;
     aconf->out_iface = NULL;
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     aconf->block_timeout = 10;
@@ -456,6 +458,28 @@ static void *ParseAFPConfig(const char *iface)
                                &aconf->ebpf_lb_fd);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
+        }
+#else
+        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+#endif
+    }
+
+    if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-filter-file", &ebpf_file) != 1) {
+        aconf->ebpf_filter_file = NULL;
+    } else {
+        SCLogInfo("af-packet will use '%s' as eBPF filter file",
+                  ebpf_file);
+        aconf->ebpf_filter_file = ebpf_file;
+    }
+
+    /* One shot loading of the eBPF file */
+    if (aconf->ebpf_filter_file) {
+#ifdef HAVE_PACKET_EBPF
+        int ret = LoadEBPFFile(aconf->ebpf_filter_file, "filter",
+                               &aconf->ebpf_filter_fd);
+        if (ret != 0) {
+            SCLogError(SC_ERR_INVALID_VALUE,
+                       "Error when loading eBPF filter file");
         }
 #else
         SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");

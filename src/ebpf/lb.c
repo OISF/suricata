@@ -12,7 +12,6 @@
 
 #include "bpf_helpers.h"
 
-#define IPPROTO_TCP 6
 #define LINUX_VERSION_CODE 263682
 
 #ifndef __section
