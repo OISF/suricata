@@ -816,12 +816,12 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     if (unlikely(output_ctx == NULL)) {
         return NULL;
     }
+    output_ctx->DeInit = LogLuaMasterFree;
     output_ctx->data = SCCalloc(1, sizeof(LogLuaMasterCtx));
     if (unlikely(output_ctx->data == NULL)) {
         SCFree(output_ctx);
         return NULL;
     }
-    output_ctx->DeInit = LogLuaMasterFree;
     LogLuaMasterCtx *master_config = output_ctx->data;
     strlcpy(master_config->path, dir, sizeof(master_config->path));
     TAILQ_INIT(&output_ctx->submodules);
@@ -904,9 +904,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
     return output_ctx;
 
 error:
-    if (output_ctx->DeInit && output_ctx->data)
-        output_ctx->DeInit(output_ctx->data);
-    SCFree(output_ctx);
+    if (output_ctx->DeInit)
+        output_ctx->DeInit(output_ctx);
     return NULL;
 }
 
