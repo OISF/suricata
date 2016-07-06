@@ -43,6 +43,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-prefilter.h"
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
@@ -1491,10 +1492,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
+    /* run the prefilter engines */
+    Prefilter(det_ctx, det_ctx->sgh, p, flow_flags, has_state);
+
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
+
 #ifdef PROFILING
     if (th_v) {
         StatsAddUI64(th_v, det_ctx->counter_mpm_list,
