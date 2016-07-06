@@ -197,6 +197,7 @@ int AppLayerParserParse(AppLayerParserThreadCtx *tctx, Flow *f, AppProto alproto
 void AppLayerParserSetEOF(AppLayerParserState *pstate);
 int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto, void *alstate, AppLayerParserState *pstate,
                         uint8_t flags);
+int AppLayerParserIsTxAware(AppProto alproto);
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);

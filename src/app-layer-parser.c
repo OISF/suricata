@@ -1076,6 +1076,15 @@ int AppLayerParserHasDecoderEvents(uint8_t ipproto, AppProto alproto,
     SCReturnInt(1);
 }
 
+/** \brief simpler way to globally test if a alproto is registered
+ *         and fully enabled in the configuration.
+ */
+int AppLayerParserIsTxAware(AppProto alproto)
+{
+    return (alp_ctx.ctxs[FLOW_PROTO_DEFAULT][alproto]
+            .StateGetProgressCompletionStatus != NULL);
+}
+
 int AppLayerParserProtocolIsTxAware(uint8_t ipproto, AppProto alproto)
 {
     SCEnter();
