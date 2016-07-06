@@ -306,8 +306,8 @@ static int GetRcptList(lua_State *luastate, Flow *flow)
     SMTPString *rcpt;
 
     TAILQ_FOREACH(rcpt, &smtp_tx->rcpt_to_list, next) {
-        LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
         lua_pushinteger(luastate, u++);
+        LuaPushStringBuffer(luastate, rcpt->str, rcpt->len);
         lua_settable(luastate, -3);
     }
     /* return 1 since we allways push one table to luastate */
