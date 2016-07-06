@@ -961,6 +961,31 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef struct PrefilterEngine_ {
+    uint16_t id;
+
+    /** App Proto this engine applies to: only used with Tx Engines */
+    AppProto alproto;
+    /** Minimal Tx progress we need before running the engine. Only used
+     *  with Tx Engine */
+    int tx_min_progress;
+
+    /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
+     *  for other engines. */
+    void *pectx;
+
+    void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+    void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
+            Packet *p, Flow *f, void *tx,
+            const uint64_t idx, const uint8_t flags);
+
+    struct PrefilterEngine_ *next;
+
+    /** Free function for pectx data. If NULL the memory is not freed. */
+    void (*Free)(void *pectx);
+
+} PrefilterEngine;
+
 typedef struct SigGroupHeadInitData_ {
     MpmStore mpm_store[MPMB_MAX];
 
@@ -1025,6 +1050,9 @@ typedef struct SigGroupHead_ {
             const MpmCtx *mpm_hscd_ctx_tc;
         };
     };
+
+    PrefilterEngine *engines;
+    PrefilterEngine *tx_engines;
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
