@@ -1546,7 +1546,7 @@ void RegisterSMBParsers(void)
         AppLayerParserRegisterParser(IPPROTO_TCP, ALPROTO_SMB, STREAM_TOCLIENT, SMBParseResponse);
         AppLayerParserRegisterStateFuncs(IPPROTO_TCP, ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     } else {
-        SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
+        SCLogInfo("Parsed disabled for %s protocol. Protocol detection "
                   "still on.", proto_name);
     }
 
