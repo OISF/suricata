@@ -85,7 +85,7 @@ int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, Outpu
         t->next = op;
     }
 
-    SCLogDebug("OutputRegisterTxLogger happy");
+    SCLogDebug("OutputRegisterFiledataLogger happy");
     return 0;
 }
 

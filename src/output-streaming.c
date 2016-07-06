@@ -86,7 +86,7 @@ int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc,
         t->next = op;
     }
 
-    SCLogDebug("OutputRegisterTxLogger happy");
+    SCLogDebug("OutputRegisterStreamingLogger happy");
     return 0;
 }
 
