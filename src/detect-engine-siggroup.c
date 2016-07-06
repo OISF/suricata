@@ -36,6 +36,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-siggroup.h"
+#include "detect-engine-prefilter.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"
@@ -169,6 +170,9 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         SigGroupHeadInitDataFree(sgh->init);
         sgh->init = NULL;
     }
+
+    PrefilterFreeEngines(sgh->tx_engines);
+    PrefilterFreeEngines(sgh->engines);
 
     SCFree(sgh);
 
