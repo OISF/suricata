@@ -61,6 +61,7 @@
 #include "util-lua-dns.h"
 #include "util-lua-tls.h"
 #include "util-lua-ssh.h"
+#include "util-lua-smtp.h"
 
 #define MODULE_NAME "LuaLog"
 
@@ -710,6 +711,7 @@ static lua_State *LuaScriptSetup(const char *filename)
     LuaRegisterDnsFunctions(luastate);
     LuaRegisterTlsFunctions(luastate);
     LuaRegisterSshFunctions(luastate);
+    LuaRegisterSmtpFunctions(luastate);
 
     if (lua_pcall(luastate, 0, 0, 0) != 0) {
         SCLogError(SC_ERR_LUA_ERROR, "couldn't run script 'setup' function: %s", lua_tostring(luastate, -1));
