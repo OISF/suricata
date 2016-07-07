@@ -31,9 +31,9 @@ int DetectEngineInspectHttpHRH(ThreadVars *tv,
                                Signature *s, Flow *f, uint8_t flags,
                                void *alstate,
                                void *tx, uint64_t tx_id);
-int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                              HtpState *htp_state, uint8_t flags,
-                              void *tx, uint64_t idx);
+
+int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, void *txv);
+
 void DetectEngineHttpHRHRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HRHHD_H__ */

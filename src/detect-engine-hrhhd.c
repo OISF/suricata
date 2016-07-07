@@ -66,19 +66,16 @@
  * \param det_ctx    Detection engine thread ctx.
  * \param hrh        Raw hostname to inspect.
  * \param hrh_len    Raw hostname buffer length.
- * \param flags  Flags
  *
  *  \retval ret Number of matches.
  */
 static inline uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *hrh, const uint32_t hrh_len,
-        const uint8_t flags)
+        const uint8_t *hrh, const uint32_t hrh_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhhd_ctx_ts == NULL);
 
     if (hrh_len >= det_ctx->sgh->mpm_hrhhd_ctx_ts->minlen) {
@@ -90,9 +87,7 @@ static inline uint32_t HttpHRHPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                              HtpState *htp_state, uint8_t flags,
-                              void *txv, uint64_t idx)
+int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -119,7 +114,7 @@ int DetectEngineRunHttpHRHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
     if (hname != NULL) {
-        cnt = HttpHRHPatternSearch(det_ctx, hname, hname_len, flags);
+        cnt = HttpHRHPatternSearch(det_ctx, hname, hname_len);
     }
 
  end:
