@@ -71,14 +71,12 @@
  *  \retval ret Number of matches.
  */
 static inline uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *hh, const uint32_t hh_len,
-        const uint8_t flags)
+        const uint8_t *hh, const uint32_t hh_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hhhd_ctx_ts == NULL);
 
     if (hh_len >= det_ctx->sgh->mpm_hhhd_ctx_ts->minlen) {
@@ -90,9 +88,7 @@ static inline uint32_t HttpHHPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *txv, uint64_t idx)
+int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -103,7 +99,7 @@ int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
     const uint32_t hname_len = bstr_len(tx->request_hostname);
 
-    cnt = HttpHHPatternSearch(det_ctx, hname, hname_len, flags);
+    cnt = HttpHHPatternSearch(det_ctx, hname, hname_len);
 
  end:
     return cnt;
