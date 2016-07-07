@@ -965,7 +965,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     if (tx_progress > HTP_RESPONSE_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
-                            DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                            DetectEngineRunHttpStatMsgMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSMD);
                         }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSCD) {
