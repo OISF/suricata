@@ -31,9 +31,9 @@ int DetectEngineInspectHttpMethod(ThreadVars *tv,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
-int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *tx, uint64_t idx);
+
+int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, void *txv);
+
 void DetectEngineHttpMethodRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HMD_H__ */
