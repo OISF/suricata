@@ -96,9 +96,8 @@ static inline uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *txv, uint64_t idx)
+int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t flags, void *txv)
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
