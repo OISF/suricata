@@ -57,14 +57,12 @@
  */
 static inline uint32_t TlsSniPatternSearch(DetectEngineThreadCtx *det_ctx,
                                            const uint8_t *buffer,
-                                           const uint32_t buffer_len,
-                                           const uint8_t flags)
+                                           const uint32_t buffer_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlssni_ctx_ts == NULL);
 
     if (buffer_len >= det_ctx->sgh->mpm_tlssni_ctx_ts->minlen) {
@@ -86,8 +84,8 @@ static inline uint32_t TlsSniPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \retval cnt       Number of matches
  */
-uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                SSLState *ssl_state, uint8_t flags)
+uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx,
+                                SSLState *ssl_state)
 {
     SCEnter();
 
@@ -101,7 +99,7 @@ uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     buffer = (uint8_t *)ssl_state->client_connp.sni;
     buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = TlsSniPatternSearch(det_ctx, buffer, buffer_len, flags);
+    cnt = TlsSniPatternSearch(det_ctx, buffer, buffer_len);
 
     SCReturnUInt(cnt);
 }
