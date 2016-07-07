@@ -903,7 +903,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     if (tx_progress > HTP_REQUEST_LINE) {
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
-                            DetectUricontentInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                            DetectUricontentInspectMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
                         }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
