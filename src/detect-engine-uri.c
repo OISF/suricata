@@ -57,14 +57,12 @@
  *  \retval ret number of matches
  */
 static inline uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *uri, const uint16_t uri_len,
-        const uint8_t flags)
+        const uint8_t *uri, const uint16_t uri_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_uri_ctx_ts == NULL);
 
     if (uri_len >= det_ctx->sgh->mpm_uri_ctx_ts->minlen) {
@@ -88,12 +86,9 @@ static inline uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
  *  \param f locked flow
  *  \param htp_state initialized htp state
  *
- *  \warning Make sure the flow/state is locked
  *  \todo what should we return? Just the fact that we matched?
  */
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags,
-                                    void *txv, uint64_t idx)
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     SCEnter();
 
@@ -105,8 +100,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         goto end;
     cnt = UriPatternSearch(det_ctx, (const uint8_t *)
                            bstr_ptr(tx_ud->request_uri_normalized),
-                           bstr_len(tx_ud->request_uri_normalized),
-                           flags);
+                           bstr_len(tx_ud->request_uri_normalized));
 
 end:
     SCReturnUInt(cnt);
