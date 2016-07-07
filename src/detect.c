@@ -906,11 +906,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                             DetectEngineRunHttpRawUriMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
                         }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HMD);
-                            DetectEngineRunHttpMethodMpm(det_ctx, tx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HMD);
-                        }
                     }
 
                     if (tx_progress >= HTP_REQUEST_HEADERS) {
