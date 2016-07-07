@@ -45,6 +45,8 @@
 
 #include "detect-mark.h"
 
+#include "stream.h"
+
 #define DETECT_MAX_RULE_SIZE 8192
 
 /* forward declarations for the structures from detect-engine-sigorder.h */
@@ -828,6 +830,8 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PrefilterRuleStore pmq;
+
+    StreamMsg *smsg;
 
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */
