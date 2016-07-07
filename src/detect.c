@@ -973,7 +973,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSCD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSCD);
-                            DetectEngineRunHttpStatCodeMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                            DetectEngineRunHttpStatCodeMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSCD);
                         }
                     }
