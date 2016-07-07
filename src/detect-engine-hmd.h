@@ -32,7 +32,7 @@ int DetectEngineInspectHttpMethod(ThreadVars *tv,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
 
-int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, void *txv);
+int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
 void DetectEngineHttpMethodRegisterTests(void);
 
