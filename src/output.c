@@ -92,8 +92,7 @@ typedef TAILQ_HEAD(LoggerThreadStore_, LoggerThreadStoreNode_) LoggerThreadStore
 /**
  * The list of all registered (known) output modules.
  */
-static TAILQ_HEAD(, OutputModule_) output_modules =
-    TAILQ_HEAD_INITIALIZER(output_modules);
+OutputModuleList output_modules = TAILQ_HEAD_INITIALIZER(output_modules);
 
 /**
  * Registry of flags to be updated on file rotation notification.

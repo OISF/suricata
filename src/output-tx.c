@@ -214,13 +214,13 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
                         }
                     } else {
                         if (tx_progress_tc < logger->tc_log_progress) {
-                            SCLogDebug("progress not far enough, not logging");
+                            SCLogDebug("tc progress not far enough, not logging");
                             logger_not_logged = 1;
                             goto next;
                         }
 
                         if (tx_progress_ts < logger->ts_log_progress) {
-                            SCLogDebug("progress not far enough, not logging");
+                            SCLogDebug("ts progress not far enough, not logging");
                             logger_not_logged = 1;
                             goto next;
                         }

@@ -274,7 +274,8 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
 }
 
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -292,6 +293,18 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
 
         json_decref(js);
     }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+{
+    SCEnter();
+
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    DNSTransaction *tx = txptr;
+    json_t *js;
 
     js = CreateJSONHeader((Packet *)p, 0, "dns");
     if (unlikely(js == NULL))
@@ -440,14 +453,26 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
+#define PARENT_NAME "eve-log"
+#define SUB_NAME "eve-log.dns"
+
 void JsonDnsLogRegister (void)
 {
-    OutputRegisterTxModule(LOGGER_JSON_DNS, MODULE_NAME, "dns-json-log",
-        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLogger, LogDnsLogThreadInit,
-        LogDnsLogThreadDeinit, NULL);
-    OutputRegisterTxSubModule(LOGGER_JSON_DNS, "eve-log", MODULE_NAME,
-        "eve-log.dns", JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLogger,
-        LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer,
+        1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient,
+        2, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, PARENT_NAME,
+        MODULE_NAME, SUB_NAME, JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToServer, 1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, PARENT_NAME,
+        MODULE_NAME, SUB_NAME, JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToClient, 2, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        NULL);
 }
 
 #else

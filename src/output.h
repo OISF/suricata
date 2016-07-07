@@ -42,6 +42,7 @@ typedef OutputCtx *(*OutputInitFunc)(ConfNode *);
 typedef OutputCtx *(*OutputInitSubFunc)(ConfNode *, OutputCtx *);
 typedef TmEcode (*OutputLogFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
     PacketQueue *);
+
 typedef struct OutputModule_ {
     LoggerId logger_id;
     const char *name;
@@ -71,6 +72,8 @@ typedef struct OutputModule_ {
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
+typedef TAILQ_HEAD(OutputModuleList_, OutputModule_) OutputModuleList;
+extern OutputModuleList output_modules;
 
 void OutputRegisterModule(const char *, const char *, OutputInitFunc);
 
