@@ -65,14 +65,12 @@
  *  \retval ret Number of matches.
  */
 static inline uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *stat_code, const uint32_t stat_code_len,
-        const uint8_t flags)
+        const uint8_t *stat_code, const uint32_t stat_code_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
 
     if (stat_code_len >= det_ctx->sgh->mpm_hscd_ctx_tc->minlen) {
@@ -89,9 +87,7 @@ static inline uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  * \retval cnt Number of matches reported by the mpm algo.
  */
-int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   HtpState *htp_state, uint8_t flags,
-                                   void *txv, uint64_t idx)
+int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     SCEnter();
 
@@ -102,7 +98,7 @@ int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     cnt = HttpStatCodePatternSearch(det_ctx,
                                     (const uint8_t *)bstr_ptr(tx->response_status),
-                                    bstr_len(tx->response_status), flags);
+                                    bstr_len(tx->response_status));
 end:
     SCReturnInt(cnt);
 }
