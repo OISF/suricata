@@ -1025,7 +1025,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                             continue;
 
                         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                        DetectDnsQueryInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                        DetectDnsQueryInspectMpm(det_ctx, tx);
                         PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
                     }
                 }
@@ -1134,7 +1134,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         continue;
                     SCLogDebug("tx %p",tx);
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                    DetectDnsQueryInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                    DetectDnsQueryInspectMpm(det_ctx, tx);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
                 }
             }
