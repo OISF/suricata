@@ -49,6 +49,7 @@
 #include "detect-content.h"
 
 #include "detect-engine-uri.h"
+#include "detect-engine-hmd.h"
 
 #include "stream.h"
 
@@ -93,7 +94,8 @@ AppLayerMpms app_mpms[] = {
     { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, NULL, 5},
     { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, NULL, 6},
 
-    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH, SIG_GROUP_HEAD_MPM_HMD, NULL, 7},
+    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
+        SIG_GROUP_HEAD_MPM_HMD, PrefilterTxMethodRegister, 7},
 
     { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_FD_SMTP, NULL, 8}, /* smtp */
     { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_HSBD, NULL, 9}, /* http server body */
