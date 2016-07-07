@@ -105,14 +105,12 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
  *  \retval ret Number of matches.
  */
 static inline uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                      const uint8_t *buffer, const uint32_t buffer_len,
-                                      const uint8_t flags)
+        const uint8_t *buffer, const uint32_t buffer_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
 
     if (buffer_len >= det_ctx->sgh->mpm_dnsquery_ctx_ts->minlen) {
@@ -130,12 +128,9 @@ static inline uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
  *  \param f locked flow
  *  \param dns_state initialized dns state
  *
- *  \warning Make sure the flow/state is locked
  *  \todo what should we return? Just the fact that we matched?
  */
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  DNSState *dns_state, uint8_t flags, void *txv,
-                                  uint64_t tx_id)
+uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     SCEnter();
 
@@ -152,8 +147,7 @@ uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         buffer_len = query->len;
 
         cnt += DnsQueryPatternSearch(det_ctx,
-                buffer, buffer_len,
-                flags);
+                buffer, buffer_len);
     }
 
     SCReturnUInt(cnt);
