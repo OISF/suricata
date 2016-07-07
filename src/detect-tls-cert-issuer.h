@@ -28,6 +28,6 @@
 
 void DetectTlsIssuerRegister(void);
 uint32_t DetectTlsIssuerInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   SSLState *ssl_state, uint8_t flags);
+                                   SSLState *ssl_state);
 
 #endif /* __DETECT_TLS_ISSUER_H__ */
