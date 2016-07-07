@@ -1295,7 +1295,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (sh->init->app_mpms[a->id] != NULL)
                 sh->flags |= a->flags;
 
-            if (a->PrefilterRegister) {
+            if (a->PrefilterRegister && mpm_store->mpm_ctx) {
                 BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
             }
         }
