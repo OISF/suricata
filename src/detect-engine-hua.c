@@ -69,14 +69,12 @@
  *  \retval ret Number of matches.
  */
 static inline uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *ua, const uint32_t ua_len,
-        const uint8_t flags)
+        const uint8_t *ua, const uint32_t ua_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_huad_ctx_ts == NULL);
 
     if (ua_len >= det_ctx->sgh->mpm_huad_ctx_ts->minlen) {
@@ -88,9 +86,7 @@ static inline uint32_t HttpUAPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *txv, uint64_t idx)
+int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     uint32_t cnt = 0;
     htp_tx_t *tx = (htp_tx_t *)txv;
@@ -105,7 +101,7 @@ int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
     cnt = HttpUAPatternSearch(det_ctx,
                               (const uint8_t *)bstr_ptr(h->value),
-                              bstr_len(h->value), flags);
+                              bstr_len(h->value));
  end:
     return cnt;
 }
