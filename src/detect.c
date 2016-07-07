@@ -897,11 +897,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
                     if (tx_progress > HTP_REQUEST_LINE) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
-                            DetectUricontentInspectMpm(det_ctx, tx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
-                        }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
                             DetectEngineRunHttpRawUriMpm(det_ctx, tx);
