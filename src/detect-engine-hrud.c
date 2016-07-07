@@ -68,14 +68,12 @@
  *  \retval ret Number of matches.
  */
 static inline uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *uri, const uint32_t uri_len,
-        const uint8_t flags)
+        const uint8_t *uri, const uint32_t uri_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrud_ctx_ts == NULL);
 
     if (uri_len >= det_ctx->sgh->mpm_hrud_ctx_ts->minlen) {
@@ -92,9 +90,7 @@ static inline uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  * \retval cnt Number of matches reported by the mpm algo.
  */
-int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *txv, uint64_t idx)
+int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, void *txv)
 {
     SCEnter();
 
@@ -105,7 +101,7 @@ int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     cnt = HttpRawUriPatternSearch(det_ctx,
                                   (const uint8_t *)bstr_ptr(tx->request_uri),
-                                  bstr_len(tx->request_uri), flags);
+                                  bstr_len(tx->request_uri));
 end:
     SCReturnInt(cnt);
 }
@@ -2262,7 +2258,7 @@ static int DetectEngineHttpRawUriTest17(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -2334,7 +2330,7 @@ static int DetectEngineHttpRawUriTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
     if (r != 0) {
         printf("expected 0 result, got %"PRIu32": ", r);
         goto end;
@@ -2406,7 +2402,7 @@ static int DetectEngineHttpRawUriTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
     if (r != 0) {
         printf("expected 0 result, got %"PRIu32": ", r);
         goto end;
@@ -2478,7 +2474,7 @@ static int DetectEngineHttpRawUriTest20(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
     if (r < 1) {
         printf("expected result >= 1, got %"PRIu32": ", r);
         goto end;

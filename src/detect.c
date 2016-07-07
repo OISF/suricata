@@ -909,7 +909,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
-                            DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate, flags, tx, idx);
+                            DetectEngineRunHttpRawUriMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
                         }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
