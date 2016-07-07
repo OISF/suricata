@@ -31,7 +31,6 @@
 
 /* prototypes */
 void DetectUricontentRegister (void);
-uint32_t DetectUricontentMaxId(DetectEngineCtx *);
 void DetectUricontentPrint(DetectContentData *);
 
 #endif /* __DETECT_URICONTENT_H__ */
