@@ -24,6 +24,8 @@
 #ifndef __DETECT_ENGINE_URICONTENT_H__
 #define __DETECT_ENGINE_URICONTENT_H__
 
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, void *tx);
+
 int DetectEngineInspectPacketUris(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
