@@ -1040,18 +1040,18 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSNI) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSNI);
-                    DetectTlsSniInspectMpm(det_ctx, p->flow, alstate, flags);
+                    DetectTlsSniInspectMpm(det_ctx, alstate);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
                 }
             } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSISSUER) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSISSUER);
-                    DetectTlsIssuerInspectMpm(det_ctx, p->flow, alstate, flags);
+                    DetectTlsIssuerInspectMpm(det_ctx, p->flow, alstate);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSISSUER);
                 }
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSUBJECT) {
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSUBJECT);
-                    DetectTlsSubjectInspectMpm(det_ctx, p->flow, alstate, flags);
+                    DetectTlsSubjectInspectMpm(det_ctx, p->flow, alstate);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSUBJECT);
                 }
             }
