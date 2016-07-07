@@ -24,6 +24,6 @@
 #ifndef __LOG_DNSLOG_H__
 #define __LOG_DNSLOG_H__
 
-void TmModuleLogDnsLogRegister (void);
+void LogDnsLogRegister(void);
 
 #endif /* __LOG_DNSLOG_H__ */

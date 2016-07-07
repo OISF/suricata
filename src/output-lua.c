@@ -83,6 +83,9 @@ typedef struct LogLuaThreadCtx_ {
     LogLuaCtx *lua_ctx;
 } LogLuaThreadCtx;
 
+static TmEcode LuaLogThreadInit(ThreadVars *t, void *initdata, void **data);
+static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data);
+
 /** \internal
  *  \brief TX logger for lua scripts
  *
@@ -262,13 +265,11 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
     }
 
     SCMutexUnlock(&td->lua_ctx->m);
-    FLOWLOCK_WRLOCK(p->flow);
 
     SshState *ssh_state = (SshState *)FlowGetAppState(p->flow);
     if (ssh_state != NULL)
         ssh_state->cli_hdr.flags |= SSH_FLAG_STATE_LOGGED_LUA;
 
-    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(0);
 }
 
@@ -286,7 +287,6 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
         return FALSE;
     }
 
-    FLOWLOCK_RDLOCK(p->flow);
     uint16_t proto = FlowGetAppProtocol(p->flow);
     if (proto != ALPROTO_SSH)
         goto dontlog;
@@ -305,10 +305,8 @@ static int LuaPacketConditionSsh(ThreadVars *tv, const Packet *p)
     if (ssh_state->cli_hdr.flags & SSH_FLAG_STATE_LOGGED_LUA)
         goto dontlog;
 
-    FLOWLOCK_UNLOCK(p->flow);
     return TRUE;
 dontlog:
-    FLOWLOCK_UNLOCK(p->flow);
     return FALSE;
 }
 
@@ -854,6 +852,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         om->name = MODULE_NAME;
         om->conf_name = script->val;
         om->InitSubFunc = OutputLuaLogInitSub;
+        om->ThreadInit = LuaLogThreadInit;
+        om->ThreadDeinit = LuaLogThreadDeinit;
 
         if (opts.alproto == ALPROTO_HTTP && opts.streaming) {
             om->StreamingLogFunc = LuaStreamingLogger;
@@ -982,21 +982,14 @@ static TmEcode LuaLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleLuaLogRegister (void) {
-    tmm_modules[TMM_LUALOG].name = MODULE_NAME;
-    tmm_modules[TMM_LUALOG].ThreadInit = LuaLogThreadInit;
-    tmm_modules[TMM_LUALOG].ThreadDeinit = LuaLogThreadDeinit;
-    tmm_modules[TMM_LUALOG].RegisterTests = NULL;
-    tmm_modules[TMM_LUALOG].cap_flags = 0;
-    tmm_modules[TMM_LUALOG].flags = TM_FLAG_LOGAPI_TM;
-
+void LuaLogRegister(void) {
     /* register as separate module */
     OutputRegisterModule(MODULE_NAME, "lua", OutputLuaLogInit);
 }
 
 #else
 
-void TmModuleLuaLogRegister (void) {
+void LuaLogRegister (void) {
     /* no-op */
 }
 

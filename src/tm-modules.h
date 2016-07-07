@@ -36,6 +36,10 @@
 #define TM_FLAG_MANAGEMENT_TM   0x20
 #define TM_FLAG_COMMAND_TM      0x40
 
+typedef TmEcode (*ThreadInitFunc)(ThreadVars *, void *, void **);
+typedef TmEcode (*ThreadDeinitFunc)(ThreadVars *, void *);
+typedef void (*ThreadExitPrintStatsFunc)(ThreadVars *, void *);
+
 typedef struct TmModule_ {
     char *name;
 
@@ -64,8 +68,6 @@ typedef struct TmModule_ {
                              the given TmModule */
     /* Other flags used by the module */
     uint8_t flags;
-    /* priority in the logging order, higher priority is runned first */
-    uint8_t priority;
 } TmModule;
 
 TmModule tmm_modules[TMM_SIZE];

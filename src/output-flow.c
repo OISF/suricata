@@ -47,17 +47,18 @@ typedef struct OutputFlowLogger_ {
     OutputCtx *output_ctx;
     struct OutputFlowLogger_ *next;
     const char *name;
-    TmmId module_id;
+    TmEcode (*ThreadInit)(ThreadVars *, void *, void **);
+    TmEcode (*ThreadDeinit)(ThreadVars *, void *);
+    void (*ThreadExitPrintStats)(ThreadVars *, void *);
 } OutputFlowLogger;
 
 static OutputFlowLogger *list = NULL;
 
-int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *output_ctx)
+int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc,
+    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-
     OutputFlowLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -66,7 +67,9 @@ int OutputRegisterFlowLogger(const char *name, FlowLogger LogFunc, OutputCtx *ou
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-    op->module_id = (TmmId) module_id;
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -90,7 +93,6 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
 
     if (list == NULL)
         return TM_ECODE_OK;
-    //BUG_ON(list == NULL);
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputFlowLogger *logger = list;
@@ -106,9 +108,9 @@ TmEcode OutputFlowLog(ThreadVars *tv, void *thread_data, Flow *f)
         BUG_ON(logger->LogFunc == NULL);
 
         SCLogDebug("logger %p", logger);
-        //PACKET_PROFILING_TMM_START(p, logger->module_id);
+        //PACKET_PROFILING_LOGGER_START(p, logger->module_id);
         logger->LogFunc(tv, store->thread_data, f);
-        //PACKET_PROFILING_TMM_END(p, logger->module_id);
+        //PACKET_PROFILING_LOGGER_END(p, logger->module_id);
 
         logger = logger->next;
         store = store->next;
@@ -136,16 +138,9 @@ TmEcode OutputFlowLogThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     OutputFlowLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadInit) {
+        if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -179,15 +174,8 @@ TmEcode OutputFlowLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputFlowLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
+        if (logger->ThreadDeinit) {
+            logger->ThreadDeinit(tv, store->thread_data);
         }
 
         OutputLoggerThreadStore *next_store = store->next;
@@ -207,15 +195,8 @@ void OutputFlowLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputFlowLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (logger->ThreadExitPrintStats) {
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
