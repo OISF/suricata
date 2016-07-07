@@ -48,6 +48,7 @@
 
 #include "detect-content.h"
 
+#include "detect-engine-payload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-hmd.h"
 
@@ -1226,6 +1227,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
                 if (sh->mpm_packet_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
@@ -1235,6 +1238,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 sh->mpm_stream_ctx = mpm_store->mpm_ctx;
                 if (sh->mpm_stream_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+
+                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
@@ -1244,6 +1249,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
                 if (sh->mpm_packet_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
@@ -1252,6 +1259,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 sh->mpm_stream_ctx = mpm_store->mpm_ctx;
                 if (sh->mpm_stream_ctx)
                     sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+
+                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
        }
     } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
@@ -1264,6 +1273,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
                 if (sh->mpm_packet_ctx != NULL)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
@@ -1274,6 +1285,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
                 if (sh->mpm_packet_ctx != NULL)
                     sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
     } else {
@@ -1284,6 +1297,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
             if (sh->mpm_packet_ctx != NULL)
                 sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+
+            PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
         }
     }
 
