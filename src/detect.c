@@ -1055,42 +1055,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 }
             }
         }
-
-        if (smsg != NULL && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
-            StreamPatternSearch(det_ctx, p, smsg, flags);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
-        } else {
-            SCLogDebug("smsg NULL or no stream mpm for this sgh");
-        }
     } else {
         SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
     }
-
-    if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
-        if (!(p->flags & PKT_STREAM_ADD) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
-            *sms_runflags |= SMS_USED_PM;
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
-            PacketPatternSearchWithStreamCtx(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
-        }
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
-            /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, sgh->sig_cnt %" PRIu32 ")",
-                    det_ctx->sgh, det_ctx->sgh->sig_cnt);
-
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
-            PacketPatternSearch(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
-
-            *sms_runflags |= SMS_USED_PM;
-        } else {
-            SCLogDebug("not packet");
-        }
-    } else {
-        SCLogDebug("how did we get here?");
-    }
-
     /* UDP DNS inspection is independent of est or not */
     if (alproto == ALPROTO_DNS && has_state) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -1243,7 +1210,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
     uint8_t flow_flags = 0; /* flow/state flags */
-    StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
     uint8_t alversion = 0;
@@ -1258,7 +1224,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
-
+    det_ctx->smsg = NULL;
     det_ctx->base64_decoded_len = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
@@ -1335,7 +1301,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
+                det_ctx->smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1405,7 +1371,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
 #ifdef DEBUG
         if (pflow) {
-            DebugInspectIds(p, pflow, smsg);
+            DebugInspectIds(p, pflow, det_ctx->smsg);
         }
 #endif
     } else { /* p->flags & PKT_HAS_FLOW */
@@ -1449,7 +1415,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
+    PacketCreateMask(p, &mask, alproto, has_state, det_ctx->smsg,
+            app_decoder_events);
 
     /* build and prefilter non_pf list against the mask of the packet */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
@@ -1464,7 +1431,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
+    DetectMpmPrefilter(de_ctx, det_ctx, det_ctx->smsg, p, flow_flags,
+            alproto, has_state, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
 
 #ifdef PROFILING
@@ -1640,12 +1608,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * but not for a "dsize" signature */
             if (sflags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
-                if (smsg != NULL) {
+                if (det_ctx->smsg != NULL) {
                     uint8_t pmq_idx = 0;
-                    StreamMsg *smsg_inspect = smsg;
+                    StreamMsg *smsg_inspect = det_ctx->smsg;
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
-                            SCLogDebug("match in smsg %p", smsg);
+                            SCLogDebug("match in smsg %p", smsg_inspect);
                             pmatch = 1;
                             det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
                             /* Tell the engine that this reassembled stream can drop the
@@ -1877,7 +1845,8 @@ end:
 
         /* if we had no alerts that involved the smsgs,
          * we can get rid of them now. */
-        StreamMsgReturnListToPool(smsg);
+        StreamMsgReturnListToPool(det_ctx->smsg);
+        det_ctx->smsg = NULL;
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
