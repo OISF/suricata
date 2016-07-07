@@ -1039,7 +1039,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     }
 
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSNI);
-                    DetectTlsSniInspectMpm(det_ctx, p->flow, alstate, flags);
+                    DetectTlsSniInspectMpm(det_ctx, alstate);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
                 }
             }
