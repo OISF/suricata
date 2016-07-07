@@ -57,14 +57,12 @@
  */
 static inline uint32_t TlsSniPatternSearch(DetectEngineThreadCtx *det_ctx,
                                            const uint8_t *buffer,
-                                           const uint32_t buffer_len,
-                                           const uint8_t flags)
+                                           const uint32_t buffer_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlssni_ctx_ts == NULL);
 
     if (buffer_len >= det_ctx->sgh->mpm_tlssni_ctx_ts->minlen) {
@@ -86,8 +84,8 @@ static inline uint32_t TlsSniPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \retval cnt       Number of matches
  */
-uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                SSLState *ssl_state, uint8_t flags)
+uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx,
+                                SSLState *ssl_state)
 {
     SCEnter();
 
@@ -101,7 +99,7 @@ uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     buffer = (uint8_t *)ssl_state->client_connp.sni;
     buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = TlsSniPatternSearch(det_ctx, buffer, buffer_len, flags);
+    cnt = TlsSniPatternSearch(det_ctx, buffer, buffer_len);
 
     SCReturnUInt(cnt);
 }
@@ -147,23 +145,20 @@ int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
 /**
  * \brief TLS issuer match -- searches for one pattern per signature.
  *
- * \param det_ctx   Detection engine thread ctx
- * \param hrh       Buffer to inspect
- * \param hrh_len   Buffer length
- * \param flags     Flags
+ * \param det_ctx       Detection engine thread ctx
+ * \param buffer        Buffer to inspect
+ * \param buffer_len    Buffer length
  *
  * \retval ret      Number of matches
  */
 static inline uint32_t TlsIssuerPatternSearch(DetectEngineThreadCtx *det_ctx,
                                               const uint8_t *buffer,
-                                              const uint32_t buffer_len,
-                                              const uint8_t flags)
+                                              const uint32_t buffer_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOSERVER);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlsissuer_ctx_ts == NULL);
 
     if (buffer_len >= det_ctx->sgh->mpm_tlsissuer_ctx_ts->minlen) {
@@ -180,13 +175,12 @@ static inline uint32_t TlsIssuerPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \param det_ctx    Detection engine thread ctx
  *  \param f          Locked flow
- *  \param dns_state  Initialized dns state
- *  \param flags      Flags
+ *  \param ssl_state  Initialized ssl state
  *
  *  \retval cnt       Number of matches
  */
 uint32_t DetectTlsIssuerInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   SSLState *ssl_state, uint8_t flags)
+                                   SSLState *ssl_state)
 {
     SCEnter();
 
@@ -200,7 +194,7 @@ uint32_t DetectTlsIssuerInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
     buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
 
-    cnt = TlsIssuerPatternSearch(det_ctx, buffer, buffer_len, flags);
+    cnt = TlsIssuerPatternSearch(det_ctx, buffer, buffer_len);
 
     SCReturnUInt(cnt);
 }
@@ -224,7 +218,7 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                  uint64_t tx_id)
 {
     uint8_t *buffer;
-    uint16_t buffer_len;
+    uint32_t buffer_len;
     int cnt = 0;
 
     SSLState *ssl_state = (SSLState *)alstate;
@@ -246,23 +240,20 @@ int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
 /**
  * \brief TLS subject match -- searches for one pattern per signature.
  *
- * \param det_ctx   Detection engine thread ctx
- * \param hrh       Buffer to inspect
- * \param hrh_len   Buffer length
- * \param flags     Flags
+ * \param det_ctx       Detection engine thread ctx
+ * \param buffer        Buffer to inspect
+ * \param buffer_len    Buffer length
  *
  * \retval ret      Number of matches
  */
 static inline uint32_t TlsSubjectPatternSearch(DetectEngineThreadCtx *det_ctx,
                                                const uint8_t *buffer,
-                                               const uint32_t buffer_len,
-                                               const uint8_t flags)
+                                               const uint32_t buffer_len)
 {
     SCEnter();
 
     uint32_t ret = 0;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOSERVER);
     DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlssubject_ctx_ts == NULL);
 
     if (buffer_len >= det_ctx->sgh->mpm_tlssubject_ctx_ts->minlen) {
@@ -279,13 +270,12 @@ static inline uint32_t TlsSubjectPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \param det_ctx    Detection engine thread ctx
  *  \param f          Locked flow
- *  \param dns_state  Initialized dns state
- *  \param flags      Flags
+ *  \param ssl_state  Initialized ssl state
  *
  *  \retval cnt       Number of matches
  */
 uint32_t DetectTlsSubjectInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    SSLState *ssl_state, uint8_t flags)
+                                    SSLState *ssl_state)
 {
     SCEnter();
 
@@ -299,7 +289,7 @@ uint32_t DetectTlsSubjectInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
     buffer_len = strlen(ssl_state->server_connp.cert0_subject);
 
-    cnt = TlsSubjectPatternSearch(det_ctx, buffer, buffer_len, flags);
+    cnt = TlsSubjectPatternSearch(det_ctx, buffer, buffer_len);
 
     SCReturnUInt(cnt);
 }
@@ -323,7 +313,7 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
                                   uint64_t tx_id)
 {
     uint8_t *buffer;
-    uint16_t buffer_len;
+    uint32_t buffer_len;
     int cnt = 0;
 
     SSLState *ssl_state = (SSLState *)alstate;
