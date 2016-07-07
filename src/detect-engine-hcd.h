@@ -31,9 +31,10 @@ int DetectEngineInspectHttpCookie(ThreadVars *tv,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
-int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *tx, uint64_t idx);
+
+int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t flags, void *tx);
+
 void DetectEngineHttpCookieRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HCD_H__ */
