@@ -34,8 +34,4 @@ void DetectUricontentRegister (void);
 uint32_t DetectUricontentMaxId(DetectEngineCtx *);
 void DetectUricontentPrint(DetectContentData *);
 
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags,
-                                    void *tx, uint64_t idx);
-
 #endif /* __DETECT_URICONTENT_H__ */
