@@ -51,6 +51,7 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-hmd.h"
+#include "detect-engine-dns.h"
 
 #include "stream.h"
 
@@ -112,7 +113,8 @@ AppLayerMpms app_mpms[] = {
     { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, NULL, 15},
     { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, NULL, 16},
 
-    { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH, SIG_GROUP_HEAD_MPM_DNSQUERY, NULL, 17},
+    { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+        SIG_GROUP_HEAD_MPM_DNSQUERY, PrefilterTxDnsQueryRegister, 17},
 
     { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH, SIG_GROUP_HEAD_MPM_TLSSNI, NULL, 18},
 
