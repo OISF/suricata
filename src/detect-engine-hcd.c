@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * \brief Handle HTTP cookie match
  *
@@ -41,6 +42,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -58,74 +60,96 @@
 #include "app-layer-protos.h"
 #include "util-validate.h"
 
-/**
- * \brief Http cookie match -- searches for one pattern per signature.
+/** \brief HTTP Cookie Mpm prefilter callback
  *
- * \param det_ctx    Detection engine thread ctx.
- * \param cookie     Cookie to inspect.
- * \param cookie_len Cookie length.
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *cookie, const uint32_t cookie_len,
-        const uint8_t flags)
+static void PrefilterTxRequestCookie(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
 
-    if (flags & STREAM_TOSERVER) {
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_ts == NULL);
+    if (tx->request_headers == NULL)
+        return;
 
-        if (cookie_len >= det_ctx->sgh->mpm_hcd_ctx_ts->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
-                Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
-                        &det_ctx->pmq, cookie, cookie_len);
-        }
-    } else {
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcd_ctx_tc == NULL);
-
-        if (cookie_len >= det_ctx->sgh->mpm_hcd_ctx_tc->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
-                Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
-                        &det_ctx->pmq, cookie, cookie_len);
-        }
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->request_headers,
+                                                      "Cookie");
+    if (h == NULL || h->value == NULL) {
+        SCLogDebug("HTTP cookie header not present in this request");
+        return;
     }
 
-    SCReturnUInt(ret);
+    const uint32_t buffer_len = bstr_len(h->value);
+    const uint8_t *buffer = bstr_ptr(h->value);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
 }
 
-int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx,
-                                 uint8_t flags, void *txv)
+int PrefilterTxRequestCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    uint32_t cnt = 0;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->request_headers == NULL)
-        goto end;
+    SCEnter();
 
-    htp_header_t *h = NULL;
-    if (flags & STREAM_TOSERVER) {
-        h = (htp_header_t *)htp_table_get_c(tx->request_headers,
-                                            "Cookie");
-        if (h == NULL) {
-            SCLogDebug("HTTP cookie header not present in this request");
-            goto end;
-        }
-    } else {
-        h = (htp_header_t *)htp_table_get_c(tx->response_headers,
-                                            "Set-Cookie");
-        if (h == NULL) {
-            SCLogDebug("HTTP Set-Cookie header not present in this request");
-            goto end;
-        }
+    return PrefilterAppendTxEngine(sgh, PrefilterTxRequestCookie,
+        ALPROTO_HTTP, HTP_REQUEST_HEADERS,
+        mpm_ctx, NULL);
+}
+
+/** \brief HTTP Cookie Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxResponseCookie(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+
+    if (tx->response_headers == NULL)
+        return;
+
+    htp_header_t *h = (htp_header_t *)htp_table_get_c(tx->response_headers,
+                                                      "Set-Cookie");
+    if (h == NULL || h->value == NULL) {
+        SCLogDebug("HTTP cookie header not present in this request");
+        return;
     }
 
-    cnt = HttpCookiePatternSearch(det_ctx,
-                                  (uint8_t *)bstr_ptr(h->value),
-                                  bstr_len(h->value), flags);
- end:
-    return cnt;
+    const uint32_t buffer_len = bstr_len(h->value);
+    const uint8_t *buffer = bstr_ptr(h->value);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+int PrefilterTxResponseCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxResponseCookie,
+        ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
+        mpm_ctx, NULL);
 }
 
 /**
