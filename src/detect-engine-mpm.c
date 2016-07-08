@@ -50,6 +50,7 @@
 
 #include "detect-engine-payload.h"
 #include "detect-engine-uri.h"
+#include "detect-engine-hrud.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-dns.h"
 
@@ -86,7 +87,8 @@ typedef struct AppLayerMpms_ {
 AppLayerMpms app_mpms[] = {
     { "http_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_UMATCH,
         SIG_GROUP_HEAD_MPM_URI, PrefilterTxUriRegister, 0 },
-    { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH, SIG_GROUP_HEAD_MPM_HRUD, NULL, 1 },
+    { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH,
+        SIG_GROUP_HEAD_MPM_HRUD, PrefilterTxRawUriRegister, 1 },
 
     { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, NULL, 2},
     { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, NULL, 3},
