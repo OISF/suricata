@@ -35,6 +35,7 @@ int ListKeywords(const char *keyword_info)
     if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
         SCLogLoadConfig(0, 0);
     MpmTableSetup();
+    SpmTableSetup();
     AppLayerSetup();
     SigTableSetup(); /* load the rule keywords */
     SigTableList(keyword_info);
@@ -46,6 +47,7 @@ int ListAppLayerProtocols()
     if (ConfYamlLoadFile(DEFAULT_CONF_FILE) != -1)
         SCLogLoadConfig(0, 0);
     MpmTableSetup();
+    SpmTableSetup();
     AppLayerSetup();
     AppLayerListSupportedProtocols();
 
