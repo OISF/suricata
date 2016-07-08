@@ -913,11 +913,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                             DetectEngineRunHttpHRHMpm(det_ctx, tx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHHD);
                         }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCD);
-                            DetectEngineRunHttpCookieMpm(det_ctx, flags, tx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
-                        }
                         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HUAD) {
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HUAD);
                             DetectEngineRunHttpUAMpm(det_ctx, tx);
@@ -966,11 +961,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
                             DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCD);
-                            DetectEngineRunHttpCookieMpm(det_ctx, flags, tx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
                         }
                     }
 
