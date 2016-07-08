@@ -1251,12 +1251,12 @@
             echo
             exit 1
         fi
-        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.5],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
+        PKG_CHECK_MODULES(LIBHTPMINVERSION, [htp >= 0.5.20],[libhtp_minver_found="yes"],[libhtp_minver_found="no"])
         if test "$libhtp_minver_found" = "no"; then
             PKG_CHECK_MODULES(LIBHTPDEVVERSION, [htp = 0.5.X],[libhtp_devver_found="yes"],[libhtp_devver_found="no"])
             if test "$libhtp_devver_found" = "no"; then
                 echo
-                echo "   ERROR! libhtp was found but it is neither >= 0.5.5, nor the dev 0.5.X"
+                echo "   ERROR! libhtp was found but it is neither >= 0.5.20, nor the dev 0.5.X"
                 echo
                 exit 1
             fi
