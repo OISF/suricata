@@ -56,6 +56,7 @@
 #include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
 #include "detect-engine-hrhhd.h"
+#include "detect-engine-hsmd.h"
 #include "detect-engine-dns.h"
 
 #include "stream.h"
@@ -109,7 +110,8 @@ AppLayerMpms app_mpms[] = {
     { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_FD_SMTP, NULL, 8}, /* smtp */
     { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_HSBD, NULL, 9}, /* http server body */
 
-    { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH, SIG_GROUP_HEAD_MPM_HSMD, NULL, 10},
+    { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH,
+        SIG_GROUP_HEAD_MPM_HSMD, PrefilterTxHttpStatMsgRegister, 10},
     { "http_stat_code", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSCDMATCH, SIG_GROUP_HEAD_MPM_HSCD, NULL, 11},
 
     { "http_client_body", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCBDMATCH, SIG_GROUP_HEAD_MPM_HCBD, NULL, 12},
