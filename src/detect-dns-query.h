@@ -28,6 +28,4 @@
 
 void DetectDnsQueryRegister (void);
 
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, void *txv);
-
 #endif /* __DETECT_DNS_QUERY_H__ */
