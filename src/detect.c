@@ -997,30 +997,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     }
                 }
             } /* for */
-        }
-        /* all dns based mpms */
-        else if (alproto == ALPROTO_DNS && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                    for (; idx < total_txs; idx++) {
-                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                        if (tx == NULL)
-                            continue;
-
-                        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                        DetectDnsQueryInspectMpm(det_ctx, tx);
-                        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
-                    }
-                }
-            }
         } else if (alproto == ALPROTO_TLS && has_state) {
             void *alstate = FlowGetAppState(p->flow);
             if (alstate == NULL) {
@@ -1072,31 +1048,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         }
     } else {
         SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
-    /* UDP DNS inspection is independent of est or not */
-    if (alproto == ALPROTO_DNS && has_state) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            SCLogDebug("mpm inspection");
-            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
-                void *alstate = FlowGetAppState(p->flow);
-                if (alstate == NULL) {
-                    SCLogDebug("no alstate");
-                    return;
-                }
-
-                uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                for (; idx < total_txs; idx++) {
-                    void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                    if (tx == NULL)
-                        continue;
-                    SCLogDebug("tx %p",tx);
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                    DetectDnsQueryInspectMpm(det_ctx, tx);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
-                }
-            }
-        }
     }
 
     /* Sort the rule list to lets look at pmq.

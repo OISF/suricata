@@ -23,6 +23,8 @@
 #ifndef __DETECT_ENGINE_DNS_H__
 #define __DETECT_ENGINE_DNS_H__
 
+int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectDnsQueryName(ThreadVars *, DetectEngineCtx *de_ctx,
                                     DetectEngineThreadCtx *, Signature *,
                                     Flow *, uint8_t, void *, void *, uint64_t);
