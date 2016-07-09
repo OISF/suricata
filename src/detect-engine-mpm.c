@@ -89,7 +89,6 @@ typedef struct AppLayerMpms_ {
     int32_t sgh_mpm_context;    /**< mpm factory id */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int sm_list;
-    uint32_t flags;             /**< flags set to SGH when this mpm is present */
 
     int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
@@ -98,60 +97,60 @@ typedef struct AppLayerMpms_ {
 
 AppLayerMpms app_mpms[] = {
     { "http_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_UMATCH,
-        SIG_GROUP_HEAD_MPM_URI, PrefilterTxUriRegister, 0 },
+        PrefilterTxUriRegister, 0 },
     { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH,
-        SIG_GROUP_HEAD_MPM_HRUD, PrefilterTxRawUriRegister, 1 },
+        PrefilterTxRawUriRegister, 1 },
 
     { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH,
-        SIG_GROUP_HEAD_MPM_HHD, PrefilterTxHttpRequestHeadersRegister, 2},
+        PrefilterTxHttpRequestHeadersRegister, 2},
     { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH,
-        SIG_GROUP_HEAD_MPM_HHD, PrefilterTxHttpRequestHeadersRegister, 3},
+        PrefilterTxHttpRequestHeadersRegister, 3},
 
     { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH,
-        SIG_GROUP_HEAD_MPM_HUAD, PrefilterTxUARegister, 4},
+        PrefilterTxUARegister, 4},
 
     { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH,
-        SIG_GROUP_HEAD_MPM_HRHD, PrefilterTxRequestHeadersRawRegister, 5},
+        PrefilterTxRequestHeadersRawRegister, 5},
     { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH,
-        SIG_GROUP_HEAD_MPM_HRHD, PrefilterTxResponseHeadersRawRegister, 6},
+        PrefilterTxResponseHeadersRawRegister, 6},
 
     { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
-        SIG_GROUP_HEAD_MPM_HMD, PrefilterTxMethodRegister, 7},
+        PrefilterTxMethodRegister, 7},
 
     { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA,
-        SIG_GROUP_HEAD_MPM_FD_SMTP, PrefilterTxSmtpFiledataRegister, 8}, /* smtp */
+        PrefilterTxSmtpFiledataRegister, 8}, /* smtp */
     { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA,
-        SIG_GROUP_HEAD_MPM_HSBD, PrefilterTxHttpResponseBodyRegister, 9}, /* http server body */
+        PrefilterTxHttpResponseBodyRegister, 9}, /* http server body */
 
     { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH,
-        SIG_GROUP_HEAD_MPM_HSMD, PrefilterTxHttpStatMsgRegister, 10},
+        PrefilterTxHttpStatMsgRegister, 10},
     { "http_stat_code", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSCDMATCH,
-        SIG_GROUP_HEAD_MPM_HSCD, PrefilterTxHttpStatCodeRegister, 11},
+        PrefilterTxHttpStatCodeRegister, 11},
 
     { "http_client_body", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCBDMATCH,
-        SIG_GROUP_HEAD_MPM_HCBD, PrefilterTxHttpRequestBodyRegister, 12},
+        PrefilterTxHttpRequestBodyRegister, 12},
 
     { "http_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHHDMATCH,
-        SIG_GROUP_HEAD_MPM_HHHD, PrefilterTxHostnameRegister, 13},
+        PrefilterTxHostnameRegister, 13},
     { "http_raw_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHHDMATCH,
-        SIG_GROUP_HEAD_MPM_HRHHD, PrefilterTxHostnameRawRegister, 14},
+        PrefilterTxHostnameRawRegister, 14},
 
     { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH,
-        SIG_GROUP_HEAD_MPM_HCD, PrefilterTxRequestCookieRegister, 15},
+        PrefilterTxRequestCookieRegister, 15},
     { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH,
-        SIG_GROUP_HEAD_MPM_HCD, PrefilterTxResponseCookieRegister, 16},
+        PrefilterTxResponseCookieRegister, 16},
 
     { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH,
-        SIG_GROUP_HEAD_MPM_DNSQUERY, PrefilterTxDnsQueryRegister, 17},
+        PrefilterTxDnsQueryRegister, 17},
 
     { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH,
-        SIG_GROUP_HEAD_MPM_TLSSNI, PrefilterTxTlsSniRegister, 18},
+        PrefilterTxTlsSniRegister, 18},
     { "tls_cert_issuer", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSISSUER_MATCH,
-        SIG_GROUP_HEAD_MPM_TLSISSUER, PrefilterTxTlsIssuerRegister, 19},
+        PrefilterTxTlsIssuerRegister, 19},
     { "tls_cert_subject", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSSUBJECT_MATCH,
-        SIG_GROUP_HEAD_MPM_TLSSUBJECT, PrefilterTxTlsSubjectRegister, 20},
+        PrefilterTxTlsSubjectRegister, 20},
 
-    { NULL, 0, 0, 0, 0, NULL, 0, }
+    { NULL, 0, 0, 0, NULL, 0, }
 };
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
@@ -1262,8 +1261,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 BUG_ON(sh->mpm_packet_ctx);
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_packet_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
 
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
@@ -1273,8 +1270,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 BUG_ON(mpm_store == NULL);
                 BUG_ON(sh->mpm_stream_ctx);
                 sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
 
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
@@ -1284,8 +1279,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 BUG_ON(sh->mpm_packet_ctx);
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_packet_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
 
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
@@ -1294,8 +1287,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 BUG_ON(sh->mpm_stream_ctx);
                 sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
 
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
@@ -1308,9 +1299,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 BUG_ON(sh->mpm_packet_ctx);
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
 
-                if (sh->mpm_packet_ctx != NULL)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
-
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
@@ -1319,9 +1307,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             if (mpm_store != NULL) {
                 BUG_ON(sh->mpm_packet_ctx);
                 sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
-                if (sh->mpm_packet_ctx != NULL)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
 
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
@@ -1332,9 +1317,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             BUG_ON(sh->mpm_packet_ctx);
             sh->mpm_packet_ctx = mpm_store->mpm_ctx;
 
-            if (sh->mpm_packet_ctx != NULL)
-                sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
-
             PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
         }
     }
@@ -1344,8 +1326,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
         if (mpm_store != NULL) {
             sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
-            if (sh->init->app_mpms[a->id] != NULL)
-                sh->flags |= a->flags;
 
             if (a->PrefilterRegister) {
                 BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
