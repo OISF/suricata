@@ -27,7 +27,5 @@
 #include "app-layer-ssl.h"
 
 void DetectTlsSubjectRegister(void);
-uint32_t DetectTlsSubjectInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    SSLState *ssl_state);
 
 #endif /* __DETECT_TLS_SUBJECT_H__ */
