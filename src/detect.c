@@ -904,13 +904,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                         }
                     }
 
-                    if (tx_progress >= HTP_REQUEST_BODY) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
-                            DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
-                        }
-                    }
                 } else { /* implied FLOW_PKT_TOCLIENT */
                     tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
 
