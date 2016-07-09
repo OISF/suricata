@@ -25,15 +25,15 @@
 
 #include "app-layer-htp.h"
 
+int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectHttpHeader(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
-int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *tx, uint64_t idx);
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx);
 
 void DetectEngineHttpHeaderRegisterTests(void);
