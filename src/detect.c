@@ -876,52 +876,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
 
-        /* all http based mpms */
-        if (has_state && alproto == ALPROTO_HTTP) {
-            void *alstate = FlowGetAppState(p->flow);
-            if (alstate == NULL) {
-                SCLogDebug("no alstate");
-                return;
-            }
-
-            HtpState *htp_state = (HtpState *)alstate;
-            if (htp_state->connp == NULL) {
-                SCLogDebug("no HTTP connp");
-                return;
-            }
-
-            int tx_progress = 0;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-            uint64_t total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, alstate);
-            for (; idx < total_txs; idx++) {
-                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
-                if (tx == NULL)
-                    continue;
-
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
-
-                    if (tx_progress > HTP_REQUEST_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHD);
-                            DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
-                        }
-                    }
-
-                } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
-
-                    if (tx_progress > HTP_RESPONSE_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHD);
-                            DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
-                        }
-                    }
-                }
-            } /* for */
-        } else if (alproto == ALPROTO_TLS && has_state) {
+        if (alproto == ALPROTO_TLS && has_state) {
             void *alstate = FlowGetAppState(p->flow);
             if (alstate == NULL) {
                 SCLogDebug("no alstate");

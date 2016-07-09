@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * \brief Handle HTTP raw header match.
  *
@@ -41,6 +42,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -59,75 +61,92 @@
 
 #include "util-validate.h"
 
-/**
- * \brief Http raw header match -- searches for one pattern per signature.
+/** \brief HTTP Raw Header Mpm prefilter callback
  *
- * \param det_ctx           Detection engine thread ctx.
- * \param raw_headers       Raw headers to inspect.
- * \param raw_headers_len   Raw headers length.
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *raw_headers, const uint32_t raw_headers_len,
-        const uint8_t flags)
+static void PrefilterTxRequestHeadersRaw(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    if (flags & STREAM_TOSERVER) {
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_ts == NULL);
-
-        if (raw_headers_len >= det_ctx->sgh->mpm_hrhd_ctx_ts->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
-                Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
-                        &det_ctx->pmq, raw_headers, raw_headers_len);
-        }
-    } else {
-        DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hrhd_ctx_tc == NULL);
-
-        if (raw_headers_len >= det_ctx->sgh->mpm_hrhd_ctx_tc->minlen) {
-            ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
-                Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
-                        &det_ctx->pmq, raw_headers, raw_headers_len);
-        }
-    }
-
-    SCReturnUInt(ret);
-}
-
-int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                    HtpState *htp_state, uint8_t flags,
-                                    void *txv, uint64_t idx)
-{
-    SCEnter();
-
-    uint32_t cnt = 0;
-
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     htp_tx_t *tx = (htp_tx_t *)txv;
     HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
-    if (tx_ud == NULL) {
-        SCReturnInt(0);
-    }
+    if (tx_ud == NULL || tx_ud->request_headers_raw == NULL)
+        return;
 
-    if (flags & STREAM_TOSERVER) {
-        if (tx_ud->request_headers_raw != NULL) {
-            cnt = HttpRawHeaderPatternSearch(det_ctx,
-                                             tx_ud->request_headers_raw,
-                                             tx_ud->request_headers_raw_len,
-                                             flags);
-        }
-    } else {
-        if (tx_ud->response_headers_raw != NULL) {
-            cnt = HttpRawHeaderPatternSearch(det_ctx,
-                                              tx_ud->response_headers_raw,
-                                              tx_ud->response_headers_raw_len,
-                                              flags);
-        }
-    }
+    const uint32_t buffer_len = tx_ud->request_headers_raw_len;
+    const uint8_t *buffer = tx_ud->request_headers_raw;
 
-    SCReturnInt(cnt);
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+int PrefilterTxRequestHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    int r = PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
+        ALPROTO_HTTP, HTP_REQUEST_HEADERS+1, /* inspect when headers complete */
+        mpm_ctx, NULL);
+    if (r != 0)
+        return r;
+    return PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
+        ALPROTO_HTTP, HTP_REQUEST_TRAILER+1, /* inspect when trailer complete */
+        mpm_ctx, NULL);
+}
+
+/** \brief HTTP Raw Header Mpm prefilter callback
+ *
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
+ */
+static void PrefilterTxResponseHeadersRaw(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
+{
+    SCEnter();
+
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpTxUserData *tx_ud = htp_tx_get_user_data(tx);
+    if (tx_ud == NULL || tx_ud->response_headers_raw == NULL)
+        return;
+
+    const uint32_t buffer_len = tx_ud->response_headers_raw_len;
+    const uint8_t *buffer = tx_ud->response_headers_raw;
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
+
+int PrefilterTxResponseHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    int r = PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
+        ALPROTO_HTTP, HTP_RESPONSE_HEADERS+1, /* inspect when headers complete */
+        mpm_ctx, NULL);
+    if (r != 0)
+        return r;
+    return PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
+        ALPROTO_HTTP, HTP_RESPONSE_TRAILER+1, /* inspect when trailer complete */
+        mpm_ctx, NULL);
 }
 
 /**
@@ -1834,156 +1853,6 @@ end:
     return result;
 }
 
-/**
- *\test Test that the http_header content matches against a http request
- *      which holds the content.
- */
-static int DetectEngineHttpRawHeaderTest18(void)
-{
-    TcpSession ssn;
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    Flow f;
-    uint8_t http_buf[] =
-        "Host: www.onetwothreefourfivesixsevenfive.org\r\n\r\n";
-    uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; flow:to_server; "
-                               "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
-    if (r < 1) {
-        printf("expected result >= 1, got %"PRIu32": ", r);
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p, 1);
-    return result;
-}
-
-/**
- *\test Test that the http_header content matches against a http request
- *      which holds the content.
- */
-static int DetectEngineHttpRawHeaderTest19(void)
-{
-    TcpSession ssn;
-    Packet *p = NULL;
-    ThreadVars th_v;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    Flow f;
-    uint8_t http_buf[] =
-        "Host: www.onetwothreefourfivesixsevenfive.org\r\n\r\n";
-    uint32_t http_len = sizeof(http_buf) - 1;
-    int result = 0;
-
-    memset(&th_v, 0, sizeof(th_v));
-    memset(&f, 0, sizeof(f));
-    memset(&ssn, 0, sizeof(ssn));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_IPV4;
-    p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    f.alproto = ALPROTO_HTTP;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; flow:to_server; "
-                               "content:\"one\"; http_raw_header; fast_pattern; content:\"five\"; http_raw_header; "
-                               "sid:1;)");
-    if (de_ctx->sig_list == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
-    if (r != 1) {
-        printf("expected result 1, got %"PRIu32": ", r);
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (de_ctx != NULL)
-        SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL)
-        SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
-
-    StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
-    UTHFreePackets(&p, 1);
-    return result;
-}
-
 static int DetectEngineHttpRawHeaderTest20(void)
 {
     TcpSession ssn;
@@ -3539,10 +3408,6 @@ void DetectEngineHttpRawHeaderRegisterTests(void)
                    DetectEngineHttpRawHeaderTest16);
     UtRegisterTest("DetectEngineHttpRawHeaderTest17",
                    DetectEngineHttpRawHeaderTest17);
-    UtRegisterTest("DetectEngineHttpRawHeaderTest18",
-                   DetectEngineHttpRawHeaderTest18);
-    UtRegisterTest("DetectEngineHttpRawHeaderTest19",
-                   DetectEngineHttpRawHeaderTest19);
     UtRegisterTest("DetectEngineHttpRawHeaderTest20",
                    DetectEngineHttpRawHeaderTest20);
     UtRegisterTest("DetectEngineHttpRawHeaderTest21",
