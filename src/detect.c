@@ -867,29 +867,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    /* have a look at the reassembled stream (if any) */
-    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-
-        if (alproto == ALPROTO_TLS && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSNI) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSNI);
-                    DetectTlsSniInspectMpm(det_ctx, alstate);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
-                }
-            }
-        }
-    } else {
-        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
-
     /* Sort the rule list to lets look at pmq.
      * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
     if (det_ctx->pmq.rule_id_array_cnt > 1) {
