@@ -63,6 +63,7 @@
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-dns.h"
+#include "detect-engine-filedata-smtp.h"
 
 #include "stream.h"
 
@@ -116,7 +117,8 @@ AppLayerMpms app_mpms[] = {
     { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
         SIG_GROUP_HEAD_MPM_HMD, PrefilterTxMethodRegister, 7},
 
-    { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_FD_SMTP, NULL, 8}, /* smtp */
+    { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA,
+        SIG_GROUP_HEAD_MPM_FD_SMTP, PrefilterTxSmtpFiledataRegister, 8}, /* smtp */
     { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA,
         SIG_GROUP_HEAD_MPM_HSBD, PrefilterTxHttpResponseBodyRegister, 9}, /* http server body */
 
