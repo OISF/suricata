@@ -885,29 +885,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
                 }
             }
-        } else if (alproto == ALPROTO_SMTP && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_FD_SMTP) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    SMTPState *smtp_state = (SMTPState *)alstate;
-                    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                    for (; idx < total_txs; idx++) {
-                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                        if (tx == NULL)
-                            continue;
-
-                        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_FD_SMTP);
-                        DetectEngineRunSMTPMpm(de_ctx, det_ctx, p->flow, smtp_state, flags, tx, idx);
-                        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_FD_SMTP);
-                    }
-                }
-            }
         }
     } else {
         SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
