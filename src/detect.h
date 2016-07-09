@@ -920,38 +920,11 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
-#define SIG_GROUP_HEAD_MPM_URI          (1)
-#define SIG_GROUP_HEAD_MPM_HCBD         (1 << 1)
-#define SIG_GROUP_HEAD_MPM_HHD          (1 << 2)
-#define SIG_GROUP_HEAD_MPM_HRHD         (1 << 3)
-#define SIG_GROUP_HEAD_MPM_HMD          (1 << 4)
-#define SIG_GROUP_HEAD_MPM_HCD          (1 << 5)
-#define SIG_GROUP_HEAD_MPM_HRUD         (1 << 6)
-#define SIG_GROUP_HEAD_MPM_HSBD         (1 << 7)
-#define SIG_GROUP_HEAD_MPM_HSMD         (1 << 8)
-#define SIG_GROUP_HEAD_MPM_HSCD         (1 << 9)
-#define SIG_GROUP_HEAD_MPM_HUAD         (1 << 10)
-#define SIG_GROUP_HEAD_MPM_HHHD         (1 << 11)
-#define SIG_GROUP_HEAD_MPM_HRHHD        (1 << 12)
-
-#define SIG_GROUP_HEAD_MPM_COPY         (1 << 13)
-#define SIG_GROUP_HEAD_MPM_URI_COPY     (1 << 14)
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  (1 << 15)
-#define SIG_GROUP_HEAD_FREE             (1 << 16)
-#define SIG_GROUP_HEAD_MPM_PACKET       (1 << 17)
-#define SIG_GROUP_HEAD_MPM_STREAM       (1 << 18)
-
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
 #define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 23)
 #define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 24)
-
-#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 25)
-#define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 26)
-#define SIG_GROUP_HEAD_MPM_TLSISSUER    (1 << 27)
-#define SIG_GROUP_HEAD_MPM_TLSSUBJECT   (1 << 28)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 29)
 
 #define APP_MPMS_MAX 21
 
