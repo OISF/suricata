@@ -53,6 +53,7 @@
 #include "detect-engine-hrud.h"
 #include "detect-engine-hmd.h"
 #include "detect-engine-hhd.h"
+#include "detect-engine-hrhd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
@@ -107,8 +108,10 @@ AppLayerMpms app_mpms[] = {
     { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH,
         SIG_GROUP_HEAD_MPM_HUAD, PrefilterTxUARegister, 4},
 
-    { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, NULL, 5},
-    { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, NULL, 6},
+    { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH,
+        SIG_GROUP_HEAD_MPM_HRHD, PrefilterTxRequestHeadersRawRegister, 5},
+    { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH,
+        SIG_GROUP_HEAD_MPM_HRHD, PrefilterTxResponseHeadersRawRegister, 6},
 
     { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
         SIG_GROUP_HEAD_MPM_HMD, PrefilterTxMethodRegister, 7},
