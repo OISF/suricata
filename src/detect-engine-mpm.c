@@ -64,6 +64,7 @@
 #include "detect-engine-hsbd.h"
 #include "detect-engine-dns.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-tls.h"
 
 #include "stream.h"
 
@@ -143,7 +144,8 @@ AppLayerMpms app_mpms[] = {
     { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH,
         SIG_GROUP_HEAD_MPM_DNSQUERY, PrefilterTxDnsQueryRegister, 17},
 
-    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH, SIG_GROUP_HEAD_MPM_TLSSNI, NULL, 18},
+    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH,
+        SIG_GROUP_HEAD_MPM_TLSSNI, PrefilterTxTlsSniRegister, 18},
 
     { NULL, 0, 0, 0, 0, NULL, 0, }
 };
