@@ -1223,60 +1223,6 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
-
-/**
- * \test sig grouping bug.
- */
-static int SigGroupHeadTest11(void)
-{
-    int result = 0;
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    Signature *s = NULL;
-    Packet *p = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    ThreadVars th_v;
-
-    memset(&th_v, 0, sizeof(ThreadVars));
-
-    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "192.168.1.1", "1.2.3.4", 60000, 80);
-
-    if (de_ctx == NULL || p == NULL)
-        return 0;
-
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any 1024: -> any 1024: (content:\"abc\"; sid:1;)");
-    if (s == NULL) {
-        goto end;
-    }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"def\"; http_client_body; sid:2;)");
-    if (s == NULL) {
-        goto end;
-    }
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
-
-    AddressDebugPrint(&p->dst);
-
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (sgh == NULL) {
-        goto end;
-    }
-
-    /* check if hcbd flag is set in sgh */
-    if (!(sgh->flags & SIG_GROUP_HEAD_MPM_HCBD)) {
-        printf("sgh has not SIG_GROUP_HEAD_MPM_HCBD flag set: ");
-        goto end;
-    }
-
-    /* check if sig 2 is part of the sgh */
-
-    result = 1;
-end:
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-    UTHFreePackets(&p, 1);
-    return result;
-}
 #endif
 
 void SigGroupHeadRegisterTests(void)
@@ -1288,6 +1234,5 @@ void SigGroupHeadRegisterTests(void)
     UtRegisterTest("SigGroupHeadTest08", SigGroupHeadTest08);
     UtRegisterTest("SigGroupHeadTest09", SigGroupHeadTest09);
     UtRegisterTest("SigGroupHeadTest10", SigGroupHeadTest10);
-    UtRegisterTest("SigGroupHeadTest11", SigGroupHeadTest11);
 #endif
 }
