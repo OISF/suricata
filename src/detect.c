@@ -920,14 +920,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
                         }
                     }
-
-                    if (tx_progress >= HTP_RESPONSE_BODY) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
-                            DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
-                        }
-                    }
                 }
             } /* for */
         } else if (alproto == ALPROTO_TLS && has_state) {
