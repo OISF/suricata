@@ -1767,7 +1767,6 @@ void MpmACRegister(void)
     mpm_table[MPM_AC].AddPatternNocase = SCACAddPatternCI;
     mpm_table[MPM_AC].Prepare = SCACPreparePatterns;
     mpm_table[MPM_AC].Search = SCACSearch;
-    mpm_table[MPM_AC].Cleanup = NULL;
     mpm_table[MPM_AC].PrintCtx = SCACPrintInfo;
     mpm_table[MPM_AC].PrintThreadCtx = SCACPrintSearchStats;
     mpm_table[MPM_AC].RegisterUnittests = SCACRegisterTests;
@@ -1791,7 +1790,6 @@ void MpmACCudaRegister(void)
     mpm_table[MPM_AC_CUDA].AddPatternNocase = SCACAddPatternCI;
     mpm_table[MPM_AC_CUDA].Prepare = SCACPreparePatterns;
     mpm_table[MPM_AC_CUDA].Search = SCACSearch;
-    mpm_table[MPM_AC_CUDA].Cleanup = NULL;
     mpm_table[MPM_AC_CUDA].PrintCtx = SCACPrintInfo;
     mpm_table[MPM_AC_CUDA].PrintThreadCtx = SCACPrintSearchStats;
     mpm_table[MPM_AC_CUDA].RegisterUnittests = SCACRegisterTests;

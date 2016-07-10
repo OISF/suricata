@@ -103,7 +103,6 @@ void MpmACBSRegister(void)
     mpm_table[MPM_AC_BS].AddPatternNocase = SCACBSAddPatternCI;
     mpm_table[MPM_AC_BS].Prepare = SCACBSPreparePatterns;
     mpm_table[MPM_AC_BS].Search = SCACBSSearch;
-    mpm_table[MPM_AC_BS].Cleanup = NULL;
     mpm_table[MPM_AC_BS].PrintCtx = SCACBSPrintInfo;
     mpm_table[MPM_AC_BS].PrintThreadCtx = SCACBSPrintSearchStats;
     mpm_table[MPM_AC_BS].RegisterUnittests = SCACBSRegisterTests;
