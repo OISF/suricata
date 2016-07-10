@@ -374,28 +374,6 @@ uint16_t PatternMatchDefaultMatcher(void)
 void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
 {
     PmqReset(&det_ctx->pmq);
-
-    if (det_ctx->sgh == NULL)
-        return;
-
-    /* content */
-    if (det_ctx->sgh->mpm_packet_ctx != NULL &&
-        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-
-    /* uricontent */
-    if (det_ctx->sgh->mpm_uri_ctx_ts != NULL && mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].Cleanup(&det_ctx->mtcu);
-    }
-
-    /* stream content */
-    if (det_ctx->sgh->mpm_stream_ctx != NULL &&
-            mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup(&det_ctx->mtcs);
-    }
-
-    return;
 }
 
 void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)

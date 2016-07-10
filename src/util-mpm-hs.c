@@ -1045,7 +1045,6 @@ void MpmHSRegister(void)
     mpm_table[MPM_HS].AddPatternNocase = SCHSAddPatternCI;
     mpm_table[MPM_HS].Prepare = SCHSPreparePatterns;
     mpm_table[MPM_HS].Search = SCHSSearch;
-    mpm_table[MPM_HS].Cleanup = NULL;
     mpm_table[MPM_HS].PrintCtx = SCHSPrintInfo;
     mpm_table[MPM_HS].PrintThreadCtx = SCHSPrintSearchStats;
     mpm_table[MPM_HS].RegisterUnittests = SCHSRegisterTests;
