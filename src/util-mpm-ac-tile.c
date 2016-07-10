@@ -1500,7 +1500,6 @@ void MpmACTileRegister(void)
     mpm_table[MPM_AC_TILE].AddPatternNocase = SCACTileAddPatternCI;
     mpm_table[MPM_AC_TILE].Prepare = SCACTilePreparePatterns;
     mpm_table[MPM_AC_TILE].Search = SCACTileSearch;
-    mpm_table[MPM_AC_TILE].Cleanup = NULL;
     mpm_table[MPM_AC_TILE].PrintCtx = SCACTilePrintInfo;
     mpm_table[MPM_AC_TILE].PrintThreadCtx = SCACTilePrintSearchStats;
     mpm_table[MPM_AC_TILE].RegisterUnittests = SCACTileRegisterTests;
