@@ -1012,38 +1012,6 @@ typedef struct SigGroupHead_ {
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
 
-    /* pattern matcher instances */
-    const MpmCtx *mpm_packet_ctx;
-    const MpmCtx *mpm_stream_ctx;
-
-    union {
-        struct {
-            const MpmCtx *mpm_uri_ctx_ts;
-            const MpmCtx *mpm_hcbd_ctx_ts;
-            const MpmCtx *mpm_hhd_ctx_ts;
-            const MpmCtx *mpm_hrhd_ctx_ts;
-            const MpmCtx *mpm_hmd_ctx_ts;
-            const MpmCtx *mpm_hcd_ctx_ts;
-            const MpmCtx *mpm_hrud_ctx_ts;
-            const MpmCtx *mpm_huad_ctx_ts;
-            const MpmCtx *mpm_hhhd_ctx_ts;
-            const MpmCtx *mpm_hrhhd_ctx_ts;
-            const MpmCtx *mpm_dnsquery_ctx_ts;
-            const MpmCtx *mpm_tlssni_ctx_ts;
-            const MpmCtx *mpm_tlsissuer_ctx_ts;
-            const MpmCtx *mpm_tlssubject_ctx_ts;
-            const MpmCtx *mpm_smtp_filedata_ctx_ts;
-        };
-        struct {
-            const MpmCtx *mpm_hsbd_ctx_tc;
-            const MpmCtx *mpm_hhd_ctx_tc;
-            const MpmCtx *mpm_hrhd_ctx_tc;
-            const MpmCtx *mpm_hcd_ctx_tc;
-            const MpmCtx *mpm_hsmd_ctx_tc;
-            const MpmCtx *mpm_hscd_ctx_tc;
-        };
-    };
-
     PrefilterEngine *engines;
     PrefilterEngine *tx_engines;
 

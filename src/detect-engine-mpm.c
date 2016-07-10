@@ -1189,66 +1189,6 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
     return NULL;
 }
 
-/** \todo fixup old mpm ptrs. We could use the array directly later */
-void MpmStoreFixup(SigGroupHead *sgh)
-{
-    if (!(SGH_PROTO(sgh, IPPROTO_TCP) || SGH_PROTO(sgh, IPPROTO_UDP)))
-        return;
-
-#define SET_TS(sgh, ptr) do {                   \
-        if (SGH_DIRECTION_TS((sgh)))            \
-            (ptr) = (sgh)->init->app_mpms[i++]; \
-        else                                    \
-            i++;                                \
-    } while(0)
-
-#define SET_TC(sgh, ptr) do {                   \
-        if (SGH_DIRECTION_TC((sgh)))            \
-            (ptr) = (sgh)->init->app_mpms[i++]; \
-        else                                    \
-            i++;                                \
-    } while(0)
-
-    int i = 0;
-    SET_TS(sgh, sgh->mpm_uri_ctx_ts);
-    SET_TS(sgh, sgh->mpm_hrud_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hhd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hhd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_huad_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hrhd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hrhd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_hmd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_smtp_filedata_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hsbd_ctx_tc);
-
-    SET_TC(sgh, sgh->mpm_hsmd_ctx_tc);
-    SET_TC(sgh, sgh->mpm_hscd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_hcbd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hhhd_ctx_ts);
-    SET_TS(sgh, sgh->mpm_hrhhd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hcd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hcd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_dnsquery_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_tlssni_ctx_ts);
-    SET_TC(sgh, sgh->mpm_tlsissuer_ctx_ts);
-    SET_TC(sgh, sgh->mpm_tlssubject_ctx_ts);
-
-    BUG_ON(APP_MPMS_MAX != 21 || i != 21);
-
-#undef SET_TS
-#undef SET_TC
-}
-
 /** \brief Prepare the pattern matcher ctx in a sig group head.
  *
  */
@@ -1259,35 +1199,22 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TS);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
             if (mpm_store != NULL) {
-                BUG_ON(mpm_store == NULL);
-                BUG_ON(sh->mpm_stream_ctx);
-                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_stream_ctx);
-                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
        }
@@ -1295,28 +1222,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TS);
             if (mpm_store != NULL) {
-                BUG_ON(mpm_store == NULL);
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
                 PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
     } else {
         mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_OTHERIP);
         if (mpm_store != NULL) {
-            BUG_ON(sh->mpm_packet_ctx);
-            sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
             PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
         }
     }
@@ -1334,7 +1251,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         a++;
     }
 
-    MpmStoreFixup(sh);
     return 0;
 }
 
