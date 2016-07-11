@@ -112,6 +112,9 @@ static int SMTPGetMimeField(lua_State *luastate)
         return LuaCallbackError(luastate, "Error: no flow found");
     }
     const char *name = LuaGetStringArgument(luastate, 1);
+    if (name == NULL)
+        return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
+
     /* lock check */
     if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
         FLOWLOCK_RDLOCK(flow);
