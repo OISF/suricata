@@ -274,7 +274,8 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
 }
 
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -292,6 +293,18 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
 
         json_decref(js);
     }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+{
+    SCEnter();
+
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    DNSTransaction *tx = txptr;
+    json_t *js;
 
     js = CreateJSONHeader((Packet *)p, 0, "dns");
     if (unlikely(js == NULL))
@@ -449,10 +462,21 @@ void TmModuleJsonDnsLogRegister (void)
     tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
     tmm_modules[TMM_JSONDNSLOG].flags = TM_FLAG_LOGAPI_TM;
 
-    OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
-            ALPROTO_DNS, JsonDnsLogger);
-    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub,
-            ALPROTO_DNS, JsonDnsLogger);
+    /* Logger for requests. */
+    OutputRegisterTxModuleWithProgress(MODULE_NAME, "dns-json-log",
+        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer, 0, 1);
+
+    /* Logger for replies. */
+    OutputRegisterTxModuleWithProgress(MODULE_NAME, "dns-json-log",
+        JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient, 1, 1);
+
+    /* Sub-logger for requests. */
+    OutputRegisterTxSubModuleWithProgress("eve-log", MODULE_NAME, "eve-log.dns",
+        JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLoggerToServer, 0, 1);
+
+    /* Sub-logger for replies. */
+    OutputRegisterTxSubModuleWithProgress("eve-log", MODULE_NAME, "eve-log.dns",
+        JsonDnsLogInitCtxSub, ALPROTO_DNS, JsonDnsLoggerToClient, 1, 1);
 }
 
 #else
