@@ -226,7 +226,7 @@ int DNSGetAlstateProgress(void *tx, uint8_t direction)
     if (direction & STREAM_TOCLIENT) {
         /* response side of the tx is done if we parsed a reply
          * or if we tagged this tx as 'reply lost'. */
-        return (dns_tx->replied|dns_tx->reply_lost) ? 1 : 0;
+        return (dns_tx->replied|dns_tx->reply_lost) ? 2 : 1;
     }
     else {
         /* tx is only created if we have a complete request,
@@ -257,7 +257,7 @@ int DNSGetTxLogged(void *alstate, void *tx, uint32_t logger)
  */
 int DNSGetAlstateProgressCompletionStatus(uint8_t direction)
 {
-    return 1;
+    return 2;
 }
 
 void DNSSetEvent(DNSState *s, uint8_t e)

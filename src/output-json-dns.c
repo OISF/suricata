@@ -274,7 +274,8 @@ static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uin
 
 }
 
-static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
 {
     SCEnter();
 
@@ -292,6 +293,18 @@ static int JsonDnsLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flo
 
         json_decref(js);
     }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *alstate, void *txptr, uint64_t tx_id)
+{
+    SCEnter();
+
+    LogDnsLogThread *td = (LogDnsLogThread *)thread_data;
+    DNSTransaction *tx = txptr;
+    json_t *js;
 
     js = CreateJSONHeader((Packet *)p, 0, "dns");
     if (unlikely(js == NULL))
@@ -440,33 +453,33 @@ static OutputCtx *JsonDnsLogInitCtx(ConfNode *conf)
 
 
 #define MODULE_NAME "JsonDnsLog"
-void TmModuleJsonDnsLogRegister (void)
-{
-    tmm_modules[TMM_JSONDNSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONDNSLOG].ThreadInit = LogDnsLogThreadInit;
-    tmm_modules[TMM_JSONDNSLOG].ThreadDeinit = LogDnsLogThreadDeinit;
-    tmm_modules[TMM_JSONDNSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONDNSLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONDNSLOG].flags = TM_FLAG_LOGAPI_TM;
+#define PARENT_NAME "eve-log"
+#define SUB_NAME "eve-log.dns"
 
-    OutputRegisterTxModule(MODULE_NAME, "dns-json-log", JsonDnsLogInitCtx,
-            ALPROTO_DNS, JsonDnsLogger);
-    OutputRegisterTxSubModule("eve-log", MODULE_NAME, "eve-log.dns", JsonDnsLogInitCtxSub,
-            ALPROTO_DNS, JsonDnsLogger);
+void JsonDnsLogRegister (void)
+{
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToServer,
+        1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+    OutputRegisterTxModuleWithProgress(LOGGER_JSON_DNS, MODULE_NAME,
+        "dns-json-log", JsonDnsLogInitCtx, ALPROTO_DNS, JsonDnsLoggerToClient,
+        2, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit, NULL);
+
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, PARENT_NAME,
+        MODULE_NAME, SUB_NAME, JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToServer, 1, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNS, PARENT_NAME,
+        MODULE_NAME, SUB_NAME, JsonDnsLogInitCtxSub, ALPROTO_DNS,
+        JsonDnsLoggerToClient, 2, 1, LogDnsLogThreadInit, LogDnsLogThreadDeinit,
+        NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonDnsLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonDnsLogRegister (void)
-{
-    tmm_modules[TMM_JSONDNSLOG].name = "JsonDnsLog";
-    tmm_modules[TMM_JSONDNSLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif
