@@ -62,6 +62,9 @@ typedef struct OutputModule_ {
     TAILQ_ENTRY(OutputModule_) entries;
 } OutputModule;
 
+typedef TAILQ_HEAD(OutputModuleList_, OutputModule_) OutputModuleList;
+extern OutputModuleList output_modules;
+
 void OutputRegisterModule(const char *, const char *, OutputCtx *(*)(ConfNode *));
 
 void OutputRegisterPacketModule(const char *name, const char *conf_name,

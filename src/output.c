@@ -31,8 +31,7 @@
 #include "util-debug.h"
 #include "output.h"
 
-static TAILQ_HEAD(, OutputModule_) output_modules =
-    TAILQ_HEAD_INITIALIZER(output_modules);
+OutputModuleList output_modules = TAILQ_HEAD_INITIALIZER(output_modules);
 
 /**
  * Registry of flags to be updated on file rotation notification.
@@ -234,7 +233,7 @@ void OutputRegisterTxModuleWithCondition(const char *name, const char *conf_name
         TxLogger TxLogFunc, TxLoggerCondition TxLogCondition)
 {
     OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
-                                  TxLogFunc, 0, 0, TxLogCondition);
+                                  TxLogFunc, -1, -1, TxLogCondition);
 }
 
 void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
@@ -243,7 +242,7 @@ void OutputRegisterTxSubModuleWithCondition(const char *parent_name,
         TxLoggerCondition TxLogCondition)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name, InitFunc,
-                                     alproto, TxLogFunc, 0, 0,
+                                     alproto, TxLogFunc, -1, -1,
                                      TxLogCondition);
 }
 
@@ -288,7 +287,7 @@ OutputRegisterTxModule(const char *name, const char *conf_name,
     TxLogger TxLogFunc)
 {
     OutputRegisterTxModuleWrapper(name, conf_name, InitFunc, alproto,
-                                  TxLogFunc, 0, 0, NULL);
+                                  TxLogFunc, -1, -1, NULL);
 }
 
 void
@@ -297,7 +296,7 @@ OutputRegisterTxSubModule(const char *parent_name, const char *name,
     AppProto alproto, TxLogger TxLogFunc)
 {
     OutputRegisterTxSubModuleWrapper(parent_name, name, conf_name,
-                                     InitFunc, alproto, TxLogFunc, 0, 0, NULL);
+                                     InitFunc, alproto, TxLogFunc, -1, -1, NULL);
 }
 
 /**

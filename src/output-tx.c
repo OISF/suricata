@@ -85,20 +85,20 @@ int OutputRegisterTxLogger(const char *name, AppProto alproto, TxLogger LogFunc,
     op->name = name;
     op->module_id = (TmmId) module_id;
 
-    if (tc_log_progress) {
-        op->tc_log_progress = tc_log_progress;
-    } else {
+    if (tc_log_progress < 0) {
         op->tc_log_progress =
             AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                            STREAM_TOCLIENT);
+    } else {
+        op->tc_log_progress = tc_log_progress;
     }
 
-    if (ts_log_progress) {
-        op->ts_log_progress = ts_log_progress;
-    } else {
+    if (ts_log_progress < 0) {
         op->ts_log_progress =
             AppLayerParserGetStateProgressCompletionStatus(alproto,
                                                            STREAM_TOSERVER);
+    } else {
+        op->ts_log_progress = ts_log_progress;
     }
 
     if (list == NULL) {
