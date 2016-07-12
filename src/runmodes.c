@@ -718,58 +718,61 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
     }
 }
 
-static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx) {
+static void RunModeInitializeEveOutput(ConfNode *conf, OutputCtx *parent_ctx)
+{
     ConfNode *types = ConfNodeLookupChild(conf, "types");
     SCLogDebug("types %p", types);
-    if (types != NULL) {
-        ConfNode *type = NULL;
-        TAILQ_FOREACH(type, &types->head, next) {
-            SCLogConfig("enabling 'eve-log' module '%s'", type->val);
+    if (types == NULL) {
+        return;
+    }
 
-            int sub_count = 0;
-            char subname[256];
-            snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
+    ConfNode *type = NULL;
+    TAILQ_FOREACH(type, &types->head, next) {
+        SCLogConfig("enabling 'eve-log' module '%s'", type->val);
 
-            /* Now setup all registers logger of this name. */
-            OutputModule *sub_module;
-            TAILQ_FOREACH(sub_module, &output_modules, entries) {
-                if (strcmp(subname, sub_module->conf_name) == 0) {
-                    sub_count++;
+        int sub_count = 0;
+        char subname[256];
+        snprintf(subname, sizeof(subname), "eve-log.%s", type->val);
 
-                    if (sub_module->parent_name == NULL ||
+        /* Now setup all registers logger of this name. */
+        OutputModule *sub_module;
+        TAILQ_FOREACH(sub_module, &output_modules, entries) {
+            if (strcmp(subname, sub_module->conf_name) == 0) {
+                sub_count++;
+
+                if (sub_module->parent_name == NULL ||
                         strcmp(sub_module->parent_name, "eve-log") != 0) {
-                        FatalError(SC_ERR_INVALID_ARGUMENT,
+                    FatalError(SC_ERR_INVALID_ARGUMENT,
                             "bad parent for %s", subname);
-                    }
-                    if (sub_module->InitSubFunc == NULL) {
-                        FatalError(SC_ERR_INVALID_ARGUMENT,
-                            "bad sub-module for %s", subname);
-                    }
-                    ConfNode *sub_output_config =
-                        ConfNodeLookupChild(type, type->val);
-                    // sub_output_config may be NULL if no config
-
-                    /* pass on parent output_ctx */
-                    OutputCtx *sub_output_ctx =
-                        sub_module->InitSubFunc(sub_output_config,
-                            parent_ctx);
-                    if (sub_output_ctx == NULL) {
-                        continue;
-                    }
-
-                    AddOutputToFreeList(sub_module, sub_output_ctx);
-                    SetupOutput(sub_module->name, sub_module,
-                        sub_output_ctx);
                 }
-            }
+                if (sub_module->InitSubFunc == NULL) {
+                    FatalError(SC_ERR_INVALID_ARGUMENT,
+                            "bad sub-module for %s", subname);
+                }
+                ConfNode *sub_output_config =
+                    ConfNodeLookupChild(type, type->val);
+                // sub_output_config may be NULL if no config
 
-            /* Error is no registered loggers with this name
-             * were found .*/
-            if (!sub_count) {
-                FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
-                    "No output module named %s", subname);
-                continue;
+                /* pass on parent output_ctx */
+                OutputCtx *sub_output_ctx =
+                    sub_module->InitSubFunc(sub_output_config,
+                            parent_ctx);
+                if (sub_output_ctx == NULL) {
+                    continue;
+                }
+
+                AddOutputToFreeList(sub_module, sub_output_ctx);
+                SetupOutput(sub_module->name, sub_module,
+                        sub_output_ctx);
             }
+        }
+
+        /* Error is no registered loggers with this name
+         * were found .*/
+        if (!sub_count) {
+            FatalErrorOnInit(SC_ERR_INVALID_ARGUMENT,
+                    "No output module named %s", subname);
+            continue;
         }
     }
 }
