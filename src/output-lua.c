@@ -867,6 +867,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         } else if (opts.alproto == ALPROTO_HTTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_HTTP;
+            om->ts_log_progress = -1;
+            om->tc_log_progress = -1;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_HTTP);
         } else if (opts.alproto == ALPROTO_TLS) {
             om->TxLogFunc = LuaTxLogger;
@@ -876,6 +878,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
        } else if (opts.alproto == ALPROTO_DNS) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_DNS;
+            om->ts_log_progress = -1;
+            om->tc_log_progress = -1;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_DNS);
             AppLayerParserRegisterLogger(IPPROTO_UDP, ALPROTO_DNS);
         } else if (opts.alproto == ALPROTO_SSH) {
@@ -884,6 +888,8 @@ static OutputCtx *OutputLuaLogInit(ConfNode *conf)
         } else if (opts.alproto == ALPROTO_SMTP) {
             om->TxLogFunc = LuaTxLogger;
             om->alproto = ALPROTO_SMTP;
+            om->ts_log_progress = -1;
+            om->tc_log_progress = -1;
             AppLayerParserRegisterLogger(IPPROTO_TCP, ALPROTO_SMTP);
         } else if (opts.packet && opts.alerts) {
             om->PacketLogFunc = LuaPacketLoggerAlerts;
