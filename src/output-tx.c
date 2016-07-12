@@ -171,13 +171,18 @@ static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQ
         int tx_progress_tc = AppLayerParserGetStateProgress(p->proto, alproto,
                 tx, FlowGetDisruptionFlags(f, STREAM_TOCLIENT));
 
+        SCLogDebug("tx_progress_ts %d tx_progress_tc %d",
+                tx_progress_ts, tx_progress_tc);
+
         // call each logger here (pseudo code)
         logger = list;
         store = op_thread_data->store;
         while (logger && store) {
             BUG_ON(logger->LogFunc == NULL);
 
-            SCLogDebug("logger %p", logger);
+            SCLogDebug("logger %p, LogCondition %p, ts_log_progress %d "
+                    "tc_log_progress %d", logger, logger->LogCondition,
+                    logger->ts_log_progress, logger->tc_log_progress);
             if (logger->alproto == alproto) {
                 SCLogDebug("alproto match, logging tx_id %ju", tx_id);
 
