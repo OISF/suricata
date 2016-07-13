@@ -81,10 +81,6 @@ ThreadVars *tv_root[TVT_MAX] = { NULL };
 /* lock to protect tv_root */
 SCMutex tv_root_lock = SCMUTEX_INITIALIZER;
 
-/* Action On Failure(AOF).  Determines how the engine should behave when a
- * thread encounters a failure.  Defaults to restart the failed thread */
-uint8_t tv_aof = THV_RESTART_THREAD;
-
 /**
  * \brief Check if a thread flag is set.
  *
@@ -1171,8 +1167,6 @@ ThreadVars *TmThreadCreate(const char *name, char *inq_name, char *inqh_name,
     /* default state for every newly created thread */
     TmThreadsSetFlag(tv, THV_PAUSE);
     TmThreadsSetFlag(tv, THV_USE);
-    /* default aof for every newly created thread */
-    tv->aof = THV_RESTART_THREAD;
 
     /* set the incoming queue */
     if (inq_name != NULL && strcmp(inq_name, "packetpool") != 0) {
@@ -1879,19 +1873,6 @@ void TmThreadSetFlags(ThreadVars *tv, uint8_t flags)
     return;
 }
 #endif
-/**
- * \brief Sets the aof(Action on failure) for a thread instance(tv)
- *
- * \param tv  Pointer to the thread instance for which the aof has to be set
- * \param aof Holds the aof this thread instance has to be set to
- */
-void TmThreadSetAOF(ThreadVars *tv, uint8_t aof)
-{
-    if (tv != NULL)
-        tv->aof = aof;
-
-    return;
-}
 
 /**
  * \brief Initializes the mutex and condition variables for this TV
@@ -2046,38 +2027,7 @@ void TmThreadPauseThreads()
 }
 
 /**
- * \brief Restarts the thread sent as the argument
- *
- * \param tv Pointer to the thread instance(tv) to be restarted
- */
-static void TmThreadRestartThread(ThreadVars *tv)
-{
-    if (tv->restarted >= THV_MAX_RESTARTS) {
-        SCLogError(SC_ERR_TM_THREADS_ERROR,"thread restarts exceeded "
-                "threshold limit for thread \"%s\"", tv->name);
-        exit(EXIT_FAILURE);
-    }
-
-    TmThreadsUnsetFlag(tv, THV_CLOSED);
-    TmThreadsUnsetFlag(tv, THV_FAILED);
-
-    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-        SCLogError(SC_ERR_THREAD_SPAWN, "thread \"%s\" failed to spawn", tv->name);
-        exit(EXIT_FAILURE);
-    }
-
-    tv->restarted++;
-    SCLogInfo("thread \"%s\" restarted", tv->name);
-
-    return;
-}
-
-/**
- * \brief Used to check the thread for certain conditions of failure.  If the
- *        thread has been specified to restart on failure, the thread is
- *        restarted.  If the thread has been specified to gracefully shutdown
- *        the engine on failure, it does so.  The global aof flag, tv_aof
- *        overrides the thread aof flag, if it holds a THV_ENGINE_EXIT;
+ * \brief Used to check the thread for certain conditions of failure.
  */
 void TmThreadCheckThreadState(void)
 {
@@ -2091,19 +2041,8 @@ void TmThreadCheckThreadState(void)
         while (tv) {
             if (TmThreadsCheckFlag(tv, THV_FAILED)) {
                 TmThreadsSetFlag(tv, THV_DEINIT);
-                pthread_join(tv->t, NULL);
-                if ((tv_aof & THV_ENGINE_EXIT) || (tv->aof & THV_ENGINE_EXIT)) {
-                    EngineKill();
-                    goto end;
-                } else {
-                    /* if the engine kill-stop has been received by now, chuck
-                     * restarting and return to kill the engine */
-                    if ((suricata_ctl_flags & SURICATA_KILL) ||
-                        (suricata_ctl_flags & SURICATA_STOP)) {
-                        goto end;
-                    }
-                    TmThreadRestartThread(tv);
-                }
+                EngineKill();
+                goto end;
             }
             tv = tv->next;
         }
