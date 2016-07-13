@@ -807,8 +807,7 @@ application layer, detection, and outputs.
 # The packet acquisition module reads packets from the network.
 
 # The decode module decodes the packets and the stream application
-layer performs its job here. The stream application layer has three
-tasks:
+application layer has three tasks:
   
 ::
   
@@ -925,6 +924,41 @@ the settings in 'default' will count.  By default Suricata creates one
           cpu: [ "all" ]
           prio:
              default: "medium"
+
+Relevant cpu-affinity settings for IDS/IPS modes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+IDS mode
+~~~~~~~~
+
+Runmode AutoFp::
+
+	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
+	recive-cpu-set - used for receive and decode
+	detect-cpu-set - used for streamtcp,detect,output(logging),reject
+
+Rumode Workers::
+
+	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
+	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject
+
+
+IPS mode
+~~~~~~~~
+
+Runmode AutoFp::
+
+	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
+	recive-cpu-set - used for receive and decode
+	detect-cpu-set - used for streamtcp,detect,output(logging)
+	verdict-cpu-set - used for verdict and respond/reject
+
+Runmode Workers::
+
+	management-cpu-set - used for management (example - flow.managers, flow.recyclers)
+	detect-cpu-set - used for receive,streamtcp,decode,detect,output(logging),respond/reject, verdict
+
+
 
 IP Defrag
 ---------
