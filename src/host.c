@@ -262,8 +262,6 @@ void HostPrintStats (void)
 void HostShutdown(void)
 {
     Host *h;
-    uint32_t u;
-
     HostPrintStats();
 
     /* free spare queue */
@@ -274,6 +272,7 @@ void HostShutdown(void)
 
     /* clear and free the hash */
     if (host_hash != NULL) {
+        uint32_t u;
         for (u = 0; u < host_config.hash_size; u++) {
             Host *h = host_hash[u].head;
             while (h) {
@@ -305,9 +304,9 @@ void HostShutdown(void)
 void HostCleanup(void)
 {
     Host *h;
-    uint32_t u;
 
     if (host_hash != NULL) {
+        uint32_t u;
         for (u = 0; u < host_config.hash_size; u++) {
             h = host_hash[u].head;
             HostHashRow *hb = &host_hash[u];

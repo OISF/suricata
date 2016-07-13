@@ -523,14 +523,13 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
  */
 void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    Signature *s = NULL;
     uint32_t sig = 0;
 
     if (sgh == NULL)
         return;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -553,7 +552,6 @@ void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
                                    SigGroupHead *sgh, int list)
 {
-    Signature *s = NULL;
     uint32_t sig = 0;
     uint16_t min = USHRT_MAX;
 
@@ -561,7 +559,7 @@ uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
         return 0;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -587,14 +585,13 @@ uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
  */
 void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    Signature *s = NULL;
     uint32_t sig = 0;
 
     if (sgh == NULL)
         return;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -615,14 +612,13 @@ void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  */
 void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    Signature *s = NULL;
     uint32_t sig = 0;
 
     if (sgh == NULL)
         return;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -644,14 +640,13 @@ void SigGroupHeadSetFileMd5Flag(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  */
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
-    Signature *s = NULL;
     uint32_t sig = 0;
 
     if (sgh == NULL)
         return;
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -757,7 +752,6 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     SCEnter();
 
     uint32_t sig = 0;
-    Signature *s = NULL;
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx);
 
     if (sgh == NULL) {
@@ -775,7 +769,7 @@ int SigGroupHeadContainsSigId(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
         /* If we have reached here, we have an entry for sid in the SigGrouHead.
          * Retrieve the Signature from the detection engine context */
-        s = de_ctx->sig_array[sig];
+        Signature *s = de_ctx->sig_array[sig];
         if (s == NULL)
             continue;
 

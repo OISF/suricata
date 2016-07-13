@@ -91,7 +91,6 @@ static inline void DecodeBase64Block(uint8_t ascii[ASCII_BLOCK], uint8_t b64[B64
 uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
     int strict)
 {
-    int val;
     uint32_t padding = 0, numDecoded = 0, bbidx = 0, valid = 1, i;
     uint8_t *dptr = dest;
     uint8_t b64[B64_BLOCK] = { 0,0,0,0 };
@@ -100,7 +99,7 @@ uint32_t DecodeBase64(uint8_t *dest, const uint8_t *src, uint32_t len,
     for(i = 0; i < len && src[i] != 0; i++) {
 
         /* Get decimal representation */
-        val = GetBase64Value(src[i]);
+        int val = GetBase64Value(src[i]);
         if (val < 0) {
 
             /* Invalid character found, so decoding fails */

@@ -165,16 +165,13 @@ static void LogHttpLogCustom(LogHttpLogThread *aft, htp_tx_t *tx, const struct t
     uint8_t *cvalue = NULL;
     uint32_t cvalue_len = 0;
 
-    htp_header_t *h_request_hdr;
-    htp_header_t *h_response_hdr;
-
     time_t time = ts->tv_sec;
     struct tm local_tm;
     struct tm *timestamp = SCLocalTime(time, &local_tm);
 
     for (i = 0; i < httplog_ctx->cf_n; i++) {
-        h_request_hdr = NULL;
-        h_response_hdr = NULL;
+        htp_header_t *h_request_hdr = NULL;
+        htp_header_t *h_response_hdr = NULL;
         switch (httplog_ctx->cf_nodes[i]->type){
             case LOG_HTTP_CF_LITERAL:
             /* LITERAL */

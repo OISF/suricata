@@ -709,9 +709,7 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
                           uint8_t *input, uint32_t input_len,
                           void *local_data)
 {
-	uint32_t retval = 0;
 	uint32_t parsed = 0;
-	int hdrretval = 0;
 	SCEnter();
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
@@ -722,8 +720,8 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 
 	DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpc_state;
 	while (sstate->bytesprocessed < DCERPC_UDP_HDR_LEN && input_len) {
-		hdrretval = DCERPCUDPParseHeader(f, dcerpc_state, pstate, input,
-                                         input_len);
+		int hdrretval = DCERPCUDPParseHeader(f, dcerpc_state, pstate,
+                input, input_len);
 		if (hdrretval == -1 || hdrretval > (int32_t)input_len) {
 			sstate->bytesprocessed = 0;
 			SCReturnInt(hdrretval);
@@ -750,11 +748,11 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 #endif
 
 	while (sstate->bytesprocessed >= DCERPC_UDP_HDR_LEN
-			&& sstate->bytesprocessed < sstate->dcerpc.dcerpchdrudp.fraglen
+            && sstate->bytesprocessed < sstate->dcerpc.dcerpchdrudp.fraglen
 			&& input_len) {
-		retval = FragmentDataParser(f, dcerpc_state, pstate, input + parsed,
-                                    input_len);
-		if (retval || retval > input_len) {
+        uint32_t retval = FragmentDataParser(f, dcerpc_state, pstate,
+                input + parsed, input_len);
+        if (retval || retval > input_len) {
 			parsed += retval;
 			input_len -= retval;
 		} else if (input_len) {

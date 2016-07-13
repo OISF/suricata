@@ -444,7 +444,6 @@ static void SetBpfStringFromFile(char *filename)
 {
     char *bpf_filter = NULL;
     char *bpf_comment_tmp = NULL;
-    char *bpf_comment_start =  NULL;
     uint32_t bpf_len = 0;
 #ifdef OS_WIN32
     struct _stat st;
@@ -492,7 +491,7 @@ static void SetBpfStringFromFile(char *filename)
 
     if(strlen(bpf_filter) > 0) {
         /*replace comments with space*/
-        bpf_comment_start = bpf_filter;
+        char *bpf_comment_start = bpf_filter;
         while((bpf_comment_tmp = strchr(bpf_comment_start, '#')) != NULL) {
             while((*bpf_comment_tmp !='\0') &&
                 (*bpf_comment_tmp != '\r') && (*bpf_comment_tmp != '\n'))
@@ -2169,9 +2168,9 @@ static void SetupDelayedDetect(SCInstance *suri)
         suri->delayed_detect = 0;
     } else {
         if (ConfGetBool("detect.delayed-detect", &suri->delayed_detect) != 1) {
-            ConfNode *denode = NULL;
             ConfNode *decnf = ConfGetNode("detect-engine");
             if (decnf != NULL) {
+                ConfNode *denode = NULL;
                 TAILQ_FOREACH(denode, &decnf->head, next) {
                     if (strcmp(denode->val, "delayed-detect") == 0) {
                         (void)ConfGetChildValueBool(denode, "delayed-detect", &suri->delayed_detect);

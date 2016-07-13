@@ -915,12 +915,10 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
     SCEnter();
 
     uint16_t overlap = 0;
-    uint16_t packet_length = 0;
     uint32_t overlap_point = 0;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
-    char return_after = FALSE;
     uint8_t os_policy = stream->os_policy;
 #ifdef DEBUG
     SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "", seg->seq,
@@ -976,6 +974,9 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
     }
 
     if (overlap > 0) {
+        char return_after = FALSE;
+        uint16_t packet_length = 0;
+
         /* handle the case where we need to fill a gap before list_seg first */
         if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
             SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
@@ -1356,11 +1357,9 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
         TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, Packet *p)
 {
     uint16_t overlap = 0;
-    uint16_t packet_length;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
-    char handle_beyond = FALSE;
     uint8_t os_policy = stream->os_policy;
 
     if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq +
@@ -1405,6 +1404,8 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                    seg->seq, list_seg->seq, list_seg->payload_len, overlap);
     }
     if (overlap > 0) {
+        char handle_beyond = FALSE;
+
         /*Handle the case when newly arrived segment ends after original
           segment and original segment is the last segment in the list
           or the next segment in the list starts after the end of new segment*/
@@ -1436,6 +1437,8 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                         handle_beyond?"TRUE":"FALSE");
 
             if (fill_gap == TRUE) {
+                uint16_t packet_length;
+                
                 /* if there is a gap after this list_seg we fill it now with a
                  * new seg */
                 SCLogDebug("filling gap: list_seg->next->seq %"PRIu32"",
@@ -1557,11 +1560,9 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
 {
     SCEnter();
     uint16_t overlap = 0;
-    uint16_t packet_length;
     char end_before = FALSE;
     char end_after = FALSE;
     char end_same = FALSE;
-    char handle_beyond = FALSE;
     uint8_t os_policy = stream->os_policy;
 
     if (SEQ_LT((seg->seq + seg->payload_len), (list_seg->seq +
@@ -1611,6 +1612,8 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
             list_seg->seq + list_seg->payload_len, overlap);
     }
     if (overlap > 0) {
+        char handle_beyond = FALSE;
+        
         /*Handle the case when newly arrived segment ends after original
           segment and original segment is the last segment in the list*/
         if (end_after == TRUE) {
@@ -1637,6 +1640,8 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                         handle_beyond?"TRUE":"FALSE");
 
             if (fill_gap == TRUE) {
+                uint16_t packet_length;
+                
                 /* if there is a gap after this list_seg we fill it now with a
                  * new seg */
                 if (list_seg->next != NULL) {
@@ -2676,9 +2681,6 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 #ifdef DEBUG
     ra_ctx->sp++;
 #endif
-    uint16_t payload_offset = 0;
-    uint16_t payload_len = 0;
-
     /* start clean */
     rd->partial = FALSE;
 
@@ -2688,7 +2690,10 @@ static inline int DoReassemble(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                 "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
                 seg->payload_len, rd->ra_base_seq, stream->last_ack);
 
-        if (StreamTcpInlineMode() == 0) {
+        uint16_t payload_offset = 0;
+        uint16_t payload_len = 0;
+        
+        if (StreamTcpInlineMode() == 0) { 
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
                 payload_offset = (rd->ra_base_seq + 1) - seg->seq;
@@ -3127,9 +3132,6 @@ static void DoHandleRawGap(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, 
 static int DoRawReassemble(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, Packet *p,
     ReassembleRawData *rd)
 {
-    uint16_t payload_offset = 0;
-    uint16_t payload_len = 0;
-
     /* start clean */
     rd->partial = FALSE;
 
@@ -3139,6 +3141,9 @@ static int DoRawReassemble(TcpSession *ssn, TcpStream *stream, TcpSegment *seg, 
                 "ra_base_seq %" PRIu32 "", seg->seq,
                 seg->payload_len, rd->ra_base_seq);
 
+        uint16_t payload_offset = 0;
+        uint16_t payload_len = 0;
+        
         /* handle segments partly before ra_base_seq */
         if (SEQ_GT(rd->ra_base_seq, seg->seq)) {
             payload_offset = rd->ra_base_seq - seg->seq;
@@ -4015,7 +4020,6 @@ static int StreamTcpCheckChunks (TcpSession *ssn, uint8_t *stream_contents)
 
     StreamMsg *msg;
     uint16_t i = 0;
-    uint8_t j;
     uint8_t cnt = 0;
 
     if (ssn == NULL) {
@@ -4031,8 +4035,8 @@ static int StreamTcpCheckChunks (TcpSession *ssn, uint8_t *stream_contents)
     msg = ssn->toserver_smsg_head;
     while(msg != NULL) {
         cnt++;
-        j = 0;
-        for (; j < msg->data_len; j++) {
+        uint8_t j;
+        for (j = 0; j < msg->data_len; j++) {
             SCLogDebug("i is %" PRIu32 " and len is %" PRIu32 "  and temp is %" PRIx32 "", i, msg->data_len, msg->data[j]);
 
             if (stream_contents[i] == msg->data[j]) {

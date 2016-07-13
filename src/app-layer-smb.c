@@ -807,9 +807,6 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
 
     SMBState *sstate = (SMBState *) smb_state;
     uint8_t *p = input;
-    uint32_t ures = 0; /* unsigned */
-    int32_t sres = 0; /* signed */
-    uint32_t parsed = 0;
 
     if (((sstate->smb.flags & SMB_FLAGS_SERVER_TO_REDIR) &&
                 sstate->smb.command == SMB_COM_READ_ANDX) ||
@@ -817,6 +814,8 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
              && sstate->smb.command == SMB_COM_WRITE_ANDX) ||
             (sstate->smb.command == SMB_COM_TRANSACTION))
     {
+        uint32_t parsed = 0;
+        uint32_t ures = 0;
         if (sstate->andx.paddingparsed == 0) {
             ures = PaddingParser(sstate, pstate, input + parsed, input_len);
             if (ures <= input_len) {
@@ -830,7 +829,7 @@ static uint32_t SMBParseByteCount(Flow *f, void *smb_state,
         if (sstate->andx.datalength && input_len) {
 		/* Uncomment the next line to help debug DCERPC over SMB */
 		//hexdump(f, input + parsed, input_len);
-            sres = DataParser(sstate, pstate, input + parsed, input_len);
+            int32_t sres = DataParser(sstate, pstate, input + parsed, input_len);
             if (sres != -1 && sres <= (int32_t)input_len) {
                 parsed += (uint32_t)sres;
                 input_len -= (uint32_t)sres;

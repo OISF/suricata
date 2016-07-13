@@ -223,9 +223,6 @@ static void PcapFileNameFree(PcapFileName *pf)
  */
 static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 {
-    PcapFileName *pf;
-    PcapFileName *pfnext;
-
     PCAPLOG_PROFILE_START;
 
     if (PcapLogCloseFile(t,pl) < 0) {
@@ -234,7 +231,7 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
     }
 
     if (pl->use_ringbuffer == RING_BUFFER_MODE_ENABLED && pl->file_cnt >= pl->max_files) {
-        pf = TAILQ_FIRST(&pl->pcap_file_list);
+        PcapFileName *pf = TAILQ_FIRST(&pl->pcap_file_list);
         SCLogDebug("Removing pcap file %s", pf->filename);
 
         if (remove(pf->filename) != 0) {
@@ -246,7 +243,7 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
 
         /* Remove directory if Sguil mode and no files left in sguil dir */
         if (pl->mode == LOGMODE_SGUIL) {
-            pfnext = TAILQ_NEXT(pf,next);
+            PcapFileName *pfnext = TAILQ_NEXT(pf,next);
 
             if (strcmp(pf->dirname, pfnext->dirname) == 0) {
                 SCLogDebug("Current entry dir %s and next entry %s "
@@ -350,7 +347,6 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue
 {
     size_t len;
     int rotate = 0;
-    int ret = 0;
 
     PcapLogThreadData *td = (PcapLogThreadData *)thread_data;
     PcapLogData *pl = td->pcap_log;
@@ -374,7 +370,7 @@ static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue
     len = sizeof(*pl->h) + GET_PKT_LEN(p);
 
     if (pl->filename == NULL) {
-        ret = PcapLogOpenFileCtx(pl);
+        int ret = PcapLogOpenFileCtx(pl);
         if (ret < 0) {
             PcapLogUnlock(pl);
             return TM_ECODE_FAILED;

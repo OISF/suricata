@@ -196,12 +196,11 @@ void DetectAddressCleanupList(DetectAddress *head)
 int DetectAddressAdd(DetectAddress **head, DetectAddress *ag)
 {
     DetectAddress *cur, *prev_cur = NULL;
-    int r = 0;
 
     if (*head != NULL) {
         for (cur = *head; cur != NULL; cur = cur->next) {
             prev_cur = cur;
-            r = DetectAddressCmp(ag, cur);
+            int r = DetectAddressCmp(ag, cur);
             if (r == ADDRESS_EB) {
                 /* insert here */
                 ag->prev = cur->prev;
@@ -1605,13 +1604,13 @@ int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Ad
 
     uint16_t idx;
     int i = 0;
-    uint16_t result1, result2;
 
     /* See if the packet address is within the range of any entry in the
      * signature's address match array.
      */
     for (idx = 0; idx < addrs_cnt; idx++) {
-        result1 = result2 = 0;
+        uint16_t result1 = 0;
+        uint16_t result2 = 0;
 
         /* See if packet address equals either limit. Return 1 if true. */
         if (ntohl(a->addr_data32[0]) == addrs[idx].ip[0] &&

@@ -122,7 +122,6 @@ uint8_t SCAsn1GetHighTagNumber(Asn1Ctx *ac)
 uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
 {
     uint8_t raw_len = *ac->iter;
-    uint8_t ret = 0;
     uint32_t content_len = 0;
     uint8_t oct_len = ASN1_BER_GET_LONG_LEN_OCTETS(raw_len);
     uint8_t i = 0;
@@ -132,7 +131,7 @@ uint32_t SCAsn1GetLengthLongForm(Asn1Ctx *ac)
     for (; i < oct_len; i++) {
         ac->iter++;
 
-        ret = SCAsn1CheckBounds(ac);
+        uint8_t ret = SCAsn1CheckBounds(ac);
         if (ret == ASN1_PARSER_ERR) {
             ac->parser_status |= ASN1_STATUS_INVALID | ASN1_STATUS_OOB;
             return ASN1_PARSER_ERR;

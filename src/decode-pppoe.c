@@ -81,7 +81,6 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
 
     /* parse any tags we have in the packet */
 
-    uint16_t tag_length = 0;
     PPPOEDiscoveryTag* pppoedt = (PPPOEDiscoveryTag*) (p->pppoedh +  PPPOE_DISCOVERY_HEADER_MIN_LEN);
 
     uint16_t pppoe_length = ntohs(p->pppoedh->pppoe_length);
@@ -101,7 +100,7 @@ int DecodePPPOEDiscovery(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8
 #ifdef DEBUG
         uint16_t tag_type = ntohs(pppoedt->pppoe_tag_type);
 #endif
-        tag_length = ntohs(pppoedt->pppoe_tag_length);
+        uint16_t tag_length = ntohs(pppoedt->pppoe_tag_length);
 
         SCLogDebug ("PPPoE Tag type %x, length %u", tag_type, tag_length);
 

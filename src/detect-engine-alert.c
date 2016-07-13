@@ -188,8 +188,6 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
  */
 int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint64_t tx_id, uint8_t flags)
 {
-    int i = 0;
-
     if (p->alerts.cnt == PACKET_ALERT_MAX)
         return 0;
 
@@ -207,6 +205,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
     } else {
         /* We need to make room for this s->num
          (a bit ugly with memcpy but we are planning changes here)*/
+        int i;
         for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].num > s->num; i--) {
             memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
         }

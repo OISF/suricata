@@ -111,9 +111,7 @@ TmModuleDecodeErfFileRegister(void)
  */
 TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 {
-    Packet *p = NULL;
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
-
     etv->slot = ((TmSlot *)slot)->slot_next;
 
     while (1) {
@@ -125,7 +123,7 @@ TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
          * to prevent us from alloc'ing packets at line rate. */
         PacketPoolWait();
 
-        p = PacketGetFromQueueOrAlloc();
+        Packet *p = PacketGetFromQueueOrAlloc();
         if (unlikely(p == NULL)) {
             SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate a packet.");
             EngineStop();

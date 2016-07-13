@@ -350,11 +350,9 @@ void SigMatchFree(SigMatch *sm)
 /* Get the detection module by name */
 SigTableElmt *SigTableGet(char *name)
 {
-    SigTableElmt *st = NULL;
-    int i = 0;
-
+    int i;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
-        st = &sigmatch_table[i];
+        SigTableElmt *st = &sigmatch_table[i];
 
         if (st->name != NULL) {
             if (strcasecmp(name,st->name) == 0)
@@ -1178,9 +1176,8 @@ static void SigBuildAddressMatchArray(Signature *s)
  */
 int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
 {
-    uint32_t u = 0;
     uint32_t sig_flags = 0;
-    SigMatch *sm, *pm;
+    SigMatch *sm;
 
     SCEnter();
 
@@ -1270,6 +1267,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
                                  "is actually lowercase.  So having a "
                                  "nocase is redundant.");
                 } else {
+                    uint32_t u;
                     for (u = 0; u < cd->content_len; u++) {
                         if (isupper(cd->content[u]))
                             break;
@@ -1329,7 +1327,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     //}
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
-        pm =  SigMatchGetLastSMFromLists(s, 24,
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 24,
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -1855,10 +1853,9 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_temp.s = sw_dup->s->next;
             de_ctx->sig_list = sw_dup->s->next;
         }
-        SigDuplWrapper *sw_next = NULL;
         if (sw_temp.s != NULL) {
-            sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
-                                          (void *)&sw_temp, 0);
+            SigDuplWrapper *sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                    (void *)&sw_temp, 0);
             sw_next->s_prev = sw_dup->s_prev;
         }
         SigFree(sw_dup->s);
@@ -1873,10 +1870,9 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_temp.s = sw_dup->s->next;
             sw_dup->s_prev->next = sw_dup->s->next;
         }
-        SigDuplWrapper *sw_next = NULL;
         if (sw_temp.s != NULL) {
-            sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
-                                          (void *)&sw_temp, 0);
+            SigDuplWrapper *sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                    (void *)&sw_temp, 0);
             sw_next->s_prev = sw_dup->s_prev;;
         }
         SigFree(sw_dup->s);

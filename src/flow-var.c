@@ -136,8 +136,6 @@ void FlowVarFree(FlowVar *fv)
 
 void FlowVarPrint(GenericVar *gv)
 {
-    uint16_t u;
-
     if (!SCLogDebugEnabled())
         return;
 
@@ -149,6 +147,7 @@ void FlowVarPrint(GenericVar *gv)
 
         if (fv->datatype == FLOWVAR_TYPE_STR) {
             SCLogDebug("Name idx \"%" PRIu16 "\", Value \"", fv->idx);
+            uint16_t u;
             for (u = 0; u < fv->data.fv_str.value_len; u++) {
                 if (isprint(fv->data.fv_str.value[u]))
                     SCLogDebug("%c", fv->data.fv_str.value[u]);

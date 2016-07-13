@@ -205,8 +205,8 @@ static ConfNode *GetConfig(void) {
         return stats;
 
     ConfNode *root = ConfGetNode("outputs");
-    ConfNode *node = NULL;
     if (root != NULL) {
+        ConfNode *node = NULL;
         TAILQ_FOREACH(node, &root->head, next) {
             if (strcmp(node->val, "stats") == 0) {
                 return node->head.tqh_first;
@@ -1224,10 +1224,8 @@ void StatsReleaseResources()
  */
 void StatsReleaseCounters(StatsCounter *head)
 {
-    StatsCounter *pc = NULL;
-
     while (head != NULL) {
-        pc = head;
+        StatsCounter *pc = head;
         head = head->next;
         StatsReleaseCounter(pc);
     }

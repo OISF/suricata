@@ -970,7 +970,6 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
 MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
                                 enum MpmBuiltinBuffers buf)
 {
-    const Signature *s = NULL;
     uint32_t sig;
     uint32_t cnt = 0;
     int direction = 0;
@@ -1022,7 +1021,7 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
     }
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        const Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 
@@ -1101,7 +1100,6 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 
 MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, AppLayerMpms *am)
 {
-    const Signature *s = NULL;
     uint32_t sig;
     uint32_t cnt = 0;
     uint32_t max_sid = DetectEngineGetMaxSigId(de_ctx) / 8 + 1;
@@ -1112,7 +1110,7 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
             am->direction == SIG_FLAG_TOSERVER ? "toserver" : "toclient", am->sm_list);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        s = sgh->match_array[sig];
+        const Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
 

@@ -948,8 +948,6 @@ static TmEcode UnixManagerThreadDeinit(ThreadVars *t, void *data)
 
 static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
 {
-    int ret;
-
     /* set the thread name */
     SCLogDebug("%s started...", th_v->name);
 
@@ -961,7 +959,7 @@ static TmEcode UnixManager(ThreadVars *th_v, void *thread_data)
 
     TmThreadsSetFlag(th_v, THV_INIT_DONE);
     while (1) {
-        ret = UnixMain(&command);
+        int ret = UnixMain(&command);
         if (ret == 0) {
             SCLogError(SC_ERR_FATAL, "Fatal error on unix socket");
         }

@@ -823,7 +823,6 @@ void RunModeInitializeOutputs(void)
     }
 
     ConfNode *output, *output_config;
-    const char *enabled;
     char tls_log_enabled = 0;
     char tls_store_present = 0;
 
@@ -840,7 +839,7 @@ void RunModeInitializeOutputs(void)
             tls_store_present = 1;
         }
 
-        enabled = ConfNodeLookupChildValue(output_config, "enabled");
+        const char *enabled = ConfNodeLookupChildValue(output_config, "enabled");
         if (enabled == NULL || !ConfValIsTrue(enabled)) {
             continue;
         }

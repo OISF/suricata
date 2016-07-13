@@ -242,7 +242,7 @@ static SMTPString *SMTPStringAlloc(void);
 static void SMTPConfigure(void) {
 
     SCEnter();
-    int ret = 0, val;
+    int val;
     intmax_t imval;
     uint32_t content_limit = 0;
     uint32_t content_inspect_min_size = 0;
@@ -250,8 +250,7 @@ static void SMTPConfigure(void) {
 
     ConfNode *config = ConfGetNode("app-layer.protocols.smtp.mime");
     if (config != NULL) {
-
-        ret = ConfGetChildValueBool(config, "decode-mime", &val);
+        int ret = ConfGetChildValueBool(config, "decode-mime", &val);
         if (ret) {
             smtp_config.decode_mime = val;
         }
@@ -290,9 +289,9 @@ static void SMTPConfigure(void) {
     smtp_config.content_inspect_min_size = FILEDATA_CONTENT_INSPECT_MIN_SIZE;
 
     ConfNode *t = ConfGetNode("app-layer.protocols.smtp.inspected-tracker");
-    ConfNode *p = NULL;
 
     if (t != NULL) {
+        ConfNode *p = NULL;
         TAILQ_FOREACH(p, &t->head, next) {
             if (strcasecmp("content-limit", p->name) == 0) {
                 if (ParseSizeStringU32(p->val, &content_limit) < 0) {

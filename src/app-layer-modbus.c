@@ -278,8 +278,6 @@ uint64_t ModbusGetTxCnt(void *alstate) {
  */
 static ModbusTransaction *ModbusTxFindByTransaction(const ModbusState   *modbus,
                                                     const uint16_t      transactionId) {
-    ModbusTransaction *tx = NULL;
-
     if (modbus->curr == NULL)
         return NULL;
 
@@ -289,6 +287,7 @@ static ModbusTransaction *ModbusTxFindByTransaction(const ModbusState   *modbus,
         return modbus->curr;
     /* slow path, iterate list */
     } else {
+        ModbusTransaction *tx;
         TAILQ_FOREACH(tx, &modbus->tx_list, next) {
             if ((tx->transactionId == transactionId)    &&
                 !(modbus->curr->replied))
@@ -1248,7 +1247,6 @@ static int ModbusParseRequest(Flow                  *f,
 {
     SCEnter();
     ModbusState         *modbus = (ModbusState *) state;
-    ModbusTransaction   *tx;
     ModbusHeader        header;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
@@ -1271,7 +1269,7 @@ static int ModbusParseRequest(Flow                  *f,
             SCReturnInt(0);
 
         /* Allocate a Transaction Context and add it to Transaction list */
-        tx = ModbusTxAlloc(modbus);
+        ModbusTransaction *tx = ModbusTxAlloc(modbus);
         if (tx == NULL)
             SCReturnInt(0);
 
@@ -1312,7 +1310,6 @@ static int ModbusParseResponse(Flow                 *f,
     SCEnter();
     ModbusHeader        header;
     ModbusState         *modbus = (ModbusState *) state;
-    ModbusTransaction   *tx;
 
     if (input == NULL && AppLayerParserStateIssetFlag(pstate, APP_LAYER_PARSER_EOF)) {
         SCReturnInt(1);
@@ -1334,7 +1331,7 @@ static int ModbusParseResponse(Flow                 *f,
             SCReturnInt(0);
 
         /* Find the transaction context thanks to transaction ID (and function code) */
-        tx = ModbusTxFindByTransaction(modbus, header.transactionId);
+        ModbusTransaction *tx = ModbusTxFindByTransaction(modbus, header.transactionId);
         if (tx == NULL) {
             /* Allocate a Transaction Context if not previous request */
             /* and add it to Transaction list */
