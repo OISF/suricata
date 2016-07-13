@@ -90,7 +90,7 @@ int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
     return 0;
 }
 
-static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
 

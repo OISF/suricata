@@ -916,15 +916,14 @@ void OutputNotifyFileRotation(void) {
     }
 }
 
-TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data,
-    PacketQueue *pq, PacketQueue *postpq)
+TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     LoggerThreadStore *thread_store = (LoggerThreadStore *)thread_data;
     RootLogger *logger = TAILQ_FIRST(&RootLoggers);
     LoggerThreadStoreNode *thread_store_node = TAILQ_FIRST(thread_store);
     while (logger && thread_store_node) {
         if (logger->LogFunc != NULL) {
-            logger->LogFunc(tv, p, thread_store_node->thread_data, pq, postpq);
+            logger->LogFunc(tv, p, thread_store_node->thread_data);
         }
         logger = TAILQ_NEXT(logger, entries);
         thread_store_node = TAILQ_NEXT(thread_store_node, entries);
