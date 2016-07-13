@@ -3,13 +3,11 @@
 HTTP Keywords
 =============
 
-There are additional content modifiers that can provide
-protocol-specific capabilities at the application layer (if you are
-unfamiliar with content modifiers, please visit the page
-:doc:`payload-keywords` These keywords make sure the signature checks
-only specific parts of the network traffic. For instance, to check
-specifically on the request URI, cookies, or the HTTP request or
-response body, etc.
+There are additional content modifiers that can provide protocol-specific
+capabilities at the application layer. More information can be found at
+:doc:`payload-keywords` These keywords make sure the signature checks only
+specific parts of the network traffic. For instance, to check specifically on
+the request URI, cookies, or the HTTP request or response body, etc.
 
 Use ``http_method`` to match on the HTTP request method, ``http_uri``
 or ``http_raw_uri`` to match on the request URI, ``http_stat_code`` to
@@ -159,9 +157,8 @@ modifiers, like ``depth``, ``distance``, ``offset``, ``nocase`` and
 
     **Note**: the header buffer is *normalized*. Any trailing
     whitespace and tab characters are removed. See:
-    http://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html. Match
-    on the ``http_raw_header`` buffer if you require the raw
-    (non-normalized) headers.
+    http://lists.openinfosecfoundation.org/pipermail/oisf-users/2011-October/000935.html. 
+    To avoid that, use the ``http_raw_header`` keyword.
 
 Example of a header in a HTTP request:
 
@@ -279,9 +276,7 @@ http_server_body
 With the ``http_server_body`` content modifier, it is possible to
 match specifically and only on the HTTP response body. The keyword can
 be used in combination with all previously mentioned content modifiers
-like ``distance``, ``offset``, ``nocase``, ``within``, etc. If the
-response body is *gzip* encoded, it is first uncompressed for
-inspection.
+like ``distance``, ``offset``, ``nocase``, ``within``, etc.
 
 Note: how much of the response/server body is inspected is controlled
 in your :ref:`libhtp configuration section
@@ -320,19 +315,12 @@ The ``file_data`` keyword affects all following content matches, until
 the ``pkt_data`` keyword is encountered or it reaches the end of the
 rule. This makes it a useful shortcut for applying many content
 matches to the HTTP response body, eliminating the need to modify each
-content match individually. If the response body is *gzip* encoded, it
-is first uncompressed for inspection.
+content match individually.
 
 Note: how much of the response/server body is inspected is controlled
 in your :ref:`libhtp configuration section
 <suricata-yaml-configure-libhtp>` via the ``response-body-limit``
 setting.
-
-**NOTE:** In 2.0.x, ``file_data`` is only supported for HTTP server
-bodies (specified as flow direction **to_client**). Starting with
-2.1-dev and above, ``file_data`` is handled more intelligently
-per-protocol, supported with **to_server** for SMTP and **to_client**
-for HTTP.
 
 urilen
 ------
@@ -360,10 +348,8 @@ Example of ``urilen`` in a signature:
 
 .. image:: http-keywords/urilen1.png
 
-You can specify whether the inspected URI buffer is either the
-normalized or the raw buffer by appending ``norm`` or ``raw``::
-
-  urilen:<5,raw;
+You can also append ``norm`` or ``raw`` to define what sort of buffer you want
+to use (normalized or raw buffer).
 
 pcre
 ----

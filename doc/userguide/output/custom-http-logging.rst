@@ -28,8 +28,6 @@ And in your http.log file you would get the following, for example:
 
  08/28/12-22:14:30.693856 - Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:11.0) Gecko/20100101 Firefox/11.0  HTTP/1.1 GET us.cnn.com /video/data/3.0/video/showbiz/2012/08/28/conan-reports-from-rnc-convention.teamcoco/index.xml 200 15789 192.168.1.91:45108 -> 157.166.255.18:80
 
-It should be noted that each line represents the http request and response all in one, depending on how you specified your custom format. HTTP responses do not get their own line and if you wish to see that information, you will need to modify the custom format to include it using %{header_field}o for example.
-
 The list of supported format strings is the following:
 
 * %h - Host HTTP Header (remote host name). ie: google.com

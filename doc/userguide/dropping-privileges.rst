@@ -48,24 +48,3 @@ suricata can still write to its log files which are usually located in
   chown -R root:suri /var/log/suricata
   chmod -R 775 /var/log/suricata
 
-If you rely on the pid files be aware that as of version 1.4.x
-Suricata writes the pid file before it switches uids.  This means that
-the pid file will be owned by root and will not be readable by the
-alternative uid.  If this is an issue for you then a work around is to
-set the sgid bit on the directory that the pid file will be created
-in.  This will cause all files in this directory to inherit the gid
-from the parent directory rather than the creating process.
-  
-::
-  
-  chmod g+s ~sensors/sensor1/run
-  
-  ls -ld ~sensors/sensor1/run
-  drwxr-sr-x 2 sensors sensors 4096 Aug  9 09:20 ~sensors/sensor1/run
-
-and so after running suricata we get
-  
-::
-  
-  ls -ld ~sensors/sensor1/run/suricata.pid 
-  -rw-r----- 1 root sensors 6 Aug  9 09:20 ~sensors/sensor1/run/suricata.pid

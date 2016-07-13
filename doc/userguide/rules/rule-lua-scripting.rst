@@ -1,10 +1,6 @@
 Lua Scripting
 =============
 
-In order to enable Lua scripting, please reference this page before
-continuing `Installation from GIT with luajit
-<https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Installation_from_GIT_with_luajit>`_.
-
 Syntax:
   
 ::

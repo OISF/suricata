@@ -88,12 +88,9 @@ Example of ip_proto in a rule:
 
 .. image:: header-keywords/ip_proto.png
 
-An example of the text based version of the protocol, say IPv6 whose
-code is 41 would be::
+The named variante of that example would be::
 
-  ip_proto:IPv6
-
-No quotes are needed around the name.
+    ip_proto:PIM
 
 Id
 --
