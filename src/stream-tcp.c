@@ -5719,6 +5719,8 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(ThreadVars *tv, StreamTcpThread 
  * \note when stream engine is running in inline mode all segments are used,
  *       in IDS/non-inline mode only ack'd segments are iterated.
  *
+ * \note Must be called under flow lock.
+ *
  * \return -1 in case of error, the number of segment in case of success
  *
  */
@@ -5732,11 +5734,9 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     if (p->flow == NULL)
         return 0;
 
-    FLOWLOCK_RDLOCK(p->flow);
     ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
-        FLOWLOCK_UNLOCK(p->flow);
         return 0;
     }
 
@@ -5754,13 +5754,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
         ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
         if (ret != 1) {
             SCLogDebug("Callback function has failed");
-            FLOWLOCK_UNLOCK(p->flow);
             return -1;
         }
         seg = seg->next;
         cnt++;
     }
-    FLOWLOCK_UNLOCK(p->flow);
     return cnt;
 }
 
