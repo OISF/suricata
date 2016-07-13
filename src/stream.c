@@ -269,6 +269,8 @@ void StreamMsgReturnListToPool(void *list)
 
 /** \brief Run callback for all segments
  *
+ * Must be called under flow lock.
+ *
  * \return -1 in case of error, the number of segment in case of success
  */
 int StreamSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
