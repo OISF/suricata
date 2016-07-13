@@ -191,7 +191,7 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
             }
 
             //  Outputs
-            OutputLoggerLog(tv, x, fw->output_thread, preq, unused);
+            OutputLoggerLog(tv, x, fw->output_thread);
 
             /* put these packets in the preq queue so that they are
              * by the other thread modules before packet 'p'. */
@@ -216,7 +216,7 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
     }
 
     // Outputs.
-    OutputLoggerLog(tv, p, fw->output_thread, preq, unused);
+    OutputLoggerLog(tv, p, fw->output_thread);
 
     /*  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL && p->proto == IPPROTO_TCP) {

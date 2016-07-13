@@ -90,7 +90,7 @@ int OutputRegisterFileLogger(LoggerId id, const char *name, FileLogger LogFunc,
     return 0;
 }
 
-static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputFileLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
 
