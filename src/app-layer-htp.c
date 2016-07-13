@@ -2361,6 +2361,8 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
             SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "can't set response-body-decompress-layer-limit "
                     "to %u, libhtp version too old", value);
 #endif
+        } else if (strcasecmp("response-body-decompress-enable", p->name) == 0) {
+            htp_config_set_response_decompression(cfg_prec->cfg, ConfValIsTrue(p->val));
         } else if (strcasecmp("path-convert-backslash-separators", p->name) == 0) {
             htp_config_set_backslash_convert_slashes(cfg_prec->cfg,
                                                      HTP_DECODER_URL_PATH,
