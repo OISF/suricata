@@ -127,7 +127,7 @@ int OutputRegisterTxLogger(LoggerId id, const char *name, AppProto alproto,
     return 0;
 }
 
-static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputTxLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
     if (list == NULL) {
