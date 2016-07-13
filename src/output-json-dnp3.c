@@ -314,8 +314,8 @@ error:
     return NULL;
 }
 
-static int JsonDNP3Logger(ThreadVars *tv, void *thread_data, const Packet *p,
-    Flow *f, void *state, void *vtx, uint64_t tx_id)
+static int JsonDNP3LoggerToServer(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
     SCEnter();
     LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
@@ -336,6 +336,18 @@ static int JsonDNP3Logger(ThreadVars *tv, void *thread_data, const Packet *p,
         }
         json_decref(js);
     }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
+static int JsonDNP3LoggerToClient(ThreadVars *tv, void *thread_data,
+    const Packet *p, Flow *f, void *state, void *vtx, uint64_t tx_id)
+{
+    SCEnter();
+    LogDNP3LogThread *thread = (LogDNP3LogThread *)thread_data;
+    DNP3Transaction *tx = vtx;
+
+    MemBuffer *buffer = (MemBuffer *)thread->buffer;
 
     MemBufferReset(buffer);
     if (tx->has_response && tx->response_done) {
@@ -431,10 +443,15 @@ static TmEcode JsonDNP3LogThreadDeinit(ThreadVars *t, void *data)
 
 void JsonDNP3LogRegister(void)
 {
-    /* Register as en eve sub-module. */
-    OutputRegisterTxSubModule(LOGGER_JSON_DNP3, "eve-log", "JsonDNP3Log",
-        "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3, JsonDNP3Logger,
-        JsonDNP3LogThreadInit, JsonDNP3LogThreadDeinit, NULL);
+    /* Register direction aware eve sub-modules. */
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3, "eve-log",
+        "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
+        JsonDNP3LoggerToServer, 0, 1, JsonDNP3LogThreadInit,
+        JsonDNP3LogThreadDeinit, NULL);
+    OutputRegisterTxSubModuleWithProgress(LOGGER_JSON_DNP3, "eve-log",
+        "JsonDNP3Log", "eve-log.dnp3", OutputDNP3LogInitSub, ALPROTO_DNP3,
+        JsonDNP3LoggerToClient, 1, 1, JsonDNP3LogThreadInit,
+        JsonDNP3LogThreadDeinit, NULL);
 }
 
 #else
