@@ -298,7 +298,7 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
     return 0;
 }
 
-static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
 

@@ -124,7 +124,7 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     return file_logged;
 }
 
-static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
 
