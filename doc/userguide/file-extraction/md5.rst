@@ -74,13 +74,6 @@ You have to compile/install suri like this in order to enable MD5s:
   make
   sudo make install
 
-For Fedora 64-bit users, the configure line will look like
-
-
-::
-
-
-  ./configure --with-libnss-libraries=/usr/lib64 --with-libnss-includes=/usr/include/nss3 --with-libnspr-libraries=/usr/lib64 --with-libnspr-includes=/usr/include/nspr4
 
 Output of configure:
 

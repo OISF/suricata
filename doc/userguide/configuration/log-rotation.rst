@@ -21,11 +21,3 @@ Example logrotate file:
       endscript
   }
 
-newsyslog based log rotation (e.g. on OpenBSD) /etc/newsyslog.conf:
-
-::
-
-  /var/log/suricata/eve.json       root:wheel      640     1       *       24      B       /var/run/suricata.pid     SIGHUP
-
-The above rotates every 24h; the 'B' prevents a rotation logmessage in
-eve.json. Fieldseperator is a TAB.
