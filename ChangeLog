@@ -1,3 +1,19 @@
+3.1.1 -- 2016-07-13
+
+Feature #1775: Lua: SMTP-support
+Bug #1419: DNS transaction handling issues
+Bug #1515: Problem with Threshold.config when using more than one IP
+Bug #1664: Unreplied DNS queries not logged when flow is aged out
+Bug #1808: Can't set thread priority after dropping privileges.
+Bug #1821: Suricata 3.1 fails to start on CentOS6
+Bug #1839: suricata 3.1 configure.ac says >=libhtp-0.5.5, but >=libhtp-0.5.20 required
+Bug #1840: --list-keywords and --list-app-layer-protos not working
+Bug #1841: libhtp 0.5.21
+Bug #1844: netmap: IPS mode doesn't set 2nd iface in promisc mode
+Bug #1845: Crash on disabling a app-layer protocol when it's logger is still enabled
+Optimization #1846: af-packet: improve thread calculation logic
+Optimization #1847: rules: don't warn on empty files
+
 3.1 -- 2016-06-20
 
 Bug #1589: Cannot run nfq in workers mode
