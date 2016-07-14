@@ -105,8 +105,7 @@ static int SMTPGetMimeField(lua_State *luastate)
     if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "error: protocol not SMTP");
     }
-    int lock_hint = 0;
-    Flow *flow = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *flow = LuaStateGetFlow(luastate);
     /* check that flow exist */
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Error: no flow found");
@@ -115,17 +114,8 @@ static int SMTPGetMimeField(lua_State *luastate)
     if (name == NULL)
         return LuaCallbackError(luastate, "1st argument missing, empty or wrong type");
 
-    /* lock check */
-    if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(flow);
-        /* get specific MIME field */
-        GetMimeDecField(luastate, flow, name);
-        /* unlock flow mutex to allow for multithreading */
-        FLOWLOCK_UNLOCK(flow);
-        /* return number of fields pushed to luastate */
-    } else { /* if mutex already locked */
-        GetMimeDecField(luastate, flow, name);
-    }
+    GetMimeDecField(luastate, flow, name);
+
     return 1;
 }
 
@@ -195,22 +185,14 @@ static int SMTPGetMimeList(lua_State *luastate)
     if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
-    /* mutex lock indicator var */
-    int lock_hint = 0;
     /* Extract network flow */
-    Flow *flow = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *flow = LuaStateGetFlow(luastate);
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Error: no flow found");
     }
-    /* check if flow already locked */
-    if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        /* mutexlock flow */
-        FLOWLOCK_RDLOCK(flow);
-        GetMimeList(luastate, flow);
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        GetMimeList(luastate, flow);
-    }
+
+    GetMimeList(luastate, flow);
+
     return 1;
 }
 
@@ -260,22 +242,14 @@ static int SMTPGetMailFrom(lua_State *luastate)
     if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
-    /* use lock_hint to check for mutexlock on flow */
-    int lock_hint = 0;
     /* Extract flow, with lockhint to check mutexlocking */
-    Flow *flow = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *flow = LuaStateGetFlow(luastate);
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Internal Error: no flow");
     }
-    /* check if already mutexlocked by parents */
-    if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        /* mutexlock flow */
-        FLOWLOCK_RDLOCK(flow);
-        GetMailFrom(luastate, flow);
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        GetMailFrom(luastate, flow);
-    }
+
+    GetMailFrom(luastate, flow);
+
     return 1;
 }
 
@@ -335,23 +309,14 @@ static int SMTPGetRcptList(lua_State *luastate)
     if(!(LuaStateNeedProto(luastate, ALPROTO_SMTP))) {
         return LuaCallbackError(luastate, "Error: protocol not SMTP");
     }
-    /* create lockhint var for flowlock check. */
-    int lock_hint = 0;
     /* Extract flow, with lockhint to check mutexlocking */
-    Flow *flow = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *flow = LuaStateGetFlow(luastate);
     if(flow == NULL) {
         return LuaCallbackError(luastate, "Internal error: no flow");
     }
-    /* check if already mutexlocked by parents */
-    if(lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        /* lock flow */
-        FLOWLOCK_RDLOCK(flow);
-        GetRcptList(luastate, flow);
-        /* open flow */
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        GetRcptList(luastate, flow);
-    }
+
+    GetRcptList(luastate, flow);
+
     /* return 1 since we allways push one table to luastate */
     return 1;
 }
