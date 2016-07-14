@@ -2040,14 +2040,11 @@ void TmThreadCheckThreadState(void)
 
         while (tv) {
             if (TmThreadsCheckFlag(tv, THV_FAILED)) {
-                TmThreadsSetFlag(tv, THV_DEINIT);
-                EngineKill();
-                goto end;
+                FatalError(SC_ERR_FATAL, "thread %s failed", tv->name);
             }
             tv = tv->next;
         }
     }
-end:
     SCMutexUnlock(&tv_root_lock);
     return;
 }
