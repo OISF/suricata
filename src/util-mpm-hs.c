@@ -56,7 +56,7 @@ int SCHSAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                      uint32_t, SigIntId, uint8_t);
 int SCHSPreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PatternMatcherQueue *pmq, const uint8_t *buf, const uint16_t buflen);
+                    PrefilterRuleStore *pmq, const uint8_t *buf, const uint16_t buflen);
 void SCHSPrintInfo(MpmCtx *mpm_ctx);
 void SCHSPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCHSRegisterTests(void);
@@ -885,7 +885,7 @@ static int SCHSMatchEvent(unsigned int id, unsigned long long from,
                           void *ctx)
 {
     SCHSCallbackCtx *cctx = ctx;
-    PatternMatcherQueue *pmq = cctx->pmq;
+    PrefilterRuleStore *pmq = cctx->pmq;
     const PatternDatabase *pd = cctx->ctx->pattern_db;
     const SCHSPattern *pat = pd->parray[id];
 
@@ -893,7 +893,7 @@ static int SCHSMatchEvent(unsigned int id, unsigned long long from,
                " (pat id=%" PRIu32 ")",
                cctx->match_count, (uint32_t)id, (uintmax_t)to, pat->id);
 
-    MpmAddSids(pmq, pat->sids, pat->sids_size);
+    PrefilterAddSids(pmq, pat->sids, pat->sids_size);
 
     cctx->match_count++;
     return 0;
@@ -912,7 +912,7 @@ static int SCHSMatchEvent(unsigned int id, unsigned long long from,
  * \retval matches Match count.
  */
 uint32_t SCHSSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                    PatternMatcherQueue *pmq, const uint8_t *buf, const uint16_t buflen)
+                    PrefilterRuleStore *pmq, const uint8_t *buf, const uint16_t buflen)
 {
     uint32_t ret = 0;
     SCHSCtx *ctx = (SCHSCtx *)mpm_ctx->ctx;
@@ -1086,7 +1086,7 @@ static int SCHSTest01(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1120,7 +1120,7 @@ static int SCHSTest02(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1153,7 +1153,7 @@ static int SCHSTest03(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1190,7 +1190,7 @@ static int SCHSTest04(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1224,7 +1224,7 @@ static int SCHSTest05(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1258,7 +1258,7 @@ static int SCHSTest06(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1290,7 +1290,7 @@ static int SCHSTest07(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1334,7 +1334,7 @@ static int SCHSTest08(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1366,7 +1366,7 @@ static int SCHSTest09(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1398,7 +1398,7 @@ static int SCHSTest10(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1435,7 +1435,7 @@ static int SCHSTest11(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1483,7 +1483,7 @@ static int SCHSTest12(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1518,7 +1518,7 @@ static int SCHSTest13(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1552,7 +1552,7 @@ static int SCHSTest14(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1586,7 +1586,7 @@ static int SCHSTest15(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1620,7 +1620,7 @@ static int SCHSTest16(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1654,7 +1654,7 @@ static int SCHSTest17(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1688,7 +1688,7 @@ static int SCHSTest18(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1732,7 +1732,7 @@ static int SCHSTest19(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1766,7 +1766,7 @@ static int SCHSTest20(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1812,7 +1812,7 @@ static int SCHSTest21(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1844,7 +1844,7 @@ static int SCHSTest22(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1879,7 +1879,7 @@ static int SCHSTest23(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1911,7 +1911,7 @@ static int SCHSTest24(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1943,7 +1943,7 @@ static int SCHSTest25(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1977,7 +1977,7 @@ static int SCHSTest26(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2010,7 +2010,7 @@ static int SCHSTest27(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2043,7 +2043,7 @@ static int SCHSTest28(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
