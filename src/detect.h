@@ -713,10 +713,10 @@ typedef struct FiledataReassembledBody_ {
 
 #define DETECT_FILESTORE_MAX 15
 
-typedef struct SignatureNonMpmStore_ {
+typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
-} SignatureNonMpmStore;
+} SignatureNonPrefilterStore;
 
 /**
   * Detection engine thread data.
@@ -815,7 +815,7 @@ typedef struct DetectEngineThreadCtx_ {
 
     struct SigGroupHead_ *sgh;
 
-    SignatureNonMpmStore *non_pf_store_ptr;
+    SignatureNonPrefilterStore *non_pf_store_ptr;
     uint32_t non_pf_store_cnt;
 
     /** pointer to the current mpm ctx that is stored
@@ -985,7 +985,7 @@ typedef struct SigGroupHead_ {
 
     /* rule id's for rules not part of any prefilter */
     uint32_t non_pf_other_store_cnt;
-    SignatureNonMpmStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
+    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */

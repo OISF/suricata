@@ -686,9 +686,9 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         return 0;
     }
 
-    sgh->non_pf_other_store_array = SCMalloc(non_pf * sizeof(SignatureNonMpmStore));
+    sgh->non_pf_other_store_array = SCMalloc(non_pf * sizeof(SignatureNonPrefilterStore));
     BUG_ON(sgh->non_pf_other_store_array == NULL);
-    memset(sgh->non_pf_other_store_array, 0, non_pf * sizeof(SignatureNonMpmStore));
+    memset(sgh->non_pf_other_store_array, 0, non_pf * sizeof(SignatureNonPrefilterStore));
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
