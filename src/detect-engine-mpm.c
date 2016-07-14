@@ -1283,11 +1283,16 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
      * true size, since duplicates are removed below, but counted here.
      */
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->flags & SIG_FLAG_PREFILTER)
+            continue;
+
         RetrieveFPForSig(s);
         if (s->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
             content_total_size += cd->content_len;
+
+            s->flags |= SIG_FLAG_PREFILTER;
         }
     }
 
