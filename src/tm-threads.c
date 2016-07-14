@@ -283,8 +283,6 @@ void *TmThreadsSlotPktAcqLoop(void *td)
                                  " PktAcqLoop=%p, tmqh_in=%p,"
                                  " tmqh_out=%p",
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
-        EngineKill();
-
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
         return NULL;
@@ -300,7 +298,6 @@ void *TmThreadsSlotPktAcqLoop(void *td)
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
                     goto error;
                 } else {
-                    EngineKill();
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                     goto error;
                 }
@@ -336,8 +333,11 @@ void *TmThreadsSlotPktAcqLoop(void *td)
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
-        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL_PKTACQ)
-            || suricata_ctl_flags) {
+        if (r == TM_ECODE_FAILED) {
+            TmThreadsSetFlag(tv, THV_FAILED);
+            run = 0;
+        }
+        if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
             run = 0;
         }
         if (r == TM_ECODE_DONE) {
@@ -408,8 +408,6 @@ void *TmThreadsSlotPktAcqLoopAFL(void *td)
                                  " PktAcqLoop=%p, tmqh_in=%p,"
                                  " tmqh_out=%p",
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
-        EngineKill();
-
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
@@ -424,7 +422,6 @@ void *TmThreadsSlotPktAcqLoopAFL(void *td)
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_INIT_DONE | THV_RUNNING_DONE);
                     goto error;
                 } else {
-                    EngineKill();
                     TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                     goto error;
                 }
@@ -456,8 +453,11 @@ void *TmThreadsSlotPktAcqLoopAFL(void *td)
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
-        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL_PKTACQ)
-            || suricata_ctl_flags) {
+        if (r == TM_ECODE_FAILED) {
+            TmThreadsSetFlag(tv, THV_FAILED);
+            run = 0;
+        }
+        if (TmThreadsCheckFlag(tv, THV_KILL_PKTACQ) || suricata_ctl_flags) {
             run = 0;
         }
         if (r == TM_ECODE_DONE) {
@@ -530,8 +530,6 @@ void *TmThreadsSlotVar(void *td)
 
     /* check if we are setup properly */
     if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
-        EngineKill();
-
         TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
         return NULL;
@@ -542,8 +540,6 @@ void *TmThreadsSlotVar(void *td)
             void *slot_data = NULL;
             r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
-                EngineKill();
-
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 goto error;
             }
@@ -697,8 +693,6 @@ static void *TmThreadsManagement(void *td)
         void *slot_data = NULL;
         r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
-            EngineKill();
-
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
             return NULL;

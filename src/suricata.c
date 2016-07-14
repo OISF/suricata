@@ -367,17 +367,12 @@ void GlobalInits()
     CreateLowercaseTable();
 }
 
-/* XXX hack: make sure threads can stop the engine by calling this
-   function. Purpose: pcap file mode needs to be able to tell the
-   engine the file eof is reached. */
+/** \brief make sure threads can stop the engine by calling this
+ *  function. Purpose: pcap file mode needs to be able to tell the
+ *  engine the file eof is reached. */
 void EngineStop(void)
 {
     suricata_ctl_flags |= SURICATA_STOP;
-}
-
-void EngineKill(void)
-{
-    suricata_ctl_flags |= SURICATA_KILL;
 }
 
 /**
@@ -2667,13 +2662,11 @@ int main(int argc, char **argv)
 
     int engine_retval = EXIT_SUCCESS;
     while(1) {
-        if (sigterm_count) {
-            suricata_ctl_flags |= SURICATA_KILL;
-        } else if (sigint_count) {
+        if (sigterm_count || sigint_count) {
             suricata_ctl_flags |= SURICATA_STOP;
         }
 
-        if (suricata_ctl_flags & (SURICATA_KILL | SURICATA_STOP)) {
+        if (suricata_ctl_flags & SURICATA_STOP) {
             SCLogNotice("Signal Received.  Stopping engine.");
             break;
         }

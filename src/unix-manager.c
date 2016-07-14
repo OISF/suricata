@@ -579,7 +579,7 @@ int UnixMain(UnixCommand * this)
         return 0;
     }
 
-    if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+    if (suricata_ctl_flags & SURICATA_STOP) {
         TAILQ_FOREACH_SAFE(uclient, &this->clients, next, tclient) {
             UnixCommandClose(this, uclient->fd);
         }

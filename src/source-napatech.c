@@ -206,7 +206,7 @@ TmEcode NapatechStreamLoop(ThreadVars *tv, void *data, void *slot)
     TmSlot *s = (TmSlot *)slot;
     ntv->slot = s->slot_next;
 
-    while (!(suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL))) {
+    while (!(suricata_ctl_flags & SURICATA_STOP)) {
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
         PacketPoolWait();

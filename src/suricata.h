@@ -88,8 +88,6 @@
 /* runtime engine control flags */
 #define SURICATA_STOP    (1 << 0)   /**< gracefully stop the engine: process all
                                      outstanding packets first */
-#define SURICATA_KILL    (1 << 1)   /**< shut down asap, discarding outstanding
-                                     packets. */
 #define SURICATA_DONE    (1 << 2)   /**< packets capture ended */
 
 /* Engine stage/status*/
@@ -181,7 +179,6 @@ uint8_t g_u8_lowercasetable[256];
 #define u8_tolower(c) tolower((uint8_t)(c))
 
 void EngineStop(void);
-void EngineKill(void);
 void EngineDone(void);
 
 int RunmodeIsUnittests(void);

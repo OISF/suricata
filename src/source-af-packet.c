@@ -1335,9 +1335,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             switch (-r) {
                 case AFP_FATAL_ERROR:
                     SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket, fatal error");
-                    /* fatal is fatal, we want suri to exit */
-                    EngineKill();
-                    //tv->aof = THV_ENGINE_EXIT;
                     SCReturnInt(TM_ECODE_FAILED);
                 case AFP_RECOVERABLE_ERROR:
                     SCLogWarning(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket, retrying soon");

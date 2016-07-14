@@ -199,7 +199,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
     ptv->cb_result = TM_ECODE_OK;
 
     while (1) {
-        if (suricata_ctl_flags & (SURICATA_STOP | SURICATA_KILL)) {
+        if (suricata_ctl_flags & SURICATA_STOP) {
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -213,10 +213,11 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
         if (unlikely(r == -1)) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                        r, pcap_geterr(pcap_g.pcap_handle));
-            if (! RunModeUnixSocketIsActive()) {
-                /* in the error state we just kill the engine */
-                EngineKill();
+            if (ptv->cb_result == TM_ECODE_FAILED) {
                 SCReturnInt(TM_ECODE_FAILED);
+            }
+            if (! RunModeUnixSocketIsActive()) {
+                EngineStop();
             } else {
                 pcap_close(pcap_g.pcap_handle);
                 pcap_g.pcap_handle = NULL;
@@ -237,7 +238,6 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
         } else if (ptv->cb_result == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapFileCallbackLoop failed");
             if (! RunModeUnixSocketIsActive()) {
-                EngineKill();
                 SCReturnInt(TM_ECODE_FAILED);
             } else {
                 pcap_close(pcap_g.pcap_handle);
