@@ -106,7 +106,7 @@ static int LuaTxLogger(ThreadVars *tv, void *thread_data, const Packet *p, Flow 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
-    LuaStateSetFlow(td->lua_ctx->luastate, f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, f);
 
     /* prepare data to pass to script */
     lua_getglobal(td->lua_ctx->luastate, "log");
@@ -150,7 +150,7 @@ static int LuaStreamingLogger(ThreadVars *tv, void *thread_data, const Flow *f,
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     if (flags & OUTPUT_STREAMING_FLAG_TRANSACTION)
         LuaStateSetTX(td->lua_ctx->luastate, txptr);
-    LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, (Flow *)f);
     LuaStateSetStreamingBuffer(td->lua_ctx->luastate, &b);
 
     /* prepare data to pass to script */
@@ -213,7 +213,7 @@ static int LuaPacketLoggerAlerts(ThreadVars *tv, void *thread_data, const Packet
 
         LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
         LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-        LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+        LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
         LuaStateSetPacketAlert(td->lua_ctx->luastate, (PacketAlert *)pa);
 
         /* prepare data to pass to script */
@@ -258,7 +258,7 @@ static int LuaPacketLoggerSsh(ThreadVars *tv, void *thread_data, const Packet *p
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
 
     int retval = lua_pcall(td->lua_ctx->luastate, 0, 0, 0);
     if (retval != 0) {
@@ -347,7 +347,7 @@ static int LuaPacketLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
-    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* unlocked */LUA_FLOW_NOT_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
 
     /* prepare data to pass to script */
     lua_newtable(td->lua_ctx->luastate);
@@ -398,7 +398,7 @@ static int LuaFileLogger(ThreadVars *tv, void *thread_data, const Packet *p, con
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
     LuaStateSetPacket(td->lua_ctx->luastate, (Packet *)p);
     LuaStateSetTX(td->lua_ctx->luastate, txptr);
-    LuaStateSetFlow(td->lua_ctx->luastate, p->flow, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, p->flow);
     LuaStateSetFile(td->lua_ctx->luastate, (File *)ff);
 
     /* get the lua function to call */
@@ -429,7 +429,7 @@ static int LuaFlowLogger(ThreadVars *tv, void *thread_data, Flow *f)
     SCMutexLock(&td->lua_ctx->m);
 
     LuaStateSetThreadVars(td->lua_ctx->luastate, tv);
-    LuaStateSetFlow(td->lua_ctx->luastate, f, /* locked */LUA_FLOW_LOCKED_BY_PARENT);
+    LuaStateSetFlow(td->lua_ctx->luastate, f);
 
     /* get the lua function to call */
     lua_getglobal(td->lua_ctx->luastate, "log");
