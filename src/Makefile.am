@@ -186,6 +186,7 @@ detect-parse.c detect-parse.h \
 detect-pcre.c detect-pcre.h \
 detect-pkt-data.c detect-pkt-data.h \
 detect-pktvar.c detect-pktvar.h \
+detect-prefilter.c detect-prefilter.h \
 detect-priority.c detect-priority.h \
 detect-rawbytes.c detect-rawbytes.h \
 detect-reference.c detect-reference.h \
