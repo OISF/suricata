@@ -699,7 +699,7 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
+        if (!(s->flags & SIG_FLAG_PREFILTER) || (s->flags & SIG_FLAG_MPM_NEG)) {
             if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
                 non_pf++;
             }
@@ -730,7 +730,7 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         if (s == NULL)
             continue;
 
-        if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
+        if (!(s->flags & SIG_FLAG_PREFILTER) || (s->flags & SIG_FLAG_MPM_NEG)) {
             if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
                 BUG_ON(sgh->non_pf_other_store_cnt >= non_pf);
                 BUG_ON(sgh->non_pf_other_store_array == NULL);

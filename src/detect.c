@@ -89,6 +89,7 @@
 #include "detect-distance.h"
 #include "detect-offset.h"
 #include "detect-sid.h"
+#include "detect-prefilter.h"
 #include "detect-priority.h"
 #include "detect-classtype.h"
 #include "detect-reference.h"
@@ -3417,6 +3418,24 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         RuleSetWhitelist(tmp_s);
 
+        if (!(tmp_s->flags & SIG_FLAG_PREFILTER)) {
+            int i;
+            for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
+                SigMatch *sm = tmp_s->sm_lists[i];
+                while (sm != NULL) {
+                    if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
+                        if (sigmatch_table[sm->type].SupportsPrefilter(tmp_s) == TRUE) {
+                            tmp_s->prefilter_sm = sm;
+                            tmp_s->flags |= SIG_FLAG_PREFILTER;
+                            SCLogConfig("sid %u: prefilter is on \"%s\"", tmp_s->id, sigmatch_table[sm->type].name);
+                            break;
+                        }
+                    }
+                    sm = sm->next;
+                }
+            }
+        }
+
         de_ctx->sig_cnt++;
     }
 
@@ -3810,6 +3829,15 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
         BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
+
+        int i = 0;
+        for (i = 0; i < DETECT_TBLSIZE; i++)
+        {
+            if (sigmatch_table[i].SetupPrefilter != NULL) {
+                sigmatch_table[i].SetupPrefilter(sgh);
+            }
+        }
+
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
         sgh->id = idx;
@@ -4101,6 +4129,7 @@ void SigTableSetup(void)
 
     DetectSidRegister();
     DetectPriorityRegister();
+    DetectPrefilterRegister();
     DetectRevRegister();
     DetectClasstypeRegister();
     DetectReferenceRegister();
