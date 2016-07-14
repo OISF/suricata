@@ -30,8 +30,9 @@
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
-
 #include "packet-queue.h"
+
+#include "util-prefilter.h"
 #include "util-mpm.h"
 #include "util-spm.h"
 #include "util-hash.h"
@@ -830,7 +831,7 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtc;   /**< thread ctx for the mpm */
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */

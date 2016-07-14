@@ -157,7 +157,7 @@ typedef struct AppLayerProtoDetectCtx_ {
  * \brief The app layer protocol detection thread context.
  */
 struct AppLayerProtoDetectThreadCtx_ {
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
     /* The value 2 is for direction(0 - toserver, 1 - toclient). */
     MpmThreadCtx mpm_tctx[FLOW_PROTO_DEFAULT][2];
     SpmThreadCtx *spm_thread_ctx;
