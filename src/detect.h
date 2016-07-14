@@ -560,7 +560,7 @@ typedef struct DetectEngineCtx_ {
 
     /** Maximum value of all our sgh's non_mpm_store_cnt setting,
      *  used to alloc det_ctx::non_mpm_id_array */
-    uint32_t non_mpm_store_cnt_max;
+    uint32_t non_pf_store_cnt_max;
 
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
@@ -729,8 +729,8 @@ typedef struct DetectEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
-    SigIntId *non_mpm_id_array;
-    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
+    SigIntId *non_pf_id_array;
+    uint32_t non_pf_id_cnt; // size is cnt * sizeof(uint32_t)
 
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
@@ -815,8 +815,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     struct SigGroupHead_ *sgh;
 
-    SignatureNonMpmStore *non_mpm_store_ptr;
-    uint32_t non_mpm_store_cnt;
+    SignatureNonMpmStore *non_pf_store_ptr;
+    uint32_t non_pf_store_cnt;
 
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
@@ -983,12 +983,12 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
-    /* non mpm list excluding SYN rules */
-    uint32_t non_mpm_other_store_cnt;
-    uint32_t non_mpm_syn_store_cnt;
-    SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
+    /* non prefilter list excluding SYN rules */
+    uint32_t non_pf_other_store_cnt;
+    uint32_t non_pf_syn_store_cnt;
+    SignatureNonMpmStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
     /* non mpm list including SYN rules */
-    SignatureNonMpmStore *non_mpm_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonMpmStore)
+    SignatureNonMpmStore *non_pf_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonMpmStore)
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
