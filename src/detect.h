@@ -451,6 +451,8 @@ typedef struct Signature_ {
      * to warn the user about any possible problem */
     char *sig_str;
 
+    int prefilter_list;
+
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 } Signature;
