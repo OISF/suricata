@@ -92,51 +92,51 @@ int SCACTileAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                          uint32_t, SigIntId, uint8_t);
 int SCACTilePreparePatterns(MpmCtx *mpm_ctx);
 uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                        PatternMatcherQueue *pmq, const uint8_t *buf,
+                        PrefilterRuleStore *pmq, const uint8_t *buf,
                         uint16_t buflen);
 void SCACTilePrintInfo(MpmCtx *mpm_ctx);
 void SCACTilePrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACTileRegisterTests(void);
 
 uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                             PatternMatcherQueue *pmq,
+                             PrefilterRuleStore *pmq,
                              const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                                PatternMatcherQueue *pmq,
+                                PrefilterRuleStore *pmq,
                                 const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                                PatternMatcherQueue *pmq,
+                                PrefilterRuleStore *pmq,
                                 const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
+                               PrefilterRuleStore *pmq,
                                const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
+                               PrefilterRuleStore *pmq,
                                const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
+                               PrefilterRuleStore *pmq,
                                const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchSmall8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                              PatternMatcherQueue *pmq,
+                              PrefilterRuleStore *pmq,
                               const uint8_t *buf, uint16_t buflen);
 
 uint32_t SCACTileSearchTiny256(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
+                               PrefilterRuleStore *pmq,
                                const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchTiny128(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                               PatternMatcherQueue *pmq,
+                               PrefilterRuleStore *pmq,
                                const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchTiny64(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                              PatternMatcherQueue *pmq,
+                              PrefilterRuleStore *pmq,
                               const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchTiny32(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                              PatternMatcherQueue *pmq,
+                              PrefilterRuleStore *pmq,
                               const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchTiny16(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                              PatternMatcherQueue *pmq,
+                              PrefilterRuleStore *pmq,
                               const uint8_t *buf, uint16_t buflen);
 uint32_t SCACTileSearchTiny8(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                             PatternMatcherQueue *pmq,
+                             PrefilterRuleStore *pmq,
                              const uint8_t *buf, uint16_t buflen);
 
 
@@ -1172,7 +1172,7 @@ void SCACTileDestroyCtx(MpmCtx *mpm_ctx)
 #define EXTRA 4 // need 4 extra bytes to avoid OOB reads
 #endif
 
-int CheckMatch(const SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
+int CheckMatch(const SCACTileSearchCtx *ctx, PrefilterRuleStore *pmq,
                const uint8_t *buf, uint16_t buflen,
                uint16_t state, int i, int matches,
                uint8_t *mpm_bitarray)
@@ -1214,7 +1214,7 @@ int CheckMatch(const SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
         /* Always add the Signature IDs, since they could be different in the current MPM
          * than in a previous MPM on the same PMQ when finding the same pattern.
          */
-        MpmAddSids(pmq, pattern_list[pindex].sids,
+        PrefilterAddSids(pmq, pattern_list[pindex].sids,
                    pattern_list[pindex].sids_size);
         matches++;
     }
@@ -1235,7 +1235,7 @@ int CheckMatch(const SCACTileSearchCtx *ctx, PatternMatcherQueue *pmq,
  * \retval matches Match count.
  */
 uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
-                        PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen)
+                        PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen)
 {
     const SCACTileSearchCtx *search_ctx = (SCACTileSearchCtx *)mpm_ctx->ctx;
 
@@ -1248,7 +1248,7 @@ uint32_t SCACTileSearch(const MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
 /* This function handles (ctx->state_count >= 32767) */
 uint32_t SCACTileSearchLarge(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                             PatternMatcherQueue *pmq,
+                             PrefilterRuleStore *pmq,
                              const uint8_t *buf, uint16_t buflen)
 {
     int i = 0;
@@ -1515,7 +1515,7 @@ static int SCACTileTest01(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1549,7 +1549,7 @@ static int SCACTileTest02(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1582,7 +1582,7 @@ static int SCACTileTest03(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1619,7 +1619,7 @@ static int SCACTileTest04(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1653,7 +1653,7 @@ static int SCACTileTest05(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1687,7 +1687,7 @@ static int SCACTileTest06(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1719,7 +1719,7 @@ static int SCACTileTest07(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1764,7 +1764,7 @@ static int SCACTileTest08(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1796,7 +1796,7 @@ static int SCACTileTest09(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1828,7 +1828,7 @@ static int SCACTileTest10(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1865,7 +1865,7 @@ static int SCACTileTest11(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1912,7 +1912,7 @@ static int SCACTileTest12(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1947,7 +1947,7 @@ static int SCACTileTest13(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -1981,7 +1981,7 @@ static int SCACTileTest14(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2015,7 +2015,7 @@ static int SCACTileTest15(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2049,7 +2049,7 @@ static int SCACTileTest16(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2083,7 +2083,7 @@ static int SCACTileTest17(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2117,7 +2117,7 @@ static int SCACTileTest18(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2151,7 +2151,7 @@ static int SCACTileTest19(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2185,7 +2185,7 @@ static int SCACTileTest20(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2219,7 +2219,7 @@ static int SCACTileTest21(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2251,7 +2251,7 @@ static int SCACTileTest22(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2286,7 +2286,7 @@ static int SCACTileTest23(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2318,7 +2318,7 @@ static int SCACTileTest24(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2350,7 +2350,7 @@ static int SCACTileTest25(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2384,7 +2384,7 @@ static int SCACTileTest26(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2417,7 +2417,7 @@ static int SCACTileTest27(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
@@ -2450,7 +2450,7 @@ static int SCACTileTest28(void)
     int result = 0;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
 
     memset(&mpm_ctx, 0, sizeof(MpmCtx));
     memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
