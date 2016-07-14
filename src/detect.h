@@ -273,6 +273,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_PREFILTER              (1<<22) /**< sig is part of a prefilter engine */
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -434,6 +436,8 @@ typedef struct Signature_ {
     SigMatch *dsize_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
+    /* used to speed up init of prefilter */
+    SigMatch *prefilter_sm;
 
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
@@ -900,6 +904,9 @@ typedef struct SigTableElmt_ {
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
 
+    _Bool (*SupportsPrefilter)(const Signature *s);
+    int (*SetupPrefilter)(struct SigGroupHead_ *sgh);
+
     void (*Free)(void *);
     void (*RegisterTests)(void);
 
@@ -1198,6 +1205,8 @@ enum {
 
     DETECT_TEMPLATE,
     DETECT_AL_TEMPLATE_BUFFER,
+
+    DETECT_PREFILTER,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

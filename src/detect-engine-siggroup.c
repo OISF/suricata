@@ -679,6 +679,8 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
         s = sgh->match_array[sig];
         if (s == NULL)
             continue;
+        if (s->flags & SIG_FLAG_PREFILTER)
+            continue;
 
         if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
             non_pf++;
@@ -697,6 +699,8 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
         if (s == NULL)
+            continue;
+        if (s->flags & SIG_FLAG_PREFILTER)
             continue;
 
         if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
