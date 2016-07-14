@@ -1230,17 +1230,11 @@ DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMa
 static inline void
 DetectPrefilterSetNonPrefilterList(const Packet *p, DetectEngineThreadCtx *det_ctx)
 {
-    if ((p->proto == IPPROTO_TCP) && (p->tcph != NULL) && (p->tcph->th_flags & TH_SYN)) {
-        det_ctx->non_pf_store_ptr = det_ctx->sgh->non_pf_syn_store_array;
-        det_ctx->non_pf_store_cnt = det_ctx->sgh->non_pf_syn_store_cnt;
-    } else {
-        det_ctx->non_pf_store_ptr = det_ctx->sgh->non_pf_other_store_array;
-        det_ctx->non_pf_store_cnt = det_ctx->sgh->non_pf_other_store_cnt;
-    }
-    SCLogDebug("sgh non_pf ptr %p cnt %u (syn %p/%u, other %p/%u)",
-            det_ctx->non_pf_store_ptr, det_ctx->non_pf_store_cnt,
-            det_ctx->sgh->non_pf_syn_store_array, det_ctx->sgh->non_pf_syn_store_cnt,
-            det_ctx->sgh->non_pf_other_store_array, det_ctx->sgh->non_pf_other_store_cnt);
+    det_ctx->non_pf_store_ptr = det_ctx->sgh->non_pf_other_store_array;
+    det_ctx->non_pf_store_cnt = det_ctx->sgh->non_pf_other_store_cnt;
+
+    SCLogDebug("sgh non_pf ptr %p cnt %u",
+            det_ctx->non_pf_store_ptr, det_ctx->non_pf_store_cnt);
 }
 
 /**

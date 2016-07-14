@@ -157,12 +157,6 @@ void SigGroupHeadFree(SigGroupHead *sgh)
         sgh->non_pf_other_store_cnt = 0;
     }
 
-    if (sgh->non_pf_syn_store_array != NULL) {
-        SCFree(sgh->non_pf_syn_store_array);
-        sgh->non_pf_syn_store_array = NULL;
-        sgh->non_pf_syn_store_cnt = 0;
-    }
-
     sgh->sig_cnt = 0;
 
     if (sgh->init != NULL) {
@@ -671,7 +665,6 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
     Signature *s = NULL;
     uint32_t sig = 0;
     uint32_t non_pf = 0;
-    uint32_t non_pf_syn = 0;
 
     if (sgh == NULL)
         return 0;
@@ -684,30 +677,18 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
             continue;
 
         if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
-            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
-                non_pf++;
-            }
-            non_pf_syn++;
+            non_pf++;
         }
     }
 
-    if (non_pf == 0 && non_pf_syn == 0) {
+    if (non_pf == 0) {
         sgh->non_pf_other_store_array = NULL;
-        sgh->non_pf_syn_store_array = NULL;
         return 0;
     }
 
-    if (non_pf > 0) {
-        sgh->non_pf_other_store_array = SCMalloc(non_pf * sizeof(SignatureNonMpmStore));
-        BUG_ON(sgh->non_pf_other_store_array == NULL);
-        memset(sgh->non_pf_other_store_array, 0, non_pf * sizeof(SignatureNonMpmStore));
-    }
-
-    if (non_pf_syn > 0) {
-        sgh->non_pf_syn_store_array = SCMalloc(non_pf_syn * sizeof(SignatureNonMpmStore));
-        BUG_ON(sgh->non_pf_syn_store_array == NULL);
-        memset(sgh->non_pf_syn_store_array, 0, non_pf_syn * sizeof(SignatureNonMpmStore));
-    }
+    sgh->non_pf_other_store_array = SCMalloc(non_pf * sizeof(SignatureNonMpmStore));
+    BUG_ON(sgh->non_pf_other_store_array == NULL);
+    memset(sgh->non_pf_other_store_array, 0, non_pf * sizeof(SignatureNonMpmStore));
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
@@ -715,24 +696,16 @@ int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sg
             continue;
 
         if (s->mpm_sm == NULL || (s->flags & SIG_FLAG_MPM_NEG)) {
-            if (!(DetectFlagsSignatureNeedsSynPackets(s))) {
-                BUG_ON(sgh->non_pf_other_store_cnt >= non_pf);
-                BUG_ON(sgh->non_pf_other_store_array == NULL);
-                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].id = s->num;
-                sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].mask = s->mask;
-                sgh->non_pf_other_store_cnt++;
-            }
-
-            BUG_ON(sgh->non_pf_syn_store_cnt >= non_pf_syn);
-            BUG_ON(sgh->non_pf_syn_store_array == NULL);
-            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].id = s->num;
-            sgh->non_pf_syn_store_array[sgh->non_pf_syn_store_cnt].mask = s->mask;
-            sgh->non_pf_syn_store_cnt++;
+            BUG_ON(sgh->non_pf_other_store_cnt >= non_pf);
+            BUG_ON(sgh->non_pf_other_store_array == NULL);
+            sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].id = s->num;
+            sgh->non_pf_other_store_array[sgh->non_pf_other_store_cnt].mask = s->mask;
+            sgh->non_pf_other_store_cnt++;
         }
     }
 
     /* track highest cnt for any sgh in our de_ctx */
-    uint32_t max = MAX(sgh->non_pf_other_store_cnt, sgh->non_pf_syn_store_cnt);
+    uint32_t max = sgh->non_pf_other_store_cnt;
     if (max > de_ctx->non_pf_store_cnt_max)
         de_ctx->non_pf_store_cnt_max = max;
 
