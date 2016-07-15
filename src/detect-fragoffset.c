@@ -99,13 +99,16 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
 
     switch (fragoff->mode)  {
         case FRAG_LESS:
-            if (frag < fragoff->frag_off) return 1;
+            if (frag < fragoff->frag_off)
+                return 1;
             break;
         case FRAG_MORE:
-            if (frag > fragoff->frag_off) return 1;
+            if (frag > fragoff->frag_off)
+                return 1;
             break;
         default:
-            if (frag == fragoff->frag_off) return 1;
+            if (frag == fragoff->frag_off)
+                return 1;
     }
 
     return 0;
