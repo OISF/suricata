@@ -64,6 +64,7 @@ rule-files:
  - emerging-ftp.rules
 # - emerging-games.rules
 # - emerging-icmp_info.rules
+# - emerging-info.rules
 # - emerging-icmp.rules
  - emerging-imap.rules
 # - emerging-inappropriate.rules
@@ -75,7 +76,7 @@ rule-files:
  - emerging-policy.rules
  - emerging-pop3.rules
  - emerging-rpc.rules
- - emerging-scada.rules
+# - emerging-scada.rules
  - emerging-scan.rules
 # - emerging-shellcode.rules
  - emerging-smtp.rules
