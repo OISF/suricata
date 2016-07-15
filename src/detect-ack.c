@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Brian Rectanus <brectanu@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Implements the "ack" keyword.
  */
@@ -31,6 +32,8 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-ack.h"
 
@@ -45,6 +48,8 @@ static int DetectAckMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Packet *, Signature *, const SigMatchCtx *);
 static void DetectAckRegisterTests(void);
 static void DetectAckFree(void *);
+static int PrefilterSetupTcpAck(SigGroupHead *sgh);
+static _Bool PrefilterTcpAckIsPrefilterable(const Signature *s);
 
 void DetectAckRegister(void)
 {
@@ -54,6 +59,10 @@ void DetectAckRegister(void)
     sigmatch_table[DETECT_ACK].Match = DetectAckMatch;
     sigmatch_table[DETECT_ACK].Setup = DetectAckSetup;
     sigmatch_table[DETECT_ACK].Free = DetectAckFree;
+
+    sigmatch_table[DETECT_ACK].SupportsPrefilter = PrefilterTcpAckIsPrefilterable;
+    sigmatch_table[DETECT_ACK].SetupPrefilter = PrefilterSetupTcpAck;
+
     sigmatch_table[DETECT_ACK].RegisterTests = DetectAckRegisterTests;
 }
 
@@ -140,6 +149,56 @@ static void DetectAckFree(void *ptr)
     SCFree(data);
 }
 
+/* prefilter code */
+
+static void
+PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
+        (p->tcph != NULL) && (TCP_GET_ACK(p) == ctx->v1.u32[0]))
+    {
+        SCLogDebug("packet matches TCP ack %u", ctx->v1.u32[0]);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketAckSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectAckData *a = smctx;
+    v->u32[0] = a->ack;
+}
+
+static _Bool
+PrefilterPacketAckCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectAckData *a = smctx;
+    if (v.u32[0] == a->ack)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupTcpAck(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_ACK,
+        PrefilterPacketAckSet,
+        PrefilterPacketAckCompare,
+        PrefilterPacketAckMatch);
+}
+
+static _Bool PrefilterTcpAckIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ACK:
+                return TRUE;
+        }
+    }
+    return FALSE;
+}
 
 #ifdef UNITTESTS
 /**
