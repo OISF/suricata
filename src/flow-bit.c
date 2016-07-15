@@ -81,31 +81,17 @@ static void FlowBitRemove(Flow *f, uint16_t idx)
     FlowBitFree(fb);
 }
 
-void FlowBitSetNoLock(Flow *f, uint16_t idx)
-{
-    FlowBitAdd(f, idx);
-}
-
 void FlowBitSet(Flow *f, uint16_t idx)
 {
-    FLOWLOCK_WRLOCK(f);
     FlowBitAdd(f, idx);
-    FLOWLOCK_UNLOCK(f);
-}
-
-void FlowBitUnsetNoLock(Flow *f, uint16_t idx)
-{
-    FlowBitRemove(f, idx);
 }
 
 void FlowBitUnset(Flow *f, uint16_t idx)
 {
-    FLOWLOCK_WRLOCK(f);
     FlowBitRemove(f, idx);
-    FLOWLOCK_UNLOCK(f);
 }
 
-void FlowBitToggleNoLock(Flow *f, uint16_t idx)
+void FlowBitToggle(Flow *f, uint16_t idx)
 {
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
@@ -113,13 +99,6 @@ void FlowBitToggleNoLock(Flow *f, uint16_t idx)
     } else {
         FlowBitAdd(f, idx);
     }
-}
-
-void FlowBitToggle(Flow *f, uint16_t idx)
-{
-    FLOWLOCK_WRLOCK(f);
-    FlowBitToggleNoLock(f, idx);
-    FLOWLOCK_UNLOCK(f);
 }
 
 int FlowBitIsset(Flow *f, uint16_t idx)
