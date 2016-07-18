@@ -3505,9 +3505,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
 
-    //DetectAddressPrintMemory();
-    //DetectPortPrintMemory();
-
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
                    "preprocessing rules...");
@@ -3599,9 +3596,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         de_ctx->sig_cnt++;
     }
-
-    //DetectAddressPrintMemory();
-    //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
@@ -4104,7 +4098,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
     }
-//exit(0);
+
     if (SigAddressPrepareStage2(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
@@ -4119,8 +4113,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
 #ifdef __SC_CUDA_SUPPORT__
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             /* setting it to default.  You've gotta remove it once you fix the state table thing */
             SCACConstructBoth16and32StateTables();
@@ -4137,8 +4131,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
                 exit(EXIT_FAILURE);
             }
         }
-#endif
-#ifdef __SC_CUDA_SUPPORT__
+
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             int r = SCCudaCtxPopCurrent(NULL);
             if (r < 0) {
@@ -4150,13 +4143,11 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         /* too late to call this either ways.  Should be called post ac goto.
          * \todo Support this. */
         DetermineCudaStateTableSize(de_ctx);
-#endif
     }
+#endif
+
     DetectMpmPrepareBuiltinMpms(de_ctx);
     DetectMpmPrepareAppMpms(de_ctx);
-
-//    DetectAddressPrintMemory();
-//    DetectPortPrintMemory();
 
     if (SigMatchPrepare(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
