@@ -382,6 +382,13 @@ void PacketDefragPktSetupParent(Packet *parent)
     DecodeSetNoPayloadInspectionFlag(parent);
 }
 
+void PacketBypassCallback(Packet *p)
+{
+    if (p->BypassPacketsFlow) {
+        p->BypassPacketsFlow(p);
+    }
+}
+
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
 {
     /* register counters */
