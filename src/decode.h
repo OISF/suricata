@@ -448,6 +448,8 @@ typedef struct Packet_
     /** The release function for packet structure and data */
     void (*ReleasePacket)(struct Packet_ *);
 
+    void (*BypassPacketsFlow)(struct Packet_ *);
+
     /* pkt vars */
     PktVar *pktvar;
 
@@ -774,6 +776,7 @@ void CaptureStatsSetup(ThreadVars *tv, CaptureStats *s);
         (p)->vlanh[1] = NULL;                   \
         (p)->payload = NULL;                    \
         (p)->payload_len = 0;                   \
+        (p)->BypassPacketsFlow = NULL;          \
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
         (p)->alerts.drop.action = 0;            \
@@ -902,6 +905,7 @@ int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
+void PacketBypassCallback(Packet *p);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
 void DecodeThreadVarsFree(ThreadVars *, DecodeThreadVars *);
