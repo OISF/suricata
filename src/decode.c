@@ -62,6 +62,7 @@
 #include "util-profiling.h"
 #include "pkt-var.h"
 #include "util-mpm-ac.h"
+#include "util-device.h"
 
 #include "output.h"
 #include "output-flow.h"
@@ -380,6 +381,20 @@ void PacketDefragPktSetupParent(Packet *parent)
      * is the packet we will now run through the system separately. We do
      * check it against the ip/port/other header checks though */
     DecodeSetNoPayloadInspectionFlag(parent);
+}
+
+int PacketHasBypassCallback(Packet *p)
+{
+    if (p->livedev && p->livedev->BypassCallback) {
+        return 1;
+    }
+
+    return 0;
+}
+
+void PacketBypassCallback(Packet *p)
+{
+    p->livedev->BypassCallback(p);
 }
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
