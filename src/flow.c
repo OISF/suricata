@@ -191,6 +191,18 @@ int FlowGetPacketDirection(const Flow *f, const Packet *p)
     return TOSERVER;
 }
 
+void FlowSwitchDirection(Flow *f)
+{
+    FlowAddress addr = f->src;
+    Port p = f->sp;
+
+    f->src = f->dst;
+    f->sp = f->dp;
+
+    f->dst = addr;
+    f->dp = p;
+}
+
 /**
  *  \brief Check to update "seen" flags
  *
