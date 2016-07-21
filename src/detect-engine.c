@@ -371,6 +371,12 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_TLSISSUER_INSPECT,
           1,
           DetectEngineInspectTlsIssuer },
+        { IPPROTO_TCP,
+          ALPROTO_TLS,
+          DETECT_SM_LIST_TLSSUBJECT_MATCH,
+          DE_STATE_FLAG_TLSSUBJECT_INSPECT,
+          1,
+          DetectEngineInspectTlsSubject },
         /* specifically for UDP, register again
          * allows us to use the alproto w/o translation
          * in the detection engine */
@@ -2750,6 +2756,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "tls sni extension";
         case DETECT_SM_LIST_TLSISSUER_MATCH:
             return "tls issuer";
+        case DETECT_SM_LIST_TLSSUBJECT_MATCH:
+            return "tls subject";
 
         case DETECT_SM_LIST_MODBUS_MATCH:
             return "modbus";

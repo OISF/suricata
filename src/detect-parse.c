@@ -166,6 +166,7 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_DNSQUERYNAME_MATCH, "dns_query");
         CASE_CODE_STRING(DETECT_SM_LIST_TLSSNI_MATCH, "tls_sni");
         CASE_CODE_STRING(DETECT_SM_LIST_TLSISSUER_MATCH, "tls_cert_issuer");
+        CASE_CODE_STRING(DETECT_SM_LIST_TLSSUBJECT_MATCH, "tls_cert_subject");
         CASE_CODE_STRING(DETECT_SM_LIST_MODBUS_MATCH, "modbus");
         CASE_CODE_STRING(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH, "template");
         CASE_CODE_STRING(DETECT_SM_LIST_POSTMATCH, "postmatch");
@@ -208,6 +209,7 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_DNSQUERYNAME_MATCH);
         CASE_CODE(DETECT_SM_LIST_TLSSNI_MATCH);
         CASE_CODE(DETECT_SM_LIST_TLSISSUER_MATCH);
+        CASE_CODE(DETECT_SM_LIST_TLSSUBJECT_MATCH);
         CASE_CODE(DETECT_SM_LIST_MODBUS_MATCH);
         CASE_CODE(DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH);
         CASE_CODE(DETECT_SM_LIST_POSTMATCH);
@@ -1562,6 +1564,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_TLSSNI_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (sig->sm_lists[DETECT_SM_LIST_MODBUS_MATCH])
