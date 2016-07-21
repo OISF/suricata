@@ -126,6 +126,7 @@ enum DetectSigmatchListEnum {
 
     DETECT_SM_LIST_TLSSNI_MATCH,
     DETECT_SM_LIST_TLSISSUER_MATCH,
+    DETECT_SM_LIST_TLSSUBJECT_MATCH,
 
     DETECT_SM_LIST_MODBUS_MATCH,
 
@@ -934,9 +935,10 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
 #define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 24)
 #define SIG_GROUP_HEAD_MPM_TLSISSUER    (1 << 25)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 26)
+#define SIG_GROUP_HEAD_MPM_TLSSUBJECT   (1 << 26)
+#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 27)
 
-#define APP_MPMS_MAX 20
+#define APP_MPMS_MAX 21
 
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
@@ -1016,6 +1018,7 @@ typedef struct SigGroupHead_ {
             const MpmCtx *mpm_dnsquery_ctx_ts;
             const MpmCtx *mpm_tlssni_ctx_ts;
             const MpmCtx *mpm_tlsissuer_ctx_ts;
+            const MpmCtx *mpm_tlssubject_ctx_ts;
             const MpmCtx *mpm_smtp_filedata_ctx_ts;
         };
         struct {
