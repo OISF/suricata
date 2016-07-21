@@ -108,6 +108,7 @@ AppLayerMpms app_mpms[] = {
 
     { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH, SIG_GROUP_HEAD_MPM_TLSSNI, 18},
     { "tls_cert_issuer", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSISSUER_MATCH, SIG_GROUP_HEAD_MPM_TLSISSUER, 19},
+    { "tls_cert_subject", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSSUBJECT_MATCH, SIG_GROUP_HEAD_MPM_TLSSUBJECT, 20},
 
     { NULL, 0, 0, 0, 0, 0, }
 };
@@ -1222,8 +1223,9 @@ void MpmStoreFixup(SigGroupHead *sgh)
 
     SET_TS(sgh, sgh->mpm_tlssni_ctx_ts);
     SET_TC(sgh, sgh->mpm_tlsissuer_ctx_ts);
+    SET_TC(sgh, sgh->mpm_tlssubject_ctx_ts);
 
-    BUG_ON(APP_MPMS_MAX != 20 || i != 20);
+    BUG_ON(APP_MPMS_MAX != 21 || i != 21);
 
 #undef SET_TS
 #undef SET_TC
