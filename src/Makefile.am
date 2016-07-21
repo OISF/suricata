@@ -88,6 +88,7 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-sni.c detect-tls-sni.h \
+detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
 detect-dsize.c detect-dsize.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
