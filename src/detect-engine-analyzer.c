@@ -480,6 +480,8 @@ static void EngineAnalysisRulesPrintFP(const Signature *s)
         fprintf(rule_engine_analysis_FD, "dns query name content");
     else if (list_type == DETECT_SM_LIST_TLSSNI_MATCH)
         fprintf(rule_engine_analysis_FD, "tls sni extension content");
+    else if (list_type == DETECT_SM_LIST_TLSISSUER_MATCH)
+        fprintf(rule_engine_analysis_FD, "tls issuer content");
 
     fprintf(rule_engine_analysis_FD, "\" buffer.\n");
 
