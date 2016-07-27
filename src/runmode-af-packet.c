@@ -155,10 +155,18 @@ static int LoadEBPFFile(const char *path, const char * section, int *val)
     err = bpf_object__load(bpfobj);
 
     if (err < 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to load eBPF object: %s (%d)",
-                   strerror(err),
-                   err);
+        if (err == -EPERM) {
+            SCLogError(SC_ERR_MEM_ALLOC,
+                    "Permission issue when loading eBPF object try to "
+                    "increase memlock limit: %s (%d)",
+                    strerror(err),
+                    err);
+        } else {
+            SCLogError(SC_ERR_INVALID_VALUE,
+                    "Unable to load eBPF object: %s (%d)",
+                    strerror(err),
+                    err);
+        }
         return -1;
     }
 
