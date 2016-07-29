@@ -1167,7 +1167,9 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
 
     if (suri->run_mode == RUNMODE_UNKNOWN) {
         suri->run_mode = RUNMODE_PCAP_DEV;
-        LiveRegisterDevice(suri->pcap_dev);
+        if (optarg) {
+            LiveRegisterDevice(suri->pcap_dev);
+        }
     } else if (suri->run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
         SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
