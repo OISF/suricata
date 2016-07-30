@@ -390,6 +390,7 @@ util-decode-der.c util-decode-der.h \
 util-decode-der-get.c util-decode-der-get.h \
 util-decode-mime.c util-decode-mime.h \
 util-device.c util-device.h \
+util-ebpf.c util-ebpf.h \
 util-enum.c util-enum.h \
 util-error.c util-error.h \
 util-file.c util-file.h \

@@ -30,9 +30,6 @@
  *
  */
 
-#define PCAP_DONT_INCLUDE_PCAP_BPF_H 1
-#define SC_PCAP_DONT_INCLUDE_PCAP_H 1
-
 #include "suricata-common.h"
 #include "config.h"
 #include "tm-threads.h"
@@ -55,11 +52,9 @@
 #include "util-device.h"
 #include "util-runmodes.h"
 #include "util-ioctl.h"
+#include "util-ebpf.h"
 
 #include "source-af-packet.h"
-
-#include <linux/bpf.h>
-#include <bpf/libbpf.h>
 
 extern int max_pending_packets;
 
@@ -103,86 +98,6 @@ static void AFPDerefConfig(void *conf)
 /* if cluster id is not set, assign it automagically, uniq value per
  * interface. */
 static int cluster_id_auto = 1;
-
-#ifdef HAVE_PACKET_EBPF
-#define MAX_ERRNO   4095
-
-#define IS_ERR_VALUE(x) unlikely((x) >= (unsigned long)-MAX_ERRNO)
-
-static inline long IS_ERR(const void *ptr)
-{
-    return IS_ERR_VALUE((unsigned long)ptr);
-}
-
-
-static int LoadEBPFFile(const char *path, const char * section, int *val)
-{
-    int err, found, pfd;
-    struct bpf_object *bpfobj = NULL;
-    struct bpf_program *bpfprog = NULL;
-    /* FIXME we will need to close BPF at exit of runmode */
-    if (! path) {
-        SCLogError(SC_ERR_INVALID_VALUE, "No file defined to load eBPF from");
-        return -1;
-    }
-
-    bpfobj = bpf_object__open(path);
-
-    if (IS_ERR(bpfobj)) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to load eBPF objects in '%s'",
-                   path);
-        return -1;
-    }
-
-    found = 0;
-    bpf_object__for_each_program(bpfprog, bpfobj) {
-        const char *title = bpf_program__title(bpfprog, 0);
-        if (!strcmp(title, section)) {
-            bpf_program__set_type(bpfprog, BPF_PROG_TYPE_SOCKET_FILTER);
-            found = 1;
-            break;
-        }
-    }
-
-    if (found == 0) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to find eBPF section '%s'",
-                   section);
-        return -1;
-    }
-
-    err = bpf_object__load(bpfobj);
-
-    if (err < 0) {
-        if (err == -EPERM) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Permission issue when loading eBPF object try to "
-                    "increase memlock limit: %s (%d)",
-                    strerror(err),
-                    err);
-        } else {
-            SCLogError(SC_ERR_INVALID_VALUE,
-                    "Unable to load eBPF object: %s (%d)",
-                    strerror(err),
-                    err);
-        }
-        return -1;
-    }
-
-    pfd = bpf_program__fd(bpfprog);
-
-    if (pfd == -1) {
-        SCLogError(SC_ERR_INVALID_VALUE,
-                   "Unable to find %s section", section);
-        return -1;
-    }
-
-    *val = pfd;
-    return 0;
-}
-
-#endif
 
 /**
  * \brief extract information from config file
@@ -462,7 +377,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
 #ifdef HAVE_PACKET_EBPF
-        int ret = LoadEBPFFile(aconf->ebpf_lb_file, "loadbalancer",
+        int ret = EBPFLoadFile(aconf->ebpf_lb_file, "loadbalancer",
                                &aconf->ebpf_lb_fd);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
@@ -483,7 +398,7 @@ static void *ParseAFPConfig(const char *iface)
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_filter_file) {
 #ifdef HAVE_PACKET_EBPF
-        int ret = LoadEBPFFile(aconf->ebpf_filter_file, "filter",
+        int ret = EBPFLoadFile(aconf->ebpf_filter_file, "filter",
                                &aconf->ebpf_filter_fd);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE,
