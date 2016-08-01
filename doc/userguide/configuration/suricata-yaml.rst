@@ -2050,3 +2050,21 @@ in which two threads have to wait for each other . When using two
 threads, the time threads might have to wait for each other will be
 taken in account when/during profiling packets.  For more information
 see :doc:`../performance/packet-profiling`.
+
+Application layers
+------------------
+
+Modbus
+~~~~~~
+
+According to MODBUS Messaging on TCP/IP Implementation Guide V1.0b, it
+is recommended to keep the TCP connection opened with a remote device
+and not to open and close it for each MODBUS/TCP transaction.
+In that case, it is important to set the stream-depth of the modbus as
+unlimited.
+
+::
+
+      modbus:
+        # Stream reassembly size for modbus, default is 0
+        stream-depth: 0
