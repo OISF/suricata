@@ -81,9 +81,8 @@ typedef struct DetectTagDataEntry_ {
     };
     uint32_t first_ts;                  /**< First time seen (for metric = seconds) */
     uint32_t last_ts;                   /**< Last time seen (to prune old sessions) */
-#if __WORDSIZE == 64
-    uint32_t pad1;
-#endif
+    uint32_t event_id;                  /**< Event ID of the event to initiate the tag (for unified2). */
+
     struct DetectTagDataEntry_ *next;   /**< Pointer to the next tag of this
                                          *   session/src_host/dst_host (if any from other rule) */
 } DetectTagDataEntry;
