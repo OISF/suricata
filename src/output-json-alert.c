@@ -175,6 +175,15 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     json_object_set_new(js, "alert", ajs);
 }
 
+static void AlertJsonPacket(const Packet *p, json_t *js)
+{
+    unsigned long len = GET_PKT_LEN(p) * 2;
+    uint8_t encoded_packet[len];
+    Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p),
+        encoded_packet, &len);
+    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
+}
+
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -183,7 +192,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
     int i;
 
-    if (p->alerts.cnt == 0)
+    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
         return TM_ECODE_OK;
 
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
@@ -368,6 +377,14 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     json_object_clear(js);
     json_decref(js);
 
+    if (p->flags & PKT_HAS_TAG) {
+        MemBufferReset(aft->json_buffer);
+        json_t *packetjs = CreateJSONHeader((Packet *)p, 0, "packet");
+        AlertJsonPacket(p, packetjs);
+        OutputJSONBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
+        json_decref(packetjs);
+    }
+
     return TM_ECODE_OK;
 }
 
@@ -457,7 +474,10 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
 {
-    return (p->alerts.cnt ? TRUE : FALSE);
+    if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
+        return TRUE;
+    }
+    return FALSE;
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
