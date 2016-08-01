@@ -49,6 +49,7 @@
 #include "util-classification-config.h"
 #include "util-syslog.h"
 #include "util-logopenfile.h"
+#include "util-time.h"
 
 #include "output.h"
 #include "output-json.h"
@@ -65,6 +66,7 @@
 #include "util-optimize.h"
 #include "util-buffer.h"
 #include "util-crypt.h"
+#include "util-time.h"
 
 #define MODULE_NAME "JsonAlertLog"
 

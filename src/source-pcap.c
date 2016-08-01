@@ -40,6 +40,7 @@
 #include "util-optimize.h"
 #include "util-checksum.h"
 #include "util-ioctl.h"
+#include "util-time.h"
 #include "tmqh-packetpool.h"
 
 #ifdef __SC_CUDA_SUPPORT__

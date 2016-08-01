@@ -35,6 +35,7 @@
 #include "detect-flow.h"
 #include "detect-flags.h"
 #include "util-print.h"
+#include "util-time.h"
 
 static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;

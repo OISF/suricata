@@ -57,6 +57,7 @@
 #include "util-buffer.h"
 #include "util-logopenfile.h"
 #include "util-device.h"
+#include "util-time.h"
 
 
 #ifndef HAVE_LIBJANSSON

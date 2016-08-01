@@ -41,6 +41,7 @@
 
 #include "util-unittest.h"
 #include "util-syslog.h"
+#include "util-time.h"
 
 #include "conf.h"
 
