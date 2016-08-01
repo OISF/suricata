@@ -700,6 +700,9 @@ app-layer:
       # If the limit is reached, app-layer-event:modbus.flooded; will match.
       #request-flood: 500
 
+      # Stream reassembly size for modbus, default is 0
+      stream-depth: 0
+
       enabled: no
       detection-ports:
         dp: 502
