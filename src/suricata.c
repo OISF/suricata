@@ -210,6 +210,14 @@ int g_detect_disabled = 0;
 /** set caps or not */
 int sc_set_caps;
 
+/** Suricata instance */
+SCInstance suri;
+
+int SuriHasSigFile(void)
+{
+    return (suri.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -2374,8 +2382,6 @@ static int PostConfLoadedSetup(SCInstance *suri)
 
 int main(int argc, char **argv)
 {
-    SCInstance suri;
-
     SCInstanceInit(&suri);
     suri.progname = argv[0];
 
