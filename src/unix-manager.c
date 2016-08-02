@@ -1035,7 +1035,7 @@ static TmEcode UnixManagerThreadInit(ThreadVars *t, void *initdata, void **data)
     UnixManagerRegisterCommand("capture-mode", UnixManagerCaptureModeCommand, &command, 0);
     UnixManagerRegisterCommand("conf-get", UnixManagerConfGetCommand, &command, UNIX_CMD_TAKE_ARGS);
     UnixManagerRegisterCommand("dump-counters", StatsOutputCounterSocket, NULL, 0);
-    UnixManagerRegisterCommand("reload-rules", UnixManagerReloadRules, NULL, 0);
+    UnixManagerRegisterCommand("ruleset-reload-rules", UnixManagerReloadRules, NULL, 0);
     UnixManagerRegisterCommand("ruleset-reload-nonblocking", UnixManagerNonBlockingReloadRules, NULL, 0);
     UnixManagerRegisterCommand("ruleset-last-reload", UnixManagerLastReloadCommand, NULL, 0);
     UnixManagerRegisterCommand("ruleset-stats", UnixManagerRulesetStatsCommand, NULL, 0);
