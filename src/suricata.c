@@ -230,6 +230,14 @@ int g_disable_randomness = 0;
 int g_disable_randomness = 1;
 #endif
 
+/** Suricata instance */
+SCInstance suri;
+
+int SuriHasSigFile(void)
+{
+    return (suri.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
@@ -2801,7 +2809,6 @@ static void SuricataMainLoop(SCInstance *suri)
 
 int main(int argc, char **argv)
 {
-    SCInstance suri;
     SCInstanceInit(&suri, argv[0]);
 
 #ifdef HAVE_RUST
