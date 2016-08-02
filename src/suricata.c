@@ -220,6 +220,14 @@ int sc_set_caps = FALSE;
 /** highest mtu of the interfaces we monitor */
 int g_default_mtu = 0;
 
+/** Suricata instance */
+SCInstance suri;
+
+int SuriHasSigFile(void)
+{
+    return (suri.sig_file != NULL);
+}
+
 int EngineModeIsIPS(void)
 {
     return (g_engine_mode == ENGINE_MODE_IPS);
