@@ -705,6 +705,14 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
 TmEcode UnixManagerReloadRulesWrapper(json_t *cmd, json_t *server_msg, void *data, int wait)
 {
     SCEnter();
+
+    if (SuriHasSigFile()) {
+        json_object_set_new(server_msg, "message",
+                            json_string("Live rule reload not possible if -s "
+                                        "or -S option used at runtime."));
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     int r = DetectEngineReloadStart();
 
     if (r == 0 && wait) {
