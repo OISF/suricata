@@ -193,6 +193,8 @@ int RunmodeIsUnittests(void);
 int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
+int SuriHasSigFile(void);
+
 extern int run_mode;
 extern int run_mode_offline;
 
