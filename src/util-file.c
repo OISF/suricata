@@ -41,6 +41,11 @@
  */
 static int g_file_force_filestore = 0;
 
+/** \brief switch to force mailstore on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_mailstore = 0;
+
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
  */
@@ -62,6 +67,11 @@ static void FileFree(File *);
 void FileForceFilestoreEnable(void)
 {
     g_file_force_filestore = 1;
+}
+
+void FileForceMailstoreEnable(void)
+{
+    g_file_force_mailstore = 1;
 }
 
 void FileForceMagicEnable(void)
@@ -457,6 +467,9 @@ File *FileOpenFile(FileContainer *ffc, const StreamingBufferConfig *sbcfg,
     }
     SCLogDebug("ff->sb %p", ff->sb);
 
+    if (flags & FILE_IS_MAIL && g_file_force_mailstore) {
+        FileStore(ff);
+    }
     if (flags & FILE_STORE || g_file_force_filestore) {
         FileStore(ff);
     } else if (flags & FILE_NOSTORE) {

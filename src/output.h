@@ -35,6 +35,8 @@
 #include "output-file.h"
 #include "output-filedata.h"
 #include "output-flow.h"
+#include "output-mail.h"
+#include "output-maildata.h"
 #include "output-streaming.h"
 #include "output-stats.h"
 
@@ -50,7 +52,9 @@ typedef struct OutputModule_ {
     TxLogger TxLogFunc;
     TxLoggerCondition TxLogCondition;
     FileLogger FileLogFunc;
+    MailLogger MailLogFunc;
     FiledataLogger FiledataLogFunc;
+    MaildataLogger MaildataLogFunc;
     FlowLogger FlowLogFunc;
     StreamingLogger StreamingLogFunc;
     StatsLogger StatsLogFunc;
@@ -113,7 +117,13 @@ void OutputRegisterFlowModule(const char *name, const char *conf_name,
 void OutputRegisterFlowSubModule(const char *parent_name, const char *name,
     const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
     FlowLogger FlowLogFunc);
-
+    
+void OutputRegisterMaildataModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc);
+void OutputRegisterMaildataSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FiledataLogger FiledataLogFunc);
+    
 void OutputRegisterStreamingModule(const char *name, const char *conf_name,
     OutputCtx *(*InitFunc)(ConfNode *), StreamingLogger StreamingLogFunc,
     enum OutputStreamingType stream_type);

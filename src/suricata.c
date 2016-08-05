@@ -98,6 +98,7 @@
 #include "output-json-smtp.h"
 #include "output-json-stats.h"
 #include "log-filestore.h"
+#include "log-mailstore.h"
 #include "log-tcp-data.h"
 #include "log-stats.h"
 
@@ -192,6 +193,7 @@
 #include "output-tx.h"
 #include "output-file.h"
 #include "output-filedata.h"
+#include "output-mail.h"
 #include "output-streaming.h"
 
 #include "util-privs.h"
@@ -893,6 +895,7 @@ void RegisterAllModules()
     TmModuleLogFileLogRegister();
     TmModuleJsonFileLogRegister();
     TmModuleLogFilestoreRegister();
+    TmModuleLogMailstoreRegister();
     /* dns log */
     TmModuleLogDnsLogRegister();
     TmModuleJsonDnsLogRegister();
@@ -916,6 +919,8 @@ void RegisterAllModules()
     TmModuleTxLoggerRegister();
     TmModuleFileLoggerRegister();
     TmModuleFiledataLoggerRegister();
+    TmModuleMailLoggerRegister();
+    TmModuleMaildataLoggerRegister();
     TmModuleStreamingLoggerRegister();
     TmModuleStatsLoggerRegister();
     TmModuleDebugList();

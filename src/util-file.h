@@ -41,6 +41,7 @@
 #define FILE_STORED     0x0080
 #define FILE_NOTRACK    0x0100 /**< track size of file */
 #define FILE_USE_DETECT 0x0200 /**< use content_inspected tracker */
+#define FILE_IS_MAIL    0x0400 /**< handle as mail */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -172,6 +173,8 @@ void FilePrune(FileContainer *ffc);
 
 void FileForceFilestoreEnable(void);
 int FileForceFilestore(void);
+
+void FileForceMailstoreEnable(void);
 
 void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);

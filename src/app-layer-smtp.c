@@ -863,6 +863,10 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                 SMTPSetEvent(state, SMTP_DECODER_EVENT_MIME_BOUNDARY_TOO_LONG);
             }
         }
+        if (state->mail_opened) {
+            FileCloseFile(state->mail_ts, (const uint8_t *) NULL, 0, 0);
+            state->mail_opened = 0;
+        }
         state->curr_tx->done = 1;
         SCLogDebug("marked tx as done");
     }
@@ -871,6 +875,31 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
     if (state->current_command == SMTP_COMMAND_DATA &&
             (state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
 
+        /* Make sure file container allocated */
+        if (state->mail_ts == NULL) {
+            state->mail_ts = FileContainerAlloc();
+            if (state->mail_ts == NULL) {
+                //ret = MIME_DEC_ERR_MEM;
+                SCLogError(SC_ERR_MEM_ALLOC, "Could not create file container");
+                //SCReturnInt(ret);
+            }
+        }                
+        if (state->mail_opened == 0) {
+            if (FileOpenFile(state->mail_ts, &smtp_config.sbcfg, (uint8_t *) "", 0,
+                             NULL, 0, FILE_NOMD5|FILE_NOMAGIC|FILE_IS_MAIL) == NULL) {
+                //ret = MIME_DEC_ERR_DATA;
+                SCLogDebug("FileOpenFile() failed");
+            } else {
+                state->mail_opened = 1;
+            }
+        }
+        
+        if (state->mail_opened) {
+            FileAppendData(state->mail_ts, (const uint8_t *) state->current_line,
+                           state->current_line_len);
+            FileAppendData(state->mail_ts, (const uint8_t *) "\r\n", 2);
+        }
+        
         if (smtp_config.decode_mime && state->curr_tx->mime_state) {
             int ret = MimeDecParseLine((const uint8_t *) state->current_line,
                     state->current_line_len, state->current_line_delimiter_len,
@@ -1611,6 +1640,20 @@ static FileContainer *SMTPStateGetFiles(void *state, uint8_t direction)
     }
 }
 
+static FileContainer *SMTPStateGetMail(void *state, uint8_t direction)
+{
+    if (state == NULL)
+        return NULL;
+
+    SMTPState *smtp_state = (SMTPState *)state;
+
+    if (direction & STREAM_TOCLIENT) {
+        SCReturnPtr(NULL, "FileContainer");
+    } else {
+        SCLogDebug("smtp_state->files_ts %p", smtp_state->mail_ts);
+        SCReturnPtr(smtp_state->mail_ts, "FileContainer");
+    }
+}
 static void SMTPStateTruncate(void *state, uint8_t direction)
 {
     FileContainer *fc = SMTPStateGetFiles(state, direction);
@@ -1680,6 +1723,7 @@ void RegisterSMTPParsers(void)
 
         AppLayerParserRegisterTxFreeFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateTransactionFree);
         AppLayerParserRegisterGetFilesFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetFiles);
+        AppLayerParserRegisterGetMailFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetMail);
         AppLayerParserRegisterGetStateProgressFunc(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetAlstateProgress);
         AppLayerParserRegisterGetTxCnt(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTxCnt);
         AppLayerParserRegisterGetTx(IPPROTO_TCP, ALPROTO_SMTP, SMTPStateGetTx);

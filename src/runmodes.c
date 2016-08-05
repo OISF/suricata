@@ -480,6 +480,8 @@ static TmModule *pkt_logger_module = NULL;
 static TmModule *tx_logger_module = NULL;
 static TmModule *file_logger_module = NULL;
 static TmModule *filedata_logger_module = NULL;
+static TmModule *mail_logger_module = NULL;
+static TmModule *maildata_logger_module = NULL;
 static TmModule *streaming_logger_module = NULL;
 
 int RunModeOutputFileEnabled(void)
@@ -503,6 +505,8 @@ void RunModeShutDown(void)
     OutputTxShutdown();
     OutputFileShutdown();
     OutputFiledataShutdown();
+    OutputMailShutdown();
+    OutputMaildataShutdown();
     OutputStreamingShutdown();
     OutputStatsShutdown();
     OutputFlowShutdown();
@@ -682,6 +686,50 @@ static void SetupOutput(const char *name, OutputModule *module, OutputCtx *outpu
             InsertInRunModeOutputs(runmode_output);
             SCLogDebug("__file_logger__ added");
         }
+    } else if (module->MaildataLogFunc) {
+        SCLogDebug("%s is a maildata logger", module->name);
+        OutputRegisterMaildataLogger(module->name, module->MaildataLogFunc, output_ctx);
+
+        /* need one instance of the tx logger module */
+        if (maildata_logger_module == NULL) {
+            maildata_logger_module = TmModuleGetByName("__maildata_logger__");
+            if (maildata_logger_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "TmModuleGetByName for __maildata_logger__ failed");
+                exit(EXIT_FAILURE);
+            }
+
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+            if (unlikely(runmode_output == NULL))
+                return;
+            runmode_output->name = module->name;
+            runmode_output->tm_module = maildata_logger_module;
+            runmode_output->output_ctx = NULL;
+            InsertInRunModeOutputs(runmode_output);
+            SCLogDebug("__maildata_logger__ added");
+        }        
+    } else if (module->MailLogFunc) {
+        SCLogDebug("%s is a file logger", module->name);
+        OutputRegisterFileLogger(module->name, module->MailLogFunc, output_ctx);
+
+        /* need one instance of the tx logger module */
+        if (mail_logger_module == NULL) {
+            mail_logger_module = TmModuleGetByName("__mail_logger__");
+            if (mail_logger_module == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "TmModuleGetByName for __mail_logger__ failed");
+                exit(EXIT_FAILURE);
+            }
+
+            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+            if (unlikely(runmode_output == NULL))
+                return;
+            runmode_output->name = module->name;
+            runmode_output->tm_module = mail_logger_module;
+            runmode_output->output_ctx = NULL;
+            InsertInRunModeOutputs(runmode_output);
+            SCLogDebug("__mail_logger__ added");
+        }        
     } else if (module->StreamingLogFunc) {
         SCLogDebug("%s is a streaming logger", module->name);
         OutputRegisterStreamingLogger(module->name, module->StreamingLogFunc,
