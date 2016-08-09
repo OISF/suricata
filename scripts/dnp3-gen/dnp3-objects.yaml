@@ -282,7 +282,7 @@ objects:
     fields:
       - type: bstr8
         fields:
-          - name: opype
+          - name: op_type
             type: uint8
             width: 4
           - name: qu
@@ -314,7 +314,7 @@ objects:
     fields:
       - type: bstr8
         fields:
-          - name: opype
+          - name: op_type
             type: uint8
             width: 4
           - name: qu
