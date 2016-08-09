@@ -162,7 +162,7 @@ typedef struct DNP3ObjectG11V2_ {
 } DNP3ObjectG11V2;
 
 typedef struct DNP3ObjectG12V1_ {
-    uint8_t opype:4;
+    uint8_t op_type:4;
     uint8_t qu:1;
     uint8_t cr:1;
     uint8_t tcc:2;
@@ -174,7 +174,7 @@ typedef struct DNP3ObjectG12V1_ {
 } DNP3ObjectG12V1;
 
 typedef struct DNP3ObjectG12V2_ {
-    uint8_t opype:4;
+    uint8_t op_type:4;
     uint8_t qu:1;
     uint8_t cr:1;
     uint8_t tcc:2;

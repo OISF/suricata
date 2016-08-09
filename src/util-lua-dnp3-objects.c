@@ -355,8 +355,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(12, 1): {
             DNP3ObjectG12V1 *data = point->data;
-            lua_pushliteral(luastate, "opype");
-            lua_pushinteger(luastate, data->opype);
+            lua_pushliteral(luastate, "op_type");
+            lua_pushinteger(luastate, data->op_type);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "qu");
             lua_pushinteger(luastate, data->qu);
@@ -386,8 +386,8 @@ void DNP3PushPoint(lua_State *luastate, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(12, 2): {
             DNP3ObjectG12V2 *data = point->data;
-            lua_pushliteral(luastate, "opype");
-            lua_pushinteger(luastate, data->opype);
+            lua_pushliteral(luastate, "op_type");
+            lua_pushinteger(luastate, data->op_type);
             lua_settable(luastate, -3);
             lua_pushliteral(luastate, "qu");
             lua_pushinteger(luastate, data->qu);

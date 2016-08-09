@@ -262,8 +262,8 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(12, 1): {
             DNP3ObjectG12V1 *data = point->data;
-            json_object_set_new(js, "opype",
-                json_integer(data->opype));
+            json_object_set_new(js, "op_type",
+                json_integer(data->op_type));
             json_object_set_new(js, "qu",
                 json_integer(data->qu));
             json_object_set_new(js, "cr",
@@ -284,8 +284,8 @@ void OutputJsonDNP3SetItem(json_t *js, DNP3Object *object,
         }
         case DNP3_OBJECT_CODE(12, 2): {
             DNP3ObjectG12V2 *data = point->data;
-            json_object_set_new(js, "opype",
-                json_integer(data->opype));
+            json_object_set_new(js, "op_type",
+                json_integer(data->op_type));
             json_object_set_new(js, "qu",
                 json_integer(data->qu));
             json_object_set_new(js, "cr",

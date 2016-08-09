@@ -1070,7 +1070,7 @@ static int DNP3DecodeObjectG12V1(const uint8_t **buf, uint32_t *len,
             if (!DNP3ReadUint8(buf, len, &octet)) {
                 goto error;
             }
-            object->opype = (octet >> 0) & 0xf;
+            object->op_type = (octet >> 0) & 0xf;
             object->qu = (octet >> 4) & 0x1;
             object->cr = (octet >> 5) & 0x1;
             object->tcc = (octet >> 6) & 0x3;
@@ -1134,7 +1134,7 @@ static int DNP3DecodeObjectG12V2(const uint8_t **buf, uint32_t *len,
             if (!DNP3ReadUint8(buf, len, &octet)) {
                 goto error;
             }
-            object->opype = (octet >> 0) & 0xf;
+            object->op_type = (octet >> 0) & 0xf;
             object->qu = (octet >> 4) & 0x1;
             object->cr = (octet >> 5) & 0x1;
             object->tcc = (octet >> 6) & 0x3;
