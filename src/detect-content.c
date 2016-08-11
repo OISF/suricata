@@ -186,6 +186,9 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                     }
                     escape = 0;
                     converted = 1;
+                } else if (str[i] == '"') {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid unescaped double quote within content section");
+                    goto error;
                 } else {
                     str[x] = str[i];
                     x++;
