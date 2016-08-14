@@ -137,5 +137,8 @@ alert pkthdr any any -> any any (msg:"SURICATA ERSPAN pkt too small"; decode-eve
 alert pkthdr any any -> any any (msg:"SURICATA ERSPAN unsupported version"; decode-event:erspan.unsupported_version; sid: 2200106; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ERSPAN too many vlan layers"; decode-event:erspan.too_many_vlan_layers; sid: 2200107; rev:1;)
 
-# next sid is 2200110
+# Cisco Fabric Path/DCE
+alert pkthdr any any -> any any (msg:"SURICATA DCE packet too small"; decode-event:dce.pkt_too_small; sid:2200110; rev:1;)
+
+# next sid is 2200111
 
