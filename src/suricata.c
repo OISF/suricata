@@ -1116,9 +1116,7 @@ static int ParseCommandLineAfpacket(SCInstance *suri, const char *optarg)
         if (optarg) {
             LiveRegisterDevice(optarg);
             memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-            strlcpy(suri->pcap_dev, optarg,
-                    ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                     (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+            strlcpy(suri->pcap_dev, optarg, sizeof(suri->pcap_dev));
         }
     } else if (suri->run_mode == RUNMODE_AFP_DEV) {
         SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
@@ -1153,7 +1151,7 @@ static int ParseCommandLinePcapLive(SCInstance *suri, const char *optarg)
         if (strlen(optarg) > 9 && strncmp(optarg, "DeviceNPF", 9) == 0) {
             snprintf(suri->pcap_dev, sizeof(suri->pcap_dev), "\\Device\\NPF%s", optarg+9);
         } else {
-            strlcpy(suri->pcap_dev, optarg, ((strlen(optarg) < sizeof(suri->pcap_dev)) ? (strlen(optarg)+1) : (sizeof(suri->pcap_dev))));
+            strlcpy(suri->pcap_dev, optarg, sizeof(suri->pcap_dev));
             PcapTranslateIPToDevice(suri->pcap_dev, sizeof(suri->pcap_dev));
         }
 
