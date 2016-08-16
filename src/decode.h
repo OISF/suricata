@@ -467,12 +467,10 @@ typedef struct Packet_
     /* Can only be one of TCP, UDP, ICMP at any given time */
     union {
         TCPVars tcpvars;
-        UDPVars udpvars;
         ICMPV4Vars icmpv4vars;
         ICMPV6Vars icmpv6vars;
     } l4vars;
 #define tcpvars     l4vars.tcpvars
-#define udpvars     l4vars.udpvars
 #define icmpv4vars  l4vars.icmpv4vars
 #define icmpv6vars  l4vars.icmpv6vars
 

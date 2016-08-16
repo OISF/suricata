@@ -44,13 +44,9 @@ typedef struct UDPHdr_
 	uint16_t uh_sum;    /* checksum */
 } __attribute__((__packed__)) UDPHdr;
 
-typedef struct UDPVars_
-{
-} UDPVars;
-
-#define CLEAR_UDP_PACKET(p) do { \
-    (p)->udph = NULL; \
-    (p)->level4_comp_csum = -1; \
+#define CLEAR_UDP_PACKET(p) do {    \
+    (p)->level4_comp_csum = -1;     \
+    (p)->udph = NULL;               \
 } while (0)
 
 void DecodeUDPV4RegisterTests(void);
