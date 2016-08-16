@@ -2376,6 +2376,7 @@ static int PostConfLoadedSetup(SCInstance *suri)
     SCProtoNameInit();
 
     TagInitCtx();
+    PacketAlertTagInit();
     ThresholdInit();
     HostBitInitCtx();
     IPPairBitInitCtx();
