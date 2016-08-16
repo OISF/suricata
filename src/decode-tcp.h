@@ -151,16 +151,10 @@ typedef struct TCPVars_
     TCPOpt mss;
 } TCPVars;
 
-#define CLEAR_TCP_PACKET(p) { \
-    (p)->tcph = NULL; \
+#define CLEAR_TCP_PACKET(p) {   \
     (p)->level4_comp_csum = -1; \
-    (p)->tcpvars.ts_set = FALSE; \
-    (p)->tcpvars.ts_val = 0; \
-    (p)->tcpvars.ts_ecr = 0; \
-    (p)->tcpvars.sack.type = 0; \
-    (p)->tcpvars.sackok.type = 0; \
-    (p)->tcpvars.ws.type = 0; \
-    (p)->tcpvars.mss.type = 0; \
+    PACKET_CLEAR_L4VARS((p));   \
+    (p)->tcph = NULL;           \
 }
 
 void DecodeTCPRegisterTests(void);

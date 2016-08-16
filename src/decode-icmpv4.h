@@ -198,20 +198,9 @@ typedef struct ICMPV4Vars_
 } ICMPV4Vars;
 
 #define CLEAR_ICMPV4_PACKET(p) do { \
-    (p)->level4_comp_csum = -1; \
-    (p)->icmpv4vars.id = 0; \
-    (p)->icmpv4vars.seq = 0; \
-    (p)->icmpv4vars.emb_ipv4h = NULL; \
-    (p)->icmpv4vars.emb_tcph = NULL; \
-    (p)->icmpv4vars.emb_udph = NULL; \
-    (p)->icmpv4vars.emb_icmpv4h = NULL; \
-    (p)->icmpv4vars.emb_ip4_src.s_addr = 0; \
-    (p)->icmpv4vars.emb_ip4_dst.s_addr = 0; \
-    (p)->icmpv4vars.emb_sport = 0; \
-    (p)->icmpv4vars.emb_ip4_proto = 0; \
-    (p)->icmpv4vars.emb_sport = 0; \
-    (p)->icmpv4vars.emb_dport = 0; \
-    (p)->icmpv4h = NULL; \
+    (p)->level4_comp_csum = -1;     \
+    PACKET_CLEAR_L4VARS((p));       \
+    (p)->icmpv4h = NULL;            \
 } while(0)
 
 #define ICMPV4_HEADER_PKT_OFFSET 8

@@ -158,23 +158,9 @@ typedef struct ICMPV6Vars_ {
 
 
 #define CLEAR_ICMPV6_PACKET(p) do { \
-    (p)->level4_comp_csum = -1; \
-    (p)->icmpv6vars.id = 0; \
-    (p)->icmpv6vars.seq = 0; \
-    (p)->icmpv6vars.mtu = 0; \
-    (p)->icmpv6vars.error_ptr = 0; \
-    (p)->icmpv6vars.emb_ipv6h = NULL; \
-    (p)->icmpv6vars.emb_tcph = NULL; \
-    (p)->icmpv6vars.emb_udph = NULL; \
-    (p)->icmpv6vars.emb_icmpv6h = NULL; \
-    (p)->icmpv6vars.emb_ip6_src[0] = 0; \
-    (p)->icmpv6vars.emb_ip6_src[1] = 0; \
-    (p)->icmpv6vars.emb_ip6_src[2] = 0; \
-    (p)->icmpv6vars.emb_ip6_src[3] = 0; \
-    (p)->icmpv6vars.emb_ip6_proto_next = 0; \
-    (p)->icmpv6vars.emb_sport = 0; \
-    (p)->icmpv6vars.emb_dport = 0; \
-    (p)->icmpv6h = NULL; \
+    (p)->level4_comp_csum = -1;     \
+    PACKET_CLEAR_L4VARS((p));       \
+    (p)->icmpv6h = NULL;            \
 } while(0)
 
 void DecodeICMPV6RegisterTests(void);
