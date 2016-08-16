@@ -730,7 +730,11 @@ static uint16_t DNSResponseGetNameByOffset(const uint8_t * const input, const ui
         }
         qdata += length;
 
-        if ((uint64_t)((qdata + 1) - input) >= (uint64_t)input_len) {
+        /* if we're at the end of the input data, we're done */
+        if ((uint64_t)((qdata + 1) - input) == (uint64_t)input_len) {
+            break;
+        }
+        else if ((uint64_t)((qdata + 1) - input) > (uint64_t)input_len) {
             SCLogDebug("input buffer too small");
             goto insufficient_data;
         }
