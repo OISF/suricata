@@ -665,8 +665,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
         return 0;
     }
 
-    SCLogNotice("rule reload starting");
-
     /* prepare swap structures */
     DetectEngineThreadCtx *old_det_ctx[no_of_detect_tvs];
     DetectEngineThreadCtx *new_det_ctx[no_of_detect_tvs];
@@ -803,7 +801,6 @@ static int DetectEngineReloadThreads(DetectEngineCtx *new_de_ctx)
 
     SRepReloadComplete();
 
-    SCLogNotice("rule reload complete");
     return 1;
 
  error:
@@ -2554,6 +2551,8 @@ int DetectEngineReload(SCInstance *suri)
     char prefix[128];
     memset(prefix, 0, sizeof(prefix));
 
+    SCLogNotice("rule reload starting");
+
     if (suri->conf_filename != NULL) {
         snprintf(prefix, sizeof(prefix), "detect-engine-reloads.%d", reloads++);
         if (ConfYamlLoadFileWithPrefix(suri->conf_filename, prefix) != 0) {
@@ -2612,6 +2611,8 @@ int DetectEngineReload(SCInstance *suri)
     DetectEnginePruneFreeList();
 
     SCLogDebug("old_de_ctx should have been freed");
+
+    SCLogNotice("rule reload complete");
     return 0;
 }
 
