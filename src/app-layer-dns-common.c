@@ -983,6 +983,12 @@ const uint8_t *DNSReponseParse(DNSState *dns_state, const DNSHeader * const dns_
         case DNS_RECORD_TYPE_TXT:
         {
             uint16_t datalen = ntohs(head->len);
+
+            if (datalen == 0) {
+                DNSSetEvent(dns_state, DNS_DECODER_EVENT_MALFORMED_DATA);
+                goto bad_data;
+            }
+
             uint8_t txtlen = *data;
             const uint8_t *tdata = data + 1;
 
