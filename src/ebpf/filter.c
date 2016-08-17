@@ -14,52 +14,88 @@
 
 #define LINUX_VERSION_CODE 263682
 
+struct flow_keys {
+    __be32 src;
+    __be32 dst;
+    union {
+        __be32 ports;
+        __be16 port16[2];
+    };
+    __u32 ip_proto;
+};
+
 struct pair {
+    uint64_t time;
     uint64_t packets;
     uint64_t bytes;
 };
 
-struct bpf_map_def SEC("maps") ip_table = {
+struct bpf_map_def SEC("maps") flow_table_v4 = {
     .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(uint32_t),
+    .key_size = sizeof(struct flow_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 4096,
 };
 
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
 {
-    uint32_t nhoff;
-    uint32_t src, dst;
+    uint32_t nhoff, verlen;
+    struct flow_keys tuple, rtuple;
     struct pair *value;
+    uint16_t port;
 
     nhoff = skb->cb[0];
-    src = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
-    dst = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
+
+    tuple.src = load_word(skb, nhoff + offsetof(struct iphdr, saddr));
+    tuple.dst = load_word(skb, nhoff + offsetof(struct iphdr, daddr));
+
+    verlen = load_byte(skb, nhoff + 0/*offsetof(struct iphdr, ihl)*/);
+    nhoff += (verlen & 0xF) << 2;
+    tuple.ports = load_word(skb, nhoff);
+    port = tuple.port16[1];
+    tuple.port16[1] = tuple.port16[0];
+    tuple.port16[0] = port;
+    tuple.ip_proto = 6;
 
 #if 0
-    char fmt[] = "Got addr: %u -> %u\n";
-    bpf_trace_printk(fmt, sizeof(fmt), src, dst);
-    char fmt2[] = "Got hash %u\n";
-    bpf_trace_printk(fmt2, sizeof(fmt2), src + dst);
+    if ((tuple.port16[0] == 22) || (tuple.port16[1] == 22))
+    {
+        uint16_t sp = tuple.port16[0];
+        //uint16_t dp = tuple.port16[1];
+        char fmt[] = "Parsed SSH flow: %u %d -> %u\n";
+        bpf_trace_printk(fmt, sizeof(fmt), tuple.src, sp, tuple.dst);
+    }
 #endif
-
     /* Test if src is in hash */
-    value = bpf_map_lookup_elem(&ip_table, &src);
+    value = bpf_map_lookup_elem(&flow_table_v4, &tuple);
+    if (value) {
+#if 0
+        {
+            uint16_t sp = tuple.port16[0];
+            //uint16_t dp = tuple.port16[1];
+            char bfmt[] = "Found flow: %u %d -> %u\n";
+            bpf_trace_printk(bfmt, sizeof(bfmt), tuple.src, sp, tuple.dst);
+        }
+#endif
+        __sync_fetch_and_add(&value->packets, 1);
+        __sync_fetch_and_add(&value->bytes, skb->len);
+        value->time = bpf_ktime_get_ns();
+        return 0;
+    }
+    /* Test if inverted tuple is in hash */
+    rtuple.src = tuple.dst;
+    rtuple.dst = tuple.src;
+    rtuple.port16[0] = tuple.port16[1];
+    rtuple.port16[1] = tuple.port16[0];
+    rtuple.ip_proto = tuple.ip_proto;
+
+    value = bpf_map_lookup_elem(&flow_table_v4, &rtuple);
     if (value) {
         __sync_fetch_and_add(&value->packets, 1);
         __sync_fetch_and_add(&value->bytes, skb->len);
+        value->time = bpf_ktime_get_ns();
         return 0;
     }
-
-#if 0
-    /* Test if dst is in hash */
-	value = bpf_map_lookup_elem(&ip_table, &dst);
-    if (value) {
-		__sync_fetch_and_add(&value->packets, 1);
-		__sync_fetch_and_add(&value->bytes, skb->len);
-        return 0;
-    }
-#endif
     return -1;
 }
 
