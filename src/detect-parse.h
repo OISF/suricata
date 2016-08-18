@@ -45,7 +45,8 @@ Signature *SigAlloc(void);
 void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 Signature *SigInitReal(DetectEngineCtx *, char *);
-SigMatch *SigMatchGetLastSMFromLists(Signature *, int, ...);
+SigMatch *SigMatchGetLastSMFromLists(const Signature *, int, ...);
+SigMatch *SigMatchGetLastSM(const Signature *);
 void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
                                          SigMatch **, SigMatch **s,
                                          SigMatch **, SigMatch **);
