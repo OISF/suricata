@@ -409,7 +409,7 @@ void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
  *
  * \retval match Pointer to the last SigMatch instance of type 'type'.
  */
-static inline SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
+static SigMatch *SigMatchGetLastSMByType(SigMatch *sm, uint8_t type)
 {
     while (sm != NULL) {
         if (sm->type == type) {
@@ -422,11 +422,12 @@ static inline SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
 }
 
 /**
- * \brief Returns the sm with the largest index (added latest) from all the lists.
+ * \brief Returns the sm with the largest index (added latest) from the lists
+ *        passed to us.
  *
  * \retval Pointer to Last sm.
  */
-SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
+SigMatch *SigMatchGetLastSMFromLists(const Signature *s, int args, ...)
 {
     if (args == 0 || args % 2 != 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "You need to send an even no of args "
@@ -447,14 +448,36 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
     for (i = 0; i < args; i += 2) {
         int sm_type = va_arg(ap, int);
         SigMatch *sm_list = va_arg(ap, SigMatch *);
-        sm_new = SigMatchGetLastSM(sm_list, sm_type);
+        sm_new = SigMatchGetLastSMByType(sm_list, sm_type);
         if (sm_new == NULL)
-          continue;
+            continue;
         if (sm_last == NULL || sm_new->idx > sm_last->idx)
-          sm_last = sm_new;
+            sm_last = sm_new;
     }
 
     va_end(ap);
+
+    return sm_last;
+}
+
+/**
+ * \brief Returns the sm with the largest index (added latest) from this sig
+ *
+ * \retval Pointer to Last sm.
+ */
+SigMatch *SigMatchGetLastSM(const Signature *s)
+{
+    SigMatch *sm_last = NULL;
+    SigMatch *sm_new;
+    int i;
+
+    for (i = 0; i < DETECT_SM_LIST_MAX; i ++) {
+        sm_new = s->sm_lists_tail[i];
+        if (sm_new == NULL)
+            continue;
+        if (sm_last == NULL || sm_new->idx > sm_last->idx)
+            sm_last = sm_new;
+    }
 
     return sm_last;
 }
