@@ -76,9 +76,6 @@ static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
 static pcre_extra *option_pcre_extra = NULL;
 
-static uint32_t dbg_srcportany_cnt = 0;
-static uint32_t dbg_dstportany_cnt = 0;
-
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
  */
@@ -306,16 +303,6 @@ int DetectEngineContentModifierBufferSetup(DetectEngineCtx *de_ctx, Signature *s
     ret = 0;
  end:
     return ret;
-}
-
-uint32_t DbgGetSrcPortAnyCnt(void)
-{
-    return dbg_srcportany_cnt;
-}
-
-uint32_t DbgGetDstPortAnyCnt(void)
-{
-    return dbg_dstportany_cnt;
 }
 
 SigMatch *SigMatchAlloc(void)
