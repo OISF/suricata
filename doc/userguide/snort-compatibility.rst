@@ -64,3 +64,10 @@ This was fixed in Suricata 2.0.9.
 See:
 
 * https://redmine.openinfosecfoundation.org/issues/1481
+
+Keyword: flow:not_established
+-----------------------------
+
+*Versions affected: all*
+
+The ``not_established`` argument to the ``flow`` keyword is not supported.
