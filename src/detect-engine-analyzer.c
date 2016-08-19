@@ -95,6 +95,13 @@ void EngineAnalysisFP(Signature *s, char *line)
     fprintf(fp_engine_analysis_FD, "%s\n", line);
 
     fprintf(fp_engine_analysis_FD, "    Fast Pattern analysis:\n");
+    if (s->prefilter_sm != NULL) {
+        fprintf(fp_engine_analysis_FD, "        Prefilter on: %s\n",
+                sigmatch_table[s->prefilter_sm->type].name);
+        fprintf(fp_engine_analysis_FD, "\n");
+        return;
+    }
+
     if (fp_cd == NULL) {
         fprintf(fp_engine_analysis_FD, "        No content present\n");
         fprintf(fp_engine_analysis_FD, "\n");
@@ -854,7 +861,12 @@ void EngineAnalysisRules(const Signature *s, const char *line)
         }
 
         /* print fast pattern info */
-        EngineAnalysisRulesPrintFP(s);
+        if (s->prefilter_sm) {
+            fprintf(rule_engine_analysis_FD, "    Prefilter on: %s.\n",
+                    sigmatch_table[s->prefilter_sm->type].name);
+        } else {
+            EngineAnalysisRulesPrintFP(s);
+        }
 
         /* this is where the warnings start */
         if (warn_pcre_no_content /*rule_pcre > 0 && rule_content == 0 && rule_content_http == 0*/) {
