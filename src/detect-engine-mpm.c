@@ -1364,6 +1364,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;
+
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->mpm_sm != NULL) {
             int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
@@ -1401,8 +1402,8 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 break;
             }
             if (dup != struct_offset) {
-              /* Exited for-loop before the end, so found an existing match.
-               * Use its ID. */
+                /* Exited for-loop before the end, so found an existing match.
+                 * Use its ID. */
                 cd->id = dup->id;
                 continue;
             }
@@ -1421,14 +1422,14 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
             content_offset += content_len;
 
             if (flags & DETECT_CONTENT_NOCASE) {
-              /* Need to store case-insensitive patterns as lower case
-               * because SCMemcmpLowercase() above assumes that all
-               * patterns are stored lower case so that it doesn't
-               * need to relower its first argument.
-               */
-              memcpy_tolower(struct_offset->content, content, content_len);
+                /* Need to store case-insensitive patterns as lower case
+                 * because SCMemcmpLowercase() above assumes that all
+                 * patterns are stored lower case so that it doesn't
+                 * need to relower its first argument.
+                 */
+                memcpy_tolower(struct_offset->content, content, content_len);
             } else {
-              memcpy(struct_offset->content, content, content_len);
+                memcpy(struct_offset->content, content, content_len);
             }
 
             struct_offset++;
