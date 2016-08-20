@@ -663,6 +663,7 @@ typedef struct DetectEngineCtx_ {
     struct SCProfileKeywordDetectCtx_ *profile_keyword_ctx_per_list[DETECT_SM_LIST_MAX];
     struct SCProfileSghDetectCtx_ *profile_sgh_ctx;
     uint32_t profile_match_logging_threshold;
+    uint32_t profile_prefilter_maxid;
 #endif
 
     char config_prefix[64];
@@ -975,6 +976,10 @@ typedef struct PrefilterEngine_ {
     /** Free function for pectx data. If NULL the memory is not freed. */
     void (*Free)(void *pectx);
 
+    const char *name;
+#ifdef PROFILING
+    uint32_t profile_id;
+#endif
 } PrefilterEngine;
 
 typedef struct SigGroupHeadInitData_ {
@@ -1014,6 +1019,11 @@ typedef struct SigGroupHead_ {
 
     PrefilterEngine *engines;
     PrefilterEngine *tx_engines;
+
+#ifdef PROFILING
+    uint32_t engines_cnt;
+    uint32_t tx_engines_cnt;
+#endif
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;

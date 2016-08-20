@@ -94,7 +94,7 @@ int PrefilterTxHttpStatMsgRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpStatMsg,
         ALPROTO_HTTP,
         HTP_RESPONSE_LINE+1, /* inspect when response line completely parsed */
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_stat_msg");
 }
 
 /**

@@ -52,6 +52,12 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
+#include "util-profiling.h"
+
+#ifdef PROFILING
+static int PrefilterStoreGetId(const char *name);
+#endif
+
 static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, Packet *p, const uint8_t flags)
 {
@@ -92,8 +98,10 @@ static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
             if (engine->tx_min_progress > tx_progress)
                 goto next;
 
+            PROFILING_PREFILTER_START(p);
             engine->PrefilterTx(det_ctx, engine->pectx,
                     p, p->flow, tx, idx, flags);
+            PROFILING_PREFILTER_END(p, engine->profile_id);
         next:
             engine = engine->next;
         } while (engine);
@@ -105,10 +113,15 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 {
     SCEnter();
 
+    PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->profile_prefilter_maxid);
+
     /* run packet engines */
     PrefilterEngine *engine = sgh->engines;
     while (engine) {
+        PROFILING_PREFILTER_START(p);
         engine->Prefilter(det_ctx, p, engine->pectx);
+        PROFILING_PREFILTER_END(p, engine->profile_id);
+
         engine = engine->next;
     }
 
@@ -124,7 +137,8 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
 int PrefilterAppendEngine(SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx))
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name)
 {
     if (sgh == NULL || Prefilter == NULL || pectx == NULL)
         return -1;
@@ -139,16 +153,21 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
 
     if (sgh->engines == NULL) {
         sgh->engines = e;
-        return 0;
+    } else {
+        PrefilterEngine *t = sgh->engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
     }
 
-    PrefilterEngine *t = sgh->engines;
-    while (t->next != NULL) {
-        t = t->next;
-    }
-
-    t->next = e;
-    e->id = t->id + 1;
+#ifdef PROFILING
+    sgh->engines_cnt = e->id;
+    e->name = name;
+    e->profile_id = PrefilterStoreGetId(e->name);
+#endif
     return 0;
 }
 
@@ -157,7 +176,8 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
         AppProto alproto, int tx_min_progress,
-        void *pectx, void (*FreeFunc)(void *pectx))
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name)
 {
     if (sgh == NULL || PrefilterTx == NULL || pectx == NULL)
         return -1;
@@ -174,16 +194,20 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
 
     if (sgh->tx_engines == NULL) {
         sgh->tx_engines = e;
-        return 0;
-    }
+    } else {
+        PrefilterEngine *t = sgh->tx_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
 
-    PrefilterEngine *t = sgh->tx_engines;
-    while (t->next != NULL) {
-        t = t->next;
+        t->next = e;
+        e->id = t->id + 1;
     }
-
-    t->next = e;
-    e->id = t->id + 1;
+#ifdef PROFILING
+    sgh->tx_engines_cnt = e->id;
+    e->name = name;
+    e->profile_id = PrefilterStoreGetId(e->name);
+#endif
     return 0;
 }
 
@@ -205,3 +229,124 @@ void PrefilterFreeEngines(PrefilterEngine *list)
         t = next;
     }
 }
+
+#ifdef PROFILING
+/* hash table for assigning a unique id to each engine type. */
+
+typedef struct PrefilterStore_ {
+    const char *name;
+    uint32_t id;
+} PrefilterStore;
+
+static uint32_t PrefilterStoreHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    PrefilterStore *ctx = data;
+
+    uint32_t hash = strlen(ctx->name);
+    uint16_t u;
+
+    for (u = 0; u < strlen(ctx->name); u++) {
+        hash += ctx->name[u];
+    }
+
+    hash %= ht->array_size;
+    return hash;
+}
+
+static char PrefilterStoreCompareFunc(void *data1, uint16_t len1,
+                                      void *data2, uint16_t len2)
+{
+    PrefilterStore *ctx1 = data1;
+    PrefilterStore *ctx2 = data2;
+    return (strcmp(ctx1->name, ctx2->name) == 0);
+}
+
+static void PrefilterStoreFreeFunc(void *ptr)
+{
+    SCFree(ptr);
+}
+
+static SCMutex g_prefilter_mutex = SCMUTEX_INITIALIZER;
+static uint32_t g_prefilter_id = 0;
+static HashListTable *g_prefilter_hash_table = NULL;
+
+static void PrefilterDeinit(void)
+{
+    SCMutexLock(&g_prefilter_mutex);
+    BUG_ON(g_prefilter_hash_table == NULL);
+    HashListTableFree(g_prefilter_hash_table);
+    SCMutexUnlock(&g_prefilter_mutex);
+}
+
+static void PrefilterInit(void)
+{
+    SCMutexLock(&g_prefilter_mutex);
+    BUG_ON(g_prefilter_hash_table != NULL);
+
+    g_prefilter_hash_table = HashListTableInit(256,
+            PrefilterStoreHashFunc,
+            PrefilterStoreCompareFunc,
+            PrefilterStoreFreeFunc);
+    BUG_ON(g_prefilter_hash_table == NULL);
+    atexit(PrefilterDeinit);
+    SCMutexUnlock(&g_prefilter_mutex);
+}
+
+static int PrefilterStoreGetId(const char *name)
+{
+    PrefilterStore ctx = { name, 0 };
+
+    if (g_prefilter_hash_table == NULL) {
+        PrefilterInit();
+    }
+
+    SCLogDebug("looking up %s", name);
+
+    SCMutexLock(&g_prefilter_mutex);
+    PrefilterStore *rctx = HashListTableLookup(g_prefilter_hash_table, (void *)&ctx, 0);
+    if (rctx != NULL) {
+        SCMutexUnlock(&g_prefilter_mutex);
+        return rctx->id;
+    }
+
+    PrefilterStore *actx = SCCalloc(1, sizeof(*actx));
+    if (actx == NULL) {
+        SCMutexUnlock(&g_prefilter_mutex);
+        return -1;
+    }
+
+    actx->name = name;
+    actx->id = g_prefilter_id++;
+    SCLogDebug("prefilter engine %s has profile id %u", actx->name, actx->id);
+
+    int ret = HashListTableAdd(g_prefilter_hash_table, actx, 0);
+    if (ret != 0) {
+        SCMutexUnlock(&g_prefilter_mutex);
+        SCFree(actx);
+        return -1;
+    }
+
+    int r = actx->id;
+    SCMutexUnlock(&g_prefilter_mutex);
+    return r;
+}
+
+/** \warning slow */
+const char *PrefilterStoreGetName(const uint32_t id)
+{
+    const char *name = NULL;
+    SCMutexLock(&g_prefilter_mutex);
+    if (g_prefilter_hash_table != NULL) {
+        HashListTableBucket *hb = HashListTableGetListHead(g_prefilter_hash_table);
+        for ( ; hb != NULL; hb = HashListTableGetListNext(hb)) {
+            PrefilterStore *ctx = HashListTableGetListData(hb);
+            if (ctx->id == id) {
+                name = ctx->name;
+                break;
+            }
+        }
+    }
+    SCMutexUnlock(&g_prefilter_mutex);
+    return name;
+}
+#endif /* PROFILING */
