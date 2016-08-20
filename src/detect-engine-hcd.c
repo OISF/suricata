@@ -103,7 +103,7 @@ int PrefilterTxRequestCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxRequestCookie,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_cookie (request)");
 }
 
 /** \brief HTTP Cookie Mpm prefilter callback
@@ -149,7 +149,7 @@ int PrefilterTxResponseCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxResponseCookie,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_cookie (response)");
 }
 
 /**

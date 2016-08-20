@@ -97,12 +97,12 @@ int PrefilterTxRequestHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_header (request)");
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxRequestHeadersRaw,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_header (request)");
 }
 
 /** \brief HTTP Raw Header Mpm prefilter callback
@@ -141,12 +141,12 @@ int PrefilterTxResponseHeadersRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS+1, /* inspect when headers complete */
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_header (response)");
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxResponseHeadersRaw,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER+1, /* inspect when trailer complete */
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_header (response)");
 }
 
 /**

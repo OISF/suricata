@@ -135,7 +135,7 @@ int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxDnsQuery,
         ALPROTO_DNS, 1,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "dns_query");
 }
 
 int DetectEngineInspectDnsRequest(ThreadVars *tv,

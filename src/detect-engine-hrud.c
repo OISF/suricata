@@ -95,7 +95,7 @@ int PrefilterTxRawUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxRawUri,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_uri");
 }
 
 /**

@@ -103,7 +103,7 @@ int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxUA,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_user_agent");
 }
 
 /**

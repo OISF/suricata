@@ -281,7 +281,7 @@ int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxSmtpFiledata,
         ALPROTO_SMTP, 0,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "file_data (smtp)");
 }
 
 #ifdef UNITTESTS

@@ -253,7 +253,7 @@ int PrefilterTxHttpRequestBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestBody,
         ALPROTO_HTTP, HTP_REQUEST_BODY,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_client_body");
 }
 
 int DetectEngineInspectHttpClientBody(ThreadVars *tv,

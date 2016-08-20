@@ -853,41 +853,6 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 
-/**
- * \internal
- * \brief Run mpm on packet, stream and other buffers based on
- *        alproto, sgh state.
- *
- * \param de_ctx       Pointer to the detection engine context.
- * \param det_ctx      Pointer to the detection engine thread context.
- * \param smsg         The stream segment to inspect for stream mpm.
- * \param p            Packet.
- * \param flags        Flags.
- * \param alproto      Flow alproto.
- * \param has_state    Bool indicating we have (al)state
- * \param sms_runflags Used to store state by detection engine.
- */
-static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        const uint8_t flags, const AppProto alproto,
-        const int has_state, uint8_t *sms_runflags)
-{
-    SCEnter();
-
-    /* have a look at the reassembled stream (if any) */
-    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-    } else {
-        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
-
-    /* Sort the rule list to lets look at pmq.
-     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
-    if (det_ctx->pmq.rule_id_array_cnt > 1) {
-        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
-    }
-}
-
 #ifdef DEBUG
 static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
 {
@@ -1229,14 +1194,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* run the prefilter engines */
     Prefilter(det_ctx, det_ctx->sgh, p, flow_flags, has_state);
-
-    /* run the mpm for each type */
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, det_ctx->smsg, p, flow_flags,
-            alproto, has_state, &sms_runflags);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (det_ctx->pmq.rule_id_array_cnt > 1) {
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+    }
+    DetectPrefilterMergeSort(de_ctx, det_ctx);
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
 #ifdef PROFILING
     if (th_v) {
@@ -1250,9 +1217,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 #endif
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
-    DetectPrefilterMergeSort(de_ctx, det_ctx);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
@@ -3839,6 +3803,22 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
                 sigmatch_table[i].SetupPrefilter(sgh);
             }
         }
+
+#ifdef PROFILING
+        PrefilterEngine *e;
+        uint32_t engines = 0;
+        uint32_t tx_engines = 0;
+
+        for (e = sgh->engines ; e != NULL; e = e->next) {
+            engines++;
+            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        }
+        for (e = sgh->tx_engines ; e != NULL; e = e->next) {
+            tx_engines++;
+            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        }
+        SCLogDebug("SGH %p: engines %u tx_engines %u", sgh, engines, tx_engines);
+#endif
 
         SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
