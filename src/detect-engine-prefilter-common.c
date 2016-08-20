@@ -107,7 +107,8 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
         }
     }
 
-    PrefilterAppendEngine(sgh, Match, ctx, PrefilterPacketHeaderFree);
+    PrefilterAppendEngine(sgh, Match, ctx, PrefilterPacketHeaderFree,
+            sigmatch_table[sm_type].name);
     return 0;
 }
 
@@ -205,7 +206,8 @@ SetupEngineForPacketHeaderPrefilterPacketU8HashCtx(SigGroupHead *sgh, int sm_typ
 
     if (cnt) {
         PrefilterAppendEngine(sgh, Match, ctx,
-                PrefilterPacketU8HashCtxFree);
+                PrefilterPacketU8HashCtxFree,
+                sigmatch_table[sm_type].name);
     } else {
         PrefilterPacketU8HashCtxFree(ctx);
     }

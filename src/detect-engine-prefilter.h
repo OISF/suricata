@@ -29,14 +29,20 @@ void Prefilter(DetectEngineThreadCtx *, const SigGroupHead *, Packet *p,
 
 int PrefilterAppendEngine(SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
-        void *pectx, void (*FreeFunc)(void *pectx));
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name);
 int PrefilterAppendTxEngine(SigGroupHead *sgh,
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
             const uint64_t idx, const uint8_t flags),
         const AppProto alproto, const int tx_min_progress,
-        void *pectx, void (*FreeFunc)(void *pectx));
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name);
 
 void PrefilterFreeEngines(PrefilterEngine *list);
+
+#ifdef PROFILING
+const char *PrefilterStoreGetName(const uint32_t id);
+#endif
 
 #endif

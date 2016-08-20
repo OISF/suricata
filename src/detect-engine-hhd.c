@@ -256,12 +256,12 @@ int PrefilterTxHttpRequestHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_header (request)");
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestHeaders,
         ALPROTO_HTTP, HTP_REQUEST_TRAILER,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_header (request)");
 }
 
 /** \brief HTTP Headers Mpm prefilter callback
@@ -305,12 +305,12 @@ int PrefilterTxHttpResponseHeadersRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     int r = PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
         ALPROTO_HTTP, HTP_RESPONSE_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_header (response)");
     if (r != 0)
         return r;
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseHeaders,
         ALPROTO_HTTP, HTP_RESPONSE_TRAILER,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_header (response)");
 }
 
 int DetectEngineInspectHttpHeader(ThreadVars *tv,

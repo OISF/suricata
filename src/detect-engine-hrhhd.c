@@ -110,7 +110,7 @@ int PrefilterTxHostnameRawRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxHostnameRaw,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_raw_host");
 }
 
 /**
