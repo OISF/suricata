@@ -21,6 +21,10 @@
  * \author Eric Leblond <eric@regit.org>
  */
 
+#ifndef __UTIL_EBPF_H__
+#define __UTIL_EBPF_H__
 
-int EBFGetMapFDByName(const char *name);
+int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val);
+
+#endif

@@ -39,7 +39,6 @@
 #include <bpf/libbpf.h>
 #include "config.h"
 
-
 #define BPF_MAP_MAX_COUNT 16
 
 #define MAX_ERRNO   4095
@@ -57,16 +56,19 @@ struct bpf_map_item {
 };
 
 static struct bpf_map_item bpf_map_array[BPF_MAP_MAX_COUNT];
+static int bpf_map_last = 0;
 
-int EBFGetMapFDByName(const char *name)
+int EBPFGetMapFDByName(const char *name)
 {
     int i;
 
     if (name == NULL)
         return -1;
-    for (i =0; i < BPF_MAP_MAX_COUNT; i++) {
-        if (!strcmp(bpf_map_array[i].name, name))
+    for (i = 0; i < BPF_MAP_MAX_COUNT; i++) {
+        if (!strcmp(bpf_map_array[i].name, name)) {
+            SCLogNotice("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
             return bpf_map_array[i].fd;
+        }
     }
     return -1;
 }
@@ -108,23 +110,6 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
                    section);
         return -1;
     }
-
-    if (!strcmp("filter", section)) {
-        bpf_map__for_each(map, bpfobj) {
-            SCLogNotice("Got a map '%s'", bpf_map__name(map));
-        }
-
-        /* We need to find the map */
-        map = bpf_object__find_map_by_name(bpfobj, "ip_table");
-
-        if (map == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE,
-                    "Unable to find eBPF map '%s'",
-                    "ip_table");
-            return -1;
-        }
-    }
-
     err = bpf_object__load(bpfobj);
 
     if (err < 0) {
@@ -141,6 +126,18 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
                     err);
         }
         return -1;
+    }
+
+    /* store the map in our array */
+    bpf_map__for_each(map, bpfobj) {
+        SCLogNotice("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
+        bpf_map_array[bpf_map_last].fd = bpf_map__fd(map);
+        bpf_map_array[bpf_map_last].name = SCStrdup(bpf_map__name(map));
+        bpf_map_last++;
+        if (bpf_map_last == BPF_MAP_MAX_COUNT) {
+            SCLogError(SC_ERR_NOT_SUPPORTED, "Too much BPF map in eBPF files");
+            return -1;
+        }
     }
 
     pfd = bpf_program__fd(bpfprog);
