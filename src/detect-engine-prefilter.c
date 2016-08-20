@@ -52,21 +52,6 @@
 #include "app-layer-parser.h"
 #include "app-layer-htp.h"
 
-#if 0
-
-TxBased
-    Flow *f = data;
-    MatchCtx *ctx = pectx;
-    foreach tx in flow:
-        FilterLogic(det_ctx, ctx, p, f, tx);
-
-PacketBased
-    Packet *p = data;
-    MatchCtx *ctx = pectx;
-    FilterLogic(det_ctx, ctx, p);
-
-#endif
-
 static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, Packet *p, const uint8_t flags)
 {

@@ -1110,7 +1110,6 @@ int SCProfileRuleStart(Packet *p)
 const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
 {
     switch (id) {
-        CASE_CODE (PROF_DETECT_MPM);
         CASE_CODE (PROF_DETECT_MPM_PACKET);
 //        CASE_CODE (PROF_DETECT_MPM_PKT_STREAM);
         CASE_CODE (PROF_DETECT_MPM_STREAM);
