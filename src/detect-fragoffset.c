@@ -31,6 +31,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-fragoffset.h"
 
@@ -48,6 +49,9 @@ static int DetectFragOffsetSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFragOffsetRegisterTests(void);
 void DetectFragOffsetFree(void *);
 
+static int PrefilterSetupFragOffset(SigGroupHead *sgh);
+static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s);
+
 /**
  * \brief Registration function for fragoffset
  */
@@ -61,7 +65,29 @@ void DetectFragOffsetRegister (void)
     sigmatch_table[DETECT_FRAGOFFSET].Free = DetectFragOffsetFree;
     sigmatch_table[DETECT_FRAGOFFSET].RegisterTests = DetectFragOffsetRegisterTests;
 
+    sigmatch_table[DETECT_FRAGOFFSET].SupportsPrefilter = PrefilterFragOffsetIsPrefilterable;
+    sigmatch_table[DETECT_FRAGOFFSET].SetupPrefilter = PrefilterSetupFragOffset;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+static inline int FragOffsetMatch(const uint16_t poffset, const uint8_t mode,
+                                  const uint16_t doffset)
+{
+    switch (mode)  {
+        case FRAG_LESS:
+            if (poffset < doffset)
+                return 1;
+            break;
+        case FRAG_MORE:
+            if (poffset > doffset)
+                return 1;
+            break;
+        default:
+            if (poffset == doffset)
+                return 1;
+    }
+    return 0;
 }
 
 /**
@@ -97,21 +123,7 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
         return 0;
     }
 
-    switch (fragoff->mode)  {
-        case FRAG_LESS:
-            if (frag < fragoff->frag_off)
-                return 1;
-            break;
-        case FRAG_MORE:
-            if (frag > fragoff->frag_off)
-                return 1;
-            break;
-        default:
-            if (frag == fragoff->frag_off)
-                return 1;
-    }
-
-    return 0;
+    return FragOffsetMatch(frag, fragoff->mode, fragoff->frag_off);;
 }
 
 /**
@@ -238,6 +250,74 @@ void DetectFragOffsetFree (void *ptr)
 {
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)ptr;
     SCFree(fragoff);
+}
+
+static void
+PrefilterPacketFragOffsetMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    if (PKT_IS_PSEUDOPKT(p))
+        return;
+
+    uint16_t frag;
+
+    if (PKT_IS_IPV4(p)) {
+        frag = IPV4_GET_IPOFFSET(p);
+    } else if (PKT_IS_IPV6(p)) {
+        if (IPV6_EXTHDR_ISSET_FH(p)) {
+            frag = IPV6_EXTHDR_GET_FH_OFFSET(p);
+        } else {
+            return;
+        }
+    } else {
+        SCLogDebug("No IPv4 or IPv6 packet");
+        return;
+    }
+
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (FragOffsetMatch(frag, ctx->v1.u8[0], ctx->v1.u16[1]))
+    {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketFragOffsetSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectFragOffsetData *fb = smctx;
+    v->u8[0] = fb->mode;
+    v->u16[1] = fb->frag_off;
+}
+
+static _Bool
+PrefilterPacketFragOffsetCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectFragOffsetData *fb = smctx;
+    if (v.u8[0] == fb->mode &&
+        v.u16[1] == fb->frag_off)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int PrefilterSetupFragOffset(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_FRAGOFFSET,
+        PrefilterPacketFragOffsetSet,
+        PrefilterPacketFragOffsetCompare,
+        PrefilterPacketFragOffsetMatch);
+}
+
+static _Bool PrefilterFragOffsetIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FRAGOFFSET:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS
