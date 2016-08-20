@@ -30,7 +30,8 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
-#include "detect-engine-mpm.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-seq.h"
 
@@ -44,7 +45,8 @@ static int DetectSeqMatch(ThreadVars *, DetectEngineThreadCtx *,
                           Packet *, Signature *, const SigMatchCtx *);
 static void DetectSeqRegisterTests(void);
 static void DetectSeqFree(void *);
-
+static int PrefilterSetupTcpSeq(SigGroupHead *sgh);
+static _Bool PrefilterTcpSeqIsPrefilterable(const Signature *s);
 
 void DetectSeqRegister(void)
 {
@@ -55,6 +57,9 @@ void DetectSeqRegister(void)
     sigmatch_table[DETECT_SEQ].Setup = DetectSeqSetup;
     sigmatch_table[DETECT_SEQ].Free = DetectSeqFree;
     sigmatch_table[DETECT_SEQ].RegisterTests = DetectSeqRegisterTests;
+
+    sigmatch_table[DETECT_SEQ].SupportsPrefilter = PrefilterTcpSeqIsPrefilterable;
+    sigmatch_table[DETECT_SEQ].SetupPrefilter = PrefilterSetupTcpSeq;
 }
 
 /**
@@ -137,6 +142,57 @@ static void DetectSeqFree(void *ptr)
 {
     DetectSeqData *data = (DetectSeqData *)ptr;
     SCFree(data);
+}
+
+/* prefilter code */
+
+static void
+PrefilterPacketSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
+        (p->tcph != NULL) && (TCP_GET_SEQ(p) == ctx->v1.u32[0]))
+    {
+        SCLogDebug("packet matches TCP seq %u", ctx->v1.u32[0]);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectSeqData *a = smctx;
+    v->u32[0] = a->seq;
+}
+
+static _Bool
+PrefilterPacketSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectSeqData *a = smctx;
+    if (v.u32[0] == a->seq)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupTcpSeq(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_SEQ,
+        PrefilterPacketSeqSet,
+        PrefilterPacketSeqCompare,
+        PrefilterPacketSeqMatch);
+}
+
+static _Bool PrefilterTcpSeqIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_SEQ:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 
