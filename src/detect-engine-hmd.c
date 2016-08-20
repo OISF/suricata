@@ -95,7 +95,7 @@ int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     return PrefilterAppendTxEngine(sgh, PrefilterTxMethod,
         ALPROTO_HTTP, HTP_REQUEST_LINE,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_method");
 }
 
 /**

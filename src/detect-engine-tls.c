@@ -81,7 +81,7 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSni,
         ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "tls_sni");
 }
 
 /** \brief Do the content inspection and validation for a signature
@@ -157,7 +157,7 @@ int PrefilterTxTlsIssuerRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsIssuer,
         ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "tls_cert_issuer");
 }
 
 /** \brief Do the content inspection and validation for a signature
@@ -233,7 +233,7 @@ int PrefilterTxTlsSubjectRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSubject,
         ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "tls_cert_subject");
 }
 
 /** \brief Do the content inspection and validation for a signature

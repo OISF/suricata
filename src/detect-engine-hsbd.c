@@ -257,7 +257,7 @@ int PrefilterTxHttpResponseBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxHttpResponseBody,
         ALPROTO_HTTP, HTP_RESPONSE_BODY,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "file_data (http response)");
 }
 
 

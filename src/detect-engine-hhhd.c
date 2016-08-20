@@ -98,7 +98,7 @@ int PrefilterTxHostnameRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxHostname,
         ALPROTO_HTTP, HTP_REQUEST_HEADERS,
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "http_host");
 }
 
 /**
