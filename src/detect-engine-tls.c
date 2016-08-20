@@ -81,7 +81,7 @@ int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 
     return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSni,
         ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
-        mpm_ctx, NULL);
+        mpm_ctx, NULL, "tls_sni");
 }
 
 /** \brief Do the content inspection and validation for a signature
