@@ -73,6 +73,18 @@ void DetectITypeRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
+#define DETECT_ITYPE_EQ   PREFILTER_U8HASH_MODE_EQ   /**< "equal" operator */
+#define DETECT_ITYPE_LT   PREFILTER_U8HASH_MODE_LT   /**< "less than" operator */
+#define DETECT_ITYPE_GT   PREFILTER_U8HASH_MODE_GT   /**< "greater than" operator */
+#define DETECT_ITYPE_RN   PREFILTER_U8HASH_MODE_RA   /**< "range" operator */
+
+typedef struct DetectITypeData_ {
+    uint8_t type1;
+    uint8_t type2;
+
+    uint8_t mode;
+} DetectITypeData;
+
 static inline int ITypeMatch(const uint8_t ptype, const uint8_t mode,
                              const uint8_t dtype1, const uint8_t dtype2)
 {
@@ -271,10 +283,14 @@ void DetectITypeFree(void *ptr)
     SCFree(itd);
 }
 
-/* prefilter code */
+/* prefilter code
+ *
+ * Prefilter uses the U8Hash logic, where we setup a 256 entry array
+ * for each ICMP type. Each array element has the list of signatures
+ * that need to be inspected. */
 
-static void
-PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -290,12 +306,10 @@ PrefilterPacketITypeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
         return;
     }
 
-    const PrefilterPacketHeaderCtx *ctx = pectx;
-
-    if (ITypeMatch(pitype, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
-        SCLogDebug("packet matches ICMP type %u", pitype);
-        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    const PrefilterPacketU8HashCtx *h = pectx;
+    const SigsArray *sa = h->array[pitype];
+    if (sa) {
+        PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
     }
 }
 
@@ -321,7 +335,7 @@ PrefilterPacketITypeCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupIType(SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ITYPE,
+    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ITYPE,
             PrefilterPacketITypeSet,
             PrefilterPacketITypeCompare,
             PrefilterPacketITypeMatch);
