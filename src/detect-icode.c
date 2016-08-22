@@ -73,6 +73,18 @@ void DetectICodeRegister (void)
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
+#define DETECT_ICODE_EQ   PREFILTER_U8HASH_MODE_EQ   /**< "equal" operator */
+#define DETECT_ICODE_LT   PREFILTER_U8HASH_MODE_LT   /**< "less than" operator */
+#define DETECT_ICODE_GT   PREFILTER_U8HASH_MODE_GT   /**< "greater than" operator */
+#define DETECT_ICODE_RN   PREFILTER_U8HASH_MODE_RA   /**< "range" operator */
+
+typedef struct DetectICodeData_ {
+    uint8_t code1;
+    uint8_t code2;
+
+    uint8_t mode;
+} DetectICodeData;
+
 static inline int ICodeMatch(const uint8_t pcode, const uint8_t mode,
                              const uint8_t dcode1, const uint8_t dcode2)
 {
@@ -273,8 +285,8 @@ void DetectICodeFree(void *ptr)
 
 /* prefilter code */
 
-static void
-PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+static void PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
 {
     if (PKT_IS_PSEUDOPKT(p)) {
         SCReturn;
@@ -290,12 +302,10 @@ PrefilterPacketICodeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
         return;
     }
 
-    const PrefilterPacketHeaderCtx *ctx = pectx;
-
-    if (ICodeMatch(picode, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
-    {
-        SCLogDebug("packet matches ICMP code %u", picode);
-        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    const PrefilterPacketU8HashCtx *h = pectx;
+    const SigsArray *sa = h->array[picode];
+    if (sa) {
+        PrefilterAddSids(&det_ctx->pmq, sa->sigs, sa->cnt);
     }
 }
 
@@ -321,7 +331,7 @@ PrefilterPacketICodeCompare(PrefilterPacketHeaderValue v, void *smctx)
 
 static int PrefilterSetupICode(SigGroupHead *sgh)
 {
-    return PrefilterSetupPacketHeader(sgh, DETECT_ICODE,
+    return PrefilterSetupPacketHeaderU8Hash(sgh, DETECT_ICODE,
             PrefilterPacketICodeSet,
             PrefilterPacketICodeCompare,
             PrefilterPacketICodeMatch);
