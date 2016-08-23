@@ -1240,7 +1240,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (mpm_store != NULL) {
             sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
 
-            if (a->PrefilterRegister) {
+            /* if we have just certain types of negated patterns,
+             * mpm_ctx can be NULL */
+            if (a->PrefilterRegister && mpm_store->mpm_ctx) {
                 BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
             }
         }
