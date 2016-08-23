@@ -70,13 +70,14 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD 1
-#define LOG_JSON_PACKET 2
-#define LOG_JSON_PAYLOAD_BASE64 4
-#define LOG_JSON_HTTP 8
-#define LOG_JSON_TLS 16
-#define LOG_JSON_SSH 32
-#define LOG_JSON_SMTP 64
+#define LOG_JSON_PAYLOAD        0x01
+#define LOG_JSON_PACKET         0x02
+#define LOG_JSON_PAYLOAD_BASE64 0x04
+#define LOG_JSON_HTTP           0x08
+#define LOG_JSON_TLS            0x10
+#define LOG_JSON_SSH            0x20
+#define LOG_JSON_SMTP           0x40
+#define LOG_JSON_TAGGED_PACKETS 0x80
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -382,7 +383,8 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     json_object_clear(js);
     json_decref(js);
 
-    if (p->flags & PKT_HAS_TAG) {
+    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
+            LOG_JSON_TAGGED_PACKETS)) {
         MemBufferReset(aft->json_buffer);
         json_t *packetjs = CreateJSONHeader((Packet *)p, 0, "packet");
         if (unlikely(packetjs != NULL)) {
@@ -595,6 +597,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
+        const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -640,6 +643,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 json_output_ctx->flags |= LOG_JSON_PACKET;
+            }
+        }
+        if (tagged_packets != NULL) {
+            if (ConfValIsTrue(tagged_packets)) {
+                json_output_ctx->flags |= LOG_JSON_TAGGED_PACKETS;
             }
         }
 

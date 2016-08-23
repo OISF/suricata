@@ -164,6 +164,10 @@ outputs:
             ssh: yes                 # enable dumping of ssh fields
             smtp: yes                # enable dumping of smtp fields
 
+            # Enable the logging of tagged packets for rules using the
+            # "tag" keyword.
+            tagged-packets: yes
+
             # HTTP X-Forwarded-For support by adding an extra field or overwriting
             # the source or destination IP address (depending on flow direction)
             # with the one reported in the X-Forwarded-For HTTP header. This is
