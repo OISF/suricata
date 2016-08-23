@@ -181,7 +181,8 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
                 /* turn fp raw buffer into a nice :-separate hex string */
                 uint16_t fp_len = (entry->data_len - 2);
                 uint8_t *dptr = ptr+2;
-                uint32_t output_len = fp_len * 2 + 1; // create c-string, so add space for 0.
+                /* c-string for ':' separated hex and trailing \0. */
+                uint32_t output_len = fp_len * 3 + 1;
                 char hexstring[output_len], *p = hexstring;
                 memset(hexstring, 0x00, output_len);
 
