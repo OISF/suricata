@@ -181,7 +181,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
             if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
                 int msg_len = cur_cert_length;
                 int hash_len = 20;
-                int out_len = 60;
+                int out_len = hash_len * 3 + 1;
                 char out[out_len];
                 unsigned char *hash;
                 hash = ComputeSHA1((unsigned char *) input, (int) msg_len);
