@@ -1102,10 +1102,11 @@ int DCERPCUDPParserTest01(void)
 	}
 
 end:
-    if (alp_tctx != NULL)
+    if (alp_tctx != NULL) {
         AppLayerParserThreadCtxFree(alp_tctx);
-	StreamTcpFreeConfig(TRUE);
-	return result;
+    }
+    StreamTcpFreeConfig(TRUE);
+    return result;
 }
 
 void DCERPCUDPParserRegisterTests(void)
