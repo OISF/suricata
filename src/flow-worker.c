@@ -94,7 +94,9 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     /* Setup outputs for this thread. */
-    OutputLoggerThreadInit(tv, initdata, &fw->output_thread);
+    if (OutputLoggerThreadInit(tv, initdata, &fw->output_thread) != TM_ECODE_OK) {
+        return TM_ECODE_FAILED;
+    }
 
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueue));

@@ -932,8 +932,7 @@ TmEcode OutputLoggerLog(ThreadVars *tv, Packet *p, void *thread_data)
     return TM_ECODE_OK;
 }
 
-TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
-    void **data)
+TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     LoggerThreadStore *thread_store = SCCalloc(1, sizeof(*thread_store));
     if (thread_store == NULL) {
@@ -950,7 +949,12 @@ TmEcode OutputLoggerThreadInit(ThreadVars *tv, void *initdata,
             if (logger->ThreadInit(tv, initdata, &child_thread_data) == TM_ECODE_OK) {
                 LoggerThreadStoreNode *thread_store_node =
                     SCCalloc(1, sizeof(*thread_store_node));
-                BUG_ON(thread_store_node == NULL);
+                if (thread_store_node == NULL) {
+                    /* Undo everything, calling de-init will take care
+                     * of that. */
+                    OutputLoggerThreadDeinit(tv, thread_store);
+                    return TM_ECODE_FAILED;
+                }
                 thread_store_node->thread_data = child_thread_data;
                 TAILQ_INSERT_TAIL(thread_store, thread_store_node, entries);
             }
