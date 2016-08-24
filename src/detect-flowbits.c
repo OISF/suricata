@@ -472,8 +472,8 @@ static int FlowBitsTestSig02(void)
         error_count++;
     }
 
-   if(error_count == 5)
-    goto end;
+    if(error_count == 5)
+        goto end;
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
