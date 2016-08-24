@@ -181,14 +181,17 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
                 /* turn fp raw buffer into a nice :-separate hex string */
                 uint16_t fp_len = (entry->data_len - 2);
                 uint8_t *dptr = ptr+2;
+
                 /* c-string for ':' separated hex and trailing \0. */
                 uint32_t output_len = fp_len * 3 + 1;
-                char hexstring[output_len], *p = hexstring;
+                char hexstring[output_len];
                 memset(hexstring, 0x00, output_len);
 
                 uint16_t x;
-                for (x = 0; x < fp_len; x++, p += 3) {
-                    snprintf(p, 4, x == fp_len - 1 ? "%02x" : "%02x:", dptr[x]);
+                for (x = 0; x < fp_len; x++) {
+                    char one[4];
+                    snprintf(one, sizeof(one), x == fp_len - 1 ? "%02x" : "%02x:", dptr[x]);
+                    strlcat(hexstring, one, output_len);
                 }
 
                 /* wrap the whole thing in it's own structure */

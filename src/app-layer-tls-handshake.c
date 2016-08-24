@@ -180,20 +180,22 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input,
 
             if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
                 int msg_len = cur_cert_length;
-                int hash_len = 20;
-                int out_len = hash_len * 3 + 1;
-                char out[out_len];
                 unsigned char *hash;
                 hash = ComputeSHA1((unsigned char *) input, (int) msg_len);
-                char *p = out;
-                int j = 0;
 
                 if (hash == NULL) {
                     // TODO maybe an event here?
                 } else {
-                    for (j = 0; j < hash_len; j++, p += 3) {
-                        snprintf(p, 4, j == hash_len - 1 ? "%02x" : "%02x:",
-                                hash[j]);
+                    int hash_len = 20;
+                    int out_len = hash_len * 3 + 1;
+                    char out[out_len];
+                    memset(out, 0x00, out_len);
+
+                    int j = 0;
+                    for (j = 0; j < hash_len; j++) {
+                        char one[4];
+                        snprintf(one, sizeof(one), j == hash_len - 1 ? "%02x" : "%02x:", hash[j]);
+                        strlcat(out, one, out_len);
                     }
                     SCFree(hash);
                     ssl_state->server_connp.cert0_fingerprint = SCStrdup(out);
