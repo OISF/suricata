@@ -322,8 +322,10 @@ PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    const uint16_t dsize = p->payload_len;
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
 
+    const uint16_t dsize = p->payload_len;
     if (DsizeMatch(dsize, ctx->v1.u8[0], ctx->v1.u16[1], ctx->v1.u16[2]))
     {
         SCLogDebug("packet matches dsize %u", dsize);
