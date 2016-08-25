@@ -1199,9 +1199,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* Sort the rule list to lets look at pmq.
      * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
     if (det_ctx->pmq.rule_id_array_cnt > 1) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
         QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
     DetectPrefilterMergeSort(de_ctx, det_ctx);
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
 #ifdef PROFILING
