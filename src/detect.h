@@ -1015,7 +1015,8 @@ typedef struct SigGroupHead_ {
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
 
-    PrefilterEngine *engines;
+    PrefilterEngine *pkt_engines;
+    PrefilterEngine *payload_engines;
     PrefilterEngine *tx_engines;
 
 #ifdef PROFILING

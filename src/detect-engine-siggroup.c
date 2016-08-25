@@ -172,7 +172,8 @@ void SigGroupHeadFree(SigGroupHead *sgh)
     }
 
     PrefilterFreeEngines(sgh->tx_engines);
-    PrefilterFreeEngines(sgh->engines);
+    PrefilterFreeEngines(sgh->pkt_engines);
+    PrefilterFreeEngines(sgh->payload_engines);
 
     SCFree(sgh);
 
