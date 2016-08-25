@@ -156,6 +156,9 @@ PrefilterPacketAckMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
     if ((p->proto) == IPPROTO_TCP && !(PKT_IS_PSEUDOPKT(p)) &&
         (p->tcph != NULL) && (TCP_GET_ACK(p) == ctx->v1.u32[0]))
     {
