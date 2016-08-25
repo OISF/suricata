@@ -325,6 +325,8 @@ PrefilterPacketTtlMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *p
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
 
     if (TtlMatch(pttl, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
     {
