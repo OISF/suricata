@@ -29,6 +29,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "detect-icmp-seq.h"
 
@@ -46,6 +47,8 @@ int DetectIcmpSeqMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *, Signatur
 static int DetectIcmpSeqSetup(DetectEngineCtx *, Signature *, char *);
 void DetectIcmpSeqRegisterTests(void);
 void DetectIcmpSeqFree(void *);
+static int PrefilterSetupIcmpSeq(SigGroupHead *sgh);
+static _Bool PrefilterIcmpSeqIsPrefilterable(const Signature *s);
 
 /**
  * \brief Registration function for icmp_seq
@@ -60,27 +63,18 @@ void DetectIcmpSeqRegister (void)
     sigmatch_table[DETECT_ICMP_SEQ].Free = DetectIcmpSeqFree;
     sigmatch_table[DETECT_ICMP_SEQ].RegisterTests = DetectIcmpSeqRegisterTests;
 
+    sigmatch_table[DETECT_ICMP_SEQ].SupportsPrefilter = PrefilterIcmpSeqIsPrefilterable;
+    sigmatch_table[DETECT_ICMP_SEQ].SetupPrefilter = PrefilterSetupIcmpSeq;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-/**
- * \brief This function is used to match icmp_seq rule option set on a packet
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectIcmpSeqData
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static inline _Bool GetIcmpSeq(Packet *p, uint16_t *seq)
 {
     uint16_t seqn;
-    const DetectIcmpSeqData *iseq = (const DetectIcmpSeqData *)ctx;
 
     if (PKT_IS_PSEUDOPKT(p))
-        return 0;
+        return FALSE;
 
     if (PKT_IS_ICMPV4(p)) {
         switch (ICMPV4_GET_TYPE(p)){
@@ -100,7 +94,7 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
                 break;
             default:
                 SCLogDebug("Packet has no seq field");
-                return 0;
+                return FALSE;
         }
     } else if (PKT_IS_ICMPV6(p)) {
 
@@ -115,13 +109,36 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
                 break;
             default:
                 SCLogDebug("Packet has no seq field");
-                return 0;
+                return FALSE;
         }
     } else {
         SCLogDebug("Packet not ICMPV4 nor ICMPV6");
-        return 0;
+        return FALSE;
     }
 
+    *seq = seqn;
+    return TRUE;
+}
+
+/**
+ * \brief This function is used to match icmp_seq rule option set on a packet
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectIcmpSeqData
+ *
+ * \retval 0 no match
+ * \retval 1 match
+ */
+int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+{
+    uint16_t seqn;
+
+    if (GetIcmpSeq(p, &seqn) == FALSE)
+        return 0;
+
+    const DetectIcmpSeqData *iseq = (const DetectIcmpSeqData *)ctx;
     if (seqn == iseq->seq)
         return 1;
 
@@ -246,6 +263,61 @@ void DetectIcmpSeqFree (void *ptr)
 {
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)ptr;
     SCFree(iseq);
+}
+
+/* prefilter code */
+
+static void
+PrefilterPacketIcmpSeqMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    uint16_t seqn;
+
+    if (GetIcmpSeq(p, &seqn) == FALSE)
+        return;
+
+    if (seqn == ctx->v1.u16[0])
+    {
+        SCLogDebug("packet matches ICMP SEQ %u", ctx->v1.u16[0]);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketIcmpSeqSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectIcmpSeqData *a = smctx;
+    v->u16[0] = a->seq;
+}
+
+static _Bool
+PrefilterPacketIcmpSeqCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectIcmpSeqData *a = smctx;
+    if (v.u16[0] == a->seq)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupIcmpSeq(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_ICMP_SEQ,
+        PrefilterPacketIcmpSeqSet,
+        PrefilterPacketIcmpSeqCompare,
+        PrefilterPacketIcmpSeqMatch);
+}
+
+static _Bool PrefilterIcmpSeqIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_ICMP_SEQ:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS

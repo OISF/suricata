@@ -30,6 +30,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -45,65 +46,42 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
-/**
- * \brief TLS sni match -- searches for one pattern per signature.
+/** \brief TLS SNI Mpm prefilter callback
  *
- * \param det_ctx   Detection engine thread ctx
- * \param hrh       Buffer to inspect
- * \param hrh_len   Buffer length
- * \param flags     Flags
- *
- * \retval ret      Number of matches
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t TlsSniPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                           const uint8_t *buffer,
-                                           const uint32_t buffer_len,
-                                           const uint8_t flags)
+static void PrefilterTxTlsSni(DetectEngineThreadCtx *det_ctx, const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlssni_ctx_ts == NULL);
-
-    if (buffer_len >= det_ctx->sgh->mpm_tlssni_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_tlssni_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_tlssni_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, buffer, buffer_len);
-    }
-
-    SCReturnUInt(ret);
-}
-
-/**
- *  \brief Run the pattern matcher against the SNI buffer
- *
- *  \param det_ctx    Detection engine thread ctx
- *  \param f          Locked flow
- *  \param dns_state  Initialized dns state
- *  \param flags      Flags
- *
- *  \retval cnt       Number of matches
- */
-uint32_t DetectTlsSniInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                SSLState *ssl_state, uint8_t flags)
-{
-    SCEnter();
-
-    uint8_t *buffer;
-    uint32_t buffer_len;
-    uint32_t cnt = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    SSLState *ssl_state = f->alstate;
 
     if (ssl_state->client_connp.sni == NULL)
-        return 0;
+        return;
 
-    buffer = (uint8_t *)ssl_state->client_connp.sni;
-    buffer_len = strlen(ssl_state->client_connp.sni);
+    const uint8_t *buffer = (uint8_t *)ssl_state->client_connp.sni;
+    const uint32_t buffer_len = strlen(ssl_state->client_connp.sni);
 
-    cnt = TlsSniPatternSearch(det_ctx, buffer, buffer_len, flags);
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
 
-    SCReturnUInt(cnt);
+int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxTlsSni,
+        ALPROTO_TLS, 0, // TODO a special 'cert ready' state might be good to add
+        mpm_ctx, NULL, "tls_sni");
 }
 
 /** \brief Do the content inspection and validation for a signature

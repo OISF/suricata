@@ -27,10 +27,8 @@
 
 #include "app-layer-htp.h"
 
-int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
-                                     DetectEngineThreadCtx *det_ctx, Flow *f,
-                                     HtpState *htp_state, uint8_t flags,
-                                     void *tx, uint64_t idx);
+int PrefilterTxHttpResponseBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectHttpServerBody(ThreadVars *tv,
                                       DetectEngineCtx *de_ctx,
                                       DetectEngineThreadCtx *det_ctx,

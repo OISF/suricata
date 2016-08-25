@@ -41,6 +41,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -58,50 +59,43 @@
 #include "app-layer-protos.h"
 #include "util-validate.h"
 
-/**
- * \brief Http method match -- searches for one pattern per signature.
+/** \brief HTTP Method Mpm prefilter callback
  *
- * \param det_ctx    Detection engine thread ctx.
- * \param method     Method to inspect.
- * \param method_len Method length.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  *
- *  \retval ret Number of matches.
+ *  \retval ret number of matches
  */
-static inline uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *raw_method, const uint32_t raw_method_len,
-        const uint8_t flags)
+static void PrefilterTxMethod(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
 
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hmd_ctx_ts == NULL);
+    if (tx->request_method == NULL)
+        return;
 
-    if (raw_method_len >= det_ctx->sgh->mpm_hmd_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, raw_method, raw_method_len);
+    const uint32_t buffer_len = bstr_len(tx->request_method);
+    const uint8_t *buffer = bstr_ptr(tx->request_method);
+
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
-
-    SCReturnUInt(ret);
 }
 
-int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *txv, uint64_t idx)
+int PrefilterTxMethodRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    uint32_t cnt = 0;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->request_method == NULL)
-        goto end;
-
-    cnt = HttpMethodPatternSearch(det_ctx,
-                                  (const uint8_t *)bstr_ptr(tx->request_method),
-                                  bstr_len(tx->request_method),
-                                  flags);
- end:
-    return cnt;
+    return PrefilterAppendTxEngine(sgh, PrefilterTxMethod,
+        ALPROTO_HTTP, HTP_REQUEST_LINE,
+        mpm_ctx, NULL, "http_method");
 }
 
 /**

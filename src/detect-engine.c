@@ -1454,10 +1454,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
 
     /* sized to the max of our sgh settings. A max setting of 0 implies that all
-     * sgh's have: sgh->non_mpm_store_cnt == 0 */
-    if (de_ctx->non_mpm_store_cnt_max > 0) {
-        det_ctx->non_mpm_id_array =  SCCalloc(de_ctx->non_mpm_store_cnt_max, sizeof(SigIntId));
-        BUG_ON(det_ctx->non_mpm_id_array == NULL);
+     * sgh's have: sgh->non_pf_store_cnt == 0 */
+    if (de_ctx->non_pf_store_cnt_max > 0) {
+        det_ctx->non_pf_id_array =  SCCalloc(de_ctx->non_pf_store_cnt_max, sizeof(SigIntId));
+        BUG_ON(det_ctx->non_pf_id_array == NULL);
     }
 
     /* IP-ONLY */
@@ -1672,8 +1672,8 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
     }
 
-    if (det_ctx->non_mpm_id_array != NULL)
-        SCFree(det_ctx->non_mpm_id_array);
+    if (det_ctx->non_pf_id_array != NULL)
+        SCFree(det_ctx->non_pf_id_array);
 
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);

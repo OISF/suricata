@@ -423,7 +423,7 @@ void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead)
     while (it != NULL) {
         i++;
         SCFree(it);
-        SCLogDebug("Item(%p) %"PRIu32" removed\n", it, i);
+        SCLogDebug("Item(%p) %"PRIu32" removed", it, i);
         it = next;
 
         if (next != NULL)

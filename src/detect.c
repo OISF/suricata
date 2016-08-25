@@ -43,6 +43,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-prefilter.h"
 
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
@@ -86,6 +87,7 @@
 #include "detect-distance.h"
 #include "detect-offset.h"
 #include "detect-sid.h"
+#include "detect-prefilter.h"
 #include "detect-priority.h"
 #include "detect-classtype.h"
 #include "detect-reference.h"
@@ -695,18 +697,13 @@ end:
 
 static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
                                             DetectEngineThreadCtx *det_ctx)
-//                                            SigGroupHead *sgh)
 {
     SigIntId mpm, nonmpm;
     det_ctx->match_array_cnt = 0;
     SigIntId *mpm_ptr = det_ctx->pmq.rule_id_array;
-    SigIntId *nonmpm_ptr = det_ctx->non_mpm_id_array;
-    //SigIntId *nonmpm_ptr = sgh->non_mpm_id_array;
+    SigIntId *nonmpm_ptr = det_ctx->non_pf_id_array;
     uint32_t m_cnt = det_ctx->pmq.rule_id_array_cnt;
-    //uint32_t n_cnt = sgh->non_mpm_id_cnt;
-    uint32_t n_cnt = det_ctx->non_mpm_id_cnt;
-    SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
-//    SCLogDebug("SGH non-MPM id count %d", sgh->non_mpm_id_cnt);
+    uint32_t n_cnt = det_ctx->non_pf_id_cnt;
     SigIntId *final_ptr;
     uint32_t final_cnt;
     SigIntId id;
@@ -714,6 +711,8 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     Signature **sig_array = de_ctx->sig_array;
     Signature **match_array = det_ctx->match_array;
     Signature *s;
+
+    SCLogDebug("PMQ rule id array count %d", det_ctx->pmq.rule_id_array_cnt);
 
     /* Load first values. */
     if (likely(m_cnt)) {
@@ -817,7 +816,7 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
 
     det_ctx->match_array_cnt = match_array - det_ctx->match_array;
 
-    BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_mpm_id_cnt) < det_ctx->match_array_cnt);
+    BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
 /* Return true is the list is sorted smallest to largest */
@@ -847,294 +846,6 @@ static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
 
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
-
-/**
- * \internal
- * \brief Run mpm on packet, stream and other buffers based on
- *        alproto, sgh state.
- *
- * \param de_ctx       Pointer to the detection engine context.
- * \param det_ctx      Pointer to the detection engine thread context.
- * \param smsg         The stream segment to inspect for stream mpm.
- * \param p            Packet.
- * \param flags        Flags.
- * \param alproto      Flow alproto.
- * \param has_state    Bool indicating we have (al)state
- * \param sms_runflags Used to store state by detection engine.
- */
-static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
-        const uint8_t flags, const AppProto alproto,
-        const int has_state, uint8_t *sms_runflags)
-{
-    SCEnter();
-
-    /* have a look at the reassembled stream (if any) */
-    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-
-        /* all http based mpms */
-        if (has_state && alproto == ALPROTO_HTTP) {
-            void *alstate = FlowGetAppState(p->flow);
-            if (alstate == NULL) {
-                SCLogDebug("no alstate");
-                return;
-            }
-
-            HtpState *htp_state = (HtpState *)alstate;
-            if (htp_state->connp == NULL) {
-                SCLogDebug("no HTTP connp");
-                return;
-            }
-
-            int tx_progress = 0;
-            uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-            uint64_t total_txs = AppLayerParserGetTxCnt(IPPROTO_TCP, ALPROTO_HTTP, alstate);
-            for (; idx < total_txs; idx++) {
-                htp_tx_t *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, htp_state, idx);
-                if (tx == NULL)
-                    continue;
-
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
-
-                    if (tx_progress > HTP_REQUEST_LINE) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
-                            DetectUricontentInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
-                            DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HMD);
-                            DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HMD);
-                        }
-                    }
-
-                    if (tx_progress >= HTP_REQUEST_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHHD);
-                            DetectEngineRunHttpHHMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHHD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHHD);
-                            DetectEngineRunHttpHRHMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHHD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCD);
-                            DetectEngineRunHttpCookieMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HUAD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HUAD);
-                            DetectEngineRunHttpUAMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HUAD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
-                            DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
-                        }
-                    }
-
-                    if (tx_progress > HTP_REQUEST_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHD);
-                            DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
-                        }
-                    }
-
-                    if (tx_progress >= HTP_REQUEST_BODY) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
-                            DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
-                        }
-                    }
-                } else { /* implied FLOW_PKT_TOCLIENT */
-                    tx_progress = AppLayerParserGetStateProgress(IPPROTO_TCP, ALPROTO_HTTP, tx, flags);
-
-                    if (tx_progress > HTP_RESPONSE_LINE) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
-                            DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSMD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSCD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSCD);
-                            DetectEngineRunHttpStatCodeMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSCD);
-                        }
-                    }
-
-                    if (tx_progress >= HTP_RESPONSE_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
-                            DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
-                        }
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCD);
-                            DetectEngineRunHttpCookieMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
-                        }
-                    }
-
-                    if (tx_progress > HTP_RESPONSE_HEADERS) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHD);
-                            DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
-                        }
-                    }
-
-                    if (tx_progress >= HTP_RESPONSE_BODY) {
-                        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
-                            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
-                            DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate, flags, tx, idx);
-                            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
-                        }
-                    }
-                }
-            } /* for */
-        }
-        /* all dns based mpms */
-        else if (alproto == ALPROTO_DNS && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                    for (; idx < total_txs; idx++) {
-                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                        if (tx == NULL)
-                            continue;
-
-                        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                        DetectDnsQueryInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
-                    }
-                }
-            }
-        } else if (alproto == ALPROTO_TLS && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSNI) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSNI);
-                    DetectTlsSniInspectMpm(det_ctx, p->flow, alstate, flags);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
-                }
-            }
-        } else if (alproto == ALPROTO_SMTP && has_state) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_FD_SMTP) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
-                    SMTPState *smtp_state = (SMTPState *)alstate;
-                    uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                    uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                    for (; idx < total_txs; idx++) {
-                        void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                        if (tx == NULL)
-                            continue;
-
-                        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_FD_SMTP);
-                        DetectEngineRunSMTPMpm(de_ctx, det_ctx, p->flow, smtp_state, flags, tx, idx);
-                        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_FD_SMTP);
-                    }
-                }
-            }
-        }
-
-        if (smsg != NULL && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
-            StreamPatternSearch(det_ctx, p, smsg, flags);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
-        } else {
-            SCLogDebug("smsg NULL or no stream mpm for this sgh");
-        }
-    } else {
-        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
-
-    if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
-        if (!(p->flags & PKT_STREAM_ADD) && (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM)) {
-            *sms_runflags |= SMS_USED_PM;
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
-            PacketPatternSearchWithStreamCtx(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
-        }
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
-            /* run the multi packet matcher against the payload of the packet */
-            SCLogDebug("search: (%p, sgh->sig_cnt %" PRIu32 ")",
-                    det_ctx->sgh, det_ctx->sgh->sig_cnt);
-
-            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
-            PacketPatternSearch(det_ctx, p);
-            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
-
-            *sms_runflags |= SMS_USED_PM;
-        } else {
-            SCLogDebug("not packet");
-        }
-    } else {
-        SCLogDebug("how did we get here?");
-    }
-
-    /* UDP DNS inspection is independent of est or not */
-    if (alproto == ALPROTO_DNS && has_state) {
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            SCLogDebug("mpm inspection");
-            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_DNSQUERY) {
-                void *alstate = FlowGetAppState(p->flow);
-                if (alstate == NULL) {
-                    SCLogDebug("no alstate");
-                    return;
-                }
-
-                uint64_t idx = AppLayerParserGetTransactionInspectId(p->flow->alparser, flags);
-                uint64_t total_txs = AppLayerParserGetTxCnt(p->flow->proto, alproto, alstate);
-                for (; idx < total_txs; idx++) {
-                    void *tx = AppLayerParserGetTx(p->flow->proto, alproto, alstate, idx);
-                    if (tx == NULL)
-                        continue;
-                    SCLogDebug("tx %p",tx);
-                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_DNSQUERY);
-                    DetectDnsQueryInspectMpm(det_ctx, p->flow, alstate, flags, tx, idx);
-                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_DNSQUERY);
-                }
-            }
-        }
-    }
-
-    /* Sort the rule list to lets look at pmq.
-     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
-    if (det_ctx->pmq.rule_id_array_cnt > 1) {
-        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
-    }
-}
 
 #ifdef DEBUG
 static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
@@ -1213,15 +924,16 @@ static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEn
     return;
 }
 
-static inline void DetectPrefilterBuildNonMpmList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
+static inline void
+DetectPrefilterBuildNonPrefilterList(DetectEngineThreadCtx *det_ctx, SignatureMask mask)
 {
     uint32_t x = 0;
-    for (x = 0; x < det_ctx->non_mpm_store_cnt; x++) {
+    for (x = 0; x < det_ctx->non_pf_store_cnt; x++) {
         /* only if the mask matches this rule can possibly match,
          * so build the non_mpm array only for match candidates */
-        SignatureMask rule_mask = det_ctx->non_mpm_store_ptr[x].mask;
+        SignatureMask rule_mask = det_ctx->non_pf_store_ptr[x].mask;
         if ((rule_mask & mask) == rule_mask) {
-            det_ctx->non_mpm_id_array[det_ctx->non_mpm_id_cnt++] = det_ctx->non_mpm_store_ptr[x].id;
+            det_ctx->non_pf_id_array[det_ctx->non_pf_id_cnt++] = det_ctx->non_pf_store_ptr[x].id;
         }
     }
 }
@@ -1229,19 +941,14 @@ static inline void DetectPrefilterBuildNonMpmList(DetectEngineThreadCtx *det_ctx
 /** \internal
  *  \brief select non-mpm list
  *  Based on the packet properties, select the non-mpm list to use */
-static inline void DetectPrefilterSetNonMpmList(const Packet *p, DetectEngineThreadCtx *det_ctx)
+static inline void
+DetectPrefilterSetNonPrefilterList(const Packet *p, DetectEngineThreadCtx *det_ctx)
 {
-    if ((p->proto == IPPROTO_TCP) && (p->tcph != NULL) && (p->tcph->th_flags & TH_SYN)) {
-        det_ctx->non_mpm_store_ptr = det_ctx->sgh->non_mpm_syn_store_array;
-        det_ctx->non_mpm_store_cnt = det_ctx->sgh->non_mpm_syn_store_cnt;
-    } else {
-        det_ctx->non_mpm_store_ptr = det_ctx->sgh->non_mpm_other_store_array;
-        det_ctx->non_mpm_store_cnt = det_ctx->sgh->non_mpm_other_store_cnt;
-    }
-    SCLogDebug("sgh non_mpm ptr %p cnt %u (syn %p/%u, other %p/%u)",
-            det_ctx->non_mpm_store_ptr, det_ctx->non_mpm_store_cnt,
-            det_ctx->sgh->non_mpm_syn_store_array, det_ctx->sgh->non_mpm_syn_store_cnt,
-            det_ctx->sgh->non_mpm_other_store_array, det_ctx->sgh->non_mpm_other_store_cnt);
+    det_ctx->non_pf_store_ptr = det_ctx->sgh->non_pf_other_store_array;
+    det_ctx->non_pf_store_cnt = det_ctx->sgh->non_pf_other_store_cnt;
+
+    SCLogDebug("sgh non_pf ptr %p cnt %u",
+            det_ctx->non_pf_store_ptr, det_ctx->non_pf_store_cnt);
 }
 
 /**
@@ -1259,7 +966,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int smatch = 0; /* signature match: 1, no match: 0 */
 #endif
     uint8_t flow_flags = 0; /* flow/state flags */
-    StreamMsg *smsg = NULL;
     Signature *s = NULL;
     Signature *next_s = NULL;
     uint8_t alversion = 0;
@@ -1274,7 +980,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     p->alerts.cnt = 0;
     det_ctx->filestore_cnt = 0;
-
+    det_ctx->smsg = NULL;
     det_ctx->base64_decoded_len = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
@@ -1351,7 +1057,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
-                smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
+                det_ctx->smsg = SigMatchSignaturesGetSmsg(pflow, p, flow_flags);
 #if 0
                 StreamMsg *tmpsmsg = smsg;
                 while (tmpsmsg) {
@@ -1421,7 +1127,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
 #ifdef DEBUG
         if (pflow) {
-            DebugInspectIds(p, pflow, smsg);
+            DebugInspectIds(p, pflow, det_ctx->smsg);
         }
 #endif
     } else { /* p->flags & PKT_HAS_FLOW */
@@ -1445,7 +1151,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         goto end;
     }
 
-    DetectPrefilterSetNonMpmList(p, det_ctx);
+    DetectPrefilterSetNonPrefilterList(p, det_ctx);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
     /* stateful app layer detection */
@@ -1465,35 +1171,40 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* create our prefilter mask */
     SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, has_state, smsg, app_decoder_events);
+    PacketCreateMask(p, &mask, alproto, has_state, det_ctx->smsg,
+            app_decoder_events);
 
-    /* build and prefilter non_mpm list against the mask of the packet */
+    /* build and prefilter non_pf list against the mask of the packet */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_NONMPMLIST);
-    det_ctx->non_mpm_id_cnt = 0;
-    if (likely(det_ctx->non_mpm_store_cnt > 0)) {
-        DetectPrefilterBuildNonMpmList(det_ctx, mask);
+    det_ctx->non_pf_id_cnt = 0;
+    if (likely(det_ctx->non_pf_store_cnt > 0)) {
+        DetectPrefilterBuildNonPrefilterList(det_ctx, mask);
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_NONMPMLIST);
 
-    /* run the mpm for each type */
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
-    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flow_flags, alproto, has_state, &sms_runflags);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
+    /* run the prefilter engines */
+    Prefilter(det_ctx, det_ctx->sgh, p, flow_flags, has_state);
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (det_ctx->pmq.rule_id_array_cnt > 1) {
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+    }
+    DetectPrefilterMergeSort(de_ctx, det_ctx);
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
+
 #ifdef PROFILING
     if (th_v) {
         StatsAddUI64(th_v, det_ctx->counter_mpm_list,
                              (uint64_t)det_ctx->pmq.rule_id_array_cnt);
         StatsAddUI64(th_v, det_ctx->counter_nonmpm_list,
-                             (uint64_t)det_ctx->non_mpm_store_cnt);
+                             (uint64_t)det_ctx->non_pf_store_cnt);
         /* non mpm sigs after mask prefilter */
         StatsAddUI64(th_v, det_ctx->counter_fnonmpm_list,
-                             (uint64_t)det_ctx->non_mpm_id_cnt);
+                             (uint64_t)det_ctx->non_pf_id_cnt);
     }
 #endif
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
-    DetectPrefilterMergeSort(de_ctx, det_ctx);
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PREFILTER);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
@@ -1652,12 +1363,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
              * but not for a "dsize" signature */
             if (sflags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
-                if (smsg != NULL) {
+                if (det_ctx->smsg != NULL) {
                     uint8_t pmq_idx = 0;
-                    StreamMsg *smsg_inspect = smsg;
+                    StreamMsg *smsg_inspect = det_ctx->smsg;
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, pflow, smsg_inspect->data, smsg_inspect->data_len) == 1) {
-                            SCLogDebug("match in smsg %p", smsg);
+                            SCLogDebug("match in smsg %p", smsg_inspect);
                             pmatch = 1;
                             det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
                             /* Tell the engine that this reassembled stream can drop the
@@ -1889,7 +1600,8 @@ end:
 
         /* if we had no alerts that involved the smsgs,
          * we can get rid of them now. */
-        StreamMsgReturnListToPool(smsg);
+        StreamMsgReturnListToPool(det_ctx->smsg);
+        det_ctx->smsg = NULL;
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_CLEANUP);
 
@@ -3505,9 +3217,6 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
     uint32_t cnt_applayer = 0;
     uint32_t cnt_deonly = 0;
 
-    //DetectAddressPrintMemory();
-    //DetectPortPrintMemory();
-
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogDebug("building signature grouping structure, stage 1: "
                    "preprocessing rules...");
@@ -3597,11 +3306,42 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         RuleSetWhitelist(tmp_s);
 
+        if (!(tmp_s->flags & SIG_FLAG_PREFILTER)) {
+            int i;
+            int prefilter_list = DETECT_TBLSIZE;
+
+            /* get the keyword supporting prefilter with the lowest type */
+            for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
+                SigMatch *sm = tmp_s->sm_lists[i];
+                while (sm != NULL) {
+                    if (sigmatch_table[sm->type].SupportsPrefilter != NULL) {
+                        if (sigmatch_table[sm->type].SupportsPrefilter(tmp_s) == TRUE) {
+                            prefilter_list = MIN(prefilter_list, sm->type);
+                        }
+                    }
+                    sm = sm->next;
+                }
+            }
+
+            /* apply that keyword as prefilter */
+            if (prefilter_list != DETECT_TBLSIZE) {
+                for (i = 0; i < DETECT_SM_LIST_DETECT_MAX; i++) {
+                    SigMatch *sm = tmp_s->sm_lists[i];
+                    while (sm != NULL) {
+                        if (sm->type == prefilter_list) {
+                            tmp_s->prefilter_sm = sm;
+                            tmp_s->flags |= SIG_FLAG_PREFILTER;
+                            SCLogConfig("sid %u: prefilter is on \"%s\"", tmp_s->id, sigmatch_table[sm->type].name);
+                            break;
+                        }
+                        sm = sm->next;
+                    }
+                }
+            }
+        }
+
         de_ctx->sig_cnt++;
     }
-
-    //DetectAddressPrintMemory();
-    //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
@@ -3993,7 +3733,32 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         SCLogDebug("filestore count %u", sgh->filestore_cnt);
 
         BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
-        SigGroupHeadBuildNonMpmArray(de_ctx, sgh);
+
+        int i = 0;
+        for (i = 0; i < DETECT_TBLSIZE; i++)
+        {
+            if (sigmatch_table[i].SetupPrefilter != NULL) {
+                sigmatch_table[i].SetupPrefilter(sgh);
+            }
+        }
+
+#ifdef PROFILING
+        PrefilterEngine *e;
+        uint32_t engines = 0;
+        uint32_t tx_engines = 0;
+
+        for (e = sgh->engines ; e != NULL; e = e->next) {
+            engines++;
+            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        }
+        for (e = sgh->tx_engines ; e != NULL; e = e->next) {
+            tx_engines++;
+            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        }
+        SCLogDebug("SGH %p: engines %u tx_engines %u", sgh, engines, tx_engines);
+#endif
+
+        SigGroupHeadBuildNonPrefilterArray(de_ctx, sgh);
 
         sgh->id = idx;
         cnt++;
@@ -4104,7 +3869,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
     }
-//exit(0);
+
     if (SigAddressPrepareStage2(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
@@ -4119,8 +3884,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
 #ifdef __SC_CUDA_SUPPORT__
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             /* setting it to default.  You've gotta remove it once you fix the state table thing */
             SCACConstructBoth16and32StateTables();
@@ -4137,8 +3902,7 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
                 exit(EXIT_FAILURE);
             }
         }
-#endif
-#ifdef __SC_CUDA_SUPPORT__
+
         if (PatternMatchDefaultMatcher() == MPM_AC_CUDA) {
             int r = SCCudaCtxPopCurrent(NULL);
             if (r < 0) {
@@ -4150,13 +3914,11 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
         /* too late to call this either ways.  Should be called post ac goto.
          * \todo Support this. */
         DetermineCudaStateTableSize(de_ctx);
-#endif
     }
+#endif
+
     DetectMpmPrepareBuiltinMpms(de_ctx);
     DetectMpmPrepareAppMpms(de_ctx);
-
-//    DetectAddressPrintMemory();
-//    DetectPortPrintMemory();
 
     if (SigMatchPrepare(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
@@ -4289,6 +4051,7 @@ void SigTableSetup(void)
 
     DetectSidRegister();
     DetectPriorityRegister();
+    DetectPrefilterRegister();
     DetectRevRegister();
     DetectClasstypeRegister();
     DetectReferenceRegister();
