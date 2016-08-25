@@ -3825,7 +3825,11 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
         uint32_t engines = 0;
         uint32_t tx_engines = 0;
 
-        for (e = sgh->engines ; e != NULL; e = e->next) {
+        for (e = sgh->pkt_engines ; e != NULL; e = e->next) {
+            engines++;
+            de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
+        }
+        for (e = sgh->payload_engines ; e != NULL; e = e->next) {
             engines++;
             de_ctx->profile_prefilter_maxid = MAX(de_ctx->profile_prefilter_maxid, e->profile_id);
         }
