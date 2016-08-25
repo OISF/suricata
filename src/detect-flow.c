@@ -351,6 +351,9 @@ PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *
 {
     const PrefilterPacketHeaderCtx *ctx = pectx;
 
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
     if (FlowMatch(p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
     {
         PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
