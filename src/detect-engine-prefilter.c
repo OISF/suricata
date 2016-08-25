@@ -115,6 +115,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
     PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->profile_prefilter_maxid);
 
+    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
     /* run packet engines */
     PrefilterEngine *engine = sgh->pkt_engines;
     while (engine) {
@@ -124,9 +125,11 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
         engine = engine->next;
     }
+    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PKT);
 
     /* run payload inspecting engines */
     if ((p->payload_len > 0 || det_ctx->smsg != NULL) && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
         engine = sgh->payload_engines;
         while (engine) {
             PROFILING_PREFILTER_START(p);
@@ -135,6 +138,7 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
             engine = engine->next;
         }
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PAYLOAD);
     }
 
     /* run tx engines */
@@ -142,7 +146,9 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
         if (sgh->tx_engines != NULL && p->flow != NULL &&
                 p->flow->alproto != ALPROTO_UNKNOWN && p->flow->alstate != NULL)
         {
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_TX);
             PrefilterTx(det_ctx, sgh, p, flags);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
         }
     }
 }
