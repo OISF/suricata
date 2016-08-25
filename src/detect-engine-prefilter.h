@@ -31,6 +31,10 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
         void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
         void *pectx, void (*FreeFunc)(void *pectx),
         const char *name);
+int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
+        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name);
 int PrefilterAppendTxEngine(SigGroupHead *sgh,
         void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
             Packet *p, Flow *f, void *tx,
