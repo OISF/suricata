@@ -247,6 +247,9 @@ PrefilterPacketIdMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pe
         return;
     }
 
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
     if (IPV4_GET_IPID(p) == ctx->v1.u16[0])
     {
         SCLogDebug("packet matches IP id %u", ctx->v1.u16[0]);
