@@ -560,8 +560,10 @@ PrefilterPacketFlagsMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void 
     }
 
     const PrefilterPacketHeaderCtx *ctx = pectx;
-    const uint8_t flags = p->tcph->th_flags;
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
 
+    const uint8_t flags = p->tcph->th_flags;
     if (FlagsMatch(flags, ctx->v1.u8[0], ctx->v1.u8[1], ctx->v1.u8[2]))
     {
         SCLogDebug("packet matches TCP flags %02x", ctx->v1.u8[1]);
