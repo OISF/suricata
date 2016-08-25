@@ -83,7 +83,7 @@ static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
 
 int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendEngine(sgh, PrefilterPktStream, mpm_ctx, NULL, "stream");
+    return PrefilterAppendPayloadEngine(sgh, PrefilterPktStream, mpm_ctx, NULL, "stream");
 }
 
 static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
@@ -112,7 +112,7 @@ static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
 
 int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
-    return PrefilterAppendEngine(sgh, PrefilterPktPayload, mpm_ctx, NULL, "payload");
+    return PrefilterAppendPayloadEngine(sgh, PrefilterPktPayload, mpm_ctx, NULL, "payload");
 }
 
 

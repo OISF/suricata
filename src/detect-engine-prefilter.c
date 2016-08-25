@@ -116,13 +116,25 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
     PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->profile_prefilter_maxid);
 
     /* run packet engines */
-    PrefilterEngine *engine = sgh->engines;
+    PrefilterEngine *engine = sgh->pkt_engines;
     while (engine) {
         PROFILING_PREFILTER_START(p);
         engine->Prefilter(det_ctx, p, engine->pectx);
         PROFILING_PREFILTER_END(p, engine->profile_id);
 
         engine = engine->next;
+    }
+
+    /* run payload inspecting engines */
+    if ((p->payload_len > 0 || det_ctx->smsg != NULL) && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
+        engine = sgh->payload_engines;
+        while (engine) {
+            PROFILING_PREFILTER_START(p);
+            engine->Prefilter(det_ctx, p, engine->pectx);
+            PROFILING_PREFILTER_END(p, engine->profile_id);
+
+            engine = engine->next;
+        }
     }
 
     /* run tx engines */
@@ -151,10 +163,46 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
     e->pectx = pectx;
     e->Free = FreeFunc;
 
-    if (sgh->engines == NULL) {
-        sgh->engines = e;
+    if (sgh->pkt_engines == NULL) {
+        sgh->pkt_engines = e;
     } else {
-        PrefilterEngine *t = sgh->engines;
+        PrefilterEngine *t = sgh->pkt_engines;
+        while (t->next != NULL) {
+            t = t->next;
+        }
+
+        t->next = e;
+        e->id = t->id + 1;
+    }
+
+#ifdef PROFILING
+    sgh->engines_cnt = e->id;
+    e->name = name;
+    e->profile_id = PrefilterStoreGetId(e->name);
+#endif
+    return 0;
+}
+
+int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
+        void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx),
+        void *pectx, void (*FreeFunc)(void *pectx),
+        const char *name)
+{
+    if (sgh == NULL || Prefilter == NULL || pectx == NULL)
+        return -1;
+
+    PrefilterEngine *e = SCCalloc(1, sizeof(*e));
+    if (e == NULL)
+        return -1;
+
+    e->Prefilter = Prefilter;
+    e->pectx = pectx;
+    e->Free = FreeFunc;
+
+    if (sgh->payload_engines == NULL) {
+        sgh->payload_engines = e;
+    } else {
+        PrefilterEngine *t = sgh->payload_engines;
         while (t->next != NULL) {
             t = t->next;
         }
