@@ -22,13 +22,16 @@
 typedef struct PrefilterPacketHeaderHashCtx_ {
     PrefilterPacketHeaderValue v1;
 
+    uint16_t type;  /**< PREFILTER_EXTRA_MATCH_* */
+    uint16_t value;
+
     uint32_t cnt;
 } PrefilterPacketHeaderHashCtx;
 
 static uint32_t PrefilterPacketHeaderHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
     PrefilterPacketHeaderCtx *ctx = data;
-    uint64_t hash = ctx->v1.u64;
+    uint64_t hash = ctx->v1.u64 + ctx->type + ctx->value;
     hash %= ht->array_size;
     return hash;
 }
@@ -38,7 +41,9 @@ static char PrefilterPacketHeaderCompareFunc(void *data1, uint16_t len1,
 {
     PrefilterPacketHeaderHashCtx *ctx1 = data1;
     PrefilterPacketHeaderHashCtx *ctx2 = data2;
-    return (ctx1->v1.u64 == ctx2->v1.u64);
+    return (ctx1->v1.u64 == ctx2->v1.u64 &&
+            ctx1->type == ctx2->type &&
+            ctx1->value == ctx2->value);
 }
 
 static void PrefilterPacketHeaderFreeFunc(void *ptr)
@@ -67,11 +72,29 @@ static void PrefilterPacketU8HashCtxFree(void *vctx)
     SCFree(ctx);
 }
 
+static void GetExtraMatch(const Signature *s, uint16_t *type, uint16_t *value)
+{
+    if (s->sp != NULL && s->sp->next == NULL && s->sp->port == s->sp->port2 &&
+        !(s->sp->flags & PORT_FLAG_NOT))
+    {
+        *type = PREFILTER_EXTRA_MATCH_SRCPORT;
+        *value = s->sp->port;
+    } else if (s->alproto != ALPROTO_UNKNOWN) {
+        *type = PREFILTER_EXTRA_MATCH_ALPROTO;
+        *value = s->alproto;
+    } else if (s->dp != NULL && s->dp->next == NULL && s->dp->port == s->dp->port2 &&
+        !(s->dp->flags & PORT_FLAG_NOT))
+    {
+        *type = PREFILTER_EXTRA_MATCH_DSTPORT;
+        *value = s->dp->port;
+    }
+}
+
 /** \internal
  */
 static int
 SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
-        PrefilterPacketHeaderValue v, uint32_t count,
+        PrefilterPacketHeaderHashCtx *hctx,
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx))
 {
@@ -83,8 +106,11 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
     if (ctx == NULL)
         return -1;
 
-    ctx->v1 = v;
-    ctx->sigs_cnt = count;
+    ctx->v1 = hctx->v1;
+    ctx->type = hctx->type;
+    ctx->value = hctx->value;
+
+    ctx->sigs_cnt = hctx->cnt;
     ctx->sigs_array = SCCalloc(ctx->sigs_cnt, sizeof(SigIntId));
     if (ctx->sigs_array == NULL) {
         SCFree(ctx);
@@ -98,7 +124,13 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
         if (s->prefilter_sm == NULL || s->prefilter_sm->type != sm_type)
             continue;
 
-        if (Compare(v, s->prefilter_sm->ctx)) {
+        uint16_t type = 0;
+        uint16_t value = 0;
+        GetExtraMatch(s, &type, &value);
+
+        if (Compare(ctx->v1, s->prefilter_sm->ctx) &&
+            ctx->type == type && ctx->value == value)
+        {
             SCLogDebug("appending sid %u on %u", s->id, sig_offset);
             ctx->sigs_array[sig_offset] = s->num;
             sig_offset++;
@@ -107,6 +139,9 @@ SetupEngineForPacketHeader(SigGroupHead *sgh, int sm_type,
         }
     }
 
+    SCLogDebug("%s: ctx %p extra type %u extra value %u, sig cnt %u",
+            sigmatch_table[sm_type].name, ctx, ctx->type, ctx->value,
+            ctx->sigs_cnt);
     PrefilterAppendEngine(sgh, Match, ctx, PrefilterPacketHeaderFree,
             sigmatch_table[sm_type].name);
     return 0;
@@ -228,8 +263,7 @@ static void SetupSingle(HashListTable *hash_table,
         PrefilterPacketHeaderHashCtx *ctx = HashListTableGetListData(hb);
 
         SetupEngineForPacketHeader(sgh, sm_type,
-                ctx->v1, ctx->cnt,
-                Compare, Match);
+                ctx, Compare, Match);
     }
 }
 
@@ -321,6 +355,8 @@ static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
         memset(&ctx, 0, sizeof(ctx));
         Set(&ctx.v1, s->prefilter_sm->ctx);
 
+        GetExtraMatch(s, &ctx.type, &ctx.value);
+
         PrefilterPacketHeaderHashCtx *rctx = HashListTableLookup(hash_table, (void *)&ctx, 0);
         if (rctx != 0) {
             rctx->cnt++;
@@ -331,6 +367,8 @@ static int PrefilterSetupPacketHeaderCommon(SigGroupHead *sgh, int sm_type,
 
             Set(&actx->v1, s->prefilter_sm->ctx);
             actx->cnt = 1;
+            actx->type = ctx.type;
+            actx->value = ctx.value;
 
             int ret = HashListTableAdd(hash_table, actx, 0);
             if (ret != 0) {
