@@ -28,4 +28,14 @@ int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
                               Signature *s, Flow *f, uint8_t flags,
                               void *alstate, void *txv, uint64_t tx_id);
 
+int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                 DetectEngineThreadCtx *det_ctx,
+                                 Signature *s, Flow *f, uint8_t flags,
+                                 void *alstate, void *txv, uint64_t tx_id);
+
+int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, Flow *f, uint8_t flags,
+                                  void *alstate, void *txv, uint64_t tx_id);
+
 #endif /* __DETECT_ENGINE_TLS_H__ */

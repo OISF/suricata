@@ -143,3 +143,201 @@ int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     return cnt;
 }
+
+/**
+ * \brief TLS issuer match -- searches for one pattern per signature.
+ *
+ * \param det_ctx   Detection engine thread ctx
+ * \param hrh       Buffer to inspect
+ * \param hrh_len   Buffer length
+ * \param flags     Flags
+ *
+ * \retval ret      Number of matches
+ */
+static inline uint32_t TlsIssuerPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                              const uint8_t *buffer,
+                                              const uint32_t buffer_len,
+                                              const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOSERVER);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlsissuer_ctx_ts == NULL);
+
+    if (buffer_len >= det_ctx->sgh->mpm_tlsissuer_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_tlsissuer_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_tlsissuer_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
+/**
+ *  \brief Run the pattern matcher against the TLS issuer buffer
+ *
+ *  \param det_ctx    Detection engine thread ctx
+ *  \param f          Locked flow
+ *  \param dns_state  Initialized dns state
+ *  \param flags      Flags
+ *
+ *  \retval cnt       Number of matches
+ */
+uint32_t DetectTlsIssuerInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                   SSLState *ssl_state, uint8_t flags)
+{
+    SCEnter();
+
+    uint8_t *buffer;
+    uint32_t buffer_len;
+    uint32_t cnt = 0;
+
+    if (ssl_state->server_connp.cert0_issuerdn == NULL)
+        return 0;
+
+    buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
+    buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
+
+    cnt = TlsIssuerPatternSearch(det_ctx, buffer, buffer_len, flags);
+
+    SCReturnUInt(cnt);
+}
+
+/** \brief Do the content inspection and validation for a signature
+ *
+ *  \param de_ctx   Detection engine context
+ *  \param det_ctx  Detection engine thread context
+ *  \param s        Signature to inspect
+ *  \param sm       SigMatch to inspect
+ *  \param f        Flow
+ *  \param flags    App layer flags
+ *  \param state    App layer state
+ *
+ *  \retval 0       No match
+ *  \retval 1       Match
+ */
+int DetectEngineInspectTlsIssuer(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                 DetectEngineThreadCtx *det_ctx, Signature *s,
+                                 Flow *f, uint8_t flags, void *alstate, void *txv,
+                                 uint64_t tx_id)
+{
+    uint8_t *buffer;
+    uint16_t buffer_len;
+    int cnt = 0;
+
+    SSLState *ssl_state = (SSLState *)alstate;
+
+    if (ssl_state->server_connp.cert0_issuerdn == NULL)
+        return 0;
+
+    buffer = (uint8_t *)ssl_state->server_connp.cert0_issuerdn;
+    buffer_len = strlen(ssl_state->server_connp.cert0_issuerdn);
+
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
+            s->sm_lists[DETECT_SM_LIST_TLSISSUER_MATCH],
+            f, buffer, buffer_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_TLSISSUER, NULL);
+
+    return cnt;
+}
+
+/**
+ * \brief TLS subject match -- searches for one pattern per signature.
+ *
+ * \param det_ctx   Detection engine thread ctx
+ * \param hrh       Buffer to inspect
+ * \param hrh_len   Buffer length
+ * \param flags     Flags
+ *
+ * \retval ret      Number of matches
+ */
+static inline uint32_t TlsSubjectPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                               const uint8_t *buffer,
+                                               const uint32_t buffer_len,
+                                               const uint8_t flags)
+{
+    SCEnter();
+
+    uint32_t ret = 0;
+
+    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOSERVER);
+    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_tlssubject_ctx_ts == NULL);
+
+    if (buffer_len >= det_ctx->sgh->mpm_tlssubject_ctx_ts->minlen) {
+        ret = mpm_table[det_ctx->sgh->mpm_tlssubject_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_tlssubject_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, buffer, buffer_len);
+    }
+
+    SCReturnUInt(ret);
+}
+
+/**
+ *  \brief Run the pattern matcher against the TLS subject buffer
+ *
+ *  \param det_ctx    Detection engine thread ctx
+ *  \param f          Locked flow
+ *  \param dns_state  Initialized dns state
+ *  \param flags      Flags
+ *
+ *  \retval cnt       Number of matches
+ */
+uint32_t DetectTlsSubjectInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                    SSLState *ssl_state, uint8_t flags)
+{
+    SCEnter();
+
+    uint8_t *buffer;
+    uint32_t buffer_len;
+    uint32_t cnt = 0;
+
+    if (ssl_state->server_connp.cert0_subject == NULL)
+        return 0;
+
+    buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
+    buffer_len = strlen(ssl_state->server_connp.cert0_subject);
+
+    cnt = TlsSubjectPatternSearch(det_ctx, buffer, buffer_len, flags);
+
+    SCReturnUInt(cnt);
+}
+
+/** \brief Do the content inspection and validation for a signature
+ *
+ *  \param de_ctx   Detection engine context
+ *  \param det_ctx  Detection engine thread context
+ *  \param s        Signature to inspect
+ *  \param sm       SigMatch to inspect
+ *  \param f        Flow
+ *  \param flags    App layer flags
+ *  \param state    App layer state
+ *
+ *  \retval 0       No match
+ *  \retval 1       Match
+ */
+int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx, Signature *s,
+                                  Flow *f, uint8_t flags, void *alstate, void *txv,
+                                  uint64_t tx_id)
+{
+    uint8_t *buffer;
+    uint16_t buffer_len;
+    int cnt = 0;
+
+    SSLState *ssl_state = (SSLState *)alstate;
+
+    if (ssl_state->server_connp.cert0_subject == NULL)
+        return 0;
+
+    buffer = (uint8_t *)ssl_state->server_connp.cert0_subject;
+    buffer_len = strlen(ssl_state->server_connp.cert0_subject);
+
+    cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
+            s->sm_lists[DETECT_SM_LIST_TLSSUBJECT_MATCH],
+            f, buffer, buffer_len, 0,
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_TLSSUBJECT, NULL);
+
+    return cnt;
+}
