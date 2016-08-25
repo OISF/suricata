@@ -25,8 +25,16 @@ typedef union {
     uint64_t u64;
 } PrefilterPacketHeaderValue;
 
+#define PREFILTER_EXTRA_MATCH_UNUSED  0
+#define PREFILTER_EXTRA_MATCH_ALPROTO 1
+#define PREFILTER_EXTRA_MATCH_SRCPORT 2
+#define PREFILTER_EXTRA_MATCH_DSTPORT 3
+
 typedef struct PrefilterPacketHeaderCtx_ {
     PrefilterPacketHeaderValue v1;
+
+    uint16_t type;
+    uint16_t value;
 
     /** rules to add when the flags are present */
     uint32_t sigs_cnt;
@@ -59,5 +67,29 @@ int PrefilterSetupPacketHeaderU8Hash(SigGroupHead *sgh, int sm_type,
         _Bool (*Compare)(PrefilterPacketHeaderValue v, void *),
         void (*Match)(DetectEngineThreadCtx *det_ctx,
             Packet *p, const void *pectx));
+
+static inline _Bool
+PrefilterPacketHeaderExtraMatch(const PrefilterPacketHeaderCtx *ctx,
+                                const Packet *p)
+{
+    switch (ctx->type)
+    {
+        case PREFILTER_EXTRA_MATCH_UNUSED:
+            break;
+        case PREFILTER_EXTRA_MATCH_ALPROTO:
+            if (p->flow == NULL || p->flow->alproto != ctx->value)
+                return FALSE;
+            break;
+        case PREFILTER_EXTRA_MATCH_SRCPORT:
+            if (p->sp != ctx->value)
+                return FALSE;
+            break;
+        case PREFILTER_EXTRA_MATCH_DSTPORT:
+            if (p->dp != ctx->value)
+                return FALSE;
+            break;
+    }
+    return TRUE;
+}
 
 #endif /* __DETECT_ENGINE_PREFILTER_COMMON_H__ */
