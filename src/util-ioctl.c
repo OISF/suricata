@@ -236,6 +236,33 @@ int GetIfaceCaps(const char *ifname)
     return ifr.ifr_curcap;
 }
 #endif
+#ifdef SIOCSIFCAP
+int SetIfaceCaps(const char *ifname, int caps)
+{
+    struct ifreq ifr;
+
+    int fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        return -1;
+    }
+
+    memset(&ifr, 0, sizeof(ifr));
+    strlcpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+    ifr.ifr_reqcap = caps;
+
+    if (ioctl(fd, SIOCSIFCAP, &ifr) == -1) {
+        SCLogError(SC_ERR_SYSCALL,
+                   "Unable to set caps for iface \"%s\": %s",
+                   ifname, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    close(fd);
+    return 0;
+}
+#endif
+
 
 #if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
 static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
@@ -261,6 +288,33 @@ static int GetEthtoolValue(const char *dev, int cmd, uint32_t *value)
     }
 
     *value = ethv.data;
+    close(fd);
+    return 0;
+}
+
+static int SetEthtoolValue(const char *dev, int cmd, uint32_t value)
+{
+    struct ifreq ifr;
+    int fd;
+    struct ethtool_value ethv;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd == -1) {
+        return -1;
+    }
+    (void)strlcpy(ifr.ifr_name, dev, sizeof(ifr.ifr_name));
+
+    ethv.cmd = cmd;
+    ethv.data = value;
+    ifr.ifr_data = (void *) &ethv;
+    if (ioctl(fd, SIOCETHTOOL, (char *)&ifr) < 0) {
+        SCLogWarning(SC_ERR_SYSCALL,
+                  "Failure when trying to get feature via ioctl for '%s': %s (%d)",
+                  dev, strerror(errno), errno);
+        close(fd);
+        return -1;
+    }
+
     close(fd);
     return 0;
 }
@@ -345,6 +399,62 @@ static int GetIfaceOffloadingLinux(const char *dev, int csum, int other)
     return ret;
 }
 
+static int DisableIfaceOffloadingLinux(const char *dev, int csum, int other)
+{
+    int ret = 0;
+    uint32_t value = 0;
+
+    if (csum) {
+#ifdef ETHTOOL_GRXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GRXCSUM, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling rxcsum offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SRXCSUM, 0);
+        }
+#endif
+#ifdef ETHTOOL_GTXCSUM
+        if (GetEthtoolValue(dev, ETHTOOL_GTXCSUM, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling txcsum offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_STXCSUM, 0);
+        }
+#endif
+    }
+    if (other) {
+#ifdef ETHTOOL_GGRO
+        if (GetEthtoolValue(dev, ETHTOOL_GGRO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling gro offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SGRO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GTSO
+        if (GetEthtoolValue(dev, ETHTOOL_GTSO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling tso offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_STSO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GGSO
+        if (GetEthtoolValue(dev, ETHTOOL_GGSO, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling gso offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SGSO, 0);
+        }
+#endif
+#ifdef ETHTOOL_GSG
+        if (GetEthtoolValue(dev, ETHTOOL_GSG, &value) == 0 && value != 0) {
+            SCLogInfo("%s: disabling sg offloading", dev);
+            SetEthtoolValue(dev, ETHTOOL_SSG, 0);
+        }
+#endif
+#ifdef ETHTOOL_GFLAGS
+        if (GetEthtoolValue(dev, ETHTOOL_GFLAGS, &value) == 0) {
+            if (value & ETH_FLAG_LRO) {
+                SCLogInfo("%s: disabling lro offloading", dev);
+                SetEthtoolValue(dev, ETHTOOL_SSG, value & ~ETH_FLAG_LRO);
+            }
+        }
+#endif
+    }
+    return ret;
+}
+
 #endif /* defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL */
 
 #ifdef SIOCGIFCAP
@@ -384,6 +494,40 @@ static int GetIfaceOffloadingBSD(const char *ifname)
 }
 #endif
 
+#ifdef SIOCSIFCAP
+static int DisableIfaceOffloadingBSD(const char *ifname)
+{
+    int ret = 0;
+    int if_caps = GetIfaceCaps(ifname);
+    int set_caps = if_caps;
+    if (if_caps == -1) {
+        return -1;
+    }
+    SCLogDebug("if_caps %X", if_caps);
+
+    if (if_caps & IFCAP_RXCSUM) {
+        SCLogInfo("%s: disabling rxcsum offloading", ifname);
+        set_caps &= ~IFCAP_RXCSUM;
+    }
+
+#ifdef IFCAP_TOE
+    if (if_caps & (IFCAP_TSO|IFCAP_TOE|IFCAP_LRO)) {
+        SCLogInfo("%s: disabling tso|toe|lro offloading", ifname);
+        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+    }
+#else
+    if (if_caps & (IFCAP_TSO|IFCAP_LRO)) {
+        SCLogInfo("%s: disabling tso|lro offloading", ifname);
+        set_caps &= ~(IFCAP_TSO|IFCAP_LRO);
+    }
+#endif
+    if (set_caps != if_caps) {
+        SetIfaceCaps(ifname, set_caps);
+    }
+    return ret;
+}
+#endif
+
 /**
  * \brief output offloading status of the link
  *
@@ -407,6 +551,18 @@ int GetIfaceOffloading(const char *dev, int csum, int other)
 #else
     return 0;
 #endif
+}
+
+int DisableIfaceOffloading(const char *dev, int csum, int other)
+{
+#if defined HAVE_LINUX_ETHTOOL_H && defined SIOCETHTOOL
+    return DisableIfaceOffloadingLinux(dev, csum, other);
+#elif defined SIOCSIFCAP
+    return DisableIfaceOffloadingBSD(dev);
+#else
+    return 0;
+#endif
+
 }
 
 int GetIfaceRSSQueuesNum(const char *pcap_dev)
