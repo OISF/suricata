@@ -182,15 +182,15 @@ int NapatechGetThreadsCount(void *conf __attribute__((unused))) {
 static int NapatechInit(int runmode)
 {
     int ret;
-    char errbuf[100];
+    char error_buf[100];
 
     RunModeInitialize();
     TimeModeSetLive();
 
     /* Initialize the API and check version compatibility */
     if ((ret = NT_Init(NTAPI_VERSION)) != NT_SUCCESS) {
-        NT_ExplainError(ret, errbuf, sizeof(errbuf));
-        SCLogError(SC_ERR_NAPATECH_INIT_FAILED ,"NT_Init failed. Code 0x%X = %s", ret, errbuf);
+        NT_ExplainError(ret, error_buf, sizeof(error_buf) -1);
+        SCLogError(SC_ERR_NAPATECH_INIT_FAILED ,"NT_Init failed. Code 0x%X = %s", ret, error_buf);
         exit(EXIT_FAILURE);
     }
 
