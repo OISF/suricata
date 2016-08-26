@@ -149,6 +149,13 @@ struct AppLayerParserState_ {
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
 
+int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto)
+{
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    return (alp_ctx.ctxs[ipproto_map][alproto].StateAlloc != NULL) ? 1 : 0;
+}
+
 AppLayerParserState *AppLayerParserStateAlloc(void)
 {
     SCEnter();
@@ -594,7 +601,7 @@ uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint
     SCReturnCT(pstate->inspect_id[direction & STREAM_TOSERVER ? 0 : 1], "uint64_t");
 }
 
-void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
+void AppLayerParserSetTransactionInspectId(ThreadVars *tv, AppLayerParserState *pstate,
                                            const uint8_t ipproto, const AppProto alproto,
                                            void *alstate, const uint8_t flags)
 {
@@ -616,6 +623,11 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
             continue;
         else
             break;
+    }
+
+    /* account tx as soon as we have a request to server */
+    if (direction == 0) {
+        AppLayerIncTxCounter(ipproto, alproto, tv, idx - pstate->inspect_id[0]);
     }
     pstate->inspect_id[direction] = idx;
 
