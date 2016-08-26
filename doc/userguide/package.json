@@ -1,0 +1,14 @@
+{
+  "name": "suricata-documentation",
+  "version": "0.0.0",
+  "description": "",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-watch": "^4.3.5",
+    "gulp-webserver": "^0.9.1"
+  },
+  "dependencies": {},
+  "scripts": {},
+  "author": "",
+  "license": "GPLv2"
+}
