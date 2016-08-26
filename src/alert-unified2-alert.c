@@ -693,6 +693,7 @@ error:
 static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, uint32_t event_id, int stream)
 {
     int ret = 0;
+    DetectTagDataEntry *tag = p->tag;
 
     if (!(aun->unified2alert_ctx->flags & UNIFIED2_ALERT_FLAGS_EMIT_PACKET))
         return 1;
@@ -735,8 +736,14 @@ static int Unified2PacketTypeAlert(Unified2AlertThread *aun, const Packet *p, ui
 
         phdr->sensor_id = htonl(sensor_id);
         phdr->linktype = htonl(datalink);
-        phdr->event_id =  event_id;
-        phdr->event_second = phdr->packet_second = htonl(p->ts.tv_sec);
+        if (tag != NULL) {
+            phdr->event_second = htonl(tag->first_ts);
+            phdr->packet_second = htonl(p->ts.tv_sec);
+            phdr->event_id = tag->event_id;
+        } else {
+            phdr->event_second = phdr->packet_second = htonl(p->ts.tv_sec);
+            phdr->event_id = event_id;
+        }
         phdr->packet_microsecond = htonl(p->ts.tv_usec);
         aun->phdr = phdr;
 
@@ -885,7 +892,8 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         else {
             if (!(p->flags & PKT_HAS_TAG))
                 break;
-            pa = PacketAlertGetTag();
+            Unified2PacketTypeAlert(aun, p, 0, 0);
+            continue;
         }
 
         if (unlikely(pa->s == NULL))
@@ -935,6 +943,11 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
         phdr->signature_revision = htonl(pa->s->rev);
         phdr->classification_id = htonl(pa->s->class);
         phdr->priority_id = htonl(pa->s->prio);
+
+        /* Set the event id on the tag for future tagged packets. */
+        if (p->tag != NULL && p->tag->event_id == 0) {
+            p->tag->event_id = event_id;
+        }
 
         SCMutexLock(&aun->unified2alert_ctx->file_ctx->fp_mutex);
         if ((aun->unified2alert_ctx->file_ctx->size_current + length) >
@@ -1062,7 +1075,8 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         else {
             if (!(p->flags & PKT_HAS_TAG))
                 break;
-            pa = PacketAlertGetTag();
+            Unified2PacketTypeAlert(aun, p, 0, 0);
+            continue;
         }
 
         if (unlikely(pa->s == NULL))
@@ -1112,6 +1126,11 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
         phdr->signature_revision = htonl(pa->s->rev);
         phdr->classification_id = htonl(pa->s->class);
         phdr->priority_id = htonl(pa->s->prio);
+
+        /* Set the event id on the tag for future tagged packets. */
+        if (p->tag != NULL && p->tag->event_id == 0) {
+            p->tag->event_id = event_id;
+        }
 
         /* check and enforce the filesize limit */
         SCMutexLock(&aun->unified2alert_ctx->file_ctx->fp_mutex);

@@ -104,6 +104,7 @@ static DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd)
     tde->flags = dtd->flags;
     tde->metric = dtd->metric;
     tde->count = dtd->count;
+    tde->event_id = dtd->event_id;
 
     tde->first_ts = dtd->first_ts;
     tde->last_ts = dtd->last_ts;
@@ -273,6 +274,10 @@ static void TagHandlePacketFlow(Flow *f, Packet *p)
             case DETECT_TAG_METRIC_BYTES:
                 iter->bytes += GET_PKT_LEN(p);
                 break;
+        }
+
+        if (p->tag == NULL) {
+            p->tag = iter;
         }
 
         /* If this packet triggered the rule with tag, we dont need

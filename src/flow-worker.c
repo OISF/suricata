@@ -46,6 +46,7 @@
 #include "detect-engine.h"
 
 #include "util-validate.h"
+#include "util-time.h"
 
 typedef DetectEngineThreadCtx *DetectEngineThreadCtxPtr;
 

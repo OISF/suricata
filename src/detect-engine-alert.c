@@ -29,32 +29,6 @@
 
 #include "util-profiling.h"
 
-/** tag signature we use for tag alerts */
-static Signature g_tag_signature;
-/** tag packet alert structure for tag alerts */
-static PacketAlert g_tag_pa;
-
-void PacketAlertTagInit(void)
-{
-    memset(&g_tag_signature, 0x00, sizeof(g_tag_signature));
-
-    g_tag_signature.id = TAG_SIG_ID;
-    g_tag_signature.gid = TAG_SIG_GEN;
-    g_tag_signature.num = TAG_SIG_ID;
-    g_tag_signature.rev = 1;
-    g_tag_signature.prio = 2;
-
-    memset(&g_tag_pa, 0x00, sizeof(g_tag_pa));
-
-    g_tag_pa.action = ACTION_ALERT;
-    g_tag_pa.s = &g_tag_signature;
-}
-
-PacketAlert *PacketAlertGetTag(void)
-{
-    return &g_tag_pa;
-}
-
 /**
  * \brief Handle a packet and check if needs a threshold logic
  *        Also apply rule action if necessary.

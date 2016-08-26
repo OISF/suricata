@@ -85,6 +85,7 @@ enum PktSrcEnum {
 #include "decode-mpls.h"
 
 #include "detect-reference.h"
+#include "detect-tag.h"
 
 #include "app-layer-protos.h"
 
@@ -558,6 +559,9 @@ typedef struct Packet_
      * the packet to its owner's stack. If NULL, then allocated with malloc.
      */
     struct PktPool_ *pool;
+
+    /** Tag information if tagged. */
+    DetectTagDataEntry *tag;
 
 #ifdef PROFILING
     PktProfiling *profile;
