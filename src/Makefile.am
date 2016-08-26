@@ -102,6 +102,7 @@ detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hrhhd.c detect-engine-hrhhd.h \
 detect-engine-hrud.c detect-engine-hrud.h \
+detect-engine-hrl.c detect-engine-hrl.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \

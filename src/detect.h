@@ -110,6 +110,8 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HCDMATCH,
     /* list for http_user_agent keyword and the ones relative to it */
     DETECT_SM_LIST_HUADMATCH,
+    /* list for http_request_line keyword and the ones relative to it */
+    DETECT_SM_LIST_HRLMATCH,
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT,
 

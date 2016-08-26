@@ -891,7 +891,9 @@ static int DetectLuajitSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else if (luajit->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRLMATCH);
+    } else if (luajit->alproto == ALPROTO_DNS) {
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERY_MATCH);
     } else {
         SCLogError(SC_ERR_LUAJIT_ERROR, "luajit can't be used with protocol %s",
                    AppLayerGetProtoName(luajit->alproto));
