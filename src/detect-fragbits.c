@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Breno Silva <breno.silva@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * Implements fragbits keyword
  */
@@ -29,6 +30,8 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "flow-var.h"
 #include "decode-events.h"
@@ -69,6 +72,9 @@ static int DetectFragBitsMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *,
 static int DetectFragBitsSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectFragBitsFree(void *);
 
+static int PrefilterSetupIpFrag(SigGroupHead *sgh);
+static _Bool PrefilterIpFragIsPrefilterable(const Signature *s);
+
 /**
  * \brief Registration function for fragbits: keyword
  */
@@ -83,7 +89,37 @@ void DetectFragBitsRegister (void)
     sigmatch_table[DETECT_FRAGBITS].Free  = DetectFragBitsFree;
     sigmatch_table[DETECT_FRAGBITS].RegisterTests = FragBitsRegisterTests;
 
+    sigmatch_table[DETECT_FRAGBITS].SetupPrefilter = PrefilterSetupIpFrag;
+    sigmatch_table[DETECT_FRAGBITS].SupportsPrefilter = PrefilterIpFragIsPrefilterable;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+static inline int
+FragBitsMatch(const uint8_t pbits, const uint8_t modifier,
+              const uint8_t dbits)
+{
+    switch (modifier) {
+        case MODIFIER_ANY:
+            if ((pbits & dbits) > 0)
+                return 1;
+            return 0;
+
+        case MODIFIER_PLUS:
+            if (((pbits & dbits) == dbits) && (((pbits - dbits) > 0)))
+                return 1;
+            return 0;
+
+        case MODIFIER_NOT:
+            if ((pbits & dbits) != dbits)
+                return 1;
+            return 0;
+
+        default:
+            if (pbits == dbits)
+                return 1;
+    }
+    return 0;
 }
 
 /**
@@ -99,15 +135,14 @@ void DetectFragBitsRegister (void)
  * \retval 0 no match
  * \retval 1 match
  */
-static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, const SigMatchCtx *ctx)
+static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+        Packet *p, Signature *s, const SigMatchCtx *ctx)
 {
-    int ret = 0;
-    uint16_t fragbits = 0;
+    if (!ctx || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
+        return 0;
+
+    uint8_t fragbits = 0;
     const DetectFragBitsData *de = (const DetectFragBitsData *)ctx;
-
-    if (!de || !PKT_IS_IPV4(p) || !p || PKT_IS_PSEUDOPKT(p))
-        return ret;
-
     if(IPV4_GET_MF(p))
         fragbits |= FRAGBITS_HAVE_MF;
     if(IPV4_GET_DF(p))
@@ -115,25 +150,7 @@ static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, P
     if(IPV4_GET_RF(p))
         fragbits |= FRAGBITS_HAVE_RF;
 
-    switch(de->modifier)    {
-        case MODIFIER_ANY:
-            if((fragbits & de->fragbits) > 0)
-                return 1;
-            return ret;
-        case MODIFIER_PLUS:
-            if(((fragbits & de->fragbits) == de->fragbits) && (((fragbits - de->fragbits) > 0)))
-                return 1;
-            return ret;
-        case MODIFIER_NOT:
-            if((fragbits & de->fragbits) != de->fragbits)
-                return 1;
-            return ret;
-        default:
-            if(fragbits == de->fragbits)
-                return 1;
-    }
-
-    return ret;
+    return FragBitsMatch(fragbits, de->modifier, de->fragbits);
 }
 
 /**
@@ -305,6 +322,75 @@ static void DetectFragBitsFree(void *de_ptr)
 {
     DetectFragBitsData *de = (DetectFragBitsData *)de_ptr;
     if(de) SCFree(de);
+}
+
+static void
+PrefilterPacketIpFragMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
+        return;
+
+    uint8_t fragbits = 0;
+    if (IPV4_GET_MF(p))
+        fragbits |= FRAGBITS_HAVE_MF;
+    if (IPV4_GET_DF(p))
+        fragbits |= FRAGBITS_HAVE_DF;
+    if (IPV4_GET_RF(p))
+        fragbits |= FRAGBITS_HAVE_RF;
+
+    if (FragBitsMatch(fragbits, ctx->v1.u8[0], ctx->v1.u8[1]))
+    {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketIpFragSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectFragBitsData *fb = smctx;
+    v->u8[0] = fb->modifier;
+    v->u8[1] = fb->fragbits;
+}
+
+static _Bool
+PrefilterPacketIpFragCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectFragBitsData *fb = smctx;
+    if (v.u8[0] == fb->modifier &&
+        v.u8[1] == fb->fragbits)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int PrefilterSetupIpFrag(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_FRAGBITS,
+        PrefilterPacketIpFragSet,
+        PrefilterPacketIpFragCompare,
+        PrefilterPacketIpFragMatch);
+}
+
+static _Bool PrefilterIpFragIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FRAGBITS:
+                {
+                    const DetectFragBitsData *fl = (const DetectFragBitsData *)sm->ctx;
+                    if (!(fl->modifier == MODIFIER_NOT)) {
+                        SCLogNotice("true that");
+                        return TRUE;
+                    }
+                    break;
+                }
+        }
+    }
+    return FALSE;
 }
 
 /*

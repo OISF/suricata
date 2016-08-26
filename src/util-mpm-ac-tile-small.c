@@ -32,7 +32,7 @@
 
 /* This function handles (ctx->state_count < 32767) */
 uint32_t FUNC_NAME(const SCACTileSearchCtx *ctx, MpmThreadCtx *mpm_thread_ctx,
-                   PatternMatcherQueue *pmq, const uint8_t *buf, uint16_t buflen)
+                   PrefilterRuleStore *pmq, const uint8_t *buf, uint16_t buflen)
 {
     int i = 0;
     int matches = 0;

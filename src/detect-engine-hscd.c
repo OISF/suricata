@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #include "suricata-common.h"
@@ -38,6 +39,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -55,56 +57,44 @@
 #include "app-layer-protos.h"
 #include "util-validate.h"
 
-/**
- * \brief Http stat code match -- searches for one pattern per signature.
+/** \brief HTTP Status Code Mpm prefilter callback
  *
- * \param det_ctx       Detection engine thread ctx.
- * \param stat_code     Stat code to inspect.
- * \param stat_code_len Stat code length.
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *stat_code, const uint32_t stat_code_len,
-        const uint8_t flags)
+static void PrefilterTxHttpStatCode(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
 
-    DEBUG_VALIDATE_BUG_ON(!(flags & STREAM_TOCLIENT));
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hscd_ctx_tc == NULL);
+    if (tx->response_status == NULL)
+        return;
 
-    if (stat_code_len >= det_ctx->sgh->mpm_hscd_ctx_tc->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
-            Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
-                    &det_ctx->pmq, stat_code, stat_code_len);
+    const uint32_t buffer_len = bstr_len(tx->response_status);
+    const uint8_t *buffer = bstr_ptr(tx->response_status);
+
+    if (buffer != NULL && buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
     }
-
-    SCReturnUInt(ret);
 }
 
-/**
- * \brief Run the mpm against http stat code.
- *
- * \retval cnt Number of matches reported by the mpm algo.
- */
-int DetectEngineRunHttpStatCodeMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                   HtpState *htp_state, uint8_t flags,
-                                   void *txv, uint64_t idx)
+int PrefilterTxHttpStatCodeRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
 {
     SCEnter();
 
-    uint32_t cnt = 0;
-    htp_tx_t *tx = (htp_tx_t *)txv;
-    if (tx->response_status == NULL)
-        goto end;
-
-    cnt = HttpStatCodePatternSearch(det_ctx,
-                                    (const uint8_t *)bstr_ptr(tx->response_status),
-                                    bstr_len(tx->response_status), flags);
-end:
-    SCReturnInt(cnt);
+    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpStatCode,
+        ALPROTO_HTTP,
+        HTP_RESPONSE_LINE+1, /* inspect when response line completely parsed */
+        mpm_ctx, NULL);
 }
 
 /**

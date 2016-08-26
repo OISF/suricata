@@ -47,7 +47,24 @@
 #include "detect-flow.h"
 
 #include "detect-content.h"
-#include "detect-uricontent.h"
+
+#include "detect-engine-payload.h"
+#include "detect-engine-uri.h"
+#include "detect-engine-hrud.h"
+#include "detect-engine-hmd.h"
+#include "detect-engine-hhd.h"
+#include "detect-engine-hrhd.h"
+#include "detect-engine-hcd.h"
+#include "detect-engine-hua.h"
+#include "detect-engine-hhhd.h"
+#include "detect-engine-hrhhd.h"
+#include "detect-engine-hsmd.h"
+#include "detect-engine-hscd.h"
+#include "detect-engine-hcbd.h"
+#include "detect-engine-hsbd.h"
+#include "detect-engine-dns.h"
+#include "detect-engine-filedata-smtp.h"
+#include "detect-engine-tls.h"
 
 #include "stream.h"
 
@@ -72,43 +89,64 @@ typedef struct AppLayerMpms_ {
     int32_t sgh_mpm_context;    /**< mpm factory id */
     int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
     int sm_list;
-    uint32_t flags;             /**< flags set to SGH when this mpm is present */
+
+    int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
     int id;                     /**< index into this array and result arrays */
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "http_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_UMATCH, SIG_GROUP_HEAD_MPM_URI, 0 },
-    { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH, SIG_GROUP_HEAD_MPM_HRUD, 1 },
+    { "http_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_UMATCH,
+        PrefilterTxUriRegister, 0 },
+    { "http_raw_uri", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRUDMATCH,
+        PrefilterTxRawUriRegister, 1 },
 
-    { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, 2},
-    { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH, SIG_GROUP_HEAD_MPM_HHD, 3},
+    { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH,
+        PrefilterTxHttpRequestHeadersRegister, 2},
+    { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH,
+        PrefilterTxHttpRequestHeadersRegister, 3},
 
-    { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH, SIG_GROUP_HEAD_MPM_HUAD, 4},
+    { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH,
+        PrefilterTxUARegister, 4},
 
-    { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, 5},
-    { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH, SIG_GROUP_HEAD_MPM_HRHD, 6},
+    { "http_raw_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHDMATCH,
+        PrefilterTxRequestHeadersRawRegister, 5},
+    { "http_raw_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HRHDMATCH,
+        PrefilterTxResponseHeadersRawRegister, 6},
 
-    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH, SIG_GROUP_HEAD_MPM_HMD, 7},
+    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
+        PrefilterTxMethodRegister, 7},
 
-    { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_FD_SMTP, 8}, /* smtp */
-    { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA, SIG_GROUP_HEAD_MPM_HSBD, 9}, /* http server body */
+    { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA,
+        PrefilterTxSmtpFiledataRegister, 8}, /* smtp */
+    { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA,
+        PrefilterTxHttpResponseBodyRegister, 9}, /* http server body */
 
-    { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH, SIG_GROUP_HEAD_MPM_HSMD, 10},
-    { "http_stat_code", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSCDMATCH, SIG_GROUP_HEAD_MPM_HSCD, 11},
+    { "http_stat_msg", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSMDMATCH,
+        PrefilterTxHttpStatMsgRegister, 10},
+    { "http_stat_code", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HSCDMATCH,
+        PrefilterTxHttpStatCodeRegister, 11},
 
-    { "http_client_body", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCBDMATCH, SIG_GROUP_HEAD_MPM_HCBD, 12},
+    { "http_client_body", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCBDMATCH,
+        PrefilterTxHttpRequestBodyRegister, 12},
 
-    { "http_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHHDMATCH, SIG_GROUP_HEAD_MPM_HHHD, 13},
-    { "http_raw_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHHDMATCH, SIG_GROUP_HEAD_MPM_HRHHD, 14},
+    { "http_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHHDMATCH,
+        PrefilterTxHostnameRegister, 13},
+    { "http_raw_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHHDMATCH,
+        PrefilterTxHostnameRawRegister, 14},
 
-    { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, 15},
-    { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH, SIG_GROUP_HEAD_MPM_HCD, 16},
+    { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH,
+        PrefilterTxRequestCookieRegister, 15},
+    { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH,
+        PrefilterTxResponseCookieRegister, 16},
 
-    { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH, SIG_GROUP_HEAD_MPM_DNSQUERY, 17},
+    { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+        PrefilterTxDnsQueryRegister, 17},
 
-    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH, SIG_GROUP_HEAD_MPM_TLSSNI, 18},
+    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH,
+        PrefilterTxTlsSniRegister, 18},
 
-    { NULL, 0, 0, 0, 0, 0, }
+    { NULL, 0, 0, 0, NULL, 0, }
 };
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
@@ -374,28 +412,6 @@ uint16_t PatternMatchDefaultMatcher(void)
 void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx)
 {
     PmqReset(&det_ctx->pmq);
-
-    if (det_ctx->sgh == NULL)
-        return;
-
-    /* content */
-    if (det_ctx->sgh->mpm_packet_ctx != NULL &&
-        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_packet_ctx->mpm_type].Cleanup(&det_ctx->mtc);
-    }
-
-    /* uricontent */
-    if (det_ctx->sgh->mpm_uri_ctx_ts != NULL && mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].Cleanup(&det_ctx->mtcu);
-    }
-
-    /* stream content */
-    if (det_ctx->sgh->mpm_stream_ctx != NULL &&
-            mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Cleanup(&det_ctx->mtcs);
-    }
-
-    return;
 }
 
 void PatternMatchDestroy(MpmCtx *mpm_ctx, uint16_t mpm_matcher)
@@ -1169,64 +1185,6 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
     return NULL;
 }
 
-/** \todo fixup old mpm ptrs. We could use the array directly later */
-void MpmStoreFixup(SigGroupHead *sgh)
-{
-    if (!(SGH_PROTO(sgh, IPPROTO_TCP) || SGH_PROTO(sgh, IPPROTO_UDP)))
-        return;
-
-#define SET_TS(sgh, ptr) do {                   \
-        if (SGH_DIRECTION_TS((sgh)))            \
-            (ptr) = (sgh)->init->app_mpms[i++]; \
-        else                                    \
-            i++;                                \
-    } while(0)
-
-#define SET_TC(sgh, ptr) do {                   \
-        if (SGH_DIRECTION_TC((sgh)))            \
-            (ptr) = (sgh)->init->app_mpms[i++]; \
-        else                                    \
-            i++;                                \
-    } while(0)
-
-    int i = 0;
-    SET_TS(sgh, sgh->mpm_uri_ctx_ts);
-    SET_TS(sgh, sgh->mpm_hrud_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hhd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hhd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_huad_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hrhd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hrhd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_hmd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_smtp_filedata_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hsbd_ctx_tc);
-
-    SET_TC(sgh, sgh->mpm_hsmd_ctx_tc);
-    SET_TC(sgh, sgh->mpm_hscd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_hcbd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hhhd_ctx_ts);
-    SET_TS(sgh, sgh->mpm_hrhhd_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_hcd_ctx_ts);
-    SET_TC(sgh, sgh->mpm_hcd_ctx_tc);
-
-    SET_TS(sgh, sgh->mpm_dnsquery_ctx_ts);
-
-    SET_TS(sgh, sgh->mpm_tlssni_ctx_ts);
-
-    BUG_ON(APP_MPMS_MAX != 19 || i != 19);
-
-#undef SET_TS
-#undef SET_TC
-}
-
 /** \brief Prepare the pattern matcher ctx in a sig group head.
  *
  */
@@ -1237,68 +1195,42 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TS);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_packet_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TS);
             if (mpm_store != NULL) {
-                BUG_ON(mpm_store == NULL);
-                BUG_ON(sh->mpm_stream_ctx);
-                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_PKT_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_packet_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
 
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_TCP_STREAM_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_stream_ctx);
-                sh->mpm_stream_ctx = mpm_store->mpm_ctx;
-                if (sh->mpm_stream_ctx)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+                PrefilterPktStreamRegister(sh, mpm_store->mpm_ctx);
             }
        }
     } else if (SGH_PROTO(sh, IPPROTO_UDP)) {
         if (SGH_DIRECTION_TS(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TS);
             if (mpm_store != NULL) {
-                BUG_ON(mpm_store == NULL);
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
-                if (sh->mpm_packet_ctx != NULL)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
         if (SGH_DIRECTION_TC(sh)) {
             mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_UDP_TC);
             if (mpm_store != NULL) {
-                BUG_ON(sh->mpm_packet_ctx);
-                sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
-                if (sh->mpm_packet_ctx != NULL)
-                    sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+                PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
             }
         }
     } else {
         mpm_store = MpmStorePrepareBuffer(de_ctx, sh, MPMB_OTHERIP);
         if (mpm_store != NULL) {
-            BUG_ON(sh->mpm_packet_ctx);
-            sh->mpm_packet_ctx = mpm_store->mpm_ctx;
-
-            if (sh->mpm_packet_ctx != NULL)
-                sh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+            PrefilterPktPayloadRegister(sh, mpm_store->mpm_ctx);
         }
     }
 
@@ -1307,13 +1239,14 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
         if (mpm_store != NULL) {
             sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
-            if (sh->init->app_mpms[a->id] != NULL)
-                sh->flags |= a->flags;
+
+            if (a->PrefilterRegister && mpm_store->mpm_ctx) {
+                BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+            }
         }
         a++;
     }
 
-    MpmStoreFixup(sh);
     return 0;
 }
 
@@ -1346,11 +1279,17 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
      * true size, since duplicates are removed below, but counted here.
      */
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
+        if (s->flags & SIG_FLAG_PREFILTER)
+            continue;
+
         RetrieveFPForSig(s);
         if (s->mpm_sm != NULL) {
             DetectContentData *cd = (DetectContentData *)s->mpm_sm->ctx;
             struct_total_size += sizeof(DetectFPAndItsId);
             content_total_size += cd->content_len;
+
+            if (!(cd->flags & DETECT_CONTENT_NEGATED))
+                s->flags |= SIG_FLAG_PREFILTER;
         }
     }
 
@@ -1364,6 +1303,7 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
     PatIntId max_id = 0;
     DetectFPAndItsId *struct_offset = (DetectFPAndItsId *)ahb;
     uint8_t *content_offset = ahb + struct_total_size;
+
     for (s = de_ctx->sig_list; s != NULL; s = s->next) {
         if (s->mpm_sm != NULL) {
             int sm_list = SigMatchListSMBelongsTo(s, s->mpm_sm);
@@ -1401,8 +1341,8 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
                 break;
             }
             if (dup != struct_offset) {
-              /* Exited for-loop before the end, so found an existing match.
-               * Use its ID. */
+                /* Exited for-loop before the end, so found an existing match.
+                 * Use its ID. */
                 cd->id = dup->id;
                 continue;
             }
@@ -1421,14 +1361,14 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx)
             content_offset += content_len;
 
             if (flags & DETECT_CONTENT_NOCASE) {
-              /* Need to store case-insensitive patterns as lower case
-               * because SCMemcmpLowercase() above assumes that all
-               * patterns are stored lower case so that it doesn't
-               * need to relower its first argument.
-               */
-              memcpy_tolower(struct_offset->content, content, content_len);
+                /* Need to store case-insensitive patterns as lower case
+                 * because SCMemcmpLowercase() above assumes that all
+                 * patterns are stored lower case so that it doesn't
+                 * need to relower its first argument.
+                 */
+                memcpy_tolower(struct_offset->content, content, content_len);
             } else {
-              memcpy(struct_offset->content, content, content_len);
+                memcpy(struct_offset->content, content, content_len);
             }
 
             struct_offset++;
