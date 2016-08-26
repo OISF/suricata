@@ -1225,6 +1225,9 @@ detect:
   # is started. This will limit the downtime in IPS mode.
   #delayed-detect: yes
 
+  prefilter:
+    default: mpm
+
   # the grouping values above control how many groups are created per
   # direction. Port whitelisting forces that port to get it's own group.
   # Very common ports will benefit, as well as ports with many expensive
