@@ -148,14 +148,14 @@ void FlowMoveToSpare(Flow *f)
     /* now put it in spare */
     FQLOCK_LOCK(&flow_spare_q);
 
-    /* add to new queue (append) */
-    f->lprev = flow_spare_q.bot;
-    if (f->lprev != NULL)
-        f->lprev->lnext = f;
-    f->lnext = NULL;
-    flow_spare_q.bot = f;
-    if (flow_spare_q.top == NULL)
-        flow_spare_q.top = f;
+    /* add to the new queue (top) */
+    f->lnext = flow_spare_q.top;
+    if (f->lnext != NULL)
+        f->lnext->lprev = f;
+    f->lprev = NULL;
+    flow_spare_q.top = f;
+    if (flow_spare_q.bot == NULL)
+        flow_spare_q.bot = f;
 
     flow_spare_q.len++;
 #ifdef DBG_PERF
