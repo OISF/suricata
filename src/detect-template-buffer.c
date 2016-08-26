@@ -53,6 +53,9 @@ static int DetectTemplateBufferSetup(DetectEngineCtx *de_ctx, Signature *s,
 {
     s->list = DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH;
     s->alproto = ALPROTO_TEMPLATE;
+    s->flags |= SIG_FLAG_STATE_MATCH;
+    s->mask |= SIG_MASK_REQUIRE_TEMPLATE_STATE;
+    s->mask |= SIG_MASK_REQUIRE_FLOW;
     return 0;
 }
 

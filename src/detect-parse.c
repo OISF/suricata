@@ -1541,11 +1541,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_HRHHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
-    /* Template. */
-    if (sig->sm_lists[DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH]) {
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    }
-
     /* DNS */
     if (sig->sm_lists[DETECT_SM_LIST_DNSQUERYNAME_MATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
