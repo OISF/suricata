@@ -185,6 +185,7 @@
 volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
+volatile sig_atomic_t sigusr2_count = 0;
 
 /*
  * Flag to indicate if the engine is at the initialization
@@ -278,7 +279,8 @@ void SignalHandlerSigusr2StartingUp(int sig)
 
 void SignalHandlerSigusr2DelayedDetect(int sig)
 {
-    SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload blocked while delayed detect is still loading.");
+    SCLogWarning(SC_ERR_LIVE_RULE_SWAP, "Live rule reload on hold while delayed detect is still loading.");
+    sigusr2_count = 2;
 }
 
 void SignalHandlerSigusr2SigFileStartup(int sig)
@@ -296,7 +298,9 @@ void SignalHandlerSigusr2Idle(int sig)
     }
 
     SCLogInfo("Ruleset load in progress.  New ruleset load "
-              "allowed after current is done");
+              "starts after current is done");
+
+    sigusr2_count = 2;
 
     return;
 }
@@ -315,7 +319,7 @@ void SignalHandlerSigusr2(int sig)
 
     UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
 
-    DetectEngineSpawnLiveRuleSwapMgmtThread();
+    sigusr2_count = 1;
 
     return;
 }
@@ -2358,6 +2362,17 @@ int main(int argc, char **argv)
         if (sighup_count > 0) {
             OutputNotifyFileRotation();
             sighup_count--;
+        }
+
+        if (sigusr2_count == 1) {
+            sigusr2_count = 0;
+            DetectEngineSpawnLiveRuleSwapMgmtThread();
+        }
+
+        if ((sigusr2_count == 2) && (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2))) {
+	    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+            sigusr2_count = 0;
+            DetectEngineSpawnLiveRuleSwapMgmtThread();
         }
 
         usleep(10* 1000);
