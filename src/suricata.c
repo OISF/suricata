@@ -1297,10 +1297,10 @@ static TmEcode ParseCommandLine(int argc, char** argv, SCInstance *suri)
 #ifdef HAVE_PFRING
                 suri->run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
-                    memset(suri->pcap_dev, 0, sizeof(suri->pcap_dev));
-                    strlcpy(suri->pcap_dev, optarg,
-                            ((strlen(optarg) < sizeof(suri->pcap_dev)) ?
-                             (strlen(optarg) + 1) : sizeof(suri->pcap_dev)));
+                    memset(pcap_dev, 0, sizeof(pcap_dev));
+                    strlcpy(pcap_dev, optarg,
+                            ((strlen(optarg) < sizeof(pcap_dev)) ?
+                             (strlen(optarg) + 1) : sizeof(pcap_dev)));
                     LiveRegisterDevice(optarg);
                 }
 #else
