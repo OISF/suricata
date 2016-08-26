@@ -230,13 +230,21 @@ static inline uint32_t FlowGetHash(const Packet *p)
 /* Since two or more flows can have the same hash key, we need to compare
  * the flow with the current flow key. */
 #define CMP_FLOW(f1,f2) \
-    (((CMP_ADDR(&(f1)->src, &(f2)->src) && \
-       CMP_ADDR(&(f1)->dst, &(f2)->dst) && \
-       CMP_PORT((f1)->sp, (f2)->sp) && CMP_PORT((f1)->dp, (f2)->dp)) || \
-      (CMP_ADDR(&(f1)->src, &(f2)->dst) && \
-       CMP_ADDR(&(f1)->dst, &(f2)->src) && \
-       CMP_PORT((f1)->sp, (f2)->dp) && CMP_PORT((f1)->dp, (f2)->sp))) && \
+    ((( \
+       CMP_PORT((f1)->sp, (f2)->sp) && \
+       CMP_PORT((f1)->dp, (f2)->dp) && \
      (f1)->proto == (f2)->proto && \
+       CMP_ADDR(&(f1)->src, &(f2)->src) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->dst) \
+      ) || \
+     ( \
+       CMP_PORT((f1)->sp, (f2)->dp) && \
+     CMP_PORT((f1)->dp, (f2)->sp) && \
+     (f1)->proto == (f2)->proto && \
+       CMP_ADDR(&(f1)->src, &(f2)->dst) && \
+       CMP_ADDR(&(f1)->dst, &(f2)->src) \
+     ) \
+     ) && \
      (f1)->recursion_level == (f2)->recursion_level && \
      (f1)->vlan_id[0] == (f2)->vlan_id[0] && \
      (f1)->vlan_id[1] == (f2)->vlan_id[1])
