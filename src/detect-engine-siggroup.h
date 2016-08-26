@@ -72,6 +72,6 @@ void SigGroupHeadSetFilesizeFlag(DetectEngineCtx *, SigGroupHead *);
 uint16_t SigGroupHeadGetMinMpmSize(DetectEngineCtx *de_ctx,
                                    SigGroupHead *sgh, int list);
 
-int SigGroupHeadBuildNonMpmArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
+int SigGroupHeadBuildNonPrefilterArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */

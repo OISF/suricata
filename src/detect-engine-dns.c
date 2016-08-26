@@ -1,4 +1,4 @@
-/* Copyright (C) 2013 Open Information Security Foundation
+/* Copyright (C) 2013-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -31,6 +31,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -94,69 +95,47 @@ int DetectEngineInspectDnsQueryName(ThreadVars *tv,
     return r;
 }
 
-/**
- * \brief DNS query match -- searches for one pattern per signature.
+/** \brief DNS Query Mpm prefilter callback
  *
- * \param det_ctx   Detection engine thread ctx.
- * \param hrh       Buffer to inspect.
- * \param hrh_len   buffer length.
- * \param flags     Flags
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t DnsQueryPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                      const uint8_t *buffer, const uint32_t buffer_len,
-                                      const uint8_t flags)
+static void PrefilterTxDnsQuery(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_dnsquery_ctx_ts == NULL);
-
-    if (buffer_len >= det_ctx->sgh->mpm_dnsquery_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_dnsquery_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_dnsquery_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, buffer, buffer_len);
-    }
-
-    SCReturnUInt(ret);
-}
-
-/**
- *  \brief Run the pattern matcher against the queries
- *
- *  \param f locked flow
- *  \param dns_state initialized dns state
- *
- *  \warning Make sure the flow/state is locked
- *  \todo what should we return? Just the fact that we matched?
- */
-uint32_t DetectDnsQueryInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  DNSState *dns_state, uint8_t flags, void *txv,
-                                  uint64_t tx_id)
-{
-    SCEnter();
-
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     DNSTransaction *tx = (DNSTransaction *)txv;
     DNSQueryEntry *query = NULL;
-    uint8_t *buffer;
-    uint16_t buffer_len;
-    uint32_t cnt = 0;
 
     TAILQ_FOREACH(query, &tx->query_list, next) {
         SCLogDebug("tx %p query %p", tx, query);
 
-        buffer = (uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
-        buffer_len = query->len;
+        const uint8_t *buffer =
+            (const uint8_t *)((uint8_t *)query + sizeof(DNSQueryEntry));
+        const uint32_t buffer_len = query->len;
 
-        cnt += DnsQueryPatternSearch(det_ctx,
-                buffer, buffer_len,
-                flags);
+        if (buffer_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                    &det_ctx->mtcu, &det_ctx->pmq,
+                    buffer, buffer_len);
+        }
     }
+}
 
-    SCReturnUInt(cnt);
+int PrefilterTxDnsQueryRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxDnsQuery,
+        ALPROTO_DNS, 1,
+        mpm_ctx, NULL);
 }
 
 /** \brief Do the content inspection & validation for a signature

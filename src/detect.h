@@ -30,8 +30,9 @@
 
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
-
 #include "packet-queue.h"
+
+#include "util-prefilter.h"
 #include "util-mpm.h"
 #include "util-spm.h"
 #include "util-hash.h"
@@ -43,6 +44,8 @@
 #include "reputation.h"
 
 #include "detect-mark.h"
+
+#include "stream.h"
 
 #define DETECT_MAX_RULE_SIZE 8192
 
@@ -270,6 +273,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_TLSSTORE               (1<<21)
 
+#define SIG_FLAG_PREFILTER              (1<<22) /**< sig is part of a prefilter engine */
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -431,6 +436,8 @@ typedef struct Signature_ {
     SigMatch *dsize_sm;
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
+    /* used to speed up init of prefilter */
+    SigMatch *prefilter_sm;
 
     /* SigMatch list used for adding content and friends. E.g. file_data; */
     int list;
@@ -443,6 +450,8 @@ typedef struct Signature_ {
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
     char *sig_str;
+
+    int prefilter_list;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -559,7 +568,7 @@ typedef struct DetectEngineCtx_ {
 
     /** Maximum value of all our sgh's non_mpm_store_cnt setting,
      *  used to alloc det_ctx::non_mpm_id_array */
-    uint32_t non_mpm_store_cnt_max;
+    uint32_t non_pf_store_cnt_max;
 
     /* used by the signature ordering module */
     struct SCSigOrderFunc_ *sc_sig_order_funcs;
@@ -712,10 +721,10 @@ typedef struct FiledataReassembledBody_ {
 
 #define DETECT_FILESTORE_MAX 15
 
-typedef struct SignatureNonMpmStore_ {
+typedef struct SignatureNonPrefilterStore_ {
     SigIntId id;
     SignatureMask mask;
-} SignatureNonMpmStore;
+} SignatureNonPrefilterStore;
 
 /**
   * Detection engine thread data.
@@ -728,8 +737,8 @@ typedef struct DetectEngineThreadCtx_ {
     /* the thread to which this detection engine thread belongs */
     ThreadVars *tv;
 
-    SigIntId *non_mpm_id_array;
-    uint32_t non_mpm_id_cnt; // size is cnt * sizeof(uint32_t)
+    SigIntId *non_pf_id_array;
+    uint32_t non_pf_id_cnt; // size is cnt * sizeof(uint32_t)
 
     uint32_t mt_det_ctxs_cnt;
     struct DetectEngineThreadCtx_ **mt_det_ctxs;
@@ -814,8 +823,8 @@ typedef struct DetectEngineThreadCtx_ {
 
     struct SigGroupHead_ *sgh;
 
-    SignatureNonMpmStore *non_mpm_store_ptr;
-    uint32_t non_mpm_store_cnt;
+    SignatureNonPrefilterStore *non_pf_store_ptr;
+    uint32_t non_pf_store_cnt;
 
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
@@ -823,7 +832,9 @@ typedef struct DetectEngineThreadCtx_ {
     MpmThreadCtx mtc;   /**< thread ctx for the mpm */
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
-    PatternMatcherQueue pmq;
+    PrefilterRuleStore pmq;
+
+    StreamMsg *smsg;
 
     /** SPM thread context used for scanning. This has been cloned from the
      * prototype held by DetectEngineCtx. */
@@ -895,6 +906,9 @@ typedef struct SigTableElmt_ {
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
 
+    _Bool (*SupportsPrefilter)(const Signature *s);
+    int (*SetupPrefilter)(struct SigGroupHead_ *sgh);
+
     void (*Free)(void *);
     void (*RegisterTests)(void);
 
@@ -906,33 +920,9 @@ typedef struct SigTableElmt_ {
 
 } SigTableElmt;
 
-#define SIG_GROUP_HEAD_MPM_URI          (1)
-#define SIG_GROUP_HEAD_MPM_HCBD         (1 << 1)
-#define SIG_GROUP_HEAD_MPM_HHD          (1 << 2)
-#define SIG_GROUP_HEAD_MPM_HRHD         (1 << 3)
-#define SIG_GROUP_HEAD_MPM_HMD          (1 << 4)
-#define SIG_GROUP_HEAD_MPM_HCD          (1 << 5)
-#define SIG_GROUP_HEAD_MPM_HRUD         (1 << 6)
-#define SIG_GROUP_HEAD_MPM_HSBD         (1 << 7)
-#define SIG_GROUP_HEAD_MPM_HSMD         (1 << 8)
-#define SIG_GROUP_HEAD_MPM_HSCD         (1 << 9)
-#define SIG_GROUP_HEAD_MPM_HUAD         (1 << 10)
-#define SIG_GROUP_HEAD_MPM_HHHD         (1 << 11)
-#define SIG_GROUP_HEAD_MPM_HRHHD        (1 << 12)
-
-#define SIG_GROUP_HEAD_MPM_COPY         (1 << 13)
-#define SIG_GROUP_HEAD_MPM_URI_COPY     (1 << 14)
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  (1 << 15)
-#define SIG_GROUP_HEAD_FREE             (1 << 16)
-#define SIG_GROUP_HEAD_MPM_PACKET       (1 << 17)
-#define SIG_GROUP_HEAD_MPM_STREAM       (1 << 18)
-
 #define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 20)
 #define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 21)
 #define SIG_GROUP_HEAD_HAVEFILESIZE     (1 << 22)
-#define SIG_GROUP_HEAD_MPM_DNSQUERY     (1 << 23)
-#define SIG_GROUP_HEAD_MPM_TLSSNI       (1 << 24)
-#define SIG_GROUP_HEAD_MPM_FD_SMTP      (1 << 25)
 
 #define APP_MPMS_MAX 19
 
@@ -960,6 +950,31 @@ typedef struct MpmStore_ {
 
 } MpmStore;
 
+typedef struct PrefilterEngine_ {
+    uint16_t id;
+
+    /** App Proto this engine applies to: only used with Tx Engines */
+    AppProto alproto;
+    /** Minimal Tx progress we need before running the engine. Only used
+     *  with Tx Engine */
+    int tx_min_progress;
+
+    /** Context for matching. Might be MpmCtx for MPM engines, other ctx'
+     *  for other engines. */
+    void *pectx;
+
+    void (*Prefilter)(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx);
+    void (*PrefilterTx)(DetectEngineThreadCtx *det_ctx, const void *pectx,
+            Packet *p, Flow *f, void *tx,
+            const uint64_t idx, const uint8_t flags);
+
+    struct PrefilterEngine_ *next;
+
+    /** Free function for pectx data. If NULL the memory is not freed. */
+    void (*Free)(void *pectx);
+
+} PrefilterEngine;
+
 typedef struct SigGroupHeadInitData_ {
     MpmStore mpm_store[MPMB_MAX];
 
@@ -982,12 +997,9 @@ typedef struct SigGroupHead_ {
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
-    /* non mpm list excluding SYN rules */
-    uint32_t non_mpm_other_store_cnt;
-    uint32_t non_mpm_syn_store_cnt;
-    SignatureNonMpmStore *non_mpm_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonMpmStore)
-    /* non mpm list including SYN rules */
-    SignatureNonMpmStore *non_mpm_syn_store_array; // size is non_mpm_syn_store_cnt * sizeof(SignatureNonMpmStore)
+    /* rule id's for rules not part of any prefilter */
+    uint32_t non_pf_other_store_cnt;
+    SignatureNonPrefilterStore *non_pf_other_store_array; // size is non_mpm_store_cnt * sizeof(SignatureNonPrefilterStore)
 
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
@@ -995,35 +1007,8 @@ typedef struct SigGroupHead_ {
 
     uint32_t id; /**< unique id used to index sgh_array for stats */
 
-    /* pattern matcher instances */
-    const MpmCtx *mpm_packet_ctx;
-    const MpmCtx *mpm_stream_ctx;
-
-    union {
-        struct {
-            const MpmCtx *mpm_uri_ctx_ts;
-            const MpmCtx *mpm_hcbd_ctx_ts;
-            const MpmCtx *mpm_hhd_ctx_ts;
-            const MpmCtx *mpm_hrhd_ctx_ts;
-            const MpmCtx *mpm_hmd_ctx_ts;
-            const MpmCtx *mpm_hcd_ctx_ts;
-            const MpmCtx *mpm_hrud_ctx_ts;
-            const MpmCtx *mpm_huad_ctx_ts;
-            const MpmCtx *mpm_hhhd_ctx_ts;
-            const MpmCtx *mpm_hrhhd_ctx_ts;
-            const MpmCtx *mpm_dnsquery_ctx_ts;
-            const MpmCtx *mpm_tlssni_ctx_ts;
-            const MpmCtx *mpm_smtp_filedata_ctx_ts;
-        };
-        struct {
-            const MpmCtx *mpm_hsbd_ctx_tc;
-            const MpmCtx *mpm_hhd_ctx_tc;
-            const MpmCtx *mpm_hrhd_ctx_tc;
-            const MpmCtx *mpm_hcd_ctx_tc;
-            const MpmCtx *mpm_hsmd_ctx_tc;
-            const MpmCtx *mpm_hscd_ctx_tc;
-        };
-    };
+    PrefilterEngine *engines;
+    PrefilterEngine *tx_engines;
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;
@@ -1222,6 +1207,8 @@ enum {
 
     DETECT_TEMPLATE,
     DETECT_AL_TEMPLATE_BUFFER,
+
+    DETECT_PREFILTER,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,

@@ -23,8 +23,8 @@
 
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
-#include "suricata-common.h"
 
+#include "util-prefilter.h"
 
 #define MPM_INIT_HASH_SIZE 65536
 
@@ -65,21 +65,6 @@ typedef struct MpmThreadCtx_ {
     uint32_t memory_size;
 
 } MpmThreadCtx;
-
-/** \brief helper structure for the pattern matcher engine. The Pattern Matcher
- *         thread has this and passes a pointer to it to the pattern matcher.
- *         The actual pattern matcher will fill the structure. */
-typedef struct PatternMatcherQueue_ {
-    /* used for storing rule id's */
-
-    /* Array of rule IDs found. */
-    SigIntId *rule_id_array;
-    /* Number of rule IDs in the array. */
-    uint32_t rule_id_array_cnt;
-    /* The number of slots allocated for storing rule IDs */
-    uint32_t rule_id_array_size;
-
-} PatternMatcherQueue;
 
 typedef struct MpmPattern_ {
     /* length of the pattern */
@@ -178,8 +163,7 @@ typedef struct MpmTableElmt_ {
     int  (*AddPattern)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*AddPatternNocase)(struct MpmCtx_ *, uint8_t *, uint16_t, uint16_t, uint16_t, uint32_t, SigIntId, uint8_t);
     int  (*Prepare)(struct MpmCtx_ *);
-    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, const uint8_t *, uint16_t);
-    void (*Cleanup)(struct MpmThreadCtx_ *);
+    uint32_t (*Search)(const struct MpmCtx_ *, struct MpmThreadCtx_ *, PrefilterRuleStore *, const uint8_t *, uint16_t);
     void (*PrintCtx)(struct MpmCtx_ *);
     void (*PrintThreadCtx)(struct MpmThreadCtx_ *);
     void (*RegisterUnittests)(void);
@@ -232,10 +216,10 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(const struct DetectEngineCtx_ *, int32_t, 
 void MpmFactoryDeRegisterAllMpmCtxProfiles(struct DetectEngineCtx_ *);
 int32_t MpmFactoryIsMpmCtxAvailable(const struct DetectEngineCtx_ *, const MpmCtx *);
 
-int PmqSetup(PatternMatcherQueue *);
-void PmqReset(PatternMatcherQueue *);
-void PmqCleanup(PatternMatcherQueue *);
-void PmqFree(PatternMatcherQueue *);
+int PmqSetup(PrefilterRuleStore *);
+void PmqReset(PrefilterRuleStore *);
+void PmqCleanup(PrefilterRuleStore *);
+void PmqFree(PrefilterRuleStore *);
 
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
@@ -256,40 +240,4 @@ int MpmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
                             uint16_t offset, uint16_t depth, uint32_t pid,
                             SigIntId sid, uint8_t flags);
 
-/* Resize Signature ID array. Only called from MpmAddSids(). */
-int MpmAddSidsResize(PatternMatcherQueue *pmq, uint32_t new_size);
-
-/** \brief Add array of Signature IDs to rule ID array.
- *
- *   Checks size of the array first. Calls MpmAddSidsResize to increase
- *   The size of the array, since that is the slow path.
- *
- *  \param pmq storage for match results
- *  \param sids pointer to array of Signature IDs
- *  \param sids_size number of Signature IDs in sids array.
- *
- */
-static inline void
-MpmAddSids(PatternMatcherQueue *pmq, SigIntId *sids, uint32_t sids_size)
-{
-    if (sids_size == 0)
-        return;
-
-    uint32_t new_size = pmq->rule_id_array_cnt + sids_size;
-    if (new_size > pmq->rule_id_array_size) {
-        if (MpmAddSidsResize(pmq, new_size) == 0) {
-            // Failed to allocate larger memory for all the SIDS, but
-            // keep as many as we can.
-            sids_size = pmq->rule_id_array_size - pmq->rule_id_array_cnt;
-        }
-    }
-    SCLogDebug("Adding %u sids", sids_size);
-    // Add SIDs for this pattern to the end of the array
-    SigIntId *ptr = pmq->rule_id_array + pmq->rule_id_array_cnt;
-    SigIntId *end = ptr + sids_size;
-    do {
-        *ptr++ = *sids++;
-    } while (ptr != end);
-    pmq->rule_id_array_cnt += sids_size;
-}
 #endif /* __UTIL_MPM_H__ */

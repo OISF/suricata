@@ -28,6 +28,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "flow-var.h"
 
@@ -53,6 +54,9 @@ static int DetectDsizeSetup (DetectEngineCtx *, Signature *s, char *str);
 void DsizeRegisterTests(void);
 static void DetectDsizeFree(void *);
 
+static int PrefilterSetupDsize(SigGroupHead *sgh);
+static _Bool PrefilterDsizeIsPrefilterable(const Signature *s);
+
 /**
  * \brief Registration function for dsize: keyword
  */
@@ -66,7 +70,26 @@ void DetectDsizeRegister (void)
     sigmatch_table[DETECT_DSIZE].Free  = DetectDsizeFree;
     sigmatch_table[DETECT_DSIZE].RegisterTests = DsizeRegisterTests;
 
+    sigmatch_table[DETECT_DSIZE].SupportsPrefilter = PrefilterDsizeIsPrefilterable;
+    sigmatch_table[DETECT_DSIZE].SetupPrefilter = PrefilterSetupDsize;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
+}
+
+static inline int
+DsizeMatch(const uint16_t psize, const uint8_t mode,
+            const uint16_t dsize, const uint16_t dsize2)
+{
+    if (mode == DETECTDSIZE_EQ && dsize == psize)
+        return 1;
+    else if (mode == DETECTDSIZE_LT && psize < dsize)
+        return 1;
+    else if (mode == DETECTDSIZE_GT && psize > dsize)
+        return 1;
+    else if (mode == DETECTDSIZE_RA && psize > dsize && psize < dsize2)
+        return 1;
+
+    return 0;
 }
 
 /**
@@ -95,14 +118,7 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
 
     SCLogDebug("p->payload_len %"PRIu16"", p->payload_len);
 
-    if (dd->mode == DETECTDSIZE_EQ && dd->dsize == p->payload_len)
-        ret = 1;
-    else if (dd->mode == DETECTDSIZE_LT && p->payload_len < dd->dsize)
-        ret = 1;
-    else if (dd->mode == DETECTDSIZE_GT && p->payload_len > dd->dsize)
-        ret = 1;
-    else if (dd->mode == DETECTDSIZE_RA && p->payload_len > dd->dsize && p->payload_len < dd->dsize2)
-        ret = 1;
+    ret = DsizeMatch(p->payload_len, dd->mode, dd->dsize, dd->dsize2);
 
     SCReturnInt(ret);
 }
@@ -294,6 +310,65 @@ void DetectDsizeFree(void *de_ptr)
 {
     DetectDsizeData *dd = (DetectDsizeData *)de_ptr;
     if(dd) SCFree(dd);
+}
+
+/* prefilter code */
+
+static void
+PrefilterPacketDsizeMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    if (PKT_IS_PSEUDOPKT(p)) {
+        SCReturn;
+    }
+
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+    const uint16_t dsize = p->payload_len;
+
+    if (DsizeMatch(dsize, ctx->v1.u8[0], ctx->v1.u16[1], ctx->v1.u16[2]))
+    {
+        SCLogDebug("packet matches dsize %u", dsize);
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketDsizeSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectDsizeData *a = smctx;
+    v->u8[0] = a->mode;
+    v->u16[1] = a->dsize;
+    v->u16[2] = a->dsize2;
+}
+
+static _Bool
+PrefilterPacketDsizeCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectDsizeData *a = smctx;
+    if (v.u8[0] == a->mode &&
+        v.u16[1] == a->dsize &&
+        v.u16[2] == a->dsize2)
+        return TRUE;
+    return FALSE;
+}
+
+static int PrefilterSetupDsize(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_DSIZE,
+            PrefilterPacketDsizeSet,
+            PrefilterPacketDsizeCompare,
+            PrefilterPacketDsizeMatch);
+}
+
+static _Bool PrefilterDsizeIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_DSIZE:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 /*
