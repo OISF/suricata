@@ -80,6 +80,8 @@ typedef struct SCACCtx_ {
 
     uint32_t allocated_state_count;
 
+    uint32_t allocated_state_count;
+
 #ifdef __SC_CUDA_SUPPORT__
     CUdeviceptr state_table_u16_cuda;
     CUdeviceptr state_table_u32_cuda;
