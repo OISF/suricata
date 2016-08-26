@@ -29,7 +29,10 @@
 #include "suricata.h"
 #include "tm-threads.h"
 
-#define DAG_TYPE_ETH 2
+#define ERF_TYPE_HDLC 1
+#define ERF_TYPE_ETH 2
+
+#define ERF_TYPE_ETH_PAD 2
 
 typedef struct DagFlags_ {
     uint8_t iface:2;
@@ -48,7 +51,6 @@ typedef struct DagRecord_ {
     uint16_t rlen;
     uint16_t lctr;
     uint16_t wlen;
-    uint16_t pad;
 } __attribute__((packed)) DagRecord;
 
 typedef struct ErfFileThreadVars_ {
@@ -153,6 +155,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
 
     ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
     DagRecord dr;
+    int pad = 0;
 
     int r = fread(&dr, sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
@@ -164,8 +167,31 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         }
         SCReturnInt(TM_ECODE_FAILED);
     }
+
+    switch (dr.type) {
+        case ERF_TYPE_HDLC:
+            p->datalink = LINKTYPE_CHDLC;
+            break;
+        case ERF_TYPE_ETH:
+            p->datalink = LINKTYPE_ETHERNET;
+            pad = ERF_TYPE_ETH_PAD;
+            break;
+        default:
+            SCLogError(SC_ERR_UNIMPLEMENTED,
+                "DAG record type %d not implemented.", dr.type);
+            SCReturnInt(TM_ECODE_FAILED);
+            break;
+    }
+
     int rlen = ntohs(dr.rlen);
     int wlen = ntohs(dr.wlen);
+
+    /* Skip over any pad. */
+    if (pad) {
+        rlen -= pad;
+        fseek(etv->erf, pad, SEEK_CUR);
+    }
+
     r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
         if (feof(etv->erf)) {
@@ -177,15 +203,7 @@ static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* Only support ethernet at this time. */
-    if (dr.type != DAG_TYPE_ETH) {
-        SCLogError(SC_ERR_UNIMPLEMENTED,
-            "DAG record type %d not implemented.", dr.type);
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
     GET_PKT_LEN(p) = wlen;
-    p->datalink = LINKTYPE_ETHERNET;
 
     /* Convert ERF time to timeval - from libpcap. */
     uint64_t ts = dr.ts;
@@ -287,7 +305,19 @@ DecodeErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueu
     /* Update counters. */
     DecodeUpdatePacketCounters(tv, dtv, p);
 
-    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+    switch (p->datalink) {
+        case LINKTYPE_ETHERNET:
+            DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        case LINKTYPE_CHDLC:
+            DecodeCHDLC(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
+            break;
+        default:
+            SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
+                "Error: datalink type %" PRId32
+                " not yet supported in module DecodePcap", p->datalink);
+            break;
+    }
 
     PacketDecodeFinalize(tv, dtv, p);
 
