@@ -1279,6 +1279,24 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         }
     }
 
+    de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
+    char *pf_setting = NULL;
+    if (ConfGet("detect.prefilter.default", &pf_setting) == 1 && pf_setting) {
+        if (strcasecmp(pf_setting, "mpm") == 0) {
+            de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
+        } else if (strcasecmp(pf_setting, "auto") == 0) {
+            de_ctx->prefilter_setting = DETECT_PREFILTER_AUTO;
+        }
+    }
+    switch (de_ctx->prefilter_setting) {
+        case DETECT_PREFILTER_MPM:
+            SCLogConfig("prefilter engines: MPM");
+            break;
+        case DETECT_PREFILTER_AUTO:
+            SCLogConfig("prefilter engines: MPM and keywords");
+            break;
+    }
+
     return 0;
 error:
     return -1;
