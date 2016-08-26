@@ -333,6 +333,11 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                         uint16_t sni_len = input[0] << 8 | input[1];
                         input += 2;
 
+                        /* the length of the server name should never be
+                           longer than the length of the extension */
+                        if (sni_len >= ext_len)
+                            goto end;
+
                         if (!(HAS_SPACE(sni_len)))
                             goto end;
 
