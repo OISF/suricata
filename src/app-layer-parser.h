@@ -34,6 +34,7 @@
 #define APP_LAYER_PARSER_NO_REASSEMBLY          0x04
 #define APP_LAYER_PARSER_NO_INSPECTION_PAYLOAD  0x08
 
+int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto);
 
 /***** transaction handling *****/
 
@@ -163,7 +164,7 @@ void AppLayerParserSetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
 int AppLayerParserGetTxLogged(uint8_t ipproto, AppProto alproto, void *alstate,
                               void *tx, uint32_t logger);
 uint64_t AppLayerParserGetTransactionInspectId(AppLayerParserState *pstate, uint8_t direction);
-void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
+void AppLayerParserSetTransactionInspectId(ThreadVars *tv, AppLayerParserState *pstate,
                                 const uint8_t ipproto, const AppProto alproto, void *alstate,
                                 const uint8_t flags);
 AppLayerDecoderEvents *AppLayerParserGetDecoderEvents(AppLayerParserState *pstate);

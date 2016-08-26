@@ -1130,10 +1130,10 @@ end:
  *  \param flags direction and disruption flags
  *
  *  \note it is possible that f->alstate, f->alparser are NULL */
-void DeStateUpdateInspectTransactionId(Flow *f, const uint8_t flags)
+void DeStateUpdateInspectTransactionId(ThreadVars *tv, Flow *f, const uint8_t flags)
 {
     if (f->alparser && f->alstate) {
-        AppLayerParserSetTransactionInspectId(f->alparser, f->proto,
+        AppLayerParserSetTransactionInspectId(tv, f->alparser, f->proto,
                                               f->alproto, f->alstate, flags);
     }
     return;
