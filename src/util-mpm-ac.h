@@ -25,11 +25,12 @@
 #ifndef __UTIL_MPM_AC__H__
 #define __UTIL_MPM_AC__H__
 
+#include "suricata-common.h"
+
 #define SC_AC_STATE_TYPE_U16 uint16_t
 #define SC_AC_STATE_TYPE_U32 uint32_t
 
 #ifdef __SC_CUDA_SUPPORT__
-#include "suricata-common.h"
 #include "util-cuda.h"
 #include "util-cuda-vars.h"
 #include "decode.h"

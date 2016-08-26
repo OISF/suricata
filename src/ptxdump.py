@@ -29,6 +29,7 @@ out_h = sys.argv[1] + ".h"
 out = open(out_h, 'w')
 
 out.writelines(header)
+out.writelines("#include \"suricata-common.h\"\n")
 out.writelines("#ifdef __SC_CUDA_SUPPORT__\n")
 out.writelines("#ifndef __ptxdump_h__\n")
 out.writelines("#define __ptxdump_h__\n\n")

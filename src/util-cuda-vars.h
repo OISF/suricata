@@ -21,10 +21,12 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifdef __SC_CUDA_SUPPORT__
-
 #ifndef __UTIL_CUDA_VARS__H__
 #define __UTIL_CUDA_VARS__H__
+
+#include "suricata-common.h"
+
+#ifdef __SC_CUDA_SUPPORT__
 
 #include "util-cuda-buffer.h"
 #include "util-mpm.h"
@@ -60,6 +62,7 @@ typedef struct CudaPacketVars_ {
 void CudaVarsSetDeCtx(struct DetectEngineCtx_ *de_ctx);
 int CudaThreadVarsInit(CudaThreadVars *ctv);
 
+#endif /* __SC_CUDA_SUPPORT__ */
+
 #endif /* __UTIL_CUDA_VARS__H__ */
 
-#endif /* __SC_CUDA_SUPPORT__ */

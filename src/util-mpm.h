@@ -23,6 +23,7 @@
 
 #ifndef __UTIL_MPM_H__
 #define __UTIL_MPM_H__
+
 #include "suricata-common.h"
 
 
