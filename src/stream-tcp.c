@@ -592,7 +592,6 @@ void StreamTcpInitConfig(char quiet)
     /* set the default free function and flow state function
      * values. */
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionClear);
-    FlowSetFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
 
 #ifdef UNITTESTS
     if (RunmodeIsUnittests()) {
@@ -666,6 +665,22 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
         return;
 
     ssn->state = state;
+
+    /* update the flow state */
+    switch(ssn->state) {
+        case TCP_ESTABLISHED:
+        case TCP_FIN_WAIT1:
+        case TCP_FIN_WAIT2:
+        case TCP_CLOSING:
+        case TCP_CLOSE_WAIT:
+            SC_ATOMIC_SET(p->flow->flow_state, FLOW_STATE_ESTABLISHED);
+            break;
+        case TCP_LAST_ACK:
+        case TCP_TIME_WAIT:
+        case TCP_CLOSED:
+            SC_ATOMIC_SET(p->flow->flow_state, FLOW_STATE_CLOSED);
+            break;
+    }
 }
 
 /**
@@ -5029,45 +5044,6 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
             break;
     }
     return 0;
-}
-
-/**
- *  \brief  Function to return the FLOW state depending upon the TCP session state.
- *
- *  \param   s      TCP session of which the state has to be returned
- *  \retval  state  The FLOW_STATE_ depends upon the TCP sesison state, default is
- *                  FLOW_STATE_CLOSED
- */
-
-int StreamTcpGetFlowState(void *s)
-{
-    SCEnter();
-
-    TcpSession *ssn = (TcpSession *)s;
-    if (unlikely(ssn == NULL)) {
-        SCReturnInt(FLOW_STATE_CLOSED);
-    }
-
-    /* sorted most likely to least likely */
-    switch(ssn->state) {
-        case TCP_ESTABLISHED:
-        case TCP_FIN_WAIT1:
-        case TCP_FIN_WAIT2:
-        case TCP_CLOSING:
-        case TCP_CLOSE_WAIT:
-            SCReturnInt(FLOW_STATE_ESTABLISHED);
-        case TCP_NONE:
-        case TCP_SYN_SENT:
-        case TCP_SYN_RECV:
-        case TCP_LISTEN:
-            SCReturnInt(FLOW_STATE_NEW);
-        case TCP_LAST_ACK:
-        case TCP_TIME_WAIT:
-        case TCP_CLOSED:
-            SCReturnInt(FLOW_STATE_CLOSED);
-    }
-
-    SCReturnInt(FLOW_STATE_CLOSED);
 }
 
 /**

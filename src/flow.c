@@ -87,7 +87,6 @@ void FlowInitFlowProto();
 int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
-int FlowSetFlowStateFunc(uint8_t , int (*GetProtoState)(void *));
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
@@ -246,9 +245,6 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
     /* Point the Packet at the Flow */
     FlowReference(&p->flow, f);
 
-    /* update the last seen timestamp of this flow */
-    f->lastts_sec = p->ts.tv_sec;
-
     /* update flags and counters */
     if (FlowGetPacketDirection(f, p) == TOSERVER) {
         if (FlowUpdateSeenFlag(p)) {
@@ -274,6 +270,10 @@ void FlowHandlePacket(ThreadVars *tv, Packet *p)
     if ((f->flags & FLOW_TO_DST_SEEN) && (f->flags & FLOW_TO_SRC_SEEN)) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
+
+        if (f->proto != IPPROTO_TCP) {
+            SC_ATOMIC_SET(f->flow_state, FLOW_STATE_ESTABLISHED);
+        }
     }
 
     /*set the detection bypass flags*/
@@ -496,7 +496,6 @@ void FlowInitFlowProto(void)
     flow_proto[FLOW_PROTO_DEFAULT].emerg_closed_timeout =
         FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     flow_proto[FLOW_PROTO_DEFAULT].Freefunc = NULL;
-    flow_proto[FLOW_PROTO_DEFAULT].GetProtoState = NULL;
     /*TCP*/
     flow_proto[FLOW_PROTO_TCP].new_timeout = FLOW_IPPROTO_TCP_NEW_TIMEOUT;
     flow_proto[FLOW_PROTO_TCP].est_timeout = FLOW_IPPROTO_TCP_EST_TIMEOUT;
@@ -508,7 +507,6 @@ void FlowInitFlowProto(void)
     flow_proto[FLOW_PROTO_TCP].emerg_closed_timeout =
         FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     flow_proto[FLOW_PROTO_TCP].Freefunc = NULL;
-    flow_proto[FLOW_PROTO_TCP].GetProtoState = NULL;
     /*UDP*/
     flow_proto[FLOW_PROTO_UDP].new_timeout = FLOW_IPPROTO_UDP_NEW_TIMEOUT;
     flow_proto[FLOW_PROTO_UDP].est_timeout = FLOW_IPPROTO_UDP_EST_TIMEOUT;
@@ -520,7 +518,6 @@ void FlowInitFlowProto(void)
     flow_proto[FLOW_PROTO_UDP].emerg_closed_timeout =
         FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     flow_proto[FLOW_PROTO_UDP].Freefunc = NULL;
-    flow_proto[FLOW_PROTO_UDP].GetProtoState = NULL;
     /*ICMP*/
     flow_proto[FLOW_PROTO_ICMP].new_timeout = FLOW_IPPROTO_ICMP_NEW_TIMEOUT;
     flow_proto[FLOW_PROTO_ICMP].est_timeout = FLOW_IPPROTO_ICMP_EST_TIMEOUT;
@@ -532,7 +529,6 @@ void FlowInitFlowProto(void)
     flow_proto[FLOW_PROTO_ICMP].emerg_closed_timeout =
         FLOW_DEFAULT_EMERG_CLOSED_TIMEOUT;
     flow_proto[FLOW_PROTO_ICMP].Freefunc = NULL;
-    flow_proto[FLOW_PROTO_ICMP].GetProtoState = NULL;
 
     /* Let's see if we have custom timeouts defined from config */
     const char *new = NULL;
@@ -760,22 +756,6 @@ int FlowSetProtoFreeFunc (uint8_t proto, void (*Free)(void *))
     proto_map = FlowGetProtoMapping(proto);
 
     flow_proto[proto_map].Freefunc = Free;
-    return 1;
-}
-
-/**
- *  \brief  Function to set the function to get protocol specific flow state.
- *
- *  \param   proto            protocol of which function is needed to be set.
- *  \param   GetFlowState     Function pointer which will be called to get state.
- */
-
-int FlowSetFlowStateFunc (uint8_t proto, int (*GetProtoState)(void *))
-{
-    uint8_t proto_map;
-    proto_map = FlowGetProtoMapping(proto);
-
-    flow_proto[proto_map].GetProtoState = GetProtoState;
     return 1;
 }
 

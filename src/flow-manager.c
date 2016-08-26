@@ -126,24 +126,6 @@ void FlowKillFlowManagerThread(void)
 }
 
 /** \internal
- *  \brief Get the flow's state
- *
- *  \param f flow
- *
- *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
- */
-static inline int FlowGetFlowState(Flow *f) {
-    if (flow_proto[f->protomap].GetProtoState != NULL) {
-        return flow_proto[f->protomap].GetProtoState(f->protoctx);
-    } else {
-        if ((f->flags & FLOW_TO_SRC_SEEN) && (f->flags & FLOW_TO_DST_SEEN))
-            return FLOW_STATE_ESTABLISHED;
-        else
-            return FLOW_STATE_NEW;
-    }
-}
-
-/** \internal
  *  \brief get timeout for flow
  *
  *  \param f flow
@@ -152,7 +134,8 @@ static inline int FlowGetFlowState(Flow *f) {
  *
  *  \retval timeout timeout in seconds
  */
-static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency) {
+static inline uint32_t FlowGetFlowTimeout(const Flow *f, int state, int emergency)
+{
     uint32_t timeout;
 
     if (emergency) {
@@ -196,7 +179,8 @@ static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency) {
  *  \retval 0 not timed out
  *  \retval 1 timed out
  */
-static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int emergency) {
+static int FlowManagerFlowTimeout(const Flow *f, int state, struct timeval *ts, int emergency)
+{
     /* set the timeout value according to the flow operating mode,
      * flow's state and protocol.*/
     uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
@@ -259,21 +243,22 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
     uint32_t cnt = 0;
 
     do {
-        if (FLOWLOCK_TRYWRLOCK(f) != 0) {
-            f = f->hprev;
-            continue;
-        }
+        /* check flow timeout based on lastts and state. Both can be
+         * accessed w/o Flow lock as we do have the hash row lock (so flow
+         * can't disappear) and flow_state is atomic. lastts can only
+         * be modified when we have both the flow and hash row lock */
 
-        Flow *next_flow = f->hprev;
-
-        int state = FlowGetFlowState(f);
+        int state = SC_ATOMIC_GET(f->flow_state);
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
-            FLOWLOCK_UNLOCK(f);
             f = f->hprev;
             continue;
         }
+
+        FLOWLOCK_WRLOCK(f);
+
+        Flow *next_flow = f->hprev;
 
         /* check if the flow is fully timed out and
          * ready to be discarded. */
@@ -624,7 +609,7 @@ static int FlowMgrTest01 (void) {
 
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -682,7 +667,7 @@ static int FlowMgrTest02 (void) {
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -728,7 +713,7 @@ static int FlowMgrTest03 (void) {
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
@@ -787,7 +772,7 @@ static int FlowMgrTest04 (void) {
     f.proto = IPPROTO_TCP;
     f.flags |= FLOW_EMERGENCY;
 
-    int state = FlowGetFlowState(&f);
+    int state = SC_ATOMIC_GET(f.flow_state);
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);

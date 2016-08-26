@@ -43,6 +43,7 @@
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
+        SC_ATOMIC_INIT((f)->flow_state); \
         SC_ATOMIC_INIT((f)->use_cnt); \
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
@@ -82,6 +83,7 @@
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->proto = 0; \
+        SC_ATOMIC_RESET((f)->flow_state); \
         SC_ATOMIC_RESET((f)->use_cnt); \
         (f)->probing_parser_toserver_alproto_masks = 0; \
         (f)->probing_parser_toclient_alproto_masks = 0; \
@@ -113,6 +115,7 @@
 
 #define FLOW_DESTROY(f) do { \
         FlowCleanupAppLayer((f)); \
+        SC_ATOMIC_DESTROY((f)->flow_state); \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
         \
         FLOWLOCK_DESTROY((f)); \
