@@ -204,6 +204,15 @@ int UnixNew(UnixCommand * this)
         SCFree(sockettarget);
         return 0;
     }
+    /* chmod FTW for changing socket permissions */
+    ret = chmod(sockettarget, S_IRWXU|S_IRWXG);
+    if (ret == -1) {
+        int err = errno;
+        SCLogWarning(SC_ERR_INITIALIZATION,
+            "Unable to change permission on socket: %s (%d)",
+            strerror(err), err);
+    }
+
     SCFree(sockettarget);
     return 1;
 }
