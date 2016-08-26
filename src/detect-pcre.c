@@ -4149,6 +4149,8 @@ void DetectPcreRegisterTests(void)
 
     UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost);
 
+    UtRegisterTest("DetectPcreParseHttpHost", DetectPcreParseHttpHost, 1);
+
 #endif /* UNITTESTS */
 }
 
