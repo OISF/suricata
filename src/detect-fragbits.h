@@ -39,7 +39,7 @@
  */
 
 typedef struct DetectFragBitsData_ {
-    uint16_t fragbits;  /**< TCP fragbits */
+    uint8_t fragbits; /**< IP fragbits */
     uint8_t modifier; /**< !(1) +(2) *(3) modifiers */
 } DetectFragBitsData;
 

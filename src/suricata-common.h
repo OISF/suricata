@@ -302,7 +302,6 @@
 #endif
 
 typedef enum PacketProfileDetectId_ {
-    PROF_DETECT_MPM,
     PROF_DETECT_MPM_PACKET,         /* PKT MPM */
     PROF_DETECT_MPM_PKT_STREAM,     /* PKT inspected with stream MPM */
     PROF_DETECT_MPM_STREAM,         /* STREAM MPM */
