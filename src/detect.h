@@ -550,6 +550,12 @@ typedef struct DetectEngineThreadKeywordCtxItem_ {
     const char *name; /* keyword name, for error printing */
 } DetectEngineThreadKeywordCtxItem;
 
+enum DetectEnginePrefilterSetting
+{
+    DETECT_PREFILTER_MPM = 0,   /**< use only mpm / fast_pattern */
+    DETECT_PREFILTER_AUTO = 1,  /**< use mpm + keyword prefilters */
+};
+
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;
@@ -687,6 +693,8 @@ typedef struct DetectEngineCtx_ {
     /** id of loader thread 'owning' this de_ctx */
     int loader_id;
 
+    /** are we useing just mpm or also other prefilters */
+    enum DetectEnginePrefilterSetting prefilter_setting;
 
     HashListTable *dport_hash_table;
 
