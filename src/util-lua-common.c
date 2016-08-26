@@ -159,6 +159,34 @@ static int LuaCallbackPacketPayload(lua_State *luastate)
 }
 
 /** \internal
+ *  \brief fill lua stack with packet timestamp as a number
+ *  \param luastate the lua state
+ *  \param p packet
+ *  \retval cnt number of data items placed on the stack
+ *
+ *  Places: ts (number)
+ */
+static int LuaCallbackTimeNumberPushToStackFromPacket(lua_State *luastate, const Packet *p)
+{
+    double t =(double)p->ts.tv_sec + (double)p->ts.tv_usec * 0.000001;
+    lua_pushnumber(luastate, t);
+    return 1;
+}
+
+/** \internal
+ *  \brief Wrapper for getting packet timestamp as number into a lua script
+ *  \retval cnt number of items placed on the stack
+ */
+static int LuaCallbackPacketTimeNumber(lua_State *luastate)
+{
+    const Packet *p = LuaStateGetPacket(luastate);
+    if (p == NULL)
+        return LuaCallbackError(luastate, "internal error: no packet");
+
+    return LuaCallbackTimeNumberPushToStackFromPacket(luastate, p);
+}
+
+/** \internal
  *  \brief fill lua stack with header info
  *  \param luastate the lua state
  *  \param p packet
@@ -719,6 +747,8 @@ int LuaRegisterFunctions(lua_State *luastate)
     /* registration of the callbacks */
     lua_pushcfunction(luastate, LuaCallbackPacketPayload);
     lua_setglobal(luastate, "SCPacketPayload");
+    lua_pushcfunction(luastate, LuaCallbackPacketTimeNumber);
+    lua_setglobal(luastate, "SCPacketTimeNumber");
     lua_pushcfunction(luastate, LuaCallbackPacketTimeString);
     lua_setglobal(luastate, "SCPacketTimeString");
     lua_pushcfunction(luastate, LuaCallbackTuple);
