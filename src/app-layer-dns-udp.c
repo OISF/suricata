@@ -50,6 +50,24 @@
 
 #include "app-layer-dns-udp.h"
 
+SC_ATOMIC_DECLARE(uint64_t, dns_udp_tx_cnt);
+
+/* tx counter functions */
+static void DNSUDPIncTxCounter(void)
+{
+    SC_ATOMIC_ADD(dns_udp_tx_cnt, 1);
+}
+
+static uint64_t DNSUDPGetTxCounter(void)
+{
+    return SC_ATOMIC_GET(dns_udp_tx_cnt);
+}
+
+static void DNSUDPRegisterCounters(void)
+{
+    SC_ATOMIC_INIT(dns_udp_tx_cnt);
+}
+
 /** \internal
  *  \brief Parse DNS request packet
  */
@@ -202,6 +220,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         goto bad_data;
 
     SCLogDebug("queries %04x", ntohs(dns_header->questions));
+
+    DNSUDPIncTxCounter();
 
     uint16_t q;
     const uint8_t *data = input + sizeof(DNSHeader);
@@ -428,8 +448,9 @@ void RegisterDNSUDPParsers(void)
                                                                DNSGetAlstateProgressCompletionStatus);
 
         DNSAppLayerRegisterGetEventInfo(IPPROTO_UDP, ALPROTO_DNS);
-
+        AppLayerParserRegisterGetTxCounter(IPPROTO_UDP, ALPROTO_DNS, DNSUDPGetTxCounter);
         DNSUDPConfigure();
+        DNSUDPRegisterCounters();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

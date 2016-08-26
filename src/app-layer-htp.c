@@ -91,6 +91,8 @@ static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
 
+SC_ATOMIC_DECLARE(uint64_t, htp_tx_cnt);
+
 SCEnumCharMap http_decoder_event_table[ ] = {
     { "UNKNOWN_ERROR",
         HTTP_DECODER_EVENT_UNKNOWN_ERROR},
@@ -231,6 +233,22 @@ static int HTPLookupPersonality(const char *str)
     }
 
     return -1;
+}
+
+/* app-layer stats functions */
+static void HTPIncTxCounter(void)
+{
+    SC_ATOMIC_ADD(htp_tx_cnt, 1);
+}
+
+static uint64_t HTPGetTxCounter(void)
+{
+    return SC_ATOMIC_GET(htp_tx_cnt);
+}
+
+static void HTPRegisterCounters(void)
+{
+    SC_ATOMIC_INIT(htp_tx_cnt);
 }
 
 void HTPSetEvent(HtpState *s, HtpTxUserData *htud, uint8_t e)
@@ -1944,6 +1962,8 @@ static int HTPCallbackRequest(htp_tx_t *tx)
 
     HTPErrorCheckTxRequestFlags(hstate, tx);
 
+    HTPIncTxCounter();
+
     HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
     if (htud != NULL) {
         if (htud->tsflags & HTP_FILENAME_SET) {
@@ -2784,7 +2804,9 @@ void RegisterHTPParsers(void)
                                      HTPHandleResponseData);
         SC_ATOMIC_INIT(htp_config_flags);
         AppLayerParserRegisterParserAcceptableDataDirection(IPPROTO_TCP, ALPROTO_HTTP, STREAM_TOSERVER);
+        AppLayerParserRegisterGetTxCounter(IPPROTO_TCP, ALPROTO_HTTP, HTPGetTxCounter);
         HTPConfigure();
+        HTPRegisterCounters();
     } else {
         SCLogInfo("Parsed disabled for %s protocol. Protocol detection"
                   "still on.", proto_name);

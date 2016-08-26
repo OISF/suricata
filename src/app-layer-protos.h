@@ -44,6 +44,10 @@ enum AppProtoEnum {
     ALPROTO_MODBUS,
     ALPROTO_TEMPLATE,
 
+    /* used to avoid the allocation of array slots that
+       will never be incremented */
+    ALPROTO_COUNTER_MAX = ALPROTO_TEMPLATE,
+
     /* used by the probing parser when alproto detection fails
      * permanently for that particular stream */
     ALPROTO_FAILED,

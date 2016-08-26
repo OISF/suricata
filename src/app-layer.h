@@ -132,6 +132,8 @@ static inline void AppLayerProfilingStore(AppLayerThreadCtx *app_tctx, Packet *p
 
 void AppLayerRegisterGlobalCounters(void);
 
+uint64_t AppLayerCountersGetCounter(AppProto alproto);
+
 /***** Unittests *****/
 
 #ifdef UNITTESTS

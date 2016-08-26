@@ -148,6 +148,8 @@ void AppLayerParserRegisterDetectStateFuncs(uint8_t ipproto, AppProto alproto,
         int (*StateHasTxDetectState)(void *alstate),
         DetectEngineState *(*GetTxDetectState)(void *tx),
         int (*SetTxDetectState)(void *alstate, void *tx, DetectEngineState *));
+void AppLayerParserRegisterGetTxCounter(uint8_t ipproto, AppProto alproto,
+        uint64_t (*GetTxCounter)(void));
 
 /***** Get and transaction functions *****/
 
@@ -203,6 +205,8 @@ int AppLayerParserProtocolIsTxEventAware(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolSupportsTxs(uint8_t ipproto, AppProto alproto);
 int AppLayerParserProtocolHasLogger(uint8_t ipproto, AppProto alproto);
 void AppLayerParserTriggerRawStreamReassembly(Flow *f);
+int AppLayerParserHasGetTxCounter(uint8_t ipproto, AppProto);
+uint64_t AppLayerParserGetTxCounter(uint8_t ipproto, AppProto alproto);
 
 /***** Cleanup *****/
 
