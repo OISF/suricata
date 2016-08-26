@@ -386,7 +386,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
         p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
         SCMutexLock(&f.m);
-        int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, b->direction,
+        int r = AppLayerParserParse(NULL, alp_tctx, &f, ALPROTO_HTTP, b->direction,
                 (uint8_t *)b->input,
                 b->input_size ? b->input_size : strlen((const char *)b->input));
         if (r != 0) {

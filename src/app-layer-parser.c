@@ -140,6 +140,8 @@ struct AppLayerParserState_ {
      * we don't need a var per direction since we don't log a transaction
      * unless we have the entire transaction. */
     uint64_t log_id;
+    /* Count of number of transactions */
+    uint64_t tx_cnt;
 
     /* Used to store decoder events. */
     AppLayerDecoderEvents *decoder_events;
@@ -148,6 +150,13 @@ struct AppLayerParserState_ {
 /* Static global version of the parser context.
  * Post 2.0 let's look at changing this to move it out to app-layer.c. */
 static AppLayerParserCtx alp_ctx;
+
+int AppLayerParserProtoIsRegistered(uint8_t ipproto, AppProto alproto)
+{
+    int ipproto_map = FlowGetProtoMapping(ipproto);
+
+    return (alp_ctx.ctxs[ipproto_map][alproto].StateAlloc != NULL) ? 1 : 0;
+}
 
 AppLayerParserState *AppLayerParserStateAlloc(void)
 {
@@ -617,6 +626,7 @@ void AppLayerParserSetTransactionInspectId(AppLayerParserState *pstate,
         else
             break;
     }
+
     pstate->inspect_id[direction] = idx;
 
     SCReturn;
@@ -899,7 +909,7 @@ int AppLayerParserSetTxDetectState(uint8_t ipproto, AppProto alproto,
 
 /***** General *****/
 
-int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
+int AppLayerParserParse(ThreadVars *tv, AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alproto,
                         uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
@@ -997,6 +1007,14 @@ int AppLayerParserParse(AppLayerParserThreadCtx *alp_tctx, Flow *f, AppProto alp
         }
     }
 
+    if (AppLayerParserProtocolIsTxEventAware(f->proto, alproto)) {
+        uint64_t p_tx_cnt = pstate->tx_cnt;
+        pstate->tx_cnt = AppLayerParserGetTxCnt(f->proto, alproto, f->alstate);
+        if (tv) {
+            AppLayerIncTxCounter(f->proto, alproto, tv,
+                                 pstate->tx_cnt - p_tx_cnt);
+        }
+    }
     /* next, see if we can get rid of transactions now */
     AppLayerParserTransactionsCleanup(f);
 
@@ -1300,7 +1318,7 @@ int AppLayerParserRequestFromFile(AppProto alproto, char *filename)
             }
             //PrintRawDataFp(stdout, buffer, result);
 
-            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags, buffer, result);
             if (done)
                 break;
         }
@@ -1383,7 +1401,7 @@ int AppLayerParserFromFile(AppProto alproto, char *filename)
             }
             //PrintRawDataFp(stdout, buffer, result);
 
-            (void)AppLayerParserParse(alp_tctx, f, alproto, flags, buffer, result);
+            (void)AppLayerParserParse(NULL, alp_tctx, f, alproto, flags, buffer, result);
             if (done)
                 break;
         }
@@ -1505,7 +1523,7 @@ static int AppLayerParserTest01(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF,
                            testbuf, testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
@@ -1558,7 +1576,7 @@ static int AppLayerParserTest02(void)
     StreamTcpInitConfig(TRUE);
 
     SCMutexLock(&f->m);
-    int r = AppLayerParserParse(alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParserParse(NULL, alp_tctx, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
