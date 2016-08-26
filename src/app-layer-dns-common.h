@@ -205,6 +205,9 @@ typedef struct DNSTransaction_ {
 
     TAILQ_ENTRY(DNSTransaction_) next;
     DetectEngineState *de_state;
+
+    uint64_t request_usec_epoch;                    /**< usec since epoch */
+    uint32_t response_usec_offset;                  /**< response usec offset from request_usec_epoch */
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */
