@@ -3383,7 +3383,10 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx)
 
         RuleSetWhitelist(tmp_s);
 
-        if (!(tmp_s->flags & SIG_FLAG_PREFILTER)) {
+        /* if keyword engines are enabled in the config, handle them here */
+        if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO &&
+            !(tmp_s->flags & SIG_FLAG_PREFILTER))
+        {
             int i;
             int prefilter_list = DETECT_TBLSIZE;
 
@@ -3811,11 +3814,13 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx)
 
         BUG_ON(PatternMatchPrepareGroup(de_ctx, sgh) != 0);
 
-        int i = 0;
-        for (i = 0; i < DETECT_TBLSIZE; i++)
-        {
-            if (sigmatch_table[i].SetupPrefilter != NULL) {
-                sigmatch_table[i].SetupPrefilter(sgh);
+        if (de_ctx->prefilter_setting == DETECT_PREFILTER_AUTO) {
+            int i = 0;
+            for (i = 0; i < DETECT_TBLSIZE; i++)
+            {
+                if (sigmatch_table[i].SetupPrefilter != NULL) {
+                    sigmatch_table[i].SetupPrefilter(sgh);
+                }
             }
         }
 
