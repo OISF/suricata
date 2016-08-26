@@ -820,6 +820,7 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+    memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (minimal) {
         de_ctx->minimal = 1;
@@ -913,6 +914,19 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
     de_ctx->keyword_list = NULL;
 }
 
+static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
+{
+    SigString *item = de_ctx->sig_stat.failed_sigs;
+    while (item) {
+        SigString *next = item->next;
+        SCFree(item->filename);
+        SCFree(item->sig_str);
+        SCFree(item);
+        item = next;
+    }
+    de_ctx->sig_stat.failed_sigs = NULL;
+}
+
 /**
  * \brief Free a DetectEngineCtx::
  *
@@ -963,6 +977,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+    DetectEngineCtxFreeFailedSigs(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {
