@@ -58,6 +58,31 @@
 static int PrefilterStoreGetId(const char *name);
 #endif
 
+/* Return true is the list is sorted smallest to largest */
+static inline void QuickSortSigIntId(SigIntId *sids, uint32_t n)
+{
+    if (n < 2)
+        return;
+    SigIntId p = sids[n / 2];
+    SigIntId *l = sids;
+    SigIntId *r = sids + n - 1;
+    while (l <= r) {
+        if (*l < p)
+            l++;
+        else if (*r > p)
+            r--;
+        else {
+            SigIntId t = *l;
+            *l = *r;
+            *r = t;
+            l++;
+            r--;
+        }
+    }
+    QuickSortSigIntId(sids, r - sids + 1);
+    QuickSortSigIntId(l, sids + n - l);
+}
+
 static inline void PrefilterTx(DetectEngineThreadCtx *det_ctx,
         const SigGroupHead *sgh, Packet *p, const uint8_t flags)
 {
@@ -115,22 +140,26 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
 
     PROFILING_PREFILTER_RESET(p, det_ctx->de_ctx->profile_prefilter_maxid);
 
-    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
-    /* run packet engines */
-    PrefilterEngine *engine = sgh->pkt_engines;
-    while (engine) {
-        PROFILING_PREFILTER_START(p);
-        engine->Prefilter(det_ctx, p, engine->pectx);
-        PROFILING_PREFILTER_END(p, engine->profile_id);
+    if (sgh->pkt_engines) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PKT);
+        /* run packet engines */
+        PrefilterEngine *engine = sgh->pkt_engines;
+        do {
+            PROFILING_PREFILTER_START(p);
+            engine->Prefilter(det_ctx, p, engine->pectx);
+            PROFILING_PREFILTER_END(p, engine->profile_id);
 
-        engine = engine->next;
+            engine = engine->next;
+        } while (engine != NULL);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PKT);
     }
-    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_PKT);
 
     /* run payload inspecting engines */
-    if ((p->payload_len > 0 || det_ctx->smsg != NULL) && !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
+    if (sgh->payload_engines &&
+        (p->payload_len > 0 || det_ctx->smsg != NULL) &&
+        !(p->flags & PKT_NOPAYLOAD_INSPECTION)) {
         PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_PAYLOAD);
-        engine = sgh->payload_engines;
+        PrefilterEngine *engine = sgh->payload_engines;
         while (engine) {
             PROFILING_PREFILTER_START(p);
             engine->Prefilter(det_ctx, p, engine->pectx);
@@ -150,6 +179,14 @@ void Prefilter(DetectEngineThreadCtx *det_ctx, const SigGroupHead *sgh,
             PrefilterTx(det_ctx, sgh, p, flags);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_TX);
         }
+    }
+
+    /* Sort the rule list to lets look at pmq.
+     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
+    if (likely(det_ctx->pmq.rule_id_array_cnt > 1)) {
+        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
+        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
+        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
     }
 }
 
