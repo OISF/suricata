@@ -1489,6 +1489,10 @@ void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.trec);
     if (ssl_state->server_connp.cert0_subject)
         SCFree(ssl_state->server_connp.cert0_subject);
+    if (ssl_state->server_connp.cert0_not_valid_after)
+        SCFree(ssl_state->server_connp.cert0_not_valid_after);
+    if (ssl_state->server_connp.cert0_not_valid_before)
+        SCFree(ssl_state->server_connp.cert0_not_valid_before);
     if (ssl_state->server_connp.cert0_issuerdn)
         SCFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_fingerprint)

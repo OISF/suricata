@@ -35,9 +35,13 @@
 #ifndef __UTIL_DECODE_DER_GET_H__
 #define __UTIL_DECODE_DER_GET_H__
 
-const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode);
+const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index,
+        const uint32_t seqsz, uint32_t *errcode);
 
 int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetValidityParseTimestamp(char *dst, uint32_t dst_len, char *src, uint32_t src_len);
+int Asn1DerGetValidity(const Asn1Generic *cert, char *nb_buf, uint32_t nb_buf_len,
+        char *na_buf, uint32_t na_buf_len, uint32_t *errcode);
 
 #endif /* __UTIL_DECODE_DER_GET_H__ */
