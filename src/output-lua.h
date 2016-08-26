@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_LUA_H__
 #define __OUTPUT_LUA_H__
 
-void TmModuleLuaLogRegister (void);
+void LuaLogRegister(void);
 
 #endif /* __OUTPUT_LUA_H__ */

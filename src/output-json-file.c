@@ -288,30 +288,19 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
     return output_ctx;
 }
 
-void TmModuleJsonFileLogRegister (void)
+void JsonFileLogRegister (void)
 {
-    tmm_modules[TMM_JSONFILELOG].name = "JsonFileLog";
-    tmm_modules[TMM_JSONFILELOG].ThreadInit = JsonFileLogThreadInit;
-    tmm_modules[TMM_JSONFILELOG].ThreadDeinit = JsonFileLogThreadDeinit;
-    tmm_modules[TMM_JSONFILELOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as child of eve-log */
-    OutputRegisterFileSubModule("eve-log", "JsonFileLog", "eve-log.files",
-            OutputFileLogInitSub, JsonFileLogger);
+    OutputRegisterFileSubModule(LOGGER_JSON_FILE, "eve-log", "JsonFileLog",
+        "eve-log.files", OutputFileLogInitSub, JsonFileLogger,
+        JsonFileLogThreadInit, JsonFileLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonFileLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonFileLogRegister (void)
-{
-    tmm_modules[TMM_JSONFILELOG].name = "JsonFileLog";
-    tmm_modules[TMM_JSONFILELOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

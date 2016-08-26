@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-filedata.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -51,7 +52,10 @@ typedef struct OutputFiledataLogger_ {
     OutputCtx *output_ctx;
     struct OutputFiledataLogger_ *next;
     const char *name;
-    TmmId module_id;
+    LoggerId logger_id;
+    ThreadInitFunc ThreadInit;
+    ThreadDeinitFunc ThreadDeinit;
+    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputFiledataLogger;
 
 static OutputFiledataLogger *list = NULL;
@@ -60,12 +64,11 @@ static SCMutex g_waldo_mutex = SCMUTEX_INITIALIZER;
 static int g_waldo_init = 0;
 static int g_waldo_deinit = 0;
 
-int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, OutputCtx *output_ctx)
+int OutputRegisterFiledataLogger(LoggerId id, const char *name,
+    FiledataLogger LogFunc, OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-
     OutputFiledataLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -74,7 +77,10 @@ int OutputRegisterFiledataLogger(const char *name, FiledataLogger LogFunc, Outpu
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-    op->module_id = (TmmId) module_id;
+    op->logger_id = id;
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -103,9 +109,9 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
         BUG_ON(logger->LogFunc == NULL);
 
         SCLogDebug("logger %p", logger);
-        PACKET_PROFILING_TMM_START(p, logger->module_id);
+        PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
         logger->LogFunc(tv, store->thread_data, (const Packet *)p, ff, data, data_len, flags);
-        PACKET_PROFILING_TMM_END(p, logger->module_id);
+        PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
 
         file_logged = 1;
 
@@ -118,10 +124,14 @@ static int CallLoggers(ThreadVars *tv, OutputLoggerThreadStore *store_list,
     return file_logged;
 }
 
-static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputFiledataLogger *logger = list;
@@ -147,7 +157,6 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
     int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
     int file_trunc = 0;
 
-    FLOWLOCK_WRLOCK(f); // < need write lock for FiledataPrune below
     file_trunc = StreamTcpReassembleDepthReached(p);
 
     FileContainer *ffc = AppLayerParserGetFiles(p->proto, f->alproto,
@@ -224,7 +233,6 @@ static TmEcode OutputFiledataLog(ThreadVars *tv, Packet *p, void *thread_data, P
         FilePrune(ffc);
     }
 
-    FLOWLOCK_UNLOCK(f);
     return TM_ECODE_OK;
 }
 
@@ -299,16 +307,9 @@ static TmEcode OutputFiledataLogThreadInit(ThreadVars *tv, void *initdata, void 
 
     OutputFiledataLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadInit) {
+        if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -391,15 +392,8 @@ static TmEcode OutputFiledataLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputFiledataLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
+        if (logger->ThreadDeinit) {
+            logger->ThreadDeinit(tv, store->thread_data);
         }
 
         OutputLoggerThreadStore *next_store = store->next;
@@ -429,15 +423,8 @@ static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputFiledataLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (logger->ThreadExitPrintStats) {
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
@@ -445,15 +432,11 @@ static void OutputFiledataLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModuleFiledataLoggerRegister (void)
+void OutputFiledataLoggerRegister(void)
 {
-    tmm_modules[TMM_FILEDATALOGGER].name = "__filedata_logger__";
-    tmm_modules[TMM_FILEDATALOGGER].ThreadInit = OutputFiledataLogThreadInit;
-    tmm_modules[TMM_FILEDATALOGGER].Func = OutputFiledataLog;
-    tmm_modules[TMM_FILEDATALOGGER].ThreadExitPrintStats = OutputFiledataLogExitPrintStats;
-    tmm_modules[TMM_FILEDATALOGGER].ThreadDeinit = OutputFiledataLogThreadDeinit;
-    tmm_modules[TMM_FILEDATALOGGER].cap_flags = 0;
-
+    OutputRegisterRootLogger(OutputFiledataLogThreadInit,
+        OutputFiledataLogThreadDeinit, OutputFiledataLogExitPrintStats,
+        OutputFiledataLog);
     SC_ATOMIC_INIT(file_id);
 }
 

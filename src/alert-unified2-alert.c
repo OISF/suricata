@@ -233,19 +233,12 @@ int Unified2Logger(ThreadVars *tv, void *data, const Packet *p);
 
 #define MODULE_NAME "Unified2Alert"
 
-void TmModuleUnified2AlertRegister(void)
+void Unified2AlertRegister(void)
 {
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadInit = Unified2AlertThreadInit;
-//    tmm_modules[TMM_ALERTUNIFIED2ALERT].Func = Unified2Alert;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].ThreadDeinit = Unified2AlertThreadDeinit;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].RegisterTests = Unified2RegisterTests;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].cap_flags = 0;
-    tmm_modules[TMM_ALERTUNIFIED2ALERT].flags = TM_FLAG_LOGAPI_TM;
-
-    //OutputRegisterModule(MODULE_NAME, "unified2-alert", Unified2AlertInitCtx);
-    OutputRegisterPacketModule(MODULE_NAME, "unified2-alert",
-            Unified2AlertInitCtx, Unified2Logger, Unified2Condition);
+    OutputRegisterPacketModule(LOGGER_UNIFIED2, MODULE_NAME, "unified2-alert",
+        Unified2AlertInitCtx, Unified2Logger, Unified2Condition,
+        Unified2AlertThreadInit, Unified2AlertThreadDeinit, NULL);
+    Unified2RegisterTests();
 }
 
 /**
@@ -338,11 +331,9 @@ int Unified2Logger(ThreadVars *t, void *data, const Packet *p)
         char buffer[XFF_MAXLEN];
         int have_xff_ip = 0;
 
-        FLOWLOCK_RDLOCK(p->flow);
         if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
             have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
         }
-        FLOWLOCK_UNLOCK(p->flow);
 
         if (have_xff_ip) {
             /** Be sure that we have a nice zeroed buffer */
@@ -897,7 +888,6 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
             char buffer[XFF_MAXLEN];
             int have_xff_ip = 0;
 
-            FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
@@ -905,7 +895,6 @@ static int Unified2IPv6TypeAlert(ThreadVars *t, const Packet *p, void *data)
                     have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
-            FLOWLOCK_UNLOCK(p->flow);
 
             if (have_xff_ip) {
                 memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));
@@ -1074,7 +1063,6 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
             char buffer[XFF_MAXLEN];
             int have_xff_ip = 0;
 
-            FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
@@ -1082,7 +1070,6 @@ static int Unified2IPv4TypeAlert (ThreadVars *tv, const Packet *p, void *data)
                     have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
-            FLOWLOCK_UNLOCK(p->flow);
 
             if (have_xff_ip) {
                 memset(aun->xff_ip, 0, 4 * sizeof(uint32_t));

@@ -118,18 +118,12 @@ static int TlsGetCertInfo(lua_State *luastate)
 
     int direction = LuaStateGetDirection(luastate);
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetCertInfo(luastate, f, direction);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetCertInfo(luastate, f, direction);
-    }
+    r = GetCertInfo(luastate, f, direction);
+
     return r;
 }
 
@@ -155,18 +149,12 @@ static int TlsGetSNI(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_TLS)))
         return LuaCallbackError(luastate, "error: protocol not tls");
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetSNI(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetSNI(luastate, f);
-    }
+    r = GetSNI(luastate, f);
+
     return r;
 }
 
@@ -217,18 +205,12 @@ static int TlsGetCertChain(lua_State *luastate)
 
     int direction = LuaStateGetDirection(luastate);
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetCertChain(luastate, f, direction);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetCertChain(luastate, f, direction);
-    }
+    r = GetCertChain(luastate, f, direction);
+
     return r;
 }
 
