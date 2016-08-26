@@ -153,8 +153,8 @@ int UnixNew(UnixCommand * this)
     /* set address */
     addr.sun_family = AF_UNIX;
     strlcpy(addr.sun_path, sockettarget, sizeof(addr.sun_path));
-    addr.sun_path[sizeof(addr.sun_path) - 1] = 0;
-    len = strlen(addr.sun_path) + sizeof(addr.sun_family);
+    addr.sun_path[sizeof(addr.sun_path) - 1] = 0;    
+    len = SUN_LEN (&addr);
 
     /* create socket */
     this->socket = socket(AF_UNIX, SOCK_STREAM, 0);
@@ -167,17 +167,6 @@ int UnixNew(UnixCommand * this)
     }
     this->select_max = this->socket + 1;
 
-    /* Set file mode: will not fully work on most system, the group
-     * permission is not changed on some Linux and *BSD won't do the
-     * chmod. */
-    ret = fchmod(this->socket, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
-    if (ret == -1) {
-        int err = errno;
-        SCLogWarning(SC_ERR_INITIALIZATION,
-                     "Unable to change permission on socket: %s (%d)",
-                     strerror(err),
-                     err);
-    }
     /* set reuse option */
     ret = setsockopt(this->socket, SOL_SOCKET, SO_REUSEADDR,
                      (char *) &on, sizeof(on));
@@ -195,6 +184,16 @@ int UnixNew(UnixCommand * this)
         SCFree(sockettarget);
         return 0;
     }
+
+    /* Set file mode after socket file been created */
+    ret = chmod(sockettarget, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP);
+    if (ret == -1) {
+        int err = errno;
+        SCLogWarning(SC_ERR_INITIALIZATION,
+                     "Unable to change permission on socket: %s (%d)",
+                     strerror(err),
+                     err);
+    }     
 
     /* listen */
     if (listen(this->socket, 1) == -1) {
