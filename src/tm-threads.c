@@ -79,11 +79,18 @@ static void TmThreadDeinitMC(ThreadVars *tv);
 ThreadVars *tv_root[TVT_MAX] = { NULL };
 
 /* lock to protect tv_root */
-SCMutex tv_root_lock = SCMUTEX_INITIALIZER;
+SCMutex tv_root_lock;
+SCMutexAttr tv_root_lock_attr;
 
 /* Action On Failure(AOF).  Determines how the engine should behave when a
  * thread encounters a failure.  Defaults to restart the failed thread */
 uint8_t tv_aof = THV_RESTART_THREAD;
+
+void TmInitThreadManager() {
+    pthread_mutexattr_init(&tv_root_lock_attr);
+    pthread_mutexattr_settype(&tv_root_lock_attr, PTHREAD_MUTEX_RECURSIVE);
+    pthread_mutex_init(&tv_root_lock, &tv_root_lock_attr);    
+}
 
 /**
  * \brief Check if a thread flag is set.

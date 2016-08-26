@@ -80,6 +80,7 @@ extern ThreadVars *tv_root[TVT_MAX];
 
 extern SCMutex tv_root_lock;
 
+void TmInitThreadManager();
 void TmSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
 void TmSlotSetFuncAppendDelayed(ThreadVars *, TmModule *, void *, int delayed);
 TmSlot *TmSlotGetSlotForTM(int);
