@@ -1153,6 +1153,7 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
         return NULL;
 
     MpmStore lookup = { sids_array, max_sid, am->direction, MPMB_MAX, am->sm_list, 0, NULL};
+    SCLogDebug("am->direction %d am->sm_list %d", am->direction, am->sm_list);
 
     MpmStore *result = MpmStoreLookup(de_ctx, &lookup);
     if (result == NULL) {
@@ -1180,6 +1181,7 @@ MpmStore *MpmStorePrepareBuffer2(DetectEngineCtx *de_ctx, SigGroupHead *sgh, App
         MpmStoreAdd(de_ctx, copy);
         return copy;
     } else {
+        SCLogDebug("using existing mpm %p", result);
         return result;
     }
     return NULL;
@@ -1236,14 +1238,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     AppLayerMpms *a = app_mpms;
     while (a->name != NULL) {
-        mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
-        if (mpm_store != NULL) {
-            sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
+        if ((a->direction == SIG_FLAG_TOSERVER && SGH_DIRECTION_TS(sh)) ||
+            (a->direction == SIG_FLAG_TOCLIENT && SGH_DIRECTION_TC(sh)))
+        {
+            mpm_store = MpmStorePrepareBuffer2(de_ctx, sh, a);
+            if (mpm_store != NULL) {
+                sh->init->app_mpms[a->id] = mpm_store->mpm_ctx;
 
-            /* if we have just certain types of negated patterns,
-             * mpm_ctx can be NULL */
-            if (a->PrefilterRegister && mpm_store->mpm_ctx) {
-                BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+                /* if we have just certain types of negated patterns,
+                 * mpm_ctx can be NULL */
+                if (a->PrefilterRegister && mpm_store->mpm_ctx) {
+                    BUG_ON(a->PrefilterRegister(sh, mpm_store->mpm_ctx) != 0);
+                }
             }
         }
         a++;
