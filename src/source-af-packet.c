@@ -266,7 +266,6 @@ typedef struct AFPThreadVars_
 
 } AFPThreadVars;
 
-TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveAFPThreadInit(ThreadVars *, void *, void **);
 void ReceiveAFPThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveAFPThreadDeinit(ThreadVars *, void *);
