@@ -165,7 +165,7 @@ static int DnsGetQueryTable(lua_State *luastate)
                     SCFree(c);
                     return LuaCallbackError(luastate, "invalid length");
                 }
-                lua_pushstring(luastate, "rrname");
+                lua_pushstring(luastate, "qname");
                 LuaPushStringBuffer(luastate, (uint8_t *)c, input_len);
                 lua_settable(luastate, -3);
                 SCFree(c);
@@ -207,7 +207,7 @@ static int DnsGetAnswerTable(lua_State *luastate)
 
         {
             uint8_t *ptr = (uint8_t *)((uint8_t *)answer + sizeof(DNSAnswerEntry));
-            lua_pushstring(luastate, "rrname");
+            lua_pushstring(luastate, "name");
             LuaPushStringBuffer(luastate, ptr, answer->fqdn_len);
             lua_settable(luastate, -3);
 
@@ -215,19 +215,19 @@ static int DnsGetAnswerTable(lua_State *luastate)
             if (answer->type == DNS_RECORD_TYPE_A) {
                 char a[16] = "";
                 PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
-                lua_pushstring(luastate, "addr");
+                lua_pushstring(luastate, "rdata");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
             } else if (answer->type == DNS_RECORD_TYPE_AAAA) {
                 char a[46];
                 PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
-                lua_pushstring(luastate, "addr");
+                lua_pushstring(luastate, "rdata");
                 LuaPushStringBuffer(luastate, (uint8_t *)a, strlen(a));
                 lua_settable(luastate, -3);
             } else if (answer->data_len == 0) {
-                /* not setting 'addr' */
+                /* not setting 'rdata' */
             } else {
-                lua_pushstring(luastate, "addr");
+                lua_pushstring(luastate, "rdata");
                 LuaPushStringBuffer(luastate, (uint8_t *)ptr, answer->data_len);
                 lua_settable(luastate, -3);
             }
@@ -276,7 +276,7 @@ static int DnsGetAuthorityTable(lua_State *luastate)
                     SCFree(c);
                     return LuaCallbackError(luastate, "invalid length");
                 }
-                lua_pushstring(luastate, "rrname");
+                lua_pushstring(luastate, "name");
                 LuaPushStringBuffer(luastate, (uint8_t *)c, input_len);
                 lua_settable(luastate, -3);
                 SCFree(c);
