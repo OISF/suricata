@@ -194,6 +194,9 @@ detect-uricontent.c detect-uricontent.h \
 detect-urilen.c detect-urilen.h \
 detect-window.c detect-window.h \
 detect-within.c detect-within.h \
+detect-cipservice.c detect-cipservice.h \
+decode-enip.c decode-enip.h \
+decode-cip.c decode-cip.h \
 flow-bit.c flow-bit.h \
 flow.c flow.h \
 flow-hash.c flow-hash.h \
