@@ -155,9 +155,10 @@ int PrefilterAppendEngine(SigGroupHead *sgh,
     if (sgh == NULL || Prefilter == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCCalloc(1, sizeof(*e));
+    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
+    memset(e, 0x00, sizeof(*e));
 
     e->Prefilter = Prefilter;
     e->pectx = pectx;
@@ -191,9 +192,10 @@ int PrefilterAppendPayloadEngine(SigGroupHead *sgh,
     if (sgh == NULL || Prefilter == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCCalloc(1, sizeof(*e));
+    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
+    memset(e, 0x00, sizeof(*e));
 
     e->Prefilter = Prefilter;
     e->pectx = pectx;
@@ -230,9 +232,10 @@ int PrefilterAppendTxEngine(SigGroupHead *sgh,
     if (sgh == NULL || PrefilterTx == NULL || pectx == NULL)
         return -1;
 
-    PrefilterEngine *e = SCCalloc(1, sizeof(*e));
+    PrefilterEngine *e = SCMallocAligned(sizeof(*e), CLS);
     if (e == NULL)
         return -1;
+    memset(e, 0x00, sizeof(*e));
 
     e->PrefilterTx = PrefilterTx;
     e->pectx = pectx;
@@ -264,7 +267,7 @@ static void PrefilterFreeEngine(PrefilterEngine *e)
     if (e->Free) {
         e->Free(e->pectx);
     }
-    SCFree(e);
+    SCFreeAligned(e);
 }
 
 void PrefilterFreeEngines(PrefilterEngine *list)
