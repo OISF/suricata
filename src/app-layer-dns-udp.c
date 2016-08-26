@@ -151,6 +151,10 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
         }
     }
 
+    if (dns_state != NULL && dns_state->curr != NULL) {
+        dns_state->curr->request_usec_epoch = (uint64_t)f->lastts.tv_sec * 1000000 + f->lastts.tv_usec;
+    }
+
     SCReturnInt(1);
 bad_data:
 insufficient_data:
@@ -299,6 +303,14 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
 
         tx->replied = 1;
+
+        /* store ofset in microsec from request ts */
+        if (tx->request_usec_epoch) {
+            uint64_t usec = (uint64_t)f->lastts.tv_sec * 1000000 + f->lastts.tv_usec;
+            if (usec > tx->request_usec_epoch && (usec - tx->request_usec_epoch <= UINT_MAX)) {
+                tx->response_usec_offset = usec - tx->request_usec_epoch;
+            }
+        }
     }
     SCReturnInt(1);
 

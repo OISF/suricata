@@ -110,6 +110,11 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     json_object_del(js, "dns");
 }
 
+static inline uint64_t GetTimeDelta(DNSTransaction *tx)
+{
+    return tx->response_usec_offset;
+}
+
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
 {
     json_t *js = json_object();
@@ -126,6 +131,10 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
+
+    uint64_t delta = GetTimeDelta(tx);
+    if (delta > 0)
+        json_object_set_new(js, "response_time", json_integer(delta));
 
     /* we are logging an answer RR */
     if (entry != NULL) {
@@ -232,6 +241,10 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx,
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
+
+    uint64_t delta = GetTimeDelta(tx);
+    if (delta > 0)
+        json_object_set_new(js, "response_time", json_integer(delta));
 
     /* no answer RRs, use query for rname */
     char *c;
