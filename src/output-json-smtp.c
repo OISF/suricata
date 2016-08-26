@@ -257,38 +257,23 @@ static TmEcode JsonSmtpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonSmtpLogRegister (void) {
-    tmm_modules[TMM_JSONSMTPLOG].name = "JsonSmtpLog";
-    tmm_modules[TMM_JSONSMTPLOG].ThreadInit = JsonSmtpLogThreadInit;
-    tmm_modules[TMM_JSONSMTPLOG].ThreadDeinit = JsonSmtpLogThreadDeinit;
-    tmm_modules[TMM_JSONSMTPLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONSMTPLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONSMTPLOG].flags = TM_FLAG_LOGAPI_TM;
-
+void JsonSmtpLogRegister (void) {
     /* register as separate module */
-    OutputRegisterTxModule("JsonSmtpLog", "smtp-json-log",
-                               OutputSmtpLogInit, ALPROTO_SMTP,
-                               JsonSmtpLogger);
+    OutputRegisterTxModule(LOGGER_JSON_SMTP, "JsonSmtpLog", "smtp-json-log",
+        OutputSmtpLogInit, ALPROTO_SMTP, JsonSmtpLogger, JsonSmtpLogThreadInit,
+        JsonSmtpLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterTxSubModule("eve-log", "JsonSmtpLog",
-                                  "eve-log.smtp",
-                                  OutputSmtpLogInitSub, ALPROTO_SMTP,
-                                  JsonSmtpLogger);
+    OutputRegisterTxSubModule(LOGGER_JSON_SMTP, "eve-log", "JsonSmtpLog",
+        "eve-log.smtp", OutputSmtpLogInitSub, ALPROTO_SMTP, JsonSmtpLogger,
+        JsonSmtpLogThreadInit, JsonSmtpLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonSmtpLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonSmtpLogRegister (void)
-{
-    tmm_modules[TMM_JSONSMTPLOG].name = "JsonSmtpLog";
-    tmm_modules[TMM_JSONSMTPLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

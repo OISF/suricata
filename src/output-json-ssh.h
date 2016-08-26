@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_JSON_SSH_H__
 #define __OUTPUT_JSON_SSH_H__
 
-void TmModuleJsonSshLogRegister (void);
+void JsonSshLogRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 #include "app-layer-ssh.h"

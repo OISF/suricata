@@ -25,7 +25,7 @@
 #ifndef __LOG_TLSLOG_H__
 #define __LOG_TLSLOG_H__
 
-void TmModuleLogTlsLogRegister (void);
+void LogTlsLogRegister(void);
 
 int TLSGetIPInformations(const Packet *p, char* srcip, size_t srcip_len,
                              Port* sp, char* dstip, size_t dstip_len,

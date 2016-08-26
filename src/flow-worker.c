@@ -29,12 +29,6 @@
  * - Detection
  *
  * This all while holding the flow lock.
- *
- * TODO
- * - once we have a single entry point into the outputs they
- *   will have to move into this as well.
- * - once outputs are here we can also call StreamTcpPrune here
- *   instead of in the packet pool return code
  */
 
 #include "suricata-common.h"
@@ -44,6 +38,7 @@
 #include "stream-tcp.h"
 #include "app-layer.h"
 #include "detect-engine.h"
+#include "output.h"
 
 #include "util-validate.h"
 
@@ -59,9 +54,8 @@ typedef struct FlowWorkerThreadData_ {
 
     SC_ATOMIC_DECLARE(DetectEngineThreadCtxPtr, detect_thread);
 
-#if 0
-    void *output_thread; // XXX multiple, not a single state
-#endif
+    void *output_thread; /* Output thread data. */
+
     PacketQueue pq;
 
 } FlowWorkerThreadData;
@@ -98,9 +92,9 @@ static TmEcode FlowWorkerThreadInit(ThreadVars *tv, void *initdata, void **data)
         BUG_ON(DetectEngineThreadCtxInit(tv, NULL, &detect_thread) != TM_ECODE_OK);
         SC_ATOMIC_SET(fw->detect_thread, detect_thread);
     }
-#if 0
-    // setup OUTPUTS
-#endif
+
+    /* Setup outputs for this thread. */
+    OutputLoggerThreadInit(tv, initdata, &fw->output_thread);
 
     /* setup pq for stream end pkts */
     memset(&fw->pq, 0, sizeof(PacketQueue));
@@ -125,9 +119,9 @@ static TmEcode FlowWorkerThreadDeinit(ThreadVars *tv, void *data)
         DetectEngineThreadCtxDeinit(tv, detect_thread);
         SC_ATOMIC_SET(fw->detect_thread, NULL);
     }
-#if 0
-    // free OUTPUT
-#endif
+
+    /* Free output. */
+    OutputLoggerThreadDeinit(tv, fw->output_thread);
 
     /* free pq */
     BUG_ON(fw->pq.len);
@@ -195,9 +189,10 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
                 Detect(tv, x, detect_thread, NULL, NULL);
                 FLOWWORKER_PROFILING_END(x, PROFILE_FLOWWORKER_DETECT);
             }
-#if 0
+
             //  Outputs
-#endif
+            OutputLoggerLog(tv, x, fw->output_thread);
+
             /* put these packets in the preq queue so that they are
              * by the other thread modules before packet 'p'. */
             PacketEnqueue(preq, x);
@@ -219,11 +214,15 @@ TmEcode FlowWorker(ThreadVars *tv, Packet *p, void *data, PacketQueue *preq, Pac
         Detect(tv, p, detect_thread, NULL, NULL);
         FLOWWORKER_PROFILING_END(p, PROFILE_FLOWWORKER_DETECT);
     }
-#if 0
-    // Outputs
 
-    // StreamTcpPruneSession (from TmqhOutputPacketpool)
-#endif
+    // Outputs.
+    OutputLoggerLog(tv, p, fw->output_thread);
+
+    /*  Release tcp segments. Done here after alerting can use them. */
+    if (p->flow != NULL && p->proto == IPPROTO_TCP) {
+        StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
+                STREAM_TOSERVER : STREAM_TOCLIENT);
+    }
 
     if (p->flow) {
         DEBUG_ASSERT_FLOW_LOCKED(p->flow);
@@ -264,6 +263,11 @@ const char *ProfileFlowWorkerIdToString(enum ProfileFlowWorkerId fwi)
     return "error";
 }
 
+static void FlowWorkerExitPrintStats(ThreadVars *tv, void *data)
+{
+    FlowWorkerThreadData *fw = data;
+    OutputLoggerExitPrintStats(tv, fw->output_thread);
+}
 
 void TmModuleFlowWorkerRegister (void)
 {
@@ -271,6 +275,7 @@ void TmModuleFlowWorkerRegister (void)
     tmm_modules[TMM_FLOWWORKER].ThreadInit = FlowWorkerThreadInit;
     tmm_modules[TMM_FLOWWORKER].Func = FlowWorker;
     tmm_modules[TMM_FLOWWORKER].ThreadDeinit = FlowWorkerThreadDeinit;
+    tmm_modules[TMM_FLOWWORKER].ThreadExitPrintStats = FlowWorkerExitPrintStats;
     tmm_modules[TMM_FLOWWORKER].cap_flags = 0;
     tmm_modules[TMM_FLOWWORKER].flags = TM_FLAG_STREAM_TM|TM_FLAG_DETECT_TM;
 }

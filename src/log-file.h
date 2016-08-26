@@ -24,6 +24,6 @@
 #ifndef __LOG_FILELOG_H__
 #define __LOG_FILELOG_H__
 
-void TmModuleLogFileLogRegister (void);
+void LogFileLogRegister(void);
 
 #endif /* __LOG_FILELOG_H__ */
