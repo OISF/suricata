@@ -89,6 +89,19 @@ int DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
     return TM_ECODE_OK;
 }
 
+static inline void PacketFreeExtData(Packet *p)
+{
+    /* if p uses extended data, free them */
+    if (p->ext_pkt) {
+        if (!(p->flags & PKT_ZERO_COPY)) {
+            SCFree(p->ext_pkt);
+        }
+        p->ext_pkt = NULL;
+    }
+}
+
+
+
 /**
  * \brief Return a malloced packet.
  */
@@ -153,6 +166,7 @@ Packet *PacketGetFromAlloc(void)
  */
 void PacketFreeOrRelease(Packet *p)
 {
+    PacketFreeExtData(p);
     if (p->flags & PKT_ALLOC)
         PacketFree(p);
     else
