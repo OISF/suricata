@@ -823,31 +823,6 @@ static inline void DetectPrefilterMergeSort(DetectEngineCtx *de_ctx,
     BUG_ON((det_ctx->pmq.rule_id_array_cnt + det_ctx->non_pf_id_cnt) < det_ctx->match_array_cnt);
 }
 
-/* Return true is the list is sorted smallest to largest */
-static void QuickSortSigIntId(SigIntId *sids, uint32_t n)
-{
-    if (n < 2)
-        return;
-    SigIntId p = sids[n / 2];
-    SigIntId *l = sids;
-    SigIntId *r = sids + n - 1;
-    while (l <= r) {
-        if (*l < p)
-            l++;
-        else if (*r > p)
-            r--;
-        else {
-            SigIntId t = *l;
-            *l = *r;
-            *r = t;
-            l++;
-            r--;
-        }
-    }
-    QuickSortSigIntId(sids, r - sids + 1);
-    QuickSortSigIntId(l, sids + n - l);
-}
-
 #define SMS_USE_FLOW_SGH        0x01
 #define SMS_USED_PM             0x02
 
@@ -1195,13 +1170,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* run the prefilter engines */
     Prefilter(det_ctx, det_ctx->sgh, p, flow_flags, has_state);
-    /* Sort the rule list to lets look at pmq.
-     * NOTE due to merging of 'stream' pmqs we *MAY* have duplicate entries */
-    if (det_ctx->pmq.rule_id_array_cnt > 1) {
-        PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT1);
-        QuickSortSigIntId(det_ctx->pmq.rule_id_array, det_ctx->pmq.rule_id_array_cnt);
-        PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT1);
-    }
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PF_SORT2);
     DetectPrefilterMergeSort(de_ctx, det_ctx);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_PF_SORT2);
