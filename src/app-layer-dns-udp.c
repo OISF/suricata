@@ -151,6 +151,11 @@ static int DNSUDPRequestParse(Flow *f, void *dstate,
         }
     }
 
+    if (dns_state != NULL && dns_state->curr != NULL) {
+        dns_state->curr->request_ts.tv_sec = f->lastts.tv_sec;
+        dns_state->curr->request_ts.tv_usec = f->lastts.tv_usec;
+    }
+
     SCReturnInt(1);
 bad_data:
 insufficient_data:
@@ -299,6 +304,8 @@ static int DNSUDPResponseParse(Flow *f, void *dstate,
         }
 
         tx->replied = 1;
+        tx->response_ts.tv_sec = f->lastts.tv_sec;
+        tx->response_ts.tv_usec = f->lastts.tv_usec;
     }
     SCReturnInt(1);
 

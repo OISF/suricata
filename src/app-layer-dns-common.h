@@ -205,6 +205,9 @@ typedef struct DNSTransaction_ {
 
     TAILQ_ENTRY(DNSTransaction_) next;
     DetectEngineState *de_state;
+
+    struct timeval request_ts;
+    struct timeval response_ts;
 } DNSTransaction;
 
 /** \brief Per flow DNS state container */

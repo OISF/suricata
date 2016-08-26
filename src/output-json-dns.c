@@ -110,6 +110,22 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     json_object_del(js, "dns");
 }
 
+static inline uint64_t GetTimeDelta(DNSTransaction *tx)
+{
+#define TIMER_IS_NUL(ts) \
+    ((ts)->tv_sec == 0 && (ts)->tv_usec == 0)
+
+    if (!TIMER_IS_NUL(&tx->request_ts) && timercmp(&tx->request_ts, &tx->response_ts, <=)) {
+        struct timeval delta;
+        timersub(&tx->response_ts, &tx->request_ts, &delta);
+        uint64_t usec = (delta.tv_sec * (uint64_t)1000000) + (delta.tv_usec);
+        return usec;
+    }
+    return 0;
+
+#undef TIMER_IS_NUL
+}
+
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
 {
     json_t *js = json_object();
@@ -126,6 +142,10 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
+
+    uint64_t delta = GetTimeDelta(tx);
+    if (delta > 0)
+        json_object_set_new(js, "response_time", json_integer(delta));
 
     /* we are logging an answer RR */
     if (entry != NULL) {
@@ -232,6 +252,10 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx,
     char rcode[16] = "";
     DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
     json_object_set_new(js, "rcode", json_string(rcode));
+
+    uint64_t delta = GetTimeDelta(tx);
+    if (delta > 0)
+        json_object_set_new(js, "response_time", json_integer(delta));
 
     /* no answer RRs, use query for rname */
     char *c;
