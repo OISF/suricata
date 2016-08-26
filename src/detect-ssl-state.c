@@ -55,7 +55,7 @@
 static pcre *parse_regex1;
 static pcre_extra *parse_regex1_study;
 
-#define PARSE_REGEX2 "^(?:\\s*[|]\\s*([_a-zA-Z0-9]+))(.*)$"
+#define PARSE_REGEX2 "^(?:\\s*[|,]\\s*([_a-zA-Z0-9]+))(.*)$"
 static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
@@ -323,7 +323,7 @@ int DetectSslStateTest01(void)
 
 int DetectSslStateTest02(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_hello");
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
         return 0;
@@ -339,7 +339,7 @@ int DetectSslStateTest02(void)
 
 int DetectSslStateTest03(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx | "
                                                   "client_hello");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
@@ -357,8 +357,8 @@ int DetectSslStateTest03(void)
 
 int DetectSslStateTest04(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
                                                   "unknown");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
@@ -378,8 +378,8 @@ int DetectSslStateTest04(void)
 
 int DetectSslStateTest05(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("| server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse(", server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
                                                   "unknown");
 
     if (ssd != NULL) {
@@ -393,9 +393,9 @@ int DetectSslStateTest05(void)
 
 int DetectSslStateTest06(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
-                                                  "unknown | ");
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
+                                                  "unknown , ");
     if (ssd != NULL) {
         printf("ssd != NULL - failure\n");
         SCFree(ssd);
@@ -699,22 +699,22 @@ static int DetectSslStateTest07(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello; "
+                              "ssl_state:client_hello , server_hello; "
                               "sid:2;)");
     if (s == NULL)
         goto end;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello | "
+                              "ssl_state:client_hello , server_hello , "
                               "client_keyx; sid:3;)");
     if (s == NULL)
         goto end;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello | "
-                              "client_keyx | server_keyx; sid:4;)");
+                              "ssl_state:client_hello , server_hello , "
+                              "client_keyx , server_keyx; sid:4;)");
     if (s == NULL)
         goto end;
 
