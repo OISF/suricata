@@ -24,6 +24,6 @@
 #ifndef __LOG_STATS_H__
 #define __LOG_STATS_H__
 
-void TmModuleLogStatsLogRegister (void);
+void LogStatsLogRegister(void);
 
 #endif /* __LOG_HTTPLOG_H__ */

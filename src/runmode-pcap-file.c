@@ -107,8 +107,6 @@ int RunModeFilePcapSingle(void)
     }
     TmSlotSetFuncAppend(tv, tm_module, NULL);
 
-    SetupOutputs(tv);
-
     TmThreadSetCPU(tv, WORKER_CPU_SET);
 
 #ifndef AFLFUZZ_PCAP_RUNMODE
@@ -249,9 +247,6 @@ int RunModeFilePcapAutoFp(void)
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         TmThreadSetGroupName(tv_detect_ncpu, "Detect");
-
-        /* add outputs as well */
-        SetupOutputs(tv_detect_ncpu);
 
         TmThreadSetCPU(tv_detect_ncpu, WORKER_CPU_SET);
 

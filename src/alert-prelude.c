@@ -62,22 +62,9 @@
 
 /* Handle the case where no PRELUDE support is compiled in. */
 
-static TmEcode AlertPreludeThreadInit(ThreadVars *t, void *initdata, void **data)
+void AlertPreludeRegister(void)
 {
-    SCLogDebug("Can't init Prelude output thread - Prelude support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-static TmEcode AlertPreludeThreadDeinit(ThreadVars *t, void *data)
-{
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleAlertPreludeRegister (void)
-{
-    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
-    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
-    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
+    SCLogDebug("Can't register Prelude output thread - Prelude support was disabled during build.");
 }
 
 #else /* implied we do have PRELUDE support */
@@ -927,17 +914,11 @@ err:
     SCReturnInt(TM_ECODE_FAILED);
 }
 
-void TmModuleAlertPreludeRegister (void)
+void AlertPreludeRegister (void)
 {
-    tmm_modules[TMM_ALERTPRELUDE].name = "AlertPrelude";
-    tmm_modules[TMM_ALERTPRELUDE].ThreadInit = AlertPreludeThreadInit;
-    tmm_modules[TMM_ALERTPRELUDE].Func = NULL;
-    tmm_modules[TMM_ALERTPRELUDE].ThreadDeinit = AlertPreludeThreadDeinit;
-    tmm_modules[TMM_ALERTPRELUDE].cap_flags = 0;
-    tmm_modules[TMM_ALERTPRELUDE].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule("AlertPrelude", "alert-prelude", AlertPreludeInitCtx,
-            AlertPreludeLogger, AlertPreludeCondition);
+    OutputRegisterPacketModule(LOGGER_PRELUDE, "AlertPrelude", "alert-prelude",
+        AlertPreludeInitCtx, AlertPreludeLogger, AlertPreludeCondition,
+        AlertPreludeThreadInit, AlertPreludeThreadDeinit, NULL);
 }
 #endif /* PRELUDE */
 

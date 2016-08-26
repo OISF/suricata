@@ -448,15 +448,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCEnter();
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
 
-    /** \todo make this a callback
-     *  Release tcp segments. Done here after alerting can use them. */
-    if (p->flow != NULL && p->proto == IPPROTO_TCP) {
-        SCMutexLock(&p->flow->m);
-        StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
-                STREAM_TOSERVER : STREAM_TOCLIENT);
-        SCMutexUnlock(&p->flow->m);
-    }
-
     if (IS_TUNNEL_PKT(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");

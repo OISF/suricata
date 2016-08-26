@@ -24,6 +24,6 @@
 #ifndef __LOG_TLSSTORE_H__
 #define __LOG_TLSSTORE_H__
 
-void TmModuleLogTlsStoreRegister (void);
+void LogTlsStoreRegister(void);
 
 #endif /* __LOG_TLSSTORE_H__ */

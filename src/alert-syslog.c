@@ -408,20 +408,12 @@ static int AlertSyslogLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 #endif /* !OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
-void TmModuleAlertSyslogRegister (void)
+void AlertSyslogRegister (void)
 {
 #ifndef OS_WIN32
-    tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
-    tmm_modules[TMM_ALERTSYSLOG].Func = NULL;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadExitPrintStats = AlertSyslogExitPrintStats;
-    tmm_modules[TMM_ALERTSYSLOG].ThreadDeinit = AlertSyslogThreadDeinit;
-    tmm_modules[TMM_ALERTSYSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
-    tmm_modules[TMM_ALERTSYSLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "syslog",
-        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition);
-
+    OutputRegisterPacketModule(LOGGER_ALERT_SYSLOG, MODULE_NAME, "syslog",
+        AlertSyslogInitCtx, AlertSyslogLogger, AlertSyslogCondition,
+        AlertSyslogThreadInit, AlertSyslogThreadDeinit,
+        AlertSyslogExitPrintStats);
 #endif /* !OS_WIN32 */
 }
