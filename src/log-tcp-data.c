@@ -60,19 +60,15 @@ static void LogTcpDataLogDeInitCtx(OutputCtx *);
 
 int LogTcpDataLogger(ThreadVars *tv, void *thread_data, const Flow *f, const uint8_t *data, uint32_t data_len, uint64_t tx_id, uint8_t flags);
 
-void TmModuleLogTcpDataLogRegister (void) {
-    tmm_modules[TMM_LOGTCPDATALOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGTCPDATALOG].ThreadInit = LogTcpDataLogThreadInit;
-    tmm_modules[TMM_LOGTCPDATALOG].ThreadExitPrintStats = LogTcpDataLogExitPrintStats;
-    tmm_modules[TMM_LOGTCPDATALOG].ThreadDeinit = LogTcpDataLogThreadDeinit;
-    tmm_modules[TMM_LOGTCPDATALOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGTCPDATALOG].cap_flags = 0;
-    tmm_modules[TMM_LOGTCPDATALOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterStreamingModule(MODULE_NAME, "tcp-data", LogTcpDataLogInitCtx,
-            LogTcpDataLogger, STREAMING_TCP_DATA);
-    OutputRegisterStreamingModule(MODULE_NAME, "http-body-data", LogTcpDataLogInitCtx,
-            LogTcpDataLogger, STREAMING_HTTP_BODIES);
+void LogTcpDataLogRegister (void) {
+    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "tcp-data",
+        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_TCP_DATA,
+        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit,
+        LogTcpDataLogExitPrintStats);
+    OutputRegisterStreamingModule(LOGGER_TCP_DATA, MODULE_NAME, "http-body-data",
+        LogTcpDataLogInitCtx, LogTcpDataLogger, STREAMING_HTTP_BODIES,
+        LogTcpDataLogThreadInit, LogTcpDataLogThreadDeinit,
+        LogTcpDataLogExitPrintStats);
 }
 
 typedef struct LogTcpDataFileCtx_ {

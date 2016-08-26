@@ -582,36 +582,24 @@ static TmEcode JsonHttpLogThreadDeinit(ThreadVars *t, void *data)
     return TM_ECODE_OK;
 }
 
-void TmModuleJsonHttpLogRegister (void)
+void JsonHttpLogRegister (void)
 {
-    tmm_modules[TMM_JSONHTTPLOG].name = "JsonHttpLog";
-    tmm_modules[TMM_JSONHTTPLOG].ThreadInit = JsonHttpLogThreadInit;
-    tmm_modules[TMM_JSONHTTPLOG].ThreadDeinit = JsonHttpLogThreadDeinit;
-    tmm_modules[TMM_JSONHTTPLOG].RegisterTests = NULL;
-    tmm_modules[TMM_JSONHTTPLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONHTTPLOG].flags = TM_FLAG_LOGAPI_TM;
-
     /* register as separate module */
-    OutputRegisterTxModule("JsonHttpLog", "http-json-log", OutputHttpLogInit,
-            ALPROTO_HTTP, JsonHttpLogger);
+    OutputRegisterTxModule(LOGGER_JSON_HTTP, "JsonHttpLog", "http-json-log",
+        OutputHttpLogInit, ALPROTO_HTTP, JsonHttpLogger, JsonHttpLogThreadInit,
+        JsonHttpLogThreadDeinit, NULL);
 
     /* also register as child of eve-log */
-    OutputRegisterTxSubModule("eve-log", "JsonHttpLog", "eve-log.http", OutputHttpLogInitSub,
-            ALPROTO_HTTP, JsonHttpLogger);
+    OutputRegisterTxSubModule(LOGGER_JSON_HTTP, "eve-log", "JsonHttpLog",
+        "eve-log.http", OutputHttpLogInitSub, ALPROTO_HTTP, JsonHttpLogger,
+        JsonHttpLogThreadInit, JsonHttpLogThreadDeinit, NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonHttpLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonHttpLogRegister (void)
-{
-    tmm_modules[TMM_JSONHTTPLOG].name = "JsonHttpLog";
-    tmm_modules[TMM_JSONHTTPLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

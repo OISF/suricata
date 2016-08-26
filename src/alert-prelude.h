@@ -26,6 +26,6 @@
 #ifndef __ALERT_PRELUDE_H__
 #define __ALERT_PRELUDE_H__
 
-void TmModuleAlertPreludeRegister (void);
+void AlertPreludeRegister(void);
 
 #endif /* __ALERT_PRELUDE_H__ */

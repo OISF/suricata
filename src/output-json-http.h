@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_JSON_HTTP_H__
 #define __OUTPUT_JSON_HTTP_H__
 
-void TmModuleJsonHttpLogRegister (void);
+void JsonHttpLogRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 void JsonHttpLogJSONBasic(json_t *js, htp_tx_t *tx);
