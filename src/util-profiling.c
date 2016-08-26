@@ -327,6 +327,9 @@ static void DumpPrefilterIP(FILE *fp, int ipv, uint64_t total)
 {
     char totalstr[256];
 
+    SCProfilePacketData total_pd;
+    memset(&total_pd, 0, sizeof(total_pd));
+
     int i;
     for (i = 0; i < 256; i++) {
         const char *name = PrefilterStoreGetName(i);
@@ -337,6 +340,9 @@ static void DumpPrefilterIP(FILE *fp, int ipv, uint64_t total)
                 continue;
             }
 
+            total_pd.cnt += pd->cnt;
+            total_pd.tot += pd->tot;
+
             FormatNumber(pd->tot, totalstr, sizeof(totalstr));
             double percent = (long double)pd->tot /
                 (long double)total * 100;
@@ -345,6 +351,11 @@ static void DumpPrefilterIP(FILE *fp, int ipv, uint64_t total)
                     name, ipv, p, pd->cnt,
                     pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt), totalstr, percent);
         }
+    }
+    if (total_pd.cnt) {
+        FormatNumber(total_pd.tot, totalstr, sizeof(totalstr));
+        fprintf(fp, "%-30s    IPv%d          %12"PRIu64"                                  %12"PRIu64"  %11s\n",
+                "Total", ipv, total_pd.cnt, (uint64_t)(total_pd.tot / total_pd.cnt), totalstr);
     }
 }
 
