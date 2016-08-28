@@ -121,6 +121,8 @@ void AppLayerParserRegisterLocalStorageFunc(uint8_t ipproto, AppProto proto,
                                  void (*LocalStorageFree)(void *));
 void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
                              FileContainer *(*StateGetFiles)(void *, uint8_t));
+void AppLayerParserRegisterGetMailFunc(uint8_t ipproto, AppProto alproto,
+                             FileContainer *(*StateGetMail)(void *, uint8_t));                             
 void AppLayerParserRegisterGetEventsFunc(uint8_t ipproto, AppProto proto,
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t));
 void AppLayerParserRegisterHasEventsFunc(uint8_t ipproto, AppProto alproto,
@@ -173,6 +175,8 @@ AppLayerDecoderEvents *AppLayerParserGetEventsByTx(uint8_t ipproto, AppProto alp
 uint16_t AppLayerParserGetStateVersion(AppLayerParserState *pstate);
 FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
                            void *alstate, uint8_t direction);
+FileContainer *AppLayerParserGetMail(uint8_t ipproto, AppProto alproto,
+                           void *alstate, uint8_t direction);                           
 int AppLayerParserGetStateProgress(uint8_t ipproto, AppProto alproto,
                         void *alstate, uint8_t direction);
 uint64_t AppLayerParserGetTxCnt(uint8_t ipproto, AppProto alproto, void *alstate);

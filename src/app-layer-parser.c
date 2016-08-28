@@ -97,6 +97,7 @@ typedef struct AppLayerParserProtoCtx_
 
     void (*Truncate)(void *, uint8_t);
     FileContainer *(*StateGetFiles)(void *, uint8_t);
+    FileContainer *(*StateGetMail)(void *, uint8_t);
     AppLayerDecoderEvents *(*StateGetEvents)(void *, uint64_t);
     int (*StateHasEvents)(void *);
 
@@ -365,6 +366,17 @@ void AppLayerParserRegisterGetFilesFunc(uint8_t ipproto, AppProto alproto,
 
     alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles =
         StateGetFiles;
+
+    SCReturn;
+}
+
+void AppLayerParserRegisterGetMailFunc(uint8_t ipproto, AppProto alproto,
+                             FileContainer *(*StateGetMail)(void *, uint8_t))
+{
+    SCEnter();
+
+    alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetMail =
+        StateGetMail;
 
     SCReturn;
 }
@@ -670,6 +682,23 @@ FileContainer *AppLayerParserGetFiles(uint8_t ipproto, AppProto alproto,
     {
         ptr = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
             StateGetFiles(alstate, direction);
+    }
+
+    SCReturnPtr(ptr, "FileContainer *");
+}
+
+FileContainer *AppLayerParserGetMail(uint8_t ipproto, AppProto alproto,
+                           void *alstate, uint8_t direction)
+{
+    SCEnter();
+
+    FileContainer *ptr = NULL;
+
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+        StateGetMail != NULL)
+    {
+        ptr = alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].
+            StateGetMail(alstate, direction);
     }
 
     SCReturnPtr(ptr, "FileContainer *");

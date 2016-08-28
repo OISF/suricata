@@ -440,6 +440,76 @@ error:
 }
 
 /**
+ * \brief Register a file data output module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterMaildataModule(const char *name, const char *conf_name,
+    OutputCtx *(*InitFunc)(ConfNode *), FiledataLogger FiledataLogFunc)
+{
+    if (unlikely(FiledataLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->InitFunc = InitFunc;
+    module->MaildataLogFunc = FiledataLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Filedata logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
+ * \brief Register a file data output sub-module.
+ *
+ * This function will register an output module so it can be
+ * configured with the configuration file.
+ *
+ * \retval Returns 0 on success, -1 on failure.
+ */
+void
+OutputRegisterMaildataSubModule(const char *parent_name, const char *name,
+    const char *conf_name, OutputCtx *(*InitFunc)(ConfNode *, OutputCtx *),
+    FiledataLogger FiledataLogFunc)
+{
+    if (unlikely(FiledataLogFunc == NULL)) {
+        goto error;
+    }
+
+    OutputModule *module = SCCalloc(1, sizeof(*module));
+    if (unlikely(module == NULL)) {
+        goto error;
+    }
+
+    module->name = name;
+    module->conf_name = conf_name;
+    module->parent_name = parent_name;
+    module->InitSubFunc = InitFunc;
+    module->MaildataLogFunc = FiledataLogFunc;
+    TAILQ_INSERT_TAIL(&output_modules, module, entries);
+
+    SCLogDebug("Filedata logger \"%s\" registered.", name);
+    return;
+error:
+    SCLogError(SC_ERR_FATAL, "Fatal error encountered. Exiting...");
+    exit(EXIT_FAILURE);
+}
+
+/**
  * \brief Register a flow output module.
  *
  * This function will register an output module so it can be

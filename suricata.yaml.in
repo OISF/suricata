@@ -400,6 +400,17 @@ outputs:
       force-magic: no   # force logging magic on all logged files
       force-md5: no     # force logging of md5 checksums
 
+  # output module to store extracted mail to disk
+  #
+  # The mails are stored to the log-dir in a format "mail.<id>" where <id> is
+  # an incrementing number starting at 1. For each file "mail.<id>" a meta
+  # file "mail.<id>.meta" is created.
+  - mail-store:
+      enabled: no      # set to yes to enable
+      log-dir: mail    # directory to store the files
+      force-mailstore: no # force storing of all files
+      #waldo: mail.waldo # waldo file to store the file_id across runs
+
   # Log TCP data after stream normalization
   # 2 types: file or dir. File logs into a single logfile. Dir creates
   # 2 files per TCP session and stores the raw TCP data into them.

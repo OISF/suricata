@@ -156,6 +156,9 @@ typedef struct SMTPState_ {
     /* SMTP Mime decoding and file extraction */
     /** the list of files sent to the server */
     FileContainer *files_ts;
+    /** list of emails sent to the server */
+    FileContainer *mail_ts;
+    uint32_t mail_opened;
 
     /* HELO of HELO message content */
     uint8_t *helo;

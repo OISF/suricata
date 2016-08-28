@@ -238,6 +238,7 @@ log-droplog.c log-droplog.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
 log-httplog.c log-httplog.h \
+log-mailstore.c log-mailstore.h \
 log-pcap.c log-pcap.h \
 log-stats.c log-stats.h \
 log-tcp-data.c log-tcp-data.h \
@@ -261,6 +262,8 @@ output-json-stats.c output-json-stats.h \
 output-json-tls.c output-json-tls.h \
 output-json-template.c output-json-template.h \
 output-lua.c output-lua.h \
+output-mail.c output-mail.h \
+output-maildata.c output-maildata.h \
 output-packet.c output-packet.h \
 output-stats.c output-stats.h \
 output-streaming.c output-streaming.h \
