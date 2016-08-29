@@ -33,6 +33,7 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-inline.h"
+#include "stream-tcp.h"
 #include "flow.h"
 #include "flow-util.h"
 #include "flow-private.h"
@@ -190,6 +191,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
 
             f->alproto = *alproto;
             StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
+            StreamTcpSetReassemblyDepth(ssn, AppLayerParserGetStreamDepth(f->proto, *alproto));
 
             /* account flow if we have both side */
             if (*alproto_otherdir != ALPROTO_UNKNOWN) {
@@ -375,6 +377,7 @@ int AppLayerHandleTCPData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                                      APPLAYER_DETECT_PROTOCOL_ONLY_ONE_DIRECTION);
                     StreamTcpSetStreamFlagAppProtoDetectionCompleted(stream);
                     f->data_al_so_far[dir] = 0;
+                    StreamTcpSetReassemblyDepth(ssn, AppLayerParserGetStreamDepth(f->proto, *alproto));
                 } else {
                     f->data_al_so_far[dir] = data_len;
                 }
