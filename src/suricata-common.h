@@ -301,6 +301,9 @@
 #define MAX(x, y) (((x)<(y))?(y):(x))
 #endif
 
+#define BIT_U32(n) (1UL  << (n))
+#define BIT_U64(n) (1ULL << (n))
+
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_MPM,
     PROF_DETECT_MPM_PACKET,         /* PKT MPM */
