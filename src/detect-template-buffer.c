@@ -15,9 +15,19 @@
  * 02110-1301, USA.
  */
 
+/*
+ * TODO: Update the \author in this file and detect-template-buffer.h.
+ * TODO: Update description in the \file section below.
+ * TODO: Remove SCLogNotice statements or convert to debug.
+ */
+
 /**
- * \file Set up of the "template_buffer" keyword to allow content inspections
- *    on the decoded template application layer buffers.
+ * \file
+ *
+ * \author FirstName LastName <yourname@domain>
+ *
+ * Set up of the "template_buffer" keyword to allow content
+ * inspections on the decoded template application layer buffers.
  */
 
 #include "suricata-common.h"
@@ -30,10 +40,11 @@ static void DetectTemplateBufferRegisterTests(void);
 
 void DetectTemplateBufferRegister(void)
 {
+    /* TEMPLATE_START_REMOVE */
     if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
-
+    /* TEMPLATE_END_REMOVE */
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
         "Template content modififier to match on the template buffers";
@@ -77,8 +88,6 @@ static int DetectTemplateBufferTest(void)
     ThreadVars tv;
     Signature *s;
 
-    int result = 0;
-
     uint8_t request[] = "Hello World!";
 
     /* Setup flow. */
@@ -97,9 +106,7 @@ static int DetectTemplateBufferTest(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     /* This rule should match. */
     s = DetectEngineAppendSig(de_ctx,
@@ -107,9 +114,7 @@ static int DetectTemplateBufferTest(void)
         "msg:\"TEMPLATE Test Rule\"; "
         "template_buffer; content:\"World!\"; "
         "sid:1; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     /* This rule should not match. */
     s = DetectEngineAppendSig(de_ctx,
@@ -117,9 +122,7 @@ static int DetectTemplateBufferTest(void)
         "msg:\"TEMPLATE Test Rule\"; "
         "template_buffer; content:\"W0rld!\"; "
         "sid:2; rev:1;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
@@ -130,20 +133,12 @@ static int DetectTemplateBufferTest(void)
     SCMutexUnlock(&f.m);
 
     /* Check that we have app-layer state. */
-    if (f.alstate == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(f.alstate);
 
     SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (!PacketAlertCheck(p, 1)) {
-        goto end;
-    }
-    if (PacketAlertCheck(p, 2)) {
-        goto end;
-    }
+    FAIL_IF(!PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
 
-    result = 1;
-end:
     /* Cleanup. */
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
@@ -157,7 +152,7 @@ end:
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
 
-    return result;
+    PASS;
 }
 
 #endif
