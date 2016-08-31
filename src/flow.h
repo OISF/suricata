@@ -536,6 +536,18 @@ static inline void FlowDeReference(Flow **d)
     }
 }
 
+/** \brief create a flow id that is as unique as possible
+ *  \retval flow_id signed 64bit id
+ *  \note signed because of the signedness of json_integer_t in
+ *        the json output
+ */
+static inline int64_t FlowGetId(const Flow *f)
+{
+    return (int64_t)f->flow_hash << 31 |
+        (int64_t)(f->startts.tv_sec & 0x0000FFFF) << 16 |
+        (int64_t)(f->startts.tv_usec & 0x0000FFFF);
+}
+
 int FlowClearMemory(Flow *,uint8_t );
 
 AppProto FlowGetAppProtocol(const Flow *f);
