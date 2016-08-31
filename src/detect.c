@@ -1816,7 +1816,12 @@ end:
             }
         }
 
-        if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
+        /* HACK: prevent the wrong sgh (or NULL) from being stored in the
+         * flow's sgh pointers */
+        if (PKT_IS_ICMPV4(p) && ICMPV4_DEST_UNREACH_IS_VALID(p)) {
+            ; /* no-op */
+
+        } else if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
             if ((p->flowflags & FLOW_PKT_TOSERVER) && !(pflow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
                 pflow->sgh_toserver = det_ctx->sgh;

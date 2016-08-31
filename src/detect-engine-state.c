@@ -638,6 +638,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     DetectSignatureApplyActions(p, s);
                 }
                 alert_cnt = 1;
+                inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
             }
         } else {
             if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
@@ -649,6 +650,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     DetectSignatureApplyActions(p, s);
                 }
                 alert_cnt = 1;
+                inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
             }
         }
     }
@@ -931,8 +933,9 @@ static int DoInspectFlowRule(ThreadVars *tv,
     }
 
     uint8_t alert = 0;
-    uint32_t inspect_flags = 0;
+    uint32_t inspect_flags = item->flags;
     int total_matches = 0;
+    int full_match = 0;
     SigMatch *sm = NULL;
     Signature *s = de_ctx->sig_array[item->sid];
 
@@ -974,16 +977,51 @@ static int DoInspectFlowRule(ThreadVars *tv,
             }
         }
     }
+    /* AMATCH part checked out, or isn't there at all */
+    full_match = (sm == NULL);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
-        if (total_matches > 0 && (sm == NULL || inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)) {
-            if (sm == NULL)
-                alert = 1;
-            inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
+    /* DCERPC matches */
+    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL &&
+            (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB ||
+             alproto == ALPROTO_SMB2) &&
+            !(item->flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT))
+    {
+        void *alstate = FlowGetAppState(f);
+        if (alstate != NULL) {
+            KEYWORD_PROFILING_SET_LIST(det_ctx, DETECT_SM_LIST_DMATCH);
+            if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                SMBState *smb_state = (SMBState *)alstate;
+                if (smb_state->dcerpc_present &&
+                        DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                            flags, &smb_state->dcerpc) == 1)
+                {
+                    total_matches++;
+                    inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
+                }
+            } else {
+                if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1)
+                {
+                    total_matches++;
+                    inspect_flags |= DE_STATE_FLAG_DCE_PAYLOAD_INSPECT;
+                }
+            }
         }
-        /* prevent the rule loop from reinspecting this rule */
-        det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
     }
+    /* update full_match with DMATCH result */
+    if (full_match && s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
+        full_match = ((inspect_flags & DE_STATE_FLAG_DCE_PAYLOAD_INSPECT) != 0);
+    }
+
+    /* check the results */
+    if (total_matches > 0 && (full_match || (inspect_flags & DE_STATE_FLAG_SIG_CANT_MATCH)))
+    {
+        if (full_match)
+            alert = 1;
+        inspect_flags |= DE_STATE_FLAG_FULL_INSPECT;
+    }
+    /* prevent the rule loop from reinspecting this rule */
+    det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NO_NEW_STATE;
     RULE_PROFILING_END(det_ctx, s, (alert == 1), p);
 
     /* store the progress in the state */
