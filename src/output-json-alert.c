@@ -52,6 +52,7 @@
 
 #include "output.h"
 #include "output-json.h"
+#include "output-json-dns.h"
 #include "output-json-http.h"
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
@@ -70,14 +71,14 @@
 
 #ifdef HAVE_LIBJANSSON
 
-#define LOG_JSON_PAYLOAD        0x01
-#define LOG_JSON_PACKET         0x02
-#define LOG_JSON_PAYLOAD_BASE64 0x04
-#define LOG_JSON_HTTP           0x08
-#define LOG_JSON_TLS            0x10
-#define LOG_JSON_SSH            0x20
-#define LOG_JSON_SMTP           0x40
-#define LOG_JSON_TAGGED_PACKETS 0x80
+#define LOG_JSON_PAYLOAD 1
+#define LOG_JSON_PACKET 2
+#define LOG_JSON_PAYLOAD_BASE64 4
+#define LOG_JSON_HTTP 8
+#define LOG_JSON_TLS 16
+#define LOG_JSON_SSH 32
+#define LOG_JSON_SMTP 64
+#define LOG_JSON_DNS 128
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
@@ -139,6 +140,24 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
     return;
 }
 
+static void AlertJsonDns(const Flow *f, json_t *js)
+{
+    DNSState *dns_state = (DNSState *)FlowGetAppState(f);
+
+    if (dns_state) {
+	    json_t *tjs = json_object();
+	    if (unlikely(tjs == NULL))
+		    return;
+
+	    JsonDNSLogJSON(tjs, dns_state);
+
+	    json_object_set_new(js, "dns", tjs);
+
+    }
+
+    return;
+}
+
 void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
 {
     char *action = "allowed";
@@ -176,23 +195,6 @@ void AlertJsonHeader(const Packet *p, const PacketAlert *pa, json_t *js)
     json_object_set_new(js, "alert", ajs);
 }
 
-static void AlertJsonPacket(const Packet *p, json_t *js)
-{
-    unsigned long len = GET_PKT_LEN(p) * 2;
-    uint8_t encoded_packet[len];
-    Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p),
-        encoded_packet, &len);
-    json_object_set_new(js, "packet", json_string((char *)encoded_packet));
-
-    /* Create packet info. */
-    json_t *packetinfo_js = json_object();
-    if (unlikely(packetinfo_js == NULL)) {
-        return;
-    }
-    json_object_set_new(packetinfo_js, "linktype", json_integer(p->datalink));
-    json_object_set_new(js, "packet_info", packetinfo_js);
-}
-
 static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 {
     MemBuffer *payload = aft->payload_buffer;
@@ -201,7 +203,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
     int i;
 
-    if (p->alerts.cnt == 0 && !(p->flags & PKT_HAS_TAG))
+    if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
     json_t *js = CreateJSONHeader((Packet *)p, 0, "alert");
@@ -230,6 +232,20 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (hjs)
                         json_object_set_new(js, "http", hjs);
                 }
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_DNS) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* dns alert */
+                if (proto == ALPROTO_DNS) {
+                    AlertJsonDns(p->flow, js);
+		}
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -343,7 +359,10 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         /* base64-encoded full packet */
         if (json_output_ctx->flags & LOG_JSON_PACKET) {
-            AlertJsonPacket(p, js);
+            unsigned long len = GET_PKT_LEN(p) * 2;
+            uint8_t encoded_packet[len];
+            Base64Encode((unsigned char*) GET_PKT_DATA(p), GET_PKT_LEN(p), encoded_packet, &len);
+            json_object_set_new(js, "packet", json_string((char *)encoded_packet));
         }
 
         HttpXFFCfg *xff_cfg = json_output_ctx->xff_cfg;
@@ -382,17 +401,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
     }
     json_object_clear(js);
     json_decref(js);
-
-    if ((p->flags & PKT_HAS_TAG) && (json_output_ctx->flags &
-            LOG_JSON_TAGGED_PACKETS)) {
-        MemBufferReset(aft->json_buffer);
-        json_t *packetjs = CreateJSONHeader((Packet *)p, 0, "packet");
-        if (unlikely(packetjs != NULL)) {
-            AlertJsonPacket(p, packetjs);
-            OutputJSONBuffer(packetjs, aft->file_ctx, &aft->json_buffer);
-            json_decref(packetjs);
-        }
-    }
 
     return TM_ECODE_OK;
 }
@@ -483,10 +491,7 @@ static int JsonAlertLogger(ThreadVars *tv, void *thread_data, const Packet *p)
 
 static int JsonAlertLogCondition(ThreadVars *tv, const Packet *p)
 {
-    if (p->alerts.cnt || (p->flags & PKT_HAS_TAG)) {
-        return TRUE;
-    }
-    return FALSE;
+    return (p->alerts.cnt ? TRUE : FALSE);
 }
 
 #define OUTPUT_BUFFER_SIZE 65535
@@ -597,7 +602,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
-        const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
+        const char *dns = ConfNodeLookupChildValue(conf, "dns");
 
         if (ssh != NULL) {
             if (ConfValIsTrue(ssh)) {
@@ -617,6 +622,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (smtp != NULL) {
             if (ConfValIsTrue(smtp)) {
                 json_output_ctx->flags |= LOG_JSON_SMTP;
+            }
+        }
+        if (dns != NULL) {
+            if (ConfValIsTrue(dns)) {
+                json_output_ctx->flags |= LOG_JSON_DNS;
             }
         }
         if (payload_printable != NULL) {
@@ -643,11 +653,6 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (packet != NULL) {
             if (ConfValIsTrue(packet)) {
                 json_output_ctx->flags |= LOG_JSON_PACKET;
-            }
-        }
-        if (tagged_packets != NULL) {
-            if (ConfValIsTrue(tagged_packets)) {
-                json_output_ctx->flags |= LOG_JSON_TAGGED_PACKETS;
             }
         }
 
