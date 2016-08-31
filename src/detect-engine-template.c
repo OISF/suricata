@@ -15,6 +15,21 @@
  * 02110-1301, USA.
  */
 
+/*
+ * TODO: Update your name below and in detect-engine-template.h.
+ * TODO: Update description in the \file section below.
+ * TODO: Remove SCLogNotice statements or convert to debug.
+ */
+
+/**
+ * \file
+ *
+ * \author FirstName LastName <yourname@domain>
+ *
+ * Implement buffer inspection on the decoded application layer
+ * content buffers.
+ */
+
 #include "suricata-common.h"
 #include "stream.h"
 #include "detect-engine-content-inspection.h"
