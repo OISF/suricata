@@ -1662,7 +1662,7 @@
                     echo "   ERROR!  liblua library not found, go get it"
                     echo "   from http://lua.org/index.html or your distribution:"
                     echo
-                    echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                    echo "   Ubuntu: apt-get install liblua5.1-dev"
                     echo "   CentOS/Fedora: yum install lua-devel"
                     echo
                     echo "   If you installed software in a non-standard prefix"
@@ -1698,7 +1698,7 @@
                 echo "   ERROR!  liblua headers not found, go get them"
                 echo "   from http://lua.org/index.html or your distribution:"
                 echo
-                echo "   Ubuntu: apt-get install liblua-5.1-dev"
+                echo "   Ubuntu: apt-get install liblua5.1-dev"
                 echo "   CentOS/Fedora: yum install lua-devel"
                 echo
                 echo "   If you installed software in a non-standard prefix"
