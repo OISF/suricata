@@ -29,7 +29,7 @@ void TmModuleJsonDnsLogRegister (void);
 #ifdef HAVE_LIBJANSSON
 #include "app-layer-dns-common.h"
 
-void JsonDNSLogJSON(json_t *js, DNSState *tx);
+void JsonDnsLogJSON(json_t *js, DNSState *tx);
 #endif
 
 #endif /* __OUTPUT_JSON_DNS_H__ */
