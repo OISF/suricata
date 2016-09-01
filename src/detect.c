@@ -3946,8 +3946,10 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx)
     return 0;
 }
 
-static inline void PrintFeatureList(int flags, char sep)
+static void PrintFeatureList(const SigTableElmt *e, char sep)
 {
+    const uint8_t flags = e->flags;
+
     int prev = 0;
     if (flags & SIGMATCH_NOOPT) {
         printf("No option");
@@ -3971,20 +3973,26 @@ static inline void PrintFeatureList(int flags, char sep)
         printf("payload inspecting keyword");
         prev = 1;
     }
+    if (e->SupportsPrefilter) {
+        if (prev == 1)
+            printf("%c", sep);
+        printf("prefilter");
+        prev = 1;
+    }
     if (prev == 0) {
         printf("none");
     }
 }
 
-static inline void SigMultilinePrint(int i, char *prefix)
+static void SigMultilinePrint(int i, char *prefix)
 {
     if (sigmatch_table[i].desc) {
         printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
     }
-    printf("%sProtocol: %s\n", prefix,
-           AppLayerGetProtoName(sigmatch_table[i].alproto));
+    const char *proto = AppLayerGetProtoName(sigmatch_table[i].alproto);
+    printf("%sProtocol: %s\n", prefix, proto ? proto : "none");
     printf("%sFeatures: ", prefix);
-    PrintFeatureList(sigmatch_table[i].flags, ',');
+    PrintFeatureList(&sigmatch_table[i], ',');
     if (sigmatch_table[i].url) {
         printf("\n%sDocumentation: %s", prefix, sigmatch_table[i].url);
     }
@@ -4008,7 +4016,7 @@ void SigTableList(const char *keyword)
                 }
             }
         }
-    } else if (!strcmp("csv", keyword)) {
+    } else if (strcmp("csv", keyword) == 0) {
         printf("name;description;app layer;features;documentation\n");
         for (i = 0; i < size; i++) {
             if (sigmatch_table[i].name != NULL) {
@@ -4022,7 +4030,7 @@ void SigTableList(const char *keyword)
                 /* Build feature */
                 proto_name = AppLayerGetProtoName(sigmatch_table[i].alproto);
                 printf(";%s;", proto_name ? proto_name : "Unset");
-                PrintFeatureList(sigmatch_table[i].flags, ':');
+                PrintFeatureList(&sigmatch_table[i], ':');
                 printf(";");
                 if (sigmatch_table[i].url) {
                     printf("%s", sigmatch_table[i].url);
@@ -4031,7 +4039,7 @@ void SigTableList(const char *keyword)
                 printf("\n");
             }
         }
-    } else if (!strcmp("all", keyword)) {
+    } else if (strcmp("all", keyword) == 0) {
         for (i = 0; i < size; i++) {
             if (sigmatch_table[i].name != NULL) {
                 printf("%s:\n", sigmatch_table[i].name);
@@ -4041,7 +4049,7 @@ void SigTableList(const char *keyword)
     } else {
         for (i = 0; i < size; i++) {
             if ((sigmatch_table[i].name != NULL) &&
-                !strcmp(sigmatch_table[i].name, keyword)) {
+                strcmp(sigmatch_table[i].name, keyword) == 0) {
                 printf("= %s =\n", sigmatch_table[i].name);
                 if (sigmatch_table[i].flags & SIGMATCH_NOT_BUILT) {
                     printf("Not built-in\n");
