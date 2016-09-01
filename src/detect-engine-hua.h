@@ -25,15 +25,15 @@
 
 #include "app-layer-htp.h"
 
+int PrefilterTxUARegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectHttpUA(ThreadVars *tv,
                               DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               Signature *s, Flow *f, uint8_t flags,
                               void *alstate,
                               void *tx, uint64_t tx_id);
-int DetectEngineRunHttpUAMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *tx, uint64_t idx);
+
 void DetectEngineHttpUARegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HUA_H__ */
