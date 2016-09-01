@@ -4256,8 +4256,10 @@ void SigTableList(const char *keyword)
         }
     } else if (!strcmp("all", keyword)) {
         for (i = 0; i < size; i++) {
-            printf("%s:\n", sigmatch_table[i].name);
-            SigMultilinePrint(i, "\t");
+            if (sigmatch_table[i].name != NULL) {
+                printf("%s:\n", sigmatch_table[i].name);
+                SigMultilinePrint(i, "\t");
+            }
         }
     } else {
         for (i = 0; i < size; i++) {
