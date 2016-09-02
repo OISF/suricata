@@ -46,17 +46,18 @@ typedef struct OutputStatsLogger_ {
     OutputCtx *output_ctx;
     struct OutputStatsLogger_ *next;
     const char *name;
-    TmmId module_id;
+    ThreadInitFunc ThreadInit;
+    ThreadDeinitFunc ThreadDeinit;
+    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputStatsLogger;
 
 static OutputStatsLogger *list = NULL;
 
-int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *output_ctx)
+int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc,
+    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-
     OutputStatsLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -65,7 +66,9 @@ int OutputRegisterStatsLogger(const char *name, StatsLogger LogFunc, OutputCtx *
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-    op->module_id = (TmmId) module_id;
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -126,16 +129,9 @@ static TmEcode OutputStatsLogThreadInit(ThreadVars *tv, void *initdata, void **d
 
     OutputStatsLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadInit) {
+        if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -170,17 +166,9 @@ static TmEcode OutputStatsLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputStatsLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
+        if (logger->ThreadDeinit) {
+            logger->ThreadDeinit(tv, store->thread_data);
         }
-
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
-        }
-
         OutputLoggerThreadStore *next_store = store->next;
         SCFree(store);
         store = next_store;
@@ -198,15 +186,8 @@ static void OutputStatsLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputStatsLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (logger->ThreadExitPrintStats) {
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
@@ -218,7 +199,6 @@ void TmModuleStatsLoggerRegister (void)
 {
     tmm_modules[TMM_STATSLOGGER].name = "__stats_logger__";
     tmm_modules[TMM_STATSLOGGER].ThreadInit = OutputStatsLogThreadInit;
-    //tmm_modules[TMM_STATSLOGGER].Func = OutputStatsLog;
     tmm_modules[TMM_STATSLOGGER].ThreadExitPrintStats = OutputStatsLogExitPrintStats;
     tmm_modules[TMM_STATSLOGGER].ThreadDeinit = OutputStatsLogThreadDeinit;
     tmm_modules[TMM_STATSLOGGER].cap_flags = 0;

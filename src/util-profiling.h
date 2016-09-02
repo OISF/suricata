@@ -250,6 +250,25 @@ PktProfiling *SCProfilePacketStart(void);
         }                                                           \
     }
 
+#define PACKET_PROFILING_LOGGER_START(p, id)                        \
+    if (profiling_packets_enabled && (p)->profile != NULL) {        \
+        if ((id) < LOGGER_SIZE) {                              \
+            (p)->profile->logger[(id)].ticks_start = UtilCpuGetTicks(); \
+        }                                                           \
+    }
+
+#define PACKET_PROFILING_LOGGER_END(p, id)                          \
+    if (profiling_packets_enabled  && (p)->profile != NULL) {       \
+        if ((id) < LOGGER_SIZE) {                              \
+            (p)->profile->logger[(id)].ticks_end = UtilCpuGetTicks();\
+            if ((p)->profile->logger[(id)].ticks_start != 0 &&       \
+                    (p)->profile->logger[(id)].ticks_start < (p)->profile->logger[(id)].ticks_end) {  \
+                (p)->profile->logger[(id)].ticks_spent +=            \
+                ((p)->profile->logger[(id)].ticks_end - (p)->profile->logger[(id)].ticks_start);  \
+            }                                                       \
+        }                                                           \
+    }
+
 #define SGH_PROFILING_RECORD(det_ctx, sgh)                          \
     if (profiling_sghs_enabled) {                                   \
         SCProfilingSghUpdateCounter((det_ctx), (sgh));              \
@@ -310,6 +329,9 @@ void SCProfilingDump(void);
 
 #define PACKET_PROFILING_DETECT_START(p, id)
 #define PACKET_PROFILING_DETECT_END(p, id)
+
+#define PACKET_PROFILING_LOGGER_START(p, id)
+#define PACKET_PROFILING_LOGGER_END(p, id)
 
 #define SGH_PROFILING_RECORD(det_ctx, sgh)
 

@@ -143,23 +143,20 @@ typedef struct PcapLogThreadData_ {
 static PcapLogData *g_pcap_data = NULL;
 
 static int PcapLogOpenFileCtx(PcapLogData *);
-static TmEcode PcapLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+static int PcapLog(ThreadVars *, void *, const Packet *);
 static TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
 static TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 static OutputCtx *PcapLogInitCtx(ConfNode *);
 static void PcapLogProfilingDump(PcapLogData *);
+static int PcapLogCondition(ThreadVars *, const Packet *);
 
-void TmModulePcapLogRegister(void)
+void PcapLogRegister(void)
 {
-    tmm_modules[TMM_PCAPLOG].name = MODULE_NAME;
-    tmm_modules[TMM_PCAPLOG].ThreadInit = PcapLogDataInit;
-    tmm_modules[TMM_PCAPLOG].Func = PcapLog;
-    tmm_modules[TMM_PCAPLOG].ThreadDeinit = PcapLogDataDeinit;
-    tmm_modules[TMM_PCAPLOG].RegisterTests = NULL;
-
-    OutputRegisterModule(MODULE_NAME, "pcap-log", PcapLogInitCtx);
-
+    OutputRegisterPacketModule(LOGGER_PCAP, MODULE_NAME, "pcap-log",
+        PcapLogInitCtx, PcapLog, PcapLogCondition, PcapLogDataInit,
+        PcapLogDataDeinit, NULL);
+    PcapLogProfileSetup();
     SC_ATOMIC_INIT(thread_cnt);
     return;
 }
@@ -170,6 +167,17 @@ void TmModulePcapLogRegister(void)
 #define PCAPLOG_PROFILE_END(prof) \
     (prof).total += (UtilCpuGetTicks() - pcaplog_profile_ticks); \
     (prof).cnt++
+
+static int PcapLogCondition(ThreadVars *tv, const Packet *p)
+{
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        return FALSE;
+    }
+    if (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)) {
+        return FALSE;
+    }
+    return TRUE;
+}
 
 /**
  * \brief Function to close pcaplog file
@@ -281,7 +289,7 @@ static int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
     return 0;
 }
 
-static int PcapLogOpenHandles(PcapLogData *pl, Packet *p)
+static int PcapLogOpenHandles(PcapLogData *pl, const Packet *p)
 {
     PCAPLOG_PROFILE_START;
 
@@ -345,8 +353,7 @@ static void PcapLogUnlock(PcapLogData *pl)
  * \retval TM_ECODE_OK on succes
  * \retval TM_ECODE_FAILED on serious error
  */
-static TmEcode PcapLog (ThreadVars *t, Packet *p, void *thread_data, PacketQueue *pq,
-                 PacketQueue *postpq)
+static int PcapLog (ThreadVars *t, void *thread_data, const Packet *p)
 {
     size_t len;
     int rotate = 0;
@@ -572,6 +579,7 @@ static TmEcode PcapLogDataDeinit(ThreadVars *t, void *thread_data)
             pl->reported = 1;
         }
     }
+    SCFree(td);
     return TM_ECODE_OK;
 }
 
@@ -894,7 +902,7 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
     TAILQ_FOREACH(pf, &pl->pcap_file_list, next) {
         SCLogDebug("PCAP files left at exit: %s\n", pf->filename);
     }
-
+    SCFree(output_ctx);
     return;
 }
 

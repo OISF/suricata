@@ -210,18 +210,12 @@ static int LuaCallbackTimeStringPushToStackFromFlow(lua_State *luastate, const F
 static int LuaCallbackFlowTimeString(lua_State *luastate)
 {
     int r = 0;
-    int locked = 0;
-    Flow *flow = LuaStateGetFlow(luastate, &locked);
+    Flow *flow = LuaStateGetFlow(luastate);
     if (flow == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (locked == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(flow);
-        r = LuaCallbackTimeStringPushToStackFromFlow(luastate, flow);
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        r = LuaCallbackTimeStringPushToStackFromFlow(luastate, flow);
-    }
+    r = LuaCallbackTimeStringPushToStackFromFlow(luastate, flow);
+
     return r;
 }
 
@@ -345,18 +339,12 @@ static int LuaCallbackTuplePushToStackFromFlow(lua_State *luastate, const Flow *
 static int LuaCallbackTupleFlow(lua_State *luastate)
 {
     int r = 0;
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = LuaCallbackTuplePushToStackFromFlow(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = LuaCallbackTuplePushToStackFromFlow(luastate, f);
-    }
+    r = LuaCallbackTuplePushToStackFromFlow(luastate, f);
+
     return r;
 }
 
@@ -384,18 +372,12 @@ static int LuaCallbackAppLayerProtoPushToStackFromFlow(lua_State *luastate, cons
 static int LuaCallbackAppLayerProtoFlow(lua_State *luastate)
 {
     int r = 0;
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
-    }
+    r = LuaCallbackAppLayerProtoPushToStackFromFlow(luastate, f);
+
     return r;
 }
 
@@ -423,18 +405,12 @@ static int LuaCallbackStatsPushToStackFromFlow(lua_State *luastate, const Flow *
 static int LuaCallbackStatsFlow(lua_State *luastate)
 {
     int r = 0;
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = LuaCallbackStatsPushToStackFromFlow(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = LuaCallbackStatsPushToStackFromFlow(luastate, f);
-    }
+    r = LuaCallbackStatsPushToStackFromFlow(luastate, f);
+
     return r;
 }
 
@@ -771,18 +747,11 @@ int LuaRegisterFunctions(lua_State *luastate)
 int LuaStateNeedProto(lua_State *luastate, AppProto alproto)
 {
     AppProto flow_alproto = 0;
-    int locked = 0;
-    Flow *flow = LuaStateGetFlow(luastate, &locked);
+    Flow *flow = LuaStateGetFlow(luastate);
     if (flow == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (locked == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(flow);
-        flow_alproto = flow->alproto;
-        FLOWLOCK_UNLOCK(flow);
-    } else {
-        flow_alproto = flow->alproto;
-    }
+    flow_alproto = flow->alproto;
 
     return (alproto == flow_alproto);
 

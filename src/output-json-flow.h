@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_FLOW_H__
 #define __OUTPUT_JSON_FLOW_H__
 
-void TmModuleJsonFlowLogRegister (void);
+void JsonFlowLogRegister(void);
 
 #endif /* __OUTPUT_JSON_FLOW_H__ */

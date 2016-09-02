@@ -70,39 +70,33 @@ void DetectFlowbitsRegister (void)
 }
 
 
-static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd, const int flow_locked)
+static int DetectFlowbitMatchToggle (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    if (flow_locked)
-        FlowBitToggleNoLock(p->flow,fd->idx);
-    else
-        FlowBitToggle(p->flow,fd->idx);
+    FlowBitToggle(p->flow,fd->idx);
+
     return 1;
 }
 
-static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd, const int flow_locked)
+static int DetectFlowbitMatchUnset (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    if (flow_locked)
-        FlowBitUnsetNoLock(p->flow,fd->idx);
-    else
-        FlowBitUnset(p->flow,fd->idx);
+    FlowBitUnset(p->flow,fd->idx);
+
     return 1;
 }
 
-static int DetectFlowbitMatchSet (Packet *p, const DetectFlowbitsData *fd, const int flow_locked)
+static int DetectFlowbitMatchSet (Packet *p, const DetectFlowbitsData *fd)
 {
     if (p->flow == NULL)
         return 0;
 
-    if (flow_locked)
-        FlowBitSetNoLock(p->flow,fd->idx);
-    else
-        FlowBitSet(p->flow,fd->idx);
+    FlowBitSet(p->flow,fd->idx);
+
     return 1;
 }
 
@@ -133,7 +127,6 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     const DetectFlowbitsData *fd = (const DetectFlowbitsData *)ctx;
     if (fd == NULL)
         return 0;
-    const int flow_locked = det_ctx->flow_locked;
 
     switch (fd->cmd) {
         case DETECT_FLOWBITS_CMD_ISSET:
@@ -141,11 +134,11 @@ int DetectFlowbitMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
         case DETECT_FLOWBITS_CMD_ISNOTSET:
             return DetectFlowbitMatchIsnotset(p,fd);
         case DETECT_FLOWBITS_CMD_SET:
-            return DetectFlowbitMatchSet(p,fd,flow_locked);
+            return DetectFlowbitMatchSet(p,fd);
         case DETECT_FLOWBITS_CMD_UNSET:
-            return DetectFlowbitMatchUnset(p,fd,flow_locked);
+            return DetectFlowbitMatchUnset(p,fd);
         case DETECT_FLOWBITS_CMD_TOGGLE:
-            return DetectFlowbitMatchToggle(p,fd,flow_locked);
+            return DetectFlowbitMatchToggle(p,fd);
         default:
             SCLogError(SC_ERR_UNKNOWN_VALUE, "unknown cmd %" PRIu32 "", fd->cmd);
             return 0;

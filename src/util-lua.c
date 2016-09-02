@@ -124,10 +124,9 @@ void LuaStateSetTX(lua_State *luastate, void *txptr)
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 
-Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint)
+Flow *LuaStateGetFlow(lua_State *luastate)
 {
     Flow *f = NULL;
-    int need_flow_lock = 0;
 
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
@@ -136,13 +135,11 @@ Flow *LuaStateGetFlow(lua_State *luastate, int *lock_hint)
     /* need flow lock hint */
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
     lua_gettable(luastate, LUA_REGISTRYINDEX);
-    need_flow_lock = lua_toboolean(luastate, -1);
 
-    *lock_hint = need_flow_lock;
     return f;
 }
 
-void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock)
+void LuaStateSetFlow(lua_State *luastate, Flow *f)
 {
     /* flow */
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow);
@@ -151,7 +148,8 @@ void LuaStateSetFlow(lua_State *luastate, Flow *f, int need_flow_lock)
 
     /* flow lock status hint */
     lua_pushlightuserdata(luastate, (void *)&lua_ext_key_flow_lock_hint);
-    lua_pushboolean(luastate, need_flow_lock);
+    /* locking is not required, set to 0 for backwards compatibility */
+    lua_pushboolean(luastate, 0);
     lua_settable(luastate, LUA_REGISTRYINDEX);
 }
 

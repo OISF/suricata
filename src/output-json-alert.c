@@ -221,7 +221,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
 
         if (json_output_ctx->flags & LOG_JSON_HTTP) {
             if (p->flow != NULL) {
-                FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
@@ -230,40 +229,31 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (hjs)
                         json_object_set_new(js, "http", hjs);
                 }
-
-                FLOWLOCK_UNLOCK(p->flow);
             }
         }
 
         if (json_output_ctx->flags & LOG_JSON_TLS) {
             if (p->flow != NULL) {
-                FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
                 if (proto == ALPROTO_TLS)
                     AlertJsonTls(p->flow, js);
-
-                FLOWLOCK_UNLOCK(p->flow);
             }
         }
 
         if (json_output_ctx->flags & LOG_JSON_SSH) {
             if (p->flow != NULL) {
-                FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
-
-                FLOWLOCK_UNLOCK(p->flow);
             }
         }
 
         if (json_output_ctx->flags & LOG_JSON_SMTP) {
             if (p->flow != NULL) {
-                FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
                 /* http alert */
@@ -276,8 +266,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (hjs)
                         json_object_set_new(js, "email", hjs);
                 }
-
-                FLOWLOCK_UNLOCK(p->flow);
             }
         }
 
@@ -353,7 +341,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
             int have_xff_ip = 0;
             char buffer[XFF_MAXLEN];
 
-            FLOWLOCK_RDLOCK(p->flow);
             if (FlowGetAppProtocol(p->flow) == ALPROTO_HTTP) {
                 if (pa->flags & PACKET_ALERT_FLAG_TX) {
                     have_xff_ip = HttpXFFGetIPFromTx(p, pa->tx_id, xff_cfg, buffer, XFF_MAXLEN);
@@ -361,7 +348,6 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     have_xff_ip = HttpXFFGetIP(p, xff_cfg, buffer, XFF_MAXLEN);
                 }
             }
-            FLOWLOCK_UNLOCK(p->flow);
 
             if (have_xff_ip) {
                 if (xff_cfg->flags & XFF_EXTRADATA) {
@@ -739,32 +725,22 @@ error:
     return NULL;
 }
 
-void TmModuleJsonAlertLogRegister (void)
+void JsonAlertLogRegister (void)
 {
-    tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONALERTLOG].ThreadInit = JsonAlertLogThreadInit;
-    tmm_modules[TMM_JSONALERTLOG].ThreadDeinit = JsonAlertLogThreadDeinit;
-    tmm_modules[TMM_JSONALERTLOG].cap_flags = 0;
-    tmm_modules[TMM_JSONALERTLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "alert-json-log",
-            JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition);
-    OutputRegisterPacketSubModule("eve-log", MODULE_NAME, "eve-log.alert",
-            JsonAlertLogInitCtxSub, JsonAlertLogger, JsonAlertLogCondition);
+    OutputRegisterPacketModule(LOGGER_JSON_ALERT, MODULE_NAME, "alert-json-log",
+        JsonAlertLogInitCtx, JsonAlertLogger, JsonAlertLogCondition,
+        JsonAlertLogThreadInit, JsonAlertLogThreadDeinit, NULL);
+    OutputRegisterPacketSubModule(LOGGER_JSON_ALERT, "eve-log", MODULE_NAME,
+        "eve-log.alert", JsonAlertLogInitCtxSub, JsonAlertLogger,
+        JsonAlertLogCondition, JsonAlertLogThreadInit, JsonAlertLogThreadDeinit,
+        NULL);
 }
 
 #else
 
-static TmEcode OutputJsonThreadInit(ThreadVars *t, void *initdata, void **data)
+void JsonAlertLogRegister (void)
 {
-    SCLogInfo("Can't init JSON output - JSON support was disabled during build.");
-    return TM_ECODE_FAILED;
-}
-
-void TmModuleJsonAlertLogRegister (void)
-{
-    tmm_modules[TMM_JSONALERTLOG].name = MODULE_NAME;
-    tmm_modules[TMM_JSONALERTLOG].ThreadInit = OutputJsonThreadInit;
+    SCLogInfo("Can't register JSON output - JSON support was disabled during build.");
 }
 
 #endif

@@ -76,18 +76,13 @@ static void AlertFastLogDeInitCtx(OutputCtx *);
 int AlertFastLogCondition(ThreadVars *tv, const Packet *p);
 int AlertFastLogger(ThreadVars *tv, void *data, const Packet *p);
 
-void TmModuleAlertFastLogRegister (void)
+void AlertFastLogRegister(void)
 {
-    tmm_modules[TMM_ALERTFASTLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTFASTLOG].ThreadInit = AlertFastLogThreadInit;
-    tmm_modules[TMM_ALERTFASTLOG].ThreadExitPrintStats = AlertFastLogExitPrintStats;
-    tmm_modules[TMM_ALERTFASTLOG].ThreadDeinit = AlertFastLogThreadDeinit;
-    tmm_modules[TMM_ALERTFASTLOG].RegisterTests = AlertFastLogRegisterTests;
-    tmm_modules[TMM_ALERTFASTLOG].cap_flags = 0;
-    tmm_modules[TMM_ALERTFASTLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "fast",
-            AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition);
+    OutputRegisterPacketModule(LOGGER_ALERT_FAST, MODULE_NAME, "fast",
+        AlertFastLogInitCtx, AlertFastLogger, AlertFastLogCondition,
+        AlertFastLogThreadInit, AlertFastLogThreadDeinit,
+        AlertFastLogExitPrintStats);
+    AlertFastLogRegisterTests();
 }
 
 typedef struct AlertFastLogThread_ {
