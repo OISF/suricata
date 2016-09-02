@@ -78,6 +78,9 @@
 
 #include <sys/syscall.h>
 #include <linux/bpf.h>
+#include "util-ebpf.h"
+#include <linux/types.h>
+#include <bpf/libbpf.h>
 
 struct bpf_program {
 	u_int bf_len;
@@ -206,6 +209,8 @@ union thdr {
 #endif
     void *raw;
 };
+
+static int AFPBypassCallback(Packet *p);
 
 #define MAX_MAPS 32
 /**
@@ -617,6 +622,9 @@ static int AFPRead(AFPThreadVars *ptv)
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     /* get timestamp of packet via ioctl */
     if (ioctl(ptv->socket, SIOCGSTAMP, &p->ts) == -1) {
@@ -886,6 +894,9 @@ static int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
         PKT_SET_SRC(p, PKT_SRC_WIRE);
+        if (ptv->flags & AFP_BYPASS) {
+            p->BypassPacketsFlow = AFPBypassCallback;
+        }
 
         /* Suricata will treat packet so telling it is busy, this
          * status will be reset to 0 (ie TP_STATUS_KERNEL) in the release
@@ -998,6 +1009,9 @@ static inline int AFPParsePacketV3(AFPThreadVars *ptv, struct tpacket_block_desc
         SCReturnInt(AFP_FAILURE);
     }
     PKT_SET_SRC(p, PKT_SRC_WIRE);
+    if (ptv->flags & AFP_BYPASS) {
+        p->BypassPacketsFlow = AFPBypassCallback;
+    }
 
     ptv->pkts++;
     p->livedev = ptv->livedev;
@@ -2201,6 +2215,43 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     }
 
     return TM_ECODE_OK;
+}
+
+static int AFPBypassCallback(Packet *p)
+{
+    SCLogDebug("Calling af_packet callback function");
+    /* FIXME remove this */
+    if (!PKT_IS_TCP(p)) {
+        return 0;
+    }
+    if (PKT_IS_IPV4(p)) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v4");
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v4");
+            return 0;
+        }
+        /* FIXME error handling */
+        struct flowv4_keys *key= SCMalloc(sizeof(struct flowv4_keys));
+        key->src = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key->dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+        key->port16[0] = GET_TCP_SRC_PORT(p);
+        key->port16[1] = GET_TCP_DST_PORT(p);
+        key->ip_proto = 6;
+
+        /* FIXME error handling */
+        struct pair *value = SCMalloc(sizeof(struct pair));
+        memset(value, 0, sizeof(struct pair));
+        SCLogNotice("Inserting element in eBPF mapping");
+        /* FIXME error handling */
+        if (bpf_map__update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
+            SCLogNotice("Can't update eBPF map (%d): %s", mapd, strerror(errno));
+            return 0;
+        }
+        return 1;
+    }
+
+    return 0;
 }
 
 /**

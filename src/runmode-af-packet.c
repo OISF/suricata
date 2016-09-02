@@ -393,6 +393,12 @@ static void *ParseAFPConfig(const char *iface)
         SCLogInfo("af-packet will use '%s' as eBPF filter file",
                   ebpf_file);
         aconf->ebpf_filter_file = ebpf_file;
+        ConfGetChildValueBoolWithDefault(if_root, if_default, "bypass", &conf_val);
+        if (conf_val) {
+            SCLogConfig("Using bypass kernel functionality for AF_PACKET (iface %s)",
+                    aconf->iface);
+            aconf->flags |= AFP_BYPASS;
+        }
     }
 
     /* One shot loading of the eBPF file */
