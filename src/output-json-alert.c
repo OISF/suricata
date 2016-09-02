@@ -56,6 +56,7 @@
 #include "output-json-tls.h"
 #include "output-json-ssh.h"
 #include "output-json-smtp.h"
+#include "output-json-dns.h"
 #include "output-json-email-common.h"
 
 #include "util-byte.h"
@@ -77,13 +78,14 @@
 #define LOG_JSON_TLS            0x10
 #define LOG_JSON_SSH            0x20
 #define LOG_JSON_SMTP           0x40
-#define LOG_JSON_TAGGED_PACKETS 0x80
+#define LOG_JSON_DNS            0x80
+#define LOG_JSON_TAGGED_PACKETS 0x100
 
 #define JSON_STREAM_BUFFER_SIZE 4096
 
 typedef struct AlertJsonOutputCtx_ {
     LogFileCtx* file_ctx;
-    uint8_t flags;
+    uint32_t flags;
     uint32_t payload_buffer_size;
     HttpXFFCfg *xff_cfg;
 } AlertJsonOutputCtx;
@@ -134,6 +136,22 @@ static void AlertJsonSsh(const Flow *f, json_t *js)
         JsonSshLogJSON(tjs, ssh_state);
 
         json_object_set_new(js, "ssh", tjs);
+    }
+
+    return;
+}
+
+static void AlertJsonDns(const Flow *f, json_t *js)
+{
+    DNSState *dns_state = (DNSState *)FlowGetAppState(f);
+    if (dns_state) {
+        json_t *tjs = json_object();
+        if (unlikely(tjs == NULL))
+            return;
+
+        JsonDnsLogJSON(tjs, dns_state);
+
+        json_object_set_new(js, "dns", tjs);
     }
 
     return;
@@ -240,7 +258,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* tls alert */
                 if (proto == ALPROTO_TLS)
                     AlertJsonTls(p->flow, js);
 
@@ -253,7 +271,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* ssh alert */
                 if (proto == ALPROTO_SSH)
                     AlertJsonSsh(p->flow, js);
 
@@ -266,7 +284,7 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                 FLOWLOCK_RDLOCK(p->flow);
                 uint16_t proto = FlowGetAppProtocol(p->flow);
 
-                /* http alert */
+                /* smtp alert */
                 if (proto == ALPROTO_SMTP) {
                     hjs = JsonSMTPAddMetadata(p->flow, pa->tx_id);
                     if (hjs)
@@ -276,6 +294,19 @@ static int AlertJson(ThreadVars *tv, JsonAlertLogThread *aft, const Packet *p)
                     if (hjs)
                         json_object_set_new(js, "email", hjs);
                 }
+
+                FLOWLOCK_UNLOCK(p->flow);
+            }
+        }
+
+        if (json_output_ctx->flags & LOG_JSON_DNS) {
+            if (p->flow != NULL) {
+                FLOWLOCK_RDLOCK(p->flow);
+                uint16_t proto = FlowGetAppProtocol(p->flow);
+
+                /* dns alert */
+                if (proto == ALPROTO_DNS)
+                    AlertJsonDns(p->flow, js);
 
                 FLOWLOCK_UNLOCK(p->flow);
             }
@@ -597,6 +628,7 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         const char *tls = ConfNodeLookupChildValue(conf, "tls");
         const char *ssh = ConfNodeLookupChildValue(conf, "ssh");
         const char *smtp = ConfNodeLookupChildValue(conf, "smtp");
+        const char *dns = ConfNodeLookupChildValue(conf, "dns");
         const char *tagged_packets = ConfNodeLookupChildValue(conf, "tagged-packets");
 
         if (ssh != NULL) {
@@ -617,6 +649,11 @@ static void XffSetup(AlertJsonOutputCtx *json_output_ctx, ConfNode *conf)
         if (smtp != NULL) {
             if (ConfValIsTrue(smtp)) {
                 json_output_ctx->flags |= LOG_JSON_SMTP;
+            }
+        }
+        if (dns != NULL) {
+            if (ConfValIsTrue(dns)) {
+                json_output_ctx->flags |= LOG_JSON_DNS;
             }
         }
         if (payload_printable != NULL) {
