@@ -501,6 +501,7 @@ util-strlcatu.c \
 util-strlcpyu.c \
 util-strptime.c \
 util-syslog.c util-syslog.h \
+util-thash.c util-thash.h \
 util-threshold-config.c util-threshold-config.h \
 util-time.c util-time.h \
 util-unittest.c util-unittest.h \

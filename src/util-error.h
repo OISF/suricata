@@ -351,8 +351,9 @@ typedef enum {
     SC_WARN_EVE_MISSING_EVENTS,
     SC_ERR_PLEDGE_FAILED,
     SC_ERR_FTP_LOG_GENERIC,
+    SC_ERR_THASH_INIT,
 
-    SC_ERR_MAX,
+    SC_ERR_MAX
 } SCError;
 
 const char *SCErrorToString(SCError);
