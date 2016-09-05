@@ -15,6 +15,20 @@
  * 02110-1301, USA.
  */
 
+/*
+ * TODO: Update \author in this file and in output-json-template.h.
+ * TODO: Remove SCLogNotice statements, or convert to debug.
+ * TODO: Implement your app-layers logging.
+ */
+
+/**
+ * \file
+ *
+ * \author FirstName LastName <yourname@domain>
+ *
+ * Implement JSON/eve logging app-layer Template.
+ */
+
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
@@ -178,10 +192,11 @@ static TmEcode JsonTemplateLogThreadDeinit(ThreadVars *t, void *data)
 
 void TmModuleJsonTemplateLogRegister(void)
 {
+    /* TEMPLATE_START_REMOVE */
     if (ConfGetNode("app-layer.protocols.template") == NULL) {
         return;
     }
-
+    /* TEMPLATE_END_REMOVE */
     tmm_modules[TMM_JSONTEMPLATELOG].name = "JsonTemplateLog";
     tmm_modules[TMM_JSONTEMPLATELOG].ThreadInit = JsonTemplateLogThreadInit;
     tmm_modules[TMM_JSONTEMPLATELOG].ThreadDeinit = JsonTemplateLogThreadDeinit;

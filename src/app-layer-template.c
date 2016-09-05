@@ -15,8 +15,18 @@
  * 02110-1301, USA.
  */
 
+/*
+ * TODO: Update \author in this file and app-layer-template.h.
+ * TODO: Implement your app-layer logic with unit tests.
+ * TODO: Remove SCLogNotice statements or convert to debug.
+ */
+
 /**
- * \file Template application layer detector and parser for learning and
+ * \file
+ *
+ * \author FirstName LastName <yourname@domain>
+ *
+ * Template application layer detector and parser for learning and
  * template pruposes.
  *
  * This template implements a simple application layer for something
@@ -449,7 +459,6 @@ void RegisterTemplateParsers(void)
         return;
     }
     /* TEMPLATE_END_REMOVE */
-
     /* Check if Template TCP detection is enabled. If it does not exist in
      * the configuration file then it will be enabled by default. */
     if (AppLayerProtoDetectConfProtoDetectionEnabled("tcp", proto_name)) {
