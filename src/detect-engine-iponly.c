@@ -1568,7 +1568,9 @@ static int IPOnlyTestSig01(void)
 
     de_ctx.flags |= DE_QUIET;
 
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; sid:400001; rev:1;)");
+    Signature *s = SigInit(&de_ctx,
+                           "alert tcp any any -> any any (msg:\"SigTest40-01 sig is IPOnly \"; sid:400001; rev:1;)",
+                           NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1597,7 +1599,9 @@ static int IPOnlyTestSig02 (void)
 
     de_ctx.flags |= DE_QUIET;
 
-    Signature *s = SigInit(&de_ctx,"alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; sid:400001; rev:1;)");
+    Signature *s = SigInit(&de_ctx,
+                           "alert tcp any any -> any 80 (msg:\"SigTest40-02 sig is not IPOnly \"; sid:400001; rev:1;)",
+                           NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1629,7 +1633,9 @@ static int IPOnlyTestSig03 (void)
     de_ctx->flags |= DE_QUIET;
 
     /* combination of pcre and content */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre and content) \"; content:\"php\"; pcre:\"/require(_once)?/i\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1641,7 +1647,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* content */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (content) \"; content:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1653,7 +1661,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* uricontent */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (uricontent) \"; uricontent:\"match something\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1665,7 +1675,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* pcre */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pcre) \"; pcre:\"/e?idps rule[sz]/i\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1677,7 +1689,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* flow */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flow) \"; flow:to_server; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1689,7 +1703,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* dsize */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (dsize) \"; dsize:100; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1701,7 +1717,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* flowbits */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowbits) \"; flowbits:unset; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1713,7 +1731,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* flowvar */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; pcre:\"/(?<flow_var>.*)/i\"; flowvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (flowvar) \"; pcre:\"/(?<flow_var>.*)/i\"; flowvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1725,7 +1745,9 @@ static int IPOnlyTestSig03 (void)
     SigFree(s);
 
     /* pktvar */
-    s = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pcre:\"/(?<pkt_var>.*)/i\"; pktvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any (msg:\"SigTest40-03 sig is not IPOnly (pktvar) \"; pcre:\"/(?<pkt_var>.*)/i\"; pktvar:var,\"str\"; classtype:misc-activity; sid:400001; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -2127,8 +2149,8 @@ static int IPOnlyTestSig13(void)
     de_ctx.flags |= DE_QUIET;
 
     Signature *s = SigInit(&de_ctx,
-                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
-                           "flowbits:set,myflow1; sid:1; rev:1;)");
+                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; " "flowbits:set,myflow1; sid:1; rev:1;)",
+                           NULL);
     if (s == NULL) {
         goto end;
     }
@@ -2152,8 +2174,8 @@ static int IPOnlyTestSig14(void)
     de_ctx.flags |= DE_QUIET;
 
     Signature *s = SigInit(&de_ctx,
-                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
-                           "flowbits:set,myflow1; flowbits:isset,myflow2; sid:1; rev:1;)");
+                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; " "flowbits:set,myflow1; flowbits:isset,myflow2; sid:1; rev:1;)",
+                           NULL);
     if (s == NULL) {
         goto end;
     }

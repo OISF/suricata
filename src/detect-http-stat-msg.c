@@ -124,20 +124,21 @@ int DetectHttpStatMsgTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_msg\"; http_stat_msg;sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_msg\"; http_stat_msg;sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         goto end;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_msg\"; content:\"|FF F1|\";"
-                                " rawbytes; http_stat_msg;sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_msg\"; content:\"|FF F1|\";" " rawbytes; http_stat_msg;sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         goto end;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_msg\"; content:\"one\";"
-            "fast_pattern; http_stat_msg; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_msg\"; content:\"one\";" "fast_pattern; http_stat_msg; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
     if (!(((DetectContentData *)de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH]->ctx)->flags &
@@ -167,11 +168,9 @@ int DetectHttpStatMsgTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_msg\"; content:\"one\"; "
-                               "http_stat_msg; content:\"two\"; http_stat_msg; "
-                               "content:\"two\"; nocase; http_stat_msg; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_stat_msg\"; content:\"one\"; " "http_stat_msg; content:\"two\"; http_stat_msg; " "content:\"two\"; nocase; http_stat_msg; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -250,16 +249,16 @@ static int DetectHttpStatMsgSigTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status message\"; content:\"OK\"; "
-                                   "http_stat_msg; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status message\"; content:\"OK\"; " "http_stat_msg; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                      "Status message nocase\"; content:\"ok\"; nocase; "
-                      "http_stat_msg; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"HTTP " "Status message nocase\"; content:\"ok\"; nocase; " "http_stat_msg; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }
@@ -365,9 +364,9 @@ static int DetectHttpStatMsgSigTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status message\"; content:\"no\"; "
-                                   "http_stat_msg; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status message\"; content:\"no\"; " "http_stat_msg; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -470,16 +469,16 @@ static int DetectHttpStatMsgSigTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status message\"; content:\"ok\"; "
-                                   "nocase; http_stat_msg; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert http any any -> any any (msg:" "\"HTTP status message\"; content:\"ok\"; " "nocase; http_stat_msg; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
-                        "Status message nocase\"; content:!\"Not\"; "
-                        "http_stat_msg; sid:2;)");
+    s->next = SigInit(de_ctx,
+                      "alert http any any -> any any (msg:\"HTTP " "Status message nocase\"; content:!\"Not\"; " "http_stat_msg; sid:2;)",
+                      NULL);
     if (s->next == NULL) {
         goto end;
     }

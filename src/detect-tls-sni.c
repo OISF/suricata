@@ -155,7 +155,7 @@ static int DetectTlsSniTest01(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls_sni option\"; "
-                              "tls_sni; content:\"google.com\"; sid:1;)");
+                              "tls_sni; content:\"google.com\"; sid:1;)", NULL);
     if (s == NULL) {
         goto end;
     }
@@ -268,7 +268,7 @@ static int DetectTlsSniTest02(void)
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls_sni option\"; "
                               "tls_sni; content:\"google\"; nocase; "
-                              "pcre:\"/google\\.com$/i\"; sid:1;)");
+                              "pcre:\"/google\\.com$/i\"; sid:1;)", NULL);
     if (s == NULL) {
         goto end;
     }
@@ -276,7 +276,7 @@ static int DetectTlsSniTest02(void)
     s = DetectEngineAppendSig(de_ctx, "alert tls any any -> any any "
                               "(msg:\"Test tls_sni option\"; "
                               "tls_sni; content:\"google\"; nocase; "
-                              "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)");
+                              "pcre:\"/^\\.[a-z]{2,3}$/iR\"; sid:2;)", NULL);
     if (s == NULL) {
         goto end;
     }

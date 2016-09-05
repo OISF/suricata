@@ -153,23 +153,17 @@ static int DetectSeqSigTest01(void)
         goto end;
 
     /* These three are crammed in here as there is no Parse */
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:foo;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing seq\";seq:foo;sid:1;)", NULL) != NULL)
     {
         printf("invalid seq accepted: ");
         goto cleanup;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:9999999999;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing seq\";seq:9999999999;sid:1;)", NULL) != NULL)
     {
         printf("overflowing seq accepted: ");
         goto cleanup;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing seq\";seq:-100;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing seq\";seq:-100;sid:1;)", NULL) != NULL)
     {
         printf("negative seq accepted: ");
         goto cleanup;

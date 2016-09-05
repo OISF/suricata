@@ -946,13 +946,9 @@ int DetectBytejumpTestParse10(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytejump_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; "
-                               "byte_jump:4,0,align,multiplier 2, "
-                               "post_offset -16,relative,dce; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_jump:4,0,align,multiplier 2, " "post_offset -16,relative,dce; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -973,13 +969,9 @@ int DetectBytejumpTestParse10(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_jump:4,0,align,multiplier 2, "
-                      "post_offset -16,relative,dce; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_jump:4,0,align,multiplier 2, " "post_offset -16,relative,dce; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1000,13 +992,9 @@ int DetectBytejumpTestParse10(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytejump_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_jump:4,0,align,multiplier 2, "
-                      "post_offset -16,relative; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_jump:4,0,align,multiplier 2, " "post_offset -16,relative; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1049,78 +1037,57 @@ int DetectBytejumpTestParse11(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,string,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_sub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,big,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_sub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,big,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,little,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,little,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,hex,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,string,hex,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,dec,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,string,dec,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,string,oct,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,string,oct,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytejump_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "dce_stub_data; "
-                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
-                "post_offset -16,from_beginning,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytejump_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; byte_jump:4,0,align,multiplier 2, " "post_offset -16,from_beginning,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
@@ -1149,9 +1116,9 @@ static int DetectBytejumpTestParse12(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; byte_jump:4,0,align,multiplier 2, "
-                               "post_offset -16,relative; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(file_data; byte_jump:4,0,align,multiplier 2, " "post_offset -16,relative; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

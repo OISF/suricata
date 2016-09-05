@@ -113,8 +113,8 @@ static int DetectFiledataParseTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+                               "alert smtp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -150,8 +150,8 @@ static int DetectFiledataParseTest02(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -187,8 +187,8 @@ static int DetectFiledataParseTest03(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any 25 "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
+                               "alert tcp any any -> any 25 " "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -227,8 +227,8 @@ static int DetectFiledataParseTest04(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert smtp any any -> any any "
-                               "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)");
+                               "alert smtp any any -> any any " "(msg:\"test\"; flow:to_client,established; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 1;
     }
@@ -255,8 +255,8 @@ static int DetectFiledataParseTest05(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert http any any -> any any "
-                               "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)");
+                               "alert http any any -> any any " "(msg:\"test\"; flow:to_server,established; file_data; content:\"abc\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 1;
     }

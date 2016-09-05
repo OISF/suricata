@@ -409,7 +409,9 @@ static int DetectDetectionFilterTestSig1(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test\"; detection_filter: track by_dst, count 4, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"detection_filter Test\"; detection_filter: track by_dst, count 4, seconds 60; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -484,7 +486,9 @@ static int DetectDetectionFilterTestSig2(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 4, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 4, seconds 60; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -557,7 +561,9 @@ static int DetectDetectionFilterTestSig3(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 2, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (msg:\"detection_filter Test 2\"; detection_filter: track by_dst, count 2, seconds 60; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

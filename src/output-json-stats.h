@@ -34,5 +34,9 @@
 json_t *StatsToJSON(const StatsTable *st, uint8_t flags);
 #endif
 void TmModuleJsonStatsLogRegister (void);
+#ifdef HAVE_LIBJANSSON
+TmEcode OutputTenancyStatsLastReload();
+TmEcode OutputTenancyStatsRuleset();
+#endif /* HAVE_LIBJANSSON */
 
 #endif /* __OUTPUT_JSON_COUNTERS_H__ */

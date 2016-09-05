@@ -4191,7 +4191,7 @@ static int SMTPParserTest12(void)
     s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any any "
                                    "(msg:\"SMTP event handling\"; "
                                    "app-layer-event: smtp.invalid_reply; "
-                                   "sid:1;)");
+                                   "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 
@@ -4332,7 +4332,7 @@ static int SMTPParserTest13(void)
                               "(msg:\"SMTP event handling\"; "
                               "app-layer-event: "
                               "smtp.invalid_pipelined_sequence; "
-                              "sid:1;)");
+                              "sid:1;)", NULL);
     if (s == NULL)
         goto end;
 

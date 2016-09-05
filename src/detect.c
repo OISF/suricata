@@ -202,6 +202,7 @@
 #include "util-optimize.h"
 #include "util-path.h"
 #include "util-mpm-ac.h"
+#include "util-detect.h"
 #include "runmodes.h"
 
 #include <glob.h>
@@ -284,6 +285,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
     char line[DETECT_MAX_RULE_SIZE] = "";
     size_t offset = 0;
     int lineno = 0, multiline = 0;
+    char *sigerror = NULL;
 
     (*goodsigs) = 0;
     (*badsigs) = 0;
@@ -328,7 +330,7 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
         de_ctx->rule_file = sig_file;
         de_ctx->rule_line = lineno - multiline;
 
-        sig = DetectEngineAppendSig(de_ctx, line);
+        sig = DetectEngineAppendSig(de_ctx, line, &sigerror);
         if (sig != NULL) {
             if (rule_engine_analysis_set || fp_engine_analysis_set) {
                 RetrieveFPForSig(sig);
@@ -349,6 +351,14 @@ static int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file,
                 EngineAnalysisRulesFailure(line, sig_file, lineno - multiline);
             }
             bad++;
+            if (!SigStringAppend(&de_ctx->sig_stat, sig_file, line, sigerror, (lineno - multiline))) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error adding sig \"%s\" from "
+                     "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
+            }
+            if (sigerror) {
+                SCFree(sigerror);
+                sigerror = NULL;
+            }
         }
         multiline = 0;
     }
@@ -421,14 +431,12 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     ConfNode *rule_files;
     ConfNode *file = NULL;
-    SigFileLoaderStat sig_stat;
+    SigFileLoaderStat *sig_stat = &de_ctx->sig_stat;
     int ret = 0;
     char *sfile = NULL;
     char varname[128] = "rule-files";
     int good_sigs = 0;
     int bad_sigs = 0;
-
-    memset(&sig_stat, 0, sizeof(SigFileLoaderStat));
 
     if (strlen(de_ctx->config_prefix) > 0) {
         snprintf(varname, sizeof(varname), "%s.rule-files",
@@ -453,7 +461,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 TAILQ_FOREACH(file, &rule_files->head, next) {
                     sfile = DetectLoadCompleteSigPath(de_ctx, file->val);
                     good_sigs = bad_sigs = 0;
-                    ret = ProcessSigFiles(de_ctx, sfile, &sig_stat, &good_sigs, &bad_sigs);
+                    ret = ProcessSigFiles(de_ctx, sfile, sig_stat, &good_sigs, &bad_sigs);
                     SCFree(sfile);
 
                     if (ret != 0 || good_sigs == 0) {
@@ -468,7 +476,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
 
     /* If a Signature file is specified from commandline, parse it too */
     if (sig_file != NULL) {
-        ret = ProcessSigFiles(de_ctx, sig_file, &sig_stat, &good_sigs, &bad_sigs);
+        ret = ProcessSigFiles(de_ctx, sig_file, sig_stat, &good_sigs, &bad_sigs);
 
         if (ret != 0) {
             if (de_ctx->failure_fatal == 1) {
@@ -482,9 +490,9 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     }
 
     /* now we should have signatures to work with */
-    if (sig_stat.good_sigs_total <= 0) {
-        if (sig_stat.total_files > 0) {
-           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", sig_stat.total_files);
+    if (sig_stat->good_sigs_total <= 0) {
+        if (sig_stat->total_files > 0) {
+           SCLogWarning(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", sig_stat->total_files);
         } else {
             SCLogInfo("No signatures supplied.");
             goto end;
@@ -492,10 +500,10 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     } else {
         /* we report the total of files and rules successfully loaded and failed */
         SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules successfully loaded, %" PRId32 " rules failed",
-            sig_stat.total_files, sig_stat.good_sigs_total, sig_stat.bad_sigs_total);
+            sig_stat->total_files, sig_stat->good_sigs_total, sig_stat->bad_sigs_total);
     }
 
-    if ((sig_stat.bad_sigs_total || sig_stat.bad_files) && de_ctx->failure_fatal) {
+    if ((sig_stat->bad_sigs_total || sig_stat->bad_files) && de_ctx->failure_fatal) {
         ret = -1;
         goto end;
     }
@@ -511,6 +519,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     ret = 0;
 
  end:
+    gettimeofday(&de_ctx->last_reload, NULL);
     if (RunmodeGetCurrent() == RUNMODE_ENGINE_ANALYSIS) {
         if (rule_engine_analysis_set) {
             CleanupRuleAnalyzer();
@@ -4559,7 +4568,9 @@ static int SigTest03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4609,7 +4620,9 @@ static int SigTest04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4658,7 +4671,9 @@ static int SigTest05 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -4727,13 +4742,17 @@ static int SigTest06 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -4817,12 +4836,16 @@ static int SigTest07 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"three\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -4906,12 +4929,16 @@ static int SigTest08 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"one\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -4997,12 +5024,16 @@ static int SigTest09 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"HTTP URI test\"; uricontent:\"two\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -5080,12 +5111,16 @@ static int SigTest10 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -5161,11 +5196,15 @@ static int SigTest11 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -5216,7 +5255,9 @@ static int SigTest12 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5271,7 +5312,9 @@ static int SigTest13 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5317,7 +5360,9 @@ static int SigTest14 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5373,7 +5418,9 @@ static int SigTest15 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5425,7 +5472,9 @@ static int SigTest16 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -5479,7 +5528,9 @@ static int SigTest17 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5546,7 +5597,9 @@ static int SigTest18 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5606,7 +5659,9 @@ static int SigTest19 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip $HOME_NET any -> 1.2.3.4 any (msg:\"IP-ONLY test (1)\"; sid:999; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5667,7 +5722,9 @@ static int SigTest20 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip $HOME_NET any -> [99.99.99.99,1.2.3.0/24,1.1.1.1,3.0.0.0/8] any (msg:\"IP-ONLY test (2)\"; sid:999; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5729,12 +5786,16 @@ static int SigTest21 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5809,12 +5870,16 @@ static int SigTest22 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5884,12 +5949,16 @@ static int SigTest23 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5979,19 +6048,16 @@ int SigTest24IPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-            "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:valid; "
-            "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+                               "alert ip any any -> any any " "(content:\"/one/\"; ipv4-csum:valid; " "msg:\"ipv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig 1 parse: ");
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-            "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:invalid; "
-            "msg:\"ipv4-csum keyword check(1)\"; "
-            "sid:2;)");
+                                     "alert ip any any -> any any " "(content:\"/one/\"; ipv4-csum:invalid; " "msg:\"ipv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         printf("sig 2 parse: ");
         goto end;
@@ -6083,19 +6149,16 @@ int SigTest25NegativeIPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"/one/\"; ipv4-csum:invalid; "
-                               "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
+                               "alert ip any any -> any any " "(content:\"/one/\"; ipv4-csum:invalid; " "msg:\"ipv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"/one/\"; ipv4-csum:valid; "
-                                     "msg:\"ipv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert ip any any -> any any " "(content:\"/one/\"; ipv4-csum:valid; " "msg:\"ipv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -6197,18 +6260,15 @@ int SigTest26TCPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                               "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+                               "alert ip any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; " "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
-                                     "msg:\"tcpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert ip any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; " "msg:\"tcpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6311,20 +6371,15 @@ static int SigTest26TCPV4AndNegativeIPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                               "ipv4-csum:invalid; "
-                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+                               "alert ip any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; " "ipv4-csum:invalid; " "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
-                                     "ipv4-csum:invalid; "
-                                     "msg:\"tcpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert ip any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; " "ipv4-csum:invalid; " "msg:\"tcpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6437,20 +6492,15 @@ static int SigTest26TCPV4AndIPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert ip any any -> any any "
-                               "(tcpv4-csum:valid; "
-                               "ipv4-csum:valid; "
-                               "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)");
+                               "alert ip any any -> any any " "(tcpv4-csum:valid; " "ipv4-csum:valid; " "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert ip any any -> any any "
-                                     "(tcpv4-csum:invalid; "
-                                     "ipv4-csum:valid; "
-                                     "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert ip any any -> any any " "(tcpv4-csum:invalid; " "ipv4-csum:valid; " "msg:\"tcpv4-csum and ipv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6551,18 +6601,15 @@ static int SigTest27NegativeTCPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-            "alert tcp any any -> any any "
-            "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; "
-            "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+                               "alert tcp any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; " "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                                     "msg:\"tcpv4-csum keyword check(2)\"; "
-                                     "sid:2;)");
+                                     "alert tcp any any -> any any " "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; " "msg:\"tcpv4-csum keyword check(2)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6679,18 +6726,15 @@ int SigTest28TCPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
-                               "msg:\"tcpv6-csum keyword check(1)\"; sid:1;)");
+                               "alert tcp any any -> any any " "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; " "msg:\"tcpv6-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
-                                     "msg:\"tcpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert tcp any any -> any any " "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; " "msg:\"tcpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6807,19 +6851,15 @@ int SigTest29NegativeTCPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; "
-                               "msg:\"tcpv6-csum keyword check(1)\"; "
-                               "sid:1;)");
+                               "alert tcp any any -> any any " "(content:\"|00 01 69|\"; tcpv6-csum:invalid; dsize:12; " "msg:\"tcpv6-csum keyword check(1)\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; "
-                                     "msg:\"tcpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert tcp any any -> any any " "(content:\"|00 01 69|\"; tcpv6-csum:valid; dsize:12; " "msg:\"tcpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -6925,20 +6965,16 @@ int SigTest30UDPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv4-csum:valid; "
-                               "msg:\"udpv4-csum keyword check(1)\"; "
-                               "sid:1;)");
+                               "alert udp any any -> any any " "(content:\"/one/\"; udpv4-csum:valid; " "msg:\"udpv4-csum keyword check(1)\"; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv4-csum:invalid; "
-                                     "msg:\"udpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert udp any any -> any any " "(content:\"/one/\"; udpv4-csum:invalid; " "msg:\"udpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7048,19 +7084,16 @@ int SigTest31NegativeUDPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv4-csum:invalid; "
-                               "msg:\"udpv4-csum keyword check(1)\"; sid:1;)");
+                               "alert udp any any -> any any " "(content:\"/one/\"; udpv4-csum:invalid; " "msg:\"udpv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv4-csum:valid; "
-                                     "msg:\"udpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert udp any any -> any any " "(content:\"/one/\"; udpv4-csum:valid; " "msg:\"udpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7165,19 +7198,16 @@ int SigTest32UDPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv6-csum:valid; "
-                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+                               "alert udp any any -> any any " "(content:\"/one/\"; udpv6-csum:valid; " "msg:\"udpv6-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv6-csum:invalid; "
-                                     "msg:\"udpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert udp any any -> any any " "(content:\"/one/\"; udpv6-csum:invalid; " "msg:\"udpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7280,19 +7310,16 @@ int SigTest33NegativeUDPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv6-csum:invalid; "
-                               "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
+                               "alert udp any any -> any any " "(content:\"/one/\"; udpv6-csum:invalid; " "msg:\"udpv6-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv6-csum:valid; "
-                                     "msg:\"udpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert udp any any -> any any " "(content:\"/one/\"; udpv6-csum:valid; " "msg:\"udpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7400,19 +7427,16 @@ int SigTest34ICMPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmp any any -> any any "
-                               "(content:\"/one/\"; icmpv4-csum:valid; "
-                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+                               "alert icmp any any -> any any " "(content:\"/one/\"; icmpv4-csum:valid; " "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmp any any -> any any "
-                                     "(content:\"/one/\"; icmpv4-csum:invalid; "
-                                     "msg:\"icmpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert icmp any any -> any any " "(content:\"/one/\"; icmpv4-csum:invalid; " "msg:\"icmpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -7520,19 +7544,16 @@ int SigTest35NegativeICMPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmp any any -> any any "
-                               "(content:\"/one/\"; icmpv4-csum:invalid; "
-                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+                               "alert icmp any any -> any any " "(content:\"/one/\"; icmpv4-csum:invalid; " "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmp any any -> any any "
-                                     "(content:\"/one/\"; icmpv4-csum:valid; "
-                                     "msg:\"icmpv4-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert icmp any any -> any any " "(content:\"/one/\"; icmpv4-csum:valid; " "msg:\"icmpv4-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7649,19 +7670,16 @@ int SigTest36ICMPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmpv6 any any -> any any "
-                               "(content:\"/one/\"; icmpv6-csum:valid; "
-                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
+                               "alert icmpv6 any any -> any any " "(content:\"/one/\"; icmpv6-csum:valid; " "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmpv6 any any -> any any "
-                                     "(content:\"/one/\"; icmpv6-csum:invalid; "
-                                     "msg:\"icmpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert icmpv6 any any -> any any " "(content:\"/one/\"; icmpv6-csum:invalid; " "msg:\"icmpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7777,19 +7795,16 @@ int SigTest37NegativeICMPV6Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert icmpv6 any any -> any any "
-                               "(content:\"/one/\"; icmpv6-csum:invalid; "
-                               "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)");
+                               "alert icmpv6 any any -> any any " "(content:\"/one/\"; icmpv6-csum:invalid; " "msg:\"icmpv6-csum keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert icmpv6 any any -> any any "
-                                     "(content:\"/one/\"; icmpv6-csum:valid; "
-                                     "msg:\"icmpv6-csum keyword check(1)\"; "
-                                     "sid:2;)");
+                                     "alert icmpv6 any any -> any any " "(content:\"/one/\"; icmpv6-csum:valid; " "msg:\"icmpv6-csum keyword check(1)\"; " "sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -7902,19 +7917,15 @@ static int SigTest38(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,0; "
-                               "msg:\"byte_test keyword check(1)\"; sid:1;)");
+                               "alert tcp any any -> any any " "(content:\"LEN1|20|\"; " "byte_test:4,=,8,0; " "msg:\"byte_test keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
     de_ctx->sig_list->next = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,5,relative,string,dec; "
-                               "msg:\"byte_test keyword check(2)\"; sid:2;)");
+                                     "alert tcp any any -> any any " "(content:\"LEN1|20|\"; " "byte_test:4,=,8,5,relative,string,dec; " "msg:\"byte_test keyword check(2)\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -8033,24 +8044,16 @@ static int SigTest39(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,0; "
-                               "byte_jump:4,0; "
-                               "byte_test:6,=,0x4c454e312038,0,relative; "
-                               "msg:\"byte_jump keyword check(1)\"; sid:1;)");
+                               "alert tcp any any -> any any " "(content:\"LEN1|20|\"; " "byte_test:4,=,8,0; " "byte_jump:4,0; " "byte_test:6,=,0x4c454e312038,0,relative; " "msg:\"byte_jump keyword check(1)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
     }
     // XXX TODO
     de_ctx->sig_list->next = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,4,relative,string,dec; "
-                               "byte_jump:4,4,relative,string,dec,post_offset 2; "
-                               "byte_test:4,=,0x4c454e32,0,relative; "
-                               "msg:\"byte_jump keyword check(2)\"; sid:2;)");
+                                     "alert tcp any any -> any any " "(content:\"LEN1|20|\"; " "byte_test:4,=,8,4,relative,string,dec; " "byte_jump:4,4,relative,string,dec,post_offset 2; " "byte_test:4,=,0x4c454e32,0,relative; " "msg:\"byte_jump keyword check(2)\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
         goto end;
@@ -8153,7 +8156,9 @@ static int SigTest36ContentAndIsdataatKeywords01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8272,7 +8277,9 @@ static int SigTest37ContentAndIsdataatKeywords02 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    Signature *s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest37ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)");
+    Signature *s = de_ctx->sig_list = SigInit(de_ctx,
+                                              "alert tcp any any -> any any (msg:\"SigTest37ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:500, relative; sid:101;)",
+                                              NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         result = 0;
@@ -8379,7 +8386,9 @@ static int SigTest40NoPacketInspection01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; flow:to_server; sid:2; rev:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> 1.2.3.4 any (msg:\"No Packet Inspection Test\"; flow:to_server; sid:2; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8440,7 +8449,9 @@ int SigTest40NoPayloadInspection02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"No Payload TEST\"; content:\"220 (vsFTPd 2.0.5)\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8500,7 +8511,9 @@ static int SigTestMemory01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8532,12 +8545,16 @@ static int SigTestMemory02 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -8566,17 +8583,23 @@ static int SigTestMemory03 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> 1.2.3.4 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> 1.2.3.4 456 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> 1.2.3.3-1.2.3.6 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> 1.2.3.3-1.2.3.6 1:1000 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next->next = SigInit(de_ctx,"alert tcp any any -> !1.2.3.5 1:990 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:3;)");
+    de_ctx->sig_list->next->next = SigInit(de_ctx,
+                                           "alert tcp any any -> !1.2.3.5 1:990 (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; sid:3;)",
+                                           NULL);
     if (de_ctx->sig_list->next->next == NULL) {
         result = 0;
         goto end;
@@ -8611,7 +8634,9 @@ static int SigTestContent01 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8654,13 +8679,17 @@ static int SigTestContent02 (void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -8708,7 +8737,9 @@ static int SigTestContent03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8753,7 +8784,9 @@ static int SigTestContent04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -8799,12 +8832,16 @@ static int SigTestContent05 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig1 parse failed: ");
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -8859,12 +8896,16 @@ static int SigTestContent06 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,
+                                     "alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -9010,7 +9051,9 @@ static int SigTestWithin01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"within test\"; content:\"Hi, this is a big test to check \"; content:\"content matches\"; distance:0; within:15; sid:556;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"within test\"; content:\"Hi, this is a big test to check \"; content:\"content matches\"; distance:0; within:15; sid:556;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9131,7 +9174,9 @@ static int SigTestDepthOffset01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9170,8 +9215,9 @@ static int SigTestDetectAlertCounter(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test counter\"; "
-                               "content:\"boo\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any (msg:\"Test counter\"; " "content:\"boo\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -9253,9 +9299,9 @@ static int SigTestDropFlow01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop http any any -> any any "
-                                   "(msg:\"Test proto match\"; "
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop http any any -> any any " "(msg:\"Test proto match\"; " "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9355,9 +9401,9 @@ static int SigTestDropFlow02(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 " "(msg:\"Test proto match\"; uricontent:\"one\";" "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9476,18 +9522,18 @@ static int SigTestDropFlow03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 " "(msg:\"Test proto match\"; uricontent:\"one\";" "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     /* the no inspection flag should be set after the first sig gets triggered,
      * so the second packet should not match the next sig (because of no inspection) */
-    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
-                                   "sid:2;)");
+    s = de_ctx->sig_list->next = SigInit(de_ctx,
+                                         "alert tcp any any -> any 80 " "(msg:\"Test proto match\"; uricontent:\"two\";" "sid:2;)",
+                                         NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9647,18 +9693,18 @@ static int SigTestDropFlow04(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
-                                   "sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 " "(msg:\"Test proto match\"; uricontent:\"one\";" "sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
     /* the no inspection flag should be set after the first sig gets triggered,
      * so the second packet should not match the next sig (because of no inspection) */
-    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
-                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
-                                   "sid:2;)");
+    s = de_ctx->sig_list->next = SigInit(de_ctx,
+                                         "alert tcp any any -> any 80 " "(msg:\"Test proto match\"; uricontent:\"two\";" "sid:2;)",
+                                         NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9792,8 +9838,9 @@ static int SigTestPorts01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert ip any any -> any 80 "
-                                   "(content:\"AAA\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any 80 " "(content:\"AAA\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9842,13 +9889,15 @@ static int SigTestBug01(void)
     }
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                                   "(content:\"Omymy\"; nocase; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(content:\"Omymy\"; nocase; sid:1;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
-                                   "(content:\"!mymy\"; nocase; sid:2;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any " "(content:\"!mymy\"; nocase; sid:2;)",
+                              NULL);
     if (s == NULL) {
         goto end;
     }
@@ -9912,11 +9961,11 @@ static int DetectAddressYamlParsing01 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)", NULL)) == NULL)
         goto end;
 
     result = 1;
@@ -9959,11 +10008,11 @@ static int DetectAddressYamlParsing02 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)", NULL)) == NULL)
         goto end;
 
     result = 1;
@@ -10006,11 +10055,11 @@ static int DetectAddressYamlParsing03 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)", NULL)) == NULL)
         goto end;
 
     result = 1;
@@ -10054,11 +10103,11 @@ static int DetectAddressYamlParsing04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> any any (sid:1;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp any any -> $HOME_NET any (sid:2;)", NULL)) == NULL)
         goto end;
-    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)")) == NULL)
+    if ((DetectEngineAppendSig(de_ctx, "alert tcp $HOME_NET any -> $HOME_NET any (sid:3;)", NULL)) == NULL)
         goto end;
 
     result = 1;

@@ -188,6 +188,8 @@ int RunmodeIsUnittests(void);
 int RunmodeGetCurrent(void);
 int IsRuleReloadSet(int quiet);
 
+int SuriHasSigFile(void);
+
 extern int run_mode;
 
 #endif /* __SURICATA_H__ */

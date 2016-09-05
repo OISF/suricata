@@ -424,7 +424,9 @@ static int DetectSslVersionTestDetect01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tls any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tls any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -549,7 +551,9 @@ static int DetectSslVersionTestDetect02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tls any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tls any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -683,7 +687,9 @@ static int DetectSslVersionTestDetect03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; content:\"|01 00 00 AD|\"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any (msg:\"TLS\"; ssl_version:tls1.0; content:\"|01 00 00 AD|\"; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

@@ -404,7 +404,8 @@ static int XBitsTestSig01(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:set,abc,track ip_pair; content:\"GET \"; sid:1;)");
+                              "alert ip any any -> any any (xbits:set,abc,track ip_pair; content:\"GET \"; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("bad sig: ");
         goto end;
@@ -462,31 +463,36 @@ static int XBitsTestSig02(void)
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:isset,abc,track ip_src; content:\"GET \"; sid:1;)");
+                              "alert ip any any -> any any (xbits:isset,abc,track ip_src; content:\"GET \"; sid:1;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:isnotset,abc,track ip_dst; content:\"GET \"; sid:2;)");
+                              "alert ip any any -> any any (xbits:isnotset,abc,track ip_dst; content:\"GET \"; sid:2;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:set,abc,track ip_pair; content:\"GET \"; sid:3;)");
+                              "alert ip any any -> any any (xbits:set,abc,track ip_pair; content:\"GET \"; sid:3;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:unset,abc,track ip_src; content:\"GET \"; sid:4;)");
+                              "alert ip any any -> any any (xbits:unset,abc,track ip_src; content:\"GET \"; sid:4;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }
 
     s = DetectEngineAppendSig(de_ctx,
-            "alert ip any any -> any any (xbits:toggle,abc,track ip_dst; content:\"GET \"; sid:5;)");
+                              "alert ip any any -> any any (xbits:toggle,abc,track ip_dst; content:\"GET \"; sid:5;)",
+                              NULL);
     if (s == NULL) {
         error_count++;
     }

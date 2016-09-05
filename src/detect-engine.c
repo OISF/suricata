@@ -492,7 +492,6 @@ void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
 enum DetectEngineSyncState {
     IDLE,   /**< ready to start a reload */
     RELOAD, /**< command main thread to do the reload */
-    DONE,   /**< main thread telling us reload is done */
 };
 
 
@@ -530,21 +529,20 @@ int DetectEngineReloadIsStart(void)
 }
 
 /* main thread sets done when it's done */
-void DetectEngineReloadSetDone(void)
+void DetectEngineReloadSetIdle(void)
 {
     SCMutexLock(&detect_sync.m);
-    detect_sync.state = DONE;
+    detect_sync.state = IDLE;
     SCMutexUnlock(&detect_sync.m);
 }
 
 /* caller loops this until it returns 1 */
-int DetectEngineReloadIsDone(void)
+int DetectEngineReloadIsIdle(void)
 {
     int r = 0;
     SCMutexLock(&detect_sync.m);
-    if (detect_sync.state == DONE) {
+    if (detect_sync.state == IDLE) {
         r = 1;
-        detect_sync.state = IDLE;
     }
     SCMutexUnlock(&detect_sync.m);
     return r;
@@ -820,6 +818,8 @@ static DetectEngineCtx *DetectEngineCtxInitReal(int minimal, const char *prefix)
         goto error;
 
     memset(de_ctx,0,sizeof(DetectEngineCtx));
+    memset(&de_ctx->sig_stat, 0, sizeof(SigFileLoaderStat));
+    TAILQ_INIT(&de_ctx->sig_stat.failed_sigs);
 
     if (minimal) {
         de_ctx->minimal = 1;
@@ -913,6 +913,22 @@ static void DetectEngineCtxFreeThreadKeywordData(DetectEngineCtx *de_ctx)
     de_ctx->keyword_list = NULL;
 }
 
+static void DetectEngineCtxFreeFailedSigs(DetectEngineCtx *de_ctx)
+{
+    SigString *item = NULL;
+    SigString *sitem;
+
+    TAILQ_FOREACH_SAFE(item, &de_ctx->sig_stat.failed_sigs, next, sitem) {
+        SCFree(item->filename);
+        SCFree(item->sig_str);
+        if (item->sig_error) {
+            SCFree(item->sig_error);
+        }
+        TAILQ_REMOVE(&de_ctx->sig_stat.failed_sigs, item, next);
+        SCFree(item);
+    }
+}
+
 /**
  * \brief Free a DetectEngineCtx::
  *
@@ -963,6 +979,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
 
     DetectEngineCtxFreeThreadKeywordData(de_ctx);
     SRepDestroy(de_ctx);
+    DetectEngineCtxFreeFailedSigs(de_ctx);
 
     /* if we have a config prefix, remove the config from the tree */
     if (strlen(de_ctx->config_prefix) > 0) {

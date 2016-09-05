@@ -211,10 +211,9 @@ static int DetectEngineHttpStatMsgTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"message\"; http_stat_msg; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"message\"; http_stat_msg; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -333,10 +332,9 @@ static int DetectEngineHttpStatMsgTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"ABC\"; http_stat_msg; offset:4; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"ABC\"; http_stat_msg; offset:4; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -455,10 +453,9 @@ static int DetectEngineHttpStatMsgTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"ABC\"; http_stat_msg; offset:14; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"ABC\"; http_stat_msg; offset:14; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -593,10 +590,9 @@ static int DetectEngineHttpStatMsgTest04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:!\"abc\"; http_stat_msg; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:!\"abc\"; http_stat_msg; offset:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -721,10 +717,9 @@ static int DetectEngineHttpStatMsgTest05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"abc\"; http_stat_msg; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"abc\"; http_stat_msg; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -849,10 +844,9 @@ static int DetectEngineHttpStatMsgTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:!\"def\"; http_stat_msg; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:!\"def\"; http_stat_msg; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -977,10 +971,9 @@ static int DetectEngineHttpStatMsgTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:!\"def\"; http_stat_msg; offset:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:!\"def\"; http_stat_msg; offset:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1105,10 +1098,9 @@ static int DetectEngineHttpStatMsgTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:!\"abc\"; http_stat_msg; depth:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:!\"abc\"; http_stat_msg; depth:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1233,11 +1225,9 @@ static int DetectEngineHttpStatMsgTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"abc\"; http_stat_msg; depth:3; "
-                               "content:\"def\"; http_stat_msg; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"abc\"; http_stat_msg; depth:3; " "content:\"def\"; http_stat_msg; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1362,11 +1352,9 @@ static int DetectEngineHttpStatMsgTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"abc\"; http_stat_msg; depth:3; "
-                               "content:!\"xyz\"; http_stat_msg; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"abc\"; http_stat_msg; depth:3; " "content:!\"xyz\"; http_stat_msg; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1491,11 +1479,9 @@ static int DetectEngineHttpStatMsgTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"abc\"; http_stat_msg; depth:3; "
-                               "content:\"xyz\"; http_stat_msg; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"abc\"; http_stat_msg; depth:3; " "content:\"xyz\"; http_stat_msg; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1620,11 +1606,9 @@ static int DetectEngineHttpStatMsgTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"ab\"; http_stat_msg; depth:2; "
-                               "content:\"ef\"; http_stat_msg; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"ab\"; http_stat_msg; depth:2; " "content:\"ef\"; http_stat_msg; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1749,11 +1733,9 @@ static int DetectEngineHttpStatMsgTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "content:\"ab\"; http_stat_msg; depth:3; "
-                               "content:!\"yz\"; http_stat_msg; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "content:\"ab\"; http_stat_msg; depth:3; " "content:!\"yz\"; http_stat_msg; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1878,11 +1860,9 @@ static int DetectEngineHttpStatMsgTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "pcre:/ab/Y; "
-                               "content:\"ef\"; http_stat_msg; distance:2; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "pcre:/ab/Y; " "content:\"ef\"; http_stat_msg; distance:2; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -2007,11 +1987,9 @@ static int DetectEngineHttpStatMsgTest15(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http stat msg test\"; "
-                               "pcre:/abc/Y; "
-                               "content:!\"xyz\"; http_stat_msg; distance:0; within:3; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http stat msg test\"; " "pcre:/abc/Y; " "content:!\"xyz\"; http_stat_msg; distance:0; within:3; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

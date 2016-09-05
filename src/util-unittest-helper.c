@@ -607,7 +607,7 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, char *sigs[], int numsigs)
                        " at position %d", i);
             return 0;
         }
-        s = DetectEngineAppendSig(de_ctx, sigs[i]);
+        s = DetectEngineAppendSig(de_ctx, sigs[i], NULL);
         if (s == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Check the signature at"
                        " position %d (%s)", i, sigs[i]);
@@ -752,7 +752,7 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type)
     de_ctx->flags |= DE_QUIET;
     de_ctx->mpm_matcher = mpm_type;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
+    de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
     if (de_ctx->sig_list == NULL) {
         printf("signature == NULL: ");
         goto end;
@@ -811,7 +811,7 @@ int UTHPacketMatchSig(Packet *p, char *sig)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, sig);
+    de_ctx->sig_list = SigInit(de_ctx, sig, NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;

@@ -363,7 +363,7 @@ static int RunTest (struct TestSteps *steps, const char *sig, const char *yaml)
     f.alproto = ALPROTO_HTTP;
 
     SCLogDebug("sig %s", sig);
-    DetectEngineAppendSig(de_ctx, (char *)sig);
+    DetectEngineAppendSig(de_ctx, (char *)sig, NULL);
 
     de_ctx->flags |= DE_QUIET;
 

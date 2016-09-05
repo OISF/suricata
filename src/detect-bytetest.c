@@ -1100,12 +1100,9 @@ int DetectBytetestTestParse20(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing bytetest_body\"; "
-                               "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "dce_stub_data; "
-                               "content:\"one\"; distance:0; "
-                               "byte_test:1,=,1,6,relative,dce; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_test:1,=,1,6,relative,dce; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1127,12 +1124,9 @@ int DetectBytetestTestParse20(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytetest_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_test:1,=,1,6,relative,dce; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_test:1,=,1,6,relative,dce; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1154,12 +1148,9 @@ int DetectBytetestTestParse20(void)
         goto end;
     }
 
-    s->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                      "(msg:\"Testing bytetest_body\"; "
-                      "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "dce_stub_data; "
-                      "content:\"one\"; distance:0; "
-                      "byte_test:1,=,1,6,relative; sid:1;)");
+    s->next = SigInit(de_ctx,
+                      "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "dce_stub_data; " "content:\"one\"; distance:0; " "byte_test:1,=,1,6,relative; sid:1;)",
+                      NULL);
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1203,100 +1194,89 @@ int DetectBytetestTestParse21(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,string,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,string,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,big,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,little,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,little,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,hex,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,hex,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,dec,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,dec,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,oct,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,oct,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,string,hex,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,string,hex,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,hex,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,big,string,hex,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,oct,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,big,string,oct,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,little,string,hex,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,little,string,hex,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
     }
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(msg:\"Testing bytetest_body\"; "
-                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                "content:\"one\"; byte_test:1,=,1,6,big,string,dec,dce; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(msg:\"Testing bytetest_body\"; " "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; " "content:\"one\"; byte_test:1,=,1,6,big,string,dec,dce; sid:1;)",
+                NULL);
     if (s != NULL) {
         result = 0;
         goto end;
@@ -1325,8 +1305,9 @@ static int DetectBytetestTestParse22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(file_data; byte_test:1,=,1,6,relative; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(file_data; byte_test:1,=,1,6,relative; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;

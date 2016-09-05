@@ -176,38 +176,32 @@ static int DetectAckSigTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     /* These three are crammed in here as there is no Parse */
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:foo;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing ack\";ack:foo;sid:1;)", NULL) != NULL)
     {
         printf("invalid ack accepted: ");
         goto cleanup_engine;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:9999999999;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing ack\";ack:9999999999;sid:1;)", NULL) != NULL)
     {
         printf("overflowing ack accepted: ");
         goto cleanup_engine;
     }
-    if (SigInit(de_ctx,
-                "alert tcp any any -> any any "
-                "(msg:\"Testing ack\";ack:-100;sid:1;)") != NULL)
+    if (SigInit(de_ctx, "alert tcp any any -> any any " "(msg:\"Testing ack\";ack:-100;sid:1;)", NULL) != NULL)
     {
         printf("negative ack accepted: ");
         goto cleanup_engine;
     }
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(msg:\"Testing ack\";ack:41;sid:1;)");
+                               "alert tcp any any -> any any " "(msg:\"Testing ack\";ack:41;sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto cleanup_engine;
     }
 
     de_ctx->sig_list->next = SigInit(de_ctx,
-                                     "alert tcp any any -> any any "
-                                     "(msg:\"Testing ack\";ack:42;sid:2;)");
+                                     "alert tcp any any -> any any " "(msg:\"Testing ack\";ack:42;sid:2;)",
+                                     NULL);
     if (de_ctx->sig_list->next == NULL) {
         goto cleanup_engine;
     }

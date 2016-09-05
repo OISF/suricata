@@ -362,9 +362,9 @@ static int DetectEngineSMTPFiledataTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert smtp any any -> any any "
-                               "(msg:\"file_data smtp test\"; "
-                               "file_data; content:\"message\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert smtp any any -> any any " "(msg:\"file_data smtp test\"; " "file_data; content:\"message\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -423,9 +423,9 @@ static int DetectEngineSMTPFiledataTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert smtp any any -> any any "
-                              "(msg:\"file_data smtp test\"; "
-                              "file_data; content:\"message\"; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert smtp any any -> any any " "(msg:\"file_data smtp test\"; " "file_data; content:\"message\"; sid:1;)",
+                              NULL);
     if (s == NULL)
         goto end;
 
@@ -494,9 +494,9 @@ static int DetectEngineSMTPFiledataTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert smtp any any -> any any "
-                               "(msg:\"file_data smtp test\"; "
-                               "file_data; content:\"evil\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert smtp any any -> any any " "(msg:\"file_data smtp test\"; " "file_data; content:\"evil\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

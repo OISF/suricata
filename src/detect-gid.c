@@ -126,7 +126,9 @@ static int GidTestParse01 (void)
     if (de_ctx == NULL)
         goto end;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:1; gid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp 1.2.3.4 any -> any any (sid:1; gid:1;)",
+                              NULL);
     if (s == NULL || s->gid != 1)
         goto end;
 
@@ -151,7 +153,7 @@ static int GidTestParse02 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:1; gid:a;)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> any any (sid:1; gid:a;)", NULL) != NULL)
         goto end;
 
     result = 1;
@@ -175,8 +177,7 @@ static int GidTestParse03 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx,
-            "alert tcp any any -> any any (content:\"ABC\"; gid:\";)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"ABC\"; gid:\";)", NULL) != NULL)
         goto end;
 
     result = 1;

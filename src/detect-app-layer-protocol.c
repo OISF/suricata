@@ -202,8 +202,9 @@ int DetectAppLayerProtocolTest03(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:http; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(app-layer-protocol:http; sid:1;)",
+                NULL);
     if (s->alproto != ALPROTO_HTTP) {
         printf("signature alproto should be http\n");
         goto end;
@@ -233,8 +234,9 @@ int DetectAppLayerProtocolTest04(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!http; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(app-layer-protocol:!http; sid:1;)",
+                NULL);
     if (s->alproto != ALPROTO_UNKNOWN) {
         printf("signature alproto should be unknown\n");
         goto end;
@@ -271,8 +273,9 @@ int DetectAppLayerProtocolTest05(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!http; app-layer-protocol:!smtp; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(app-layer-protocol:!http; app-layer-protocol:!smtp; sid:1;)",
+                NULL);
     if (s->alproto != ALPROTO_UNKNOWN) {
         printf("signature alproto should be unknown\n");
         goto end;
@@ -296,8 +299,9 @@ int DetectAppLayerProtocolTest06(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any "
-                "(app-layer-protocol:smtp; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert http any any -> any any " "(app-layer-protocol:smtp; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("if (s != NULL)\n");
         goto end;
@@ -321,8 +325,9 @@ int DetectAppLayerProtocolTest07(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert http any any -> any any "
-                "(app-layer-protocol:!smtp; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert http any any -> any any " "(app-layer-protocol:!smtp; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("if (s != NULL)\n");
         goto end;
@@ -346,8 +351,9 @@ int DetectAppLayerProtocolTest08(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:!smtp; app-layer-protocol:http; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(app-layer-protocol:!smtp; app-layer-protocol:http; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("if (s != NULL)\n");
         goto end;
@@ -371,8 +377,9 @@ int DetectAppLayerProtocolTest09(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx, "alert tcp any any -> any any "
-                "(app-layer-protocol:http; app-layer-protocol:!smtp; sid:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any any " "(app-layer-protocol:http; app-layer-protocol:!smtp; sid:1;)",
+                NULL);
     if (s != NULL) {
         printf("if (s != NULL)\n");
         goto end;

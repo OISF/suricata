@@ -382,7 +382,7 @@ static int GeoipParseTest(char *rule, int ncountries, char **countries, uint32_t
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, rule);
+    de_ctx->sig_list = SigInit(de_ctx, rule, NULL);
 
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
@@ -503,7 +503,7 @@ static int GeoipMatchTest(char *rule, char *srcip, char *dstip)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx, rule);
+    de_ctx->sig_list = SigInit(de_ctx, rule, NULL);
 
     if (de_ctx->sig_list == NULL) {
         goto end;

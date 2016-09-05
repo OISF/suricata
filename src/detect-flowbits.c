@@ -366,7 +366,9 @@ static int FlowBitsTestSig01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert,wrongusage; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert,wrongusage; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL) {
         goto end;
@@ -442,31 +444,41 @@ static int FlowBitsTestSig02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset rule need an option\"; flowbits:isset; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"isset rule need an option\"; flowbits:isset; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL) {
         error_count++;
     }
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isnotset rule need an option\"; flowbits:isnotset; content:\"GET \"; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"isnotset rule need an option\"; flowbits:isnotset; content:\"GET \"; sid:2;)",
+                                   NULL);
 
     if (s == NULL) {
         error_count++;
     }
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"set rule need an option\"; flowbits:set; content:\"GET \"; sid:3;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"set rule need an option\"; flowbits:set; content:\"GET \"; sid:3;)",
+                                   NULL);
 
     if (s == NULL) {
         error_count++;
     }
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"unset rule need an option\"; flowbits:unset; content:\"GET \"; sid:4;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"unset rule need an option\"; flowbits:unset; content:\"GET \"; sid:4;)",
+                                   NULL);
 
     if (s == NULL) {
         error_count++;
     }
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"toggle rule need an option\"; flowbits:toggle; content:\"GET \"; sid:5;)",
+                                   NULL);
 
     if (s == NULL) {
         error_count++;
@@ -563,7 +575,9 @@ static int FlowBitsTestSig03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Unknown cmd\"; flowbits:wrongcmd; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Unknown cmd\"; flowbits:wrongcmd; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL) {
         goto end;
@@ -642,7 +656,9 @@ static int FlowBitsTestSig04(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_FLOW_BIT);
 
@@ -723,7 +739,9 @@ static int FlowBitsTestSig05(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert; content:\"GET \"; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Noalert\"; flowbits:noalert; content:\"GET \"; sid:1;)",
+                                   NULL);
 
     if (s == NULL || ((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT)) {
         goto end;
@@ -814,7 +832,9 @@ static int FlowBitsTestSig06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow; sid:10;)",
+                                   NULL);
 
     if (s == NULL) {
         goto end;
@@ -916,12 +936,16 @@ static int FlowBitsTestSig07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:unset,myflow2; sid:11;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1023,13 +1047,17 @@ static int FlowBitsTestSig08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert ip any any -> any any (msg:\"Flowbit set\"; flowbits:set,myflow2; sid:10;)",
+                                   NULL);
 
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next  = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)");
+    s = s->next  = SigInit(de_ctx,
+                           "alert ip any any -> any any (msg:\"Flowbit unset\"; flowbits:toggle,myflow2; sid:11;)",
+                           NULL);
 
     if (s == NULL) {
         goto end;

@@ -100,8 +100,8 @@ static int DetectBase64DataSetupTest01(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; "
-        "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)");
+                               "alert smtp any any -> any any (msg:\"DetectBase64DataSetupTest\"; " "base64_decode; base64_data; content:\"content\"; sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("SigInit failed: ");
         goto end;
@@ -145,14 +145,8 @@ static int DetectBase64DataSetupTest02(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any ( "
-        "msg:\"DetectBase64DataSetupTest\"; "
-        "file_data; "
-        "content:\"SGV\"; "
-        "base64_decode: bytes 16; "
-        "base64_data; "
-        "content:\"content\"; "
-        "sid:1; rev:1;)");
+                               "alert smtp any any -> any any ( " "msg:\"DetectBase64DataSetupTest\"; " "file_data; " "content:\"SGV\"; " "base64_decode: bytes 16; " "base64_data; " "content:\"content\"; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("SigInit failed: ");
         goto end;
@@ -202,14 +196,8 @@ static int DetectBase64DataSetupTest03(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert smtp any any -> any any ( "
-        "msg:\"DetectBase64DataSetupTest\"; "
-        "base64_decode: bytes 16; "
-        "base64_data; "
-        "content:\"content\"; "
-        "file_data; "
-        "content:\"SGV\"; "
-        "sid:1; rev:1;)");
+                               "alert smtp any any -> any any ( " "msg:\"DetectBase64DataSetupTest\"; " "base64_decode: bytes 16; " "base64_data; " "content:\"content\"; " "file_data; " "content:\"SGV\"; " "sid:1; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         printf("SigInit should have failed: ");
         goto end;
@@ -241,7 +229,8 @@ static int DetectBase64DataSetupTest04(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
-        "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)");
+                               "alert tcp any any -> any any (msg:\"some b64thing\"; flow:established,from_server; file_data; content:\"sometext\"; fast_pattern; base64_decode:relative; base64_data; content:\"foobar\"; nocase; tag:session,120,seconds; sid:1111111; rev:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("SigInit failed: ");
         goto end;

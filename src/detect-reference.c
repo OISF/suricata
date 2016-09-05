@@ -225,8 +225,9 @@ static int DetectReferenceParseTest01(void)
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"One reference\"; reference:one,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any " "(msg:\"One reference\"; reference:one,001-2010; sid:2;)",
+                                   NULL);
     if (s == NULL) {
         goto cleanup;
     }
@@ -271,10 +272,9 @@ static int DetectReferenceParseTest02(void)
     FILE *fd = SCRConfGenerateValidDummyReferenceConfigFD01();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"Two references\"; "
-                                   "reference:one,openinfosecdoundation.txt; "
-                                   "reference:two,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any " "(msg:\"Two references\"; " "reference:one,openinfosecdoundation.txt; " "reference:two,001-2010; sid:2;)",
+                                   NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto cleanup;
@@ -325,9 +325,9 @@ static int DetectReferenceParseTest03(void)
     FILE *fd =SCRConfGenerateValidDummyReferenceConfigFD01();
     SCRConfLoadReferenceConfigFile(de_ctx, fd);
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                                   "(msg:\"invalid ref\"; "
-                                   "reference:unknownkey,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any " "(msg:\"invalid ref\"; " "reference:unknownkey,001-2010; sid:2;)",
+                                   NULL);
     if (s != NULL) {
         printf("sig parsed even though it's invalid: ");
         goto cleanup;

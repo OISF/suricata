@@ -1163,7 +1163,7 @@ static void SigBuildAddressMatchArray(Signature *s)
  *  \retval 0 invalid
  *  \retval 1 valid
  */
-int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
+int SigValidate(DetectEngineCtx *de_ctx, Signature *s, char **sigerror)
 {
     uint32_t u = 0;
     uint32_t sig_flags = 0;
@@ -1274,7 +1274,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
         }
     }
 
-    if (!DetectHttpMethodValidateRule(s))
+    if (!DetectHttpMethodValidateRule(s, sigerror))
         SCReturnInt(0);
 
     //if (s->alproto != ALPROTO_UNKNOWN) {
@@ -1429,7 +1429,7 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
  * \brief Helper function for SigInit().
  */
 static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
-                                uint8_t dir)
+                                uint8_t dir, char **sigerror)
 {
     Signature *sig = SigAlloc();
     if (sig == NULL)
@@ -1607,7 +1607,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     }
 
     /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(de_ctx, sig) == 0) {
+    if (SigValidate(de_ctx, sig, sigerror) == 0) {
         goto error;
     }
 
@@ -1629,7 +1629,7 @@ error:
  *
  * \retval Pointer to the Signature instance on success; NULL on failure.
  */
-Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr)
+Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr, char **sigerror)
 {
     SCEnter();
 
@@ -1637,12 +1637,12 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr)
 
     Signature *sig;
 
-    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL)) == NULL) {
+    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL, sigerror)) == NULL) {
         goto error;
     }
 
     if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
-        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED, &sigstr);
         if (sig->next == NULL) {
             goto error;
         }
@@ -1902,9 +1902,9 @@ end:
  * \retval Pointer to the head Signature in the detection engine ctx sig_list
  *         on success; NULL on failure.
  */
-Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
+Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr, char **sigerror)
 {
-    Signature *sig = SigInit(de_ctx, sigstr);
+    Signature *sig = SigInit(de_ctx, sigstr, sigerror);
     if (sig == NULL) {
         return NULL;
     }
@@ -2070,7 +2070,9 @@ int SigParseTest01 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1;)",
+                  NULL);
     if (sig == NULL)
         result = 0;
 
@@ -2094,7 +2096,9 @@ int SigParseTest02 (void)
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)",
+                  NULL);
     if (sig == NULL) {
         goto end;
     }
@@ -2128,7 +2132,9 @@ int SigParseTest03 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 any <- !1.2.3.4 any (msg:\"SigParseTest03\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp 1.2.3.4 any <- !1.2.3.4 any (msg:\"SigParseTest03\"; sid:1;)",
+                  NULL);
     if (sig != NULL) {
         result = 0;
         printf("expected NULL got sig ptr %p: ",sig);
@@ -2149,7 +2155,9 @@ int SigParseTest04 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024: -> !1.2.3.4 1024: (msg:\"SigParseTest04\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp 1.2.3.4 1024: -> !1.2.3.4 1024: (msg:\"SigParseTest04\"; sid:1;)",
+                  NULL);
     if (sig == NULL)
         result = 0;
 
@@ -2169,7 +2177,9 @@ int SigParseTest05 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp 1.2.3.4 1024:65536 -> !1.2.3.4 any (msg:\"SigParseTest05\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp 1.2.3.4 1024:65536 -> !1.2.3.4 any (msg:\"SigParseTest05\"; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         result = 1;
     } else {
@@ -2192,7 +2202,9 @@ int SigParseTest06 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (flow:to_server; content:\"GET\"; nocase; http_method; uricontent:\"/uri/\"; nocase; content:\"Host|3A| abc\"; nocase; sid:1; rev:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any (flow:to_server; content:\"GET\"; nocase; http_method; uricontent:\"/uri/\"; nocase; content:\"Host|3A| abc\"; nocase; sid:1; rev:1;)",
+                  NULL);
     if (sig != NULL) {
         result = 1;
     } else {
@@ -2218,8 +2230,12 @@ int SigParseTest07(void)
     if (de_ctx == NULL)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)",
+                          NULL);
 
     result = (de_ctx->sig_list != NULL && de_ctx->sig_list->next == NULL);
 
@@ -2240,8 +2256,12 @@ int SigParseTest08(void)
     if (de_ctx == NULL)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)",
+                          NULL);
 
     result = (de_ctx->sig_list != NULL && de_ctx->sig_list->next == NULL &&
               de_ctx->sig_list->rev == 2);
@@ -2263,11 +2283,21 @@ int SigParseTest09(void)
     if (de_ctx == NULL)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:6;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:4;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:6;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:4;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)",
+                          NULL);
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
                de_ctx->sig_list->rev == 2);
     if (result == 0)
@@ -2277,7 +2307,9 @@ int SigParseTest09(void)
     if (result == 0)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)",
+                          NULL);
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
                de_ctx->sig_list->rev == 2);
     if (result == 0)
@@ -2287,7 +2319,9 @@ int SigParseTest09(void)
     if (result == 0)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:4;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:4;)",
+                          NULL);
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
                de_ctx->sig_list->rev == 4);
     if (result == 0)
@@ -2314,13 +2348,27 @@ int SigParseTest10(void)
     if (de_ctx == NULL)
         goto end;
 
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:4; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:5; rev:1;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:2;)");
-    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)");
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:4; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:5; rev:1;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:2;)",
+                          NULL);
+    DetectEngineAppendSig(de_ctx,
+                          "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)",
+                          NULL);
 
     result &= ((de_ctx->sig_list->id == 2) &&
                (de_ctx->sig_list->next->id == 3) &&
@@ -2348,13 +2396,17 @@ int SigParseTest11(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\";) ");
+    s = DetectEngineAppendSig(de_ctx,
+                              "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\";) ",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 didn't parse: ");
         goto end;
     }
 
-    s = DetectEngineAppendSig(de_ctx, "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;)            ");
+    s = DetectEngineAppendSig(de_ctx,
+                              "drop tcp any any -> any 80 (msg:\"Snort_Inline is blocking the http link\"; sid:1;)            ",
+                              NULL);
     if (s == NULL) {
         printf("sig 2 didn't parse: ");
         goto end;
@@ -2380,7 +2432,9 @@ static int SigParseTest12(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (file_data; content:\"abc\"; rawbytes; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (file_data; content:\"abc\"; rawbytes; sid:1;)",
+                              NULL);
     if (s != NULL) {
         printf("sig 1 should have given an error: ");
         goto end;
@@ -2406,7 +2460,9 @@ static int SigParseTest13(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"abc\"; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 invalidated: failure");
         goto end;
@@ -2443,7 +2499,9 @@ static int SigParseTest14(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; dsize:>0; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"abc\"; dsize:>0; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 invalidated: failure");
         goto end;
@@ -2480,7 +2538,9 @@ static int SigParseTest15(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; offset:5; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"abc\"; offset:5; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 invalidated: failure");
         goto end;
@@ -2517,7 +2577,9 @@ static int SigParseTest16(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; depth:5; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"abc\"; depth:5; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 invalidated: failure");
         goto end;
@@ -2554,7 +2616,9 @@ static int SigParseTest17(void)
 
     Signature *s = NULL;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"abc\"; offset:1; depth:5; sid:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"abc\"; offset:1; depth:5; sid:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig 1 invalidated: failure");
         goto end;
@@ -2587,7 +2651,7 @@ static int SigParseTest18 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:99999999999999999999;)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:99999999999999999999;)", NULL) != NULL)
         goto end;
 
     result = 1;
@@ -2606,7 +2670,7 @@ static int SigParseTest19 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; gid:99999999999999999999;)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; gid:99999999999999999999;)", NULL) != NULL)
         goto end;
 
     result = 1;
@@ -2625,7 +2689,7 @@ static int SigParseTest20 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; rev:99999999999999999999;)") != NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 any -> !1.2.3.4 any (msg:\"SigParseTest01\"; sid:1; rev:99999999999999999999;)", NULL) != NULL)
         goto end;
 
     result = 1;
@@ -2644,7 +2708,7 @@ static int SigParseTest21 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp [1.2.3.4, 1.2.3.5] any -> !1.2.3.4 any (sid:1;)") == NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp [1.2.3.4, 1.2.3.5] any -> !1.2.3.4 any (sid:1;)", NULL) == NULL)
         goto end;
 
     result = 1;
@@ -2663,7 +2727,7 @@ static int SigParseTest22 (void)
     if (de_ctx == NULL)
         goto end;
 
-    if (DetectEngineAppendSig(de_ctx, "alert tcp [10.10.10.0/24, !10.10.10.247] any -> [10.10.10.0/24, !10.10.10.247] any (sid:1;)") == NULL)
+    if (DetectEngineAppendSig(de_ctx, "alert tcp [10.10.10.0/24, !10.10.10.247] any -> [10.10.10.0/24, !10.10.10.247] any (sid:1;)", NULL) == NULL)
         goto end;
 
     result = 1;
@@ -2683,7 +2747,9 @@ int SigParseBidirecTest06 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any - 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any - 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2703,7 +2769,9 @@ int SigParseBidirecTest07 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any <- 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any <- 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2723,7 +2791,9 @@ int SigParseBidirecTest08 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any < 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any < 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2743,7 +2813,9 @@ int SigParseBidirecTest09 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any > 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any > 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2763,7 +2835,9 @@ int SigParseBidirecTest10 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any -< 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any -< 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2783,7 +2857,9 @@ int SigParseBidirecTest11 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any >- 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any >- 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2803,7 +2879,9 @@ int SigParseBidirecTest12 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any >< 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any >< 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         result = 1;
 
@@ -2823,7 +2901,9 @@ int SigParseBidirecTest13 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any <> 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any <> 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig != NULL)
         result = 1;
 
@@ -2842,7 +2922,9 @@ int SigParseBidirecTest14 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any -> 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any -> 192.168.1.5 any (msg:\"SigParseBidirecTest05\"; sid:1;)",
+                                NULL);
     if (sig != NULL)
         result = 1;
 
@@ -2863,7 +2945,9 @@ int SigTestBidirec01 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 1024:65535 -> !1.2.3.4 any (msg:\"SigTestBidirec01\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 1.2.3.4 1024:65535 -> !1.2.3.4 any (msg:\"SigTestBidirec01\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         goto end;
     if (sig->next != NULL)
@@ -2897,7 +2981,9 @@ int SigTestBidirec02 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 1.2.3.4 1024:65535 <> !1.2.3.4 any (msg:\"SigTestBidirec02\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 1.2.3.4 1024:65535 <> !1.2.3.4 any (msg:\"SigTestBidirec02\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         goto end;
     if (de_ctx->sig_list != sig)
@@ -3063,10 +3149,14 @@ int SigTestBidirec04 (void)
 
     de_ctx->flags |= DE_QUIET;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any -> any any (msg:\"SigTestBidirec03 sid 1\"; sid:1;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any -> any any (msg:\"SigTestBidirec03 sid 1\"; sid:1;)",
+                                NULL);
     if (sig == NULL)
         goto end;
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any <> any any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any <> any any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)",
+                                NULL);
     if (sig == NULL)
         goto end;
     if ( !(sig->init_flags & SIG_FLAG_INIT_BIDIREC))
@@ -3080,7 +3170,9 @@ int SigTestBidirec04 (void)
     if (de_ctx->signum != 3)
         goto end;
 
-    sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any -> any any (msg:\"SigTestBidirec03 sid 3\"; sid:3;)");
+    sig = DetectEngineAppendSig(de_ctx,
+                                "alert tcp 192.168.1.1 any -> any any (msg:\"SigTestBidirec03 sid 3\"; sid:3;)",
+                                NULL);
     if (sig == NULL)
         goto end;
     if (sig->next == NULL)
@@ -3210,7 +3302,9 @@ static int SigParseTestNegation01 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp !any any -> any any (msg:\"SigTest41-01 src address is !any \"; classtype:misc-activity; sid:410001; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3236,7 +3330,9 @@ static int SigParseTestNegation02 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any !any -> any any (msg:\"SigTest41-02 src ip is !any \"; classtype:misc-activity; sid:410002; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3262,7 +3358,9 @@ static int SigParseTestNegation03 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> any [80:!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any [80:!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3288,7 +3386,9 @@ static int SigParseTestNegation04 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> any [80,!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any [80,!80] (msg:\"SigTest41-03 dst port [80:!80] \"; classtype:misc-activity; sid:410003; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3314,7 +3414,9 @@ static int SigParseTestNegation05 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.2] any (msg:\"SigTest41-04 dst ip [192.168.0.2,!192.168.0.2] \"; classtype:misc-activity; sid:410004; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> [192.168.0.2,!192.168.0.2] any (msg:\"SigTest41-04 dst ip [192.168.0.2,!192.168.0.2] \"; classtype:misc-activity; sid:410004; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3340,7 +3442,9 @@ static int SigParseTestNegation06 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> any [100:1000,!1:20000] (msg:\"SigTest41-05 dst port [100:1000,!1:20000] \"; classtype:misc-activity; sid:410005; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> any [100:1000,!1:20000] (msg:\"SigTest41-05 dst port [100:1000,!1:20000] \"; classtype:misc-activity; sid:410005; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3367,7 +3471,9 @@ static int SigParseTestNegation07 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> [192.168.0.2,!192.168.0.0/24] any (msg:\"SigTest41-06 dst ip [192.168.0.2,!192.168.0.0/24] \"; classtype:misc-activity; sid:410006; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;
@@ -3394,7 +3500,9 @@ static int SigParseTestNegation08 (void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tcp any any -> [192.168.0.0/16,!192.168.0.0/24] any (sid:410006; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tcp any any -> [192.168.0.0/16,!192.168.0.0/24] any (sid:410006; rev:1;)",
+                NULL);
     if (s == NULL) {
         goto end;
     }
@@ -3418,7 +3526,9 @@ int SigParseTestMpm01 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         printf("sig failed to init: ");
         goto end;
@@ -3449,7 +3559,9 @@ int SigParseTestMpm02 (void)
     if (de_ctx == NULL)
         goto end;
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; content:\"abcdef\"; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any (msg:\"mpm test\"; content:\"abcd\"; content:\"abcdef\"; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         printf("sig failed to init: ");
         goto end;
@@ -3482,7 +3594,9 @@ static int SigParseTestAppLayerTLS01(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS01 \"; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS01 \"; sid:410006; rev:1;)",
+                NULL);
     if (s == NULL) {
         printf("parsing sig failed: ");
         goto end;
@@ -3517,7 +3631,9 @@ static int SigParseTestAppLayerTLS02(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS02 \"; tls.version:1.0; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS02 \"; tls.version:1.0; sid:410006; rev:1;)",
+                NULL);
     if (s == NULL) {
         printf("parsing sig failed: ");
         goto end;
@@ -3551,7 +3667,9 @@ static int SigParseTestAppLayerTLS03(void)
         goto end;
     de_ctx->flags |= DE_QUIET;
 
-    s = SigInit(de_ctx,"alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; sid:410006; rev:1;)");
+    s = SigInit(de_ctx,
+                "alert tls any any -> any any (msg:\"SigParseTestAppLayerTLS03 \"; tls.version:2.5; sid:410006; rev:1;)",
+                NULL);
     if (s != NULL) {
         SigFree(s);
         goto end;

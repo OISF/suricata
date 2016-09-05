@@ -165,9 +165,9 @@ int DetectClasstypeTest01()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Classtype test\"; "
-                               "Classtype:not_available; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Classtype test\"; " "Classtype:not_available; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -196,8 +196,9 @@ int DetectClasstypeTest02()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:bad-unknown; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:bad-unknown; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         printf("first sig failed to parse: ");
         result = 0;
@@ -206,13 +207,15 @@ int DetectClasstypeTest02()
     de_ctx->sig_list = last = sig;
     result = (sig != NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:not-there; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:not-there; sid:1;)",
+                  NULL);
     last->next = sig;
     result &= (sig == NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:Bad-UnkNown; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:Bad-UnkNown; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         printf("second sig failed to parse: ");
         result = 0;
@@ -222,8 +225,9 @@ int DetectClasstypeTest02()
     last = sig;
     result &= (sig != NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:nothing-wrong; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:nothing-wrong; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         result = 0;
         goto end;
@@ -232,8 +236,9 @@ int DetectClasstypeTest02()
     last = sig;
     result &= (sig != NULL);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:attempted_dos; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:attempted_dos; sid:1;)",
+                  NULL);
     last->next = sig;
     result &= (sig == NULL);
 
@@ -262,8 +267,9 @@ int DetectClasstypeTest03()
     FILE *fd = SCClassConfGenerateValidDummyClassConfigFD01();
     SCClassConfLoadClassficationConfigFile(de_ctx, fd);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:bad-unknown; priority:1; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         result = 0;
         goto end;
@@ -272,9 +278,9 @@ int DetectClasstypeTest03()
     result = (sig != NULL);
     result &= (sig->prio == 1);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any "
-                  "(msg:\"Classtype test\"; Classtype:unKnoWn; "
-                  "priority:3; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any " "(msg:\"Classtype test\"; Classtype:unKnoWn; " "priority:3; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         result = 0;
         goto end;
@@ -284,8 +290,9 @@ int DetectClasstypeTest03()
     result &= (sig != NULL);
     result &= (sig->prio == 3);
 
-    sig = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Classtype test\"; "
-                  "Classtype:nothing-wrong; priority:1; sid:1;)");
+    sig = SigInit(de_ctx,
+                  "alert tcp any any -> any any (msg:\"Classtype test\"; " "Classtype:nothing-wrong; priority:1; sid:1;)",
+                  NULL);
     if (sig == NULL) {
         result = 0;
         goto end;

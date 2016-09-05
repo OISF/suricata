@@ -402,7 +402,9 @@ static int DetectThresholdTestSig1(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold limit\"; content:\"A\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -506,7 +508,9 @@ static int DetectThresholdTestSig2(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type threshold, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold\"; threshold: type threshold, track by_dst, count 5, seconds 60; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -589,7 +593,9 @@ static int DetectThresholdTestSig3(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold limit\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -693,7 +699,9 @@ static int DetectThresholdTestSig4(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type both, track by_dst, count 2, seconds 60; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold both\"; threshold: type both, track by_dst, count 2, seconds 60; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -766,12 +774,16 @@ static int DetectThresholdTestSig5(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -845,12 +857,16 @@ static int DetectThresholdTestSig6Ticks(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any 80 (msg:\"Threshold limit sid 1000\"; threshold: type limit, track by_dst, count 5, seconds 60; sid:1000;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
@@ -937,7 +953,9 @@ static int DetectThresholdTestSig7(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 1, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type limit, track by_src, count 1, seconds 300; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1031,7 +1049,9 @@ static int DetectThresholdTestSig8(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type limit, track by_src, count 2, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type limit, track by_src, count 2, seconds 300; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1125,7 +1145,9 @@ static int DetectThresholdTestSig9(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 3, seconds 100; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 3, seconds 100; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1219,7 +1241,9 @@ static int DetectThresholdTestSig10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 5, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type threshold, track by_src, count 5, seconds 300; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1313,7 +1337,9 @@ static int DetectThresholdTestSig11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 3, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type both, track by_src, count 3, seconds 300; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
@@ -1407,7 +1433,9 @@ static int DetectThresholdTestSig12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"drop tcp any any -> any 80 (threshold: type both, track by_src, count 5, seconds 300; sid:10;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "drop tcp any any -> any 80 (threshold: type both, track by_src, count 5, seconds 300; sid:10;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }

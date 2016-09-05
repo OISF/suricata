@@ -425,27 +425,37 @@ int DetectICodeMatchTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx,"alert icmp any any -> any any (icode:10; sid:1;)");
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert icmp any any -> any any (icode:10; sid:1;)",
+                                   NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:<15; sid:2;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any (icode:<15; sid:2;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:>20; sid:3;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any (icode:>20; sid:3;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:8<>20; sid:4;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any (icode:8<>20; sid:4;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }
 
-    s = s->next = SigInit(de_ctx,"alert icmp any any -> any any (icode:20<>8; sid:5;)");
+    s = s->next = SigInit(de_ctx,
+                          "alert icmp any any -> any any (icode:20<>8; sid:5;)",
+                          NULL);
     if (s == NULL) {
         goto end;
     }

@@ -144,9 +144,9 @@ static int DetectHttpHRHTest01(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_host\"; "
-                               "content:\"one\"; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_host\"; " "content:\"one\"; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
@@ -175,9 +175,9 @@ static int DetectHttpHRHTest02(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_host\"; "
-                               "content:\"one\"; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_host\"; " "content:\"one\"; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -203,9 +203,9 @@ static int DetectHttpHRHTest03(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_host\"; "
-                               "http_raw_host; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_host\"; " "http_raw_host; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -231,9 +231,9 @@ static int DetectHttpHRHTest04(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_host\"; "
-                               "content:\"one\"; rawbytes; http_raw_host; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_host\"; " "content:\"one\"; rawbytes; http_raw_host; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         result = 1;
 
@@ -258,9 +258,9 @@ static int DetectHttpHRHTest05(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_raw_host\"; "
-                               "content:\"one\"; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(msg:\"Testing http_raw_host\"; " "content:\"one\"; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list != NULL)
         result = 1;
 
@@ -320,10 +320,9 @@ static int DetectHttpHRHTest06(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"message\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"message\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -427,10 +426,9 @@ static int DetectHttpHRHTest07(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"message\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"message\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -550,10 +548,9 @@ static int DetectHttpHRHTest08(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"message\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"message\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -680,10 +677,9 @@ static int DetectHttpHRHTest09(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"body1This\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"body1This\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -810,10 +806,9 @@ static int DetectHttpHRHTest10(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"bodY1This\"; http_raw_host; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"bodY1This\"; http_raw_host; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -929,10 +924,9 @@ static int DetectHttpHRHTest11(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:!\"message\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:!\"message\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1028,10 +1022,9 @@ static int DetectHttpHRHTest12(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:!\"message\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:!\"message\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1128,10 +1121,9 @@ static int DetectHttpHRHTest13(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_raw_host;  "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"abcdefghijklmnopqrstuvwxyz0123456789\"; http_raw_host;  " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 
@@ -1232,12 +1224,16 @@ static int DetectHttpHRHTest14(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; http_cookie; content:\"Body one\"; http_raw_host;  sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"dummy1\"; http_cookie; content:\"Body one\"; http_raw_host;  sid:1; rev:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; http_cookie; content:\"Body two\"; http_raw_host;  sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx,
+                              "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"dummy2\"; http_cookie; content:\"Body two\"; http_raw_host;  sid:2; rev:1;)",
+                              NULL);
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -1396,9 +1392,9 @@ int DetectHttpHRHTest22(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; content:\"two\"; http_raw_host;  "
-                               "content:\"three\"; distance:10; http_raw_host;  content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; content:\"two\"; http_raw_host;  " "content:\"three\"; distance:10; http_raw_host;  content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1451,9 +1447,9 @@ int DetectHttpHRHTest23(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  pcre:/two/; "
-                               "content:\"three\"; distance:10; http_raw_host;  content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  pcre:/two/; " "content:\"three\"; distance:10; http_raw_host;  content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1505,9 +1501,9 @@ int DetectHttpHRHTest24(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  pcre:/two/; "
-                               "content:\"three\"; distance:10; within:15; http_raw_host;  content:\"four\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  pcre:/two/; " "content:\"three\"; distance:10; within:15; http_raw_host;  content:\"four\"; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1559,10 +1555,9 @@ int DetectHttpHRHTest25(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  pcre:/two/; "
-                               "content:\"three\"; distance:10; http_raw_host;  "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  pcre:/two/; " "content:\"three\"; distance:10; http_raw_host;  " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1615,10 +1610,9 @@ int DetectHttpHRHTest26(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_raw_host;  pcre:/two/; "
-                               "content:\"three\"; distance:10; http_raw_host;  within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; offset:10; http_raw_host;  pcre:/two/; " "content:\"three\"; distance:10; http_raw_host;  within:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1672,10 +1666,9 @@ int DetectHttpHRHTest27(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; offset:10; http_raw_host;  pcre:/two/; "
-                               "content:\"three\"; distance:10; http_raw_host;  within:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; offset:10; http_raw_host;  pcre:/two/; " "content:\"three\"; distance:10; http_raw_host;  within:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1698,10 +1691,9 @@ int DetectHttpHRHTest28(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host; nocase; pcre:/two/; "
-                               "content:\"three\"; http_raw_host;  depth:10; "
-                               "content:\"four\"; distance:10; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host; nocase; pcre:/two/; " "content:\"three\"; http_raw_host;  depth:10; " "content:\"four\"; distance:10; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1754,9 +1746,9 @@ int DetectHttpHRHTest29(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  "
-                               "content:\"two\"; distance:0; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  " "content:\"two\"; distance:0; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1798,9 +1790,9 @@ int DetectHttpHRHTest30(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  "
-                               "content:\"two\"; within:5; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  " "content:\"two\"; within:5; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1842,8 +1834,9 @@ int DetectHttpHRHTest31(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; within:5; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; within:5; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1866,8 +1859,9 @@ int DetectHttpHRHTest32(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; http_raw_host;  within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; http_raw_host;  within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list != NULL\n");
         goto end;
@@ -1890,8 +1884,9 @@ int DetectHttpHRHTest33(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"one\"; within:5; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"one\"; within:5; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1914,9 +1909,9 @@ int DetectHttpHRHTest34(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/Zi; "
-                               "content:\"two\"; within:5; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(pcre:/one/Zi; " "content:\"two\"; within:5; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1965,9 +1960,9 @@ int DetectHttpHRHTest35(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(content:\"two\"; http_raw_host;  "
-                               "pcre:/one/ZRi; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(content:\"two\"; http_raw_host;  " "pcre:/one/ZRi; sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2016,9 +2011,9 @@ int DetectHttpHRHTest36(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(pcre:/one/Zi; "
-                               "content:\"two\"; distance:5; http_raw_host;  sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any " "(pcre:/one/Zi; " "content:\"two\"; distance:5; http_raw_host;  sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2117,10 +2112,9 @@ static int DetectHttpHRHTest37(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http host test\"; "
-                               "content:\"body1this\"; http_raw_host; nocase; "
-                               "sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert http any any -> any any " "(msg:\"http host test\"; " "content:\"body1this\"; http_raw_host; nocase; " "sid:1;)",
+                               NULL);
     if (de_ctx->sig_list == NULL)
         goto end;
 

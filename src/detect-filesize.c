@@ -437,7 +437,7 @@ static int DetectFilesizeInitTest(DetectEngineCtx **de_ctx, Signature **sig,
 
     (*de_ctx)->flags |= DE_QUIET;
 
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
+    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr, NULL);
     if ((*de_ctx)->sig_list == NULL) {
         goto end;
     }
