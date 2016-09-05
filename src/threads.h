@@ -243,6 +243,14 @@ enum {
     u_long tid = (u_long)tpid; \
     tid; \
 })
+#elif defined(sun)
+#include <thread.h>
+#define SCGetThreadIdLong(...) ({ \
+    thread_t tmpthid = thr_self(); \
+    u_long tid = (u_long)tmpthid; \
+    tid; \
+})
+
 #else
 #define SCGetThreadIdLong(...) ({ \
    pid_t tmpthid; \
