@@ -814,10 +814,13 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         return cd->valid;
     }
 
-    if (p->level4_comp_csum == -1)
+    if (p->level4_comp_csum == -1) {
+        uint16_t len = IPV6_GET_RAW_PLEN(p->ip6h) -
+            ((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
         p->level4_comp_csum = ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                       (uint16_t *)p->icmpv6h,
-                                                      GET_PKT_LEN(p) - ((uint8_t *)p->icmpv6h - GET_PKT_DATA(p)));
+                                                      len);
+    }
 
     if (p->level4_comp_csum == p->icmpv6h->csum && cd->valid == 1)
         return 1;
