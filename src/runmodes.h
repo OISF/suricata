@@ -36,6 +36,7 @@ enum {
     RUNMODE_DAG,
     RUNMODE_AFP_DEV,
     RUNMODE_NETMAP,
+    RUNMODE_ODP,
     RUNMODE_TILERA_MPIPE,
     RUNMODE_UNITTEST,
     RUNMODE_NAPATECH,
@@ -91,6 +92,7 @@ int RunModeOutputFiledataEnabled(void);
 #include "runmode-nflog.h"
 #include "runmode-unix-socket.h"
 #include "runmode-netmap.h"
+#include "runmode-odp.h"
 
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
