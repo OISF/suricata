@@ -1603,6 +1603,61 @@ end:
     return retval;
 }
 
+/**
+ * \test Test for valid ICMPv6 checksum when the FCS is still attached.
+ *
+ * Tests that the packet is decoded with sufficient info to verify the
+ * checksum even if the packet has some trailing data like an ethernet
+ * FCS.
+ */
+static int ICMPV6CalculateValidChecksumWithFCS(void)
+{
+    /* IPV6/ICMPv6 packet with ethernet header.
+     * - IPv6 payload length: 36
+     */
+    uint8_t raw_ipv6[] = {
+        0x33, 0x33, 0x00, 0x00, 0x00, 0x16, 0x00, 0x50,
+        0x56, 0xa6, 0x6a, 0x7d, 0x86, 0xdd, 0x60, 0x00,
+        0x00, 0x00, 0x00, 0x24, 0x00, 0x01, 0xfe, 0x80,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf5, 0x09,
+        0xad, 0x44, 0x49, 0x38, 0x5f, 0xa9, 0xff, 0x02,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x3a, 0x00,
+        0x05, 0x02, 0x00, 0x00, 0x01, 0x00, 0x8f, 0x00,
+        0x24, 0xe0, 0x00, 0x00, 0x00, 0x01, 0x03, 0x00, /* Checksum: 0x24e0. */
+        0x00, 0x00, 0xff, 0x02, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0xfb, 0x1f, 0x34, 0xf6, 0xa4
+    };
+    uint16_t csum = *(((uint16_t *)(raw_ipv6 + 64)));
+
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    FAIL_IF_NULL(p);
+    IPV6Hdr ip6h;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&ip6h, 0, sizeof(IPV6Hdr));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeIPV6(&tv, &dtv, p, raw_ipv6 + 14, sizeof(raw_ipv6) - 14, NULL);
+    FAIL_IF_NULL(p->icmpv6h);
+
+    uint16_t icmpv6_len = IPV6_GET_RAW_PLEN(p->ip6h) -
+        ((uint8_t *)p->icmpv6h - (uint8_t *)p->ip6h - IPV6_HEADER_LEN);
+    FAIL_IF(icmpv6_len != 28);
+    FAIL_IF(ICMPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
+            (uint16_t *)p->icmpv6h, icmpv6_len) != csum);
+
+    PACKET_RECYCLE(p);
+    FlowShutdown();
+    SCFree(p);
+    PASS;
+}
+
 #endif /* UNITTESTS */
 /**
  * \brief Registers ICMPV6 unit tests
@@ -1654,6 +1709,8 @@ void DecodeICMPV6RegisterTests(void)
     UtRegisterTest("ICMPV6RedirectTestKnownCode", ICMPV6RedirectTestKnownCode);
     UtRegisterTest("ICMPV6RedirectTestUnknownCode",
                    ICMPV6RedirectTestUnknownCode);
+    UtRegisterTest("ICMPV6CalculateValidChecksumWithFCS",
+                   ICMPV6CalculateValidChecksumWithFCS);
 #endif /* UNITTESTS */
 }
 /**
