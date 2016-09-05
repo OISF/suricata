@@ -45,7 +45,7 @@
 #define SCByteSwap16(x) OSSwapInt16(x)
 #define SCByteSwap32(x) OSSwapInt32(x)
 #define SCByteSwap64(x) OSSwapInt64(x)
-#elif defined(__WIN32) || defined(_WIN32)
+#elif defined(__WIN32) || defined(_WIN32) || defined(sun)
 /* Quick & dirty solution, nothing seems to exist for this in Win32 API */
 #define SCByteSwap16(x)                         \
 	((((x) & 0xff00) >> 8)                      \
