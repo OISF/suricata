@@ -55,6 +55,17 @@ void UtRunModeRegister(void);
 extern int unittests_fatal;
 
 /**
+ * \breif Fail a test.
+ */
+#define FAIL do {                                      \
+        if (unittests_fatal) {                         \
+            BUG_ON(1);                                 \
+        } else {                                       \
+            return 0;                                  \
+        }                                              \
+    } while (0)
+
+/**
  * \brief Fail a test if expression evaluates to false.
  */
 #define FAIL_IF(expr) do {                             \
