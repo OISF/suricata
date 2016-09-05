@@ -327,8 +327,7 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         goto error_fd;
     }
     if ((if_flags & IFF_UP) == 0) {
-        SCLogWarning(SC_ERR_NETMAP_CREATE, "Interface '%s' is down", ifname);
-        goto error_fd;
+        SCLogWarning(SC_ERR_NETMAP_CREATE, "Interface '%s' is down, ignoring", ifname);
     }
     /* if needed, try to set iface in promisc mode */
     if (promisc && (if_flags & (IFF_PROMISC|IFF_PPROMISC)) == 0) {
