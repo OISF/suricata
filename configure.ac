@@ -227,6 +227,10 @@
             LUA_LIB_NAME="lua"
             WINDOWS_PATH="yes"
             ;;
+        *-*-solaris*)
+            AC_MSG_WARN([support for Solaris/Illumos/SunOS is experimental])
+            LDFLAGS="${LDFLAGS} -lsocket -lnsl"
+            ;;
         *)
             AC_MSG_WARN([unsupported OS this may or may not work])
             ;;
