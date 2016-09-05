@@ -89,6 +89,10 @@
 #include <string.h>
 #endif
 
+#if HAVE_STRINGS_H
+#include <strings.h>
+#endif
+
 #if HAVE_FCNTL_H
 #include <fcntl.h>
 #endif
