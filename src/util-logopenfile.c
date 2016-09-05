@@ -46,19 +46,19 @@ const char * redis_publish_cmd = "PUBLISH";
 static FILE *
 SCLogOpenUnixSocketFp(const char *path, int sock_type, int log_err)
 {
-    struct sockaddr_un sun;
+    struct sockaddr_un saun;
     int s = -1;
     FILE * ret = NULL;
 
-    memset(&sun, 0x00, sizeof(sun));
+    memset(&saun, 0x00, sizeof(saun));
 
     s = socket(PF_UNIX, sock_type, 0);
     if (s < 0) goto err;
 
-    sun.sun_family = AF_UNIX;
-    strlcpy(sun.sun_path, path, sizeof(sun.sun_path));
+    saun.sun_family = AF_UNIX;
+    strlcpy(saun.sun_path, path, sizeof(saun.sun_path));
 
-    if (connect(s, (const struct sockaddr *)&sun, sizeof(sun)) < 0)
+    if (connect(s, (const struct sockaddr *)&saun, sizeof(saun)) < 0)
         goto err;
 
     ret = fdopen(s, "w");
