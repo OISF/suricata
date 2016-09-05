@@ -982,6 +982,10 @@ int DecoderParseDataFromFile(char *filename, DecoderFunc Decoder);
     r; \
 })
 
+#ifndef IPPROTO_IPIP
+#define IPPROTO_IPIP 4
+#endif
+
 /* older libcs don't contain a def for IPPROTO_DCCP
  * inside of <netinet/in.h>
  * if it isn't defined let's define it here.
