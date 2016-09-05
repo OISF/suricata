@@ -76,7 +76,7 @@ ThreadsAffinityType * GetAffinityTypeFromName(const char *name)
     return NULL;
 }
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
 static void AffinitySetupInit()
 {
     int i, j;
@@ -166,7 +166,7 @@ static void BuildCpuset(const char *name, ConfNode *node, cpu_set_t *cpu)
 
 void AffinitySetupLoadFromConfig()
 {
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     ConfNode *root = ConfGetNode("threading.cpu-affinity");
     ConfNode *affinity;
 
@@ -285,7 +285,7 @@ void AffinitySetupLoadFromConfig()
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
     int ncpu = 0;
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     int iter = 0;
     SCMutexLock(&taf->taf_mutex);
     ncpu = taf->lcpu;

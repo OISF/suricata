@@ -68,7 +68,7 @@ typedef struct ThreadsAffinityType_ {
     SCMutex taf_mutex;
     uint16_t lcpu; /* use by exclusive mode */
 
-#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__ && !defined sun
     cpu_set_t cpu_set;
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;
