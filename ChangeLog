@@ -1,3 +1,18 @@
+3.1.2 -- 2016-09-06
+
+Feature #1830: support 'tag' in eve log
+Feature #1870: make logged flow_id more unique
+Feature #1874: support Cisco Fabric Path / DCE
+Feature #1885: eve: add option to log all dropped packets
+Bug #1849: ICMPv6 incorrect checksum alert if Ethernet FCS is present
+Bug #1853: suricata is matching everything on dce_stub_data buffer
+Bug #1854: unified2: logging of tagged packets not working
+Bug #1856: PCAP mode device not found
+Bug #1858: Lots of TCP 'duplicated option/DNS malformed request data' after upgrading from 3.0.1 to 3.1.1
+Bug #1878: dns: crash while logging sshfp records
+Bug #1880: icmpv4 error packets can lead to missed detection in tcp/udp
+Bug #1884: libhtp 0.5.22
+
 3.1.1 -- 2016-07-13
 
 Feature #1775: Lua: SMTP-support
