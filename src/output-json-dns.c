@@ -391,6 +391,11 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
 {
     SCLogDebug("got a DNS request and now logging !!");
 
+    if (entry != NULL &&
+            !DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
+        return;
+    }
+
     json_t *djs = json_object();
     if (djs == NULL) {
         return;
@@ -423,14 +428,17 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
 
     /* dns */
     json_object_set_new(js, "dns", djs);
-    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
-        OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    }
+    OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "dns");
 }
 
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSAnswerEntry *entry)
 {
+    if (entry != NULL &&
+            !DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
+        return;
+    }
+
     json_t *js = json_object();
     if (js == NULL)
         return;
@@ -529,9 +537,7 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
     /* reset */
     MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
-        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    }
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(djs, "dns");
 
     return;
@@ -539,6 +545,11 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, 
 
 static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx, DNSQueryEntry *entry)
 {
+    if (entry != NULL &&
+            !DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags)) {
+        return;
+    }
+
     json_t *js = json_object();
     if (js == NULL)
         return;
@@ -565,9 +576,7 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs, DNSTransaction *tx,
     /* reset */
     MemBufferReset(aft->buffer);
     json_object_set_new(djs, "dns", js);
-    if (likely(DNSRRTypeEnabled(entry->type, aft->dnslog_ctx->flags))) {
-        OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
-    }
+    OutputJSONBuffer(djs, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(djs, "dns");
 
     return;
