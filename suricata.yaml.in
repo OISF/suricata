@@ -204,7 +204,9 @@ outputs:
             force-magic: no   # force logging magic on all logged files
             force-md5: no     # force logging of md5 checksums
         #- drop:
-        #    alerts: no       # log alerts that caused drops
+        #    alerts: yes      # log alerts that caused drops
+        #    flows: all       # start or all: 'start' logs only a single drop
+        #                     # per flow direction. All logs each dropped pkt.
         - smtp:
             #extended: yes # enable this for extended logging information
             # this includes: bcc, message-id, subject, x_mailer, user-agent
