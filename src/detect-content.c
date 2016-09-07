@@ -186,6 +186,9 @@ int DetectContentDataParse(const char *keyword, const char *contentstr,
                     }
                     escape = 0;
                     converted = 1;
+                } else if (str[i] == '"') {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid unescaped double quote within content section");
+                    goto error;
                 } else {
                     str[x] = str[i];
                     x++;
@@ -2309,6 +2312,27 @@ int DetectContentParseTest44(void)
     return result;
 }
 
+/**
+ * \test Parsing test to check for unescaped quote within content section
+ */
+int DetectContentParseTest45(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; content:\"|ff|\" content:\"TEST\"; sid:1;)");
+    FAIL_IF_NOT_NULL(de_ctx->sig_list);
+
+    DetectEngineCtxFree(de_ctx);
+
+    PASS;
+}
+
 static int SigTestNegativeTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -2877,6 +2901,7 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest42", DetectContentParseTest42);
     UtRegisterTest("DetectContentParseTest43", DetectContentParseTest43);
     UtRegisterTest("DetectContentParseTest44", DetectContentParseTest44);
+    UtRegisterTest("DetectContentParseTest45", DetectContentParseTest45);
 
     /* The reals */
     UtRegisterTest("DetectContentLongPatternMatchTest01",
