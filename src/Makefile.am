@@ -42,6 +42,7 @@ conf-yaml-loader.c conf-yaml-loader.h \
 counters.c counters.h \
 data-queue.c data-queue.h \
 decode.c decode.h \
+decode-chdlc.h decode-chdlc.c \
 decode-erspan.c decode-erspan.h \
 decode-ethernet.c decode-ethernet.h \
 decode-events.c decode-events.h \
