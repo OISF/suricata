@@ -20,6 +20,7 @@
 
 #include "queue.h"
 #include "unix-manager.h"
+#include "runmodes.h"
 
 #define MAX_DEVNAME 10
 
@@ -27,23 +28,25 @@
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     char dev_short[MAX_DEVNAME + 1];
+    enum RunModes runmode; /**< the runmode (e.g. "RUNMODE_NFLOG") */
     int ignore_checksum;
+    void (*BypassCallback)(Packet *p);
     SC_ATOMIC_DECLARE(uint64_t, pkts);
     SC_ATOMIC_DECLARE(uint64_t, drop);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
 
-
-int LiveRegisterDevice(const char *dev);
-int LiveGetDeviceCount(void);
-const char *LiveGetDeviceName(int number);
-LiveDevice *LiveGetDevice(const char *dev);
-const char *LiveGetShortName(const char *dev);
-int LiveBuildDeviceList(const char *base);
+int LiveRegisterDevice(const char *dev, enum RunModes runmode);
+int LiveRegisterDeviceWithCallback(const char *dev, enum RunModes runmode, void (*BypassCallback)(Packet *p));
+int LiveGetDeviceCount(enum RunModes runmode);
+const char *LiveGetDeviceName(int number, enum RunModes runmode);
+LiveDevice *LiveGetDevice(const char *dev, enum RunModes runmode);
+const char *LiveGetShortName(const char *dev, enum RunModes runmode);
+int LiveBuildDeviceList(const char *base, enum RunModes runmode);
 void LiveDeviceHasNoStats(void);
 int LiveDeviceListClean(void);
-int LiveBuildDeviceListCustom(const char *base, const char *itemname);
+int LiveBuildDeviceListCustom(const char *base, const char *itemname, enum RunModes runmode);
 
 #ifdef BUILD_UNIX_SOCKET
 TmEcode LiveDeviceIfaceStat(json_t *cmd, json_t *server_msg, void *data);

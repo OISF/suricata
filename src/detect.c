@@ -160,6 +160,7 @@
 #include "detect-app-layer-protocol.h"
 #include "detect-template.h"
 #include "detect-template-buffer.h"
+#include "detect-bypass.h"
 
 #include "util-rule-vars.h"
 
@@ -4382,6 +4383,7 @@ void SigTableSetup(void)
     DetectBase64DataRegister();
     DetectTemplateRegister();
     DetectTemplateBufferRegister();
+    DetectBypassRegister();
 }
 
 void SigTableRegisterTests(void)

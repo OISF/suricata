@@ -416,6 +416,21 @@ void StreamTcpInitConfig(char quiet)
         SCLogConfig("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
+    int bypass = 0;
+    if ((ConfGetBool("stream.bypass", &bypass)) == 1) {
+        if (bypass == 1) {
+            stream_config.bypass = 1;
+        } else {
+            stream_config.bypass = 0;
+        }
+    } else {
+        stream_config.bypass = 0;
+    }
+
+    if (!quiet) {
+        SCLogInfo("stream.\"bypass\": %s", bypass ? "enabled" : "disabled");
+    }
+
     if ((ConfGetInt("stream.max-synack-queued", &value)) == 1) {
         if (value >= 0 && value <= 255) {
             stream_config.max_synack_queued = (uint8_t)value;
@@ -4620,6 +4635,15 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         /* check for conditions that may make us not want to log this packet */
 
         /* streams that hit depth */
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) &&
+             (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        {
+            /* we can call bypass callback, if enabled */
+            if (StreamTcpBypassEnabled() && PacketHasBypassCallback(p)) {
+                PacketBypassCallback(p);
+            }
+        }
+
         if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ||
              (ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
         {
@@ -4631,6 +4655,10 @@ int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
             (PKT_IS_TOCLIENT(p) && (ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)))
         {
             p->flags |= PKT_STREAM_NOPCAPLOG;
+            /* we can call bypass callback, if enabled */
+            if (StreamTcpBypassEnabled() && PacketHasBypassCallback(p)) {
+                PacketBypassCallback(p);
+            }
         }
     }
 
@@ -5766,6 +5794,11 @@ int StreamTcpSegmentForEach(const Packet *p, uint8_t flag, StreamSegmentCallback
     }
     FLOWLOCK_UNLOCK(p->flow);
     return cnt;
+}
+
+int StreamTcpBypassEnabled(void)
+{
+    return stream_config.bypass;
 }
 
 #ifdef UNITTESTS
