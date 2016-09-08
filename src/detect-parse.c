@@ -155,7 +155,7 @@ const char *DetectListToHumanString(int list)
         CASE_CODE_STRING(DETECT_SM_LIST_HMDMATCH, "http_method");
         CASE_CODE_STRING(DETECT_SM_LIST_HCDMATCH, "http_cookie");
         CASE_CODE_STRING(DETECT_SM_LIST_HUADMATCH, "http_user_agent");
-        CASE_CODE_STRING(DETECT_SM_LIST_HRLMATCH, "http_request_line");
+        CASE_CODE_STRING(DETECT_SM_LIST_HTTP_REQLINEMATCH, "http_request_line");
         CASE_CODE_STRING(DETECT_SM_LIST_APP_EVENT, "app-layer-event");
         CASE_CODE_STRING(DETECT_SM_LIST_AMATCH, "app-layer");
         CASE_CODE_STRING(DETECT_SM_LIST_DMATCH, "dcerpc");
@@ -198,7 +198,7 @@ const char *DetectListToString(int list)
         CASE_CODE(DETECT_SM_LIST_HMDMATCH);
         CASE_CODE(DETECT_SM_LIST_HCDMATCH);
         CASE_CODE(DETECT_SM_LIST_HUADMATCH);
-        CASE_CODE(DETECT_SM_LIST_HRLMATCH);
+        CASE_CODE(DETECT_SM_LIST_HTTP_REQLINEMATCH);
         CASE_CODE(DETECT_SM_LIST_APP_EVENT);
         CASE_CODE(DETECT_SM_LIST_AMATCH);
         CASE_CODE(DETECT_SM_LIST_DMATCH);
@@ -1539,7 +1539,7 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRLMATCH])
+    if (sig->sm_lists[DETECT_SM_LIST_HTTP_REQLINEMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;

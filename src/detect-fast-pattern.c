@@ -180,14 +180,16 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL) {
+        s->sm_lists_tail[DETECT_SM_LIST_TLSSUBJECT_MATCH] == NULL &&
+        s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
                      "uricontent, http_client_body, http_server_body, http_header, "
                      "http_raw_header, http_method, http_cookie, "
                      "http_raw_uri, http_stat_msg, http_stat_code, "
-                     "http_user_agent, http_host, http_raw_host, dns_query, "
+                     "http_user_agent, http_host, http_raw_host, "
+                     "http_request_line, dns_query, "
                      "tls_sni, tls_cert_issuer or tls_cert_subject option");
         return -1;
     }
@@ -207,6 +209,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHHDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHHDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HTTP_REQLINEMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DNSQUERYNAME_MATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSSNI_MATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_TLSISSUER_MATCH],
