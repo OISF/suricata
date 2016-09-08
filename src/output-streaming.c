@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-streaming.h"
 #include "app-layer.h"
 #include "app-layer-parser.h"
@@ -53,19 +54,21 @@ typedef struct OutputStreamingLogger_ {
     OutputCtx *output_ctx;
     struct OutputStreamingLogger_ *next;
     const char *name;
-    TmmId module_id;
+    LoggerId logger_id;
     enum OutputStreamingType type;
+    ThreadInitFunc ThreadInit;
+    ThreadDeinitFunc ThreadDeinit;
+    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputStreamingLogger;
 
 static OutputStreamingLogger *list = NULL;
 
-int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc,
-        OutputCtx *output_ctx, enum OutputStreamingType type )
+int OutputRegisterStreamingLogger(LoggerId id, const char *name,
+    StreamingLogger LogFunc, OutputCtx *output_ctx,
+    enum OutputStreamingType type, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-
     OutputStreamingLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -74,8 +77,11 @@ int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc,
     op->LogFunc = LogFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-    op->module_id = (TmmId) module_id;
+    op->logger_id = id;
     op->type = type;
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
 
     if (list == NULL)
         list = op;
@@ -116,9 +122,9 @@ int Streamer(void *cbdata, Flow *f, const uint8_t *data, uint32_t data_len, uint
 
         if (logger->type == streamer_cbdata->type) {
             SCLogDebug("logger %p", logger);
-            PACKET_PROFILING_TMM_START(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
             logger->LogFunc(tv, store->thread_data, (const Flow *)f, data, data_len, tx_id, flags);
-            PACKET_PROFILING_TMM_END(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
         }
 
         logger = logger->next;
@@ -292,10 +298,14 @@ int StreamIterator(Flow *f, TcpStream *stream, int close, void *cbdata, uint8_t 
     return 0;
 }
 
-static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputStreamingLogger *logger = list;
@@ -319,8 +329,6 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, 
         flags |= OUTPUT_STREAMING_FLAG_TOCLIENT;
     else
         flags |= OUTPUT_STREAMING_FLAG_TOSERVER;
-
-    FLOWLOCK_WRLOCK(f);
 
     if (op_thread_data->loggers & (1<<STREAMING_TCP_DATA)) {
         TcpSession *ssn = f->protoctx;
@@ -349,7 +357,6 @@ static TmEcode OutputStreamingLog(ThreadVars *tv, Packet *p, void *thread_data, 
         }
     }
 
-    FLOWLOCK_UNLOCK(f);
     return TM_ECODE_OK;
 }
 
@@ -368,16 +375,9 @@ static TmEcode OutputStreamingLogThreadInit(ThreadVars *tv, void *initdata, void
 
     OutputStreamingLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadInit) {
+        if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -412,21 +412,17 @@ static TmEcode OutputStreamingLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputStreamingLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
+        if (logger->ThreadDeinit) {
+            logger->ThreadDeinit(tv, store->thread_data);
         }
 
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
-        }
-
+        OutputLoggerThreadStore *next_store = store->next;
+        SCFree(store);
         logger = logger->next;
-        store = store->next;
+        store = next_store;
     }
 
+    SCFree(op_thread_data);
     return TM_ECODE_OK;
 }
 
@@ -436,15 +432,8 @@ static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) 
     OutputStreamingLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (logger->ThreadExitPrintStats) {
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
@@ -452,13 +441,10 @@ static void OutputStreamingLogExitPrintStats(ThreadVars *tv, void *thread_data) 
     }
 }
 
-void TmModuleStreamingLoggerRegister (void) {
-    tmm_modules[TMM_STREAMINGLOGGER].name = "__streaming_logger__";
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadInit = OutputStreamingLogThreadInit;
-    tmm_modules[TMM_STREAMINGLOGGER].Func = OutputStreamingLog;
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadExitPrintStats = OutputStreamingLogExitPrintStats;
-    tmm_modules[TMM_STREAMINGLOGGER].ThreadDeinit = OutputStreamingLogThreadDeinit;
-    tmm_modules[TMM_STREAMINGLOGGER].cap_flags = 0;
+void OutputStreamingLoggerRegister(void) {
+    OutputRegisterRootLogger(OutputStreamingLogThreadInit,
+        OutputStreamingLogThreadDeinit, OutputStreamingLogExitPrintStats,
+        OutputStreamingLog);
 }
 
 void OutputStreamingShutdown(void)

@@ -32,9 +32,6 @@ typedef struct LuaStreamingBuffer_ {
     uint8_t flags;
 } LuaStreamingBuffer;
 
-#define LUA_FLOW_LOCKED_BY_PARENT       0
-#define LUA_FLOW_NOT_LOCKED_BY_PARENT   1
-
 /* gets */
 
 /** \brief get tv pointer from the lua state */
@@ -45,13 +42,9 @@ void *LuaStateGetTX(lua_State *luastate);
 
 /** \brief get flow pointer from lua state
  *
- *  \param locked_by_parent[out] bool indicating if flow is locked
- *                          (LUA_FLOW_LOCKED_BY_PARENT) or unlocked
- *                          (LUA_FLOW_NOT_LOCKED_BY_PARENT)
- *
  *  \retval f flow poiner or NULL if it was not set
  */
-Flow *LuaStateGetFlow(lua_State *luastate, int *locked_by_parent);
+Flow *LuaStateGetFlow(lua_State *luastate);
 
 PacketAlert *LuaStateGetPacketAlert(lua_State *luastate);
 
@@ -70,11 +63,8 @@ void LuaStateSetTX(lua_State *luastate, void *tx);
 /** \brief set a flow pointer in the lua state
  *
  *  \param f flow pointer
- *  \param locked_by_parent bool indicating if flow is locked
- *                          (LUA_FLOW_LOCKED_BY_PARENT) or unlocked
- *                          (LUA_FLOW_NOT_LOCKED_BY_PARENT)
  */
-void LuaStateSetFlow(lua_State *luastate, Flow *f, int locked_by_parent);
+void LuaStateSetFlow(lua_State *luastate, Flow *f);
 
 void LuaStateSetPacketAlert(lua_State *luastate, PacketAlert *pa);
 

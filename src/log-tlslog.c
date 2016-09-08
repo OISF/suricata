@@ -312,16 +312,10 @@ static int LogTlsLogger(ThreadVars *tv, void *thread_data, const Packet *p,
     return 0;
 }
 
-void TmModuleLogTlsLogRegister(void)
+void LogTlsLogRegister(void)
 {
-    tmm_modules[TMM_LOGTLSLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGTLSLOG].ThreadInit = LogTlsLogThreadInit;
-    tmm_modules[TMM_LOGTLSLOG].ThreadExitPrintStats = LogTlsLogExitPrintStats;
-    tmm_modules[TMM_LOGTLSLOG].ThreadDeinit = LogTlsLogThreadDeinit;
-    tmm_modules[TMM_LOGTLSLOG].RegisterTests = NULL;
-    tmm_modules[TMM_LOGTLSLOG].cap_flags = 0;
-    tmm_modules[TMM_LOGTLSLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterTxModuleWithProgress(MODULE_NAME, "tls-log", LogTlsLogInitCtx,
-            ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE, TLS_HANDSHAKE_DONE);
+    OutputRegisterTxModuleWithProgress(LOGGER_TLS, MODULE_NAME, "tls-log",
+        LogTlsLogInitCtx, ALPROTO_TLS, LogTlsLogger, TLS_HANDSHAKE_DONE,
+        TLS_HANDSHAKE_DONE, LogTlsLogThreadInit, LogTlsLogThreadDeinit,
+        LogTlsLogExitPrintStats);
 }

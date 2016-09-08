@@ -24,6 +24,6 @@
 #ifndef __OUTPUT_JSON_TEMPLATE_H__
 #define __OUTPUT_JSON_TEMPLATE_H__
 
-void TmModuleJsonTemplateLogRegister(void);
+void JsonTemplateLogRegister(void);
 
 #endif /* __OUTPUT_JSON_TEMPLATE_H__ */

@@ -216,7 +216,6 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
 
     if (p->flow != NULL) {
         int applayer = 0;
-        FLOWLOCK_RDLOCK(p->flow);
         applayer = StreamTcpAppLayerIsDisabled(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
@@ -239,7 +238,6 @@ static TmEcode AlertDebugLogger(ThreadVars *tv, const Packet *p, void *thread_da
                              (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, (Packet *)p); /* < no const */
-        FLOWLOCK_UNLOCK(p->flow);
     }
 
     AlertDebugLogPktVars(aft, p);
@@ -510,17 +508,10 @@ static int AlertDebugLogLogger(ThreadVars *tv, void *thread_data, const Packet *
     return TM_ECODE_OK;
 }
 
-void TmModuleAlertDebugLogRegister (void)
+void AlertDebugLogRegister(void)
 {
-    tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadInit = AlertDebugLogThreadInit;
-    tmm_modules[TMM_ALERTDEBUGLOG].Func = NULL;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadExitPrintStats = AlertDebugLogExitPrintStats;
-    tmm_modules[TMM_ALERTDEBUGLOG].ThreadDeinit = AlertDebugLogThreadDeinit;
-    tmm_modules[TMM_ALERTDEBUGLOG].RegisterTests = NULL;
-    tmm_modules[TMM_ALERTDEBUGLOG].cap_flags = 0;
-    tmm_modules[TMM_ALERTDEBUGLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "alert-debug",
-        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition);
+    OutputRegisterPacketModule(LOGGER_ALERT_DEBUG, MODULE_NAME, "alert-debug",
+        AlertDebugLogInitCtx, AlertDebugLogLogger, AlertDebugLogCondition,
+        AlertDebugLogThreadInit, AlertDebugLogThreadDeinit,
+        AlertDebugLogExitPrintStats);
 }
