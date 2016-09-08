@@ -484,11 +484,15 @@ static void SetBpfStringFromFile(char *filename)
     }
     memset(bpf_filter, 0x00, bpf_len);
 
-    nm = fread(bpf_filter, bpf_len - 1, 1, fp);
-    if((ferror(fp) != 0)||( nm != 1)) {
-        *bpf_filter='\0';
+    nm = fread(bpf_filter, 1, bpf_len - 1, fp);
+    if ((ferror(fp) != 0) || (nm != (bpf_len - 1))) {
+        SCLogError(SC_ERR_BPF, "Failed to read complete BPF file %s", filename);
+        SCFree(bpf_filter);
+        fclose(fp);
+        exit(EXIT_FAILURE);
     }
     fclose(fp);
+    bpf_filter[nm] = '\0';
 
     if(strlen(bpf_filter) > 0) {
         /*replace comments with space*/
@@ -508,10 +512,18 @@ static void SetBpfStringFromFile(char *filename)
         while((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
             *bpf_comment_tmp = ' ';
         }
-        if(ConfSetFinal("bpf-filter", bpf_filter) != 1) {
-            SCLogError(SC_ERR_FOPEN, "ERROR: Failed to set bpf filter!");
-            SCFree(bpf_filter);
-            exit(EXIT_FAILURE);
+        /* cut trailing spaces */
+        while (strlen(bpf_filter) > 0 &&
+                bpf_filter[strlen(bpf_filter)-1] == ' ')
+        {
+            bpf_filter[strlen(bpf_filter)-1] = '\0';
+        }
+        if (strlen(bpf_filter) > 0) {
+            if(ConfSetFinal("bpf-filter", bpf_filter) != 1) {
+                SCLogError(SC_ERR_FOPEN, "ERROR: Failed to set bpf filter!");
+                SCFree(bpf_filter);
+                exit(EXIT_FAILURE);
+            }
         }
     }
     SCFree(bpf_filter);
