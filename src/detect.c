@@ -139,6 +139,7 @@
 #include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-http-request-line.h"
+#include "detect-http-response-line.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-hhd.h"
@@ -4154,6 +4155,7 @@ void SigTableSetup(void)
     DetectTemplateRegister();
     DetectTemplateBufferRegister();
     DetectHttpRequestLineRegister();
+    DetectHttpResponseLineRegister();
 }
 
 void SigTableRegisterTests(void)

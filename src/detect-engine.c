@@ -73,6 +73,7 @@
 #include "detect-engine-threshold.h"
 
 #include "detect-http-request-line.h"
+#include "detect-http-response-line.h"
 
 #include "detect-engine-loader.h"
 
@@ -352,6 +353,12 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_HSCD_INSPECT,
           1,
           DetectEngineInspectHttpStatCode },
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
+          DETECT_SM_LIST_HTTP_RESLINEMATCH,
+          DE_STATE_FLAG_HTTP_RESLINE_INSPECT,
+          1,
+          DetectEngineInspectHttpResponseLine },
         /* Modbus */
         { IPPROTO_TCP,
           ALPROTO_MODBUS,
@@ -2740,6 +2747,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http user-agent";
         case DETECT_SM_LIST_HTTP_REQLINEMATCH:
             return "http request line";
+        case DETECT_SM_LIST_HTTP_RESLINEMATCH:
+            return "http response line";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 
