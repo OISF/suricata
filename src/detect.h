@@ -115,6 +115,8 @@ enum DetectSigmatchListEnum {
     DETECT_SM_LIST_HUADMATCH,
     /* list for http_request_line keyword and the ones relative to it */
     DETECT_SM_LIST_HTTP_REQLINEMATCH,
+    /* list for http_response_line keyword and the ones relative to it */
+    DETECT_SM_LIST_HTTP_RESLINEMATCH,
     /* app event engine sm list */
     DETECT_SM_LIST_APP_EVENT,
 
@@ -1229,6 +1231,7 @@ enum {
     DETECT_AL_HTTP_HOST,
     DETECT_AL_HTTP_RAW_HOST,
     DETECT_AL_HTTP_REQUEST_LINE,
+    DETECT_AL_HTTP_RESPONSE_LINE,
     DETECT_AL_SSH_PROTOVERSION,
     DETECT_AL_SSH_SOFTWAREVERSION,
     DETECT_AL_SSL_VERSION,
