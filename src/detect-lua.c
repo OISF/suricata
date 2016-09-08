@@ -1109,7 +1109,7 @@ static int DetectLuaSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         else if (luajit->flags & DATATYPE_HTTP_RESPONSE_COOKIE)
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
         else
-            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRLMATCH);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HTTP_REQLINEMATCH);
     } else if (luajit->alproto == ALPROTO_DNS) {
         if (luajit->flags & DATATYPE_DNS_RRNAME) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DNSQUERYNAME_MATCH);
