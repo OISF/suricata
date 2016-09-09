@@ -358,6 +358,14 @@ typedef struct PktProfiling_ {
 /* forward declartion since Packet struct definition requires this */
 struct PacketQueue_;
 
+/*
+   since a pkt could come from different runmodes, we need to set
+   a mode to be able to do an action later.
+   (e.g. if a pkt come from NFQ, pkt_mode will be set to IPS and
+         it means that we'll be able to drop it.)
+*/
+enum PktMode {PKT_MODE_IDS, PKT_MODE_IPS, PKT_MODE_AUTO};
+
 /* sizes of the members:
  * src: 17 bytes
  * dst: 17 bytes
@@ -411,6 +419,8 @@ typedef struct Packet_
     uint32_t flow_hash;
 
     struct timeval ts;
+
+    enum PktMode pkt_mode;
 
     union {
         /* nfq stuff */
@@ -894,6 +904,8 @@ int PacketCallocExtPkt(Packet *p, int datalen);
 int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen);
 int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
+int PacketModeIsIPS(const Packet *p);
+int PacketModeIsIDS(const Packet *p);
 const char *PktSrcToString(enum PktSrcEnum pkt_src);
 
 DecodeThreadVars *DecodeThreadVarsAlloc(ThreadVars *);
