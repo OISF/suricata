@@ -58,6 +58,7 @@
 #include "app-layer-dns-udp.h"
 #include "app-layer-dns-tcp.h"
 #include "app-layer-modbus.h"
+#include "app-layer-echo.h"
 #include "app-layer-template.h"
 
 #include "conf.h"
@@ -1164,6 +1165,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();
     RegisterModbusParsers();
+    RegisterEchoParsers();
     RegisterTemplateParsers();
 
     /** IMAP */
