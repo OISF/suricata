@@ -69,40 +69,35 @@ w
 EOF
 }
 
-function patch_suricata_c() {
-    filename="src/suricata.c"
+patch_suricata_common_h() {
+    filename="src/suricata-common.h"
     echo "Patching ${filename}."
     ed -s ${filename} > /dev/null <<EOF
+/LOGGER_JSON_TEMPLATE
+t-
+s/TEMPLATE/${protoname_upper}
+w
+EOF
+}
+
+function patch_output_c() {
+    filename="src/output.c"
+    echo "Patching ${filename}."
+    ed -s ${filename} > /dev/null <<EOF
+# Find #include output-json-template.h and duplicate it for new protocol.
 /#include "output-json-template.h"
 t-
 s/template/${protoname_lower}/
-/TmModuleJsonTemplateLogRegister
+# Find JsonTemplateLogRegister() then backup one line to its comment.
+/JsonTemplateLogRegister
 -
+# Copy the current line and the next line up a line.
 .,+t-
+# Go back a line so we're at the first copied line.
 -
+# Now rename to the new protocol name.
 .,+s/Template/${protoname}/
-w
-EOF
-}
-
-patch_tm_modules_c() {
-    filename="src/tm-modules.c"
-    echo "Patching ${filename}."
-    ed -s ${filename} > /dev/null <<EOF
-/TMM_JSONTEMPLATELOG
-t-
-s/TEMPLATE/${protoname_upper}
-w
-EOF
-}
-
-patch_tm_threads_common_h() {
-    filename="src/tm-threads-common.h"
-    echo "Patching ${filename}."
-    ed -s ${filename} > /dev/null <<EOF
-/TMM_JSONTEMPLATELOG
-t-
-s/TEMPLATE/${protoname_upper}
+# Write.
 w
 EOF
 }
@@ -138,9 +133,8 @@ fi
 
 copy_templates
 patch_makefile_am
-patch_suricata_c
-patch_tm_modules_c
-patch_tm_threads_common_h
+patch_suricata_common_h
+patch_output_c
 patch_suricata_yaml_in
 
 cat <<EOF
