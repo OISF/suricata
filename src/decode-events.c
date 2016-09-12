@@ -168,6 +168,7 @@ const struct DecodeEvents_ DEvents[] = {
     { "decoder.ipv6.ipv6_in_ipv6_wrong_version", IPV6_IN_IPV6_WRONG_IP_VER, },
 
     /* MPLS events */
+    { "decoder.mpls.header_too_small", MPLS_HEADER_TOO_SMALL, },
     { "decoder.mpls.bad_label_router_alert", MPLS_BAD_LABEL_ROUTER_ALERT, },
     { "decoder.mpls.bad_label_implicit_null", MPLS_BAD_LABEL_IMPLICIT_NULL, },
     { "decoder.mpls.bad_label_reserved", MPLS_BAD_LABEL_RESERVED, },
