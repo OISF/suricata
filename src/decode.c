@@ -427,13 +427,14 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
         StatsRegisterCounter("defrag.ipv6.timeouts", tv);
     dtv->counter_defrag_max_hit =
         StatsRegisterCounter("defrag.max_frag_hits", tv);
-    
+
     int i = 0;
     for (i = 0; i < DECODE_EVENT_PACKET_MAX; i++) {
+        BUG_ON(i != (int)DEvents[i].code);
         dtv->counter_invalid_events[i] = StatsRegisterCounter(
                 DEvents[i].event_name, tv);
     }
-    
+
     return;
 }
 
