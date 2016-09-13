@@ -72,9 +72,7 @@
 extern int sc_set_caps;
 
 static pcre *config_pcre = NULL;
-static pcre *option_pcre = NULL;
 static pcre_extra *config_pcre_extra = NULL;
-static pcre_extra *option_pcre_extra = NULL;
 
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
@@ -121,8 +119,6 @@ typedef struct SigDuplWrapper_ {
                     "\\s+" \
                     CONFIG_PCRE_PORT \
                     "(?:\\s+\\((.*)?(?:\\s*)\\))?(?:(?:\\s*)\\n)?\\s*$"
-#define OPTION_PARTS 3
-#define OPTION_PCRE "^\\s*([A-z_0-9-\\.]+)(?:\\s*\\:\\s*(.*)(?<!\\\\))?\\s*;\\s*(?:\\s*(.*))?\\s*$"
 
 /** helper structure for sig parsing */
 typedef struct SignatureParser_ {
@@ -526,74 +522,67 @@ void SigParsePrepare(void)
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         exit(1);
     }
-
-    regexstr = OPTION_PCRE;
-    opts |= PCRE_UNGREEDY;
-
-    option_pcre = pcre_compile(regexstr, opts, &eb, &eo, NULL);
-    if(option_pcre == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
-        exit(1);
-    }
-
-    option_pcre_extra = pcre_study(option_pcre, 0, &eb);
-    if(eb != NULL)
-    {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        exit(1);
-    }
 }
 
 static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, char *output, size_t output_size)
 {
-#define MAX_SUBSTRINGS 30
-    int ov[MAX_SUBSTRINGS];
-    int ret = 0;
     SigTableElmt *st = NULL;
     char optname[64];
     char optvalue[DETECT_MAX_RULE_SIZE] = "";
 
-    ret = pcre_exec(option_pcre, option_pcre_extra, optstr, strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
-    /* if successful, we either have:
-     *  2: keyword w/o value
-     *  3: keyword w value, final opt OR keyword w/o value, more options coming
-     *  4: keyword w value, more options coming
-     */
-    if (ret != 2 && ret != 3 && ret != 4) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec failed: ret %" PRId32 ", optstr \"%s\"", ret, optstr);
-        goto error;
+    /* Trim leading space. */
+    while (isblank(*optstr)) {
+        optstr++;
+    }
+    
+    /* Look for the end of this option, handling escaped semicolons. */
+    char *optend = optstr;
+    for (;;) {
+        optend = strchr(optend, ';');
+        if (optend == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "no terminating \";\" found");
+            goto error;
+        }
+        if (*(optend -1) == '\\') {
+            optend++;
+        } else {
+            break;
+        }
+    }
+    *(optend++) = '\0';
+
+    /* Find the start of the option value. */
+    char *optvalptr = strchr(optstr, ':');
+    if (optvalptr) {
+        *(optvalptr++) = '\0';
+
+        /* Trim trailing space from name. */
+        for (size_t i = strlen(optvalptr); i > 0; i--) {
+            if (isblank(optvalptr[i - 1])) {
+                optvalptr[i - 1] = '\0';
+            } else {
+                break;
+            }
+        }
+
+        strlcpy(optvalue, optvalptr, sizeof(optvalue));
     }
 
-    /* extract the substrings */
-    if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 1, optname, sizeof(optname)) < 0) {
-        goto error;
+    /* Trim trailing space from name. */
+    for (size_t i = strlen(optstr); i > 0; i--) {
+        if (isblank(optstr[i - 1])) {
+            optstr[i - 1] = '\0';
+        } else {
+            break;
+        }
     }
+    strlcpy(optname, optstr, sizeof(optname));
 
     /* Call option parsing */
     st = SigTableGet(optname);
     if (st == NULL) {
         SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "unknown rule keyword '%s'.", optname);
         goto error;
-    }
-
-    if (ret == 3) {
-        if (st->flags & SIGMATCH_NOOPT) {
-            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, output, output_size) < 0) {
-                goto error;
-            }
-        } else {
-            if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
-                goto error;
-            }
-        }
-    } else if (ret == 4) {
-        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 2, optvalue, sizeof(optvalue)) < 0) {
-            goto error;
-        }
-        if (pcre_copy_substring(optstr, ov, MAX_SUBSTRINGS, 3, output, output_size) < 0) {
-            goto error;
-        }
     }
 
     if (!(st->flags & (SIGMATCH_NOOPT|SIGMATCH_OPTIONAL_OPT))) {
@@ -610,7 +599,8 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         goto error;
     }
 
-    if (ret == 4) {
+    if (strlen(optend) > 0) {
+        strlcpy(output, optend, output_size);
         return 1;
     }
 
