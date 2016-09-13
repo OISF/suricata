@@ -119,6 +119,7 @@
 #include "app-layer-dns-tcp.h"
 #include "app-layer-ssh.h"
 #include "app-layer-ftp.h"
+#include "app-layer-imap.h"
 #include "app-layer-smtp.h"
 #include "app-layer-smb.h"
 #include "app-layer-modbus.h"

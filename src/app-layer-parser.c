@@ -51,6 +51,7 @@
 #include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
+#include "app-layer-imap.h"
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
@@ -1167,6 +1168,7 @@ void AppLayerParserRegisterProtocolParsers(void)
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();
+    RegisterIMAPParsers();
     RegisterSMTPParsers();
     RegisterDNSUDPParsers();
     RegisterDNSTCPParsers();

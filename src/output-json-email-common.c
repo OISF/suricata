@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "app-layer-parser.h"
 #include "output.h"
+#include "app-layer-imap.h"
 #include "app-layer-smtp.h"
 #include "app-layer.h"
 #include "util-privs.h"
@@ -237,6 +238,7 @@ static void JsonEmailLogJSONCustom(OutputJsonEmailCtx *email_ctx, json_t *js, SM
 /* JSON format logging */
 json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_id)
 {
+    IMAPState *imap_state;
     SMTPState *smtp_state;
     MimeDecParseState *mime_state;
     MimeDecEntity *entity;
@@ -249,6 +251,18 @@ json_t *JsonEmailLogJsonData(const Flow *f, void *state, void *vtx, uint64_t tx_
     /* check if we have SMTP state or not */
     AppProto proto = FlowGetAppProtocol(f);
     switch (proto) {
+        case ALPROTO_IMAP: {
+            imap_state = (IMAPState *)state;
+            if (imap_state == NULL) {
+                SCLogDebug("no imap state, so no request logging");
+                SCReturnPtr(NULL, "json_t");
+            }
+            IMAPTransaction *tx = vtx;
+            mime_state = tx->mime_state;
+            entity = tx->msg_tail;
+            SCLogDebug("lets go mime_state %p, entity %p, state_flag %u", mime_state, entity, mime_state ? mime_state->state_flag : 0);
+            }
+            break;
         case ALPROTO_SMTP:
             smtp_state = (SMTPState *)state;
             if (smtp_state == NULL) {
