@@ -46,7 +46,6 @@ void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *, const char *sigstr);
 Signature *SigInitReal(DetectEngineCtx *, const char *);
 SigMatchData* SigMatchList2DataArray(SigMatch *head);
-void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, const char *);
 
