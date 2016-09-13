@@ -216,7 +216,7 @@ void run_pcie_logging(void)
                 fprintf(stdout, "p->len: %d\n", p->len);
                 fprintf(stdout, "p->next_offset: %d\n", p->next_offset);
                 fprintf(stdout, "p->buf: ");
-                fwrite(&p->buf, sizeof(char), p->len - offsetof(TrioMsg, buf), stdout);
+                fwrite((char *)&p->buf, sizeof(char), p->len - offsetof(TrioMsg, buf), stdout);
                 fprintf(stdout, "\n");
                 fflush(stdout);
             }
@@ -277,7 +277,7 @@ void run_pcie_logging(void)
                     /* TODO: Report alert count periodically. */
                 } else {
                     if (fdesc[p->fileno] && fdesc[p->fileno]->fd) {
-                        fwrite(&p->buf, sizeof(char),
+                        fwrite((char *)&p->buf, sizeof(char),
                                p->len - offsetof(TrioMsg, buf),
                                fdesc[p->fileno]->fd);
                         fflush(fdesc[p->fileno]->fd);
