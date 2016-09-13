@@ -61,7 +61,10 @@ TODO:
     hostbits:set,bitname,both,120;
  */
 
-#define PARSE_REGEX "([a-z]+)(?:\\s*,\\s*([^\\s,]+))?(?:\\s*,\\s*([^,\\s]+))?"
+#define PARSE_REGEX "([a-z]+)"          /* Action */                    \
+    "(?:\\s*,\\s*([^\\s,]+))?(?:\\s*)?" /* Name. */                     \
+    "(?:\\s*,\\s*([^,\\s]+))?(?:\\s*)?" /* Direction. */                \
+    "(.+)?"                             /* Any remainding data. */
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -453,126 +456,80 @@ static void HostBitsTestShutdown(void)
 
 static int HostBitsTestParse01(void)
 {
-    int ret = 0;
     char cmd[16] = "", name[256] = "", dir[16] = "";
 
     /* No direction. */
-    if (!DetectHostbitParse("isset,name", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
-    if (strlen(dir)) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset,name", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
+    FAIL_IF(strlen(dir));
 
     /* No direction, leading space. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset, name", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset, name", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
 
     /* No direction, trailing space. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset,name ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset,name ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
 
     /* No direction, leading and trailing space. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset, name ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset, name ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
 
     /* With direction. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset,name,src", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
-    if (strcmp(dir, "src") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset,name,src", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
+    FAIL_IF(strcmp(dir, "src") != 0);
 
     /* With direction - leading and trailing spaces on name. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset, name ,src", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
-    if (strcmp(dir, "src") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset, name ,src", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
+    FAIL_IF(strcmp(dir, "src") != 0);
 
     /* With direction - space around direction. */
     *cmd = '\0';
     *name = '\0';
     *dir = '\0';
-    if (!DetectHostbitParse("isset, name , src ", cmd, sizeof(cmd), name,
-            sizeof(name), dir, sizeof(dir))) {
-        goto end;
-    }
-    if (strcmp(cmd, "isset") != 0) {
-        goto end;
-    }
-    if (strcmp(name, "name") != 0) {
-        goto end;
-    }
-    if (strcmp(dir, "src") != 0) {
-        goto end;
-    }
+    FAIL_IF(!DetectHostbitParse("isset, name , src ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+    FAIL_IF(strcmp(cmd, "isset") != 0);
+    FAIL_IF(strcmp(name, "name") != 0);
+    FAIL_IF(strcmp(dir, "src") != 0);
 
-    ret = 1;
-end:
-    return ret;
+    /* Name with space, no direction - should fail. */
+    *cmd = '\0';
+    *name = '\0';
+    *dir = '\0';
+    FAIL_IF(DetectHostbitParse("isset, name withspace ", cmd, sizeof(cmd), name,
+            sizeof(name), dir, sizeof(dir)));
+
+    PASS;
 }
 
 /**
