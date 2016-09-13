@@ -45,7 +45,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX         "([a-z]+)(?:,\\s*([^\\s]*))?"
+#define PARSE_REGEX         "([a-z]+)(?:,\\s*(.*))?"
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -181,6 +181,20 @@ static int DetectFlowbitParse(char *str, char *cmd, int cmd_len, char *name,
         if (rc < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_copy_substring failed");
             return 0;
+        }
+
+        /* Trim trailing whitespace. */
+        while (strlen(name) > 0 && isblank(name[strlen(name) - 1])) {
+            name[strlen(name) - 1] = '\0';
+        }
+
+        /* Validate name, spaces are not allowed. */
+        for (size_t i = 0; i < strlen(name); i++) {
+            if (isblank(name[i])) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "spaces not allowed in flowbit names");
+                return 0;
+            }
         }
     }
 
@@ -323,6 +337,10 @@ static int FlowBitsTestParse01(void)
             sizeof(name)));
     FAIL_IF(strcmp(command, "set") != 0);
     FAIL_IF(strcmp(name, "flowbit") != 0);
+
+    /* Spaces are not allowed in the name. */
+    FAIL_IF(DetectFlowbitParse("set,namewith space", command, sizeof(command),
+            name, sizeof(name)));
 
     PASS;
 }
