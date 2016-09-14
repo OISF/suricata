@@ -117,7 +117,7 @@ int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
     cnt = DetectEngineContentInspection(de_ctx, det_ctx, s,
             s->sm_lists[DETECT_SM_LIST_TLSSNI_MATCH],
             f, buffer, buffer_len, 0,
-            DETECT_ENGINE_CONTENT_INSPECTION_MODE_TLSSNI, NULL);
+            DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
 
     return cnt;
 }
