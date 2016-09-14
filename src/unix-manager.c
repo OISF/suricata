@@ -662,7 +662,7 @@ TmEcode UnixManagerVersionCommand(json_t *cmd,
     SCEnter();
     json_object_set_new(server_msg, "message", json_string(
 #ifdef REVISION
-                        PROG_VER  xstr(REVISION)
+                        PROG_VER " (rev "  xstr(REVISION) ")"
 #elif defined RELEASE
                         PROG_VER " RELEASE"
 #else
