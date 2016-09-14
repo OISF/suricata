@@ -282,7 +282,7 @@ int DetectEngineInspectHttpClientBody(ThreadVars *tv,
                                           (uint8_t *)buffer,
                                           buffer_len,
                                           stream_start_offset,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
 
