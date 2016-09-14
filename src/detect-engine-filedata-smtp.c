@@ -208,7 +208,7 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
                                               (uint8_t *)buffer,
                                               buffer_len,
                                               stream_start_offset,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_FD_SMTP, NULL);
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1)
             r = 1;
         }

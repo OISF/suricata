@@ -90,7 +90,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
+                                          0, dcerpc_state);
         //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
@@ -113,7 +113,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
                                           dce_stub_data,
                                           dce_stub_data_len,
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
+                                          0, dcerpc_state);
         //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
         //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
