@@ -134,7 +134,7 @@ int DetectEngineInspectHttpStatCode(ThreadVars *tv,
                                           (uint8_t *)bstr_ptr(tx->response_status),
                                           bstr_len(tx->response_status),
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSCD, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1)
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     else

@@ -136,7 +136,7 @@ int DetectEngineInspectPacketUris(ThreadVars *tv,
                                           bstr_ptr(tx_ud->request_uri_normalized),
                                           bstr_len(tx_ud->request_uri_normalized),
                                           0,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_URI, NULL);
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
     if (r == 1) {
         return DETECT_ENGINE_INSPECT_SIG_MATCH;
     } else {
