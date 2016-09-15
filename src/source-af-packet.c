@@ -2217,6 +2217,20 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     return TM_ECODE_OK;
 }
 
+static void AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
+{
+        /* FIXME error handling */
+        struct pair value = {};
+        SCLogDebug("Inserting element in eBPF mapping");
+        if (bpf_map__update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
+            if (errno != EEXIST) {
+                SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
+                           strerror(errno),
+                           errno);
+            }
+       }
+}
+
 static int AFPBypassCallback(Packet *p)
 {
     SCLogDebug("Calling af_packet callback function");
@@ -2232,22 +2246,18 @@ static int AFPBypassCallback(Packet *p)
             return 0;
         }
         /* FIXME error handling */
-        struct flowv4_keys *key= SCMalloc(sizeof(struct flowv4_keys));
-        key->src = htonl(GET_IPV4_SRC_ADDR_U32(p));
-        key->dst = htonl(GET_IPV4_DST_ADDR_U32(p));
-        key->port16[0] = GET_TCP_SRC_PORT(p);
-        key->port16[1] = GET_TCP_DST_PORT(p);
-        key->ip_proto = 6;
-
-        /* FIXME error handling */
-        struct pair *value = SCMalloc(sizeof(struct pair));
-        memset(value, 0, sizeof(struct pair));
-        SCLogNotice("Inserting element in eBPF mapping");
-        /* FIXME error handling */
-        if (bpf_map__update_elem(mapd, key, value, BPF_NOEXIST) != 0) {
-            SCLogNotice("Can't update eBPF map (%d): %s", mapd, strerror(errno));
-            return 0;
-        }
+        struct flowv4_keys key = {};
+        key.src = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key.dst = htonl(GET_IPV4_DST_ADDR_U32(p));
+        key.port16[0] = GET_TCP_SRC_PORT(p);
+        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.ip_proto = 6;
+        AFPInsertHalfFlow(mapd, &key);
+        key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
+        key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key.port16[0] = GET_TCP_DST_PORT(p);
+        key.port16[1] = GET_TCP_SRC_PORT(p);
+        AFPInsertHalfFlow(mapd, &key);
         return 1;
     }
 
