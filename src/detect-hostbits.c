@@ -553,7 +553,6 @@ static int HostBitsTestSig01(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -566,29 +565,18 @@ static int HostBitsTestSig01(void)
     HostBitsTestSetup();
 
     de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        printf("bad de_ctx: ");
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (hostbits:set,abc; content:\"GET \"; sid:1;)");
-
-    if (s == NULL) {
-        printf("bad sig: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    result = 1;
-
-end:
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -605,7 +593,7 @@ end:
     HostBitsTestShutdown();
 
     SCFree(p);
-    return result;
+    PASS;
 }
 
 /**
@@ -620,65 +608,39 @@ static int HostBitsTestSig02(void)
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
-    int error_count = 0;
 
     memset(&th_v, 0, sizeof(th_v));
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:isset,abc,src; content:\"GET \"; sid:1;)");
-    if (s == NULL) {
-        error_count++;
-    }
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:isnotset,abc,dst; content:\"GET \"; sid:2;)");
-    if (s == NULL) {
-        error_count++;
-    }
+    FAIL_IF_NULL(s);
+
 /* TODO reenable after both is supported
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:set,abc,both; content:\"GET \"; sid:3;)");
-    if (s == NULL) {
-        error_count++;
-    }
+    FAIL_IF_NULL(s);
 */
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:unset,abc,src; content:\"GET \"; sid:4;)");
-    if (s == NULL) {
-        error_count++;
-    }
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:toggle,abc,dst; content:\"GET \"; sid:5;)");
-    if (s == NULL) {
-        error_count++;
-    }
-
-    if (error_count != 0)
-        goto end;
-
-    result = 1;
+    FAIL_IF_NULL(s);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
-    return result;
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    return result;
+    PASS;
 }
 
 #if 0
@@ -782,7 +744,6 @@ static int HostBitsTestSig04(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
     int idx = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -796,27 +757,20 @@ static int HostBitsTestSig04(void)
     HostBitsTestSetup();
 
     de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; hostbits:isset,fbt; content:\"GET \"; sid:1;)");
+    FAIL_IF_NULL(s);
 
     idx = VariableNameGetIdx(de_ctx, "fbt", VAR_TYPE_HOST_BIT);
-
-    if (s == NULL || idx != 1) {
-        goto end;
-    }
+    FAIL_IF(idx != 1);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-
-    result = 1;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -826,27 +780,7 @@ static int HostBitsTestSig04(void)
     HostBitsTestShutdown();
 
     SCFree(p);
-    return result;
-
-end:
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
-
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    HostBitsTestShutdown();
-
-    SCFree(p);
-    return result;
+    PASS;
 }
 
 /**
@@ -870,7 +804,6 @@ static int HostBitsTestSig05(void)
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
-    int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(p, 0, SIZE_OF_PACKET);
@@ -883,28 +816,21 @@ static int HostBitsTestSig05(void)
     HostBitsTestSetup();
 
     de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
         "alert ip any any -> any any (hostbits:noalert; content:\"GET \"; sid:1;)");
-
-    if (s == NULL || ((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT)) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
+    FAIL_IF((s->flags & SIG_FLAG_NOALERT) != SIG_FLAG_NOALERT);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1)) {
-        result = 1;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -915,26 +841,7 @@ static int HostBitsTestSig05(void)
     HostBitsTestShutdown();
 
     SCFree(p);
-    return result;
-end:
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
-
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    HostBitsTestShutdown();
-
-    SCFree(p);
-    return result;
+    PASS;
 }
 
 #if 0
@@ -1146,8 +1053,7 @@ end:
     FLOW_DESTROY(&f);
 
     SCFree(p);
-    return result;
-}
+    return result;}
 #endif
 
 /**
@@ -1189,26 +1095,17 @@ static int HostBitsTestSig07(void)
     p->proto = IPPROTO_TCP;
 
     de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
             "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)");
-
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     s = s->next  = SigInit(de_ctx,
             "alert ip any any -> any any (hostbits:isset,myflow2; sid:11;)");
-
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -1222,6 +1119,7 @@ static int HostBitsTestSig07(void)
             result = 1;
         }
     }
+    FAIL_IF_NOT(result);
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -1233,27 +1131,7 @@ static int HostBitsTestSig07(void)
 
     HostBitsTestShutdown();
     SCFree(p);
-    return result;
-end:
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
-
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    FLOW_DESTROY(&f);
-
-    HostBitsTestShutdown();
-    SCFree(p);
-    return result;
+    PASS;
 }
 
 /**
@@ -1277,7 +1155,6 @@ static int HostBitsTestSig08(void)
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = NULL;
     Flow f;
-    int result = 0;
 
     memset(p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
@@ -1295,33 +1172,22 @@ static int HostBitsTestSig08(void)
     p->proto = IPPROTO_TCP;
 
     de_ctx = DetectEngineCtxInit();
-
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:set,myflow2; sid:10;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:toggle,myflow2; sid:11;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:toggle,myflow2; sid:12;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx,
             "alert ip any any -> any any (hostbits:isset,myflow2; sid:13;)");
-    if (s == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
     SCSigOrderSignatures(de_ctx);
@@ -1346,7 +1212,8 @@ static int HostBitsTestSig08(void)
         }
         if (PacketAlertCheck(p, 13)) {
             SCLogInfo("sid 13 matched");
-            result = 1;
+        } else {
+            FAIL;
         }
     }
 
@@ -1361,28 +1228,7 @@ static int HostBitsTestSig08(void)
     HostBitsTestShutdown();
 
     SCFree(p);
-    return result;
-end:
-
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-    }
-
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-
-    if (de_ctx != NULL) {
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    FLOW_DESTROY(&f);
-
-    HostBitsTestShutdown();
-
-    SCFree(p);
-    return result;
+    PASS;
 }
 #endif /* UNITTESTS */
 
