@@ -35,6 +35,8 @@
 
 #include "suricata-common.h"
 
+#include "util-ebpf.h"
+
 #include <linux/bpf.h>
 #include <bpf/libbpf.h>
 #include "config.h"
@@ -65,6 +67,8 @@ int EBPFGetMapFDByName(const char *name)
     if (name == NULL)
         return -1;
     for (i = 0; i < BPF_MAP_MAX_COUNT; i++) {
+        if (!bpf_map_array[i].name)
+            continue;
         if (!strcmp(bpf_map_array[i].name, name)) {
             SCLogNotice("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
             return bpf_map_array[i].fd;
@@ -152,4 +156,23 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
     return 0;
 }
 
+void * EBPFForEachFlowV4Table(const char *name,
+                              void (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+                              void *data)
+{
+    int mapfd = EBPFGetMapFDByName(name);
+    struct flowv4_keys key = {}, next_key;
+    struct pair value;
+    while (bpf_map__get_next_key(mapfd, &key, &next_key) == 0) {
+        bpf_map__lookup_elem(mapfd, &next_key, &value);
+        FlowCallback(mapfd, &next_key, &value, data);
+        key = next_key;
+    }
 
+    return NULL;
+}
+
+void EBPFDeleteKey(int fd, void *key)
+{
+    bpf_map__delete_elem(fd, key);
+}

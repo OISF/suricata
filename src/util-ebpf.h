@@ -24,7 +24,28 @@
 #ifndef __UTIL_EBPF_H__
 #define __UTIL_EBPF_H__
 
+struct flowv4_keys {
+	__be32 src;
+	__be32 dst;
+	union {
+		__be32 ports;
+		__be16 port16[2];
+	};
+	__u32 ip_proto;
+};
+
+struct pair {
+    uint64_t time;
+    uint64_t packets;
+    uint64_t bytes;
+};
+
 int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val);
+
+void * EBPFForEachFlowV4Table(const char *name,
+                              void (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+                              void *data);
+void EBPFDeleteKey(int fd, void *key);
 
 #endif
