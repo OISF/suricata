@@ -2220,7 +2220,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 static void AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
 {
         /* FIXME error handling */
-        struct pair value = {};
+        struct pair value = {0, 0, 0};
         SCLogDebug("Inserting element in eBPF mapping");
         if (bpf_map__update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
             if (errno != EEXIST) {
