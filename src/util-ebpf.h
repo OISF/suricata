@@ -40,11 +40,18 @@ struct pair {
     uint64_t bytes;
 };
 
+struct flows_stats {
+    uint64_t count;
+    uint64_t packets;
+    uint64_t bytes;
+};
+
 int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val);
 
-uint64_t EBPFForEachFlowV4Table(const char *name,
+int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+                              struct flows_stats *flowstats,
                               void *data);
 void EBPFDeleteKey(int fd, void *key);
 
