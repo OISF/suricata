@@ -40,7 +40,7 @@ struct bpf_map_def SEC("maps") flow_table_v4 = {
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
 {
     uint32_t nhoff, verlen;
-    struct flow_keys tuple, rtuple;
+    struct flow_keys tuple;
     struct pair *value;
     uint16_t port;
 
@@ -77,20 +77,6 @@ static __always_inline int ipv4_filter(struct __sk_buff *skb)
             bpf_trace_printk(bfmt, sizeof(bfmt), tuple.src, sp, tuple.dst);
         }
 #endif
-        __sync_fetch_and_add(&value->packets, 1);
-        __sync_fetch_and_add(&value->bytes, skb->len);
-        value->time = bpf_ktime_get_ns();
-        return 0;
-    }
-    /* Test if inverted tuple is in hash */
-    rtuple.src = tuple.dst;
-    rtuple.dst = tuple.src;
-    rtuple.port16[0] = tuple.port16[1];
-    rtuple.port16[1] = tuple.port16[0];
-    rtuple.ip_proto = tuple.ip_proto;
-
-    value = bpf_map_lookup_elem(&flow_table_v4, &rtuple);
-    if (value) {
         __sync_fetch_and_add(&value->packets, 1);
         __sync_fetch_and_add(&value->bytes, skb->len);
         value->time = bpf_ktime_get_ns();
