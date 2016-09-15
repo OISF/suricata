@@ -43,8 +43,8 @@ struct pair {
 int EBPFGetMapFDByName(const char *name);
 int EBPFLoadFile(const char *path, const char * section, int *val);
 
-void * EBPFForEachFlowV4Table(const char *name,
-                              void (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+uint64_t EBPFForEachFlowV4Table(const char *name,
+                              int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
                               void *data);
 void EBPFDeleteKey(int fd, void *key);
 

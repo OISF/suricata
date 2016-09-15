@@ -29,7 +29,11 @@
 
 #define BYPASSED_FLOW_TIMEOUT 60
 
-static void BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
+typedef struct BypassedFlowManagerThreadData_ {
+    uint16_t flow_bypassed_cnt_clo;
+} BypassedFlowManagerThreadData;
+
+static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
 {
     struct timespec *curtime = (struct timespec *)data;
     SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
@@ -41,12 +45,16 @@ static void BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *
         SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
                    key->port16[0], key->port16[1], value->time);
         EBPFDeleteKey(fd, key);
+        return 1;
     }
-    return;
+    return 0;
 }
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
+    int tcount = 0;
+    BypassedFlowManagerThreadData *ftd = thread_data;
+
     while (1) {
         SCLogDebug("Dumping the table");
         struct timespec curtime;
@@ -56,18 +64,29 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
             continue;
         }
         /* TODO indirection here: AF_PACKET and NFQ should be able to give their iterate function */
-        EBPFForEachFlowV4Table("flow_table_v4", BypassedFlowV4Timeout, &curtime);
+        tcount = EBPFForEachFlowV4Table("flow_table_v4", BypassedFlowV4Timeout, &curtime);
+        StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)tcount);
+
         if (TmThreadsCheckFlag(th_v, THV_KILL)) {
             StatsSyncCounters(th_v);
             return TM_ECODE_OK;
         }
         sleep(5);
+        StatsSyncCountersIfSignalled(th_v);
     }
 }
 
 
 static TmEcode BypassedFlowManagerThreadInit(ThreadVars *t, const void *initdata, void **data)
 {
+    BypassedFlowManagerThreadData *ftd = SCCalloc(1, sizeof(BypassedFlowManagerThreadData));
+    if (ftd == NULL)
+        return TM_ECODE_FAILED;
+
+    *data = ftd;
+
+    ftd->flow_bypassed_cnt_clo = StatsRegisterCounter("flow_bypassed.closed", t);
+
     return TM_ECODE_OK;
 }
 

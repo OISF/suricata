@@ -156,20 +156,21 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
     return 0;
 }
 
-void * EBPFForEachFlowV4Table(const char *name,
-                              void (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+uint64_t EBPFForEachFlowV4Table(const char *name,
+                              int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
                               void *data)
 {
     int mapfd = EBPFGetMapFDByName(name);
     struct flowv4_keys key = {}, next_key;
     struct pair value;
+    uint64_t count = 0;
     while (bpf_map__get_next_key(mapfd, &key, &next_key) == 0) {
         bpf_map__lookup_elem(mapfd, &next_key, &value);
-        FlowCallback(mapfd, &next_key, &value, data);
+        count += FlowCallback(mapfd, &next_key, &value, data);
         key = next_key;
     }
 
-    return NULL;
+    return count;
 }
 
 void EBPFDeleteKey(int fd, void *key)
