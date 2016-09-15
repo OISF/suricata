@@ -348,6 +348,8 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
                 f->flow_end_flags |= FLOW_END_FLAG_STATE_ESTABLISHED;
             else if (state == FLOW_STATE_CLOSED)
                 f->flow_end_flags |= FLOW_END_FLAG_STATE_CLOSED;
+            else if (state == FLOW_STATE_BYPASSED)
+                f->flow_end_flags |= FLOW_END_FLAG_STATE_BYPASSED;
 
             if (emergency)
                 f->flow_end_flags |= FLOW_END_FLAG_EMERGENCY;
