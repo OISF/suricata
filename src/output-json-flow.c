@@ -219,6 +219,8 @@ static void JsonFlowLogJSON(JsonFlowLogThread *aft, json_t *js, Flow *f)
         state = "established";
     else if (f->flow_end_flags & FLOW_END_FLAG_STATE_CLOSED)
         state = "closed";
+    else if (f->flow_end_flags & FLOW_END_FLAG_STATE_BYPASSED)
+        state = "bypassed";
 
     json_object_set_new(hjs, "state",
             json_string(state));
