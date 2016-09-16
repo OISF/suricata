@@ -75,7 +75,6 @@ void DetectSshVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].name = "ssh.protoversion";
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].AppLayerMatch = DetectSshVersionMatch;
-    sigmatch_table[DETECT_AL_SSH_PROTOVERSION].alproto = ALPROTO_SSH;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Setup = DetectSshVersionSetup;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].Free  = DetectSshVersionFree;
     sigmatch_table[DETECT_AL_SSH_PROTOVERSION].RegisterTests = DetectSshVersionRegisterTests;

@@ -74,7 +74,6 @@ void DetectSslVersionRegister(void)
     sigmatch_table[DETECT_AL_SSL_VERSION].name = "ssl_version";
     sigmatch_table[DETECT_AL_SSL_VERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SSL_VERSION].AppLayerMatch = DetectSslVersionMatch;
-    sigmatch_table[DETECT_AL_SSL_VERSION].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_SSL_VERSION].Setup = DetectSslVersionSetup;
     sigmatch_table[DETECT_AL_SSL_VERSION].Free  = DetectSslVersionFree;
     sigmatch_table[DETECT_AL_SSL_VERSION].RegisterTests = DetectSslVersionRegisterTests;

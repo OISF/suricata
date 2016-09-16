@@ -74,7 +74,6 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HOST].Setup = DetectHttpHHSetup;
     sigmatch_table[DETECT_AL_HTTP_HOST].Free  = DetectHttpHHFree;
     sigmatch_table[DETECT_AL_HTTP_HOST].RegisterTests = DetectHttpHHRegisterTests;
-    sigmatch_table[DETECT_AL_HTTP_HOST].alproto = ALPROTO_HTTP;
 
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_PAYLOAD ;

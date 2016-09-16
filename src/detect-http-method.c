@@ -74,7 +74,6 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = NULL;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Free  = DetectHttpMethodFree;
     sigmatch_table[DETECT_AL_HTTP_METHOD].RegisterTests = DetectHttpMethodRegisterTests;

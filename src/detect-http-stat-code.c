@@ -79,7 +79,6 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#http_stat_code";
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].AppLayerMatch = NULL;
-    sigmatch_table[DETECT_AL_HTTP_STAT_CODE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Setup = DetectHttpStatCodeSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].Free  = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].RegisterTests = DetectHttpStatCodeRegisterTests;

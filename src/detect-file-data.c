@@ -55,7 +55,6 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#file_data";
     sigmatch_table[DETECT_FILE_DATA].Match = NULL;
     sigmatch_table[DETECT_FILE_DATA].AppLayerMatch = NULL;
-    sigmatch_table[DETECT_FILE_DATA].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILE_DATA].Setup = DetectFiledataSetup;
     sigmatch_table[DETECT_FILE_DATA].Free  = NULL;
     sigmatch_table[DETECT_FILE_DATA].RegisterTests = DetectFiledataRegisterTests;

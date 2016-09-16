@@ -98,7 +98,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_SUBJECT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlssubject";
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].AppLayerMatch = DetectTlsSubjectMatch;
-    sigmatch_table[DETECT_AL_TLS_SUBJECT].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Setup = DetectTlsSubjectSetup;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].Free  = DetectTlsSubjectFree;
     sigmatch_table[DETECT_AL_TLS_SUBJECT].RegisterTests = DetectTlsSubjectRegisterTests;
@@ -108,7 +107,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsissuerdn";
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].AppLayerMatch = DetectTlsIssuerDNMatch;
-    sigmatch_table[DETECT_AL_TLS_ISSUERDN].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Setup = DetectTlsIssuerDNSetup;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].Free  = DetectTlsIssuerDNFree;
     sigmatch_table[DETECT_AL_TLS_ISSUERDN].RegisterTests = DetectTlsIssuerDNRegisterTests;
@@ -118,7 +116,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsfingerprint";
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].AppLayerMatch = DetectTlsFingerprintMatch;
-    sigmatch_table[DETECT_AL_TLS_FINGERPRINT].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
@@ -128,7 +125,6 @@ void DetectTlsRegister (void)
     sigmatch_table[DETECT_AL_TLS_STORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsstore";
     sigmatch_table[DETECT_AL_TLS_STORE].Match = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].AppLayerMatch = DetectTlsStoreMatch;
-    sigmatch_table[DETECT_AL_TLS_STORE].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
     sigmatch_table[DETECT_AL_TLS_STORE].Free  = NULL;
     sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;

@@ -66,7 +66,6 @@ void DetectFileextRegister(void)
     sigmatch_table[DETECT_FILEEXT].desc = "match on the extension of a file name";
     sigmatch_table[DETECT_FILEEXT].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#fileext";
     sigmatch_table[DETECT_FILEEXT].FileMatch = DetectFileextMatch;
-    sigmatch_table[DETECT_FILEEXT].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILEEXT].Setup = DetectFileextSetup;
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;
     sigmatch_table[DETECT_FILEEXT].RegisterTests = DetectFileextRegisterTests;

@@ -76,7 +76,6 @@ void DetectUricontentRegister (void)
     sigmatch_table[DETECT_URICONTENT].Setup = DetectUricontentSetup;
     sigmatch_table[DETECT_URICONTENT].Free  = DetectUricontentFree;
     sigmatch_table[DETECT_URICONTENT].RegisterTests = HttpUriRegisterTests;
-    sigmatch_table[DETECT_URICONTENT].alproto = ALPROTO_HTTP;
 
     sigmatch_table[DETECT_URICONTENT].flags |= SIGMATCH_PAYLOAD;
 }

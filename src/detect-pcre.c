@@ -86,7 +86,6 @@ void DetectPcreRegister (void)
     sigmatch_table[DETECT_PCRE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/HTTP-keywords#Pcre-Perl-Compatible-Regular-Expressions";
     sigmatch_table[DETECT_PCRE].Match = NULL;
     sigmatch_table[DETECT_PCRE].AppLayerMatch = NULL;
-    sigmatch_table[DETECT_PCRE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_PCRE].Setup = DetectPcreSetup;
     sigmatch_table[DETECT_PCRE].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE].RegisterTests  = DetectPcreRegisterTests;

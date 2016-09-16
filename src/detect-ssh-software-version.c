@@ -80,7 +80,6 @@ void DetectSshSoftwareVersionRegister(void)
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].name = "ssh.softwareversion";
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].AppLayerMatch = DetectSshSoftwareVersionMatch;
-    sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].alproto = ALPROTO_SSH;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Setup = DetectSshSoftwareVersionSetup;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].Free  = DetectSshSoftwareVersionFree;
     sigmatch_table[DETECT_AL_SSH_SOFTWAREVERSION].RegisterTests = DetectSshSoftwareVersionRegisterTests;

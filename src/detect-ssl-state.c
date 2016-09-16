@@ -73,7 +73,6 @@ void DetectSslStateRegister(void)
     sigmatch_table[DETECT_AL_SSL_STATE].name = "ssl_state";
     sigmatch_table[DETECT_AL_SSL_STATE].Match = NULL;
     sigmatch_table[DETECT_AL_SSL_STATE].AppLayerMatch = DetectSslStateMatch;
-    sigmatch_table[DETECT_AL_SSL_STATE].alproto = ALPROTO_TLS;
     sigmatch_table[DETECT_AL_SSL_STATE].Setup = DetectSslStateSetup;
     sigmatch_table[DETECT_AL_SSL_STATE].Free  = DetectSslStateFree;
     sigmatch_table[DETECT_AL_SSL_STATE].RegisterTests = DetectSslStateRegisterTests;

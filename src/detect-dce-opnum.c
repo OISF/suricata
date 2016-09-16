@@ -63,7 +63,6 @@ void DetectDceOpnumFree(void *);
 void DetectDceOpnumRegister(void)
 {
     sigmatch_table[DETECT_DCE_OPNUM].name = "dce_opnum";
-    sigmatch_table[DETECT_DCE_OPNUM].alproto = ALPROTO_DCERPC;
     sigmatch_table[DETECT_DCE_OPNUM].Match = NULL;
     sigmatch_table[DETECT_DCE_OPNUM].AppLayerMatch = DetectDceOpnumMatch;
     sigmatch_table[DETECT_DCE_OPNUM].Setup = DetectDceOpnumSetup;

@@ -59,7 +59,6 @@ static int DetectDceStubDataSetup(DetectEngineCtx *, Signature *, char *);
 void DetectDceStubDataRegister(void)
 {
     sigmatch_table[DETECT_DCE_STUB_DATA].name = "dce_stub_data";
-    sigmatch_table[DETECT_DCE_STUB_DATA].alproto = ALPROTO_DCERPC;
     sigmatch_table[DETECT_DCE_STUB_DATA].Match = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].AppLayerMatch = NULL;
     sigmatch_table[DETECT_DCE_STUB_DATA].Setup = DetectDceStubDataSetup;

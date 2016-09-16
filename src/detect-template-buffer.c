@@ -48,7 +48,6 @@ void DetectTemplateBufferRegister(void)
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].name = "template_buffer";
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].desc =
         "Template content modififier to match on the template buffers";
-    sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].alproto = ALPROTO_TEMPLATE;
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].Setup = DetectTemplateBufferSetup;
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].RegisterTests =
         DetectTemplateBufferRegisterTests;

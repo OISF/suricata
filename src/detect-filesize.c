@@ -63,7 +63,6 @@ void DetectFilesizeRegister(void)
     sigmatch_table[DETECT_FILESIZE].name = "filesize";
     sigmatch_table[DETECT_FILESIZE].desc = "match on the size of the file as it is being transferred";
     sigmatch_table[DETECT_FILESIZE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/File-keywords#filesize";
-    sigmatch_table[DETECT_FILESIZE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILESIZE].FileMatch = DetectFilesizeMatch;
     sigmatch_table[DETECT_FILESIZE].Setup = DetectFilesizeSetup;
     sigmatch_table[DETECT_FILESIZE].Free = DetectFilesizeFree;
