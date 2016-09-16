@@ -36,6 +36,8 @@ typedef struct BypassedFlowManagerThreadData_ {
     uint16_t flow_bypassed_bytes;
 } BypassedFlowManagerThreadData;
 
+#ifdef HAVE_PACKET_EBPF
+
 static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *value, void *data)
 {
     struct timespec *curtime = (struct timespec *)data;
@@ -53,8 +55,11 @@ static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *v
     return 0;
 }
 
+#endif
+
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
 {
+#ifdef HAVE_PACKET_EBPF
     int tcount = 0;
     BypassedFlowManagerThreadData *ftd = thread_data;
 
@@ -82,6 +87,8 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         sleep(5);
         StatsSyncCountersIfSignalled(th_v);
     }
+#endif
+    return TM_ECODE_OK;
 }
 
 
@@ -112,6 +119,7 @@ void BypassedFlowManagerThreadSpawn()
     return;
 #endif
 
+#ifdef HAVE_PACKET_EBPF
     ThreadVars *tv_flowmgr = NULL;
     tv_flowmgr = TmThreadCreateMgmtThreadByName("BypassedFlowManager",
             "BypassedFlowManager", 0);
@@ -125,6 +133,7 @@ void BypassedFlowManagerThreadSpawn()
         printf("ERROR: TmThreadSpawn failed\n");
         exit(1);
     }
+#endif
 }
 
 void TmModuleBypassedFlowManagerRegister (void)

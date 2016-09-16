@@ -2219,6 +2219,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     return TM_ECODE_OK;
 }
 
+#ifdef HAVE_PACKET_EBPF
 static void AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
 {
         /* FIXME error handling */
@@ -2232,9 +2233,11 @@ static void AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
             }
        }
 }
+#endif
 
 static int AFPBypassCallback(Packet *p)
 {
+#ifdef HAVE_PACKET_EBPF
     SCLogDebug("Calling af_packet callback function");
     /* FIXME remove this */
     if (!PKT_IS_TCP(p)) {
@@ -2262,7 +2265,7 @@ static int AFPBypassCallback(Packet *p)
         AFPInsertHalfFlow(mapd, &key);
         return 1;
     }
-
+#endif
     return 0;
 }
 
