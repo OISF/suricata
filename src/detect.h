@@ -461,6 +461,25 @@ typedef struct Signature_ {
     struct Signature_ *next;
 } Signature;
 
+/** \brief one time registration of keywords at start up */
+typedef struct DetectMpmAppLayerRegistery_ {
+    const char *name;
+    int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
+    int sm_list;
+
+    int (*PrefilterRegister)(struct SigGroupHead_ *sgh, MpmCtx *mpm_ctx);
+
+    int id;                     /**< index into this array and result arrays */
+    struct DetectMpmAppLayerRegistery_ *next;
+} DetectMpmAppLayerRegistery;
+
+/** \brief structure for storing per detect engine mpm keyword settings
+ */
+typedef struct DetectMpmAppLayerKeyword_ {
+    const DetectMpmAppLayerRegistery *reg;
+    int32_t sgh_mpm_context;    /**< mpm factory id */
+} DetectMpmAppLayerKeyword;
+
 typedef struct DetectReplaceList_ {
     struct DetectContentData_ *cd;
     uint8_t *found;
@@ -702,6 +721,10 @@ typedef struct DetectEngineCtx_ {
     /** table for storing the string representation with the parsers result */
     HashListTable *address_table;
 
+    /** table with mpms and their registration function
+     *  \todo we only need this at init, so perhaps this
+     *        can move to a DetectEngineCtx 'init' struct */
+    DetectMpmAppLayerKeyword *app_mpms;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
@@ -943,8 +966,6 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_HAVEFILESHA1     (1 << 23)
 #define SIG_GROUP_HEAD_HAVEFILESHA256   (1 << 24)
 
-#define APP_MPMS_MAX 21
-
 enum MpmBuiltinBuffers {
     MPMB_TCP_PKT_TS,
     MPMB_TCP_PKT_TC,
@@ -1008,7 +1029,7 @@ typedef struct SigGroupHeadInitData_ {
     uint32_t direction;     /**< set to SIG_FLAG_TOSERVER, SIG_FLAG_TOCLIENT or both */
     int whitelist;          /**< try to make this group a unique one */
 
-    MpmCtx *app_mpms[APP_MPMS_MAX];
+    MpmCtx **app_mpms;
 
     /* port ptr */
     struct DetectPort_ *port;
