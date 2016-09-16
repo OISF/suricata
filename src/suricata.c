@@ -2381,6 +2381,8 @@ int main(int argc, char **argv)
      * are specified, IPS mode will overwrite this */
     EngineModeSetIDS();
 
+    /* TODO temporary */
+    RegisterAppMpmTable();
 
 #ifdef OS_WIN32
     /* service initialization */
