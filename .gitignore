@@ -2,6 +2,10 @@
 *.lo
 *.in
 *.[ch]e
+*.log
+*.rule
+*.rules
+*.yaml
 Makefile
 .deps/
 .libs/
@@ -31,6 +35,10 @@ libhtp/stamp-h1
 libhtp/test/TAGS
 libtool
 ltmain.sh
+src/*.diff
+src/*.patch
+src/*.rej
+src/*.orig
 src/TAGS
 src/suricata
 stamp-h1
