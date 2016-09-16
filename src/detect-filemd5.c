@@ -322,12 +322,12 @@ static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_FILEMD5;
     sm->ctx = (void *)filemd5;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
-
     if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
         goto error;
     }
+
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 
     if (s->alproto == ALPROTO_HTTP) {
         AppLayerHtpNeedFileInspection();
