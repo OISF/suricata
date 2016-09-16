@@ -889,9 +889,6 @@ typedef struct SigTableElmt_ {
         Flow *,                     /**< *LOCKED* flow */
         uint8_t flags, File *, Signature *, SigMatch *);
 
-    /** app layer proto from app-layer-protos.h this match applies to */
-    AppProto alproto;
-
     /** keyword setup function pointer */
     int (*Setup)(DetectEngineCtx *, Signature *, char *);
 
@@ -899,6 +896,10 @@ typedef struct SigTableElmt_ {
     void (*RegisterTests)(void);
 
     uint8_t flags;
+
+    /** unused: warn user. Will be removed in the future. */
+    AppProto alproto __attribute__((deprecated));
+
     char *name;     /**< keyword name alias */
     char *alias;    /**< name alias */
     char *desc;

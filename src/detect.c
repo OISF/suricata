@@ -4204,8 +4204,6 @@ static inline void SigMultilinePrint(int i, char *prefix)
     if (sigmatch_table[i].desc) {
         printf("%sDescription: %s\n", prefix, sigmatch_table[i].desc);
     }
-    printf("%sProtocol: %s\n", prefix,
-           AppLayerGetProtoName(sigmatch_table[i].alproto));
     printf("%sFeatures: ", prefix);
     PrintFeatureList(sigmatch_table[i].flags, ',');
     if (sigmatch_table[i].url) {
@@ -4218,7 +4216,6 @@ void SigTableList(const char *keyword)
 {
     size_t size = sizeof(sigmatch_table) / sizeof(SigTableElmt);
     size_t i;
-    char *proto_name;
 
     if (keyword == NULL) {
         printf("=====Supported keywords=====\n");
@@ -4243,8 +4240,7 @@ void SigTableList(const char *keyword)
                     printf("%s", sigmatch_table[i].desc);
                 }
                 /* Build feature */
-                proto_name = AppLayerGetProtoName(sigmatch_table[i].alproto);
-                printf(";%s;", proto_name ? proto_name : "Unset");
+                printf(";Unset;"); // this used to be alproto
                 PrintFeatureList(sigmatch_table[i].flags, ':');
                 printf(";");
                 if (sigmatch_table[i].url) {
