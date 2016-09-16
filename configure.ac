@@ -1444,22 +1444,28 @@
     ;;
     esac
 
-    AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
-    if test "$LIBELF" = "no"; then
-        echo
-        echo "dead, no elf"
-        echo
-        exit 1
-    fi;
 
-    AC_CHECK_LIB(bpf,bpf_object__open,,LIBBPF="no")
-    if test "$LIBBPF" = "no"; then
-        echo
-        echo "dead, no bpf"
-        echo
-        exit 1
-    #else
-    #    CPPFLAGS="${CPPFLAGS} -I/usr/src/linux-headers-4.6.2+/include/"
+    AC_ARG_ENABLE(ebpf,
+	        AS_HELP_STRING([--enable-ebpf],[Enable eBPF support]),
+	        [ enable_ebpf="yes"],
+	        [ enable_ebpf="no"])
+
+    if test "$enable_ebpf" = "yes"; then
+        AC_CHECK_LIB(elf,elf_begin,,LIBELF="no")
+        if test "$LIBELF" = "no"; then
+            echo
+            echo "dead, no elf"
+            echo
+            exit 1
+        fi;
+
+        AC_CHECK_LIB(bpf,bpf_object__open,,LIBBPF="no")
+        if test "$LIBBPF" = "no"; then
+            echo
+            echo "dead, no bpf"
+            echo
+            exit 1
+        fi;
     fi;
 
   # Check for DAG support.
