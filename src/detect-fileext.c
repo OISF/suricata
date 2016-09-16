@@ -211,10 +211,6 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 
-    if (s->alproto == ALPROTO_HTTP) {
-        AppLayerHtpNeedFileInspection();
-    }
-
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;
 

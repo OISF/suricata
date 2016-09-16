@@ -359,10 +359,6 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 
-    if (s->alproto == ALPROTO_HTTP) {
-        AppLayerHtpNeedFileInspection();
-    }
-
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_MAGIC);
     return 0;
 
