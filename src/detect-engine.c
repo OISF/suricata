@@ -961,6 +961,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
+    SCFree(de_ctx->app_mpms);
+    de_ctx->app_mpms = NULL;
 
     VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)

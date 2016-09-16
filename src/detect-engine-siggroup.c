@@ -61,6 +61,9 @@ void SigGroupHeadInitDataFree(SigGroupHeadInitData *sghid)
         SCFree(sghid->sig_array);
         sghid->sig_array = NULL;
     }
+    if (sghid->app_mpms != NULL) {
+        SCFree(sghid->app_mpms);
+    }
     SCFree(sghid);
 }
 

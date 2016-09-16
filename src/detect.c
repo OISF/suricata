@@ -3985,6 +3985,8 @@ int SigGroupBuild(DetectEngineCtx *de_ctx)
 #ifdef PROFILING
     SCProfilingRuleInitCounters(de_ctx);
 #endif
+    SCFree(de_ctx->app_mpms);
+    de_ctx->app_mpms = NULL;
     return 0;
 }
 
