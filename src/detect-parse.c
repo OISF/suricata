@@ -1421,6 +1421,15 @@ int SigValidate(DetectEngineCtx *de_ctx, Signature *s)
     }
 #endif
 
+    if (((s->flags & SIG_FLAG_FILESTORE) || s->file_flags != 0) &&
+        s->alproto != ALPROTO_UNKNOWN &&
+        !AppLayerParserSupportsFiles(IPPROTO_TCP, s->alproto))
+    {
+        SCLogError(SC_ERR_NO_FILES_FOR_PROTOCOL, "protocol %s doesn't "
+                "support file matching", AppProtoToString(s->alproto));
+        SCReturnInt(0);
+    }
+
     SCReturnInt(1);
 }
 

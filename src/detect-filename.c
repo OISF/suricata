@@ -49,6 +49,7 @@
 #include "stream-tcp.h"
 
 #include "detect-filename.h"
+#include "app-layer-parser.h"
 
 static int DetectFilenameMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
         uint8_t, File *, Signature *, SigMatch *);
@@ -212,11 +213,6 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 
     sm->type = DETECT_FILENAME;
     sm->ctx = (void *)filename;
-
-    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
-        goto error;
-    }
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 

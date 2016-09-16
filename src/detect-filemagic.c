@@ -338,11 +338,6 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
     DetectFilemagicData *filemagic = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto != ALPROTO_HTTP && s->alproto != ALPROTO_SMTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rules with filemagic need to have protocol set to http or smtp.");
-        goto error;
-    }
-
     filemagic = DetectFilemagicParse(str);
     if (filemagic == NULL)
         goto error;
