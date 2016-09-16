@@ -62,7 +62,7 @@
 #define CTNT_DISP_STR     "content-disposition"
 #define CTNT_TRAN_STR     "content-transfer-encoding"
 #define MSG_ID_STR        "message-id"
-#define BND_START_STR     "boundary=\""
+#define BND_START_STR     "boundary="
 #define TOK_END_STR       "\""
 #define MSG_STR           "message/"
 #define MULTIPART_STR     "multipart/"
