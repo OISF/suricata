@@ -1217,10 +1217,6 @@
             AC_DEFINE([HAVE_HW_TIMESTAMPING],[1],[Hardware timestamping support is available]),
             [],
             [[#include <linux/net_tstamp.h>]]),
-        AC_CHECK_DECL([PACKET_FANOUT_EBPF],
-            AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
-            [],
-            [[#include <linux/if_packet.h>]])
     ])
 
   # Netmap support
@@ -1466,6 +1462,10 @@
             echo
             exit 1
         fi;
+        AC_CHECK_DECL([PACKET_FANOUT_EBPF],
+            AC_DEFINE([HAVE_PACKET_EBPF],[1],[Recent ebpf fanout support is available]),
+            [],
+            [[#include <linux/if_packet.h>]])
     fi;
 
   # Check for DAG support.

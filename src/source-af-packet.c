@@ -2172,9 +2172,11 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
     struct sock_fprog  fcode;
     int rc;
 
+#ifdef HAVE_PACKET_EBPF
     if (ptv->ebpf_filter_fd != -1) {
         return SetEbpfFilter(ptv);
     }
+#endif
 
     if (!ptv->bpf_filter)
         return TM_ECODE_OK;

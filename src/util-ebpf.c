@@ -37,6 +37,8 @@
 
 #include "util-ebpf.h"
 
+#ifdef HAVE_PACKET_EBPF
+
 #include <linux/bpf.h>
 #include <bpf/libbpf.h>
 #include "config.h"
@@ -196,3 +198,5 @@ void EBPFDeleteKey(int fd, void *key)
 {
     bpf_map__delete_elem(fd, key);
 }
+
+#endif
