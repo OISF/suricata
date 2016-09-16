@@ -861,6 +861,13 @@ uint64_t AppLayerParserGetTransactionActive(uint8_t ipproto, AppProto alproto,
     SCReturnCT(active_id, "uint64_t");
 }
 
+int AppLayerParserSupportsFiles(uint8_t ipproto, AppProto alproto)
+{
+    if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].StateGetFiles != NULL)
+        return TRUE;
+    return FALSE;
+}
+
 int AppLayerParserSupportsTxDetectState(uint8_t ipproto, AppProto alproto)
 {
     if (alp_ctx.ctxs[FlowGetProtoMapping(ipproto)][alproto].GetTxDetectState != NULL)
