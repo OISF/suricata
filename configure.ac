@@ -377,6 +377,11 @@
     ])
     AM_CONDITIONAL([BUILD_UNITTESTS], [test "x$enable_unittests" = "xyes"])
 
+  # enable the building of ebpf files 
+    AC_ARG_ENABLE(ebpf-build,
+           AS_HELP_STRING([--enable-ebpf-build], [Enable compilation of ebpf files]),,[enable_ebpf_build=no])
+    AM_CONDITIONAL([BUILD_EBPF], [test "x$enable_ebpf_build" = "xyes"])
+
   # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,
            AS_HELP_STRING([--enable-old-barnyard2], [Use workaround for old barnyard2 in unified2 output]),,[enable_old_barnyard2=no])
