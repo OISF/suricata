@@ -14,7 +14,7 @@
 
 #define LINUX_VERSION_CODE 263682
 
-struct flow_keys {
+struct flowv4_keys {
     __be32 src;
     __be32 dst;
     union {
@@ -32,7 +32,7 @@ struct pair {
 
 struct bpf_map_def SEC("maps") flow_table_v4 = {
     .type = BPF_MAP_TYPE_HASH,
-    .key_size = sizeof(struct flow_keys),
+    .key_size = sizeof(struct flowv4_keys),
     .value_size = sizeof(struct pair),
     .max_entries = 4096,
 };
@@ -40,7 +40,7 @@ struct bpf_map_def SEC("maps") flow_table_v4 = {
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
 {
     uint32_t nhoff, verlen;
-    struct flow_keys tuple;
+    struct flowv4_keys tuple;
     struct pair *value;
     uint16_t port;
 
