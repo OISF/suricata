@@ -67,6 +67,8 @@
 
 #include "output-flow.h"
 
+#define FLOW_TIMEOUT    5
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -207,6 +209,9 @@ static inline uint32_t FlowGetFlowTimeout(const Flow *f, enum FlowState state)
             break;
         case FLOW_STATE_CLOSED:
             timeout = flow_timeouts[f->protomap].closed_timeout;
+            break;
+        case FLOW_STATE_BYPASSED:
+            timeout = FLOW_TIMEOUT;
             break;
     }
     return timeout;
