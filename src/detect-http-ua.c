@@ -81,7 +81,7 @@ void DetectHttpUARegister(void)
     sigmatch_table[DETECT_AL_HTTP_USER_AGENT].flags |= SIGMATCH_PAYLOAD ;
 
     DetectMpmAppLayerRegister("http_user_agent", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HUADMATCH,
+            DETECT_SM_LIST_HUADMATCH, 2,
             PrefilterTxUARegister);
 
     return;

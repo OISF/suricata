@@ -80,7 +80,7 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_PAYLOAD ;
 
     DetectMpmAppLayerRegister("http_host", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HHHDMATCH,
+            DETECT_SM_LIST_HHHDMATCH, 2,
             PrefilterTxHostnameRegister);
     return;
 }

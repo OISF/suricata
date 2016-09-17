@@ -82,7 +82,7 @@ void DetectHttpMethodRegister(void)
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_method", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HMDMATCH,
+            DETECT_SM_LIST_HMDMATCH, 2,
             PrefilterTxMethodRegister);
 
     SCLogDebug("registering http_method rule option");

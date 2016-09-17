@@ -64,10 +64,10 @@ void DetectFiledataRegister(void)
     sigmatch_table[DETECT_FILE_DATA].flags = SIGMATCH_NOOPT;
 
     DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_FILEDATA,
+            DETECT_SM_LIST_FILEDATA, 3,
             PrefilterTxSmtpFiledataRegister);
     DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_FILEDATA,
+            DETECT_SM_LIST_FILEDATA, 3,
             PrefilterTxHttpResponseBodyRegister);
 }
 

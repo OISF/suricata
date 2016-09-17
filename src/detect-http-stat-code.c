@@ -88,7 +88,7 @@ void DetectHttpStatCodeRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_stat_code", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HSCDMATCH,
+            DETECT_SM_LIST_HSCDMATCH, 2,
             PrefilterTxHttpStatCodeRegister);
 }
 

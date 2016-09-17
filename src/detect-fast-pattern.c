@@ -56,8 +56,22 @@ SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
  * \param list_id SM list id.
  * \param priority Priority for this list.
  */
-static void SupportFastPatternForSigMatchList(int list_id, int priority)
+void SupportFastPatternForSigMatchList(int list_id, int priority)
 {
+    SCFPSupportSMList *ip = NULL;
+    /* insertion point - ip */
+    for (SCFPSupportSMList *tmp = sm_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
+        if (list_id == tmp->list_id) {
+            SCLogDebug("SM list already registered.");
+            return;
+        }
+
+        if (priority <= tmp->priority)
+            break;
+
+        ip = tmp;
+    }
+
     if (sm_fp_support_smlist_list == NULL) {
         SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
         if (unlikely(new == NULL))
@@ -69,20 +83,6 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
         sm_fp_support_smlist_list = new;
 
         return;
-    }
-
-    /* insertion point - ip */
-    SCFPSupportSMList *ip = NULL;
-    for (SCFPSupportSMList *tmp = sm_fp_support_smlist_list; tmp != NULL; tmp = tmp->next) {
-        if (list_id == tmp->list_id) {
-            SCLogError(SC_ERR_FATAL, "SM list already registered.");
-            exit(EXIT_FAILURE);
-        }
-
-        if (priority <= tmp->priority)
-            break;
-
-        ip = tmp;
     }
 
     SCFPSupportSMList *new = SCMalloc(sizeof(SCFPSupportSMList));
@@ -99,13 +99,6 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
         ip->next = new;
     }
 
-    for (SCFPSupportSMList *tmp = new->next; tmp != NULL; tmp = tmp->next) {
-        if (list_id == tmp->list_id) {
-            SCLogError(SC_ERR_FATAL, "SM list already registered.");
-            exit(EXIT_FAILURE);
-        }
-    }
-
     return;
 }
 
@@ -114,29 +107,9 @@ static void SupportFastPatternForSigMatchList(int list_id, int priority)
  */
 void SupportFastPatternForSigMatchTypes(void)
 {
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCBDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_FILEDATA, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRHDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_UMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRUDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHHDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRHHDMATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCDMATCH, 2);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HUADMATCH, 2);
-
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HMDMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH, 3);
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH, 3);
 
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2);
-
-    SupportFastPatternForSigMatchList(DETECT_SM_LIST_TLSSNI_MATCH, 2);
+    /* other types are handled by DetectMpmAppLayerRegister() */
 
 #if 0
     SCFPSupportSMList *tmp = sm_fp_support_smlist_list;

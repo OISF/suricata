@@ -83,10 +83,10 @@ void DetectHttpCookieRegister(void)
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HCDMATCH,
+            DETECT_SM_LIST_HCDMATCH, 2,
             PrefilterTxRequestCookieRegister);
     DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_HCDMATCH,
+            DETECT_SM_LIST_HCDMATCH, 2,
             PrefilterTxResponseCookieRegister);
 
 }
