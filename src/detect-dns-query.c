@@ -54,6 +54,7 @@
 #include "app-layer.h"
 #include "app-layer-dns-common.h"
 #include "detect-dns-query.h"
+#include "detect-engine-dns.h"
 
 #include "util-unittest-helper.h"
 
@@ -61,7 +62,7 @@ static int DetectDnsQuerySetup (DetectEngineCtx *, Signature *, char *);
 static void DetectDnsQueryRegisterTests(void);
 
 /**
- * \brief Registration function for keyword: http_uri
+ * \brief Registration function for keyword: dns_query
  */
 void DetectDnsQueryRegister (void)
 {
@@ -75,6 +76,11 @@ void DetectDnsQueryRegister (void)
 
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("dns_query", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+            PrefilterTxDnsQueryRegister);
+
 }
 
 
