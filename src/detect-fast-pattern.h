@@ -59,6 +59,8 @@ static inline int FastPatternSupportEnabledForSigMatchList(int list_id)
     return 0;
 }
 
+void SupportFastPatternForSigMatchList(int list_id, int priority);
+
 void SupportFastPatternForSigMatchTypes(void);
 
 void DetectFastPatternRegister(void);

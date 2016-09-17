@@ -89,7 +89,8 @@ int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
  *  \note direction must be set to either toserver or toclient.
  *        If both are needed, register the keyword twice.
  */
-void DetectMpmAppLayerRegister(const char *name, int direction, int sm_list,
+void DetectMpmAppLayerRegister(const char *name,
+        int direction, int sm_list, int priority,
         int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx));
 
 #endif /* __DETECT_ENGINE_MPM_H__ */

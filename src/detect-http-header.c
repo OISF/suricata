@@ -81,9 +81,11 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
 
-    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH,
+    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHDMATCH, 2,
             PrefilterTxHttpRequestHeadersRegister);
-    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH,
+    DetectMpmAppLayerRegister("http_header", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HHDMATCH, 2,
             PrefilterTxHttpResponseHeadersRegister);
 
     return;
