@@ -84,22 +84,6 @@ const char *builtin_mpms[] = {
 
     NULL };
 
-typedef struct AppLayerMpms_ {
-    const char *name;
-    int unused;
-    int direction;              /**< SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT */
-    int sm_list;
-
-    int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
-    int id;
-
-} AppLayerMpms;
-
-AppLayerMpms app_mpms[] = {
-    { NULL, 0, 0, 0, NULL, 0, }
-};
-
 /* Registery for mpm keywords
  *
  * Keywords are registered at engine start up
@@ -130,18 +114,6 @@ void DetectMpmAppLayerRegister(const char *name, int direction, int sm_list,
         am->id = t->id + 1;
     }
     g_app_mpms_list_cnt++;
-}
-
-/* temporary table for turning the table app_mpms into the registery
- * TODO to be removed */
-void RegisterAppMpmTable(void)
-{
-    AppLayerMpms *am = app_mpms;
-    while (am->name != NULL) {
-        DetectMpmAppLayerRegister(am->name, am->direction,
-                am->sm_list, am->PrefilterRegister);
-        am++;
-    }
 }
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)
