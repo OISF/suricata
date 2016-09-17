@@ -70,7 +70,7 @@ int EBPFGetMapFDByName(const char *name)
         if (!bpf_map_array[i].name)
             continue;
         if (!strcmp(bpf_map_array[i].name, name)) {
-            SCLogNotice("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
+            SCLogDebug("Got fd %d for eBPF map '%s'", bpf_map_array[i].fd, name);
             return bpf_map_array[i].fd;
         }
     }
@@ -134,7 +134,7 @@ int EBPFLoadFile(const char *path, const char * section, int *val)
 
     /* store the map in our array */
     bpf_map__for_each(map, bpfobj) {
-        SCLogNotice("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
+        SCLogDebug("Got a map '%s' with fd '%d'", bpf_map__name(map), bpf_map__fd(map));
         bpf_map_array[bpf_map_last].fd = bpf_map__fd(map);
         bpf_map_array[bpf_map_last].name = SCStrdup(bpf_map__name(map));
         bpf_map_last++;
