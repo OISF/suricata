@@ -92,7 +92,8 @@ const char *builtin_mpms[] = {
 static DetectMpmAppLayerRegistery *g_app_mpms_list = NULL;
 static int g_app_mpms_list_cnt = 0;
 
-void DetectMpmAppLayerRegister(const char *name, int direction, int sm_list,
+void DetectMpmAppLayerRegister(const char *name,
+        int direction, int sm_list, int priority,
         int (*PrefilterRegister)(SigGroupHead *sgh, MpmCtx *mpm_ctx))
 {
     DetectMpmAppLayerRegistery *am = SCCalloc(1, sizeof(*am));
@@ -114,6 +115,8 @@ void DetectMpmAppLayerRegister(const char *name, int direction, int sm_list,
         am->id = t->id + 1;
     }
     g_app_mpms_list_cnt++;
+
+    SupportFastPatternForSigMatchList(sm_list, priority);
 }
 
 void DetectMpmInitializeAppMpms(DetectEngineCtx *de_ctx)

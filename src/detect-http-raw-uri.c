@@ -75,7 +75,7 @@ void DetectHttpRawUriRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_raw_uri", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HRUDMATCH,
+            DETECT_SM_LIST_HRUDMATCH, 2,
             PrefilterTxRawUriRegister);
 
     return;

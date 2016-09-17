@@ -88,7 +88,7 @@ void DetectHttpStatMsgRegister (void)
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_stat_msg", SIG_FLAG_TOCLIENT,
-        DETECT_SM_LIST_HSMDMATCH,
+        DETECT_SM_LIST_HSMDMATCH, 3,
         PrefilterTxHttpStatMsgRegister);
 }
 

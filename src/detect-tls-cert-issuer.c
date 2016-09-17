@@ -73,7 +73,7 @@ void DetectTlsIssuerRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_ISSUER].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("tls_cert_issuer", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSISSUER_MATCH,
+            DETECT_SM_LIST_TLSISSUER_MATCH, 2,
             PrefilterTxTlsIssuerRegister);
 }
 
