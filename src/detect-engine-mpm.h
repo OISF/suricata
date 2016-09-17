@@ -80,8 +80,6 @@ MpmStore *MpmStorePrepareBuffer(DetectEngineCtx *de_ctx, SigGroupHead *sgh, enum
  */
 int DetectSetFastPatternAndItsId(DetectEngineCtx *de_ctx);
 
-void RegisterAppMpmTable(void);
-
 /** \brief register an app layer keyword for mpm
  *  \param name keyword name
  *  \param direction SIG_FLAG_TOSERVER or SIG_FLAG_TOCLIENT
