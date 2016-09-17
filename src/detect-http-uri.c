@@ -77,7 +77,7 @@ void DetectHttpUriRegister (void)
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("http_uri", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_UMATCH,
+            DETECT_SM_LIST_UMATCH, 2,
             PrefilterTxUriRegister);
 }
 

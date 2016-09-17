@@ -73,7 +73,7 @@ void DetectTlsSubjectRegister(void)
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("tls_cert_subject", SIG_FLAG_TOCLIENT,
-            DETECT_SM_LIST_TLSSUBJECT_MATCH,
+            DETECT_SM_LIST_TLSSUBJECT_MATCH, 2,
             PrefilterTxTlsSubjectRegister);
 }
 

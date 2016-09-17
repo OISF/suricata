@@ -80,7 +80,7 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_PAYLOAD ;
 
     DetectMpmAppLayerRegister("http_client_body", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_HCBDMATCH,
+            DETECT_SM_LIST_HCBDMATCH, 2,
             PrefilterTxHttpRequestBodyRegister);
 
 }

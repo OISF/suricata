@@ -78,7 +78,7 @@ void DetectDnsQueryRegister (void)
     sigmatch_table[DETECT_AL_DNS_QUERY].flags |= SIGMATCH_PAYLOAD;
 
     DetectMpmAppLayerRegister("dns_query", SIG_FLAG_TOSERVER,
-            DETECT_SM_LIST_DNSQUERYNAME_MATCH,
+            DETECT_SM_LIST_DNSQUERYNAME_MATCH, 2,
             PrefilterTxDnsQueryRegister);
 
 }
