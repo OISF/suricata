@@ -58,6 +58,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-cookie.h"
+#include "detect-engine-hcd.h"
 #include "stream-tcp.h"
 
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
@@ -80,6 +81,14 @@ void DetectHttpCookieRegister(void)
 
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HCDMATCH,
+            PrefilterTxRequestCookieRegister);
+    DetectMpmAppLayerRegister("http_cookie", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HCDMATCH,
+            PrefilterTxResponseCookieRegister);
+
 }
 
 /**
