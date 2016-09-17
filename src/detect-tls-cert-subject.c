@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-tls.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 
@@ -70,6 +71,10 @@ void DetectTlsSubjectRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_CERT_SUBJECT].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("tls_cert_subject", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_TLSSUBJECT_MATCH,
+            PrefilterTxTlsSubjectRegister);
 }
 
 /**

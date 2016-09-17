@@ -97,13 +97,6 @@ typedef struct AppLayerMpms_ {
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "tls_sni", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_TLSSNI_MATCH,
-        PrefilterTxTlsSniRegister, 0},
-    { "tls_cert_issuer", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSISSUER_MATCH,
-        PrefilterTxTlsIssuerRegister, 0},
-    { "tls_cert_subject", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_TLSSUBJECT_MATCH,
-        PrefilterTxTlsSubjectRegister, 0},
-
     { NULL, 0, 0, 0, NULL, 0, }
 };
 
