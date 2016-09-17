@@ -97,11 +97,6 @@ typedef struct AppLayerMpms_ {
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "http_header", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHDMATCH,
-        PrefilterTxHttpRequestHeadersRegister, 0},
-    { "http_header", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HHDMATCH,
-        PrefilterTxHttpRequestHeadersRegister, 0},
-
     { "http_user_agent", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HUADMATCH,
         PrefilterTxUARegister, 0},
 
