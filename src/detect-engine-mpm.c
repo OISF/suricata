@@ -97,9 +97,6 @@ typedef struct AppLayerMpms_ {
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "http_method", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HMDMATCH,
-        PrefilterTxMethodRegister, 0},
-
     { "file_data", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_FILEDATA,
         PrefilterTxSmtpFiledataRegister, 0}, /* smtp */
     { "file_data", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_FILEDATA,
