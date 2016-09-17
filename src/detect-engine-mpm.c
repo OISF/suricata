@@ -97,11 +97,6 @@ typedef struct AppLayerMpms_ {
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "http_cookie", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HCDMATCH,
-        PrefilterTxRequestCookieRegister, 0},
-    { "http_cookie", 0, SIG_FLAG_TOCLIENT, DETECT_SM_LIST_HCDMATCH,
-        PrefilterTxResponseCookieRegister, 0},
-
     { "dns_query", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_DNSQUERYNAME_MATCH,
         PrefilterTxDnsQueryRegister, 0},
 
