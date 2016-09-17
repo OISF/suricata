@@ -97,8 +97,6 @@ typedef struct AppLayerMpms_ {
 } AppLayerMpms;
 
 AppLayerMpms app_mpms[] = {
-    { "http_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HHHDMATCH,
-        PrefilterTxHostnameRegister, 0},
     { "http_raw_host", 0, SIG_FLAG_TOSERVER, DETECT_SM_LIST_HRHHDMATCH,
         PrefilterTxHostnameRawRegister, 0},
 
