@@ -73,6 +73,7 @@
     AC_PROG_INSTALL
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
+    AC_PROG_GREP
 
     AC_PATH_PROG(HAVE_PKG_CONFIG, pkg-config, "no")
     if test "$HAVE_PKG_CONFIG" = "no"; then
@@ -381,6 +382,20 @@
     AC_ARG_ENABLE(ebpf-build,
            AS_HELP_STRING([--enable-ebpf-build], [Enable compilation of ebpf files]),,[enable_ebpf_build=no])
     AM_CONDITIONAL([BUILD_EBPF], [test "x$enable_ebpf_build" = "xyes"])
+
+    if test "x$enable_ebpf_build" = "xyes"; then
+        if echo $CC | grep clang; then
+            AC_MSG_CHECKING([llc binary for clang version])
+            llc_version_line=$($CC --version|$GREP version)
+            llc_version=$(echo $llc_version_line| cut -d '(' -f 1 | $GREP -E -o '@<:@0-9@:>@\.@<:@0-9@:>@')
+            AC_MSG_RESULT($llc_version)
+            LLC="llc-$llc_version"
+            AC_SUBST(LLC)
+        else
+            echo "clang needed to build ebpf files"
+            exit 1        
+        fi
+    fi
 
   # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,
