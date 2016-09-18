@@ -34,7 +34,7 @@ struct bpf_map_def SEC("maps") flow_table_v4 = {
     .type = BPF_MAP_TYPE_HASH,
     .key_size = sizeof(struct flowv4_keys),
     .value_size = sizeof(struct pair),
-    .max_entries = 4096,
+    .max_entries = 32768,
 };
 
 static __always_inline int ipv4_filter(struct __sk_buff *skb)
