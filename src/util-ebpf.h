@@ -34,6 +34,16 @@ struct flowv4_keys {
 	__u32 ip_proto;
 };
 
+struct flowv6_keys {
+    __be32 src[4];
+    __be32 dst[4];
+    union {
+        __be32 ports;
+        __be16 port16[2];
+    };
+    __u32 ip_proto;
+};
+
 struct pair {
     uint64_t time;
     uint64_t packets;
@@ -51,6 +61,10 @@ int EBPFLoadFile(const char *path, const char * section, int *val);
 
 int EBPFForEachFlowV4Table(const char *name,
                               int (*FlowCallback)(int fd, struct flowv4_keys *key, struct pair *value, void *data),
+                              struct flows_stats *flowstats,
+                              void *data);
+int EBPFForEachFlowV6Table(const char *name,
+                              int (*FlowCallback)(int fd, struct flowv6_keys *key, struct pair *value, void *data),
                               struct flows_stats *flowstats,
                               void *data);
 void EBPFDeleteKey(int fd, void *key);

@@ -55,6 +55,23 @@ static int BypassedFlowV4Timeout(int fd, struct flowv4_keys *key, struct pair *v
     return 0;
 }
 
+static int BypassedFlowV6Timeout(int fd, struct flowv6_keys *key, struct pair *value, void *data)
+{
+    struct timespec *curtime = (struct timespec *)data;
+    SCLogDebug("Got curtime %" PRIu64 " and value %" PRIu64 " (sp:%d, dp:%d)",
+               curtime->tv_sec, value->time / 1000000000,
+               key->port16[0], key->port16[1]
+              );
+
+    if (curtime->tv_sec - value->time / 1000000000 > BYPASSED_FLOW_TIMEOUT) {
+        SCLogDebug("Got no packet for %d -> %d at %" PRIu64,
+                   key->port16[0], key->port16[1], value->time);
+        EBPFDeleteKey(fd, key);
+        return 1;
+    }
+    return 0;
+}
+
 #endif
 
 static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
@@ -74,6 +91,14 @@ static TmEcode BypassedFlowManager(ThreadVars *th_v, void *thread_data)
         }
         /* TODO indirection here: AF_PACKET and NFQ should be able to give their iterate function */
         tcount = EBPFForEachFlowV4Table("flow_table_v4", BypassedFlowV4Timeout, &bypassstats, &curtime);
+        if (tcount) {
+            StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
+            StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);
+            StatsAddUI64(th_v, ftd->flow_bypassed_bytes, (uint64_t)bypassstats.bytes);
+        }
+        memset(&bypassstats, 0, sizeof(bypassstats));
+        /* TODO indirection here: AF_PACKET and NFQ should be able to give their iterate function */
+        tcount = EBPFForEachFlowV6Table("flow_table_v6", BypassedFlowV6Timeout, &bypassstats, &curtime);
         if (tcount) {
             StatsAddUI64(th_v, ftd->flow_bypassed_cnt_clo, (uint64_t)bypassstats.count);
             StatsAddUI64(th_v, ftd->flow_bypassed_pkts, (uint64_t)bypassstats.packets);

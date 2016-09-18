@@ -2222,7 +2222,7 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 }
 
 #ifdef HAVE_PACKET_EBPF
-static int AFPInsertHalfFlow(int mapd, struct flowv4_keys *key, uint64_t inittime)
+static int AFPInsertHalfFlow(int mapd, void *key, uint64_t inittime)
 {
         /* FIXME error handling */
         struct pair value = {inittime, 0, 0};
@@ -2251,12 +2251,12 @@ static int AFPBypassCallback(Packet *p)
     if (!PKT_IS_TCP(p)) {
         return 0;
     }
+    struct timespec curtime;
+    uint64_t inittime = 0;
+    if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
+        inittime = curtime.tv_sec * 1000000000;
+    }
     if (PKT_IS_IPV4(p)) {
-        struct timespec curtime;
-        uint64_t inittime = 0;
-        if (clock_gettime(CLOCK_MONOTONIC, &curtime) == 0) {
-            inittime = curtime.tv_sec * 1000000000;
-        }
         /* FIXME cache this and handle error at cache time*/
         int mapd = EBPFGetMapFDByName("flow_table_v4");
         if (mapd == -1) {
@@ -2275,6 +2275,39 @@ static int AFPBypassCallback(Packet *p)
         }
         key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
         key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
+        key.port16[0] = GET_TCP_DST_PORT(p);
+        key.port16[1] = GET_TCP_SRC_PORT(p);
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        return 1;
+    }
+    if (PKT_IS_IPV6(p)) {
+        /* FIXME cache this and handle error at cache time*/
+        int mapd = EBPFGetMapFDByName("flow_table_v6");
+        int i = 0;
+        if (mapd == -1) {
+            SCLogNotice("Can't find eBPF map fd for '%s'", "flow_table_v6");
+            return 0;
+        }
+        SCLogDebug("add an IPv6");
+        /* FIXME error handling */
+        /* FIXME filter out next hdr IPV6 packets */
+        struct flowv6_keys key = {};
+        for (i = 0; i < 4; i++) {
+            key.src[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
+            key.dst[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
+        }
+        key.port16[0] = GET_TCP_SRC_PORT(p);
+        key.port16[1] = GET_TCP_DST_PORT(p);
+        key.ip_proto = 6;
+        if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
+            return 0;
+        }
+        for (i = 0; i < 4; i++) {
+            key.src[i] = ntohl(GET_IPV6_DST_ADDR(p)[i]);
+            key.dst[i] = ntohl(GET_IPV6_SRC_ADDR(p)[i]);
+        }
         key.port16[0] = GET_TCP_DST_PORT(p);
         key.port16[1] = GET_TCP_SRC_PORT(p);
         if (AFPInsertHalfFlow(mapd, &key, inittime) == 0) {
