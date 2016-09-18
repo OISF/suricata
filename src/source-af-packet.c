@@ -2220,18 +2220,24 @@ TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 }
 
 #ifdef HAVE_PACKET_EBPF
-static void AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
+static int AFPInsertHalfFlow(int mapd, struct flowv4_keys *key)
 {
         /* FIXME error handling */
         struct pair value = {0, 0, 0};
         SCLogDebug("Inserting element in eBPF mapping");
         if (bpf_map__update_elem(mapd, key, &value, BPF_NOEXIST) != 0) {
-            if (errno != EEXIST) {
-                SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
-                           strerror(errno),
-                           errno);
+            switch (errno) {
+                case E2BIG:
+                case EEXIST:
+                    return 0;
+                default:
+                    SCLogError(SC_ERR_BPF, "Can't update eBPF map: %s (%d)",
+                               strerror(errno),
+                               errno);
+                    return 0;
             }
-       }
+        }
+        return 1;
 }
 #endif
 
@@ -2257,12 +2263,16 @@ static int AFPBypassCallback(Packet *p)
         key.port16[0] = GET_TCP_SRC_PORT(p);
         key.port16[1] = GET_TCP_DST_PORT(p);
         key.ip_proto = 6;
-        AFPInsertHalfFlow(mapd, &key);
+        if (AFPInsertHalfFlow(mapd, &key) == 0) {
+            return 0;
+        }
         key.src = htonl(GET_IPV4_DST_ADDR_U32(p));
         key.dst = htonl(GET_IPV4_SRC_ADDR_U32(p));
         key.port16[0] = GET_TCP_DST_PORT(p);
         key.port16[1] = GET_TCP_SRC_PORT(p);
-        AFPInsertHalfFlow(mapd, &key);
+        if (AFPInsertHalfFlow(mapd, &key) == 0) {
+            return 0;
+        }
         return 1;
     }
 #endif
