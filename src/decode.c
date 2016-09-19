@@ -385,6 +385,9 @@ void PacketDefragPktSetupParent(Packet *parent)
 void PacketBypassCallback(Packet *p)
 {
     if (p->BypassPacketsFlow) {
+        /* only set bypassed state if succesful */
+        FlowUpdateState(p->flow, FLOW_STATE_BYPASSED);
+
         p->BypassPacketsFlow(p);
     }
 }
