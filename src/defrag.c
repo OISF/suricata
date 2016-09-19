@@ -705,11 +705,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragTracker *tracker, 
 
 insert:
     if (data_len - ltrim <= 0) {
-        if (af == AF_INET) {
-            ENGINE_SET_EVENT(p, IPV4_FRAG_TOO_LARGE);
-        } else {
-            ENGINE_SET_EVENT(p, IPV6_FRAG_TOO_LARGE);
-        }
+        /* Full packet has been trimmed due to the overlap policy. Overlap
+         * already set. */
         goto done;
     }
 
