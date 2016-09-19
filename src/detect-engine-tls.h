@@ -23,6 +23,8 @@
 #ifndef __DETECT_ENGINE_TLS_H__
 #define __DETECT_ENGINE_TLS_H__
 
+int PrefilterTxTlsSniRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectTlsSni(ThreadVars *tv, DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               Signature *s, Flow *f, uint8_t flags,

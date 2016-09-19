@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,6 +25,7 @@
 /** \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  * \brief Handle HTTP request body match corresponding to http_client_body
  * keyword.
@@ -41,6 +42,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -212,56 +214,46 @@ static const uint8_t *DetectEngineHCBDGetBufferForTX(htp_tx_t *tx, uint64_t tx_i
     return buffer;
 }
 
-/** \brief Http client body pattern match -- searches for one pattern per
- *         signature.
+/** \brief HTTP Client Body Mpm prefilter callback
  *
- *  \param det_ctx  Detection engine thread ctx.
- *  \param body     The request body to inspect.
- *  \param body_len Body length.
- *
- *  \retval ret Number of matches.
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  */
-static inline uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
-        const uint8_t *body, const uint32_t body_len,
-        const uint8_t flags)
+static void PrefilterTxHttpRequestBody(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_hcbd_ctx_ts == NULL);
-
-    if (body_len >= det_ctx->sgh->mpm_hcbd_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, body, body_len);
-    }
-
-    SCReturnUInt(ret);
-}
-
-int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
-                                     DetectEngineThreadCtx *det_ctx, Flow *f,
-                                     HtpState *htp_state, uint8_t flags,
-                                     void *tx, uint64_t idx)
-{
-    uint32_t cnt = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    htp_tx_t *tx = (htp_tx_t *)txv;
+    HtpState *htp_state = f->alstate;
     uint32_t buffer_len = 0;
     uint32_t stream_start_offset = 0;
     const uint8_t *buffer = DetectEngineHCBDGetBufferForTX(tx, idx,
-                                                     de_ctx, det_ctx,
+                                                     NULL, det_ctx,
                                                      f, htp_state,
                                                      flags,
                                                      &buffer_len,
                                                      &stream_start_offset);
-    if (buffer_len == 0)
-        goto end;
 
-    cnt = HttpClientBodyPatternSearch(det_ctx, (uint8_t *)buffer, buffer_len, flags);
+    if (buffer_len >= mpm_ctx->minlen) {
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+    }
+}
 
- end:
-    return cnt;
+int PrefilterTxHttpRequestBodyRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxHttpRequestBody,
+        ALPROTO_HTTP, HTP_REQUEST_BODY,
+        mpm_ctx, NULL, "http_client_body");
 }
 
 int DetectEngineInspectHttpClientBody(ThreadVars *tv,

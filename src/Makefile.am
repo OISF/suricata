@@ -122,6 +122,8 @@ detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-payload.c detect-engine-payload.h \
 detect-engine-port.c detect-engine-port.h \
+detect-engine-prefilter.c detect-engine-prefilter.h \
+detect-engine-prefilter-common.c detect-engine-prefilter-common.h \
 detect-engine-proto.c detect-engine-proto.h \
 detect-engine-profile.c detect-engine-profile.h \
 detect-engine-siggroup.c detect-engine-siggroup.h \
@@ -185,6 +187,7 @@ detect-parse.c detect-parse.h \
 detect-pcre.c detect-pcre.h \
 detect-pkt-data.c detect-pkt-data.h \
 detect-pktvar.c detect-pktvar.h \
+detect-prefilter.c detect-prefilter.h \
 detect-priority.c detect-priority.h \
 detect-rawbytes.c detect-rawbytes.h \
 detect-reference.c detect-reference.h \
@@ -382,6 +385,7 @@ util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
 util-pool.c util-pool.h \
 util-pool-thread.c util-pool-thread.h \
+util-prefilter.c util-prefilter.h \
 util-print.c util-print.h \
 util-privs.c util-privs.h \
 util-profiling.c util-profiling.h \

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,19 +18,13 @@
 /**
  * \file
  *
- * \author  Victor Julien <victor@inliniac.net>
- * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __DETECT_URICONTENT_H__
-#define __DETECT_URICONTENT_H__
-
-#include "detect-content.h"
-
-#include "app-layer-htp.h"
+#ifndef __DETECT_PREFILTER_H__
+#define __DETECT_PREFILTER_H__
 
 /* prototypes */
-void DetectUricontentRegister (void);
-void DetectUricontentPrint(DetectContentData *);
+void DetectPrefilterRegister (void);
 
-#endif /* __DETECT_URICONTENT_H__ */
+#endif /* __DETECT_PREFILTER_H__ */
