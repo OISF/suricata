@@ -88,9 +88,7 @@ void FlowVarAddStrNoLock(Flow *f, uint16_t idx, uint8_t *value, uint16_t size)
 /* add a flowvar to the flow, or update it */
 void FlowVarAddStr(Flow *f, uint16_t idx, uint8_t *value, uint16_t size)
 {
-    FLOWLOCK_WRLOCK(f);
     FlowVarAddStrNoLock(f, idx, value, size);
-    FLOWLOCK_UNLOCK(f);
 }
 
 /* add a flowvar to the flow, or update it */
@@ -117,9 +115,7 @@ void FlowVarAddIntNoLock(Flow *f, uint16_t idx, uint32_t value)
 /* add a flowvar to the flow, or update it */
 void FlowVarAddInt(Flow *f, uint16_t idx, uint32_t value)
 {
-    FLOWLOCK_WRLOCK(f);
     FlowVarAddIntNoLock(f, idx, value);
-    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowVarFree(FlowVar *fv)

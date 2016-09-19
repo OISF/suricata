@@ -27,7 +27,7 @@
 #ifndef __ALERT_SYSLOG_H__
 #define __ALERT_SYSLOG_H__
 
-void TmModuleAlertSyslogRegister(void);
+void AlertSyslogRegister(void);
 
 #endif /* __ALERT_SYSLOG_H__ */
 

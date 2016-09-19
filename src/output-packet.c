@@ -25,6 +25,7 @@
 
 #include "suricata-common.h"
 #include "tm-modules.h"
+#include "output.h"
 #include "output-packet.h"
 #include "util-profiling.h"
 
@@ -48,17 +49,20 @@ typedef struct OutputPacketLogger_ {
     OutputCtx *output_ctx;
     struct OutputPacketLogger_ *next;
     const char *name;
-    TmmId module_id;
+    LoggerId logger_id;
+    ThreadInitFunc ThreadInit;
+    ThreadDeinitFunc ThreadDeinit;
+    ThreadExitPrintStatsFunc ThreadExitPrintStats;
 } OutputPacketLogger;
 
 static OutputPacketLogger *list = NULL;
 
-int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *output_ctx)
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
+    PacketLogger LogFunc, PacketLogCondition ConditionFunc,
+    OutputCtx *output_ctx, ThreadInitFunc ThreadInit,
+    ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats)
 {
-    int module_id = TmModuleGetIdByName(name);
-    if (module_id < 0)
-        return -1;
-
     OutputPacketLogger *op = SCMalloc(sizeof(*op));
     if (op == NULL)
         return -1;
@@ -68,7 +72,10 @@ int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLog
     op->ConditionFunc = ConditionFunc;
     op->output_ctx = output_ctx;
     op->name = name;
-    op->module_id = (TmmId) module_id;
+    op->ThreadInit = ThreadInit;
+    op->ThreadDeinit = ThreadDeinit;
+    op->ThreadExitPrintStats = ThreadExitPrintStats;
+    op->logger_id = logger_id;
 
     if (list == NULL)
         list = op;
@@ -83,10 +90,14 @@ int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc, PacketLog
     return 0;
 }
 
-static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data)
 {
     BUG_ON(thread_data == NULL);
-    BUG_ON(list == NULL);
+
+    if (list == NULL) {
+        /* No child loggers. */
+        return TM_ECODE_OK;
+    }
 
     OutputLoggerThreadData *op_thread_data = (OutputLoggerThreadData *)thread_data;
     OutputPacketLogger *logger = list;
@@ -100,9 +111,9 @@ static TmEcode OutputPacketLog(ThreadVars *tv, Packet *p, void *thread_data, Pac
         BUG_ON(logger->LogFunc == NULL || logger->ConditionFunc == NULL);
 
         if ((logger->ConditionFunc(tv, (const Packet *)p)) == TRUE) {
-            PACKET_PROFILING_TMM_START(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_START(p, logger->logger_id);
             logger->LogFunc(tv, store->thread_data, (const Packet *)p);
-            PACKET_PROFILING_TMM_END(p, logger->module_id);
+            PACKET_PROFILING_LOGGER_END(p, logger->logger_id);
         }
 
         logger = logger->next;
@@ -131,16 +142,9 @@ static TmEcode OutputPacketLogThreadInit(ThreadVars *tv, void *initdata, void **
 
     OutputPacketLogger *logger = list;
     while (logger) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadInit) {
+        if (logger->ThreadInit) {
             void *retptr = NULL;
-            if (tm_module->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
+            if (logger->ThreadInit(tv, (void *)logger->output_ctx, &retptr) == TM_ECODE_OK) {
                 OutputLoggerThreadStore *ts = SCMalloc(sizeof(*ts));
 /* todo */      BUG_ON(ts == NULL);
                 memset(ts, 0x00, sizeof(*ts));
@@ -174,15 +178,8 @@ static TmEcode OutputPacketLogThreadDeinit(ThreadVars *tv, void *thread_data)
     OutputPacketLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadDeinit) {
-            tm_module->ThreadDeinit(tv, store->thread_data);
+        if (logger->ThreadDeinit) {
+            logger->ThreadDeinit(tv, store->thread_data);
         }
 
         OutputLoggerThreadStore *next_store = store->next;
@@ -203,15 +200,8 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
     OutputPacketLogger *logger = list;
 
     while (logger && store) {
-        TmModule *tm_module = TmModuleGetByName((char *)logger->name);
-        if (tm_module == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", logger->name);
-            exit(EXIT_FAILURE);
-        }
-
-        if (tm_module->ThreadExitPrintStats) {
-            tm_module->ThreadExitPrintStats(tv, store->thread_data);
+        if (logger->ThreadExitPrintStats) {
+            logger->ThreadExitPrintStats(tv, store->thread_data);
         }
 
         logger = logger->next;
@@ -219,14 +209,11 @@ static void OutputPacketLogExitPrintStats(ThreadVars *tv, void *thread_data)
     }
 }
 
-void TmModulePacketLoggerRegister (void)
+void OutputPacketLoggerRegister(void)
 {
-    tmm_modules[TMM_PACKETLOGGER].name = "__packet_logger__";
-    tmm_modules[TMM_PACKETLOGGER].ThreadInit = OutputPacketLogThreadInit;
-    tmm_modules[TMM_PACKETLOGGER].Func = OutputPacketLog;
-    tmm_modules[TMM_PACKETLOGGER].ThreadExitPrintStats = OutputPacketLogExitPrintStats;
-    tmm_modules[TMM_PACKETLOGGER].ThreadDeinit = OutputPacketLogThreadDeinit;
-    tmm_modules[TMM_PACKETLOGGER].cap_flags = 0;
+    OutputRegisterRootLogger(OutputPacketLogThreadInit,
+        OutputPacketLogThreadDeinit, OutputPacketLogExitPrintStats,
+        OutputPacketLog);
 }
 
 void OutputPacketShutdown(void)

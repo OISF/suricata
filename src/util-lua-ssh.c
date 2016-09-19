@@ -79,18 +79,12 @@ static int SshGetServerProtoVersion(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
         return LuaCallbackError(luastate, "error: protocol not ssh");
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetServerProtoVersion(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetServerProtoVersion(luastate, f);
-    }
+    r = GetServerProtoVersion(luastate, f);
+
     return r;
 }
 
@@ -116,18 +110,12 @@ static int SshGetServerSoftwareVersion(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
         return LuaCallbackError(luastate, "error: protocol not ssh");
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetServerSoftwareVersion(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetServerSoftwareVersion(luastate, f);
-    }
+    r = GetServerSoftwareVersion(luastate, f);
+
     return r;
 }
 
@@ -153,18 +141,12 @@ static int SshGetClientProtoVersion(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
         return LuaCallbackError(luastate, "error: protocol not ssh");
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetClientProtoVersion(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetClientProtoVersion(luastate, f);
-    }
+    r = GetClientProtoVersion(luastate, f);
+
     return r;
 }
 
@@ -190,18 +172,12 @@ static int SshGetClientSoftwareVersion(lua_State *luastate)
     if (!(LuaStateNeedProto(luastate, ALPROTO_SSH)))
         return LuaCallbackError(luastate, "error: protocol not ssh");
 
-    int lock_hint = 0;
-    Flow *f = LuaStateGetFlow(luastate, &lock_hint);
+    Flow *f = LuaStateGetFlow(luastate);
     if (f == NULL)
         return LuaCallbackError(luastate, "internal error: no flow");
 
-    if (lock_hint == LUA_FLOW_NOT_LOCKED_BY_PARENT) {
-        FLOWLOCK_RDLOCK(f);
-        r = GetClientSoftwareVersion(luastate, f);
-        FLOWLOCK_UNLOCK(f);
-    } else {
-        r = GetClientSoftwareVersion(luastate, f);
-    }
+    r = GetClientSoftwareVersion(luastate, f);
+
     return r;
 }
 

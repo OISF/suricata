@@ -24,7 +24,7 @@
 #ifndef __OUTPUT_JSON_TLS_H__
 #define __OUTPUT_JSON_TLS_H__
 
-void TmModuleJsonTlsLogRegister (void);
+void JsonTlsLogRegister(void);
 
 #ifdef HAVE_LIBJANSSON
 #include "app-layer-ssl.h"
