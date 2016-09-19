@@ -78,9 +78,11 @@
 
 #include <sys/syscall.h>
 #include <linux/bpf.h>
-#include "util-ebpf.h"
 #include <linux/types.h>
+#ifdef HAVE_PACKET_EBPF
+#include "util-ebpf.h"
 #include <bpf/libbpf.h>
+#endif
 
 struct bpf_program {
 	u_int bf_len;
