@@ -194,12 +194,18 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
     SCEnter();
 
     ret = idmef_alert_new_assessment(alert, &assessment);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating assessment: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
+    }
 
     ret = idmef_assessment_new_impact(assessment, &impact);
-    if (unlikely(ret < 0))
+    if (unlikely(ret < 0)) {
+        SCLogDebug("%s: error creating assessment impact: %s.",
+                prelude_strsource(ret), prelude_strerror(ret));
         SCReturnInt(ret);
+    }
 
     if ( (unsigned int)pa->s->prio < mid_priority )
         severity = IDMEF_IMPACT_SEVERITY_HIGH;
@@ -215,7 +221,10 @@ static int EventToImpact(const PacketAlert *pa, const Packet *p, idmef_alert_t *
 
     idmef_impact_set_severity(impact, severity);
 
-    if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
+    if (PACKET_TEST_ACTION(p, ACTION_DROP) ||
+        PACKET_TEST_ACTION(p, ACTION_REJECT) ||    
+        PACKET_TEST_ACTION(p, ACTION_REJECT_DST) ||    
+        PACKET_TEST_ACTION(p, ACTION_REJECT_BOTH) ) {
         idmef_action_t *action;
 
         ret = idmef_action_new(&action);
@@ -454,7 +463,17 @@ static int PacketToDataV4(const Packet *p, const PacketAlert *pa, idmef_alert_t 
  */
 static int PacketToDataV6(const Packet *p, const PacketAlert *pa, idmef_alert_t *alert)
 {
-    return 0;
+    SCEnter();
+
+    AddIntData(alert, "ip_ver", IPV6_GET_VER(p));
+    AddIntData(alert, "ip_class", IPV6_GET_CLASS(p));
+    AddIntData(alert, "ip_flow", IPV6_GET_FLOW(p));
+    AddIntData(alert, "ip_nh", IPV6_GET_NH(p));
+    AddIntData(alert, "ip_plen", IPV6_GET_PLEN(p));
+    AddIntData(alert, "ip_hlim", IPV6_GET_HLIM(p));
+    AddIntData(alert, "ip_proto", IPV6_GET_L4PROTO(p));
+
+    SCReturnInt(0);
 }
 
 
@@ -483,29 +502,48 @@ static int PacketToData(const Packet *p, const PacketAlert *pa, idmef_alert_t *a
             PacketToDataV6(p, pa, alert);
 
         if ( PKT_IS_TCP(p) ) {
-            AddIntData(alert, "tcp_seq", ntohl(p->tcph->th_seq));
-            AddIntData(alert, "tcp_ack", ntohl(p->tcph->th_ack));
+            AddIntData(alert, "tcp_seq", TCP_GET_SEQ(p));
+            AddIntData(alert, "tcp_ack", TCP_GET_ACK(p));
 
-            AddIntData(alert, "tcp_off", TCP_GET_RAW_OFFSET(p->tcph));
-            AddIntData(alert, "tcp_res", TCP_GET_RAW_X2(p->tcph));
-            AddIntData(alert, "tcp_flags", p->tcph->th_flags);
+            AddIntData(alert, "tcp_off", TCP_GET_OFFSET(p));
+            AddIntData(alert, "tcp_res", TCP_GET_X2(p));
+            AddIntData(alert, "tcp_flags", TCP_GET_FLAGS(p));
 
-            AddIntData(alert, "tcp_win", ntohs(p->tcph->th_win));
-            AddIntData(alert, "tcp_sum", ntohs(p->tcph->th_sum));
-            AddIntData(alert, "tcp_urp", ntohs(p->tcph->th_urp));
-
+            AddIntData(alert, "tcp_win", TCP_GET_WINDOW(p));
+            AddIntData(alert, "tcp_sum", TCP_GET_SUM(p));
+            AddIntData(alert, "tcp_urp", TCP_GET_URG_POINTER(p));
+            if (p->tcpvars.ts != NULL) {
+                AddIntData(alert, "tcp_tsval", TCP_GET_TSVAL(p));
+                AddIntData(alert, "tcp_tsecr", TCP_GET_TSECR(p));
+            }
+            if (p->tcph != NULL ) {
+                AddIntData(alert, "tcp_wscale", TCP_GET_WSCALE(p));
+            }
+            if (p->tcpvars.ws != NULL) {
+                AddIntData(alert, "tcp_sackok", TCP_GET_SACKOK(p));
+            }
+            if (p->tcpvars.sack != NULL ) {
+                AddIntData(alert, "tcp_sack_cnt", TCP_GET_SACK_CNT(p));
+            }
+            AddIntData(alert, "tcp_hlen", TCP_GET_HLEN(p));
         }
 
         else if ( PKT_IS_UDP(p) ) {
-            AddIntData(alert, "udp_len", ntohs(p->udph->uh_len));
-            AddIntData(alert, "udp_sum", ntohs(p->udph->uh_sum));
+            AddIntData(alert, "udp_len", UDP_GET_LEN(p));
+            AddIntData(alert, "udp_sum", UDP_GET_SUM(p));
         }
 
         else if ( PKT_IS_ICMPV4(p) ) {
-            AddIntData(alert, "icmp_type", p->icmpv4h->type);
-            AddIntData(alert, "icmp_code", p->icmpv4h->code);
-            AddIntData(alert, "icmp_sum", ntohs(p->icmpv4h->checksum));
+            AddIntData(alert, "icmp_type", ICMPV4_GET_TYPE(p));
+            AddIntData(alert, "icmp_code", ICMPV4_GET_CODE(p));
+            AddIntData(alert, "icmp_sum", ICMPV4_GET_RAW_CSUM(p));
 
+        }
+
+        else if ( PKT_IS_ICMPV6(p) ) {
+            AddIntData(alert, "icmp_type", ICMPV6_GET_TYPE(p));
+            AddIntData(alert, "icmp_code", ICMPV6_GET_CODE(p));
+            AddIntData(alert, "icmp_csum", ICMPV6_GET_RAW_CSUM(p));
         }
     }
 

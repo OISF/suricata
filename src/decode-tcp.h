@@ -75,6 +75,7 @@
 
 #define TCP_GET_RAW_WINDOW(tcph)             ntohs((tcph)->th_win)
 #define TCP_GET_RAW_URG_POINTER(tcph)        ntohs((tcph)->th_urp)
+#define TCP_GET_RAW_SUM(tcph)                ntohs((tcph)->th_sum)
 
 /** macro for getting the first timestamp from the packet in host order */
 #define TCP_GET_TSVAL(p)                    ((p)->tcpvars.ts_val)
@@ -98,6 +99,7 @@
 #define TCP_GET_SACK_CNT(p)                  (TCP_HAS_SACK((p)) ? (((p)->tcpvars.sack.len - 2) / 8) : 0)
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
+#define TCP_GET_X2(p)                        TCP_GET_RAW_X2((p)->tcph)
 #define TCP_GET_HLEN(p)                      (TCP_GET_OFFSET((p)) << 2)
 #define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT((p)->tcph)
 #define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT((p)->tcph)
@@ -105,6 +107,8 @@
 #define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK((p)->tcph)
 #define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW((p)->tcph)
 #define TCP_GET_URG_POINTER(p)               TCP_GET_RAW_URG_POINTER((p)->tcph)
+#define TCP_GET_SUM(p)                       TCP_GET_RAW_SUM((p)->tcph)
+#define TCP_GET_FLAGS(p)                     (p)->tcph->th_flags
 
 #define TCP_ISSET_FLAG_FIN(p)                ((p)->tcph->th_flags & TH_FIN)
 #define TCP_ISSET_FLAG_SYN(p)                ((p)->tcph->th_flags & TH_SYN)
