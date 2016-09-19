@@ -307,9 +307,6 @@ end:
 /** \test magic lib calls -- lookup */
 int MagicDetectTest03(void)
 {
-    magic_t magic_ctx;
-    char *result = NULL;
-
     char buffer[] = {
         0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x0b, 0x55, 0x2a, 0x36, 0x5e, 0xc6,
@@ -335,29 +332,23 @@ int MagicDetectTest03(void)
         0x04, 0x14, 0x00, 0x08, 0x00, 0x08, 0x00, 0x0b,
     };
     size_t buffer_len = sizeof(buffer);
-    int retval = 0;
 
-    magic_ctx = magic_open(0);
-    if (magic_ctx == NULL) {
-        printf("failure retrieving magic_ctx\n");
-        return 0;
+    magic_t magic_ctx = magic_open(0);
+    FAIL_IF_NULL(magic_ctx);
+
+    FAIL_IF(magic_load(magic_ctx, NULL) == -1);
+
+    char *result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
+    FAIL_IF_NULL(result);
+
+    char *str = strstr(result, "OpenDocument Text");
+    if (str == NULL) {
+        printf("result %s, not \"OpenDocument Text\": ", str);
+        FAIL;
     }
 
-    if (magic_load(magic_ctx, NULL) == -1) {
-        printf("magic_load failure\n");
-        goto end;
-    }
-
-    result = (char *)magic_buffer(magic_ctx, (void *)buffer, buffer_len);
-    if (result == NULL || strcmp(result, "OpenDocument Text") != 0) {
-        printf("result %p:%s, not \"OpenDocument Text\": ", result,result?result:"(null)");
-        goto end;
-    }
-
-    retval = 1;
-end:
     magic_close(magic_ctx);
-    return retval;
+    PASS;
 }
 
 /** \test magic lib calls -- lookup */
@@ -517,23 +508,20 @@ int MagicDetectTest07(void)
         0x04, 0x14, 0x00, 0x08, 0x00, 0x08, 0x00, 0x0b,
     };
     size_t buffer_len = sizeof(buffer);
-    int retval = 0;
 
-    if (MagicInit() < 0) {
-        printf("MagicInit() failure\n");
-        return 0;
-    }
+    FAIL_IF(MagicInit() < 0);
 
     result = MagicGlobalLookup(buffer, buffer_len);
-    if (result == NULL || strcmp(result, "OpenDocument Text") != 0) {
-        printf("result %p:%s, not \"OpenDocument Text\": ", result,result?result:"(null)");
-        goto end;
+    FAIL_IF_NULL(result);
+
+    char *str = strstr(result, "OpenDocument Text");
+    if (str == NULL) {
+        printf("result %s, not \"OpenDocument Text\": ", str);
+        FAIL;
     }
 
-    retval = 1;
-end:
     MagicDeinit();
-    return retval;
+    PASS;
 }
 
 /** \test magic api calls -- lookup */
