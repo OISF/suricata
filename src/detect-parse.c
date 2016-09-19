@@ -604,6 +604,26 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr, 
         }
     }
 
+    /* Validate double quoting, trimming trailing white space along the way. */
+    if (strlen(optvalue) > 0) {
+        size_t ovlen = strlen(optvalue);
+        if (optvalue[0] == '"') {
+            for (; ovlen > 0; ovlen--) {
+                if (isblank(optvalue[ovlen - 1])) {
+                    optvalue[ovlen - 1] = '\0';
+                } else {
+                    break;
+                }
+            }
+            if (optvalue[ovlen - 1] != '"') {
+                SCLogError(SC_ERR_INVALID_SIGNATURE,
+                    "bad option value formatting (possible missing semicolon) "
+                    "for keyword %s: \'%s\'", optname, optvalue);
+                goto error;
+            }
+        }
+    }
+
     /* setup may or may not add a new SigMatch to the list */
     if (st->Setup(de_ctx, s, strlen(optvalue) ? optvalue : NULL) < 0) {
         SCLogDebug("\"%s\" failed to setup", st->name);
@@ -3577,6 +3597,21 @@ end:
     return result;
 }
 
+static int SigParseTestUnblanacedQuotes01(void)
+{
+    DetectEngineCtx *de_ctx;
+    Signature *s;
+
+    de_ctx = DetectEngineCtxInit();
+    FAIL_IF_NULL(de_ctx);
+    de_ctx->flags |= DE_QUIET;
+
+    s = SigInit(de_ctx, "alert http any any -> any any (msg:\"SigParseTestUnblanacedQuotes01\"; pcre:\"/\\/[a-z]+\\.php\\?[a-z]+?=\\d{7}&[a-z]+?=\\d{7,8}$/U\" flowbits:set,et.exploitkitlanding; classtype:trojan-activity; sid:2017078; rev:5;)");
+    FAIL_IF_NOT_NULL(s);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void)
@@ -3631,5 +3666,7 @@ void SigParseRegisterTests(void)
     UtRegisterTest("SigParseTestAppLayerTLS01", SigParseTestAppLayerTLS01);
     UtRegisterTest("SigParseTestAppLayerTLS02", SigParseTestAppLayerTLS02);
     UtRegisterTest("SigParseTestAppLayerTLS03", SigParseTestAppLayerTLS03);
+    UtRegisterTest("SigParseTestUnblanacedQuotes01",
+        SigParseTestUnblanacedQuotes01);
 #endif /* UNITTESTS */
 }
