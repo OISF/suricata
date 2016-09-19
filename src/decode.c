@@ -385,6 +385,9 @@ void PacketDefragPktSetupParent(Packet *parent)
 void PacketBypassCallback(Packet *p)
 {
     if (p->BypassPacketsFlow) {
+        /* only set bypassed state if succesful */
+        SC_ATOMIC_SET(p->flow->flow_state, FLOW_STATE_BYPASSED);
+
         p->BypassPacketsFlow(p);
     }
 }
