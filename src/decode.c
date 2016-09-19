@@ -384,6 +384,12 @@ void PacketDefragPktSetupParent(Packet *parent)
 
 void PacketBypassCallback(Packet *p)
 {
+    /* Don't try to bypass if flow is already out */
+    int state = SC_ATOMIC_GET(p->flow->flow_state);
+    if (state == FLOW_STATE_BYPASSED) {
+        return;
+    }
+
     if (p->BypassPacketsFlow) {
         /* only set bypassed state if succesful */
         FlowUpdateState(p->flow, FLOW_STATE_BYPASSED);
