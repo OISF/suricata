@@ -33,6 +33,7 @@ app-layer-protos.c app-layer-protos.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smtp.c app-layer-smtp.h \
+app-layer-echo.c app-layer-echo.h \
 app-layer-template.c app-layer-template.h \
 app-layer-ssh.c app-layer-ssh.h \
 app-layer-ssl.c app-layer-ssl.h \
@@ -128,6 +129,7 @@ detect-engine-siggroup.c detect-engine-siggroup.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-tag.c detect-engine-tag.h \
+detect-engine-echo.c detect-engine-echo.h \
 detect-engine-template.c detect-engine-template.h \
 detect-engine-threshold.c detect-engine-threshold.h \
 detect-engine-uri.c detect-engine-uri.h \
@@ -201,6 +203,7 @@ detect-ssl-version.c detect-ssl-version.h \
 detect-stream_size.c detect-stream_size.h \
 detect-tag.c detect-tag.h \
 detect-template.c detect-template.h \
+detect-echo-buffer.c detect-echo-buffer.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \

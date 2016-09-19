@@ -45,10 +45,12 @@ typedef int (*StreamingLogger)(ThreadVars *, void *thread_data,
         const Flow *f, const uint8_t *data, uint32_t data_len,
         uint64_t tx_id, uint8_t flags);
 
-int OutputRegisterStreamingLogger(const char *name, StreamingLogger LogFunc, OutputCtx *,
-        enum OutputStreamingType);
+int OutputRegisterStreamingLogger(LoggerId id, const char *name,
+    StreamingLogger LogFunc, OutputCtx *, enum OutputStreamingType,
+    ThreadInitFunc ThreadInit, ThreadDeinitFunc ThreadDeinit,
+    ThreadExitPrintStatsFunc ThreadExitPrintStats);
 
-void TmModuleStreamingLoggerRegister (void);
+void OutputStreamingLoggerRegister (void);
 
 void OutputStreamingShutdown(void);
 

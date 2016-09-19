@@ -292,14 +292,12 @@ static int LogDropCondition(ThreadVars *tv, const Packet *p)
 
     if (p->flow != NULL) {
         int ret = FALSE;
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 ret = TRUE;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 ret = TRUE;
         }
-        FLOWLOCK_UNLOCK(p->flow);
         return ret;
     } else if (PACKET_TEST_ACTION(p, ACTION_DROP)) {
         return TRUE;
@@ -325,14 +323,12 @@ static int LogDropLogger(ThreadVars *tv, void *thread_data, const Packet *p)
         return -1;
 
     if (p->flow) {
-        FLOWLOCK_RDLOCK(p->flow);
         if (p->flow->flags & FLOW_ACTION_DROP) {
             if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
             else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED))
                 p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
         }
-        FLOWLOCK_UNLOCK(p->flow);
     }
     return 0;
 }
@@ -492,19 +488,12 @@ static void LogDropLogRegisterTests(void)
 #endif
 
 /** \brief function to register the drop log module */
-void TmModuleLogDropLogRegister (void)
+void LogDropLogRegister (void)
 {
-
-    tmm_modules[TMM_LOGDROPLOG].name = MODULE_NAME;
-    tmm_modules[TMM_LOGDROPLOG].ThreadInit = LogDropLogThreadInit;
-    tmm_modules[TMM_LOGDROPLOG].ThreadExitPrintStats = LogDropLogExitPrintStats;
-    tmm_modules[TMM_LOGDROPLOG].ThreadDeinit = LogDropLogThreadDeinit;
+    OutputRegisterPacketModule(LOGGER_DROP, MODULE_NAME, "drop",
+        LogDropLogInitCtx, LogDropLogger, LogDropCondition,
+        LogDropLogThreadInit, LogDropLogThreadDeinit, LogDropLogExitPrintStats);
 #ifdef UNITTESTS
-    tmm_modules[TMM_LOGDROPLOG].RegisterTests = LogDropLogRegisterTests;
+    LogDropLogRegisterTests();
 #endif
-    tmm_modules[TMM_LOGDROPLOG].cap_flags = 0;
-    tmm_modules[TMM_LOGDROPLOG].flags = TM_FLAG_LOGAPI_TM;
-
-    OutputRegisterPacketModule(MODULE_NAME, "drop", LogDropLogInitCtx,
-            LogDropLogger, LogDropCondition);
 }

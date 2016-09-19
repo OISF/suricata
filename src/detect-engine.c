@@ -63,6 +63,7 @@
 #include "detect-engine-tls.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-filedata-smtp.h"
+#include "detect-engine-echo.h"
 #include "detect-engine-template.h"
 
 #include "detect-engine.h"
@@ -299,6 +300,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_FD_SMTP_INSPECT,
           0,
           DetectEngineInspectSMTPFiledata },
+        /* Echo. */
+        { IPPROTO_TCP,
+          ALPROTO_ECHO,
+          DETECT_SM_LIST_ECHO_BUFFER_MATCH,
+          DE_STATE_FLAG_ECHO_BUFFER_INSPECT,
+          0,
+          DetectEngineInspectEchoBuffer },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -373,6 +381,13 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_DNSRESPONSE_INSPECT,
           1,
           DetectEngineInspectDnsResponse },
+        /* Echo. */
+        { IPPROTO_TCP,
+          ALPROTO_ECHO,
+          DETECT_SM_LIST_ECHO_BUFFER_MATCH,
+          DE_STATE_FLAG_ECHO_BUFFER_INSPECT,
+          1,
+          DetectEngineInspectEchoBuffer },
         /* Template. */
         { IPPROTO_TCP,
           ALPROTO_TEMPLATE,
@@ -2746,6 +2761,8 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
         case DETECT_SM_LIST_BASE64_DATA:
             return "base64_data";
 
+        case DETECT_SM_LIST_ECHO_BUFFER_MATCH:
+            return "echo_buffer";
         case DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH:
             return "template_buffer";
 

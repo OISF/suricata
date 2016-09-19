@@ -24,7 +24,7 @@
 #ifndef __ALERT_DEBUGLOG_H__
 #define __ALERT_DEBUGLOG_H__
 
-void TmModuleAlertDebugLogRegister (void);
+void AlertDebugLogRegister(void);
 
 #endif /* __ALERT_DEBUGLOG_H__ */
 

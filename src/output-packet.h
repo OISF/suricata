@@ -27,6 +27,7 @@
 #define __OUTPUT_PACKET_H__
 
 #include "decode.h"
+#include "output.h"
 
 /** packet logger function pointer type */
 typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
@@ -36,10 +37,11 @@ typedef int (*PacketLogger)(ThreadVars *, void *thread_data, const Packet *);
  */
 typedef int (*PacketLogCondition)(ThreadVars *, const Packet *);
 
-int OutputRegisterPacketLogger(const char *name, PacketLogger LogFunc,
-        PacketLogCondition ConditionFunc, OutputCtx *);
+int OutputRegisterPacketLogger(LoggerId logger_id, const char *name,
+    PacketLogger LogFunc, PacketLogCondition ConditionFunc, OutputCtx *,
+    ThreadInitFunc, ThreadDeinitFunc, ThreadExitPrintStatsFunc);
 
-void TmModulePacketLoggerRegister (void);
+void OutputPacketLoggerRegister(void);
 
 void OutputPacketShutdown(void);
 

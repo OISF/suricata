@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2012 Open Information Security Foundation
+/* Copyright (C) 2015 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,19 +18,14 @@
 /**
  * \file
  *
- * \author Tom DeCanio <td@npulsetech.com>
+ * \author FirstName LastName <yourname@domain>
  */
 
-#ifndef __OUTPUT_JSON_TLS_H__
-#define __OUTPUT_JSON_TLS_H__
+#ifndef __DETECT_ECHO_ENGINE_H__
+#define __DETECT_ECHO_ENGINE_H__
 
-void JsonTlsLogRegister(void);
+int DetectEngineInspectEchoBuffer(ThreadVars *, DetectEngineCtx *,
+    DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *, void *,
+    uint64_t);
 
-#ifdef HAVE_LIBJANSSON
-#include "app-layer-ssl.h"
-
-void JsonTlsLogJSONBasic(json_t *js, SSLState *ssl_state);
-void JsonTlsLogJSONExtended(json_t *js, SSLState *ssl_state);
-#endif /* HAVE_LIBJANSSON */
-
-#endif /* __OUTPUT_JSON_TLS_H__ */
+#endif /* __DETECT_ECHO_ENGINE_H__ */
