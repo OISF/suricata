@@ -374,18 +374,20 @@ static void *ParseAFPConfig(const char *iface)
         aconf->ebpf_lb_file = ebpf_file;
     }
 
+#ifdef HAVE_PACKET_EBPF
     /* One shot loading of the eBPF file */
     if (aconf->ebpf_lb_file && cluster_type == PACKET_FANOUT_EBPF) {
-#ifdef HAVE_PACKET_EBPF
         int ret = EBPFLoadFile(aconf->ebpf_lb_file, "loadbalancer",
                                &aconf->ebpf_lb_fd);
         if (ret != 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Error when loading eBPF lb file");
         }
-#else
-        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
-#endif
     }
+#else
+    if (aconf->ebpf_lb_file) {
+        SCLogError(SC_ERR_UNIMPLEMENTED, "eBPF support is not build-in");
+    }
+#endif
 
     if (ConfGetChildValueWithDefault(if_root, if_default, "ebpf-filter-file", &ebpf_file) != 1) {
         aconf->ebpf_filter_file = NULL;
