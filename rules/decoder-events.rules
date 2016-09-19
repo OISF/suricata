@@ -99,9 +99,9 @@ alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:
 alert pkthdr any any -> any any (msg:"SURICATA VLAN too many layers"; decode-event:vlan.too_many_layers; sid:2200091; rev:1;)
 
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; sid:2200068; rev:1;)
-alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_too_large; sid:2200069; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Packet size too large"; decode-event:ipv4.frag_pkt_too_large; sid:2200069; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Fragmentation overlap"; decode-event:ipv4.frag_overlap; sid:2200070; rev:1;)
-alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Packet size too large"; decode-event:ipv6.frag_too_large; sid:2200071; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Packet size too large"; decode-event:ipv6.frag_pkt_too_large; sid:2200071; rev:2;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Fragmentation overlap"; decode-event:ipv6.frag_overlap; sid:2200072; rev:1;)
 
 # checksum rules
