@@ -77,7 +77,8 @@ typedef struct AppLayerParserState_ AppLayerParserState;
 /** alproto detect done.  Right now we need it only for udp */
 #define FLOW_ALPROTO_DETECT_DONE          0x00004000
 
-// vacany 1x
+/** we have tried bypass but we did fail */
+#define FLOW_BYPASS_FAILED                0x00010000
 
 /** Pattern matcher alproto detection done */
 #define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00008000
