@@ -57,7 +57,7 @@ author = u'OISF'
 # built documents.
 #
 # The short X.Y version.
-version = '3.0dev'
+version = os.environ.get('version', "unknown")
 # The full version, including alpha/beta/rc tags.
 release = version
 
