@@ -51,11 +51,11 @@
 #include "stream-tcp.h"
 #include "app-layer-ssl.h"
 
-#define PARSE_REGEX1 "^\\s*([_a-zA-Z0-9]+)(.*)$"
+#define PARSE_REGEX1 "^\\s*(!?)([_a-zA-Z0-9]+)(.*)$"
 static pcre *parse_regex1;
 static pcre_extra *parse_regex1_study;
 
-#define PARSE_REGEX2 "^(?:\\s*[|]\\s*([_a-zA-Z0-9]+))(.*)$"
+#define PARSE_REGEX2 "^(?:\\s*[|,]\\s*(!?)([_a-zA-Z0-9]+))(.*)$"
 static pcre *parse_regex2;
 static pcre_extra *parse_regex2_study;
 
@@ -99,7 +99,6 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Flow *f, uint8_t flags, void *alstate, Signature *s,
                         SigMatch *m)
 {
-    int result = 1;
     DetectSslStateData *ssd = (DetectSslStateData *)m->ctx;
     SSLState *ssl_state = (SSLState *)alstate;
     if (ssl_state == NULL) {
@@ -107,29 +106,13 @@ int DetectSslStateMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         return 0;
     }
 
-    if ((ssd->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO) &&
-        !(ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_HELLO)) {
-        result = 0;
-        goto end;
-    }
-    if ((ssd->flags & SSL_AL_FLAG_STATE_SERVER_HELLO) &&
-        !(ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_HELLO)) {
-        result = 0;
-        goto end;
-    }
-    if ((ssd->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX) &&
-        !(ssl_state->flags & SSL_AL_FLAG_STATE_CLIENT_KEYX)) {
-        result = 0;
-        goto end;
-    }
-    if ((ssd->flags & SSL_AL_FLAG_STATE_SERVER_KEYX) &&
-        !(ssl_state->flags & SSL_AL_FLAG_STATE_SERVER_KEYX)) {
-        result = 0;
-        goto end;
+    uint32_t ssl_flags = ssl_state->current_flags;
+
+    if ((ssd->flags & ssl_flags) ^ ssd->mask) {
+        return 1;
     }
 
- end:
-    return result;
+    return 0;
 }
 
 /**
@@ -149,7 +132,8 @@ DetectSslStateData *DetectSslStateParse(char *arg)
     int ov2[MAX_SUBSTRINGS];
     const char *str1;
     const char *str2;
-    uint32_t flags = 0;
+    int negate = 0;
+    uint32_t flags = 0, mask = 0;
     DetectSslStateData *ssd = NULL;
 
     ret = pcre_exec(parse_regex1, parse_regex1_study, arg, strlen(arg), 0, 0,
@@ -159,7 +143,16 @@ DetectSslStateData *DetectSslStateParse(char *arg)
                    "ssl_state keyword.", arg);
         goto error;
     }
+
     res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 1, &str1);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        goto error;
+    }
+    negate = !strcmp("!", str1);
+    pcre_free_substring(str1);
+
+    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 2, &str1);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -167,14 +160,24 @@ DetectSslStateData *DetectSslStateParse(char *arg)
 
     if (strcmp("client_hello", str1) == 0) {
         flags |= DETECT_SSL_STATE_CLIENT_HELLO;
+        if (negate)
+            mask |= DETECT_SSL_STATE_CLIENT_HELLO;
     } else if (strcmp("server_hello", str1) == 0) {
         flags |= DETECT_SSL_STATE_SERVER_HELLO;
+        if (negate)
+            mask |= DETECT_SSL_STATE_SERVER_HELLO;
     } else if (strcmp("client_keyx", str1) == 0) {
         flags |= DETECT_SSL_STATE_CLIENT_KEYX;
+        if (negate)
+            mask |= DETECT_SSL_STATE_CLIENT_KEYX;
     } else if (strcmp("server_keyx", str1) == 0) {
         flags |= DETECT_SSL_STATE_SERVER_KEYX;
+        if (negate)
+            mask |= DETECT_SSL_STATE_SERVER_KEYX;
     } else if (strcmp("unknown", str1) == 0) {
         flags |= DETECT_SSL_STATE_UNKNOWN;
+        if (negate)
+            mask |= DETECT_SSL_STATE_UNKNOWN;
     } else {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "Found invalid option \"%s\" "
                    "in ssl_state keyword.", str1);
@@ -183,7 +186,7 @@ DetectSslStateData *DetectSslStateParse(char *arg)
 
     pcre_free_substring(str1);
 
-    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 2, &str1);
+    res = pcre_get_substring((char *)arg, ov1, MAX_SUBSTRINGS, 3, &str1);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -196,28 +199,47 @@ DetectSslStateData *DetectSslStateParse(char *arg)
                        "ssl_state keyword.", arg);
             goto error;
         }
+
         res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 1, &str2);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            goto error;
+        }
+        negate = !strcmp("!", str2);
+        pcre_free_substring(str2);
+
+        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 2, &str2);
         if (res <= 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
         }
         if (strcmp("client_hello", str2) == 0) {
             flags |= DETECT_SSL_STATE_CLIENT_HELLO;
+            if (negate)
+                mask |= DETECT_SSL_STATE_CLIENT_HELLO;
         } else if (strcmp("server_hello", str2) == 0) {
             flags |= DETECT_SSL_STATE_SERVER_HELLO;
+            if (negate)
+                mask |= DETECT_SSL_STATE_SERVER_HELLO;
         } else if (strcmp("client_keyx", str2) == 0) {
             flags |= DETECT_SSL_STATE_CLIENT_KEYX;
+            if (negate)
+                mask |= DETECT_SSL_STATE_CLIENT_KEYX;
         } else if (strcmp("server_keyx", str2) == 0) {
             flags |= DETECT_SSL_STATE_SERVER_KEYX;
+            if (negate)
+                mask |= DETECT_SSL_STATE_SERVER_KEYX;
         } else if (strcmp("unknown", str2) == 0) {
             flags |= DETECT_SSL_STATE_UNKNOWN;
+            if (negate)
+                mask |= DETECT_SSL_STATE_UNKNOWN;
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Found invalid option \"%s\" "
                        "in ssl_state keyword.", str2);
             goto error;
         }
 
-        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 2, &str2);
+        res = pcre_get_substring((char *)str1, ov2, MAX_SUBSTRINGS, 3, &str2);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -232,6 +254,7 @@ DetectSslStateData *DetectSslStateParse(char *arg)
         goto error;
     }
     ssd->flags = flags;
+    ssd->mask = mask;
 
     return ssd;
 
@@ -322,7 +345,7 @@ int DetectSslStateTest01(void)
 
 int DetectSslStateTest02(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_hello");
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
         return 0;
@@ -338,7 +361,7 @@ int DetectSslStateTest02(void)
 
 int DetectSslStateTest03(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
@@ -356,8 +379,8 @@ int DetectSslStateTest03(void)
 
 int DetectSslStateTest04(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
                                                   "unknown");
     if (ssd == NULL) {
         printf("ssd == NULL\n");
@@ -377,8 +400,8 @@ int DetectSslStateTest04(void)
 
 int DetectSslStateTest05(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("| server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
+    DetectSslStateData *ssd = DetectSslStateParse(", server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
                                                   "unknown");
 
     if (ssd != NULL) {
@@ -392,9 +415,9 @@ int DetectSslStateTest05(void)
 
 int DetectSslStateTest06(void)
 {
-    DetectSslStateData *ssd = DetectSslStateParse("server_hello | client_keyx | "
-                                                  "client_hello | server_keyx | "
-                                                  "unknown | ");
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
+                                                  "client_hello , server_keyx , "
+                                                  "unknown , ");
     if (ssd != NULL) {
         printf("ssd != NULL - failure\n");
         SCFree(ssd);
@@ -698,22 +721,29 @@ static int DetectSslStateTest07(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello; "
+                              "ssl_state:server_hello; "
                               "sid:2;)");
     if (s == NULL)
         goto end;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello | "
-                              "client_keyx; sid:3;)");
+                              "ssl_state:client_keyx; "
+                              "sid:3;)");
     if (s == NULL)
         goto end;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
-                              "ssl_state:client_hello | server_hello | "
-                              "client_keyx | server_keyx; sid:4;)");
+                              "ssl_state:server_keyx; "
+                              "sid:4;)");
+    if (s == NULL)
+        goto end;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                              "(msg:\"ssl state\"; "
+                              "ssl_state:!client_hello; "
+                              "sid:5;)");
     if (s == NULL)
         goto end;
 
@@ -748,6 +778,8 @@ static int DetectSslStateTest07(void)
         goto end;
     if (PacketAlertCheck(p, 4))
         goto end;
+    if (PacketAlertCheck(p, 5))
+        goto end;
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
@@ -770,6 +802,8 @@ static int DetectSslStateTest07(void)
     if (PacketAlertCheck(p, 3))
         goto end;
     if (PacketAlertCheck(p, 4))
+        goto end;
+    if (!PacketAlertCheck(p, 5))
         goto end;
 
     SCMutexLock(&f.m);
@@ -861,6 +895,40 @@ static int DetectSslStateTest07(void)
     return result;
 }
 
+/**
+ * \brief Test that the "|" character still works as a separate for
+ * compatibility with older Suricata rules.
+ */
+int DetectSslStateTest08(void)
+{
+    DetectSslStateData *ssd = DetectSslStateParse("server_hello|client_hello");
+    FAIL_IF_NULL(ssd);
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
+            DETECT_SSL_STATE_CLIENT_HELLO));
+    SCFree(ssd);
+    PASS;
+}
+
+/**
+ * \test Test parsing of negated states.
+ */
+int DetectSslStateTestParseNegate(void)
+{
+    DetectSslStateData *ssd = DetectSslStateParse("!client_hello");
+    FAIL_IF_NULL(ssd);
+    uint32_t expected = DETECT_SSL_STATE_CLIENT_HELLO;
+    FAIL_IF(ssd->flags != expected || ssd->mask != expected);
+    SCFree(ssd);
+
+    ssd = DetectSslStateParse("!client_hello,!server_hello");
+    FAIL_IF_NULL(ssd);
+    expected = DETECT_SSL_STATE_CLIENT_HELLO | DETECT_SSL_STATE_SERVER_HELLO;
+    FAIL_IF(ssd->flags != expected || ssd->mask != expected);
+    SCFree(ssd);
+
+    PASS;
+}
+
 #endif /* UNITTESTS */
 
 void DetectSslStateRegisterTests(void)
@@ -873,6 +941,9 @@ void DetectSslStateRegisterTests(void)
     UtRegisterTest("DetectSslStateTest05", DetectSslStateTest05);
     UtRegisterTest("DetectSslStateTest06", DetectSslStateTest06);
     UtRegisterTest("DetectSslStateTest07", DetectSslStateTest07);
+    UtRegisterTest("DetectSslStateTest08", DetectSslStateTest08);
+    UtRegisterTest("DetectSslStateTestParseNegate",
+        DetectSslStateTestParseNegate);
 #endif
 
     return;
