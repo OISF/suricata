@@ -12,4 +12,4 @@ Performance
    tcmalloc
    ignoring-traffic
    hyperscan
-   packet_capture
+   packet-capture
