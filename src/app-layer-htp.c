@@ -2472,6 +2472,52 @@ static void HTPConfigParseParameters(HTPCfgRec *cfg_prec, ConfNode *s,
                     cfg_prec->http_body_inline = 0;
                 }
             }
+        } else if (strcasecmp("decompression-swf", p->name) == 0) {
+            ConfNode *pval;
+ 
+            TAILQ_FOREACH(pval, &p->head, next) {
+                if (strcasecmp("enabled", pval->name) == 0) {
+                    if (ConfValIsTrue(pval->val)) {
+                        cfg_prec->decomp_swf_enabled = 1;
+                    } else if (ConfValIsFalse(pval->val)) {
+                        cfg_prec->decomp_swf_enabled = 0;
+                    } else {
+                        WarnInvalidConfEntry("decompression-swf.enabled", "%s", "no");
+                    }
+                } else if (strcasecmp("type", pval->name) == 0) {
+                    if (strcasecmp("no", pval->val) == 0) {
+                        cfg_prec->decomp_swf_type = HTTP_DECOMP_FLASH_NONE;
+                    } else if (strcasecmp("deflate", pval->val) == 0) {
+                        cfg_prec->decomp_swf_type = HTTP_DECOMP_FLASH_ZLIB;
+                    } else if (strcasecmp("lzma", pval->val) == 0) {
+                        cfg_prec->decomp_swf_type = HTTP_DECOMP_FLASH_LZMA;
+                    } else if (strcasecmp("both", pval->val) == 0) {
+                        cfg_prec->decomp_swf_type = HTTP_DECOMP_FLASH_BOTH;
+                    } else {
+                        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                                   "Invalid entry for "
+                                   "decompression-swf.type: %s - "
+                                   "Killing engine", pval->val);
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (strcasecmp("compress-depth", pval->name) == 0) {
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->decomp_swf_compress_depth) < 0) {
+                        SCLogError(SC_ERR_SIZE_PARSE,
+                                   "Error parsing decompression-swf.compression-depth "
+                                   "from conf file - %s. Killing engine", p->val);
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (strcasecmp("decompress-depth", pval->name) == 0) {
+                    if (ParseSizeStringU32(pval->val, &cfg_prec->decomp_swf_decompress_depth) < 0) {
+                        SCLogError(SC_ERR_SIZE_PARSE,
+                                   "Error parsing decompression-swf.decompression-depth "
+                                   "from conf file - %s. Killing engine", p->val);
+                        exit(EXIT_FAILURE);
+                    }
+                } else {
+                    SCLogWarning(SC_ERR_UNKNOWN_VALUE, "Ignoring unknown param %s", pval->name);
+                }
+            }
         } else {
             SCLogWarning(SC_ERR_UNKNOWN_VALUE, "LIBHTP Ignoring unknown "
                          "default config: %s", p->name);
