@@ -219,21 +219,21 @@ Some possible customization of the output of Logstash and Kibana
 
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash1.png
+.. image:: elk/Logstash1.png
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash2.png
+.. image:: elk/Logstash2.png
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash3.png
+.. image:: elk/Logstash3.png
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash4.png
+.. image:: elk/Logstash4.png
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash5.png
+.. image:: elk/Logstash5.png
 
 
-.. image:: logstash-kibana-and-suricata-json-output/Logstash6.png
+.. image:: elk/Logstash6.png
 
 Peter Manev
