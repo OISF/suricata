@@ -33,12 +33,21 @@ html:
 		sphinx-build -b html -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/html
 
+pdf:
+	sysconfdir=$(sysconfdir) \
+	localstatedir=$(localstatedir) \
+	version=$(PACKAGE_VERSION) \
+		sphinx-build -b latex -d _build/doctrees \
+		$(top_srcdir)/doc/userguide _build/latex
+	cd _build/latex && $(MAKE) all-pdf
+
 _build/man/suricata.1:
 	sysconfdir=$(sysconfdir) \
 	localstatedir=$(localstatedir) \
 	version=$(PACKAGE_VERSION) \
 		sphinx-build -b man -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/man
+man: _build/man/suricata.1
 
 clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
