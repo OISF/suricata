@@ -12,7 +12,7 @@ network-traffic.
 dns_query
 ---------
 
-With **dns_query** the DNS response body is inspected. The dns_query
+With **dns_query** the DNS request queries are inspected. The dns_query
 keyword works a bit different from the normal content modifiers. When
 used in a rule all contents following it are affected by it.  Example:
 
