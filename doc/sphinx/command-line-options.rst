@@ -14,62 +14,88 @@ this:
   -a
   --long-option
 
-::
+.. option:: -c <path>
 
+   The -c option the most important option. After -c you can enter the
+   path to the location of suricata.yaml.
 
-  -c     The -c option the most important option. After -c you can enter the path to the location of
-         suricata.yaml.
+.. option::  -i <interface>
 
-  -i     After the -i option you can enter the interface card you would like to use to sniff packets from.
-         It concerns sniffing packets with libpcap in the pcap live mode.
+   After the -i option you can enter the interface card you would like
+   to use to sniff packets from.  It concerns sniffing packets with
+   libpcap in the pcap live mode.
 
-  -r     After the -r option you can enter the path to the pcap-file in which packets are recorded. That way
-         you can inspect the packets in that file in the pcap/offline mode.
+.. option::  -r <filename.pcap>
 
-  -s     With the -s option you can set a file with signatures, which will be loaded together with the rules
-         set  in yaml.
+   After the -r option you can enter the path to the pcap-file in
+   which packets are recorded. That way you can inspect the packets in
+   that file in the pcap/offline mode.
 
-  -l     With the -l option you can set the default log directory. If you already have the default-log-dir set
-         in yaml, it  will not be used by Suricata if you use the -l option. It will use the log dir that is set
-         with the -l
-         option. If you do not set a directory with the -l option, Suricata will use the directory that is set
-         in yaml.
+.. option:: -s <filename.rules>
 
+   With the -s option you can set a file with signatures, which will
+   be loaded together with the rules set in yaml.
 
-  -D     Normally if you run Suricata on your console, it keeps your console occupied. You
-         can not use it for other purposes, and when you close the window, Suricata stops running.
-         If you run Suricata as deamon (using the -D option), it runs at the background and you will be able
-         to use the console for other tasks without disturbing the engine running.
+.. option:: -l <directory>
 
-  --list-app-layer-protos              : list supported app layer protocols
+   With the -l option you can set the default log directory. If you
+   already have the default-log-dir set in yaml, it will not be used
+   by Suricata if you use the -l option. It will use the log dir that
+   is set with the -l option. If you do not set a directory with
+   the -l option, Suricata will use the directory that is set in yaml.
 
-  --list-keywords[=all|csv|<kword>]    : list keywords implemented by the engine
+.. option:: -D
 
+   Normally if you run Suricata on your console, it keeps your console
+   occupied. You can not use it for other purposes, and when you close
+   the window, Suricata stops running.  If you run Suricata as deamon
+   (using the -D option), it runs at the background and you will be
+   able to use the console for other tasks without disturbing the
+   engine running.
 
-  --list-runmodes             The option --list-runmodes lists all possible runmodes.
+.. option:: --list-app-layer-protos
 
-  --runmode (in combination with the command line opion -i or -r)
-                              With the --runmode option you can
-                              set the runmode that you would like to use. This command line option can override the
-                              yaml runmode option.
+   List supported app layer protocols.
+
+.. option:: --list-keywords[=all|csv|<kword>]
+
+   List keywords implemented by the engine
+
+.. option:: --list-runmodes
+
+   The option --list-runmodes lists all possible runmodes.
+
+.. option:: --runmode <runmode>
+
+   (in combination with the command line opion -i or -r) With
+   the --runmode option you can set the runmode that you would like to
+   use. This command line option can override the yaml runmode option.
 
 For more information about runmodes see: :doc:`performance/runmodes`
 
 Unit Tests
 ~~~~~~~~~~
 
-::
+.. option:: -u
 
-  -u                 With the -u option you can run unit tests to test Suricata's code.
+   With the -u option you can run unit tests to test Suricata's code.
 
-  -U                 With the -U option you can select which of the unit tests you want to run. This option uses REGEX.
-                     Example of use:
-                     suricata -u -U http
+.. option:: -U <regex>
 
-  --list-unittests   The --list-unittests option shows a list with all possible unit tests.
+   With the -U option you can select which of the unit tests you want
+   to run. This option uses REGEX.  Example of use: suricata -u -U
+   http
 
-  --fatal-unittests  With the --fatal-unittests option you can run unit tests but it will stop immediately after one test fails
-                     so you can see directly where it went wrong.
+.. option:: --list-unittests
+
+   The --list-unittests option shows a list with all possible unit
+   tests.
+
+.. option::  --fatal-unittests
+
+   With the --fatal-unittests option you can run unit tests but it
+   will stop immediately after one test fails so you can see directly
+   where it went wrong.
 
 PF_RING options
 ~~~~~~~~~~~~~~~
