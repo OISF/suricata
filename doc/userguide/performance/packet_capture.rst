@@ -8,7 +8,7 @@ To get the best performance, Suricata will need to run in 'workers' mode. This e
 
 The AF_PACKET and PF_RING capture methods both have options to select the 'cluster-type'. These default to 'cluster_flow' which instructs the capture method to hash by flow (5 tuple). This hash is symmetric. Netmap does not have a cluster_flow mode built-in. It can be added separately by using the "'lb' tool":https://github.com/luigirizzo/netmap/tree/master/apps/lb
 
-> **WARNING** Recent AF_PACKET changes have "broken":https://redmine.openinfosecfoundation.org/issues/1777 this symmetry. Work is under way to "address this":https://redmine.openinfosecfoundation.org/issues/1777#note-7, but for now stay on kernel <=4.2.
+> **WARNING** Recent AF_PACKET changes have "broken":https://redmine.openinfosecfoundation.org/issues/1777 this symmetry. Work is under way to "address this":https://redmine.openinfosecfoundation.org/issues/1777#note-7, but for now stay on kernel <=4.2 or update to 4.4.16+, 4.6.5+ or 4.7+.
 
 On multi-queue NICs, which is almost any modern NIC, RSS settings need to be considered.
 
@@ -73,7 +73,7 @@ Read your drivers documentation! E.g. for i40e the ethtool change of RSS queues 
 
 Generic: set RSS queues to 1 or make sure RSS hashing is symmetric. Disable NIC offloading.
 
-AF_PACKET: 1 RSS queue and stay on kernel <=4.2 until futher notice. Exception: if RSS is symmetric cluster-type 'cluster_qm' can be used to bind Suricata to the RSS queues. Disable NIC offloading except the rx/tx csum.
+AF_PACKET: 1 RSS queue and stay on kernel <=4.2 or make sure you have >=4.4.16, >=4.6.5 or >=4.7. Exception: if RSS is symmetric cluster-type 'cluster_qm' can be used to bind Suricata to the RSS queues. Disable NIC offloading except the rx/tx csum.
 
 PF_RING: 1 RSS queue and use cluster-type 'cluster_flow'. Disable NIC offloading except the rx/tx csum.
 
