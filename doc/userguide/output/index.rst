@@ -7,4 +7,4 @@ Output
    lua-output
    syslog-alerting-comp
    custom-http-logging
-   files-json-log-output/files-json-log-output.rst
+   files-json/files-json.rst
