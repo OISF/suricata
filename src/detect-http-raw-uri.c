@@ -52,6 +52,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-raw-uri.h"
+#include "detect-engine-hrud.h"
 #include "stream-tcp.h"
 
 static int DetectHttpRawUriSetup(DetectEngineCtx *, Signature *, char *);
@@ -72,6 +73,10 @@ void DetectHttpRawUriRegister(void)
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].RegisterTests = DetectHttpRawUriRegisterTests;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_RAW_URI].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("http_raw_uri", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRUDMATCH, 2,
+            PrefilterTxRawUriRegister);
 
     return;
 }

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2013 Open Information Security Foundation
+/* Copyright (C) 2007-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,15 +25,15 @@
 
 #include "app-layer-htp.h"
 
+int PrefilterTxHostnameRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectHttpHH(ThreadVars *tv,
                               DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               Signature *s, Flow *f, uint8_t flags,
                               void *alstate,
                               void *tx, uint64_t tx_id);
-int DetectEngineRunHttpHHMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                             HtpState *htp_state, uint8_t flags,
-                             void *tx, uint64_t idx);
+
 void DetectEngineHttpHHRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HHHD_H__ */

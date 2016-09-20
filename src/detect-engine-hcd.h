@@ -25,15 +25,16 @@
 
 #include "app-layer-htp.h"
 
+int PrefilterTxRequestCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+int PrefilterTxResponseCookieRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+
 int DetectEngineInspectHttpCookie(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
                                   void *alstate,
                                   void *tx, uint64_t tx_id);
-int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state, uint8_t flags,
-                                 void *tx, uint64_t idx);
+
 void DetectEngineHttpCookieRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HCD_H__ */

@@ -52,7 +52,6 @@
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
-#include "detect-engine-hrl.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
@@ -72,6 +71,9 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
+
+#include "detect-http-request-line.h"
+#include "detect-http-response-line.h"
 
 #include "detect-engine-loader.h"
 
@@ -176,8 +178,8 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DetectEngineInspectPacketUris },
         { IPPROTO_TCP,
           ALPROTO_HTTP,
-          DETECT_SM_LIST_HRLMATCH,
-          DE_STATE_FLAG_HRL_INSPECT,
+          DETECT_SM_LIST_HTTP_REQLINEMATCH,
+          DE_STATE_FLAG_HTTP_REQLINE_INSPECT,
           0,
           DetectEngineInspectHttpRequestLine },
         { IPPROTO_TCP,
@@ -351,6 +353,12 @@ void DetectEngineRegisterAppInspectionEngines(void)
           DE_STATE_FLAG_HSCD_INSPECT,
           1,
           DetectEngineInspectHttpStatCode },
+        { IPPROTO_TCP,
+          ALPROTO_HTTP,
+          DETECT_SM_LIST_HTTP_RESLINEMATCH,
+          DE_STATE_FLAG_HTTP_RESLINE_INSPECT,
+          1,
+          DetectEngineInspectHttpResponseLine },
         /* Modbus */
         { IPPROTO_TCP,
           ALPROTO_MODBUS,
@@ -948,6 +956,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx)
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     ThresholdContextDestroy(de_ctx);
     SigCleanSignatures(de_ctx);
+    SCFree(de_ctx->app_mpms);
+    de_ctx->app_mpms = NULL;
 
     VariableNameFreeHash(de_ctx);
     if (de_ctx->sig_array)
@@ -1266,6 +1276,24 @@ static int DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx)
         }
     }
 
+    de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
+    char *pf_setting = NULL;
+    if (ConfGet("detect.prefilter.default", &pf_setting) == 1 && pf_setting) {
+        if (strcasecmp(pf_setting, "mpm") == 0) {
+            de_ctx->prefilter_setting = DETECT_PREFILTER_MPM;
+        } else if (strcasecmp(pf_setting, "auto") == 0) {
+            de_ctx->prefilter_setting = DETECT_PREFILTER_AUTO;
+        }
+    }
+    switch (de_ctx->prefilter_setting) {
+        case DETECT_PREFILTER_MPM:
+            SCLogConfig("prefilter engines: MPM");
+            break;
+        case DETECT_PREFILTER_AUTO:
+            SCLogConfig("prefilter engines: MPM and keywords");
+            break;
+    }
+
     return 0;
 error:
     return -1;
@@ -1457,10 +1485,10 @@ static TmEcode ThreadCtxDoInit (DetectEngineCtx *de_ctx, DetectEngineThreadCtx *
     }
 
     /* sized to the max of our sgh settings. A max setting of 0 implies that all
-     * sgh's have: sgh->non_mpm_store_cnt == 0 */
-    if (de_ctx->non_mpm_store_cnt_max > 0) {
-        det_ctx->non_mpm_id_array =  SCCalloc(de_ctx->non_mpm_store_cnt_max, sizeof(SigIntId));
-        BUG_ON(det_ctx->non_mpm_id_array == NULL);
+     * sgh's have: sgh->non_pf_store_cnt == 0 */
+    if (de_ctx->non_pf_store_cnt_max > 0) {
+        det_ctx->non_pf_id_array =  SCCalloc(de_ctx->non_pf_store_cnt_max, sizeof(SigIntId));
+        BUG_ON(det_ctx->non_pf_id_array == NULL);
     }
 
     /* IP-ONLY */
@@ -1675,8 +1703,8 @@ void DetectEngineThreadCtxFree(DetectEngineThreadCtx *det_ctx)
         SpmDestroyThreadCtx(det_ctx->spm_thread_ctx);
     }
 
-    if (det_ctx->non_mpm_id_array != NULL)
-        SCFree(det_ctx->non_mpm_id_array);
+    if (det_ctx->non_pf_id_array != NULL)
+        SCFree(det_ctx->non_pf_id_array);
 
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);
@@ -2717,8 +2745,10 @@ const char *DetectSigmatchListEnumToString(enum DetectSigmatchListEnum type)
             return "http cookie";
         case DETECT_SM_LIST_HUADMATCH:
             return "http user-agent";
-        case DETECT_SM_LIST_HRLMATCH:
+        case DETECT_SM_LIST_HTTP_REQLINEMATCH:
             return "http request line";
+        case DETECT_SM_LIST_HTTP_RESLINEMATCH:
+            return "http response line";
         case DETECT_SM_LIST_APP_EVENT:
             return "app layer events";
 

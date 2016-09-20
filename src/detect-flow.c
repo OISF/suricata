@@ -30,6 +30,7 @@
 #include "detect.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-prefilter-common.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -53,6 +54,9 @@ static int DetectFlowSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFlowRegisterTests(void);
 void DetectFlowFree(void *);
 
+static int PrefilterSetupFlow(SigGroupHead *sgh);
+static _Bool PrefilterFlowIsPrefilterable(const Signature *s);
+
 /**
  * \brief Registration function for flow: keyword
  */
@@ -66,14 +70,39 @@ void DetectFlowRegister (void)
     sigmatch_table[DETECT_FLOW].Free  = DetectFlowFree;
     sigmatch_table[DETECT_FLOW].RegisterTests = DetectFlowRegisterTests;
 
+    sigmatch_table[DETECT_FLOW].SupportsPrefilter = PrefilterFlowIsPrefilterable;
+    sigmatch_table[DETECT_FLOW].SetupPrefilter = PrefilterSetupFlow;
+
     DetectSetupParseRegexes(PARSE_REGEX, &parse_regex, &parse_regex_study);
 }
 
-/*
- * returns 0: no match
- *         1: match
- *        -1: error
- */
+static inline int FlowMatch(const uint8_t pflowflags, const uint16_t tflags,
+                            const uint8_t dflags, const uint8_t match_cnt)
+{
+    uint8_t cnt = 0;
+
+    if ((dflags & DETECT_FLOW_FLAG_TOSERVER) && (pflowflags & FLOW_PKT_TOSERVER)) {
+        cnt++;
+    } else if ((dflags & DETECT_FLOW_FLAG_TOCLIENT) && (pflowflags & FLOW_PKT_TOCLIENT)) {
+        cnt++;
+    }
+
+    if ((dflags & DETECT_FLOW_FLAG_ESTABLISHED) && (pflowflags & FLOW_PKT_ESTABLISHED)) {
+        cnt++;
+    } else if (dflags & DETECT_FLOW_FLAG_STATELESS) {
+        cnt++;
+    }
+
+    if (tflags & DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH) {
+        if (dflags & DETECT_FLOW_FLAG_ONLYSTREAM)
+            cnt++;
+    } else {
+        if (dflags & DETECT_FLOW_FLAG_NOSTREAM)
+            cnt++;
+    }
+
+    return (match_cnt == cnt) ? 1 : 0;
+}
 
 /**
  * \brief This function is used to match flow flags set on a packet with those passed via flow:
@@ -102,32 +131,11 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
         SCLogDebug("FLOW_PKT_ESTABLISHED");
     }
 
-    uint8_t cnt = 0;
     const DetectFlowData *fd = (const DetectFlowData *)ctx;
 
-    if ((fd->flags & DETECT_FLOW_FLAG_TOSERVER) && (p->flowflags & FLOW_PKT_TOSERVER)) {
-        cnt++;
-    } else if ((fd->flags & DETECT_FLOW_FLAG_TOCLIENT) && (p->flowflags & FLOW_PKT_TOCLIENT)) {
-        cnt++;
-    }
-
-    if ((fd->flags & DETECT_FLOW_FLAG_ESTABLISHED) && (p->flowflags & FLOW_PKT_ESTABLISHED)) {
-        cnt++;
-    } else if (fd->flags & DETECT_FLOW_FLAG_STATELESS) {
-        cnt++;
-    }
-
-    if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH) {
-        if (fd->flags & DETECT_FLOW_FLAG_ONLYSTREAM)
-            cnt++;
-    } else {
-        if (fd->flags & DETECT_FLOW_FLAG_NOSTREAM)
-            cnt++;
-    }
-
-    int ret = (fd->match_cnt == cnt) ? 1 : 0;
-    SCLogDebug("returning %" PRId32 " cnt %" PRIu8 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
-        ret, cnt, fd->match_cnt, fd->flags, p->flowflags);
+    int ret = FlowMatch(p->flowflags, det_ctx->flags, fd->flags, fd->match_cnt);;
+    SCLogDebug("returning %" PRId32 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
+        ret, fd->match_cnt, fd->flags, p->flowflags);
     SCReturnInt(ret);
 }
 
@@ -336,6 +344,60 @@ void DetectFlowFree(void *ptr)
 {
     DetectFlowData *fd = (DetectFlowData *)ptr;
     SCFree(fd);
+}
+
+static void
+PrefilterPacketFlowMatch(DetectEngineThreadCtx *det_ctx, Packet *p, const void *pectx)
+{
+    const PrefilterPacketHeaderCtx *ctx = pectx;
+
+    if (PrefilterPacketHeaderExtraMatch(ctx, p) == FALSE)
+        return;
+
+    if (FlowMatch(p->flowflags, det_ctx->flags, ctx->v1.u8[0], ctx->v1.u8[1]))
+    {
+        PrefilterAddSids(&det_ctx->pmq, ctx->sigs_array, ctx->sigs_cnt);
+    }
+}
+
+static void
+PrefilterPacketFlowSet(PrefilterPacketHeaderValue *v, void *smctx)
+{
+    const DetectFlowData *fb = smctx;
+    v->u8[0] = fb->flags;
+    v->u8[1] = fb->match_cnt;
+}
+
+static _Bool
+PrefilterPacketFlowCompare(PrefilterPacketHeaderValue v, void *smctx)
+{
+    const DetectFlowData *fb = smctx;
+    if (v.u8[0] == fb->flags &&
+        v.u8[1] == fb->match_cnt)
+    {
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static int PrefilterSetupFlow(SigGroupHead *sgh)
+{
+    return PrefilterSetupPacketHeader(sgh, DETECT_FLOW,
+        PrefilterPacketFlowSet,
+        PrefilterPacketFlowCompare,
+        PrefilterPacketFlowMatch);
+}
+
+static _Bool PrefilterFlowIsPrefilterable(const Signature *s)
+{
+    const SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
+        switch (sm->type) {
+            case DETECT_FLOW:
+                return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 #ifdef UNITTESTS

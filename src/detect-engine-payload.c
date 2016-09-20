@@ -32,6 +32,7 @@
 #include "detect-engine.h"
 #include "detect-parse.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "stream.h"
 
@@ -44,99 +45,76 @@
 
 #include "util-mpm-ac.h"
 
-uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
-                                          const Packet *p)
+static void PrefilterPktStream(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
 {
     SCEnter();
 
-    uint32_t ret = 0;
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    const StreamMsg *smsg = det_ctx->smsg;
 
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_stream_ctx == NULL);
-    if (det_ctx->sgh->mpm_stream_ctx == NULL)
-        SCReturnInt(0);
+    /* for established packets inspect any smsg we may have queued up */
+    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
 
-    if (p->payload_len >= det_ctx->sgh->mpm_stream_ctx->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
-                    p->payload, p->payload_len);
-    }
-
-    SCReturnInt(ret);
-}
-
-/** \brief Pattern match -- searches for only one pattern per signature.
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet
- *  \param smsg stream msg (reassembled stream data)
- *  \param flags stream flags
- *
- *  \retval ret number of matches
- */
-uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, const Packet *p,
-                             const StreamMsg *smsg, const uint8_t flags)
-{
-    SCEnter();
-
-    uint32_t ret = 0;
-
-    //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
-
-    uint32_t r;
-    for ( ; smsg != NULL; smsg = smsg->next) {
-        if (smsg->data_len >= det_ctx->sgh->mpm_stream_ctx->minlen) {
-            r = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
-                Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtcs,
-                        &det_ctx->pmq, smsg->data, smsg->data_len);
-            if (r > 0) {
-                ret += r;
+        for ( ; smsg != NULL; smsg = smsg->next) {
+            if (smsg->data_len >= mpm_ctx->minlen) {
+                (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                        &det_ctx->mtcs, &det_ctx->pmq,
+                        smsg->data, smsg->data_len);
             }
         }
+    } else {
+        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
     }
 
-    SCReturnInt(ret);
+    /* packets that have not been added to the stream will be inspected
+     * as if they are stream chunks */
+    if ((!(p->flags & PKT_NOPAYLOAD_INSPECTION)) &&
+         !(p->flags & PKT_STREAM_ADD))
+    {
+        if (p->payload_len >= mpm_ctx->minlen) {
+            (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                    &det_ctx->mtc, &det_ctx->pmq,
+                    p->payload, p->payload_len);
+        }
+    }
 }
 
-/** \brief Pattern match -- searches for only one pattern per signature.
- *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
- *
- *  \retval ret number of matches
- */
-uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
+int PrefilterPktStreamRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    return PrefilterAppendPayloadEngine(sgh, PrefilterPktStream, mpm_ctx, NULL, "stream");
+}
+
+static void PrefilterPktPayload(DetectEngineThreadCtx *det_ctx,
+        Packet *p, const void *pectx)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-    const MpmCtx *mpm_ctx = NULL;
-
-    mpm_ctx = det_ctx->sgh->mpm_packet_ctx;
-    if (unlikely(mpm_ctx == NULL))
-        SCReturnInt(0);
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
     if (p->payload_len < mpm_ctx->minlen)
-        SCReturnInt(0);
+        SCReturn;
 
 #ifdef __SC_CUDA_SUPPORT__
     if (p->cuda_pkt_vars.cuda_mpm_enabled && p->pkt_src == PKT_SRC_WIRE) {
-        ret = SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
+        (void)SCACCudaPacketResultsProcessing(p, mpm_ctx, &det_ctx->pmq);
     } else {
-        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                                                  &det_ctx->mtc,
-                                                  &det_ctx->pmq,
-                                                  p->payload,
-                                                  p->payload_len);
+        (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                &det_ctx->mtc, &det_ctx->pmq,
+                p->payload, p->payload_len);
     }
 #else
-    ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
-                                              &det_ctx->mtc,
-                                              &det_ctx->pmq,
-                                              p->payload,
-                                              p->payload_len);
+    (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+            &det_ctx->mtc, &det_ctx->pmq,
+            p->payload, p->payload_len);
 #endif
-
-    SCReturnInt(ret);
 }
+
+int PrefilterPktPayloadRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    return PrefilterAppendPayloadEngine(sgh, PrefilterPktPayload, mpm_ctx, NULL, "payload");
+}
+
 
 /**
  *  \brief Do the content inspection & validation for a signature

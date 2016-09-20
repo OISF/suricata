@@ -1,4 +1,4 @@
-/* Copyright (C) 2015 Open Information Security Foundation
+/* Copyright (C) 2015-2016 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
 /** \file
  *
  * \author Giuseppe Longo <giuseppelng@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  *
  */
 
@@ -32,6 +33,7 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-engine-content-inspection.h"
+#include "detect-engine-prefilter.h"
 
 #include "flow-util.h"
 #include "util-debug.h"
@@ -206,7 +208,7 @@ int DetectEngineInspectSMTPFiledata(ThreadVars *tv,
                                               (uint8_t *)buffer,
                                               buffer_len,
                                               stream_start_offset,
-                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_FD_SMTP, NULL);
+                                              DETECT_ENGINE_CONTENT_INSPECTION_MODE_STATE, NULL);
         if (match == 1)
             r = 1;
         }
@@ -233,64 +235,53 @@ void DetectEngineCleanSMTPBuffers(DetectEngineThreadCtx *det_ctx)
     return;
 }
 
-/**
- * \brief SMTP Filedata match -- searches for one pattern per signature.
+/** \brief SMTP Filedata Mpm prefilter callback
  *
- * \param det_ctx    Detection engine thread ctx.
- * \param buffer     Buffer to inspect.
- * \param buffer_len buffer length.
- * \param flags      Flags
+ *  \param det_ctx detection engine thread ctx
+ *  \param p packet to inspect
+ *  \param f flow to inspect
+ *  \param txv tx to inspect
+ *  \param pectx inspection context
  *
- *  \retval ret Number of matches.
+ *  \todo check files against actual tx
  */
-static inline uint32_t SMTPFiledataPatternSearch(DetectEngineThreadCtx *det_ctx,
-                              const uint8_t *buffer, const uint32_t buffer_len,
-                              const uint8_t flags)
+static void PrefilterTxSmtpFiledata(DetectEngineThreadCtx *det_ctx,
+        const void *pectx,
+        Packet *p, Flow *f, void *txv,
+        const uint64_t idx, const uint8_t flags)
 {
     SCEnter();
 
-    uint32_t ret = 0;
-
-    DEBUG_VALIDATE_BUG_ON(flags & STREAM_TOCLIENT);
-    DEBUG_VALIDATE_BUG_ON(det_ctx->sgh->mpm_smtp_filedata_ctx_ts == NULL);
-
-    if (buffer_len >= det_ctx->sgh->mpm_smtp_filedata_ctx_ts->minlen) {
-        ret = mpm_table[det_ctx->sgh->mpm_smtp_filedata_ctx_ts->mpm_type].
-            Search(det_ctx->sgh->mpm_smtp_filedata_ctx_ts, &det_ctx->mtcu,
-                    &det_ctx->pmq, buffer, buffer_len);
-    }
-
-    SCReturnUInt(ret);
-}
-
-int DetectEngineRunSMTPMpm(DetectEngineCtx *de_ctx,
-                           DetectEngineThreadCtx *det_ctx, Flow *f,
-                           SMTPState *smtp_state, uint8_t flags,
-                           void *tx, uint64_t idx)
-{
+    const MpmCtx *mpm_ctx = (MpmCtx *)pectx;
+    SMTPState *smtp_state = f->alstate;
     FileContainer *ffc = smtp_state->files_ts;
-    uint32_t cnt = 0;
-    uint32_t buffer_len = 0;
-    uint32_t stream_start_offset = 0;
-    const uint8_t *buffer = NULL;
-
     if (ffc != NULL) {
         File *file = ffc->head;
         for (; file != NULL; file = file->next) {
-            buffer = DetectEngineSMTPGetBufferForTX(idx,
-                                                    de_ctx, det_ctx,
+            uint32_t buffer_len = 0;
+            uint32_t stream_start_offset = 0;
+
+            const uint8_t *buffer = DetectEngineSMTPGetBufferForTX(idx,
+                                                    NULL, det_ctx,
                                                     f, file,
                                                     flags,
                                                     &buffer_len,
                                                     &stream_start_offset);
-            if (buffer_len == 0)
-                goto end;
-
-            cnt += SMTPFiledataPatternSearch(det_ctx, (uint8_t *)buffer, buffer_len, flags);
+            if (buffer != NULL && buffer_len >= mpm_ctx->minlen) {
+                (void)mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                        &det_ctx->mtcu, &det_ctx->pmq, buffer, buffer_len);
+            }
         }
     }
-end:
-    return cnt;
+}
+
+int PrefilterTxSmtpFiledataRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
+{
+    SCEnter();
+
+    return PrefilterAppendTxEngine(sgh, PrefilterTxSmtpFiledata,
+        ALPROTO_SMTP, 0,
+        mpm_ctx, NULL, "file_data (smtp)");
 }
 
 #ifdef UNITTESTS

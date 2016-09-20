@@ -53,6 +53,7 @@
 #include "app-layer-htp.h"
 #include "detect-http-uri.h"
 #include "detect-uricontent.h"
+#include "detect-engine-uri.h"
 #include "stream-tcp.h"
 
 int DetectHttpUriSetup (DetectEngineCtx *, Signature *, char *);
@@ -74,6 +75,10 @@ void DetectHttpUriRegister (void)
 
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_URI].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("http_uri", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_UMATCH, 2,
+            PrefilterTxUriRegister);
 }
 
 

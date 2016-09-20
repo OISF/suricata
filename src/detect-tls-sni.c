@@ -48,6 +48,7 @@
 
 #include "app-layer.h"
 #include "app-layer-ssl.h"
+#include "detect-engine-tls.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -70,6 +71,11 @@ void DetectTlsSniRegister(void)
 
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TLS_SNI].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("tls_sni", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_TLSSNI_MATCH, 2,
+            PrefilterTxTlsSniRegister);
+
 }
 
 

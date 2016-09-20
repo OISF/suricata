@@ -2381,7 +2381,6 @@ int main(int argc, char **argv)
      * are specified, IPS mode will overwrite this */
     EngineModeSetIDS();
 
-
 #ifdef OS_WIN32
     /* service initialization */
     if (WindowsInit(argc, argv) != 0) {

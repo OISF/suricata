@@ -57,6 +57,7 @@
 #include "app-layer-htp.h"
 #include "stream-tcp.h"
 #include "detect-http-hh.h"
+#include "detect-engine-hhhd.h"
 
 int DetectHttpHHSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpHHRegisterTests(void);
@@ -78,6 +79,9 @@ void DetectHttpHHRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_NOOPT ;
     sigmatch_table[DETECT_AL_HTTP_HOST].flags |= SIGMATCH_PAYLOAD ;
 
+    DetectMpmAppLayerRegister("http_host", SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHHDMATCH, 2,
+            PrefilterTxHostnameRegister);
     return;
 }
 

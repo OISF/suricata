@@ -112,7 +112,6 @@ detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-hrhhd.c detect-engine-hrhhd.h \
 detect-engine-hrud.c detect-engine-hrud.h \
-detect-engine-hrl.c detect-engine-hrl.h \
 detect-engine-hsbd.c detect-engine-hsbd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
@@ -122,6 +121,8 @@ detect-engine-loader.c detect-engine-loader.h \
 detect-engine-mpm.c detect-engine-mpm.h \
 detect-engine-payload.c detect-engine-payload.h \
 detect-engine-port.c detect-engine-port.h \
+detect-engine-prefilter.c detect-engine-prefilter.h \
+detect-engine-prefilter-common.c detect-engine-prefilter-common.h \
 detect-engine-proto.c detect-engine-proto.h \
 detect-engine-profile.c detect-engine-profile.h \
 detect-engine-siggroup.c detect-engine-siggroup.h \
@@ -158,6 +159,8 @@ detect-http-hrh.c detect-http-hrh.h \
 detect-http-method.c detect-http-method.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
+detect-http-request-line.c detect-http-request-line.h \
+detect-http-response-line.c detect-http-response-line.h \
 detect-http-server-body.c detect-http-server-body.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
@@ -185,6 +188,7 @@ detect-parse.c detect-parse.h \
 detect-pcre.c detect-pcre.h \
 detect-pkt-data.c detect-pkt-data.h \
 detect-pktvar.c detect-pktvar.h \
+detect-prefilter.c detect-prefilter.h \
 detect-priority.c detect-priority.h \
 detect-rawbytes.c detect-rawbytes.h \
 detect-reference.c detect-reference.h \
@@ -382,6 +386,7 @@ util-path.c util-path.h \
 util-pidfile.c util-pidfile.h \
 util-pool.c util-pool.h \
 util-pool-thread.c util-pool-thread.h \
+util-prefilter.c util-prefilter.h \
 util-print.c util-print.h \
 util-privs.c util-privs.h \
 util-profiling.c util-profiling.h \

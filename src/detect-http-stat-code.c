@@ -59,6 +59,7 @@
 
 #include "app-layer-htp.h"
 #include "detect-http-stat-code.h"
+#include "detect-engine-hscd.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp.h"
 
@@ -85,6 +86,10 @@ void DetectHttpStatCodeRegister (void)
 
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_HTTP_STAT_CODE].flags |= SIGMATCH_PAYLOAD;
+
+    DetectMpmAppLayerRegister("http_stat_code", SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HSCDMATCH, 2,
+            PrefilterTxHttpStatCodeRegister);
 }
 
 /**
