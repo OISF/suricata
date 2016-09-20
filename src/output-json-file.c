@@ -134,6 +134,24 @@ static void FileWriteJsonRecord(JsonFileLogThread *aft, const Packet *p, const F
                 }
                 json_object_set_new(fjs, "md5", json_string(s));
             }
+            if (ff->flags & FILE_SHA1) {
+                size_t x;
+                int i;
+                char s[256];
+                for (i = 0, x = 0; x < sizeof(ff->sha1); x++) {
+                    i += snprintf(&s[i], 255-i, "%02x", ff->sha1[x]);
+                }
+                json_object_set_new(fjs, "sha1", json_string(s));
+            }
+            if (ff->flags & FILE_SHA256) {
+                size_t x;
+                int i;
+                char s[256];
+                for (i = 0, x = 0; x < sizeof(ff->sha256); x++) {
+                    i += snprintf(&s[i], 255-i, "%02x", ff->sha256[x]);
+                }
+                json_object_set_new(fjs, "sha256", json_string(s));
+            }
 #endif
             break;
         case FILE_STATE_TRUNCATED:
@@ -270,15 +288,7 @@ OutputCtx *OutputFileLogInitSub(ConfNode *conf, OutputCtx *parent_ctx)
             SCLogConfig("forcing magic lookup for logged files");
         }
 
-        const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
-        if (force_md5 != NULL && ConfValIsTrue(force_md5)) {
-#ifdef HAVE_NSS
-            FileForceMd5Enable();
-            SCLogConfig("forcing md5 calculation for logged files");
-#else
-            SCLogInfo("md5 calculation requires linking against libnss");
-#endif
-        }
+        FileForceHashParseCfg(conf);
     }
 
     output_ctx->data = output_file_ctx;
