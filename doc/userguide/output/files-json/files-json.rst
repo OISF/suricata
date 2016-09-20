@@ -8,7 +8,7 @@ What to do with files-json.log output
    postgresql
    useful-queries-for-mysql-and-postgresql
    mongodb
-   logstash-kibana-and-suricata-json-output
+   elk
 
 Suricata has the ability to produce the files-json.log output.
 Basically this is a JSON style format output logfile with entries like this:
