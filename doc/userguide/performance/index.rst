@@ -11,3 +11,5 @@ Performance
    runmodes
    tcmalloc
    ignoring-traffic
+   hyperscan
+   packet_capture
