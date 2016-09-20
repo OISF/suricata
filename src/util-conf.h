@@ -33,4 +33,6 @@ TmEcode ConfigCheckLogDirectory(char *log_dir);
 
 ConfNode *ConfFindDeviceConfig(ConfNode *node, const char *iface);
 
+int ConfUnixSocketIsEnable(void);
+
 #endif /* __UTIL_UTIL_CONF_H__ */

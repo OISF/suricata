@@ -2516,9 +2516,7 @@ int main(int argc, char **argv)
     /* In Unix socket runmode, Flow manager is started on demand */
     if (suri.run_mode != RUNMODE_UNIX_SOCKET) {
         /* Spawn the unix socket manager thread */
-        int unix_socket = 0;
-        if (ConfGetBool("unix-command.enabled", &unix_socket) != 1)
-            unix_socket = 0;
+        int unix_socket = ConfUnixSocketIsEnable();
         if (unix_socket == 1) {
             UnixManagerThreadSpawn(0);
 #ifdef BUILD_UNIX_SOCKET
