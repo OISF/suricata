@@ -49,6 +49,8 @@
 #include "detect-engine-uri.h"
 #include "detect-dns-query.h"
 #include "detect-tls-sni.h"
+#include "detect-tls-cert-issuer.h"
+#include "detect-tls-cert-subject.h"
 #include "detect-engine-state.h"
 #include "detect-engine-analyzer.h"
 #include "detect-engine-filedata-smtp.h"
@@ -1027,17 +1029,28 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 }
             }
         } else if (alproto == ALPROTO_TLS && has_state) {
+            void *alstate = FlowGetAppState(p->flow);
+            if (alstate == NULL) {
+                SCLogDebug("no alstate");
+                return;
+            }
+
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSNI) {
-                    void *alstate = FlowGetAppState(p->flow);
-                    if (alstate == NULL) {
-                        SCLogDebug("no alstate");
-                        return;
-                    }
-
                     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSNI);
                     DetectTlsSniInspectMpm(det_ctx, p->flow, alstate, flags);
                     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSNI);
+                }
+            } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSISSUER) {
+                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSISSUER);
+                    DetectTlsIssuerInspectMpm(det_ctx, p->flow, alstate, flags);
+                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSISSUER);
+                }
+                if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_TLSSUBJECT) {
+                    PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_TLSSUBJECT);
+                    DetectTlsSubjectInspectMpm(det_ctx, p->flow, alstate, flags);
+                    PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_TLSSUBJECT);
                 }
             }
         } else if (alproto == ALPROTO_SMTP && has_state) {
@@ -4374,6 +4387,8 @@ void SigTableSetup(void)
     DetectIPRepRegister();
     DetectDnsQueryRegister();
     DetectTlsSniRegister();
+    DetectTlsIssuerRegister();
+    DetectTlsSubjectRegister();
     DetectModbusRegister();
     DetectAppLayerProtocolRegister();
     DetectBase64DecodeRegister();
