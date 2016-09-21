@@ -49,6 +49,8 @@
 
 #include "source-pfring.h"
 
+extern RunModesList runmodeslist;
+
 #include "tmqh-flow.h"
 
 #ifdef __SC_CUDA_SUPPORT__
@@ -194,9 +196,9 @@ char *RunmodeGetActive(void)
  *
  * \return a string containing the current running mode
  */
-const char *RunModeGetMainMode(void)
+const char *RunModeGetMainMode(int index)
 {
-    int mainmode = RunmodeGetCurrent();
+    int mainmode = RunmodeGetCurrent(&runmodeslist, index);
 
     return RunModeTranslateModeToName(mainmode);
 }

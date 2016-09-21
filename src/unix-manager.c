@@ -696,7 +696,7 @@ TmEcode UnixManagerCaptureModeCommand(json_t *cmd,
                                       json_t *server_msg, void *data)
 {
     SCEnter();
-    json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode()));
+    json_object_set_new(server_msg, "message", json_string(RunModeGetMainMode(0)));
     SCReturnInt(TM_ECODE_OK);
 }
 
