@@ -20,3 +20,4 @@ Suricata Rules
    normalized-buffers
    modbus-keyword
    dnp3-keywords
+   snort-compatibility
