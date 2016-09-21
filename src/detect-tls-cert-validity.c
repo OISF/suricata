@@ -57,7 +57,9 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectTlsValidityMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                                   uint8_t, void *, Signature *, SigMatch *);
+                                   uint8_t, void *, void *, const Signature *,
+                                   const SigMatchCtx *);
+
 static time_t DateStringToEpoch (char *);
 static DetectTlsValidityData *DetectTlsValidityParse (char *);
 static int DetectTlsNotBeforeSetup (DetectEngineCtx *, Signature *s, char *str);
@@ -76,7 +78,7 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].desc = "match TLS certificate notBefore field";
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsnotbefore";
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].AppLayerMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_AL_TLS_NOTBEFORE].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Setup = DetectTlsNotBeforeSetup;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].Free = DetectTlsValidityFree;
     sigmatch_table[DETECT_AL_TLS_NOTBEFORE].RegisterTests = TlsNotBeforeRegisterTests;
@@ -85,7 +87,7 @@ void DetectTlsValidityRegister (void)
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].desc = "match TLS certificate notAfter field";
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].url = "https://redmine.openinfosecfoundation.org/projects/suricata/wiki/TLS-keywords#tlsnotafter";
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].Match = NULL;
-    sigmatch_table[DETECT_AL_TLS_NOTAFTER].AppLayerMatch = DetectTlsValidityMatch;
+    sigmatch_table[DETECT_AL_TLS_NOTAFTER].AppLayerTxMatch = DetectTlsValidityMatch;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].Setup = DetectTlsNotAfterSetup;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].Free = DetectTlsValidityFree;
     sigmatch_table[DETECT_AL_TLS_NOTAFTER].RegisterTests = TlsNotAfterRegisterTests;
@@ -110,7 +112,9 @@ void DetectTlsValidityRegister (void)
  * \retval 1 match.
  */
 static int DetectTlsValidityMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                   Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+                                   Flow *f, uint8_t flags, void *state,
+                                   void *txv, const Signature *s,
+                                   const SigMatchCtx *ctx)
 {
     SCEnter();
 
@@ -128,7 +132,7 @@ static int DetectTlsValidityMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     else
         connp = &ssl_state->server_connp;
 
-    const DetectTlsValidityData *dd = (const DetectTlsValidityData *)m->ctx;
+    const DetectTlsValidityData *dd = (const DetectTlsValidityData *)ctx;
 
     time_t cert_epoch = 0;
     if (dd->type == DETECT_TLS_TYPE_NOTBEFORE)
@@ -405,7 +409,7 @@ static int DetectTlsValiditySetup (DetectEngineCtx *de_ctx, Signature *s,
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TLSVALIDITY_MATCH);
 
     return 0;
 
