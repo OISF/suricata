@@ -28,30 +28,6 @@
 #include "tm-threads.h"
 #include "flow-private.h"
 
-typedef struct DetectEngineAppInspectionEngine_ {
-    uint8_t ipproto;
-    AppProto alproto;
-    uint16_t dir;
-
-    int32_t sm_list;
-    uint32_t inspect_flags;
-
-    /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
-     *         1 Match.
-     *         2 Sig can't match.
-     *         3 Special value used by filestore sigs to indicate disabling
-     *           filestore for the tx.
-     */
-    int (*Callback)(ThreadVars *tv,
-                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                    Signature *sig, Flow *f, uint8_t flags, void *alstate,
-                    void *tx, uint64_t tx_id);
-
-    struct DetectEngineAppInspectionEngine_ *next;
-} DetectEngineAppInspectionEngine;
-
-extern DetectEngineAppInspectionEngine *app_inspection_engine[FLOW_PROTO_DEFAULT][ALPROTO_MAX][2];
-
 /* prototypes */
 void DetectEngineRegisterAppInspectionEngines(void);
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
@@ -111,16 +87,16 @@ int DetectEngineInspectGenericList(ThreadVars *, const DetectEngineCtx *,
  *                    the inpsect_flags.
  * \param Callback The engine callback.
  */
-void DetectEngineRegisterAppInspectionEngine(uint8_t ipproto,
-                                             AppProto alproto,
-                                             uint16_t direction,
+void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
+                                             uint16_t dir,
                                              int32_t sm_list,
-                                             uint32_t inspect_flags,
                                              int (*Callback)(ThreadVars *tv,
                                                              DetectEngineCtx *de_ctx,
                                                              DetectEngineThreadCtx *det_ctx,
                                                              Signature *sig, Flow *f,
                                                              uint8_t flags, void *alstate,
-                                                             void *tx, uint64_t tx_id),
-                                             DetectEngineAppInspectionEngine *list[][ALPROTO_MAX][2]);
+                                                             void *tx, uint64_t tx_id));
+
+int DetectEngineAppInspectionEngine2Signature(Signature *s);
+
 #endif /* __DETECT_ENGINE_H__ */

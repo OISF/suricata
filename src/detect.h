@@ -362,6 +362,29 @@ typedef struct SigMatchData_ {
     SigMatchCtx *ctx; /**< plugin specific data */
 } SigMatchData;
 
+struct DetectEngineThreadCtx_;// DetectEngineThreadCtx;
+
+typedef struct DetectEngineAppInspectionEngine_ {
+    AppProto alproto;
+    uint8_t dir;
+    uint8_t id;
+    int sm_list;
+    uint32_t inspect_flags;
+
+    /* \retval 0 No match.  Don't discontinue matching yet.  We need more data.
+     *         1 Match.
+     *         2 Sig can't match.
+     *         3 Special value used by filestore sigs to indicate disabling
+     *           filestore for the tx.
+     */
+    int (*Callback)(ThreadVars *tv,
+                    struct DetectEngineCtx_ *de_ctx, struct DetectEngineThreadCtx_ *det_ctx,
+                    struct Signature_ *sig, Flow *f, uint8_t flags, void *alstate,
+                    void *tx, uint64_t tx_id);
+
+    struct DetectEngineAppInspectionEngine_ *next;
+} DetectEngineAppInspectionEngine;
+
 
 /** \brief Signature container */
 typedef struct Signature_ {
@@ -417,6 +440,8 @@ typedef struct Signature_ {
 
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
+
+    DetectEngineAppInspectionEngine *app_inspect;
 
     /* Hold copies of the sm lists for Match() */
     SigMatchData *sm_arrays[DETECT_SM_LIST_MAX];
