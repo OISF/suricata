@@ -1885,8 +1885,12 @@
     AC_PATH_PROG(HAVE_SPHINXBUILD, sphinx-build, "no")
     if test "$HAVE_SPHINXBUILD" = "no"; then
        enable_sphinxbuild=no
+       if test -e "$srcdir/doc/userguide/suricata.1"; then
+           have_suricata_man=yes
+       fi
     fi
     AM_CONDITIONAL([HAVE_SPHINXBUILD], [test "x$enable_sphinxbuild" != "xno"])
+    AM_CONDITIONAL([HAVE_SURICATA_MAN], [test "x$have_suricata_man" = "xyes"])
 
 # get revision
     if test -f ./revision; then
