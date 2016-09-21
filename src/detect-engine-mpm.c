@@ -458,10 +458,10 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen)
     return s;
 }
 
-static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
-                                                const DetectContentData *cd,
-                                                const Signature *s, uint8_t flags,
-                                                int chop)
+static void PopulateMpmHelperAddPattern(MpmCtx *mpm_ctx,
+                                        const DetectContentData *cd,
+                                        const Signature *s, uint8_t flags,
+                                        int chop)
 {
     uint16_t pat_offset = cd->offset;
     uint16_t pat_depth = cd->depth;
@@ -948,7 +948,7 @@ void MpmStoreSetup(const DetectEngineCtx *de_ctx, MpmStore *ms)
             }
 
             if (!skip) {
-                PopulateMpmHelperAddPatternToPktCtx(ms->mpm_ctx,
+                PopulateMpmHelperAddPattern(ms->mpm_ctx,
                         cd, s, 0, (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP));
             }
         }
