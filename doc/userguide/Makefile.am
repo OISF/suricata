@@ -3,7 +3,6 @@ EXTRA_DIST = \
 	index.rst \
 	acknowledgements.rst \
 	oinkmaster.rst \
-	snort-compatibility.rst \
 	command-line-options.rst \
 	initscripts.rst \
 	public-data-sets.rst \
