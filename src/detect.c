@@ -3889,7 +3889,9 @@ static int SigMatchPrepare(DetectEngineCtx *de_ctx)
                 }
             }
         }
+        DetectEngineAppInspectionEngine2Signature(s);
     }
+
 
     SCReturnInt(0);
 }

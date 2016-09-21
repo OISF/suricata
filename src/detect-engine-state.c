@@ -523,13 +523,13 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             det_ctx->tx_id = tx_id;
             det_ctx->tx_id_set = 1;
 
-            DetectEngineAppInspectionEngine *engine = app_inspection_engine[f->protomap][alproto][direction];
+            DetectEngineAppInspectionEngine *engine = s->app_inspect;
             SCLogDebug("engine %p", engine);
             inspect_flags = 0;
             while (engine != NULL) {
                 SCLogDebug("engine %p", engine);
                 SCLogDebug("inspect_flags %x", inspect_flags);
-                if (s->sm_lists[engine->sm_list] != NULL) {
+                if (direction == engine->dir) {
                     KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
                     int match = engine->Callback(tv, de_ctx, det_ctx, s, f,
                                              flags, alstate,
@@ -843,7 +843,8 @@ static int DoInspectItem(ThreadVars *tv,
     det_ctx->tx_id_set = 1;
     SCLogDebug("inspecting: tx %u packet %u", (uint)inspect_tx_id, (uint)p->pcap_cnt);
 
-    DetectEngineAppInspectionEngine *engine = app_inspection_engine[f->protomap][alproto][(flags & STREAM_TOSERVER) ? 0 : 1];
+    uint8_t direction = (flags & STREAM_TOSERVER) ? 0 : 1;
+    DetectEngineAppInspectionEngine *engine = s->app_inspect;
     void *inspect_tx = AppLayerParserGetTx(f->proto, alproto, alstate, inspect_tx_id);
     if (inspect_tx == NULL) {
         RULE_PROFILING_END(det_ctx, s, 0, p);
@@ -852,7 +853,7 @@ static int DoInspectItem(ThreadVars *tv,
 
     while (engine != NULL) {
         if (!(item->flags & engine->inspect_flags) &&
-                s->sm_lists[engine->sm_list] != NULL)
+                direction == engine->dir)
         {
             SCLogDebug("inspect_flags %x", inspect_flags);
             KEYWORD_PROFILING_SET_LIST(det_ctx, engine->sm_list);
@@ -1341,13 +1342,8 @@ end:
 
 static int DeStateTest03(void)
 {
-    int result = 0;
-
     DetectEngineState *state = DetectEngineStateAlloc();
-    if (state == NULL) {
-        printf("d == NULL: ");
-        goto end;
-    }
+    FAIL_IF_NULL(state);
 
     Signature s;
     memset(&s, 0x00, sizeof(s));
@@ -1357,34 +1353,20 @@ static int DeStateTest03(void)
     s.num = 11;
     DeStateSignatureAppend(state, &s, 0, direction);
     s.num = 22;
-    DeStateSignatureAppend(state, &s, DE_STATE_FLAG_URI_INSPECT, direction);
+    DeStateSignatureAppend(state, &s, BIT_U32(DE_STATE_FLAG_BASE), direction);
 
-    if (state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL) {
-        goto end;
-    }
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head == NULL);
 
-    if (state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].sid != 11) {
-        goto end;
-    }
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].sid != 11);
 
-    if (state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].flags & DE_STATE_FLAG_URI_INSPECT) {
-        goto end;
-    }
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[0].flags & BIT_U32(DE_STATE_FLAG_BASE));
 
-    if (state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 22) {
-        goto end;
-    }
+    FAIL_IF(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].sid != 22);
 
-    if (!(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].flags & DE_STATE_FLAG_URI_INSPECT)) {
-        goto end;
-    }
+    FAIL_IF(!(state->dir_state[direction & STREAM_TOSERVER ? 0 : 1].head->store[1].flags & BIT_U32(DE_STATE_FLAG_BASE)));
 
-    result = 1;
-end:
-    if (state != NULL) {
-        DetectEngineStateFree(state);
-    }
-    return result;
+    DetectEngineStateFree(state);
+    PASS;
 }
 
 static int DeStateSigTest01(void)
@@ -1531,7 +1513,6 @@ end:
 /** \test multiple pipelined http transactions */
 static int DeStateSigTest02(void)
 {
-    int result = 0;
     Signature *s = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
     ThreadVars th_v;
@@ -1574,169 +1555,90 @@ static int DeStateSigTest02(void)
     StreamTcpInitConfig(TRUE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"/\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"body\"; nocase; http_client_body; sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; sid:2; rev:1;)");
-    if (s == NULL) {
-        printf("sig2 parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SCMutexLock(&f.m);
     int r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
-    if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (2): ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
-    if (r != 0) {
-        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted too early: ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
     void *tx = AppLayerParserGetTx(IPPROTO_TCP, ALPROTO_HTTP, f.alstate, 0);
-    if (tx == NULL) {
-        printf("no http tx: ");
-        goto end;
-    }
+    FAIL_IF_NULL(tx);
+
     DetectEngineState *tx_de_state = AppLayerParserGetTxDetectState(IPPROTO_TCP, ALPROTO_HTTP, tx);
-    if (tx_de_state == NULL || tx_de_state->dir_state[0].cnt != 1 ||
-        tx_de_state->dir_state[0].head->store[0].flags != 0x00000001) {
-        printf("de_state not present or has unexpected content: ");
-        goto end;
-    }
+    FAIL_IF_NULL(tx_de_state);
+    FAIL_IF(tx_de_state->dir_state[0].cnt != 1);
+    FAIL_IF(tx_de_state->dir_state[0].head->store[0].flags != BIT_U32(DE_STATE_FLAG_BASE));
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
-    if (r != 0) {
-        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't match: ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
-    if (r != 0) {
-        printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (5): ");
-        goto end;
-    }
+    FAIL_IF(PacketAlertCheck(p, 1));
     p->alerts.cnt = 0;
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
-    if (r != 0) {
-        printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if ((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2))) {
-        printf("sig 1 alerted (request 2, chunk 6): ");
-        goto end;
-    }
+    FAIL_IF((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2)));
     p->alerts.cnt = 0;
 
     SCLogDebug("sending data chunk 7");
 
-    SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
-    if (r != 0) {
-        printf("toserver chunk 7 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
-    SCMutexUnlock(&f.m);
+    FAIL_IF(r != 0);
+
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 2))) {
-        printf("signature 2 didn't match, but should have: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 2)));
     p->alerts.cnt = 0;
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
+    AppLayerParserThreadCtxFree(alp_tctx);
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePacket(p);
-    return result;
+    PASS;
 }
 
 static int DeStateSigTest03(void)
@@ -1755,7 +1657,6 @@ static int DeStateSigTest03(void)
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     ThreadVars th_v;
     TcpSession ssn;
-    int result = 0;
     Flow *f = NULL;
     Packet *p = NULL;
     HtpState *http_state = NULL;
@@ -1766,31 +1667,24 @@ static int DeStateSigTest03(void)
 
     DetectEngineThreadCtx *det_ctx = NULL;
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL) {
-        goto end;
-    }
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     Signature *s = DetectEngineAppendSig(de_ctx, "alert http any any -> any any (content:\"POST\"; http_method; content:\"upload.cgi\"; http_uri; filestore; sid:1; rev:1;)");
-    if (s == NULL) {
-        printf("sig parse failed: ");
-        goto end;
-    }
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
-    if (f == NULL)
-        goto end;
+    FAIL_IF_NULL(f);
     f->protoctx = &ssn;
     f->proto = IPPROTO_TCP;
     f->alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    if (p == NULL)
-        goto end;
+    FAIL_IF_NULL(p);
 
     p->flow = f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1799,71 +1693,33 @@ static int DeStateSigTest03(void)
 
     StreamTcpInitConfig(TRUE);
 
-    SCMutexLock(&f->m);
     int r = AppLayerParserParse(alp_tctx, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, httpbuf1, httplen1);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f->m);
-        goto end;
-    }
-    SCMutexUnlock(&f->m);
+    FAIL_IF(r != 0);
+
+    http_state = f->alstate;
+    FAIL_IF_NULL(http_state);
+    FAIL_IF_NULL(http_state->files_ts);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sig 1 didn't alert: ");
-        goto end;
-    }
+    FAIL_IF(!(PacketAlertCheck(p, 1)));
 
-    http_state = f->alstate;
-    if (http_state == NULL) {
-        printf("no http state: ");
-        result = 0;
-        goto end;
-    }
-
-    if (http_state->files_ts == NULL) {
-        printf("no files in state: ");
-        goto end;
-    }
-
-    SCMutexLock(&f->m);
     FileContainer *files = AppLayerParserGetFiles(p->flow->proto, p->flow->alproto,
                                                   p->flow->alstate, STREAM_TOSERVER);
-    if (files == NULL) {
-        printf("no stored files: ");
-        SCMutexUnlock(&f->m);
-        goto end;
-    }
-    SCMutexUnlock(&f->m);
+    FAIL_IF_NULL(files);
 
     File *file = files->head;
-    if (file == NULL) {
-        printf("no file: ");
-        goto end;
-    }
+    FAIL_IF_NULL(file);
 
-    if (!(file->flags & FILE_STORE)) {
-        printf("file is set to store, but sig didn't match: ");
-        goto end;
-    }
+    FAIL_IF(!(file->flags & FILE_STORE));
 
-    result = 1;
-end:
-    if (alp_tctx != NULL)
-        AppLayerParserThreadCtxFree(alp_tctx);
+    AppLayerParserThreadCtxFree(alp_tctx);
     UTHFreeFlow(f);
 
-    if (det_ctx != NULL) {
-        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    }
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
     StreamTcpFreeConfig(TRUE);
-    return result;
+    PASS;
 }
 
 static int DeStateSigTest04(void)
