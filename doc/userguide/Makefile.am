@@ -22,8 +22,14 @@ EXTRA_DIST = \
 	rules \
 	setting-up-ipsinline-for-linux
 
+if HAVE_SURICATA_MAN
+man1_MANS = suricata.1
+endif
+
 if HAVE_SPHINXBUILD
-man1_MANS = _build/man/suricata.1
+man1_MANS = suricata.1
+
+EXTRA_DIST += $(man1_MANS)
 
 SPHINX_BUILD = sphinx-build -q
 
@@ -48,8 +54,13 @@ _build/man/suricata.1:
 	version=$(PACKAGE_VERSION) \
 		$(SPHINX_BUILD) -b man -d _build/doctrees \
 		$(top_srcdir)/doc/userguide _build/man
+
 man: _build/man/suricata.1
+
+suricata.1: _build/man/suricata.1
+	cp _build/man/suricata.1 suricata.1
 
 clean-local:
 	rm -rf $(top_builddir)/doc/userguide/_build
+	rm -f $(top_builddir)/doc/userguide/suricata.1
 endif
