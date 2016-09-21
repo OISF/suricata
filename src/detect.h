@@ -28,6 +28,8 @@
 
 #include "flow.h"
 
+#include "app-layer-events.h"
+
 #include "detect-engine-proto.h"
 #include "detect-reference.h"
 
@@ -861,6 +863,9 @@ typedef struct DetectEngineThreadCtx_ {
     int base64_decoded_len;
     int base64_decoded_len_max;
 
+    AppLayerDecoderEvents *decoder_events;
+    uint16_t events;
+
 #ifdef PROFILING
     struct SCProfileData_ *rule_perf_data;
     int rule_perf_data_size;
@@ -1234,6 +1239,31 @@ enum {
 /* Table with all SigMatch registrations */
 SigTableElmt sigmatch_table[DETECT_TBLSIZE];
 
+/* event code */
+enum {
+#ifdef UNITTESTS
+    DET_CTX_EVENT_TEST,
+#endif
+    FILE_DECODER_EVENT_NO_MEM,
+    FILE_DECODER_EVENT_NO_FLASH_SUPPORT,
+    FILE_DECODER_EVENT_INVALID_FLASH_VERSION,
+    FILE_DECODER_EVENT_Z_STREAM_END,
+    FILE_DECODER_EVENT_Z_OK,
+    FILE_DECODER_EVENT_Z_DATA_ERROR,
+    FILE_DECODER_EVENT_Z_STREAM_ERROR,
+    FILE_DECODER_EVENT_Z_BUF_ERROR,
+    FILE_DECODER_EVENT_Z_UNKNOWN_ERROR,
+    FILE_DECODER_EVENT_LZMA_DECODER_ERROR,
+    FILE_DECODER_EVENT_LZMA_STREAM_END,
+    FILE_DECODER_EVENT_LZMA_OK,
+    FILE_DECODER_EVENT_LZMA_MEMLIMIT_ERROR,
+    FILE_DECODER_EVENT_LZMA_OPTIONS_ERROR,
+    FILE_DECODER_EVENT_LZMA_FORMAT_ERROR,
+    FILE_DECODER_EVENT_LZMA_DATA_ERROR,
+    FILE_DECODER_EVENT_LZMA_BUF_ERROR,
+    FILE_DECODER_EVENT_LZMA_UNKNOWN_ERROR,
+};
+
 /* detection api */
 SigMatch *SigMatchAlloc(void);
 Signature *SigFindSignatureBySidGid(DetectEngineCtx *, uint32_t, uint32_t);
@@ -1276,6 +1306,12 @@ int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
                                    DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
                                    Signature *s);
 void DetectSignatureApplyActions(Packet *p, const Signature *s);
+
+/* events */
+void DetectEngineSetEvent(DetectEngineThreadCtx *det_ctx, uint8_t e);
+AppLayerDecoderEvents *DetectEngineGetEvents(DetectEngineThreadCtx *det_ctx);
+int DetectEngineGetEventInfo(const char *event_name, int *event_id,
+                             AppLayerEventType *event_type);
 
 #endif /* __DETECT_H__ */
 

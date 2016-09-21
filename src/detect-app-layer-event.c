@@ -92,7 +92,12 @@ static int DetectAppLayerEventAppMatch(ThreadVars *t, DetectEngineThreadCtx *det
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
     if (r == 0) {
-        decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+        if (!aled->needs_detctx) {
+            decoder_events = AppLayerParserGetDecoderEvents(f->alparser);
+        } else {
+            decoder_events = DetectEngineGetEvents(det_ctx);
+        }
+
         if (decoder_events != NULL &&
                 AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
             r = 1;
@@ -150,8 +155,13 @@ static int DetectAppLayerEventParseAppP2(DetectAppLayerEventData *data,
         return -1;
     }
 
-    r = AppLayerParserGetEventInfo(ipproto, data->alproto,
-                        p_idx + 1, &event_id, event_type);
+    if (!data->needs_detctx) {
+        r = AppLayerParserGetEventInfo(ipproto, data->alproto,
+                            p_idx + 1, &event_id, event_type);
+    } else {
+        r = DetectEngineGetEventInfo(p_idx + 1, &event_id, event_type);
+    }
+
     if (r < 0) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword's "
                    "protocol \"%s\" doesn't have event \"%s\" registered",
@@ -170,6 +180,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     AppProto alproto;
     const char *p_idx;
     char alproto_name[50];
+    int needs_detctx = 0;
 
     p_idx = strchr(arg, '.');
     /* + 1 for trailing \0 */
@@ -177,10 +188,14 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
 
     alproto = AppLayerGetProtoByName(alproto_name);
     if (alproto == ALPROTO_UNKNOWN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
-                   "supplied with unknown protocol \"%s\"",
-                   alproto_name);
-        return NULL;
+        if (!strcmp(alproto_name, "file")) {
+            needs_detctx = 1;
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword "
+                       "supplied with unknown protocol \"%s\"",
+                       alproto_name);
+            return NULL;
+        }
     }
 
     aled = SCMalloc(sizeof(*aled));
@@ -189,6 +204,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParseAppP1(const char *arg)
     memset(aled, 0x00, sizeof(*aled));
     aled->alproto = alproto;
     aled->arg = SCStrdup(arg);
+    aled->needs_detctx = needs_detctx;
     if (aled->arg == NULL) {
         SCFree(aled);
         return NULL;
@@ -756,6 +772,35 @@ int DetectAppLayerEventTest05(void)
     PASS;
 }
 
+int DetectAppLayerEventTest06(void)
+{
+    AppLayerEventType event_type;
+    int result = 0;
+    uint8_t ipproto_bitarray[256 / 8];
+    memset(ipproto_bitarray, 0, sizeof(ipproto_bitarray));
+    ipproto_bitarray[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+
+    DetectAppLayerEventData *aled = DetectAppLayerEventParse("file.test",
+                                                             &event_type);
+    if (aled == NULL)
+        goto end;
+    if (DetectAppLayerEventParseAppP2(aled, ipproto_bitarray, &event_type) < 0) {
+        goto end;
+    }
+    if (aled->alproto != ALPROTO_UNKNOWN ||
+        aled->event_id != DET_CTX_EVENT_TEST) {
+        printf("test failure.  Holding wrong state\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    if (aled != NULL)
+        DetectAppLayerEventFree(aled);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -769,6 +814,7 @@ void DetectAppLayerEventRegisterTests(void)
     UtRegisterTest("DetectAppLayerEventTest03", DetectAppLayerEventTest03);
     UtRegisterTest("DetectAppLayerEventTest04", DetectAppLayerEventTest04);
     UtRegisterTest("DetectAppLayerEventTest05", DetectAppLayerEventTest05);
+    UtRegisterTest("DetectAppLayerEventTest06", DetectAppLayerEventTest06);
 #endif /* UNITTESTS */
 
     return;

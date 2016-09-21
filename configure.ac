@@ -448,6 +448,74 @@
 
 # libraries
 
+  # zlib
+    AC_ARG_WITH(zlib_includes,
+            [  --with-zlib-includes=DIR  zlib include directory],
+            [with_zlib_includes="$withval"],[with_zlib_includes=no])
+    AC_ARG_WITH(zlib_libraries,
+            [  --with-zlib-libraries=DIR    zlib library directory],
+            [with_zlib_libraries="$withval"],[with_zlib_libraries="no"])
+
+    if test "$with_zlib_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_zlib_includes}"
+    fi
+
+    AC_CHECK_HEADER(zlib.h,,ZLIB="no")
+
+    if test "$with_zlib_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_zlib_libraries}"
+    fi
+
+    # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+    # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    ZLIB=""
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(z,inflate,,ZLIB="no")
+
+    if test "$ZLIB" = "no"; then
+        echo
+        echo "   ERROR!  zlib library not found, go get it"
+        echo
+        exit 1
+    fi
+    LIBS="${TMPLIBS} -lz"
+
+  # liblzma
+    AC_ARG_WITH(liblzma_includes,
+            [  --with-liblzma-includes=DIR  liblzma include directory],
+            [with_liblzma_includes="$withval"],[with_liblzma_includes=no])
+    AC_ARG_WITH(liblzma_libraries,
+            [  --with-liblzma-libraries=DIR    liblzma library directory],
+            [with_liblzma_libraries="$withval"],[with_liblzma_libraries="no"])
+
+    if test "$with_liblzma_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_liblzma_includes}"
+    fi
+
+    AC_CHECK_HEADER(lzma.h,,LIBLZMA="no")
+
+    if test "$with_liblzma_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_liblzma_libraries}"
+    fi
+
+    # To prevent duping the lib link we reset LIBS after this check. Setting action-if-found to NULL doesn't seem to work
+    # see: http://blog.flameeyes.eu/2008/04/29/i-consider-ac_check_lib-harmful
+    LIBLZMA=""
+    TMPLIBS="${LIBS}"
+    AC_CHECK_LIB(lzma,lzma_code,,LIBLZMA="no")
+
+    if test "$LIBLZMA" = "no"; then
+        echo
+        echo "   Warning! liblzma library not found, you will not be"
+        echo "   able to decompress flash file compressed with lzma."
+        echo
+        enable_liblzma=no
+    else
+        enable_liblzma=yes
+        AC_DEFINE([HAVE_LIBLZMA],[1],[liblzma available])
+        LIBS="${TMPLIBS} -llzma"
+    fi
+
     AC_MSG_CHECKING([for Mpipe])
     AC_COMPILE_IFELSE(
         [AC_LANG_PROGRAM([[#include <gxio/mpipe.h>]])],
@@ -1979,6 +2047,8 @@ SURICATA_BUILD_CONF="Suricata Configuration:
   libnspr support:                         ${enable_nspr}
   libjansson support:                      ${enable_jansson}
   hiredis support:                         ${enable_hiredis}
+  liblzma support:                         ${enable_liblzma}
+
   Prelude support:                         ${enable_prelude}
   PCRE jit:                                ${pcre_jit_available}
   LUA support:                             ${enable_lua}
