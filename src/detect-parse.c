@@ -1096,6 +1096,13 @@ void SigFree(Signature *s)
 
     SigRefFree(s);
 
+    DetectEngineAppInspectionEngine *ie = s->app_inspect;
+    while (ie) {
+        DetectEngineAppInspectionEngine *next = ie->next;
+        SCFree(ie);
+        ie = next;
+    }
+
     SCFree(s);
 }
 
@@ -1636,44 +1643,20 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     SigBuildAddressMatchArray(sig);
 
     if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL) {
-        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_TCP, sig->alproto)) {
+        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_TCP, sig->alproto) ||
+            AppLayerParserProtocolIsTxEventAware(IPPROTO_UDP, sig->alproto))
+        {
             if (sig->flags & SIG_FLAG_TOSERVER) {
-                DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
-                                                        sig->alproto,
+                DetectEngineRegisterAppInspectionEngine(sig->alproto,
                                                         0,
                                                         DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DetectEngineAptEventInspect,
-                                                        app_inspection_engine);
+                                                        DetectEngineAptEventInspect);
             }
             if (sig->flags & SIG_FLAG_TOCLIENT) {
-                DetectEngineRegisterAppInspectionEngine(IPPROTO_TCP,
-                                                        sig->alproto,
+                DetectEngineRegisterAppInspectionEngine(sig->alproto,
                                                         1,
                                                         DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DetectEngineAptEventInspect,
-                                                        app_inspection_engine);
-            }
-        }
-        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_UDP, sig->alproto)) {
-            if (sig->flags & SIG_FLAG_TOSERVER) {
-                DetectEngineRegisterAppInspectionEngine(IPPROTO_UDP,
-                                                        sig->alproto,
-                                                        0,
-                                                        DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DetectEngineAptEventInspect,
-                                                        app_inspection_engine);
-            }
-            if (sig->flags & SIG_FLAG_TOCLIENT) {
-                DetectEngineRegisterAppInspectionEngine(IPPROTO_UDP,
-                                                        sig->alproto,
-                                                        1,
-                                                        DETECT_SM_LIST_APP_EVENT,
-                                                        DE_STATE_FLAG_APP_EVENT_INSPECT,
-                                                        DetectEngineAptEventInspect,
-                                                        app_inspection_engine);
+                                                        DetectEngineAptEventInspect);
             }
         }
     }
