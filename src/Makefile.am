@@ -88,6 +88,8 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-distance.c detect-distance.h \
 detect-dns-query.c detect-dns-query.h \
 detect-tls-sni.c detect-tls-sni.h \
+detect-tls-cert-issuer.c detect-tls-cert-issuer.h \
+detect-tls-cert-subject.c detect-tls-cert-subject.h \
 detect-dsize.c detect-dsize.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
@@ -204,6 +206,7 @@ detect-template.c detect-template.h \
 detect-template-buffer.c detect-template-buffer.h \
 detect-threshold.c detect-threshold.h \
 detect-tls.c detect-tls.h \
+detect-tls-cert-validity.c detect-tls-cert-validity.h \
 detect-tls-version.c detect-tls-version.h \
 detect-tos.c detect-tos.h \
 detect-ttl.c detect-ttl.h \
