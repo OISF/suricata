@@ -331,50 +331,32 @@ void DetectSslStateFree(void *ptr)
 int DetectSslStateTest01(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("client_hello");
-    if (ssd == NULL) {
-        printf("ssd == NULL\n");
-        return 0;
-    }
-    if (ssd->flags == DETECT_SSL_STATE_CLIENT_HELLO) {
-        SCFree(ssd);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NULL(ssd);
+    FAIL_IF_NOT(ssd->flags == DETECT_SSL_STATE_CLIENT_HELLO);
+    SCFree(ssd);
+    PASS;
 }
 
 int DetectSslStateTest02(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_hello");
-    if (ssd == NULL) {
-        printf("ssd == NULL\n");
-        return 0;
-    }
-    if (ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
-                       DETECT_SSL_STATE_CLIENT_HELLO)) {
-        SCFree(ssd);
-        return 1;
-    }
-
-    return 0;
+    FAIL_IF_NULL(ssd);
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
+            DETECT_SSL_STATE_CLIENT_HELLO));
+    SCFree(ssd);
+    PASS;
 }
 
 int DetectSslStateTest03(void)
 {
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello");
-    if (ssd == NULL) {
-        printf("ssd == NULL\n");
-        return 0;
-    }
-    if (ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
+    FAIL_IF_NULL(ssd);
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
                        DETECT_SSL_STATE_CLIENT_KEYX |
-                       DETECT_SSL_STATE_CLIENT_HELLO)) {
-        SCFree(ssd);
-        return 1;
-    }
-
-    return 0;
+                       DETECT_SSL_STATE_CLIENT_HELLO));
+    SCFree(ssd);
+    PASS;
 }
 
 int DetectSslStateTest04(void)
@@ -382,20 +364,14 @@ int DetectSslStateTest04(void)
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
                                                   "unknown");
-    if (ssd == NULL) {
-        printf("ssd == NULL\n");
-        return 0;
-    }
-    if (ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
+    FAIL_IF_NULL(ssd);
+    FAIL_IF_NOT(ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
                        DETECT_SSL_STATE_CLIENT_KEYX |
                        DETECT_SSL_STATE_CLIENT_HELLO |
                        DETECT_SSL_STATE_SERVER_KEYX |
-                       DETECT_SSL_STATE_UNKNOWN)) {
-        SCFree(ssd);
-        return 1;
-    }
-
-    return 0;
+                       DETECT_SSL_STATE_UNKNOWN));
+    SCFree(ssd);
+    PASS;
 }
 
 int DetectSslStateTest05(void)
@@ -404,13 +380,8 @@ int DetectSslStateTest05(void)
                                                   "client_hello , server_keyx , "
                                                   "unknown");
 
-    if (ssd != NULL) {
-        printf("ssd != NULL - failure\n");
-        SCFree(ssd);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT_NULL(ssd);
+    PASS;
 }
 
 int DetectSslStateTest06(void)
@@ -418,13 +389,8 @@ int DetectSslStateTest06(void)
     DetectSslStateData *ssd = DetectSslStateParse("server_hello , client_keyx , "
                                                   "client_hello , server_keyx , "
                                                   "unknown , ");
-    if (ssd != NULL) {
-        printf("ssd != NULL - failure\n");
-        SCFree(ssd);
-        return 0;
-    }
-
-    return 1;
+    FAIL_IF_NOT_NULL(ssd);
+    PASS;
 }
 
 /**
@@ -677,7 +643,6 @@ static int DetectSslStateTest07(void)
     };
     uint32_t toserver_app_data_buf_len = sizeof(toserver_app_data_buf);
 
-    int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
     Packet *p = NULL;
@@ -708,44 +673,38 @@ static int DetectSslStateTest07(void)
     StreamTcpInitConfig(TRUE);
 
     de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
+    FAIL_IF_NULL(de_ctx);
 
     de_ctx->flags |= DE_QUIET;
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; ssl_state:client_hello; "
                               "sid:1;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
                               "ssl_state:server_hello; "
                               "sid:2;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
                               "ssl_state:client_keyx; "
                               "sid:3;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
                               "ssl_state:server_keyx; "
                               "sid:4;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"ssl state\"; "
                               "ssl_state:!client_hello; "
                               "sid:5;)");
-    if (s == NULL)
-        goto end;
+    FAIL_IF_NULL(s);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
@@ -753,134 +712,87 @@ static int DetectSslStateTest07(void)
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER | STREAM_START, chello_buf,
                             chello_buf_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
 
     ssl_state = f.alstate;
-    if (ssl_state == NULL) {
-        printf("no ssl state: ");
-        goto end;
-    }
+    FAIL_IF(ssl_state == NULL);
 
     /* do detect */
     p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
-        goto end;
-    if (PacketAlertCheck(p, 2))
-        goto end;
-    if (PacketAlertCheck(p, 3))
-        goto end;
-    if (PacketAlertCheck(p, 4))
-        goto end;
-    if (PacketAlertCheck(p, 5))
-        goto end;
+    FAIL_IF(!PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(PacketAlertCheck(p, 5));
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, shello_buf,
                             shello_buf_len);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
 
     /* do detect */
     p->alerts.cnt = 0;
+    p->flowflags = (FLOW_PKT_TOCLIENT | FLOW_PKT_ESTABLISHED);
+
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        goto end;
-    if (!PacketAlertCheck(p, 2))
-        goto end;
-    if (PacketAlertCheck(p, 3))
-        goto end;
-    if (PacketAlertCheck(p, 4))
-        goto end;
-    if (!PacketAlertCheck(p, 5))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(!PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
+    FAIL_IF(!PacketAlertCheck(p, 5));
+
+    PASS;
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, client_change_cipher_spec_buf,
                             client_change_cipher_spec_buf_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
 
     /* do detect */
     p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        goto end;
-    if (PacketAlertCheck(p, 2))
-        goto end;
-    if (!PacketAlertCheck(p, 3))
-        goto end;
-    if (PacketAlertCheck(p, 4))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(!PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOCLIENT, server_change_cipher_spec_buf,
                             server_change_cipher_spec_buf_len);
-    if (r != 0) {
-        printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
 
     /* do detect */
     p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        goto end;
-    if (PacketAlertCheck(p, 2))
-        goto end;
-    if (PacketAlertCheck(p, 3))
-        goto end;
-    if (PacketAlertCheck(p, 4))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
 
     SCMutexLock(&f.m);
     r = AppLayerParserParse(alp_tctx, &f, ALPROTO_TLS, STREAM_TOSERVER, toserver_app_data_buf,
                             toserver_app_data_buf_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        SCMutexUnlock(&f.m);
-        goto end;
-    }
+    FAIL_IF(r != 0);
     SCMutexUnlock(&f.m);
 
     /* do detect */
     p->alerts.cnt = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(p, 1))
-        goto end;
-    if (PacketAlertCheck(p, 2))
-        goto end;
-    if (PacketAlertCheck(p, 3))
-        goto end;
-    if (PacketAlertCheck(p, 4))
-        goto end;
+    FAIL_IF(PacketAlertCheck(p, 1));
+    FAIL_IF(PacketAlertCheck(p, 2));
+    FAIL_IF(PacketAlertCheck(p, 3));
+    FAIL_IF(PacketAlertCheck(p, 4));
 
-    result = 1;
-
- end:
     if (alp_tctx != NULL)
         AppLayerParserThreadCtxFree(alp_tctx);
     SigGroupCleanup(de_ctx);
@@ -892,7 +804,7 @@ static int DetectSslStateTest07(void)
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
-    return result;
+    PASS;
 }
 
 /**
