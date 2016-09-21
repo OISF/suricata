@@ -231,7 +231,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'Suricata.tex', u'Suricata Documentation',
+  (master_doc, 'Suricata.tex', u'Suricata User Guide',
    u'OISF', 'manual'),
 ]
 
@@ -276,7 +276,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'Suricata', u'Suricata Documentation',
+  (master_doc, 'Suricata', u'Suricata User Guide',
    author, 'Suricata', 'One line description of project.',
    'Miscellaneous'),
 ]
