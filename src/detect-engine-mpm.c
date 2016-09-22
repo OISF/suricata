@@ -550,7 +550,10 @@ void RetrieveFPForSig(Signature *s)
 
     /* inspect rule to see if we have the fast_pattern reg to
      * force using a sig, otherwise keep stats about the patterns */
-    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+    for (list_id = 0; list_id < DETECT_SM_LIST_DETECT_MAX; list_id++) {
+        if (s->sm_lists[list_id] == NULL)
+            continue;
+
         if (!FastPatternSupportEnabledForSigMatchList(list_id))
             continue;
 
@@ -588,7 +591,7 @@ void RetrieveFPForSig(Signature *s)
         return;
     }
 
-    int final_sm_list[DETECT_SM_LIST_MAX];
+    int final_sm_list[DETECT_SM_LIST_DETECT_MAX] = { 0 };
     int count_final_sm_list = 0;
     int priority;
 
