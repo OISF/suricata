@@ -64,6 +64,12 @@ int DetectHttpResponseLineSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpResponseLineRegisterTests(void);
 void DetectHttpResponseLineFree(void *);
 static int PrefilterTxHttpResponseLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
+static int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, Flow *f, uint8_t flags,
+                                  void *alstate,
+                                  void *txv, uint64_t tx_id);
 
 /**
  * \brief Registers the keyword handlers for the "http_response_line" keyword.
@@ -84,6 +90,11 @@ void DetectHttpResponseLineRegister(void)
     DetectMpmAppLayerRegister("http_response_line", SIG_FLAG_TOCLIENT,
             DETECT_SM_LIST_HTTP_RESLINEMATCH, 2,
             PrefilterTxHttpResponseLineRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HTTP_RESLINEMATCH,
+            DetectEngineInspectHttpResponseLine);
+
     return;
 }
 
