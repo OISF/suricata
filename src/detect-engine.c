@@ -47,7 +47,6 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-hsbd.h"
 #include "detect-engine-hrhd.h"
-#include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
 #include "detect-engine-hua.h"
@@ -126,9 +125,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toserver[] = {
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HRUDMATCH,
-          DetectEngineInspectHttpRawUri },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
