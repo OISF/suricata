@@ -82,6 +82,11 @@ void DetectHttpHHRegister(void)
     DetectMpmAppLayerRegister("http_host", SIG_FLAG_TOSERVER,
             DETECT_SM_LIST_HHHDMATCH, 2,
             PrefilterTxHostnameRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHHDMATCH,
+            DetectEngineInspectHttpHH);
+
     return;
 }
 
