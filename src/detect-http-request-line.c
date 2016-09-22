@@ -64,7 +64,12 @@ int DetectHttpRequestLineSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpRequestLineRegisterTests(void);
 void DetectHttpRequestLineFree(void *);
 static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
-
+static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
+                                  DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx,
+                                  Signature *s, Flow *f, uint8_t flags,
+                                  void *alstate,
+                                  void *txv, uint64_t tx_id);
 /**
  * \brief Registers the keyword handlers for the "http_request_line" keyword.
  */
@@ -84,6 +89,10 @@ void DetectHttpRequestLineRegister(void)
     DetectMpmAppLayerRegister("http_request_line", SIG_FLAG_TOSERVER,
             DETECT_SM_LIST_HTTP_REQLINEMATCH, 2,
             PrefilterTxHttpRequestLineRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HTTP_REQLINEMATCH,
+            DetectEngineInspectHttpRequestLine);
 
     return;
 }
@@ -162,7 +171,7 @@ static int PrefilterTxHttpRequestLineRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx
  * \retval 1 match.
  * \retval 2 Sig can't match.
  */
-int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
+static int DetectEngineInspectHttpRequestLine(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
