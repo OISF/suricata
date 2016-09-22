@@ -26,7 +26,7 @@
 
 int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx);
 
-int DetectEngineInspectPacketUris(ThreadVars *tv,
+int DetectEngineInspectHttpUri(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,

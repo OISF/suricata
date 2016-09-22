@@ -104,7 +104,7 @@ int PrefilterTxUriRegister(SigGroupHead *sgh, MpmCtx *mpm_ctx)
  * \retval 1 match.
  * \retval 2 Sig can't match.
  */
-int DetectEngineInspectPacketUris(ThreadVars *tv,
+int DetectEngineInspectHttpUri(ThreadVars *tv,
                                   DetectEngineCtx *de_ctx,
                                   DetectEngineThreadCtx *det_ctx,
                                   Signature *s, Flow *f, uint8_t flags,
