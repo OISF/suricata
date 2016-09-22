@@ -1446,6 +1446,16 @@ nflog:
 ## Advanced Capture Options
 ##
 
+# general settings affecting packet capture
+capture:
+  # disable NIC offloading. It's restored when Suricata exists.
+  # Enabled by default
+  #disable-offloading: false
+  #
+  # disable checksum validation. Same as setting '-k none' on the
+  # commandline
+  #checksum-validation: none
+
 # Netmap support
 #
 # Netmap operates with NIC directly in driver, so you need FreeBSD wich have

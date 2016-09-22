@@ -2201,6 +2201,25 @@ static int PostConfLoadedSetup(SCInstance *suri)
 #endif
     SpmTableSetup();
 
+    int disable_offloading;
+    if (ConfGetBool("capture.disable-offloading", &disable_offloading) == 0)
+        disable_offloading = 1;
+    if (disable_offloading) {
+        LiveSetOffloadDisable();
+    } else {
+        LiveSetOffloadWarn();
+    }
+
+    if (suri->checksum_validation == -1) {
+        char *cv = NULL;
+        if (ConfGet("capture.checksum-validation", &cv) == 1) {
+            if (strcmp(cv, "none") == 0) {
+                suri->checksum_validation = 0;
+            } else if (strcmp(cv, "all") == 0) {
+                suri->checksum_validation = 1;
+            }
+        }
+    }
     switch (suri->checksum_validation) {
         case 0:
             ConfSet("stream.checksum-validation", "0");
