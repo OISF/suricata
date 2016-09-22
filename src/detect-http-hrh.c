@@ -83,6 +83,10 @@ void DetectHttpHRHRegister(void)
             DETECT_SM_LIST_HRHHDMATCH, 2,
             PrefilterTxHostnameRawRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHHDMATCH,
+            DetectEngineInspectHttpHRH);
+
     return;
 }
 
