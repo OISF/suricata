@@ -72,7 +72,6 @@
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
 
-#include "detect-http-request-line.h"
 #include "detect-http-response-line.h"
 
 #include "detect-engine-loader.h"
@@ -136,9 +135,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_UMATCH,
           DetectEngineInspectPacketUris },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HTTP_REQLINEMATCH,
-          DetectEngineInspectHttpRequestLine },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HCBDMATCH,
           DetectEngineInspectHttpClientBody },
