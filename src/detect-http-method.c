@@ -85,6 +85,10 @@ void DetectHttpMethodRegister(void)
             DETECT_SM_LIST_HMDMATCH, 4,
             PrefilterTxMethodRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HMDMATCH,
+            DetectEngineInspectHttpMethod);
+
     SCLogDebug("registering http_method rule option");
 }
 
