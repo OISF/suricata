@@ -72,8 +72,6 @@
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
 
-#include "detect-http-response-line.h"
-
 #include "detect-engine-loader.h"
 
 #include "util-classification-config.h"
@@ -216,9 +214,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HSCDMATCH,
           DetectEngineInspectHttpStatCode },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HTTP_RESLINEMATCH,
-          DetectEngineInspectHttpResponseLine },
         /* Modbus */
         { ALPROTO_MODBUS,
           DETECT_SM_LIST_MODBUS_MATCH,
