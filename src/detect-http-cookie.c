@@ -89,6 +89,12 @@ void DetectHttpCookieRegister(void)
             DETECT_SM_LIST_HCDMATCH, 2,
             PrefilterTxResponseCookieRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HCDMATCH,
+            DetectEngineInspectHttpCookie);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HCDMATCH,
+            DetectEngineInspectHttpCookie);
 }
 
 /**
