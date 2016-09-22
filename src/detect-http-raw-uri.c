@@ -78,6 +78,10 @@ void DetectHttpRawUriRegister(void)
             DETECT_SM_LIST_HRUDMATCH, 2,
             PrefilterTxRawUriRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRUDMATCH,
+            DetectEngineInspectHttpRawUri);
+
     return;
 }
 
