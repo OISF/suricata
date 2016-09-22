@@ -24,12 +24,6 @@
 #ifndef __DETECT_HTTP_RESPONSE_LINE_H__
 #define __DETECT_HTTP_RESPONSE_LINE_H__
 
-int DetectEngineInspectHttpResponseLine(ThreadVars *tv,
-                                  DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate,
-                                  void *txv, uint64_t tx_id);
 void DetectHttpResponseLineRegister(void);
 
 #endif /* __DETECT_HTTP_RESPONSE_LINE_H__ */
