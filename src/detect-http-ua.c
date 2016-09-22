@@ -84,6 +84,10 @@ void DetectHttpUARegister(void)
             DETECT_SM_LIST_HUADMATCH, 2,
             PrefilterTxUARegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HUADMATCH,
+            DetectEngineInspectHttpUA);
+
     return;
 }
 

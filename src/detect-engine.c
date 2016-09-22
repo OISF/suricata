@@ -49,7 +49,6 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
-#include "detect-engine-hua.h"
 #include "detect-engine-hhhd.h"
 #include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
@@ -128,9 +127,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HUADMATCH,
-          DetectEngineInspectHttpUA },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HHHDMATCH,
           DetectEngineInspectHttpHH },
