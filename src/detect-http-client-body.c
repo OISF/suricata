@@ -83,6 +83,9 @@ void DetectHttpClientBodyRegister(void)
             DETECT_SM_LIST_HCBDMATCH, 2,
             PrefilterTxHttpRequestBodyRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HCBDMATCH,
+            DetectEngineInspectHttpClientBody);
 }
 
 static void DetectHttpClientBodySetupCallback(Signature *s)
