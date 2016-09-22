@@ -193,6 +193,7 @@ outputs:
         - dns:
             # control logging of queries and answers
             # default yes, no to disable
+            # more compact log formats when using "split" or "unified"
             query: yes     # enable logging of DNS queries
             answer: yes    # enable logging of DNS answers
             # control which RR types are logged

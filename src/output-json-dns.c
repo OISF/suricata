@@ -58,67 +58,71 @@
 
 #define LOG_QUERIES    BIT_U64(0)
 #define LOG_ANSWERS    BIT_U64(1)
+#define LOG_SPLIT      BIT_U64(2)
+#define LOG_UNIFIED    BIT_U64(3)
 
-#define LOG_A          BIT_U64(2)
-#define LOG_NS         BIT_U64(3)
-#define LOG_MD         BIT_U64(4)
-#define LOG_MF         BIT_U64(5)
-#define LOG_CNAME      BIT_U64(6)
-#define LOG_SOA        BIT_U64(7)
-#define LOG_MB         BIT_U64(8)
-#define LOG_MG         BIT_U64(9)
-#define LOG_MR         BIT_U64(10)
-#define LOG_NULL       BIT_U64(11)
-#define LOG_WKS        BIT_U64(12)
-#define LOG_PTR        BIT_U64(13)
-#define LOG_HINFO      BIT_U64(14)
-#define LOG_MINFO      BIT_U64(15)
-#define LOG_MX         BIT_U64(16)
-#define LOG_TXT        BIT_U64(17)
-#define LOG_RP         BIT_U64(18)
-#define LOG_AFSDB      BIT_U64(19)
-#define LOG_X25        BIT_U64(20)
-#define LOG_ISDN       BIT_U64(21)
-#define LOG_RT         BIT_U64(22)
-#define LOG_NSAP       BIT_U64(23)
-#define LOG_NSAPPTR    BIT_U64(24)
-#define LOG_SIG        BIT_U64(25)
-#define LOG_KEY        BIT_U64(26)
-#define LOG_PX         BIT_U64(27)
-#define LOG_GPOS       BIT_U64(28)
-#define LOG_AAAA       BIT_U64(29)
-#define LOG_LOC        BIT_U64(30)
-#define LOG_NXT        BIT_U64(31)
-#define LOG_SRV        BIT_U64(32)
-#define LOG_ATMA       BIT_U64(33)
-#define LOG_NAPTR      BIT_U64(34)
-#define LOG_KX         BIT_U64(35)
-#define LOG_CERT       BIT_U64(36)
-#define LOG_A6         BIT_U64(37)
-#define LOG_DNAME      BIT_U64(38)
-#define LOG_OPT        BIT_U64(39)
-#define LOG_APL        BIT_U64(40)
-#define LOG_DS         BIT_U64(41)
-#define LOG_SSHFP      BIT_U64(42)
-#define LOG_IPSECKEY   BIT_U64(43)
-#define LOG_RRSIG      BIT_U64(44)
-#define LOG_NSEC       BIT_U64(45)
-#define LOG_DNSKEY     BIT_U64(46)
-#define LOG_DHCID      BIT_U64(47)
-#define LOG_NSEC3      BIT_U64(48)
-#define LOG_NSEC3PARAM BIT_U64(49)
-#define LOG_TLSA       BIT_U64(50)
-#define LOG_HIP        BIT_U64(51)
-#define LOG_CDS        BIT_U64(52)
-#define LOG_CDNSKEY    BIT_U64(53)
-#define LOG_SPF        BIT_U64(54)
-#define LOG_TKEY       BIT_U64(55)
-#define LOG_TSIG       BIT_U64(56)
-#define LOG_MAILA      BIT_U64(57)
-#define LOG_ANY        BIT_U64(58)
-#define LOG_URI        BIT_U64(59)
+/* Should split these into separate flags fields when we run out of bits below.
+ */
+#define LOG_A          BIT_U64(4)
+#define LOG_NS         BIT_U64(5)
+#define LOG_MD         BIT_U64(6)
+#define LOG_MF         BIT_U64(7)
+#define LOG_CNAME      BIT_U64(8)
+#define LOG_SOA        BIT_U64(9)
+#define LOG_MB         BIT_U64(10)
+#define LOG_MG         BIT_U64(11)
+#define LOG_MR         BIT_U64(12)
+#define LOG_NULL       BIT_U64(13)
+#define LOG_WKS        BIT_U64(14)
+#define LOG_PTR        BIT_U64(15)
+#define LOG_HINFO      BIT_U64(16)
+#define LOG_MINFO      BIT_U64(17)
+#define LOG_MX         BIT_U64(18)
+#define LOG_TXT        BIT_U64(19)
+#define LOG_RP         BIT_U64(20)
+#define LOG_AFSDB      BIT_U64(21)
+#define LOG_X25        BIT_U64(22)
+#define LOG_ISDN       BIT_U64(23)
+#define LOG_RT         BIT_U64(24)
+#define LOG_NSAP       BIT_U64(25)
+#define LOG_NSAPPTR    BIT_U64(26)
+#define LOG_SIG        BIT_U64(27)
+#define LOG_KEY        BIT_U64(28)
+#define LOG_PX         BIT_U64(29)
+#define LOG_GPOS       BIT_U64(30)
+#define LOG_AAAA       BIT_U64(31)
+#define LOG_LOC        BIT_U64(32)
+#define LOG_NXT        BIT_U64(33)
+#define LOG_SRV        BIT_U64(34)
+#define LOG_ATMA       BIT_U64(35)
+#define LOG_NAPTR      BIT_U64(36)
+#define LOG_KX         BIT_U64(37)
+#define LOG_CERT       BIT_U64(38)
+#define LOG_A6         BIT_U64(39)
+#define LOG_DNAME      BIT_U64(40)
+#define LOG_OPT        BIT_U64(41)
+#define LOG_APL        BIT_U64(42)
+#define LOG_DS         BIT_U64(43)
+#define LOG_SSHFP      BIT_U64(44)
+#define LOG_IPSECKEY   BIT_U64(45)
+#define LOG_RRSIG      BIT_U64(46)
+#define LOG_NSEC       BIT_U64(47)
+#define LOG_DNSKEY     BIT_U64(48)
+#define LOG_DHCID      BIT_U64(49)
+#define LOG_NSEC3      BIT_U64(50)
+#define LOG_NSEC3PARAM BIT_U64(51)
+#define LOG_TLSA       BIT_U64(52)
+#define LOG_HIP        BIT_U64(53)
+#define LOG_CDS        BIT_U64(54)
+#define LOG_CDNSKEY    BIT_U64(55)
+#define LOG_SPF        BIT_U64(56)
+#define LOG_TKEY       BIT_U64(57)
+#define LOG_TSIG       BIT_U64(58)
+#define LOG_MAILA      BIT_U64(59)
+#define LOG_ANY        BIT_U64(60)
+#define LOG_URI        BIT_U64(61)
 
-#define LOG_ALL_RRTYPES (~(uint64_t)(LOG_QUERIES|LOG_ANSWERS))
+#define LOG_ALL_RRTYPES (~(uint64_t)(LOG_SPLIT|LOG_UNIFIED|LOG_QUERIES|LOG_ANSWERS))
 
 typedef enum {
     DNS_RRTYPE_A = 0,
@@ -386,6 +390,24 @@ static int DNSRRTypeEnabled(uint16_t type, uint64_t flags)
     }
 }
 
+static void LogUnifiedQuery(LogDnsLogThread *aft, json_t *js,
+                            DNSTransaction *tx, DNSQueryEntry *entry)
+{
+    /* query */
+    char *c;
+    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)),
+                       entry->len);
+    if (c != NULL) {
+        json_object_set_new(js, "rrname", json_string(c));
+        SCFree(c);
+    }
+
+    /* name */
+    char record[16] = "";
+    DNSCreateTypeString(entry->type, record, sizeof(record));
+    json_object_set_new(js, "rrtype", json_string(record));
+}
+
 static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
         uint64_t tx_id, DNSQueryEntry *entry) __attribute__((nonnull));
 
@@ -432,6 +454,61 @@ static void LogQuery(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
     json_object_set_new(js, "dns", djs);
     OutputJSONBuffer(js, aft->dnslog_ctx->file_ctx, &aft->buffer);
     json_object_del(js, "dns");
+}
+
+static void UnifiedAnswer(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, DNSAnswerEntry *entry)
+{
+    json_t *ajs = json_object();
+
+
+    /* we are logging an answer RR */
+    if (entry != NULL) {
+        /* query */
+        if (entry->fqdn_len > 0) {
+            char *c;
+            c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)),
+                    entry->fqdn_len);
+            if (c != NULL) {
+                json_object_set_new(ajs, "rrname", json_string(c));
+                SCFree(c);
+            }
+        }
+
+        /* name */
+        char record[16] = "";
+        DNSCreateTypeString(entry->type, record, sizeof(record));
+        json_object_set_new(ajs, "rrtype", json_string(record));
+
+        /* ttl */
+        json_object_set_new(ajs, "ttl", json_integer(entry->ttl));
+
+        uint8_t *ptr = (uint8_t *)((uint8_t *)entry + sizeof(DNSAnswerEntry)+ entry->fqdn_len);
+        if (entry->type == DNS_RECORD_TYPE_A) {
+            char a[16] = "";
+            PrintInet(AF_INET, (const void *)ptr, a, sizeof(a));
+            json_object_set_new(ajs, "rdata", json_string(a));
+        } else if (entry->type == DNS_RECORD_TYPE_AAAA) {
+            char a[46] = "";
+            PrintInet(AF_INET6, (const void *)ptr, a, sizeof(a));
+            json_object_set_new(ajs, "rdata", json_string(a));
+        } else if (entry->data_len == 0) {
+            json_object_set_new(ajs, "rdata", json_string(""));
+        } else if (entry->type == DNS_RECORD_TYPE_TXT || entry->type == DNS_RECORD_TYPE_CNAME ||
+                   entry->type == DNS_RECORD_TYPE_MX || entry->type == DNS_RECORD_TYPE_PTR ||
+                   entry->type == DNS_RECORD_TYPE_NS) {
+            if (entry->data_len != 0) {
+                char buffer[256] = "";
+                uint16_t copy_len = entry->data_len < (sizeof(buffer) - 1) ?
+                    entry->data_len : sizeof(buffer) - 1;
+                memcpy(buffer, ptr, copy_len);
+                buffer[copy_len] = '\0';
+                json_object_set_new(ajs, "rdata", json_string(buffer));
+            } else {
+                json_object_set_new(ajs, "rdata", json_string(""));
+            }
+        }
+    }
+    json_array_append_new(js, ajs);
 }
 
 static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
@@ -545,6 +622,23 @@ static void OutputAnswer(LogDnsLogThread *aft, json_t *djs,
     return;
 }
 
+static void UnifiedFailure(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx,
+                           DNSQueryEntry *entry)
+{
+    /* rcode */
+    char rcode[16] = "";
+    DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+    json_object_set_new(js, "rcode", json_string(rcode));
+
+    /* no answer RRs, use query for rname */
+    char *c;
+    c = BytesToString((uint8_t *)((uint8_t *)entry + sizeof(DNSQueryEntry)), entry->len);
+    if (c != NULL) {
+        json_object_set_new(js, "rrname", json_string(c));
+        SCFree(c);
+    }
+}
+
 static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
         DNSTransaction *tx, DNSQueryEntry *entry) __attribute__((nonnull));
 
@@ -587,6 +681,31 @@ static void OutputFailure(LogDnsLogThread *aft, json_t *djs,
     return;
 }
 
+static void LogUnifiedAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx)
+{
+
+    /* rcode != noerror */
+    if (tx->rcode != DNS_RCODE_NOERROR) {
+        /* Most DNS servers do not support multiple queries because
+         * the rcode in response is not per-query.  Multiple queries
+         * are likely to lead to FORMERR, so log this. */
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            UnifiedFailure(aft, js, tx, query);
+        }
+    }
+
+    DNSAnswerEntry *entry = NULL;
+    TAILQ_FOREACH(entry, &tx->answer_list, next) {
+        UnifiedAnswer(aft, js, tx, entry);
+    }
+
+    entry = NULL;
+    TAILQ_FOREACH(entry, &tx->authority_list, next) {
+        UnifiedAnswer(aft, js, tx, entry);
+    }
+}
+
 static void LogAnswers(LogDnsLogThread *aft, json_t *js, DNSTransaction *tx, uint64_t tx_id)
 {
 
@@ -625,16 +744,59 @@ static int JsonDnsLoggerToServer(ThreadVars *tv, void *thread_data,
     DNSTransaction *tx = txptr;
     json_t *js;
 
-    if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
-        DNSQueryEntry *query = NULL;
-        TAILQ_FOREACH(query, &tx->query_list, next) {
-            js = CreateJSONHeader((Packet *)p, 1, "dns");
-            if (unlikely(js == NULL))
-                return TM_ECODE_OK;
+    if ((dnslog_ctx->flags & (LOG_UNIFIED|LOG_SPLIT)) == 0) {
+        /* This is the historical log format */
+        if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
+            DNSQueryEntry *query = NULL;
+            TAILQ_FOREACH(query, &tx->query_list, next) {
+                js = CreateJSONHeader((Packet *)p, 1, "dns");
+                if (unlikely(js == NULL))
+                    return TM_ECODE_OK;
 
-            LogQuery(td, js, tx, tx_id, query);
+                LogQuery(td, js, tx, tx_id, query);
 
-            json_decref(js);
+                json_decref(js);
+            }
+        }
+    } else if ((dnslog_ctx->flags & LOG_SPLIT) != 0) {
+        /* This is the split log query */
+        if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
+            DNSQueryEntry *query = NULL;
+            TAILQ_FOREACH(query, &tx->query_list, next) {
+                /* reset */
+                MemBufferReset(td->buffer);
+
+                js = CreateJSONHeader((Packet *)p, 1, "dns");
+                if (unlikely(js == NULL))
+                    return TM_ECODE_OK;
+
+                json_t *djs = json_object();
+                if (unlikely(djs == NULL))
+                    return TM_ECODE_OK;
+
+                /* type */
+                json_object_set_new(djs, "type", json_string("query"));
+
+                /* id */
+                json_object_set_new(djs, "id", json_integer(tx->tx_id));
+
+                json_t *qjs = json_object();;
+                if (unlikely(qjs == NULL))
+                    return TM_ECODE_OK;
+
+                LogUnifiedQuery(td, qjs, tx, query);
+
+                json_object_set_new(djs, "query", qjs);
+
+                /* tx id (tx counter) */
+                json_object_set_new(djs, "tx_id", json_integer(tx_id));
+
+                json_object_set_new(js, "dns", djs);
+
+                OutputJSONBuffer(js, dnslog_ctx->file_ctx, &td->buffer);
+
+                json_decref(js);
+            }
         }
     }
 
@@ -651,14 +813,117 @@ static int JsonDnsLoggerToClient(ThreadVars *tv, void *thread_data,
     DNSTransaction *tx = txptr;
     json_t *js;
 
-    if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
-        js = CreateJSONHeader((Packet *)p, 0, "dns");
-        if (unlikely(js == NULL))
-            return TM_ECODE_OK;
+    if ((dnslog_ctx->flags & LOG_UNIFIED) != 0) {
+        /* This is the unified log */
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            /* reset */
+            MemBufferReset(td->buffer);
 
-        LogAnswers(td, js, tx, tx_id);
+            js = CreateJSONHeader((Packet *)p, 1, "dns");
+            if (unlikely(js == NULL))
+                return TM_ECODE_OK;
 
-        json_decref(js);
+            json_t *djs = json_object();
+            if (unlikely(djs == NULL))
+                return TM_ECODE_OK;
+
+            /* type */
+            json_object_set_new(djs, "type", json_string("unified"));
+
+            /* id */
+            json_object_set_new(djs, "id", json_integer(tx->tx_id));
+
+            if (likely(dnslog_ctx->flags & LOG_QUERIES) != 0) {
+                json_t *qjs = json_object();;
+                if (unlikely(qjs == NULL))
+                    return TM_ECODE_OK;
+
+                LogUnifiedQuery(td, qjs, tx, query);
+
+                json_object_set_new(djs, "query", qjs);
+            }
+
+            /* rcode */
+            char rcode[16] = "";
+            DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+            json_object_set_new(djs, "rcode", json_string(rcode));
+
+            if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
+                json_t *rjs = json_array();
+                if (unlikely(rjs == NULL))
+                    return TM_ECODE_OK;
+
+                LogUnifiedAnswers(td, rjs, tx);
+
+                json_object_set_new(djs, "answer", rjs);
+            }
+
+            /* tx id (tx counter) */
+            json_object_set_new(djs, "tx_id", json_integer(tx_id));
+
+            json_object_set_new(js, "dns", djs);
+
+            OutputJSONBuffer(js, dnslog_ctx->file_ctx, &td->buffer);
+
+            json_decref(js);
+        }
+    } else if ((dnslog_ctx->flags & LOG_SPLIT) != 0) {
+        /* This is the split log answer */
+        DNSQueryEntry *query = NULL;
+        TAILQ_FOREACH(query, &tx->query_list, next) {
+            /* reset */
+            MemBufferReset(td->buffer);
+
+            js = CreateJSONHeader((Packet *)p, 1, "dns");
+            if (unlikely(js == NULL))
+                return TM_ECODE_OK;
+
+            json_t *djs = json_object();
+            if (unlikely(djs == NULL))
+                return TM_ECODE_OK;
+
+            /* type */
+            json_object_set_new(djs, "type", json_string("answer"));
+
+            /* id */
+            json_object_set_new(djs, "id", json_integer(tx->tx_id));
+
+            /* rcode */
+            char rcode[16] = "";
+            DNSCreateRcodeString(tx->rcode, rcode, sizeof(rcode));
+            json_object_set_new(djs, "rcode", json_string(rcode));
+
+            if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
+                json_t *rjs = json_array();
+                if (unlikely(rjs == NULL))
+                    return TM_ECODE_OK;
+
+                LogUnifiedAnswers(td, rjs, tx);
+
+                json_object_set_new(djs, "answer", rjs);
+            }
+
+            /* tx id (tx counter) */
+            json_object_set_new(djs, "tx_id", json_integer(tx_id));
+
+            json_object_set_new(js, "dns", djs);
+
+            OutputJSONBuffer(js, dnslog_ctx->file_ctx, &td->buffer);
+
+            json_decref(js);
+        }
+    } else {
+        /* This is the historical log format */
+        if (likely(dnslog_ctx->flags & LOG_ANSWERS) != 0) {
+            js = CreateJSONHeader((Packet *)p, 0, "dns");
+            if (unlikely(js == NULL))
+                return TM_ECODE_OK;
+
+            LogAnswers(td, js, tx, tx_id);
+
+            json_decref(js);
+        }
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -730,18 +995,34 @@ static void JsonDnsLogInitFilters(LogDnsFileCtx *dnslog_ctx, ConfNode *conf)
     if (conf) {
         const char *query = ConfNodeLookupChildValue(conf, "query");
         if (query != NULL) {
-            if (ConfValIsTrue(query)) {
-                dnslog_ctx->flags |= LOG_QUERIES;
+            if (strcasecmp(query, "unified") == 0) {
+                    dnslog_ctx->flags &= ~LOG_SPLIT;
+                    dnslog_ctx->flags |= (LOG_QUERIES|LOG_UNIFIED);
+            } else if (strcasecmp(query, "split") == 0) {
+                    dnslog_ctx->flags &= ~LOG_UNIFIED;
+                    dnslog_ctx->flags |= (LOG_QUERIES|LOG_SPLIT);
             } else {
-                dnslog_ctx->flags &= ~LOG_QUERIES;
+                if (ConfValIsTrue(query)) {
+                    dnslog_ctx->flags |= LOG_QUERIES;
+                } else {
+                    dnslog_ctx->flags &= ~LOG_QUERIES;
+                }
             }
         }
         const char *response = ConfNodeLookupChildValue(conf, "answer");
         if (response != NULL) {
-            if (ConfValIsTrue(response)) {
-                dnslog_ctx->flags |= LOG_ANSWERS;
+            if (strcasecmp(response, "unified") == 0) {
+                    dnslog_ctx->flags &= ~LOG_SPLIT;
+                    dnslog_ctx->flags |= (LOG_ANSWERS|LOG_UNIFIED);
+            } else if (strcasecmp(response, "split") == 0) {
+                    dnslog_ctx->flags &= ~LOG_UNIFIED;
+                    dnslog_ctx->flags |= (LOG_ANSWERS|LOG_SPLIT);
             } else {
-                dnslog_ctx->flags &= ~LOG_ANSWERS;
+                if (ConfValIsTrue(response)) {
+                    dnslog_ctx->flags |= LOG_ANSWERS;
+                } else {
+                    dnslog_ctx->flags &= ~LOG_ANSWERS;
+                }
             }
         }
         ConfNode *custom;
