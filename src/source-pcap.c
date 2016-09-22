@@ -395,6 +395,12 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     SCLogInfo("using interface %s", (char *)pcapconfig->iface);
 
+    if (LiveGetOffload() == 0) {
+        (void)GetIfaceOffloading((char *)pcapconfig->iface, 1, 1);
+    } else {
+        DisableIfaceOffloading(ptv->livedev, 1, 1);
+    }
+
     ptv->checksum_mode = pcapconfig->checksum_mode;
     if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
         SCLogInfo("Running in 'auto' checksum mode. Detection of interface state will require "

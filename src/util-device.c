@@ -18,6 +18,7 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "util-device.h"
+#include "util-ioctl.h"
 
 #define MAX_DEVNAME 10
 
@@ -39,6 +40,23 @@ static int live_devices_stats = 1;
 static int LiveSafeDeviceName(const char *devname,
                               char *newdevname, size_t destlen);
 
+static int g_live_devices_disable_offloading = 1;
+
+void LiveSetOffloadDisable(void)
+{
+    g_live_devices_disable_offloading = 1;
+}
+
+void LiveSetOffloadWarn(void)
+{
+    g_live_devices_disable_offloading = 0;
+}
+
+int LiveGetOffload(void)
+{
+    return g_live_devices_disable_offloading;
+}
+
 /**
  *  \brief Add a pcap device for monitoring
  *
@@ -49,7 +67,7 @@ static int LiveSafeDeviceName(const char *devname,
  */
 int LiveRegisterDevice(const char *dev)
 {
-    LiveDevice *pd = SCMalloc(sizeof(LiveDevice));
+    LiveDevice *pd = SCCalloc(1, sizeof(LiveDevice));
     if (unlikely(pd == NULL)) {
         return -1;
     }
@@ -264,6 +282,9 @@ int LiveDeviceListClean()
                     100 * (SC_ATOMIC_GET(pd->drop) * 1.0) / SC_ATOMIC_GET(pd->pkts),
                     SC_ATOMIC_GET(pd->invalid_checksums));
         }
+
+        RestoreIfaceOffloading(pd);
+
         if (pd->dev)
             SCFree(pd->dev);
         SC_ATOMIC_DESTROY(pd->pkts);

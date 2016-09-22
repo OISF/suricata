@@ -293,9 +293,6 @@ static int NetmapOpen(char *ifname, int promisc, NetmapDevice **pdevice, int ver
         }
     }
 
-    /* netmap needs all offloading to be disabled */
-    (void)GetIfaceOffloading(ifname, 1, 1);
-
     /* not found, create new record */
     pdev = SCMalloc(sizeof(*pdev));
     if (unlikely(pdev == NULL)) {

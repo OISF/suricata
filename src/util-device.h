@@ -21,6 +21,19 @@
 #include "queue.h"
 #include "unix-manager.h"
 
+#define OFFLOAD_FLAG_SG     (1<<0)
+#define OFFLOAD_FLAG_TSO    (1<<1)
+#define OFFLOAD_FLAG_GSO    (1<<2)
+#define OFFLOAD_FLAG_GRO    (1<<3)
+#define OFFLOAD_FLAG_LRO    (1<<4)
+#define OFFLOAD_FLAG_RXCSUM (1<<5)
+#define OFFLOAD_FLAG_TXCSUM (1<<6)
+#define OFFLOAD_FLAG_TOE    (1<<7)
+
+void LiveSetOffloadDisable(void);
+void LiveSetOffloadWarn(void);
+int LiveGetOffload(void);
+
 #define MAX_DEVNAME 10
 
 /** storage for live device names */
@@ -32,8 +45,9 @@ typedef struct LiveDevice_ {
     SC_ATOMIC_DECLARE(uint64_t, drop);
     SC_ATOMIC_DECLARE(uint64_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
-} LiveDevice;
 
+    uint32_t offload_orig;  /**< original offload settings to restore @exit */
+} LiveDevice;
 
 int LiveRegisterDevice(const char *dev);
 int LiveGetDeviceCount(void);

@@ -453,10 +453,15 @@ finalize:
     switch (ltype) {
         case LINKTYPE_ETHERNET:
             /* af-packet can handle csum offloading */
-            if (GetIfaceOffloading(iface, 0, 1) == 1) {
-                SCLogWarning(SC_ERR_AFP_CREATE,
-                    "Using AF_PACKET with offloading activated leads to capture problems");
+            if (LiveGetOffload() == 0) {
+                if (GetIfaceOffloading(iface, 0, 1) == 1) {
+                    SCLogWarning(SC_ERR_AFP_CREATE,
+                            "Using AF_PACKET with offloading activated leads to capture problems");
+                }
+            } else {
+                DisableIfaceOffloading(LiveGetDevice(iface), 0, 1);
             }
+            break;
         case -1:
         default:
             break;

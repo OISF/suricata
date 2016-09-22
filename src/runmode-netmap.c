@@ -207,6 +207,13 @@ finalize:
         ns->threads = 1;
     }
 
+    /* netmap needs all offloading to be disabled */
+    if (LiveGetOffload() == 0) {
+        (void)GetIfaceOffloading(ns->iface, 1, 1);
+    } else {
+        DisableIfaceOffloading(LiveGetDevice(ns->iface), 1, 1);
+    }
+
     return 0;
 }
 
