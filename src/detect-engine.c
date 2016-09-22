@@ -563,6 +563,56 @@ int DetectEngineReloadIsDone(void)
     return r;
 }
 
+/** \brief Do the content inspection & validation for a signature
+ *
+ *  \param de_ctx Detection engine context
+ *  \param det_ctx Detection engine thread context
+ *  \param s Signature to inspect
+ *  \param sm SigMatch to inspect
+ *  \param f Flow
+ *  \param flags app layer flags
+ *  \param state App layer state
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ */
+int DetectEngineInspectGenericList(ThreadVars *tv,
+                                   const DetectEngineCtx *de_ctx,
+                                   DetectEngineThreadCtx *det_ctx,
+                                   const Signature *s, Flow *f, const uint8_t flags,
+                                   void *alstate, void *txv, uint64_t tx_id, const int list)
+{
+#ifdef PROFILING
+    KEYWORD_PROFILING_SET_LIST(det_ctx, list);
+#endif
+    SigMatchData *smd = s->sm_arrays[list];
+    SCLogDebug("running match functions, sm %p", smd);
+    if (smd != NULL) {
+        while (1) {
+            int match = 0;
+#ifdef PROFILING
+            KEYWORD_PROFILING_START;
+#endif
+            match = sigmatch_table[smd->type].
+                AppLayerTxMatch(tv, det_ctx, f, flags, alstate, txv, s, smd->ctx);
+#ifdef PROFILING
+            KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
+#endif
+            if (match == 0)
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            if (match == 2) {
+                return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+            }
+
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+    }
+
+    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+}
+
 /* nudge capture loops to wake up */
 static void BreakCapture(void)
 {
