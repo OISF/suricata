@@ -129,9 +129,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
 
     struct tmp_t data_toserver[] = {
         { ALPROTO_HTTP,
-          DETECT_SM_LIST_HRHDMATCH,
-          DetectEngineInspectHttpRawHeader },
-        { ALPROTO_HTTP,
           DETECT_SM_LIST_HMDMATCH,
           DetectEngineInspectHttpMethod },
         { ALPROTO_HTTP,
@@ -185,9 +182,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEDATA,
           DetectEngineInspectHttpServerBody },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HRHDMATCH,
-          DetectEngineInspectHttpRawHeader },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HCDMATCH,
           DetectEngineInspectHttpCookie },

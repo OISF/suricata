@@ -86,6 +86,12 @@ void DetectHttpRawHeaderRegister(void)
             DETECT_SM_LIST_HRHDMATCH, 2,
             PrefilterTxResponseHeadersRawRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HRHDMATCH,
+            DetectEngineInspectHttpRawHeader);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HRHDMATCH,
+            DetectEngineInspectHttpRawHeader);
     return;
 }
 
