@@ -308,6 +308,27 @@ void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
     return;
 }
 
+void DetectAppLayerInspectEngineRegister(AppProto alproto,
+        uint32_t dir, int32_t sm_list,
+        int (*Callback)(ThreadVars *tv,
+            DetectEngineCtx *de_ctx,
+            DetectEngineThreadCtx *det_ctx,
+            Signature *sig, Flow *f,
+            uint8_t flags, void *alstate,
+            void *tx, uint64_t tx_id))
+{
+    BUG_ON(!(dir == SIG_FLAG_TOSERVER || dir == SIG_FLAG_TOCLIENT));
+
+    int direction;
+    if (dir == SIG_FLAG_TOSERVER) {
+        direction = 0;
+    } else {
+        direction = 1;
+    }
+
+    DetectEngineRegisterAppInspectionEngine(alproto, direction, sm_list, Callback);
+}
+
 int DetectEngineAppInspectionEngine2Signature(Signature *s)
 {
     DetectEngineAppInspectionEngine *t = g_app_inspect_engines;
