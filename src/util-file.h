@@ -33,20 +33,20 @@
 
 #include "util-streaming-buffer.h"
 
-#define FILE_TRUNCATED  0x0001
-#define FILE_NOMAGIC    0x0002
-#define FILE_NOMD5      0x0004
-#define FILE_MD5        0x0008
-#define FILE_NOSHA1     0x0010
-#define FILE_SHA1       0x0020
-#define FILE_NOSHA256   0x0040
-#define FILE_SHA256     0x0080
-#define FILE_LOGGED     0x0100
-#define FILE_NOSTORE    0x0200
-#define FILE_STORE      0x0400
-#define FILE_STORED     0x0800
-#define FILE_NOTRACK    0x1000 /**< track size of file */
-#define FILE_USE_DETECT 0x2000 /**< use content_inspected tracker */
+#define FILE_TRUNCATED  BIT_U16(0)
+#define FILE_NOMAGIC    BIT_U16(1)
+#define FILE_NOMD5      BIT_U16(2)
+#define FILE_MD5        BIT_U16(3)
+#define FILE_NOSHA1     BIT_U16(4)
+#define FILE_SHA1       BIT_U16(5)
+#define FILE_NOSHA256   BIT_U16(6)
+#define FILE_SHA256     BIT_U16(7)
+#define FILE_LOGGED     BIT_U16(8)
+#define FILE_NOSTORE    BIT_U16(9)
+#define FILE_STORE      BIT_U16(10)
+#define FILE_STORED     BIT_U16(11)
+#define FILE_NOTRACK    BIT_U16(12) /**< track size of file */
+#define FILE_USE_DETECT BIT_U16(13) /**< use content_inspected tracker */
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -210,5 +210,7 @@ void FileStoreFileById(FileContainer *fc, uint32_t);
 void FileTruncateAllOpenFiles(FileContainer *);
 
 uint64_t FileSize(const File *file);
+
+uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction);
 
 #endif /* __UTIL_FILE_H__ */

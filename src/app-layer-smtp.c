@@ -408,28 +408,10 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
     SMTPState *smtp_state = (SMTPState *) flow->alstate;
     MimeDecEntity *entity = (MimeDecEntity *) state->stack->top->data;
     FileContainer *files = NULL;
-    uint16_t flags = 0;
 
-    /* Set flags */
-    if (flow->flags & FLOW_FILE_NO_STORE_TS) {
-        flags |= FILE_NOSTORE;
-    }
-
-    if (flow->flags & FLOW_FILE_NO_MAGIC_TS) {
-        flags |= FILE_NOMAGIC;
-    }
-
-    if (flow->flags & FLOW_FILE_NO_MD5_TS) {
-        flags |= FILE_NOMD5;
-    }
-
-    if (flow->flags & FLOW_FILE_NO_SHA1_TS) {
-        flags |= FILE_NOSHA1;
-    }
-
-    if (flow->flags & FLOW_FILE_NO_SHA256_TS) {
-        flags |= FILE_NOSHA256;
-    }
+    uint16_t flags = FileFlowToFlags(flow, STREAM_TOSERVER);
+    /* we depend on detection engine for file pruning */
+    flags |= FILE_USE_DETECT;
 
     /* Find file */
     if (entity->ctnt_flags & CTNT_IS_ATTACHMENT) {
@@ -464,7 +446,7 @@ int SMTPProcessDataChunk(const uint8_t *chunk, uint32_t len,
             }
 
             if (FileOpenFile(files, &smtp_config.sbcfg, (uint8_t *) entity->filename, entity->filename_len,
-                    (uint8_t *) chunk, len, flags|FILE_USE_DETECT) == NULL) {
+                    (uint8_t *) chunk, len, flags) == NULL) {
                 ret = MIME_DEC_ERR_DATA;
                 SCLogDebug("FileOpenFile() failed");
             }

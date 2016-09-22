@@ -80,7 +80,7 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         uint64_t txid, uint8_t direction)
 {
     int retval = 0;
-    uint8_t flags = 0;
+    uint16_t flags = 0;
     FileContainer *files = NULL;
     FileContainer *files_opposite = NULL;
     const StreamingBufferConfig *sbcfg = NULL;
@@ -103,32 +103,13 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         files = s->files_tc;
         files_opposite = s->files_ts;
 
+        flags = FileFlowToFlags(s->f, STREAM_TOCLIENT);
+
         if ((s->flags & HTP_FLAG_STORE_FILES_TS) ||
                 ((s->flags & HTP_FLAG_STORE_FILES_TX_TS) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_MAGIC_TC) {
-            SCLogDebug("no magic for this flow in toclient direction, so none for this file");
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_MD5_TC) {
-            SCLogDebug("no md5 for this flow in toclient direction, so none for this file");
-            flags |= FILE_NOMD5;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_SHA1_TC) {
-            SCLogDebug("no sha1 for this flow in toclient direction, so none for this file");
-            flags |= FILE_NOSHA1;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_SHA256_TC) {
-            SCLogDebug("no sha256 for this flow in toclient direction, so none for this file");
-            flags |= FILE_NOSHA256;
-        }
-
-        if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TC)) {
+            flags &= ~FILE_NOSTORE;
+        } else if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TC)) {
             flags |= FILE_NOSTORE;
         }
 
@@ -146,31 +127,12 @@ int HTPFileOpen(HtpState *s, const uint8_t *filename, uint16_t filename_len,
         files = s->files_ts;
         files_opposite = s->files_tc;
 
+        flags = FileFlowToFlags(s->f, STREAM_TOSERVER);
         if ((s->flags & HTP_FLAG_STORE_FILES_TC) ||
                 ((s->flags & HTP_FLAG_STORE_FILES_TX_TC) && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
-        }
-        if (s->f->flags & FLOW_FILE_NO_MAGIC_TS) {
-            SCLogDebug("no magic for this flow in toserver direction, so none for this file");
-            flags |= FILE_NOMAGIC;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_MD5_TS) {
-            SCLogDebug("no md5 for this flow in toserver direction, so none for this file");
-            flags |= FILE_NOMD5;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_SHA1_TS) {
-            SCLogDebug("no sha1 for this flow in toserver direction, so none for this file");
-            flags |= FILE_NOSHA1;
-        }
-
-        if (s->f->flags & FLOW_FILE_NO_SHA256_TS) {
-            SCLogDebug("no sha256 for this flow in toserver direction, so none for this file");
-            flags |= FILE_NOSHA256;
-        }
-
-        if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TS)) {
+            flags &= ~FILE_NOSTORE;
+        } else if (!(flags & FILE_STORE) && (s->f->flags & FLOW_FILE_NO_STORE_TS)) {
             flags |= FILE_NOSTORE;
         }
 

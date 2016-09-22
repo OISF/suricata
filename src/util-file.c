@@ -175,6 +175,54 @@ void FileForceHashParseCfg(ConfNode *conf)
     }
 }
 
+uint16_t FileFlowToFlags(const Flow *flow, uint8_t direction)
+{
+    uint16_t flags = 0;
+
+    if (direction == STREAM_TOSERVER) {
+        if (flow->flags & FLOW_FILE_NO_STORE_TS) {
+            flags |= FILE_NOSTORE;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_MAGIC_TS) {
+            flags |= FILE_NOMAGIC;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_MD5_TS) {
+            flags |= FILE_NOMD5;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_SHA1_TS) {
+            flags |= FILE_NOSHA1;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_SHA256_TS) {
+            flags |= FILE_NOSHA256;
+        }
+    } else {
+        if (flow->flags & FLOW_FILE_NO_STORE_TC) {
+            flags |= FILE_NOSTORE;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_MAGIC_TC) {
+            flags |= FILE_NOMAGIC;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_MD5_TC) {
+            flags |= FILE_NOMD5;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_SHA1_TC) {
+            flags |= FILE_NOSHA1;
+        }
+
+        if (flow->flags & FLOW_FILE_NO_SHA256_TC) {
+            flags |= FILE_NOSHA256;
+        }
+    }
+    return flags;
+}
+
 int FileMagicSize(void)
 {
     /** \todo make this size configurable */
