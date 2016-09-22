@@ -131,9 +131,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
 
     struct tmp_t data_toserver[] = {
         { ALPROTO_HTTP,
-          DETECT_SM_LIST_UMATCH,
-          DetectEngineInspectPacketUris },
-        { ALPROTO_HTTP,
           DETECT_SM_LIST_HCBDMATCH,
           DetectEngineInspectHttpClientBody },
         { ALPROTO_HTTP,

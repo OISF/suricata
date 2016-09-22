@@ -79,6 +79,10 @@ void DetectHttpUriRegister (void)
     DetectMpmAppLayerRegister("http_uri", SIG_FLAG_TOSERVER,
             DETECT_SM_LIST_UMATCH, 2,
             PrefilterTxUriRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_UMATCH,
+            DetectEngineInspectHttpUri);
 }
 
 
