@@ -88,6 +88,13 @@ void DetectHttpHeaderRegister(void)
             DETECT_SM_LIST_HHDMATCH, 2,
             PrefilterTxHttpResponseHeadersRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_HHDMATCH,
+            DetectEngineInspectHttpHeader);
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_HHDMATCH,
+            DetectEngineInspectHttpHeader);
+
     return;
 }
 
