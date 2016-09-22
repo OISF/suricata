@@ -49,7 +49,6 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
-#include "detect-engine-hrhhd.h"
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
 #include "detect-engine-tls.h"
@@ -126,9 +125,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HRHHDMATCH,
-          DetectEngineInspectHttpHRH },
         /* DNS */
         { ALPROTO_DNS,
           DETECT_SM_LIST_DNSQUERYNAME_MATCH,
