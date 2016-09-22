@@ -171,6 +171,7 @@
 #include "app-layer-smtp.h"
 #include "app-layer-template.h"
 #include "detect-tls.h"
+#include "detect-tls-cert-validity.h"
 #include "detect-tls-version.h"
 #include "detect-ssh-proto-version.h"
 #include "detect-ssh-software-version.h"
@@ -4355,6 +4356,7 @@ void SigTableSetup(void)
     DetectHttpMethodRegister();
     DetectHttpStatMsgRegister();
     DetectTlsRegister();
+    DetectTlsValidityRegister();
     DetectTlsVersionRegister();
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
