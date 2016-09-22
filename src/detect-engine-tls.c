@@ -341,3 +341,45 @@ int DetectEngineInspectTlsSubject(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     return cnt;
 }
+
+int DetectEngineInspectTlsGeneric(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx, Signature *s,
+                                  Flow *f, uint8_t flags, void *alstate, void *txv,
+                                  uint64_t tx_id, const int list)
+{
+    KEYWORD_PROFILING_SET_LIST(det_ctx, list);
+
+    SigMatchData *smd = s->sm_arrays[list];
+    SCLogDebug("running match functions, sm %p", smd);
+    if (smd != NULL) {
+        while (1) {
+            int match = 0;
+            KEYWORD_PROFILING_START;
+            match = sigmatch_table[smd->type].
+                AppLayerTxMatch(tv, det_ctx, f, flags, alstate, txv, s, smd->ctx);
+            KEYWORD_PROFILING_END(det_ctx, smd->type, (match == 1));
+
+            if (match == 0)
+                return DETECT_ENGINE_INSPECT_SIG_NO_MATCH;
+            if (match == 2) {
+                return DETECT_ENGINE_INSPECT_SIG_CANT_MATCH;
+            }
+
+            if (smd->is_last)
+                break;
+            smd++;
+        }
+    }
+
+    return DETECT_ENGINE_INSPECT_SIG_MATCH;
+}
+
+int DetectEngineInspectTlsValidity(ThreadVars *tv, DetectEngineCtx *de_ctx,
+                                  DetectEngineThreadCtx *det_ctx, Signature *s,
+                                  Flow *f, uint8_t flags, void *alstate,
+                                  void *txv, uint64_t tx_id)
+{
+    return DetectEngineInspectTlsGeneric(tv, de_ctx, det_ctx, s, f, flags,
+                                          alstate, txv, tx_id,
+                                          DETECT_SM_LIST_TLSVALIDITY_MATCH);
+}

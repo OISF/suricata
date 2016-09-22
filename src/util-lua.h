@@ -80,6 +80,8 @@ void LuaPrintStack(lua_State *state);
 
 int LuaPushStringBuffer(lua_State *luastate, const uint8_t *input, size_t input_len);
 
+int LuaPushInteger(lua_State *luastate, lua_Integer n);
+
 #endif /* HAVE_LUA */
 
 #endif /* __UTIL_LUA_H__ */
