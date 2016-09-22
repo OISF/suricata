@@ -41,7 +41,6 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
-#include "detect-engine-hcbd.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
 
@@ -130,9 +129,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toserver[] = {
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_HCBDMATCH,
-          DetectEngineInspectHttpClientBody },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_HHDMATCH,
           DetectEngineInspectHttpHeader },
