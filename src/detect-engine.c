@@ -157,12 +157,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_TLS,
           DETECT_SM_LIST_TLSISSUER_MATCH,
           DetectEngineInspectTlsIssuer },
-        { ALPROTO_TLS,
-          DETECT_SM_LIST_TLSSUBJECT_MATCH,
-          DetectEngineInspectTlsSubject },
-        { ALPROTO_TLS,
-          DETECT_SM_LIST_TLSVALIDITY_MATCH,
-          DetectEngineInspectTlsValidity },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
