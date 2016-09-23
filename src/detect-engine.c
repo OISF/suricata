@@ -48,7 +48,6 @@
 #include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
 #include "detect-engine-dns.h"
-#include "detect-engine-tls.h"
 #include "detect-engine-modbus.h"
 #include "detect-engine-template.h"
 
@@ -153,10 +152,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_DNS,
           DETECT_SM_LIST_DNSRESPONSE_MATCH,
           DetectEngineInspectDnsResponse },
-        /* TLS */
-        { ALPROTO_TLS,
-          DETECT_SM_LIST_TLSISSUER_MATCH,
-          DetectEngineInspectTlsIssuer },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
