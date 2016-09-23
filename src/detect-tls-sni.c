@@ -76,6 +76,9 @@ void DetectTlsSniRegister(void)
             DETECT_SM_LIST_TLSSNI_MATCH, 2,
             PrefilterTxTlsSniRegister);
 
+    DetectAppLayerInspectEngineRegister(ALPROTO_TLS, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_TLSSNI_MATCH,
+            DetectEngineInspectTlsSni);
 }
 
 

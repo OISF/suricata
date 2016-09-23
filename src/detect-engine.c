@@ -128,10 +128,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_DNS,
           DETECT_SM_LIST_DNSREQUEST_MATCH,
           DetectEngineInspectDnsRequest },
-        /* TLS */
-        { ALPROTO_TLS,
-          DETECT_SM_LIST_TLSSNI_MATCH,
-          DetectEngineInspectTlsSni },
         /* SMTP */
         { ALPROTO_SMTP,
           DETECT_SM_LIST_FILEMATCH,
