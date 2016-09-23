@@ -47,7 +47,6 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-file.h"
-#include "detect-engine-template.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -115,17 +114,11 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toserver[] = {
-        /* Template. */
-        { ALPROTO_TEMPLATE,
-          DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
-          DetectEngineInspectTemplateBuffer },
+        {0,0,NULL},
     };
 
     struct tmp_t data_toclient[] = {
-        /* Template. */
-        { ALPROTO_TEMPLATE,
-          DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
-          DetectEngineInspectTemplateBuffer },
+        {0,0,NULL},
     };
 
     size_t i;
