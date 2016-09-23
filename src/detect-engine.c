@@ -45,7 +45,6 @@
 #include "detect-engine-tag.h"
 
 #include "detect-engine-uri.h"
-#include "detect-engine-hsbd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
@@ -53,7 +52,6 @@
 #include "detect-engine-dns.h"
 #include "detect-engine-tls.h"
 #include "detect-engine-modbus.h"
-#include "detect-engine-filedata-smtp.h"
 #include "detect-engine-template.h"
 
 #include "detect-engine.h"
@@ -144,10 +142,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
         { ALPROTO_MODBUS,
           DETECT_SM_LIST_MODBUS_MATCH,
           DetectEngineInspectModbus },
-        /* file_data smtp */
-        { ALPROTO_SMTP,
-          DETECT_SM_LIST_FILEDATA,
-          DetectEngineInspectSMTPFiledata },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
@@ -155,9 +149,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toclient[] = {
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_FILEDATA,
-          DetectEngineInspectHttpServerBody },
         { ALPROTO_HTTP,
           DETECT_SM_LIST_FILEMATCH,
           DetectFileInspectHttp },

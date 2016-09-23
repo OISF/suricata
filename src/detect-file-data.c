@@ -69,6 +69,13 @@ void DetectFiledataRegister(void)
     DetectMpmAppLayerRegister("file_data", SIG_FLAG_TOCLIENT,
             DETECT_SM_LIST_FILEDATA, 2,
             PrefilterTxHttpResponseBodyRegister);
+
+    DetectAppLayerInspectEngineRegister(ALPROTO_HTTP, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_FILEDATA,
+            DetectEngineInspectHttpServerBody);
+    DetectAppLayerInspectEngineRegister(ALPROTO_SMTP, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_FILEDATA,
+            DetectEngineInspectSMTPFiledata);
 }
 
 /**
