@@ -115,13 +115,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toserver[] = {
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_FILEMATCH,
-          DetectFileInspectHttp },
-        /* SMTP */
-        { ALPROTO_SMTP,
-          DETECT_SM_LIST_FILEMATCH,
-          DetectFileInspectSmtp },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
@@ -129,9 +122,6 @@ void DetectEngineRegisterAppInspectionEngines(void)
     };
 
     struct tmp_t data_toclient[] = {
-        { ALPROTO_HTTP,
-          DETECT_SM_LIST_FILEMATCH,
-          DetectFileInspectHttp },
         /* Template. */
         { ALPROTO_TEMPLATE,
           DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
