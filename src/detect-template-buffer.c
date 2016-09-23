@@ -33,7 +33,9 @@
 #include "suricata-common.h"
 #include "conf.h"
 #include "detect.h"
+#include "detect-engine.h"
 #include "app-layer-template.h"
+#include "detect-engine-template.h"
 
 static int DetectTemplateBufferSetup(DetectEngineCtx *, Signature *, char *);
 static void DetectTemplateBufferRegisterTests(void);
@@ -54,6 +56,14 @@ void DetectTemplateBufferRegister(void)
 
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_NOOPT;
     sigmatch_table[DETECT_AL_TEMPLATE_BUFFER].flags |= SIGMATCH_PAYLOAD;
+
+    /* register inspect engines */
+    DetectAppLayerInspectEngineRegister(ALPROTO_TEMPLATE, SIG_FLAG_TOSERVER,
+            DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+            DetectEngineInspectTemplateBuffer);
+    DetectAppLayerInspectEngineRegister(ALPROTO_TEMPLATE, SIG_FLAG_TOCLIENT,
+            DETECT_SM_LIST_TEMPLATE_BUFFER_MATCH,
+            DetectEngineInspectTemplateBuffer);
 
     SCLogNotice("Template application layer detect registered.");
 }
