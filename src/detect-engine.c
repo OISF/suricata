@@ -111,7 +111,7 @@ void DetectEngineRegisterAppInspectionEngine(AppProto alproto,
                                                              uint8_t flags, void *alstate,
                                                              void *tx, uint64_t tx_id))
 {
-    if ((alproto <= ALPROTO_UNKNOWN || alproto >= ALPROTO_FAILED) ||
+    if ((alproto >= ALPROTO_FAILED) ||
         (dir > 1) ||
         (sm_list < DETECT_SM_LIST_MATCH || sm_list >= DETECT_SM_LIST_MAX) ||
         (Callback == NULL))
@@ -170,7 +170,9 @@ int DetectEngineAppInspectionEngine2Signature(Signature *s)
     while (t != NULL) {
         if (s->sm_lists[t->sm_list] == NULL)
             goto next;
-        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
+        if (t->alproto == ALPROTO_UNKNOWN) {
+            /* special case, inspect engine applies to all protocols */
+        } else if (s->alproto != ALPROTO_UNKNOWN && s->alproto != t->alproto)
             goto next;
 
         if (s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {

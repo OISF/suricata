@@ -40,7 +40,6 @@
 #include "detect-ipproto.h"
 #include "detect-flow.h"
 #include "detect-app-layer-protocol.h"
-#include "detect-engine-apt-event.h"
 #include "detect-lua.h"
 #include "detect-app-layer-event.h"
 #include "detect-http-method.h"
@@ -1617,25 +1616,6 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
         sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
-
-    if (sig->sm_lists[DETECT_SM_LIST_APP_EVENT] != NULL) {
-        if (AppLayerParserProtocolIsTxEventAware(IPPROTO_TCP, sig->alproto) ||
-            AppLayerParserProtocolIsTxEventAware(IPPROTO_UDP, sig->alproto))
-        {
-            if (sig->flags & SIG_FLAG_TOSERVER) {
-                DetectEngineRegisterAppInspectionEngine(sig->alproto,
-                                                        0,
-                                                        DETECT_SM_LIST_APP_EVENT,
-                                                        DetectEngineAptEventInspect);
-            }
-            if (sig->flags & SIG_FLAG_TOCLIENT) {
-                DetectEngineRegisterAppInspectionEngine(sig->alproto,
-                                                        1,
-                                                        DETECT_SM_LIST_APP_EVENT,
-                                                        DetectEngineAptEventInspect);
-            }
-        }
-    }
 
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(de_ctx, sig) == 0) {
