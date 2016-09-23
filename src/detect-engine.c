@@ -99,46 +99,6 @@ static void TenantIdFree(void *d);
 static uint32_t DetectEngineTentantGetIdFromVlanId(const void *ctx, const Packet *p);
 static uint32_t DetectEngineTentantGetIdFromPcap(const void *ctx, const Packet *p);
 
-void DetectEngineRegisterAppInspectionEngines(void)
-{
-    struct tmp_t {
-        AppProto alproto;
-        int32_t sm_list;
-        int (*Callback)(ThreadVars *tv,
-                        DetectEngineCtx *de_ctx,
-                        DetectEngineThreadCtx *det_ctx,
-                        Signature *sig, Flow *f,
-                        uint8_t flags, void *alstate,
-                        void *tx, uint64_t tx_id);
-
-    };
-
-    struct tmp_t data_toserver[] = {
-        {0,0,NULL},
-    };
-
-    struct tmp_t data_toclient[] = {
-        {0,0,NULL},
-    };
-
-    size_t i;
-    for (i = 0 ; i < sizeof(data_toserver) / sizeof(struct tmp_t); i++) {
-        DetectEngineRegisterAppInspectionEngine(data_toserver[i].alproto,
-                                                0,
-                                                data_toserver[i].sm_list,
-                                                data_toserver[i].Callback);
-    }
-
-    for (i = 0 ; i < sizeof(data_toclient) / sizeof(struct tmp_t); i++) {
-        DetectEngineRegisterAppInspectionEngine(data_toclient[i].alproto,
-                                                1,
-                                                data_toclient[i].sm_list,
-                                                data_toclient[i].Callback);
-    }
-
-    return;
-}
-
 static DetectEngineAppInspectionEngine *g_app_inspect_engines = NULL;
 
 void DetectEngineRegisterAppInspectionEngine(AppProto alproto,

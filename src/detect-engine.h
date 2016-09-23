@@ -29,7 +29,6 @@
 #include "flow-private.h"
 
 /* prototypes */
-void DetectEngineRegisterAppInspectionEngines(void);
 DetectEngineCtx *DetectEngineCtxInitWithPrefix(const char *prefix);
 DetectEngineCtx *DetectEngineCtxInit(void);
 DetectEngineCtx *DetectEngineCtxInitMinimal(void);
